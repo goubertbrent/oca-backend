@@ -1,0 +1,179 @@
+# -*- coding: utf-8 -*-
+# Copyright 2016 Mobicage NV
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# @@license_version:1.1@@
+
+import datetime
+import logging
+
+from dateutil.relativedelta import relativedelta
+from google.appengine.ext import db, deferred
+
+from rogerthat.bizz.job import run_job
+from rogerthat.dal import put_and_invalidate_cache
+from rogerthat.utils import now
+from rogerthat.utils.transactions import run_in_xg_transaction
+from shop.bizz import cancel_order, create_task, audit_log
+from shop.business.prospect import create_prospect_from_customer
+from shop.business.service import set_service_disabled
+from shop.exceptions import OrderAlreadyCanceledException
+from shop.models import Order, Charge, OrderItem, Customer, Product, ExpiredSubscription, ShopTask, RegioManagerTeam, \
+    Prospect
+
+
+def schedule_recurrent_billing():
+    deferred.defer(_recurrent_billing, _transactional=db.is_in_transaction())
+
+
+def _recurrent_billing():
+    today = now()
+    products = Product.get_products_dict()
+    run_job(_qry, [today], _create_charge, [today, products])
+
+
+def _qry(today):
+    # next_charge_date is unset for free subscriptions
+    return Order.all(keys_only=True)\
+        .filter("is_subscription_order =", True)\
+        .filter("next_charge_date <", today)\
+        .filter("status =", Order.STATUS_SIGNED)
+
+
+def _create_charge(order_key, today, products):
+
+    class ZeroChargeException(Exception):
+        pass
+
+    def cleanup_expired_subscription(customer):
+        expired_subscription = ExpiredSubscription.get_by_customer_id(customer.id)
+        if expired_subscription:
+            logging.info('Cleaning up ExpiredSubscription from customer %s because he has linked his credit card',
+                         customer.name)
+            expired_subscription.delete()
+
+    def trans():
+        customer_id = order_key.parent().id()
+        order, customer = db.get([order_key, Customer.create_key(customer_id)])
+        if not order.next_charge_date:
+            logging.warning('Not creating recurrent charge for order %s (%s: %s) because no next charge date is set',
+                            order.order_number, customer_id, customer.name)
+            return
+        elif order.next_charge_date > today:
+            # Scenario: this job fails today, tomorrow this job runs again and fails again
+            # -> 2 jobs for the same order would create 2 charges when the bug is fixed
+            logging.warning('This order has already been charged this month, skipping... %s (%s: %s)',
+                            order.order_number, customer_id, customer.name)
+            return
+        elif customer.subscription_cancel_pending_date:
+            logging.info('Disabling service from customer %s (%d)', customer.name, customer.id)
+            try:
+                cancel_order(customer, order.order_number)
+            except OrderAlreadyCanceledException as exception:
+                logging.info('Order %s already canceled, continuing...', exception.order.order_number)
+
+            set_service_disabled(customer, Customer.DISABLED_OTHER)
+            cleanup_expired_subscription(customer)
+            return
+
+        logging.info("Creating recurrent charge for order %s (%s: %s)", order.order_number, customer_id, customer.name)
+        subscription_extension_orders = list(Order.all()
+                                             .ancestor(customer)
+                                             .filter("next_charge_date <", today)
+                                             .filter("is_subscription_order =", False)
+                                             .filter('is_subscription_extension_order =', True)
+                                             .filter("status =", Order.STATUS_SIGNED))
+        subscription_extension_order_keys = [o.key() for o in subscription_extension_orders]
+
+        charge = Charge(parent=order_key)
+        charge.date = now()
+        charge.type = Charge.TYPE_RECURRING_SUBSCRIPTION
+        charge.subscription_extension_length = 1
+        charge.subscription_extension_order_item_keys = list()
+        charge.currency_code = customer.team.legal_entity.currency_code
+        order_item_qry = OrderItem.all().ancestor(customer if subscription_extension_order_keys else order)
+
+        total_amount = 0
+        for order_item in order_item_qry:
+            product = products[order_item.product_code]
+            if order_item.order_number == order.order_number:
+                if product.is_subscription or product.is_subscription_discount or product.is_subscription_extension:
+                    total_amount += order_item.price
+            elif order_item.parent().key() in subscription_extension_order_keys:
+                if product.is_subscription_extension:
+                    total_amount += order_item.price
+                    charge.subscription_extension_order_item_keys.append(order_item.key())
+
+        if total_amount == 0:
+            raise ZeroChargeException("Calculated recurrent charge of 0 euros")
+
+        to_put = list()
+
+        if not (customer.stripe_id and customer.stripe_credit_card_id):
+            logging.debug('Tried to bill customer, but no credit card info was found')
+            audit_log(customer.id, 'Tried to bill customer, but no credit card info was found')
+            # Log the customer as expired. If this has not been done before.
+            expired_subscription_key = ExpiredSubscription.create_key(customer_id)
+            if not ExpiredSubscription.get(expired_subscription_key):
+                to_put.append(ExpiredSubscription(key=expired_subscription_key,
+                                                  expiration_timestamp=order.next_charge_date))
+                # Create a task for the support manager
+                assignee = customer.manager and customer.manager.email()
+                if customer.team_id is not None:
+                    team = RegioManagerTeam.get_by_id(customer.team_id)
+                    if team.support_manager:
+                        assignee = team.support_manager
+                if assignee:
+                    if customer.prospect_id:
+                        prospect = Prospect.get(Prospect.create_key(customer.prospect_id))
+                    else:
+                        # We can only create tasks for prospects. So we must create a prospect if there was none.
+                        prospect = create_prospect_from_customer(customer)
+                        customer.prospect_id = prospect.id
+                        to_put.append(customer)
+                        to_put.append(prospect)
+                    to_put.append(create_task(created_by=None,
+                                              prospect_or_key=prospect,
+                                              assignee=assignee,
+                                              execution_time=today + 11 * 3600,
+                                              task_type=ShopTask.TYPE_SUPPORT_NEEDED,
+                                              app_id=prospect.app_id,
+                                              status=ShopTask.STATUS_NEW,
+                                              comment=u"Customer needs to be contacted for subscription renewal",
+                                              notify_by_email=True))
+                put_and_invalidate_cache(*to_put)
+            return
+        else:
+            cleanup_expired_subscription(customer)
+
+        charge.amount = total_amount
+        charge.vat_pct = order.vat_pct
+        charge.vat = int(total_amount * order.vat_pct / 100)
+        charge.total_amount = charge.amount + charge.vat
+        to_put.append(charge)
+
+        next_charge_datetime = datetime.datetime.utcfromtimestamp(order.next_charge_date) + relativedelta(months=1)
+        next_charge_date_int = int((next_charge_datetime - datetime.datetime.utcfromtimestamp(0)).total_seconds())
+        order.next_charge_date = next_charge_date_int
+        to_put.append(order)
+        for extension_order in subscription_extension_orders:
+            extension_order.next_charge_date = next_charge_date_int
+            to_put.append(extension_order)
+
+        put_and_invalidate_cache(*to_put)
+
+    try:
+        run_in_xg_transaction(trans)
+    except ZeroChargeException, e:
+        logging.exception("Failed to create new charge: %s" % e.message, _suppress=False)

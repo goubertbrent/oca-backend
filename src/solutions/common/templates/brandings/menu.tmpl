@@ -1,0 +1,60 @@
+<style>
+    .item_description {
+        font-size: .8em;
+    }
+
+    .item_price {
+        text-align: right;
+    }
+
+    .item_name {
+        width: 100%;
+    }
+
+    .postdescription {
+        padding-top: 10px;
+    }
+</style>
+<div id="menu">
+	{% if menu.predescription %}
+        <p class="item_description">{{ menu.predescription|linebreaksbr }}</p>
+    {% endif %}
+    	
+    {% for category in menu.categories %}
+        {% if category.has_visible %}
+            <h2>{{ category.name }}</h2>
+            <table class="category">
+                {% if category.predescription %}
+                    <tr>
+                        <td colspan="2" class="item_description">{{ category.predescription|linebreaksbr }}</td>
+                    </tr>
+                {% endif %}
+                {% for item in category.items %}
+                    {% if item.visible %}
+                        <tr>
+                            <td class="item_name">{{ item.name }}</td>
+                            <td class="item_price">
+                                {% if item.has_price %}{{ currency }}{{ item.price|price }}{% endif %}
+                            </td>
+                        </tr>
+                        {% if item.description %}
+                            <tr>
+                                <td colspan="2" class="item_description">{{ item.description|linebreaksbr }}</td>
+                            </tr>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% if category.postdescription %}
+                    <tr>
+                        <td colspan="2"
+                            class="item_description postdescription">{{ category.postdescription|linebreaksbr }}</td>
+                    </tr>
+                {% endif %}
+            </table>
+        {% endif %}
+    {% endfor %}
+    
+    {% if menu.postdescription %}
+        <p class="item_description">{{ menu.postdescription|linebreaksbr }}</p>
+    {% endif %}
+</div>

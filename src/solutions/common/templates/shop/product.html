@@ -1,0 +1,47 @@
+{% raw %}
+<h3>${product.description}</h3>
+<div>
+    <div class="shop-product-details row">
+        <div class="span5">
+            <div class="shop-product-info-container">
+                <p>${product.default_comment}</p>
+                <div class="shop-to-cart">
+
+                    <select type="number" id="product-amount">
+                        {{each(i, p) product.possible_counts}}
+                        <option {{if product.default_count == p}}selected{{/if}} value="${p}">${p} (${LEGAL_ENTITY_CURRENCY} ${(p * product.price / 100).toFixed(2)})</option>
+                        {{/each}}
+                        {{if !product.possible_counts.length}}
+                        <option selected value="${product.default_count}">${product.default_count}</option>
+                        {{/if}}
+                    </select>
+                    {{if loading}}
+                        <button type="button" class="btn btn-success" disabled>
+                            <i class="fa fa-spinner fa-pulse"></i> ${t.LOADING_DOT_DOT_DOT}
+                        </button>
+                    {{else}}
+                        <button type="button" class="btn btn-success" data-product-code="${product.code}" id="add-to-cart">
+                            <span class="normal"><i class="fa fa-shopping-cart"></i> ${t.order_now}</span>
+                        </button>
+                    {{/if}}
+                    {{if error}}
+                    <div id="product-not-added" class="padding-top">
+                        <div class="alert alert-dismissable alert-error">${error}</div>
+                    </div>
+                    {{else}}
+                        {{if success}}
+                        <div id="product-added" class="padding-top">
+                            <div class="alert alert-dismissable alert-info">${t.product_added}
+                            <a href="#/shop/cart" class="btn btn-mini btn-success pull-right">${t.to_cart} <i class="fa fa-arrow-right"></i></a></div>
+                        </div>
+                        {{/if}}
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+        <div class="shop-product-image span7">
+            <img src="${product.picture_url}"/>
+        </div>
+    </div>
+</div>
+{% endraw %}

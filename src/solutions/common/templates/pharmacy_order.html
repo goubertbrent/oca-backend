@@ -1,0 +1,38 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog"
+    aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+            aria-hidden="true">&times;</button>
+        <h3 id="myModalLabel">${header}</h3>
+    </div>
+    <div class="modal-body">
+        <div class="control-group clearfix">
+            <img width="50px" heigth="50px" style="margin-right: 20px;" src="${sender_avatar_url}">${sender_name}<br>
+        </div>
+        {{if description}}
+        <div>
+            <b>${CommonTranslations.DETAILS}</b><br>
+            <p>{{html description}}</p>
+        </div>
+        {{/if}}
+        {{if remarks}}
+        <div>
+            <b>${CommonTranslations.REMARKS}</b><br>
+            <p>{{html remarks}}</p>
+        </div>
+        {{/if}}
+        {{if picture_url}}
+        <div>
+            <b>${CommonTranslations.PICTURE} ${CommonTranslations.CLICK_TO_ENLARGE}</b><br>
+            <a href="/common/image_viewer?p=${picture_url}" target="_blank"><img src="${picture_url}"></a>
+        </div>
+        {{/if}}
+    </div>
+    <div class="modal-footer">
+        <button action="sendmessage" class="btn btn-primary">${sendMessageBtn}</button>
+        <button action="sendorderready" class="btn btn-success">${sendOrderReadyBtn}</button>
+        <button action="close" class="btn" data-dismiss="modal" aria-hidden="true">${closeBtn}</button>
+    </div>
+</div>
+{%- endraw %}

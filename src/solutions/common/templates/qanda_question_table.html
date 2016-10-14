@@ -1,0 +1,20 @@
+{% raw %}
+{{each(i, question) questions}}
+<tr question_id="${ question.id }">
+    <td>
+	    <div class="view-question" style="cursor:pointer;">
+	        <strong>${ question.title }</strong>
+	        <div class="clearfix">
+	            <p style="float: left;">${CommonTranslations.BY} ${ question.author_name } ({{if question.author_role == 0}}${CommonTranslations.USER}{{else}}${CommonTranslations.STAFF}{{/if}}) - <span class="thread-count"></span></p>
+	            <p style="float: right;">${ question.timestamp_str }</p>
+	        </div>
+	        <div>
+	        {{each(i, module) question.modules}}
+			 <span module="${ module.key }" class="badge badge-info" style="margin-right: 5px;">${ module.label }</span>
+			{{/each}}
+	        </div>
+	    </div>
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

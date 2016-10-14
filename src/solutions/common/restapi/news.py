@@ -1,0 +1,80 @@
+# -*- coding: utf-8 -*-
+# Copyright 2016 Mobicage NV
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# @@license_version:1.1@@
+from types import NoneType
+
+from mcfw.consts import MISSING
+from mcfw.restapi import rest
+from mcfw.rpc import returns, arguments
+from rogerthat.rpc import users
+from rogerthat.to.news import NewsItemListResultTO, NewsItemTO, NewsActionButtonTO
+from rogerthat.utils.service import create_service_identity_user
+from shop.to import NewsTO, OrderItemTO
+from solutions.common.bizz.news import get_news, put_news_item
+from solutions.common.dal import get_solution_settings
+from solutions.common.utils import is_default_service_identity
+from solutions.flex.bizz import get_all_news
+
+
+@rest("/common/news/all", "get", read_only_access=True)
+@returns([NewsTO])
+@arguments()
+def load_news():
+    service_user = users.get_current_user()
+    settings = get_solution_settings(service_user)
+    return [NewsTO.create(n) for n in get_all_news(settings.main_language)]
+
+
+@rest('/common/news', 'get', read_only_access=True)
+@returns(NewsItemListResultTO)
+@arguments(cursor=unicode)
+def rest_get_news(cursor=None):
+    service_identity = users.get_current_session().service_identity
+    return get_news(cursor, service_identity)
+
+
+@rest('/common/news', 'post', silent_result=True)
+@returns(NewsItemTO)
+@arguments(title=unicode, message=unicode, label=unicode, image=(unicode, type(MISSING)), sponsored=bool,
+           action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
+           type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)), app_ids=[unicode],
+           news_id=(int, long, NoneType))
+def rest_put_news_item(title, message, label, image, sponsored=False, action_button=None, order_items=None,
+                       type=MISSING, qr_code_caption=MISSING, app_ids=MISSING, news_id=None):
+    """
+    Args:
+        title (unicode)
+        message (unicode)
+        label (unicode)
+        sponsored (bool)
+        image (unicode)
+        action_button (NewsButtonTO)
+        order_items (list of OrderItemTO)
+        type (int)
+        qr_code_caption (unicode)
+        app_ids (list of unicode)
+        news_id (long): id of the news to update. When not specified a new item is created
+    """
+    service_user = users.get_current_user()
+    session_ = users.get_current_session()
+    service_identity = session_.service_identity
+    if is_default_service_identity(service_identity):
+        service_identity_user = create_service_identity_user(service_user)
+    else:
+        service_identity_user = create_service_identity_user(service_user, service_identity)
+
+    return put_news_item(service_identity_user, title, message, label, sponsored, image, action_button, order_items,
+                         type, qr_code_caption, app_ids, news_id, accept_missing=True)

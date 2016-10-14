@@ -1,0 +1,15 @@
+<section id="section_bulk_invite" style="display: none;">
+	<label id="blukEmailsLabel">{% translate language, "common", "settings-bulk-invite-paste-here" %}</label>
+	<textarea id="blukEmails" class="span12"
+		placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"
+		rows="7"></textarea>
+	<div id="bulkInvite" style="display: none;">
+        <label for="bulkInvitationMessage">{% translate language, "common", "settings-bulk-invite-label" %}</label>
+        <textarea id="bulkInvitationMessage" rows="3" class="span12">{{ bulk_invite_message }}</textarea>
+		<br>
+		<button id="sendBulkEmailInvitations" class="btn btn-primary btn-block"></button>
+		<h2>{% translate language, "common", "settings-bulk-invite-sent-to" %}</h2>
+		<h5>{% translate language, "common", "settings-bulk-invite-click-to-delete" %}</h5>
+		<ul id="bulkInviteEmailList" style="cursor: pointer;"></ul>
+	</div>
+</section>

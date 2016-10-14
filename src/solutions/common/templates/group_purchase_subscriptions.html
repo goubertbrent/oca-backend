@@ -1,0 +1,11 @@
+{% raw %}
+{{each(i, m) group_purchases_subscriptions}}
+<tr id="${m.id}"  group_purchase_id="${group_purchase_id}"  group_purchase_subscription_id="${m.id}">
+    <td>${i}</td>
+    <td>{{if m.sender_avatar_url}}<img class="avatar" src="${m.sender_avatar_url}"> {{/if}}</td>
+    <td>${m.sender_name}</td>
+    <td>${m.units}</td>
+    <td>${m.time_str}</td>
+</tr>
+{{/each}}
+{%- endraw %}

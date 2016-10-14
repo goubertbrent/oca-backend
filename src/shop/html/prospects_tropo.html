@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<iframe id="hiddenUploadFrame" name="hiddenUploadFrame" style="width: 0px; height: 0px; border: 0px; color: #fff; padding: 0px"></iframe>
+<form id="fileUploadForm" target="hiddenUploadFrame" enctype="multipart/form-data" method="post" action="/internal/shop/prospects/upload">
+    <select id="appId" name="appId">
+{% for app in current_user_apps %}
+        <option value="{{ app.app_id }}"
+            {% if app.is_default %}selected="selected"{% endif %}>{{ app.name }}</option>
+{% endfor %}
+    </select><br>
+    <input id="newProspects" name="newProspects" type="file" accept=".csv"><br><br>
+    <input type="submit" class="btn btn-primary" value="submit"/>
+</form>
+
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+    </thead>
+	<tbody>
+	   <tr><td>NOT_ATTEMPTED</td></tr>
+		<tr class="success"><td>ANSWERED</td></tr>
+		<tr class="warning"><td>NO_ANSWER</td></tr>
+		<tr class="error"><td>HANG_UP</td></tr>
+		<tr class="info"><td>CALL_FAILURE</td></tr>
+	</tbody>
+</table>
+
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Address</th>
+            <th>Phone</th>
+            <th>Website</th>
+            <th>Result</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for prospect in prospects %}
+            <tr {% if prospect.invite_code == 1 %}class="error"{% endif %} {% if prospect.invite_code == 2 %}class="warning"{% endif %} {% if prospect.invite_code == 3 %}class="success"{% endif %} {% if prospect.invite_code == 4 %}class="info"{% endif %} prospect_id="{{ prospect.id }}" >
+            <td>{{ forloop.counter }}</td>
+            <td>{{ prospect.name }}</td>
+            <td>{{ prospect.type_html_str|safe }}</td>
+            <td>{{ prospect.address }}</td>
+            <td>{{ prospect.phone }}</td>
+            <td>{{ prospect.website }}</td>
+            <td>{% if prospect.invite_result %}{% if prospect.invite_result == 1 %}YES{% endif %}{% if prospect.invite_result == 2 %}MAYBE{% endif %}{% if prospect.invite_result == 3 %}NO{% endif %}{% endif %}</td>
+            <td>
+                <a class="btn btn-primary invite-prospect" prospect_id="{{ prospect.id }}" >Invite</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+$(function () {
+    $(".invite-prospect").click(function() {
+        var prospectId = parseInt($(this).attr("prospect_id"));
+        console.log('invite prospect: ' + prospectId);
+        
+        showProcessing("Sending invite");
+        sln.call({
+            url: '/internal/shop/rest/prospect/invite',
+            type: 'POST',
+            data: {
+                data: JSON.stringify({
+                    prospect_id: prospectId
+                })
+            },
+            success: function (data) {
+                hideProcessing();
+                if (!data.success) {
+                    showAlert(data.errormsg);
+                }
+            },
+            error: function () {
+                hideProcessing();
+                showAlert("An unknown error occurred, please report this to the administrators.");
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% raw %}
+{{each(j, res) reservations}}
+<tr key="${res.reservation.key}"
+	full_time="${res.reservation.full_time}">
+	<td>${res.reservation.full_time}</td>
+	<td>${res.reservation.people}</td>
+	<td>${res.reservation.name}</td>
+	<td class="delete_table_not_editing">${res.reservation.table_names}</td>
+	<td class="delete_table_editing" style="display: none;"><form
+			class="table_reservations" class="form-inline" role="form">
+			{{each(i, table) tables}} <label
+				class="checkbox span2{{if table.key == remove_table_key }} table_error {{/if}} {{if $.inArray( table.key, res.reservation.tables ) != -1 }}{{else $.inArray( table.key, res.shift.reserved_tables ) != -1 }} disabled table_reserved {{/if}}">
+				<input type="checkbox" table_key="${table.key}"
+				{{if $.inArray( table.key, res.reservation.tables ) !=-1
+				}} checked {{else $.inArray( table.key,  res.shift.reserved_tables ) !=-1}} disabled {{/if}} >
+				${table.name} (${table.capacity})
+			</label> {{/each}}
+		</form></td>
+	<td>${res.reservation.comment}</td>
+	<td class="reservation-controls">
+		<div class="btn-group delete_table_not_editing">
+			<button class="btn edit-reservation">
+				<i class="icon-pencil"></i>
+			</button>
+		</div>
+		<div class="btn-group delete_table_editing" style="display: none;">
+			<button class="btn btn-success save-reservation">
+				<i class="icon-ok"></i>
+			</button>
+			<button class="btn btn-danger discard-reservation">
+				<i class="icon-remove"></i>
+			</button>
+		</div>
+	</td>
+</tr>
+{{/each}}
+{%- endraw %}

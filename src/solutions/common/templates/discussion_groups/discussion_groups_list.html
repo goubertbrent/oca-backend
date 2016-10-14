@@ -1,0 +1,41 @@
+{% raw %}
+<div>
+    <h2 class="pull-left">${T.discussion_groups}</h2>
+    <a href="#/discussion_groups/new" class="btn btn-success pull-right" style="margin-top: 15px;">
+        <i class="fa fa-plus"></i> ${T.new_group}</a>
+</div>
+    <div class="padding-top">
+        {{if groups.length}}
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th style="width:20%;">${T.topic}</th>
+                <th style="width:15%;">${T.created}</th>
+                <th style="width:50%;">${T.DESCRIPTION}</th>
+                <th style="width:15%;"></th>
+            </tr>
+            </thead>
+            <tbody>
+            {{each(i, group) groups}}
+            <tr>
+                <td>${group.topic}</td>
+                <td>${formatTime(new Date(group.creation_timestamp * 1000))}</td>
+                <td>${group.description.substring(0,100)}</td>
+                <td>
+                    <a href="/common/discussion_groups/${group.id}/pdf" target="_tab" class="btn btn-primary"><i
+                            class="fa fa-file-pdf-o"></i></a>
+                    <a href="#/discussion_groups/edit/${group.id}" class="btn btn-primary"><i
+                            class="fa fa-pencil-square-o"></i></a>
+                    <a href="#/discussion_groups/remove/${group.id}" class="btn btn-danger"><i class="fa fa-times"></i></a>
+                </td>
+            </tr>
+            {{/each}}
+            </tbody>
+        </table>
+        {{else}}
+        <div class="span12">
+            <p>${T.no_discussion_groups_yet}</p>
+        </div>
+        {{/if}}
+</div>
+{% endraw %}

@@ -1,0 +1,9 @@
+{% raw %}
+{{each(i, e) exports}}
+<div class="loyalty-export">
+    <a class="btn btn-success" target="_blank" href="/common/loyalty/export?&m=${e.month}&y=${e.year}"><i
+            class="fa fa-download"></i></a>
+    ${e.month_str} ${e.year}
+</div>
+{{/each}}
+{% endraw %}

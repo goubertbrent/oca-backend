@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+	<definition name="pharmacy_order" language="{{ language }}"
+                startReference="flowcode_check_holiday">
+        <end id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=" waitForFollowUpMessage="false"/>
+        <end
+            id="end_quick"
+            waitForFollowUpMessage="false" />
+        <message id="message_holiday"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 brandingKey="{{ branding_key }}"
+                 allowDismiss="false"
+                 vibrate="false"
+                 autoLock="true">
+            <content>{{ settings.holiday_out_of_office_message|e }}</content>
+            <answer action=""
+                    caption="{% translate language, 'common', 'continue_anyway' %}"
+                    id="button_holiday_continue"
+                    reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ=="/>
+            <answer action=""
+                    caption="{% translate language, 'common', 'Cancel' %}"
+                    id="button_holiday_cancel"
+                    reference="end_quick"/>
+        </message>
+        <message id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX3RobngifQ==" 
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            allowDismiss="true"
+            vibrate="false"
+            dismissReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=" autoLock="true">
+            <content>{% translate language, 'common', 'order-flow-tnx' %}</content>
+        </message>
+        <message id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            allowDismiss="false"
+            vibrate="false"
+            autoLock="true">
+            <content>{% translate language, 'common', 'order-flow-prescription' %}</content>
+            <answer action="" caption="{% translate language, 'common', 'Yes' %}" id="button_button_yes" reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX3ByZXNjcmlwdGlvbiJ9"/>
+            <answer action="" caption="{% translate language, 'common', 'No' %}" id="button_button_no" reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX2JveCJ9"/>
+        </message>
+        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX2JveCJ9"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfZGVzY3JpYmVfYm94In0=">
+            <content>{% translate language, 'common', 'order-flow-picture' %}</content>
+            <form 
+                positiveButtonConfirmation="" 
+                negativeButtonCaption="{% translate language, 'common', 'skip' %}" 
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}" 
+                negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
+            </form>
+        </formMessage> 
+        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX3ByZXNjcmlwdGlvbiJ9"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=">
+            <content>{% translate language, 'common', 'order-flow-prescription-picture' %}</content>
+            <form 
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
+            </form>
+        </formMessage>
+        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJmbHVzaF9mbHVzaCJ9"
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJmbHVzaF9mbHVzaCJ9">
+            <content>{% translate language, 'common', 'order-flow-comments' %}</content>
+            <form 
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'skip' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="TextBlockWidget"
+                    maxChars="500"
+                    placeholder="{% translate language, 'common', '(optional)' %}"/>
+            </form>
+        </formMessage>
+        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfZGVzY3JpYmVfYm94In0=" 
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=">
+            <content>{% translate language, 'common', 'order-flow-describe' %}</content>
+            <form 
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="TextBlockWidget"
+                    maxChars="500"/>
+            </form>
+        </formMessage>
+        <resultsFlush id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJmbHVzaF9mbHVzaCJ9"
+            reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX3RobngifQ=="/>
+        <flowCode id="flowcode_check_holiday"
+                  exceptionReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ==">
+            <outlet reference="message_holiday"
+                    name="message_holiday"
+                    value="message_holiday"/>
+            <outlet reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ=="
+                    name="message_holiday_check_continue"
+                    value="message_holiday_check_continue"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    var nextStepResult = {};
+                    if (isInHoliday(rogerthat.service.data.settings.holidays.dates)) {
+                        nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
+                        nextStepResult.outlet = 'message_holiday';
+                    }
+                    else {
+                        nextStepResult.outlet = 'base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ==';
+                    }
+                    return nextStepResult;
+
+                    function isInHoliday(holidayDates) {
+                        var currentDate = new Date().getTime() / 1000;
+                        for (var i = 0; i &lt; holidayDates.length; i++) {
+                            if (holidayDates[i].from &lt;= currentDate &amp;&amp; currentDate &lt; holidayDates[i].to) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                };
+            </javascriptCode>
+        </flowCode>
+    </definition>
+</messageFlowDefinitionSet>

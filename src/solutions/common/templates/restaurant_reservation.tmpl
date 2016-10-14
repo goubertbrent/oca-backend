@@ -1,0 +1,206 @@
+<script type="text/javascript" src="/static/js/solutions/sln-restaurant-reservation.js"></script>
+<style>
+<!--
+div.server-validation-error,div.reservation-successful {
+       display: none;
+}
+
+#reservation-people {
+       width: 30px;
+}
+
+#reservation-time {
+       width: 40px;
+}
+
+td.reservation-controls {
+       text-align: right;
+}
+
+
+.table_reserved {
+	color: #999;
+}
+
+.table_error {
+	color: red;
+}
+
+#delete_table_reservations {
+	width: 98%;
+	/* height: 92%; */
+	padding: 0px;
+	margin: 0px;
+	/* top: 1%; */
+	left: 1%;
+}
+
+#delete_table_reservations .modal-body {
+	max-height: none;
+}
+
+#delete_table_reservations .modal-body p {
+	margin: 0px;
+}
+-->
+</style>
+<div id="reservations" class="row page" style="display: none;">
+    <div class="reservations-no-shifts span12" style="display: none;">
+        <div class="alert alert-error">
+            <h3>{% translate language, "common", "reservation-add-shifts" %}</h3>
+        </div>
+    </div>
+
+    <div class="reservations-has-shifts span12">
+        <div class="row">
+            <div class="span12" id="broken_reservations"></div>
+        </div>
+        <div class="row">
+            <div class="span6" id="today-capacity">
+                <h3>
+                    {% translate language, "common", "reservation-today" %}: <span></span>
+                </h3>
+                <div class="progress">
+                    <!-- 
+                      <div class="bar bar-success" style="width: 60%;"></div>
+                      <div class="bar bar-warning" style="width: 20%;"></div>
+                    -->
+
+                </div>
+            </div>
+            <div class="span3" id="tomorrow-capacity">
+                <h3>
+                    {% translate language, "common", "reservation-tomorrow" %}: <span></span>
+                </h3>
+                <div class="progress"></div>
+            </div>
+            <div class="span3" id="next_week-capacity">
+                <h3>
+                    {% translate language, "common", "reservation-next-week" %}: <span></span>
+                </h3>
+                <div class="progress"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span12">
+                <form id="reservation_form" class="form-inline">
+                    <fieldset>
+                        <h4>{% translate language, 'common', 'reservation-add-new-reservation' %}</h4>
+                        <div id="reservation-date-control" class="input-append date"
+                            data-date="12-02-2012">
+                            <input id="reservation-date" class="input-small" size="16"
+                                type="text" value="12-02-2012" readonly
+                                style="cursor: text;"> <span class="add-on"><i
+                                class="icon-th"></i></span>
+                        </div>
+                        <div class="input-append bootstrap-timepicker">
+                            <input id="reservation-time" type="text" class="input-mini"
+                                readonly style="cursor: text;"> <span class="add-on"><i
+                                class="icon-time"></i></span>
+                        </div>
+                        <input class="input-medium" type="text"
+                            placeholder="{% translate language, 'common', 'reservation-enter-name' %}"
+                            id="reservation-name" data-trigger="manual"
+                            title="{% translate language, 'common', 'name-required' %}"> <input
+                            class="input-small" type="text"
+                            placeholder="{% translate language, 'common', 'reservation-enter-phone' %}"
+                            id="reservation-phone">
+                        <div class="input-append">
+                            <input class="input-mini" id="reservation-people" type="text"
+                                placeholder="{% translate language, 'common', 'reservation-people' %}"
+                                value="2">
+                            <button id="reservation-people-plus" class="btn btn-success"
+                                type="button">+</button>
+                            <button id="reservation-people-min" class="btn btn-warning"
+                                type="button">-</button>
+                        </div>
+                        <input class="input-medium" type="text"
+                            placeholder="{% translate language, 'common', 'reservation-comment' %}"
+                            id="reservation-comment">
+                        <button class="btn btn-primary" type="button"
+                            id="make_reservation">{% translate language,
+                            "common", "reservation-add" %}</button>
+                        <div class="btn-group" style="display: none;"
+                            id="make_reservation_forced">
+                            <button class="btn btn-warning reservation-cancel"
+                                type="button">{% translate language, "common",
+                                "Cancel" %}</button>
+                            <button class="btn btn-primary reservation-add" type="button">{%
+                                translate language, "common", "reservation-add" %}</button>
+                            <button class="btn btn-danger reservation-force-add"
+                                type="button">{% translate language, "common",
+                                "reservation-force-add" %}</button>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+        <div class="row reservation-successful">
+            <div class="span12">
+                <div class="alert alert-success">
+                    {% translate language, 'common', 'reservation-success' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error restaurant-closed">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'restaurant-closed' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error in-holiday">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'in-holiday' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error kitchen-closed">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'kitchen-closed',
+                    'reservation_time=' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error past-reservation">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'past-reservation' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error short-notice">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'short-notice' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error too-many-people">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'too-many-people' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error no-tables">
+            <div class="span12">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'no-tables' %}
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span12" id="reservation_details"></div>
+        </div>
+    </div>
+</div>

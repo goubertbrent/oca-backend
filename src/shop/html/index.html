@@ -1,0 +1,73 @@
+<html lang="en">
+<head>
+<title>Business Admin</title>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+
+<style type="text/css">
+body, iframe {
+    padding: 0px;
+    margin: 0px;
+    width: 100%;
+    height: 100%;
+    border: none;
+    overflow: hidden;
+}
+</style>
+
+{%if DEBUG %}
+<script src='/_ah/channel/jsapi'></script>
+{%else%}
+<script src='https://talkgadget.google.com/talkgadget/channel.js'></script>
+{%endif%}
+
+<link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+<script src="/static/js/jquery.tmpl.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<script src="/static/js/stacktrace.js"></script>
+<script src="/static/js/solutions/sln-utils.js"></script>
+</head>
+<body>
+    <iframe src="/internal/shop?iframe=true" id="main_frame"></iframe>
+    <script type="text/javascript">
+// Used by sln-utils
+var CommonTranslations = {
+    AJAX_ERROR_MESSAGE : 'An unexpected error occurred.',
+    ALERT : 'Alert',
+    CANCEL : 'Cancel',
+    CHANNEL_DISCONNECTED_RELOAD_BROWSER : 'Could not renew auto updating channel automatically. Reload your browser to resolve the situation.',
+    CLOSE : 'Close',
+    CONFIRM : 'Confirm',
+    INPUT : 'Input',
+    NO : 'No',
+    PARSING_DOT_DOT_DOT : 'Parsing...',
+    STARTING_AT : 'starting at',
+    SUBMIT : 'Submit',
+    WARNING : 'Warning',
+    YES : 'Yes'
+};
+
+var TOKEN_RENEW_URL = '/internal/token';
+var LARGE_CHANNEL_OBJECT_URL = '/internal/channel/large_object';
+
+var loaded = false;
+document.getElementById('main_frame').onload = function() {
+    if (!loaded) {
+        sln.runChannel("{{ CHANNEL_API_TOKEN }}");
+
+        var obj = document.getElementById('main_frame').contentWindow;
+        sln.registerMsgCallback(function(data) {
+            if (obj.sln)
+                obj.sln.broadcast(data);
+        });
+        loaded = true;
+    }
+};
+    </script>
+</body>
+</html>

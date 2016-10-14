@@ -1,0 +1,88 @@
+<div id="statistics" class="page" style="display: none;">
+    <ul class="nav nav-tabs">
+        <li class="active" section="section_users">
+            <a href="#" help="K0ggl1V9-TA">{% translate language, "common", "users" %}</a>
+        </li>
+        <li section="section_usage">
+            <a href="#" help="K0ggl1V9-TA">{% translate language, "common", "usage" %}</a>
+        </li>
+        <li section="section_app_broadcasts" style="display: none;">
+            <a href="#" help="K0ggl1V9-TA">{% translate language, "common", "News" %}</a>
+        </li>
+    </ul>
+    <section id="section_users">
+        <h2>{% translate language, "common", "connected-users" %}</h2>
+        <div class="clearfix">
+            <div id="users_statistics"
+                 style='width:500px; height:300px; background: white;color: #000;text-shadow: 0px 0px white;border:none;float:left;margin-right:20px;'></div>
+            <div>
+                <h4>{% translate language, "common", "users-total" %}: <span id="badgeUsersTotal"></span></h4>
+                <br/>
+                <h4>{% translate language, "common", "last-week" %}:</h4>
+                <h5>- {% translate language, "common", "gained" %}: <span id="badgeUsersGainedLastWeek"></span></h5>
+                <h5>- {% translate language, "common", "lost" %}: <span id="badgeUsersLostLastWeek"></span></h5>
+                <h4>{% translate language, "common", "last-month" %}:</h4>
+                <h5>- {% translate language, "common", "gained" %}: <span id="badgeUsersGainedLastMonth"></span></h5>
+                <h5>- {% translate language, "common", "lost" %}: <span id="badgeUsersLostLastMonth"></span></h5>
+            </div>
+        </div>
+        <br/>
+        <br/>
+        <button id="show-users" class="btn">{% translate language, "common", "Show users" %}</button>
+        <div id="users"></div>
+        <img id="users-loading" src="/static/images/ajax-loader.gif" style="height: 15px; display: none;"/>
+    </section>
+    <section id="section_usage" style="display: none;">
+        <h2 id="usage-hidden">{% translate language, "common", "no-data-gathered" %}</h2>
+        <div id="usage" style="display: none;">
+            <div class="clearfix">
+                <div class="clearfix" style="float:left">
+                    <h2>{% translate language, "common", "last-week" %}</h2>
+                    <div id="usage_statistics_7"
+                         style='text-shadow: 0px 0px white;border:none;margin-right:20px;'></div>
+                </div>
+
+                <div class="clearfix" style="float:left">
+                    <h2>{% translate language, "common", "last-month" %}</h2>
+                    <div id="usage_statistics_30"
+                         style='text-shadow: 0px 0px white;border:none;margin-right:20px;'></div>
+                </div>
+
+                <div class="clearfix" style="float:left">
+                    <h2>{% translate language, "common", "last-year" %}</h2>
+                    <div id="usage_statistics_365"
+                         style='text-shadow: 0px 0px white;border:none;margin-right:20px;'></div>
+                </div>
+            </div>
+            <br>
+            <h2>{% translate language, "common", "usage-detail" %}</h2>
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th class="span2">{% translate language, "common", "menu-item-name" %}</th>
+                    <th class="span2">{% translate language, "common", "last-used" %}</th>
+                    <th class="span2">{% translate language, "common", "last-week" %}</th>
+                    <th class="span2">{% translate language, "common", "last-month" %}</th>
+                    <th class="span2">{% translate language, "common", "last-year" %}</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <div>
+                <h2>{% translate language, "common", "export_detailed_statistics" %}</h2>
+                <p>{% translate language, "common", "export_detailed_statistics_explanation" %}</p>
+                <label for="inbox-export-email">{% translate language, 'common', 'enter_email_for_export' %}</label>
+                <input type="email" id="inbox-export-email" name="inbox-export-email"
+                       placeholder="{% translate language, 'common', 'Email' %}" style="margin-bottom: 0;"
+                       value="{{ service_display_email }}"/>
+                <button class="btn btn-success" id="inbox-export-button">
+                    {% translate language, 'common', 'export' %}
+                </button>
+            </div>
+        </div>
+    </section>
+    <section id="section_app_broadcasts" style="display: none;"></section>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	<script src="/static/js/solutions/sln-statistics.js"></script>
+</div>

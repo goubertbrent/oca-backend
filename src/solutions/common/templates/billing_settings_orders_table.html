@@ -1,0 +1,13 @@
+{% raw %}
+{{each(i, order) orders}}
+<tr>
+    <td>${ order.full_date_str }</td>
+    <td>${ order.order_number }</td>
+    <td>
+    <a class="btn btn-success"
+            href="/common/order/pdf?customer_id=${ order.customer_id }&order_number=${ order.order_number }&download=true">${CommonTranslations.DOWNLOAD}</a>
+  
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

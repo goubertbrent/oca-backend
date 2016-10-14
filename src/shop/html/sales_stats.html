@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/static/css/shop/sales_stats.css">
+{% endblock %}
+
+{% block custom_javascript %}
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script src="/static/js/shop/sales_stats.js"></script>
+{% endblock %}
+
+{% block body %}
+<div class="layout-padding">
+    <select id="teams" class="span6" style="display: none;">
+    </select>
+    <h2>Statistics</h2>
+    <div class="loader" id="stats_loading">
+        <svg class="circular">
+            <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
+        </svg>
+    </div>
+    
+    <div id="month_chart"></div>
+    <p id="sales_remark" style="font-size: 1.3em; margin-top: 10px;"></p>
+
+    <p id="sales_total_container" style="font-size: 1.3em; display: none;">Total this month: <strong><span
+            id="sales_total"></span></strong></p>
+    <div id="sales_chart"></div>
+</div>
+{% endblock %}

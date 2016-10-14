@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+{%- include 'translations.tmpl' %}
+<title>{% translate language, "flex", "title" %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" value="notranslate" />
+<!-- Bootstrap -->
+<link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+<link href="/static/bootstrap/datepicker/css/datepicker.css" rel="stylesheet" media="screen">
+<link href="/static/bootstrap/timepicker/css/bootstrap-timepicker.min.css" rel="stylesheet" media="screen">
+<link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+<link href="/static/bootstrap/colorpicker/css/bootstrap-colorpicker.min.css" rel="stylesheet" media="screen">
+{% if SolutionModule.BILLING in sln_settings.modules %}
+<link href="/static/css/solutions/flex/shop.css" rel="stylesheet">
+{% endif %}
+    <link rel="stylesheet" type="text/css" href="/static/js/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="/static/js/slick/slick-theme.css"/>
+    <link rel="stylesheet" type="text/css" href="/static/js/bower_components/cropper/dist/cropper.min.css"/>
+    <link href="/static/css/solutions/flex/news.css" rel="stylesheet">
+{%if debug%}
+<script src='/_ah/channel/jsapi'></script>
+{%else%}
+<script src='https://talkgadget.google.com/talkgadget/channel.js'></script>
+{%endif%}
+
+<link href="/static/css/solutions/style.css" rel="stylesheet" media="screen">
+{% if SolutionModule.BILLING in sln_settings.modules %}
+<link href="/static/css/fonts/great_vibes.css" rel="stylesheet" type="text/css">
+{% endif %}
+{% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+<link href="/static/css/solutions/sandwich.css" rel="stylesheet" media="screen">
+{% endif %}
+{% if SolutionModule.BROADCAST in sln_settings.modules %}
+<link href="/static/css/solutions/flex/broadcast.css" rel="stylesheet"/>
+{% endif %}
+
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<script src="/static/bootstrap/datepicker/js/bootstrap-datepicker.js"></script>
+<script src="/static/bootstrap/timepicker/js/bootstrap-timepicker.min.js"></script>
+<script src="/static/bootstrap/colorpicker/js/bootstrap-colorpicker.min.js"></script>
+<script src="/static/js/jquery.tmpl.min.js"></script>
+<script src="/static/js/modernizr.custom.62420.js"></script>
+<script src="/static/js/jquery-validate.min.js"></script>
+<script src="/static/js/jquery-validate-translations.js"></script>
+    <script src="/static/js/bower_components/cropper/dist/cropper.min.js"></script>
+<!-- Security measure, must be inserted after jquery before sln-utils.js -->
+<script language="javascript">
+var service_user_email = '{{service_user_email}}';
+var service_identity = '{{service_identity}}';
+var isLoyaltyTablet = {% if loyalty %}true{% else %}false{% endif %};
+var CITY_APP_ID = "{{ city_app_id }}";
+
+$.ajaxSetup({
+    headers: { 'X-Logged-In-As': service_user_email }
+});
+var CHANNEL_API_TOKEN = "{{ token }}";
+var templates = {{ templates|safe }};
+var EMAIL_SETTINGS = {{ email_settings|safe }};
+var UNITS = {{ UNITS }};
+var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
+var CURRENCY = "{{ currency }}";
+var LEGAL_ENTITY_CURRENCY = "{{ LEGAL_ENTITY_CURRENCY }}";
+var CONSTS = {{ CONSTS_JSON }};
+var orderSettings = {{ order_settings_json }};
+var MODULES = {{ modules }};
+var VAT_PCT = {{ VAT_PCT }};
+var IS_MOBICAGE_LEGAL_ENTITY = {% if IS_MOBICAGE_LEGAL_ENTITY %}true{% else %}false{% endif %};
+var ACTIVE_APPS = {{ active_apps }};
+var ALL_APPS = {{ all_apps }};
+var ROUTES = {};
+var LocalCache = {};
+var modules = {};
+</script>
+
+<script src="/static/js/stacktrace.js"></script>
+<script src="/static/js/solutions/sln-utils.js"></script>
+<script src="/static/js/solutions/common.js"></script>
+{% if not loyalty %}
+<script src="/static/js/solutions/sln-requirements.js"></script>
+<script src="/static/js/solutions/sln-hints.js"></script>
+<script src="/static/js/slick/slick.js"></script>
+{% endif %}
+<script src="/static/js/solutions/sln-loyalty.js"></script>
+
+{%- include 'settings_header.tmpl' %}
+
+</head>
+
+<body>
+    <div id="wrap">
+        <div class="container" style="padding-bottom:80px;">
+            <div class="navbar navbar-fixed-top">
+                <div class="navbar-inner" {% if debug %}style="background: #e5ffe5;"{% endif %}>
+                    <a class="brand" {% if not loyalty %}href="#/news"{% else %}href="#"{% endif %}>
+                        {% translate language, "flex", "title" %}{% if debug %} - dev{% endif %}</a>
+                    <ul id="topmenu" class="nav">
+{% if sln_settings.uses_inbox() %}
+                        <li menu="inbox">
+                            <a href="#" help="OyWCQ7nh00o">
+                                {% translate language, "common", "Inbox" %} <span class="badge badge-important sln-inbox-badge"></span>
+                            </a>
+                        </li>
+{% endif %}
+{% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
+                        <li menu="reservations" id="reservations_menu">
+                            <a href="#" help="28eg1X71-3w">
+                                {% translate language, "common", "reservations-menu" %}
+                                <span class="badge badge-success"></span>
+                            </a>
+                        </li>
+{% endif %}
+                        {% if not loyalty and (SolutionModule.MENU in sln_settings.modules or SolutionModule.ORDER in sln_settings.modules) %}
+                            <li menu="menu"
+                                {% if hide_menu_tab %}class="hide"{% endif %}>
+                            <a href="#/menu" help="tHSuWLfTuSg">
+                                {% if menu and menu.name %}{{ menu.name }}{% else %}{% translate language, "common", "menu-editor-menu" %}{% endif %}
+                            </a>
+                        </li>
+{% endif %}
+{% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+                        <li menu="sandwiches">
+                            <a href="#">
+                                {% translate language, "common", "Sandwiches" %}
+                                <span class="badge badge-important sln-sandwich-badge"></span>
+                            </a>
+                        </li>
+{% endif %}
+{% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
+                        <li menu="events"><a href="#" help="dafoHacdVAU">{% translate language, "common", "agenda" %}</a></li>
+{% endif %}
+{% if SolutionModule.BROADCAST in sln_settings.modules and not loyalty %}
+                        <li menu="broadcast"><a href="#/broadcast" help="MMvE7paS59k">{% translate language, "common", "Broadcast" %}</a></li>
+{% endif %}
+{% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
+                        <li menu="static_content"><a href="#" help="aBXQnE69UEE">{% translate language, "common", "static-content" %}</a></li>
+{% endif %}
+{% if SolutionModule.REPAIR in sln_settings.modules %}
+                        <li menu="repair">
+                            <a href="#" help="eAR3YTv2opI">
+                                {% translate language, "common", "repair" %}
+                                <span class="badge badge-important sln-repair-badge"></span>
+                            </a>
+                        </li>
+{% endif %}
+{% if SolutionModule.DISCUSSION_GROUPS in sln_settings.modules and not loyalty %}
+                            <li menu="discussion_groups">
+                            <a href="#/discussion_groups">
+                            {% translate language, "common", "discussion_groups" %}
+                            </a>
+                            </li>
+{% endif %}
+                        {% if SolutionModule.GROUP_PURCHASE in sln_settings.modules %}
+                            <li menu="group_purchase">
+                                <a href="#">
+                                    {% translate language, "common", "group-purchase" %}
+                                    <span class="badge badge-important sln-group-purchase-badge"></span>
+                                </a>
+                            </li>
+{% endif %}
+{% if SolutionModule.ORDER in sln_settings.modules %}
+                        <li menu="order">
+                            <a href="#">
+                              {% translate language, "common", "orders" %}
+                              <span class="badge badge-important sln-orders-badge"></span>
+                            </a>
+                        </li>
+{% endif %}
+{% if SolutionModule.PHARMACY_ORDER in sln_settings.modules %}
+                        <li menu="pharmacy_orders">
+                            <a href="#">
+                              {% translate language, "common", "orders" %}
+                              <span class="badge badge-important sln-pharmacy_orders-badge"></span>
+                            </a>
+                        </li>
+{% endif %}
+{% if not loyalty %}
+                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
+                                class="badge badge-important sln-loyalty-badge"></span></a></li>
+{% endif %}
+{% if SolutionModule.CITY_VOUCHERS in sln_settings.modules and not loyalty %}
+                        <li menu="city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
+{% endif %}
+{% if not loyalty %}
+                        <li menu="settings">
+                            <a class="help_menu_item"
+                               href="#/settings">{% translate language, "common", "Settings"%}</a>
+                        </li>
+{% endif %}
+{% if not loyalty %}
+                        <li menu="statistics" class="disabled"><a class="help_menu_item" href="#">{% translate language, "common", "statistics" %}</a></li>
+                        <li menu="qanda"><a class="help_menu_item" href="#">{% translate language, "common", "qanda" %}</a></li>
+{% endif %}
+                        {% if customer and sln_settings.uses_associations(customer.country) and not loyalty %}
+                        <li menu="associations"><a href="#/associations">{% translate language, "common", "associations" %}</a></li>
+                        {% endif %}
+
+                    </ul>
+                    {% if not loyalty %}
+	                    <ul class="nav pull-right">
+	                        <li class="divider-vertical"></li>
+	                        <li>
+	                            <a href="/flex/logout" class="">
+	                                {% translate language, "common", "Log out" %} <i class="icon-user"></i> {{ service_name }} | {{ service_display_email }}
+	                            </a>
+	                        </li>
+	                    </ul>
+	                    {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY %}
+	                    <div class="pull-right" menu="shoppage"><a class="btn btn-success" href="#/shop" id="shoplink">{% translate language, "common", "shop" %}</a></div>
+	                    {% endif %}
+	                    <form class="navbar-form pull-right" style="margin-right:10px">
+	                        <button id="help" type="button" class="btn btn-info">{% translate language, "common", "Help" %}</button>
+	                    </form>
+                        {% if SolutionModule.CITY_APP in sln_settings.modules %}
+                        <a class="pull-right btn btn-default" href="/?sp=1" style="margin-right:10px">{% translate language, "common", "service_panel" %}</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div id="push-down"></div>
+            </div>
+            <div class="row">
+            {% if not loyalty %}
+                <div class="sln-updates-pending-warning"></div>
+                <div class="sln-required-warning"></div>
+            {% endif %}
+	            <div class="sln-loyalty-scans" style="display: none;">
+	               <table class="sln-loyalty-scans-1 table table-striped table-bordered" style="display: none">
+	                    <caption>{% translate language, "common", "Scanned loyalty cards" %}</caption>
+			            <thead>
+			                <tr>
+			                    <th>{% translate language, "common", "Scanned on" %}</th>
+			                    <th>{% translate language, "common", "reservation-name" %}</th>
+			                    <th>{% translate language, "common", "Customer" %}</th>
+			                    <th>{% translate language, "common", "Visits" %}</th>
+			                    <th>{% translate language, "common", "Spent" %}</th>
+                                <th>{% translate language, "common", "Discount" %}</th>
+			                    <th>{% translate language, "common", "Loyalty points" %}</th>
+			                </tr>
+			            </thead>
+			            <tbody>
+			            </tbody>
+			        </table>
+			        <table class="sln-loyalty-scans-3 table table-striped table-bordered" style="display: none">
+                        <caption>{% translate language, "common", "Scanned loyalty cards" %}</caption>
+                        <thead>
+                            <tr>
+                                <th>{% translate language, "common", "Scanned on" %}</th>
+                                <th>{% translate language, "common", "reservation-name" %}</th>
+                                <th>{% translate language, "common", "Customer" %}</th>
+                                <th>{% translate language, "common", "Visits" %}</th>
+                                <th>{% translate language, "common", "Number of stamps" %}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+	            </div>
+{% if not loyalty %}
+    {% include 'news/news.tmpl' %}
+{% endif %}
+{% if sln_settings.uses_inbox() %}
+    {%- include 'inbox.tmpl' %}
+{% endif %}
+{% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
+    {%- include 'restaurant_reservation.tmpl' %}
+{% endif %}
+{% if not loyalty and (SolutionModule.MENU in sln_settings.modules or SolutionModule.ORDER in sln_settings.modules) %}
+    {%- include 'menu.tmpl' %}
+{% endif %}
+{% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+    {%- include 'sandwiches.tmpl' %}
+{% endif %}
+{% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
+    {%- include 'events.tmpl' %}
+{% endif %}
+{% if SolutionModule.BROADCAST in sln_settings.modules and not loyalty %}
+    {%- include 'broadcast.tmpl' %}
+{% endif %}
+{% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
+    {%- include 'static_content/static_content.tmpl' %}
+{% endif %}
+{% if SolutionModule.REPAIR in sln_settings.modules %}
+    {%- include 'repair.tmpl' %}
+{% endif %}
+{% if SolutionModule.DISCUSSION_GROUPS in sln_settings.modules %}
+    {%- include 'discussion_groups/discussion_groups.tmpl' %}
+{% endif %}
+{% if SolutionModule.GROUP_PURCHASE in sln_settings.modules %}
+    {%- include 'group_purchase.tmpl' %}
+{% endif %}
+{% if SolutionModule.ORDER in sln_settings.modules %}
+    {%- include 'order.tmpl' %}
+{% endif %}
+{% if SolutionModule.PHARMACY_ORDER in sln_settings.modules %}
+    {%- include 'pharmacy_order.tmpl' %}
+{% endif %}
+{% if not loyalty %}
+    {%- include 'loyalty.tmpl' %}
+{% endif %}
+{% if SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
+    {%- include 'city_vouchers/city_vouchers.tmpl' %}
+{% endif %}
+{% if not loyalty %}
+	{%- include 'statistics.tmpl' %}
+	{%- include 'qanda.tmpl' %}
+    {% if customer and sln_settings.uses_associations(customer.country) and not loyalty %}
+    {%- include 'associations/associations.tmpl' %}
+    {% endif %}
+    {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY %}
+    {%- include 'shop/shop.tmpl' %}
+                {% endif %}
+    <div id="settings" class="page" style="display: none;">
+                        <ul class="nav nav-tabs">
+                            <li class="active" section="section_general"><a href="#/settings/general"
+                                                                            help="5EQJZ12RZ9Q">{% translate language, "common", "settings-general" %}</a>
+                            </li>
+                            {% if SolutionModule.BILLING in sln_settings.modules %}
+                                <li section="section_billing"><a href="#" help="e76_LF0Haw8">{% translate language, "common", "Billing" %}</a></li>
+                            {% endif %}
+                            <li section="section_branding"><a href="#/settings/branding" help="TtuJpcLEaYA">{% translate language, "common", "Branding" %}</a></li>
+                            {% if sln_settings.uses_inbox() %}
+                                <li class="" section="section_settings_inbox"><a href="#" help="kZqDPlPAtQY">{% translate language, "common", "Inbox" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
+	                            <li section="section_tables"><a href="#" help="oQeTd85ejYY">{% translate language, "common", "settings-tables" %}</a></li>
+	                            <li section="section_shifts"><a href="#" help="i5QQze4Asno">{% translate language, "common", "settings-shifts" %}</a></li>
+                            {% endif %}
+                            <li section="section_holidays"><a href="#" help="l_BlEhnXRcE">{% translate language, "common", "settings-holidays" %}</a></li>
+                            {% if SolutionModule.AGENDA in sln_settings.modules %}
+                                <li class="" section="section_settings_agenda"><a href="#" help="5EQJZ12RZ9Q">{% translate language, "common", "agenda" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.APPOINTMENT in sln_settings.modules %}
+                                <li class="" section="section_settings_appointment"><a href="#" help="xDakZT8iso0">{% translate language, "common", "appointment" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.BROADCAST in sln_settings.modules %}
+                                <li section="section_settings_broadcast">
+                                    <a href="#/settings/broadcast">{% translate language, "common", "Broadcast" %}</a>
+                                </li>
+                            {% endif %}
+                            {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+                                <li class="" section="section_settings_sandwich"><a href="#">{% translate language, "common", "Sandwiches" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.REPAIR in sln_settings.modules %}
+                                <li class="" section="section_settings_repair"><a href="#">{% translate language, "common", "repair" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.GROUP_PURCHASE in sln_settings.modules %}
+                                <li class="" section="section_settings_group_purchase"><a href="#">{% translate language, "common", "group-purchase" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.ORDER in sln_settings.modules %}
+							    <li class="" section="section_settings_order"><a href="#">{% translate language, "common", "orders" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
+                                <li section="section_settings_loyalty"><a href="#">{% translate language, "common", "loyalty" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.QR_CODES in sln_settings.modules %}
+                                <li section="section_qr_codes"><a href="#" help="plfF98FLpxI">{% translate language, "common", "settings-qr-codes" %}</a></li>
+                            {% endif %}
+                            {% if SolutionModule.BULK_INVITE in sln_settings.modules %}
+                                <li section="section_bulk_invite"><a href="#" help="ovlJ45CPNTI">{% translate language, "common", "settings-bulk-invite" %}</a></li>
+                            {% endif %}
+                        </ul>
+
+                        <section id="section_general">
+                            {% include 'settings.tmpl' %}
+                        </section>
+                        {% if SolutionModule.BILLING in sln_settings.modules %}
+                            <section id="section_billing" style="display: none;">
+                                {% include 'billing_settings.tmpl' %}
+                            </section>
+                        {% endif %}
+                        <section id="section_branding" style="display: none;">
+                            <div id="branding_settings" class="pull-left"></div>
+                            <div id="branding_settings_preview" class="pull-right"></div>
+                        </section>
+                        {% if sln_settings.uses_inbox() %}
+	                        <section id="section_settings_inbox" style="display: none;">
+	                            <div class="row">
+	                                 <div class="span4">&nbsp;</div>
+	                                 {% if sln_i_settings.inbox_connector_qrcode %}
+	                                    <div class="span6">
+	                                        <img src="{{ sln_i_settings.inbox_connector_qrcode }}" height="150" width="150"/>
+	                                    </div>
+	                                 {% endif %}
+	                            </div>
+	                            <div class="row">
+	                                <div class="span4">
+	                                    <button id="add_mobile_inbox_forwarder" class="btn btn-primary">
+	                                        <i class="icon-user icon-white"></i> {% translate language, "common", "add-mobile-inbox-forwarders" %}
+	                                    </button>
+	                                </div>
+	                                {% if sln_i_settings.inbox_connector_qrcode %}
+	                                    <div class="span6">
+	                                        <h5>{% translate language, "common", "or-scan-qr-code-app" %}</h5>
+	                                    </div>
+	                                {% endif %}
+	                           </div>
+	                           <div class="row">
+	                                <div class="span4">
+	                                    <br>
+	                                    <button id="add_email_inbox_forwarder" class="btn btn-primary">
+	                                        <i class="icon-envelope icon-white"></i> {% translate language, "common", "add-email-inbox-forwarders" %}
+	                                    </button>
+	                                </div>
+	                           </div>
+	                           <hr>
+	                           <h4>{% translate language, "common", "mobile-inbox-forwarders" %}:</h4>
+	                           <ul id="mobile_inbox_forwarders"></ul>
+	                           <div class="sln-inbox-email-reminders"></div>
+	                        </section>
+                        {% endif %}
+
+						{% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
+						    {%- include 'restaurant_reservation_settings.tmpl' %}
+						{% endif %}
+                        {%- include 'holiday.tmpl' %}
+						{% if SolutionModule.AGENDA in sln_settings.modules %}
+						    {%- include 'events_settings.tmpl' %}
+						{% endif %}
+
+        {% if SolutionModule.APPOINTMENT in sln_settings.modules %}
+            {%- include 'appointment_settings.tmpl' %}
+        {% endif %}
+
+        {% if SolutionModule.BROADCAST in sln_settings.modules %}
+            {%- include 'broadcast_settings.tmpl' %}
+        {% endif %}
+
+        {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+						    {%- include 'sandwiches_settings.tmpl' %}
+						{% endif %}
+
+        {% if SolutionModule.REPAIR in sln_settings.modules %}
+						    {%- include 'repair_settings.tmpl' %}
+						{% endif %}
+
+        {% if SolutionModule.GROUP_PURCHASE in sln_settings.modules %}
+						<section id="section_settings_group_purchase" style="display: none;">
+						    <div class="sln-set-group_purchase-visibility"></div>
+						</section>
+						{% endif %}
+
+        {% if SolutionModule.ORDER in sln_settings.modules %}
+                            {%- include 'order_settings.tmpl' %}
+                        {% endif %}
+
+						{% if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
+						    {%- include 'loyalty_settings.tmpl' %}
+						{% endif %}
+
+        {% if SolutionModule.QR_CODES in sln_settings.modules %}
+						    {%- include 'qr_codes.tmpl' %}
+						{% endif %}
+
+        {% if SolutionModule.BULK_INVITE in sln_settings.modules %}
+						    {%- include 'bulk_invite.tmpl' %}
+						{% endif %}
+                    </div>
+ {% endif %}
+            </div>
+        </div>
+        <div id="push"></div>
+    </div>
+    {% if not loyalty %}
+    <div id="footer">
+        <div style="text-align: center;">
+            <img alt="Rogerthat logo" src="/static/images/solution-header.png" />
+        </div>
+    </div>
+    {% endif %}
+    <div id="fb-root"></div>
+    <div id="help-video" class="modal hide fade" style="display: none; width: 670px;">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h3>{% translate language, "common", "Help" %}</h3>
+        </div>
+        <div class="modal-body">
+            <div id="ytplayer"></div>
+        </div>
+    </div>
+    <div id="video-popup" class="modal hide fade" style="display: none;" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h3>Coaching sessie</h3>
+        </div>
+        <div id="video-yt-container"></div>
+    </div>
+    <script type="text/javascript">
+	    $(function () {
+            sln.runChannel(CHANNEL_API_TOKEN);
+	    });
+    </script>
+    {% if not loyalty %}
+    <script src="/static/js/solutions/sln-router.js"></script>
+    {% endif %}
+</body>
+</html>

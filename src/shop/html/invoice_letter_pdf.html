@@ -1,0 +1,116 @@
+<html>
+<style>
+
+.clearfix {
+  *zoom: 1;
+}
+
+.clearfix:before,
+.clearfix:after {
+  display: table;
+  line-height: 0;
+  content: "";
+}
+
+.clearfix:after {
+  clear: both;
+}
+
+@page {
+    margin: 2cm;
+    margin-bottom: 3.5cm;
+    @frame footer_frame {
+        -pdf-frame-content: footerContent;
+        bottom: 2cm;
+        margin-left: 2cm;
+        margin-right: 2cm;
+        height: 1cm;
+    }
+}
+
+#order_nr {
+    padding-top: 5px;
+    padding-bottom: 3px;
+    line-height: 50%;
+    margin-top: 10px;
+    margin-bottom: 50px;
+}
+
+#order_nr table, #order_nr th, #order_nr td {
+   border-top: 0.3pt solid black;
+   border-bottom: 0.3pt solid black;
+}
+#payment table, #payment th, #payment td {
+   border-top: 0.3pt solid black;
+   border-bottom: 0.3pt solid black;
+}
+
+img { zoom: 80%; }
+
+#orders table, #orders th, #orders td {
+   border: 0.3pt solid black;
+}
+
+#orders td {
+    vertical-align: top;
+}
+
+.letter {
+	font-size: large;
+}
+
+td {
+	width: 50%;
+}
+</style>
+<body>
+<div class="clearfix letter">
+	<p><br></p>
+
+	<p><br></p>
+	<table>
+		<tbody>
+		<tr>
+			<td>Lochristi, {{ today }}</td>
+			<td>
+				{{ customer.name }}<br>
+				{{ order.contact.first_name }} {{ order.contact.last_name }}<br>
+				{{ customer.address1 }}<br>
+				{% if customer.address2 %}
+				{{ customer.address2 }}<br>
+				{% endif %}
+				{{ customer.zip_code}} {{ customer.city }} {{ customer.country_str }}
+			</td>
+		</tr>
+		</tbody>
+	</table>
+</div>
+<div class="clearfix letter">
+	<p><br></p>
+
+	<p><br></p>
+
+	<p>{% shop_translate language, "dear_name", "name=" + order.contact.first_name %}</p>
+
+	<p>{% shop_translate language, "thanks_for_participating_city_apps" %}<br>
+		{% shop_translate language, "pending_balance_of_amount", "pending_balance=" +
+        invoice.charge.total_amount_in_euro, "currency_code=" + customer.legal_entity.currency_code %} <br>
+		{% shop_translate language, "please_pay_before_date", "max_date=" + until %}
+	</p>
+
+	<p> {% shop_translate language, "thanks_for_cooperation" %} </p>
+
+	<p>Geert Audenaert<br>
+		{% shop_translate language, "business_manager" %}<br>
+	</p>
+
+	<p>
+		Mobicage NV<br>
+		Idola Business Center<br>
+		Antwerpsesteenweg 19<br>
+		9080 Lochristi<br>
+		{% shop_translate language, "telephone_abbr" %}: +32 9 324 25 64<br>
+	</p>
+</div>
+</body>
+</html>

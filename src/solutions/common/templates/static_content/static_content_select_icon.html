@@ -1,0 +1,25 @@
+{% raw %}
+<div class="select-icon-modal modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header clearfix">
+        <button type="button" class="close" data-dismiss="modal"
+            aria-hidden="true">&times;</button>
+        <h3 class="pull-left">${header}</h3>
+        <input id="search_icon" style="float:right; margin-right:10px" type="text" placeholder="${CommonTranslations.SEARCH_DOT_DOT_DOT}" />
+    </div>
+
+    <div class="modal-body">
+        <div id="icons" class="smi_icons">
+            {{each(i, smi) icons}}
+            <div data-name="${name}">
+                {{if smi.name.indexOf('fa-') === 0}}
+                <i class="fa ${smi.name}"></i>
+                {{else}}
+                <img src="/mobi/service/menu/icons/lib/${smi.name}"/>
+                {{/if}}
+                <div>${smi.label}</div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+</div>
+{% endraw %}

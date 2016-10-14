@@ -1,0 +1,24 @@
+<div ng-controller="ToolbarController as toolbarCtrl" class="md-toolbar-tools">
+    <md-button aria-label="Open sidebar navigation" class="md-icon-button"
+               ng-click="toggleLeft()">
+        <md-icon>menu</md-icon>
+    </md-button>
+    <span ng-bind="$state.current.data.pageTitle"></span>
+    <!-- fill up the space between left and right area -->
+    <span flex></span>
+    <span ng-repeat="action in actionsFactory.getActions() track by action.text">
+<!-- todo: fix this so the ng-if action.type works when building on OSX-->
+        <!--        <md-button ng-if="action.type === 'button'"-->
+        <!--                   aria-label="{{ ::action.text }}">-->
+        <!--            <md-icon ng-bind="action.icon"></md-icon>-->
+        <!--            <span ng-bind="action.text"></span>-->
+        <!--        </md-button>-->
+        <!-- ng-if="action.type === 'switch'" -->
+        <md-switch ng-model="action.value"
+                   ng-change="action.changed(action.value)"
+                   aria-label="{{ ::action.text }}"
+                   class="md-accent">
+            <span ng-bind="action.text"></span>
+        </md-switch>
+    </span>
+</div>

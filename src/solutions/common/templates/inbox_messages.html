@@ -1,0 +1,37 @@
+{% raw %}
+{{each(i, m) messages}}
+<tr id="${m.key}" message_key="${m.key}" class="inbox-message-action-reply">
+    <td>
+        <p>${m.date_time}</p>
+        <div>{{if m.icon}}
+            {{if m.icon.indexOf('fa-') === 0}}
+            <span class="rounded_icon_background">
+                <i class="rounded_icon fa ${m.icon}"></i>
+            </span>
+            {{else}}
+            <img class="inbox-message-image" src="/mobi/service/menu/icons/lib/${m.icon}">
+            {{/if}}
+            {{/if}}
+            <span class="badge pull-right">${m.size}</span></div>
+    </td>
+    <td>
+        <span><img class="inbox-message-image img-polaroid" src="${m.sender_avatar_url}"></span>
+        <span style="margin-left: 5px;">${m.sender_name} {{if showEmails}}<br>${m.sender_email}{{/if}}</span>
+    </td>
+    <td>{{html formatHtml(m.message)}}</td>
+    <td>
+        <div class="btn-toolbar pull-right">
+		  <div class="btn-group">
+	      {{if m.reply_enabled }}
+		    <button message_key="${m.key}" class="btn btn-large inbox-message-action-reply"><i class="fa fa-comment"></i></button>
+	      {{/if}}
+		    <button message_key="${m.key}" class="btn btn-large inbox-message-action-starred"><i class="fa {{if m.starred}}fa-star{{else}}fa-star-o{{/if}}"></i></button>
+	        <button message_key="${m.key}" class="btn btn-large inbox-message-action-read"><i class="fa {{if m.read}}fa-eye-slash{{else}}fa-eye{{/if}}"></i></button>
+	        <button message_key="${m.key}" class="btn btn-large inbox-message-action-trash"><i class="fa fa-trash"></i></button>
+		  </div>
+		</div>
+        <div class="inbox-module-actions pull-right"></div>
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

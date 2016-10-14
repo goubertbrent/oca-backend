@@ -1,0 +1,296 @@
+body,
+#main,
+#main #blueimp-gallery {
+    padding: 0;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    background-color: #000000;
+}
+
+#blueimp-gallery {
+    z-index: 10;
+}
+
+h1,
+.h1 {
+    font-size: 4em;
+}
+
+h2,
+.h2 {
+    font-size: 3em;
+}
+
+h3,
+.h3 {
+    font-size: 2.5em;
+}
+
+h4,
+.h4 {
+    font-size: 2em;
+}
+
+h5,
+.h5 {
+    font-size: 1.8em;
+}
+
+h6,
+.h6 {
+    font-size: 1.5em;
+}
+
+.ui-loader {
+    font-size: 3em;
+}
+
+/* Using box shadows to create 3D effects */
+.calculator {
+    width: 28em;
+    height: auto;
+    padding: 1em; /* 16px */
+    background: #9dd2ea;
+    background: linear-gradient(#9dd2ea, #8bceec);
+    border-radius: 0.2em; /* 3px */
+    box-shadow: 0 0.25em #009de4, 0 0.625em 0.938em rgba(0, 0, 0, 0.2); /* 4px 10px 15px*/
+}
+
+/* Inset shadow on the screen to create indent */
+.calculator .top .screen {
+    height: 2.3em;
+    font-weight: bold;
+    font-size: 2em;
+    width: 9.3em;
+    line-height: 2.3em;
+    float: right;
+    padding: 0 0.625em; /* 10px */
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.2em; /* 3px */
+    box-shadow: inset 0 0.25em rgba(0, 0, 0, 0.2); /* 4px */
+
+    /* Typography */
+    color: white;
+    text-shadow: 0.063em 0.063em 0.125em rgba(0, 0, 0, 0.2); /* 1px 1px 2px */
+    text-align: right;
+    letter-spacing: 0.063em; /* 1px */
+}
+
+/* Clear floats */
+.calculator .keys, .top { overflow: hidden; }
+
+/* Applying same to the keys */
+.calculator .top span.clear {
+    float: left;
+    position: relative;
+    top: 0;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 2em;
+    width: 3em;
+    height: 2em;
+    line-height: 2em;
+    background: white;
+    border-radius: 0.2em; /* 3px */
+    box-shadow: 0 0.25em rgba(0, 0, 0, 0.2); /* 4px */
+    margin: 0 0.438em 0.688em 0; /* 7px 11px */
+    color: #888;
+    text-align: center;
+
+    /* prevent selection of text inside keys */
+    user-select: none;
+
+    /* Smoothing out hover and active states using css3 transitions */
+    transition: all 0.2s ease;
+}
+
+.calculator-revenue .keys span {
+    float: left;
+    position: relative;
+    top: 0;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 2em;
+    width: 2.9em;
+    height: 2em;
+    line-height: 2em;
+    background: white;
+    border-radius: 0.2em; /* 3px */
+    box-shadow: 0 0.25em rgba(0, 0, 0, 0.2); /* 4px */
+    margin: 0 0.438em 0.688em 0; /* 7px 11px */
+    color: #888;
+    text-align: center;
+
+    /* prevent selection of text inside keys */
+    user-select: none;
+
+    /* Smoothing out hover and active states using css3 transitions */
+    transition: all 0.2s ease;
+}
+
+.calculator-stamps .keys span {
+    float: left;
+    position: relative;
+    top: 0;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 2em;
+    width: 6.1em;
+    height: 2em;
+    line-height: 2em;
+    background: white;
+    border-radius: 0.2em; /* 3px */
+    box-shadow: 0 0.25em rgba(0, 0, 0, 0.2); /* 4px */
+    margin: 0 0.438em 0.688em 0; /* 7px 11px */
+    color: #888;
+    text-align: center;
+
+    /* prevent selection of text inside keys */
+    user-select: none;
+
+    /* Smoothing out hover and active states using css3 transitions */
+    transition: all 0.2s ease;
+}
+
+.calculator-stamps-redeem .keys span {
+    float: left;
+    position: relative;
+    top: 0;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 2em;
+    width: 6.1em;
+    height: 7.3em;
+    line-height: 7.3em;
+    background: white;
+    border-radius: 0.2em; /* 3px */
+    box-shadow: 0 0.25em rgba(0, 0, 0, 0.2); /* 4px */
+    margin: 0 0.438em 0.688em 0; /* 7px 11px */
+    color: #888;
+    text-align: center;
+
+    /* prevent selection of text inside keys */
+    user-select: none;
+
+    /* Smoothing out hover and active states using css3 transitions */
+    transition: all 0.2s ease;
+}
+
+.calculator .keys span.lastOne {
+    margin-right: 0;
+}
+
+/* Remove right margins from operator keys */
+.calculator .top span.clear {
+    background: #ff9fa8;
+    box-shadow: 0 0.25em #ff7c87; /* 4px */
+    color: white;
+}
+
+.calculator span.green {
+    background: #f1ff92;
+    box-shadow: 0 0.25em #9da853;
+    color: #888e5f;
+}
+
+.calculator span.red {
+    background: #ff9fa8;
+    box-shadow: 0 0.25em #ff7c87;
+    color: white;
+}
+
+button.square-btn {
+    white-space: normal;
+    font-size: 3em;
+    width: 9em;
+    height: 10em;
+}
+
+button.rectancular-btn {
+    white-space: normal;
+    font-size: 3em;
+    width: 13em;
+    height: 5em;
+}
+
+button.rectancular-small-btn {
+    white-space: normal;
+    font-size: 3em;
+    width: 9em;
+    height: 7em;
+}
+
+#osa-overlay {
+    z-index: 20;
+    width: 100%;
+    height: auto;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+}
+
+.unread-inbox-count {
+    padding: 0.3em;
+    margin-left: 1em;
+    font-weight: 700;
+    text-align: center;
+    border-width: 1px;
+    border-style: solid;
+    line-height: 1.6em;
+    min-height: 1.6em;
+    min-width: .64em;
+    right: .8em;
+    top: 50%;
+    margin-top: -.88em;
+    -webkit-border-radius: .3125em;
+    border-radius: .3125em;
+}
+
+#osa-text-slider {
+    z-index: 20;
+    width: 100%;
+    height: auto;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+}
+
+.marquee {
+    margin: 0 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: border-box;
+    animation: marquee 20s linear infinite;
+}
+
+.btn-green {
+    background-color: #09a738 !important;
+    border-color: #287940 !important;
+    color: #fff !important;
+    text-shadow: 0 1px 0 #111 !important;
+}
+
+.btn-red {
+    background-color: #f00 !important;
+    border-color: #AC0B0B !important;
+    color: #fff !important;
+    text-shadow: 0 1px 0 #111 !important;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.bootstrap-dialog .bootstrap-dialog-message {
+    font-size: 32px;
+}
+
+.bootstrap-dialog-footer-buttons button {
+    font-size: 24px;
+    padding: 6px 20px;
+}
+
+.bootstrap-dialog .bootstrap-dialog-title {
+    font-size: 32px;
+}

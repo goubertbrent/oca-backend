@@ -1,0 +1,9 @@
+First download logs from appengine:
+cd to google-app-engine-project/src
+then execute following command:
+appcfg.py request_logs . ~/logs.txt --severity=1 --num_days=10 --include_all
+
+Then run the logs through the parser:
+cat ~/logs.txt | ../src-test/logparser.py > ~/parsedlogs.txt
+
+~/parsedlogs.txt contains now your parsed logs

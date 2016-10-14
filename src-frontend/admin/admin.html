@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="app">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <meta name="theme-color" content="#4CAF50">
+    <title ng-bind="$state.current.data.pageTitle">Rogerthat</title>
+    <base href="/admin/home/">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Roboto:400,500,700'>
+    <link rel="stylesheet" href="/static/libs/angular-material/angular-material.min.css">
+    <!-- link rel="stylesheet" href="http://gitcdn.xyz/repo/angular/bower-material/master/angular-material.css"-->
+    <!-- build:css -->
+    <!-- endbuild -->
+    <style type="text/css">
+        [ng-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div layout="row" class="main-content">
+    <div ng-include="'/static/admin/html/components/leftSidebar/leftSidebar.html'" layout="row"></div>
+    <div layout="column" flex role="main">
+        <md-toolbar ng-include="'/static/admin/html/components/toolbar/toolbar.html'"></md-toolbar>
+        <md-content class="scrollbar">
+            <div ui-view></div>
+        </md-content>
+    </div>
+</div>
+<!-- build:channel -->
+<!-- endbuild -->
+<!-- All our dependencies and frontend logic-->
+<!-- build:js -->
+<!-- endbuild -->
+</body>
+</html>

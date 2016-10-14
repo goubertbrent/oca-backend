@@ -1,0 +1,10 @@
+{% raw %}
+{{each(i, e) exports}}
+<div style="margin-top: 10px; float: left; width: 45%;">
+    <a class="btn btn-success" target="_blank" href="/common/city_vouchers/export?a=${app_id}&m=${e.month}&y=${e.year}">
+    	<i class="fa fa-download"></i>
+    </a>
+    ${e.month_str} ${e.year}
+</div>
+{{/each}}
+{% endraw %}

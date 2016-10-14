@@ -1,0 +1,14 @@
+{% raw %}
+{{each(i, m) slides}}
+<tr id="${m.id}" slide_id="${m.id}">
+    <td>${m.name}</td>
+    <td>${m.time}</td>
+    <td><img src="${m.url}=s200"></td>
+    <td>
+        <a target="_blank" href="/common/loyalty/slide/preview?i=${m.id}" slide_id="${m.id}" class="btn btn-primary control">${CommonTranslations.PREVIEW}</a>
+        <button action="update" slide_id="${m.id}" class="btn btn-primary control">${CommonTranslations.UPDATE}</button>
+        <button action="delete" slide_id="${m.id}" class="btn btn-warning control">${CommonTranslations.DELETE}</button>
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

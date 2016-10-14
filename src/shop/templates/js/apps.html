@@ -1,0 +1,31 @@
+<div id="active-apps" class="row">
+    <h3 class="pull-left">Orderable apps for ${selectedApp.name}</h3>
+    <button type="button" class="btn btn-primary pull-left" id="save-apps"><i class="fa fa-save"></i> Save</button>
+    <div class="span12">
+    {{each(i, app) allApps}}
+        {{if selectedApp.orderable_app_ids.indexOf(app.id) !== -1}}
+        <div class="span4 app-container">
+            <button class="btn btn-danger" data-action="0" type="button" data-app-id="${app.id}"><i class="fa fa-remove"></i></button>
+            <span>${app.name} (${app.id})</span>
+        </div>
+        {{/if}}
+    {{/each}}
+    </div>
+{{if selectedApp.orderable_app_ids.length === 0}}
+    <p class="span12">(none)</p>
+{{/if}}
+</div>
+
+<div id="available-apps" class="row">
+    <h3>Available apps</h3>
+    <div class="span12">
+    {{each(i, app) allApps}}
+        {{if selectedApp.orderable_app_ids.indexOf(app.id) === -1 && app.id != selectedApp.id}}
+        <div class="span4 app-container">
+            <button class="btn btn-success" data-action="1" type="button" data-app-id="${app.id}"><i class="fa fa-plus"></i></button>
+            <span>${app.name} (${app.id})</span>
+        </div>
+        {{/if}}
+    {{/each}}
+    </div>
+</div>

@@ -1,0 +1,24 @@
+<div id="tabletModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>${CommonTranslations.SETTINGS}</h3>
+    </div>
+    <div class="modal-body">
+        <input id="tabletModalInput" type="text" placeholder="${CommonTranslations.ENTER_DOT_DOT_DOT}" />
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox" value="1" id="function_scan" /> ${CommonTranslations.SCAN}
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" value="2" id="function_slideshow" /> ${CommonTranslations.SLIDESHOW}
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" value="4" id="function_control" /> ${CommonTranslations.ASSIGN_REDEEM_LOYALTY_POINTS}
+            </label>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${CommonTranslations.CANCEL}</button>
+        <button action="submit" class="btn btn-primary">${CommonTranslations.SAVE}</button>
+    </div>
+</div>

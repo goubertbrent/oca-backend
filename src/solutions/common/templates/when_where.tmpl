@@ -1,0 +1,62 @@
+<div id="opening_hours" style="display:none;">
+    {% translate language "common" "opening-hours" %}: <br/>
+    <div id="opening_hours_details"></div>
+</div>
+<p id="no_opening_hours" style="display:none;">
+    {% translate language "common" "no-opening-hours" %}
+</p>
+<p id="holiday-message" style="display:none;"></p>
+<div id="address" style="display: none; margin-top: 20px;">
+    {% translate language "common" "address" %}:<br/>
+    <a href="#" id="map" style="display: none;">
+       <div style="float: left; width: 20%; margin-right: 10px; margin-bottom: 10px;"><img src="map.png" alt="{% translate language "common" "map" %}" style="width: 100%;"/></div>
+    </a>
+    <div id="address_details"></div>
+</div>
+<p id="no_address" style="display: none; margin-top: 20px;">
+    {% translate language "common" "no-address" %}
+</p>
+<script src="jquery/jquery-1.11.0.min.js"></script>
+<script src="rogerthat/rogerthat-1.0.js"></script>
+<script>
+$(function () {
+    rogerthat.callbacks.ready(function () {
+        function htmlize(value) {
+            return value.replace(/\n/g, "<br>");
+        }
+        
+        if (rogerthat.service.data.settings.opening_hours) {
+            $("#opening_hours_details").html(htmlize(rogerthat.service.data.settings.opening_hours));
+            $("#opening_hours").show();
+        } else {
+            $("#no_opening_hours").show();
+        }
+        
+        if (rogerthat.service.data.settings.address) {
+            $("#address_details").html(htmlize(rogerthat.service.data.settings.address));
+            if (rogerthat.service.data.settings.address_url) {
+                $("#map").attr("href", rogerthat.service.data.settings.address_url);
+                $("#map").show();
+            }
+            $("#address").show();
+        } else {
+            $("#no_address").show();
+        }
+        
+        function isInHoliday () {
+            var holidayDates = rogerthat.service.data.settings.holidays.dates;
+            var currentDate = new Date().getTime() / 1000;
+            for (var i = 0; i < holidayDates.length; i++) {
+                if (holidayDates[i].from < currentDate && currentDate < holidayDates[i].to) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (isInHoliday()) {
+            var message = htmlize(rogerthat.service.data.settings.holidays.out_of_office_message);
+            $('#holiday-message').show().html(message);
+        }
+    });
+});
+</script>

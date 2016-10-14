@@ -1,0 +1,195 @@
+<html>
+<head>
+  <style type="text/css"></style>
+  <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+  <link href="/static/css/solutions/djm-style.css" rel="stylesheet" media="screen">
+  
+  <script src="/static/js/jquery-1.10.0.min.js"></script>
+  <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/static/js/jquery.tmpl.min.js"></script>
+  <script src="/static/js/stacktrace.js"></script>
+  <script src="/static/js/solutions/sln-utils.js"></script>
+  <script language="javascript">
+  <!--
+  var templates = {{ templates|safe }};
+  -->
+  var CommonTranslations = { 
+          CLOSE: "Close",
+          CANCEL: "Cancel"
+  };
+	  $(function() {
+	      var totalTrailServices = 0;
+	      var updateTotalTrialServices = function(){
+              $("#total_trail_services").text(totalTrailServices);
+          };
+          
+          var updatePlayerStatus = function(playerId, status, tableRow){
+              $.ajax({
+                  url : "/djmatic_overview/update_djmatic_status",
+                  type : "POST",
+                  data : {
+                      data : JSON.stringify({
+                          status : status,
+                          player_id : playerId
+                      })
+                  },
+                  success : function(data, textStatus, XMLHttpRequest) {
+                      if (tableRow != null){
+	                      tableRow.hide();
+	                      totalTrailServices--;
+	                      updateTotalTrialServices();
+                      }
+                  },
+                  error : function(data, textStatus, XMLHttpRequest) {
+                      // TODO Ruben
+                      sln.alert("An error has occurred while updating player information<br>" +
+                              "more info contact <a href='mailto:support@mobicage.com'>support@mobicage.com</a><br>", undefined, "Error occurred");
+                  }
+              });
+          };
+          
+	      $("#djmatic_search_btn").click(function(event){
+	          event.preventDefault();
+	          
+	          var playerId = $("#djmatic_search_player_id").val();
+	          $.ajax({
+                  url : "/djmatic_overview/get_djmatic_status",
+                  type : "POST",
+                  data : {
+                      data : JSON.stringify({
+                          player_id : playerId
+                      })
+                  },
+                  success : function(data, textStatus, XMLHttpRequest) {
+                      if (data != null){
+                          var valueTrial = "";
+                          var valueDemo = "";
+                          var valueFull = "";
+                          var valueLimited = "";
+                          if (data.status == 0 || data.status == 1){
+                              valueTrial = "selected";
+                          }
+                          else if (data.status == 2) {
+                              valueDemo = "selected";
+                          }
+                          else if (data.status == 3) {
+                              valueFull = "selected";
+                          }
+                          else if (data.status == 4) {
+                              valueLimited = "selected";
+                          }
+                          var status_history = "";
+
+                          for (var i = 0; i < data.history.length ; i++) {
+                              var d = new Date(data.history[i].epoch * 1000);
+                              status_history += '<tr><td>' + d.toDateString() + '</td><td>' + data.history[i].status_str + '</td></tr>';
+                          } 
+                       // TODO Ruben
+                          sln.confirm('<table class="table table-striped">' +
+                                  ' <thead>' + 
+                                  '     <tr class="header">' +
+                                  '         <td class="span2"><b>Date</b></td>' +
+                                  '         <td class="span2"><b>Status</b></td>' +
+                                  '     </tr>'+
+                                  ' </thead>' +
+                                  ' <tbody>' + status_history +
+                                  ' </tbody>' +
+                                  '</table>' +
+                                  'Status: <select id="djmatic_search_status">' +
+                                  '<option value="1"' + valueTrial + '>Trial</option>' +
+                                  '<option value="2"' + valueDemo + '>Demo</option>' +
+                                  '<option value="3"' + valueFull + '>Full</option>' +
+                                  '<option value="4"' + valueLimited + '>Limited</option>' +
+                               '</select>',
+                           function(){
+                              var status = $("#djmatic_search_status").val();
+                              updatePlayerStatus(playerId, status, null);
+                          },function(){
+                          },  "Update", "Cancel", "Customer ID: " + playerId);
+                      }
+                      else{
+                       // TODO Ruben
+                          sln.alert("Make sure you have no spelling mistakes. <br>The Customer ID is case sensitive", undefined, "Player not found");
+                      }
+                  },
+                  error : function(data, textStatus, XMLHttpRequest) {
+                   // TODO Ruben
+                      sln.alert("An error has occurred while getting player information<br>" +
+                              "Contact <a href='mailto:support@mobicage.com'>support@mobicage.com</a> for more info.", undefined, "Error occurred");
+                  }
+              });
+	      });
+	      
+	      $(document).on("click", ".djmatic_update", function(event) {
+	          event.preventDefault();
+	          var tableRow = $(this).parent().parent();
+	          var player_id = tableRow.attr("player");
+	          var status = $( ".djmatic_status" , tableRow).val();
+
+	          updatePlayerStatus(player_id, status, tableRow);
+          });
+	      
+	      var loadTrialServices = function(cursor){
+	          $.ajax({
+	              url : "/djmatic_overview/load_trials",
+	              type : "POST",
+	              data : {
+	                  data : JSON.stringify({
+	                      cursor : cursor
+	                  })
+	              },
+	              success : function(data, textStatus, XMLHttpRequest) {
+	                  totalTrailServices = totalTrailServices + data.djmatic_profiles.length;
+                      var html = $.tmpl(templates.djmatic_overview_items, {
+                          djmatic_profiles: data.djmatic_profiles
+                      });
+                      $("#trials tbody").append(html);
+	                  
+	                  if (data.has_more) {
+	                      loadTrialServices(data.cursor);
+	                  } else {
+	                      updateTotalTrialServices();
+	                  }
+	              },
+	              error : function(data, textStatus, XMLHttpRequest) {
+	                  sln.alert("An error has occurred while loading trials<br>" +
+	                          "more info contact <a href='mailto:support@mobicage.com'>support@mobicage.com</a><br>", undefined, "Error occurred");
+	              }
+	          });
+          };
+	      
+          loadTrialServices(null);
+	  });
+  </script>
+</head>
+<body>
+<div class="container">
+	<div class="row page" >
+		<div class="span12">
+			
+			<div style="margin:10px 0 50px 0;">
+				<div class="pull-right"> 
+				     <input id="djmatic_search_player_id" type="text" style="height: 30px; margin-bottom:0;"placeholder="Customer ID"> 
+				     <button id="djmatic_search_btn" type="button" class="btn btn-info">Search</button>
+				</div>
+			</div>
+			
+			<h2>DJ-Matic trials with more than 30 days (<span id="total_trail_services">Loading...</span>)</h2>
+			<p>Trial period starts as soon as a bar-app has more than 10 connected users.</p>
+			<table id="trials" class="table table-striped">
+				<thead>
+				    <tr class="header">
+				        <td class="span4"><b>Customer</b></td>
+				        <td class="span2"><b>Trial activated</b></td>
+				        <td class="span2"><b>Status</b></td>
+				        <td class="span2"><b>Update</b></td>
+				    </tr>
+			    </thead>
+			    <tbody>
+			    </tbody>
+			</table>
+		</div>
+	</div>
+</div>
+</body>
+</html>

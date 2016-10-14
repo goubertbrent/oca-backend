@@ -1,0 +1,22 @@
+smtpserverHost: smtp.rogerth.at
+smtpserverLogin: dashboard@rogerth.at
+smtpserverPassword: hack attacks revealed
+smtpserverPort: '465'
+
+# DKIM private key
+dkimPrivateKey: |
+  -----BEGIN RSA PRIVATE KEY-----
+  MIICXgIBAAKBgQCyUhhG0dxRtZCQKNwxKJ7Lec9EdllgR0ygCfi5uohAkQk0o/i/
+  MKZJKctaqMNGPGxBwNZuPeRaP+vJJMnbp6fUCn7ZUzNsPwO9UvSnShgTBpdwdx7F
+  JSLWn5mD5jva0f0WLOuwN0QVVSlZyJChWELZzsWWWAUa172LsNnqsfHn6QIDAQAB
+  AoGBAIvM+ONs3EHjCrc6kYaoxfXYRbry3hcxTs2Zg7p4lyGnk4QFmZqq1XM+pQMq
+  lA2YiXbzbCl5tHFc88n6YZcn1daCqU4IEa6imvl3YDBcDKyKdZ6fCP+xAog3ITfk
+  yfIk2XPxU5Fb9SFJBNihl20YHStufpuZT3yeAzxHQraxnlYBAkEA7NI+8LEpOJGZ
+  LuJZaamR/U/bdaRWyuV4/uag0zSmmAboo1QFI6c/DlWhsvBvutrH1yl8+ZAEm0Ra
+  bNmLsyJG0QJBAMDDBVJtQxp8w3L3Qrb45QJVTvLkNKAaXNeZPfb6QT8lOn99i/LL
+  qooo3xhbGnBLNsJyS6wrMm3656wAOMm7hZkCQQCiP5jnhjjbjMUKHgFsJsTia6fL
+  fYAJGhY/bPqaOOQ6G+GepJ2ww5Cr3XcfBSNHPUTU4JPC1yyQw8+/63uOitlBAkAw
+  QGETqgATIEn4fEZ58MG6nMofaNp3fUHiQhzNtwUgHlyPT0j55NtyrBp0SVHL7Dfv
+  4pZoqYN9HkJhvsh4TvV5AkEA072JVkGlgJrzGHYkNvhWMLWa4L/RCmdpqMz+YKhD
+  uQto07eipyaIID6sHgfmDdN0PG9hdrd298KxxNu8rw0ljA==
+  -----END RSA PRIVATE KEY-----

@@ -1,0 +1,216 @@
+<div class="modal hide fade" id="customer_form" style="z-index: 1041;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 class="new-customer-only">New customer</h3>
+
+        <h3 class="search-customer-only">Search customer</h3>
+        <h3 class="open-tab-customer-only">Edit customer</h3>
+        <h3 class="link-prospect-customer-only">Link prospect to customer</h3>
+    </div>
+    <div class="modal-body">
+        <form id="form_search_customer_name" class="search-customer-only link-prospect-customer-only form-inline">
+            <label for="search_customer_name" class="span2" style="line-height: 30px;">Search Customer</label>
+            <input type="text"  placeholder="Customer name" id="search_customer_name" class="customer_select"
+                   autocomplete="off" style="width: 65%;">
+                   
+            <label class="checkbox" style="margin-left: 10px;">
+		      <input id="show_all_customers" name="show_all_customers" value="1" type="checkbox"> Search all teams
+		    </label>
+        </form>
+        <div class="tabs-left">
+            <ul class="nav nav-tabs " id="tab-nav-container">
+                <li><a href="#" data-target="#tab-details">Details</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-contacts">Contacts</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-new-order">New order</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-service">Service</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-orders">Orders</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-prospect">Prospect</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-history">History</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="tab-details">
+                    <div class="span5">
+                        <form class="form-horizontal">
+                            <fieldset>
+                                <div class="alert alert-error" id="new_customer_error" style="display:none;">
+                                  <strong>Error!</strong> <span></span>
+                                </div>
+                                <div class="control-group" id="customer_number-parent">
+                                    <label for="customer_number" class="control-label">Customer no.:</label>
+
+                                    <div class="controls">
+                                        <input type="text" id="customer_number" readonly />
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="customer_organization_type" class="control-label">Sector</label>
+
+                                    <div class="controls">
+                                        <select id="customer_organization_type">
+{% for orga_value, orga_descr, orga_default in organization_types %}
+<option value="{{ orga_value }}"{% if orga_default %}selected="selected"{% endif %}>{{ orga_descr }}</option>
+{% endfor %}
+                                    </select>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="vat" class="control-label">VAT</label>
+
+                                    <div class="controls">
+                                        <div class="input-append">
+                                            <input type="text" placeholder="BE 0843 456 123" id="vat" style="width: 120px;">
+                                            <button class="btn new-customer-only" type="button" id="button_validate_vat"
+                                                    style="margin-left: 10px;">Validate</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="customer_name">Name</label>
+
+                                    <div class="controls">
+                                        <input type="text" placeholder="Customer name" id="customer_name">
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="address1">Address</label>
+
+                                    <div class="controls">
+                                        <input type="text" placeholder="Address line 1" id="address1"
+                                               style="margin-bottom: 10px;">
+                                        <input type="text" placeholder="Address line 2" id="address2">
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="zipcode">Zipcode, city</label>
+
+                                    <div class="controls">
+                                        <input type="text" id="zipcode" placeholder="B9080"
+                                               style="margin-bottom: 10px;"/>
+                                        <input type="text" id="city" placeholder="Lochristi"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="country">Country</label>
+
+                                    <div class="controls">
+                                        <select id="country">
+                                            {% for code, country in countries %}
+                                            <option value="{{ code }}">{{country}}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="language">Language</label>
+
+                                    <div class="controls">
+                                        <select id="language">
+                                            <option value="" selected>Choose language...</option>
+                                            {% for code, lang in languages %}
+                                            <option value="{{ code }}">{{lang}}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div class="hide" id="other-customer-info">
+                        <div>
+	                        <strong>Team:</strong> <span id="team-name"></span>
+			                <select id="team-select" class="team-select">
+			                </select>
+                        </div>
+                        <div>
+	                        <strong>Managed by:</strong> <span id="managed-by"></span>
+                        </div>
+                        <div id="credit-card-status">
+                            <span><b>Credit card status:</b> <i class="fa fa-credit-card"></i>
+                                <span id="cc-status-text"></span></span>
+                        </div>
+                        <div>
+                            <strong>User email: </strong><span id="user-email"></span>
+                        </div>
+                        <div>
+                            <strong>Service email: </strong><span id="service-email"></span>
+                        </div>
+                        <div>
+                            <b>Subscription type: </b><span id="subscription-type"></span>
+                        </div>
+                        <div id="has-loyalty-status">
+                            <b>Has terminal: </b><i class="fa fa-tablet"></i> <span id="loyalty-status"></span>
+                        </div>
+                        <div>
+                            <b>Created on: </b><span id="customer-creation-time"></span>
+                        </div>
+                        <div id="service-disable-pending" style="color: orange;font-weight: bold;">
+                            Service will be disabled when subscription ends on <span
+                                id="service-cancelling-on-date"></span> for reason "<span
+                                id="service-disable-pending-reason"></span>" (since <span
+                                id="service-disable-pending-time"></span>)
+                        </div>
+                        <div id="service-status" style="color: #ff0000;font-weight: bold;">
+                            Service disabled on <span id="service-disabled-at"></span> for reason "<span
+                                id="service-disabled-reason"></span>"
+                        </div>
+                    </div>
+              </div>
+                <div class="tab-pane" id="tab-contacts">
+                    <svg class="circular">
+                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
+                    </svg>
+                </div>
+                <div class="tab-pane" id="tab-prospect">
+                    <svg class="circular">
+                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
+                    </svg>
+                </div>
+                <div class="tab-pane" id="tab-new-order">{% include "new_order.html" %}</div>
+                <div class="tab-pane" id="tab-orders">
+                    <svg class="circular">
+                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
+                    </svg>
+                </div>
+                <div class="tab-pane" id="tab-service">
+                    <div class="loading"></div>
+                    <div class="content hide">{% include "service_tab.html" %}</div>
+                </div>
+                <div class="tab-pane" id="tab-history">
+                    <svg class="circular">
+                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a class="pull-right btn btn-primary search-customer-only details-only can_edit_only" id="button_save_customer">Save</a>
+        <a class="pull-right btn btn-primary search-customer-only prospect-only" id="button_save_prospect">Save</a>
+        <a class="pull-right btn btn-primary link-prospect-customer-only" id="button_link_prospect">Link prospect</a>
+        <a class="pull-right btn btn-primary new-customer-only" id="button_add_customer">Add customer</a>
+        <a class="pull-right btn btn-info new-customer-only" id="button_discover">Geo discover</a>
+        <a class="pull-right btn btn-info contacts-only" id="button_new_contact" style="display:none">Add contact</a>
+        <a class="pull-right btn btn-info search-customer-only details-only can_edit_only" id="button_new_credit_card" style="display:none">Link credit card</a>
+        <a class="pull-right btn btn-info prospect-only" id="edit-prospect-button" style="display:none">Edit prospect</a>
+        <a class="pull-right btn btn-danger orders-only" id="button_cancel_subscription">Cancel subscription</a>
+        <a class="pull-right btn btn-warning orders-only" id="button_set_next_charge_date">Adjust next charge date</a>
+        <div class="btn-group dropup search-customer-only migrating-only" style="text-align: left;">
+            <a class="btn btn-warning dropdown-toggle" data-toggle="dropdown" href="#">
+                Migrating... <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li>
+                    <a id="button_follow_job" href="#">Follow progress</a>
+                </li>
+            </ul>
+        </div>
+        <a id="button_login_as_service" target="_blank"
+           class="btn btn-success pull-left existing-service-only service-only history-only"><i class="fa fa-dashboard"></i> Dashboard</a>
+        <a id="button_change_service_email" href="#" class="btn btn-info pull-left existing-service-only service-only"><i class="fa fa-envelope"></i> Change email</a>
+        <a id="button_add_location" href="#" class="btn btn-info pull-left existing-service-only service-only"><i class="fa fa-map-marker"></i> Add location</a>
+        <a class="pull-left btn btn-primary new-order-only" id="button_add_order_item">Add product</a>
+        <a class="pull-left btn btn-primary new-order-only" id="button_add_extra_city">Extra city</a>
+        <a class="pull-left btn btn-primary new-order-only" id="button_action_extra_cities">Action: extra cities</a>
+        <a class="pull-right btn btn-success new-order-only" id="button_create_new_order">Create order</a>
+    </div>
+</div>

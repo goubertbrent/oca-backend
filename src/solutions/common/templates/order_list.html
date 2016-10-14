@@ -1,0 +1,38 @@
+{% raw %}
+{{if orders.length}}
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th class="span2">${CommonTranslations.EVENT_DATE}</th>
+        {{if advancedOrder}}<th class="span2">${CommonTranslations.takeaway_time}</th>{{/if}}
+        <th class="span2">${CommonTranslations.FROM}</th>
+        <th>${CommonTranslations.DETAILS}</th>
+        <th class="span3">&nbsp;</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{each(i, o) orders}}
+    <tr class="{{if o.status === 2}}success{{/if}}" order_key="${o.key}">
+        <td>${o.date_time}</td>
+        {{if advancedOrder}}<td>${o.takeaway_time_formatted}</td>{{/if}}
+        <td><img class="avatar" src="${o.sender_avatar_url}">${o.sender_name}</td>
+        <td>{{html formatHtml(o.description)}}</td>
+        <td>
+            {{if o.status !== 2}}
+            <button action="delete" order_key="${o.key}" class="btn btn-danger control pull-right">
+                <i class="fa fa-remove"></i>
+            </button>
+            {{/if}}
+            <button action="view" order_key="${o.key}" class="btn btn-success control pull-right">
+                ${CommonTranslations.VIEW}
+            </button>
+        </td>
+    </tr>
+    {{/each}}
+    </tbody>
+</table>
+{{else}}
+<p><i>${CommonTranslations.there_are_no_orders}</i></p>
+{{/if}}
+
+{% endraw %}

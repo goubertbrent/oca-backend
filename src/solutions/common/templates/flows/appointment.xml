@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition name="{% translate language, 'common', 'appointment' %}"
+                language="{{ language }}"
+                startReference="flowcode_check_holiday">
+                
+        <flowCode id="flowcode_check_holiday"
+                  exceptionReference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfZGF5IiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9">
+            <outlet reference="message_holiday"
+                    name="message_holiday"
+                    value="message_holiday"/>
+            <outlet reference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfZGF5IiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"
+                    name="message_holiday_check_continue"
+                    value="message_holiday_check_continue"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    var nextStepResult = {};
+                    if (isInHoliday(rogerthat.service.data.settings.holidays.dates)) {
+                        nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
+                        nextStepResult.outlet = 'message_holiday';
+                    }
+                    else {
+                        nextStepResult.outlet = 'base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfZGF5IiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9';
+                    }
+                    return nextStepResult;
+
+                    function isInHoliday(holidayDates) {
+                        var currentDate = new Date().getTime() / 1000;
+                        for (var i = 0; i &lt; holidayDates.length; i++) {
+                            if (holidayDates[i].from &lt;= currentDate &amp;&amp; currentDate &lt; holidayDates[i].to) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                };
+            </javascriptCode>
+        </flowCode>
+        <message id="message_holiday"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 brandingKey="{{ branding_key }}"
+                 allowDismiss="false"
+                 vibrate="false"
+                 autoLock="true">
+            <content>{{ settings.holiday_out_of_office_message|e }}</content>
+            <answer action=""
+                    caption="{% translate language, 'common', 'continue_anyway' %}"
+                    id="button_holiday_continue"
+                    reference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfZGF5IiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"/>
+            <answer action=""
+                    caption="{% translate language, 'common', 'Cancel' %}"
+                    id="button_holiday_cancel"
+                    reference="end_quick"/>
+        </message>
+        <formMessage
+            id="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfZGF5IiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            positiveReference="flow_code_phone_default"
+            vibrate="false"
+            autoLock="true"
+            brandingKey="{{ branding_key }}"
+            negativeReference="base64:eyJsYW5nIjoibmwiLCJpZCI6ImVuZF9lbmQiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0=">
+            <content>{{ text_1|e }}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="SelectMultiWidget">
+                    {% for timeframe in timeframes %}
+                    <choice
+                        value="{{ timeframe.id }}"
+                        label="{{ timeframe.label_str }}" />
+                    {% endfor %}
+                </widget>
+            </form>
+        </formMessage>
+        <flowCode
+                id="flow_code_phone_default"
+                exceptionReference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfcGhvbmUiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0=">
+            <outlet
+                    reference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfcGhvbmUiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0="
+                    name="message_phone"
+                    value="message_phone"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    return { outlet: 'message_phone', defaultValue: rogerthat.user &amp;&amp; rogerthat.user.data.phone };
+                };
+            </javascriptCode>
+        </flowCode>
+        <formMessage
+            id="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfcGhvbmUiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            positiveReference="flow_code_save"
+            vibrate="false"
+            autoLock="true"
+            brandingKey="{{ branding_key }}"
+            negativeReference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfZGF5IiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9">
+            <content>{% translate language, 'common', 'appointment-2' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'back' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="TextLineWidget"
+                    maxChars="50" />
+            </form>
+        </formMessage>
+        <flowCode
+                id="flow_code_save"
+                exceptionReference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfcmVhc29uIiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9">
+            <outlet
+                    reference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfcmVhc29uIiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"
+                    name="message_explain"
+                    value="message_explain"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    if (rogerthat.user) {
+                        var shouldSave = false;
+                        var phoneNumber = messageFlowRun.steps[messageFlowRun.steps.length - 1].form_result.result.value;
+                        if(phoneNumber !== rogerthat.user.data.phone){
+                            rogerthat.user.data.phone = phoneNumber;
+                            shouldSave = true;
+                        }
+                        if (shouldSave) {
+                            rogerthat.user.put();
+                        }
+                    }
+                    return { outlet: 'message_explain', defaultValue: null };
+                };
+            </javascriptCode>
+        </flowCode>
+        <formMessage
+            id="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfcmVhc29uIiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            positiveReference="base64:eyJsYW5nIjoibmwiLCJpZCI6ImZsdXNoX2ZsdXNoIiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"
+            vibrate="false"
+            autoLock="true"
+            brandingKey="{{ branding_key }}"
+            negativeReference="flow_code_phone_default">
+            <content>{% translate language, 'common', 'appointment-3' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'back' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Send' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="TextBlockWidget"
+                    maxChars="500" />
+            </form>
+        </formMessage>
+        <resultsFlush
+            id="base64:eyJsYW5nIjoibmwiLCJpZCI6ImZsdXNoX2ZsdXNoIiwibWZkIjoiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqMExFZ3B0WXkxMGNtRmphMlZ5SWc1amFYUjVNVEZBZEdWemRDNWlaUXdMRWhGTlpYTnpZV2RsUm14dmQwUmxjMmxuYmlJSVFXWnpjSEpoWVdzTSJ9"
+            reference="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfdGhueCIsIm1mZCI6ImFoTmtaWFotYlc5aWFXTmhaMlZqYkc5MVpHaHljajBMRWdwdFl5MTBjbUZqYTJWeUlnNWphWFI1TVRGQWRHVnpkQzVpWlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSUlRV1p6Y0hKaFlXc00ifQ==" />
+        <message
+            id="base64:eyJsYW5nIjoibmwiLCJpZCI6Im1lc3NhZ2VfdGhueCIsIm1mZCI6ImFoTmtaWFotYlc5aWFXTmhaMlZqYkc5MVpHaHljajBMRWdwdFl5MTBjbUZqYTJWeUlnNWphWFI1TVRGQWRHVnpkQzVpWlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSUlRV1p6Y0hKaFlXc00ifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="true"
+            vibrate="false"
+            brandingKey="{{ branding_key }}"
+            dismissReference="base64:eyJsYW5nIjoibmwiLCJpZCI6ImVuZF9lbmQiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0="
+            autoLock="true">
+            <content>{% translate language, 'common', 'appointment-5' %}</content>
+        </message>
+        <end id="base64:eyJsYW5nIjoibmwiLCJpZCI6ImVuZF9lbmQiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0="
+             waitForFollowUpMessage="false"/>
+        <end
+            id="end_quick"
+            waitForFollowUpMessage="false" />
+    </definition>
+</messageFlowDefinitionSet>

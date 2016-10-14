@@ -1,0 +1,30 @@
+{% raw %}
+{{each(i, location) locations}}
+    <div class="panel panel-primary panel-app">
+        <div class="panel-heading">
+            <h3 class="panel-title">${location.name}</h3>
+        </div>
+        <div class="panel-body">
+            <div class="col-lg-4 col-md-6 col-sm-12 col-xs-12">
+	            <strong>${CommonTranslations.PHONE_NUMBER}</strong>
+	            <br>
+	            ${location.phone_number}
+            </div>
+            <div class="col-lg-5 col-md-6 col-sm-12 col-xs-12">
+                {{if location.location_url}}
+                    <a href="${location.location_url}" target="_blank">
+	                   <strong>${CommonTranslations.ADDRESS}</strong> <i class="fa fa-map-marker"></i>
+                    </a>
+                {{else}}
+                    <strong>${CommonTranslations.ADDRESS}</strong> <i class="fa fa-map-marker"></i>
+                {{/if}}
+                <br>
+                ${location.address}
+            </div>
+            <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                <button class="btn btn-success pull-right use-this-location" service_identity="${location.identity}">${CommonTranslations.USE_THIS_LOCATION}</button>
+            </div>
+        </div>
+    </div>
+{{/each}}
+{%- endraw %}

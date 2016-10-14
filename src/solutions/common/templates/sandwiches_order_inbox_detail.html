@@ -1,0 +1,14 @@
+{% raw %}
+${CommonTranslations.TYPE}: ${ type.description }<br>
+${CommonTranslations.TOPPING}: ${ topping.description }<br>
+${CommonTranslations.OPTIONS}:
+<ul>
+{{each(i, option) options}}
+<li>${ option.description }</li>
+{{/each}}
+</ul>
+{{if remark}}
+${CommonTranslations.REMARKS}:<br>
+${ remark }
+{{/if}}
+{%- endraw %}

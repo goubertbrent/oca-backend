@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition name="order_sandwich"
+                language="{{ language }}"
+                startReference="flowcode_check_status">
+        <end
+            id="end_done"
+            waitForFollowUpMessage="true" />
+        <end
+            id="end_quick"
+            waitForFollowUpMessage="false" />
+        <end
+            id="end_cancel"
+            waitForFollowUpMessage="false"/>
+        <message id="message_cannot_order_now"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 brandingKey="{{ branding_key }}"
+                 allowDismiss="true"
+                 dismissReference="end_quick"
+                 vibrate="false"
+                 autoLock="true">
+            <content>{{ orderable_sandwich_days_message|e }}</content>
+        </message>
+        <message id="message_holiday"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 brandingKey="{{ branding_key }}"
+                 allowDismiss="true"
+                 dismissReference="end_quick"
+                 vibrate="false"
+                 autoLock="true">
+            <content>{{ settings.holiday_out_of_office_message|e }}</content>
+        </message>
+        <formMessage id="message_type"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     brandingKey="{{ branding_key }}"
+                     positiveReference="flowcode_message_topping"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_cancel">
+            <content>{% translate language, 'common', 'order-sandwich-message-bread' %}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="SelectSingleWidget">
+                    {% for type in types %}
+                        <choice value="type_{{ type.type_id }}"
+                                label="{{ type.description|e }}{% if sandwich_settings.show_prices and type.price > 0 %} ({{ settings.currency }}{{ type.price_in_euro }}){% endif %}"/>
+                    {% endfor %}
+                </widget>
+            </form>
+        </formMessage>
+        <flowCode id="flowcode_message_topping"
+                  exceptionReference="message_topping">
+            <outlet reference="message_topping"
+                    name="message_topping"
+                    value="message_topping"/>
+            <javascriptCode>
+                function run(rogerthat, mfr) {
+                    'use strict';
+                    var defaultValue = {};
+                    if (mfr.flow_params &amp;&amp; mfr.flow_params.topping) {
+                        defaultValue = mfr.flow_params.topping;
+                    }
+                    return {
+                        outlet: 'message_topping',
+                        defaultValue: defaultValue
+                    }
+                }
+            </javascriptCode>
+        </flowCode>
+
+        <formMessage id="message_topping"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     brandingKey="{{ branding_key }}"
+                     positiveReference="{% if options|length > 0 %}flowcode_message_customize{% else %}flowcode_set_takeaway_time_constraints{% endif %}"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_cancel">
+            <content>{% translate language, 'common', 'order-sandwich-message-topping' %}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="SelectSingleWidget">
+                    {% for topping in toppings %}
+                        <choice value="topping_{{ topping.topping_id }}"
+                                label="{{ topping.description|e }}{% if sandwich_settings.show_prices and topping.price > 0 %} ({{ settings.currency }}{{ topping.price_in_euro }}){% endif %}"/>
+                    {% endfor %}
+                </widget>
+            </form>
+        </formMessage>
+        {%- if options|length > 0 %}
+        <flowCode id="flowcode_message_customize"
+                  exceptionReference="message_customize">
+            <outlet reference="message_customize"
+                    name="message_customize"
+                    value="message_customize"/>
+            <javascriptCode>
+                function run(rogerthat, mfr) {
+                    'use strict';
+                    var defaultValue = {};
+                    if (mfr.flow_params &amp;&amp; mfr.flow_params.options) {
+                        defaultValue = mfr.flow_params.options;
+                    }
+                    return {
+                        outlet: 'message_customize',
+                        defaultValue: defaultValue
+                    }
+                }
+            </javascriptCode>
+        </flowCode>
+        <formMessage
+                id="message_customize"
+                alertIntervalType="NONE"
+                alertType="SILENT"
+                brandingKey="{{ branding_key }}"
+                positiveReference="flowcode_set_takeaway_time_constraints"
+                vibrate="false"
+                autoLock="true"
+                negativeReference="end_cancel">
+            <content>{% translate language, 'common', 'order-sandwich-message-customize' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="SelectMultiWidget">
+                    {%- for option in options %}
+                    <choice
+                        value="{{ option.option_id }}"
+                        label="{{ option.description|e }}{% if sandwich_settings.show_prices and option.price > 0 %} ({{settings.currency}}{{option.price_in_euro}}){% endif %}" />
+                    {%- endfor %}
+                </widget>
+            </form>
+        </formMessage>
+        {%- endif %}
+        {# Mostly copied from advanced_order.xml #}
+        <formMessage brandingKey="{{ branding_key }}"
+                     id="message_takeaway_time"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     positiveReference="message_remark"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_cancel">
+            <content>{% translate language, 'common', 'select_date_and_time_for_pickup' %}</content>
+            <form positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="SelectDateWidget"
+                        minuteInterval="1"
+                        mode="date_time"
+                        unit="&lt;value/&gt;"
+                />
+
+                <javascriptValidation>
+                    function run(result, rogerthat){
+                        {% if multiple_locations %}
+                        if (rogerthat === undefined) {
+                            return '{% translate language, 'common', 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
+                        }
+                        {% endif %}
+                        var holidayDates = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates;{% else %}{% if holiday_dates %}{{ holiday_dates }};{% else %}[];{% endif %}{% endif %}
+                        var timezoneOffsets = {{ timezone_offsets }};
+                        var currentDateTimeSeconds = new Date().getTime() / 1000;
+                        var timezoneOffset = 0;
+                        for (var i=0; i &lt; timezoneOffsets.length; i ++) {
+                            var zone = timezoneOffsets[i];
+                            if (zone[0] &lt; currentDateTimeSeconds &amp;&amp; currentDateTimeSeconds &lt;= zone[1]) {
+                                timezoneOffset = zone[2];
+                                break;
+                            }
+                        }
+                        var selectedDateTime = result.value;
+                        if(isInHoliday()){
+                            var holidayDatesStr = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates_str{% else %}{{ holiday_dates_str }}{% endif %};
+                            var holidayStr = '';
+                            for(var i = 0; i &lt; holidayDatesStr.length; i ++){
+                                holidayStr += holidayDatesStr[i];
+                            }
+                            return '{% translate language, 'common', 'can_not_order_holiday', '_duplicate_backslashes=True' %}\n' + holidayStr;
+                        }else if (canOrderAtTime()) {
+                            return;
+                        }
+                        else{
+                            return '{{ possible_times_message }}';
+                        }
+
+                        function isInHoliday() {
+                            for (var i = 0; i &lt; holidayDates.length; i ++) {
+                                if (holidayDates[i].from &lt;= selectedDateTime &amp;&amp; selectedDateTime &lt; holidayDates[i].to) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+
+                        function canOrderAtTime() {
+                            var selectedDate = new Date(selectedDateTime * 1000);
+                            var dayToday = selectedDate.getUTCDay();
+                            var sAfterMidnight = selectedDateTime % 86400;
+                            var sandwichSettings = rogerthat.service.data.sandwich_settings;
+                            var canOrder = (sandwichSettings.time_from + sandwichSettings.leap_time) &lt; sAfterMidnight
+                                    &amp;&amp; (sandwichSettings.time_until - sandwichSettings.leap_time) &gt;= sAfterMidnight;
+                            return canOrder;
+                        }
+                    }
+                </javascriptValidation>
+            </form>
+        </formMessage>
+        <formMessage
+                id="message_remark"
+                alertIntervalType="NONE"
+                alertType="SILENT"
+                brandingKey="{{ branding_key }}"
+                positiveReference="flow_code_check_internet_before_flush"
+                vibrate="false"
+                autoLock="true"
+                negativeReference="flow_code_check_internet_before_flush">
+            <content>{% translate language, 'common', 'order-sandwich-message-add-remark' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'order-sandwich-message-skip-remark' %}"
+                positiveButtonCaption="{% translate language, 'common', 'order' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="TextBlockWidget"
+                    maxChars="500" />
+            </form>
+        </formMessage>
+        <resultsFlush
+                id="results_flush"
+                reference="end_done"/>
+        <flowCode id="flowcode_check_status"
+                  exceptionReference="message_type">
+            <outlet reference="message_holiday"
+                    name="message_holiday"
+                    value="message_holiday"/>
+            <outlet reference="message_type"
+                    name="message_holiday_check_continue"
+                    value="message_holiday_check_continue"/>
+            <outlet reference="message_cannot_order_now"
+                    name="message_cannot_order_now"
+                    value="message_cannot_order_now"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    var timezoneOffsets = rogerthat.service.data.settings.timezoneOffsets;
+                    var currentDateTimeSeconds = new Date().getTime() / 1000;
+                    var timezoneOffset = 0;
+                    for (var i=0; i &lt; timezoneOffsets.length; i ++) {
+                        var zone = timezoneOffsets[i];
+                        if (zone[0] &lt; currentDateTimeSeconds &amp;&amp; currentDateTimeSeconds &lt;= zone[1]) {
+                            timezoneOffset = zone[2];
+                            break;
+                        }
+                    }
+
+                    var nextStepResult = {};
+                    if (isInHoliday(rogerthat.service.data.settings.holidays.dates)) {
+                        nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
+                        nextStepResult.outlet = 'message_holiday';
+                    }
+                    else if (!rogerthat.service.data.sandwich_settings.leap_time_enabled &amp;&amp; !canOrderSandwich(rogerthat.service.data.sandwich_settings, timezoneOffset)) {
+                        nextStepResult.outlet = 'message_cannot_order_now';
+                    }
+                    else {
+                        nextStepResult.outlet = 'message_type';
+                        if (messageFlowRun.flow_params &amp;&amp; messageFlowRun.flow_params.sandwichType) {
+                            nextStepResult.defaultValue = messageFlowRun.flow_params.sandwichType
+                        }
+                    }
+                    return nextStepResult;
+
+                    function isInHoliday(holidayDates) {
+                        var currentDate = new Date().getTime() / 1000;
+                        for (var i = 0; i &lt; holidayDates.length; i++) {
+                            if (holidayDates[i].from &lt;= currentDate &amp;&amp; currentDate &lt; holidayDates[i].to) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    function canOrderSandwich(settings, timezoneOffset) {
+                        var canOrder = false;
+                        var currentDate = new Date();
+                        var secondsFromMidnight = (currentDate.getTime() / 1000 + timezoneOffset) % 86400;
+                        var day = currentDate.getUTCDay();
+                        // Check if can order at this time
+                        if (settings.time_from &lt; secondsFromMidnight &amp;&amp; settings.time_until &gt;= secondsFromMidnight) {
+                            // Check if we can order at this day
+                            canOrder = (settings.status_days &amp; settings.days[day]) === settings.days[day];
+                        }
+                        return canOrder;
+                    }
+                };
+            </javascriptCode>
+        </flowCode>
+        <flowCode
+            id="flow_code_check_internet_before_flush"
+            exceptionReference="results_flush">
+            <outlet
+                name="results_flush"
+                value="results_flush"
+                reference="results_flush"/>
+            <outlet
+                name="message_no_internet"
+                value="message_no_internet"
+                reference="message_no_internet"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    if (rogerthat.system.internet &amp;&amp; !rogerthat.system.internet.connected) {
+                        return {outlet: 'message_no_internet'};
+                    }
+                    return {outlet: 'results_flush'};
+                };
+            </javascriptCode>
+        </flowCode>
+
+        <message
+            brandingKey="{{ branding_key }}"
+            id="message_no_internet"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="false"
+            vibrate="true"
+            autoLock="true">
+            <content>{% translate language, 'common', 'message_no_internet_try_again' %}</content>
+            <answer
+                id="button_try_again"
+                caption="{% translate language, 'common', 'Try again' %}"
+                reference="flow_code_check_internet_before_flush" />
+            <answer
+                id="button_abort"
+                caption="{% translate language, 'common', 'Cancel order' %}"
+                reference="end_cancel" />
+        </message>
+
+        <flowCode
+                id="flowcode_set_takeaway_time_constraints"
+                exceptionReference="message_remark">
+            <outlet name="message_takeaway_time" value="message_takeaway_time" reference="message_takeaway_time"/>
+            <outlet name="message_remark" value="message_remark" reference="message_remark"/>
+            <javascriptCode>
+                function run(rogerthat,messageFlowRun){
+                    var d = new Date();
+                    var now = parseInt(d.getTime() / 1000 - d.getTimezoneOffset() * 60);
+                    var sandwichSettings = rogerthat.service.data.sandwich_settings;
+                    var hasLeapTime = sandwichSettings.leap_time_enabled;
+                    if(!hasLeapTime){
+                        return {
+                            outlet: 'message_remark'
+                        };
+                    }
+                    var minDate = now + sandwichSettings.leap_time;
+                    var maxDate = now + 86400;
+                    var result = {
+                        outlet: 'message_takeaway_time',
+                        form: {
+                            widget: {
+                                has_max_date: true,
+                                has_min_date: true,
+                                min_date: minDate,
+                                max_date: maxDate,
+                                date: minDate + 3600
+                            }
+                        }
+                    };
+                    return result;
+                }
+            </javascriptCode>
+        </flowCode>
+    </definition>
+</messageFlowDefinitionSet>

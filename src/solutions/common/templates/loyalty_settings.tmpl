@@ -1,0 +1,101 @@
+<section id="section_settings_loyalty" style="display: none;">
+    <div class="span3 loyalty-admin-qr">
+       <legend>{% translate language, "common", "settings-qr-codes" %}</legend>
+       {% translate language, "common", "Loyalty admin" %}:<br>
+        <a href="">
+            <img src="" alt="{% translate language, "common", "Loyalty admin" %}" />
+        </a>
+        <div class="span11" style="text-align: center; margin-top: 20px;">
+            {% translate language, "common", "download-qr-code" %}
+        </div>
+    </div>
+    <div class="span12">
+    	<div style="{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}display: none;{% endif %}">
+	       <legend>{% translate language, "common", "loyalty-admins" %}</legend>
+	       <p id="no-loyalty-admins" style="display: none;">{% translate language, "common", "loyalty-no-tablets" %}</p>
+	       <table id="loyalty-admins" class="table table-striped table-bordered">
+	            <thead>
+	            </thead>
+	            <tbody>
+	            </tbody>
+	        </table>
+        </div>
+       
+       <legend>{% translate language, "common", "Settings" %}</legend>
+       
+       <select id="loyalty-type" style="{% if not isShopUser or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}display: none;{% endif %}">
+            <option value="1">{% translate language, "common", "Revenue discount" %}</option>
+            <option value="2">{% translate language, "common", "Lottery" %}</option>
+            <option value="3">{% translate language, "common", "Stamp card" %}</option>
+            <option value="4">{% translate language, "common", "City wide lottery" %}</option>
+       </select>
+
+       <div class="loyalty-type-1" style="display: none;">
+           <h5>{% translate language, "common", "Revenue discount" %}</h5>
+           <label>{% translate language, "common", "Visits" %}</label>
+           <input class="span4" id="revenue-discount-visits" type="number" step="1">
+                        
+           <label>{% translate language, "common", "Discount" %} %</label>
+           <input class="span4" id="revenue-discount-discount" type="number" step="1">
+           <br>
+       </div>
+       <div class="loyalty-type-2" style="display: none;">
+       </div>
+       <div class="loyalty-type-3" style="display: none;">
+           <h5>{% translate language, "common", "Stamp card" %}</h5>
+           <label>{% translate language, "common", "Number of stamps" %}</label>
+           <input class="span4" id="stamps-count" type="number" step="1">
+           <br>
+           <label>{% translate language, "common", "stamps-type-title" %}</label>
+           <select id="stamps-type">
+                <option value="1">{% translate language, "common", "1 stamp per scan" %}</option>
+                <option value="2">{% translate language, "common", "Custom number of stamps per scan" %}</option>
+            </select>
+           <br>
+           <label>{% translate language, "common", "Winnings" %}</label>
+           <textarea id="stamps-winnings" class="span6" rows="5" placeholder="{% translate language, 'common', 'enter-dot-dot-dot' %}" style="margin-top: 5px;"></textarea>
+           <br>
+           <label class="checkbox">
+                <input type="checkbox" id="stamps-auto-redeem"> {% translate language, 'common', 'loyalty-stamps-auto-redeem' %}
+           </label>
+           <span class="help-block">{% translate language, 'common', 'loyalty-stamps-auto-redeem-help' %}</span>
+       </div>
+       
+        <h5>{% translate language, "common", "Website" %} ({% translate language, "common", "for_example" %} <a href="http://www.onzestadapp.be">http://www.onzestadapp.be</a>)</h5>
+        <div class="control-group">
+            <div class="controls">
+               <input class="span4" type="text" id="loyalty-website" placeholder="http://www.onzestadapp.be" /> 
+                <div id="loyalty-website-validating" class="alert alert-info" style="display: none;">
+                    <h4>{% translate language, "common", "Validating" %}</h4>
+    
+                    <div style="margin-bottom: 0;" class="progress progress-striped active margin-top">
+                        <div class="bar" style="width: 100%;"></div>
+                </div>
+                </div>
+                <div id="loyalty-website-error" class="alert alert-warning" style="display: none;">
+                    <h4>{% translate language, "common", "warning" %}</h4>
+    
+                    <p id="loyalty-website-error-msg"></p>
+                </div>
+            </div>
+        </div>
+        
+        <button id="saveLoyaltySettings" action="save" class="btn btn-success">{% translate language, "common", "Save" %}</button>
+        <br><br><br><br>
+        <legend>{% translate language, "common", "Slides" %}</legend>
+        <button class="add-loyalty-slide btn btn-primary">{% translate language, "common", "Add new" %}</button>
+        <br><br>
+        <table id="loyalty-slides" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th class="span2">{% translate language, "common", "reservation-name" %}</th>
+                    <th class="span2">{% translate language, "common", "time-in-seconds" %}</th>
+                    <th>{% translate language, "common", "picture" %}</th>
+                    <th class="span4">&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</section>

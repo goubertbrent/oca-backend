@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition
+        name="Welcome"
+        language="{{ language }}"
+        startReference="base64:eyJsYW5nIjogIm5sIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tFTEVncHRZeTEwY21GamEyVnlJZ3R5TWpCQVptOXZMbU52YlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSVBaR1YySUhkbGJHTnZiV1VnYlhObkRBIiwgImlkIjogIm1lc3NhZ2VfMSJ9">
+        <end
+            id="base64:eyJsYW5nIjogIm5sIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tFTEVncHRZeTEwY21GamEyVnlJZ3R5TWpCQVptOXZMbU52YlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSVBaR1YySUhkbGJHTnZiV1VnYlhObkRBIiwgImlkIjogImVuZF8xIn0="
+            waitForFollowUpMessage="false" />
+        <message
+            id="base64:eyJsYW5nIjogIm5sIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tFTEVncHRZeTEwY21GamEyVnlJZ3R5TWpCQVptOXZMbU52YlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSVBaR1YySUhkbGJHTnZiV1VnYlhObkRBIiwgImlkIjogIm1lc3NhZ2VfMSJ9"
+            brandingKey="{{ branding_key }}"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="true"
+            vibrate="false"
+            dismissReference="base64:eyJsYW5nIjogIm5sIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tFTEVncHRZeTEwY21GamEyVnlJZ3R5TWpCQVptOXZMbU52YlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSVBaR1YySUhkbGJHTnZiV1VnYlhObkRBIiwgImlkIjogImVuZF8xIn0="
+            autoLock="true">
+            <content>{% translate language, "common", "Welcome to our app!" %}</content>
+        </message>
+    </definition>
+</messageFlowDefinitionSet>

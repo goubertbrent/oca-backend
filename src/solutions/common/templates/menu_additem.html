@@ -1,0 +1,66 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true" id="menu_additem_modal">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+		<h3>${t.ADD}</h3>
+	</div>
+	<div class="modal-body">
+		<div class="control-group" id="nameerror">
+			<label for="itemName">${CommonTranslations.NAME} </label>
+			<input type="text" id="itemName" value="${item.name}">
+		</div>
+		<div class="control-group" id="priceerror">
+			<label class="control-label" for="itemPrice">${CommonTranslations.PRICE}</label>
+            <label for="itemShowPrice" class="checkbox">${CommonTranslations.show_price}
+                <input type="checkbox" name="itemShowPrice" id="itemShowPrice"
+                       {{if item.has_price || item.has_price === undefined}}checked{{/if}}>
+            </label>
+			<div class="input-prepend">
+				<span class="add-on">{% endraw %}{{ currency }}{% raw %}</span>
+				<input type="number" id="itemPrice" name="itemPrice" step="0.01" min="0"
+					   value="${item.price ? (item.price / 100) : (item.has_price === undefined ? 2.75: 0.00)}"
+                       required {{if item.has_price === false }}disabled{{/if}} style="width: 64px;">
+			</div>
+            <span id="selectedUnit" {{if !advancedOrder}}class="hide"{{/if}}></span>
+        </div>
+
+        <div class="control-group {{if !advancedOrder }}hide{{/if}}">
+			<label class="control-label" for="itemUnit">${CommonTranslations.order_unit}</label>
+			<select id="itemUnit" name="itemUnit">
+				{{each(k, unit) units}}
+				<option value="${k}" {{if item.unit== k}}selected{{/if}}>${t[unit]}</option>
+				{{/each}}
+			</select>
+		</div>
+		<div class="control-group" id="itemUnitStepContainer" {{if !( item.unit== CONSTS.UNIT_GRAM || item.unit==CONSTS.UNIT_MINUTE)}}style="display: none;" {{/if}}>
+			<label class="control-label"  for="itemUnitStep" style="display: inline;">${CommonTranslations.orderable_per}</label>
+		<input type="number" name="itemUnitStep" id="itemUnitStep" min="5" step="5" value="${item.step || 50}"
+			   style=" width: 50px;"><span id="selectedSubUnit"></span>
+		</div>
+		<div class="control-group {{if !showVisibleInCheckboxes}}hide{{/if}}">
+			<label class="checkbox">
+				<input type="checkbox" name="itemVisibleIn" id="itemVisibleInMenu"
+				       value="${CONSTS.ORDER_ITEM_VISIBLE_IN_MENU}"
+					   {{if !item.visible_in || isFlagSet(item.visible_in, CONSTS.ORDER_ITEM_VISIBLE_IN_MENU)}}checked{{/if}}>
+				${t.visible_in} "${menuName}"
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" name="itemVisibleIn" id="itemVisibleInOrder"
+					   value="${CONSTS.ORDER_ITEM_VISIBLE_IN_ORDER}"
+				       {{if !item.visible_in || isFlagSet(item.visible_in, CONSTS.ORDER_ITEM_VISIBLE_IN_ORDER)}}checked{{/if}}>
+				${t.visible_in} "${t.order}"
+			</label>
+		</div>
+		<div class="control-group">
+			<textarea rows="3" id="itemdescription" style="width: 97%;"
+					  placeholder="${CommonTranslations.DESCRIPTION} ${CommonTranslations.OPTIONAL_BRACES}">${item.description}</textarea>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button action="cancel" class="btn" data-dismiss="modal"
+				aria-hidden="true">${t.CANCEL}
+		</button>
+		<button action="submit" class="btn btn-primary">${t.SAVE}</button>
+	</div>
+</div>
+{%- endraw %}

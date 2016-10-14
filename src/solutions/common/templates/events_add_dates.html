@@ -1,0 +1,28 @@
+{% raw %}
+{{each(i, d) dates}}
+<div date_key="${d.key}">
+    <div class="input-prepend input-append date eventDate" data-date="12-02-2012" data-date-format="dd-mm-yyyy">
+        <span class="add-on">${CommonTranslations.EVENT_DATE}</span>
+        <input style="width: 90px;" size="16" type="text" value="12-02-2012">
+        <span class="add-on"><i class="icon-th"></i></span>
+    </div>
+    <div class="input-prepend input-append bootstrap-timepicker" style="margin-left:10px;">
+         <span class="add-on">${CommonTranslations.FROM}</span>
+         <input class="span1 eventTimeStart" type="text" class="input-small" />
+         <span class="add-on">
+             <i class="icon-time"></i>
+         </span>
+    </div>
+    <div class="input-prepend input-append bootstrap-timepicker" style="margin-left:10px;">
+         <span class="add-on">${CommonTranslations.UNTIL}</span>
+         <input class="span1 eventTimeEnd" type="text" class="input-small" />
+         <span class="add-on">
+             <i class="icon-time"></i>
+         </span>
+     </div>
+     <button action="delete" date_key="${d.key}" class="btn btn-danger pull-right">
+        <i class="fa fa-remove"></i>
+     </button>
+</div>
+{{/each}}
+{%- endraw %}

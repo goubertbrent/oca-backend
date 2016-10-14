@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block stylesheets %}
+<style>
+    .app-container{
+        height: 50px;
+    }
+    #save-apps{
+        margin: 15px;
+    }
+</style>
+{% endblock %}
+{% block custom_javascript %}
+<script src="/static/js/shop/apps.js"></script>
+{% endblock %}
+{% block body %}
+<div class="container">
+    <h2>Configure app circles</h2>
+    <input type="text"  placeholder="Search for apps..." id="app-search" autocomplete="off">
+    <div id="app-circles-container"></div>
+</div>
+{% endblock %}

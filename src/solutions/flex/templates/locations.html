@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{%- include 'translations.tmpl' %}
+	<title>{% translate language, "flex", "title" %}</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<meta name="google" value="notranslate" />
+	<!-- Bootstrap -->
+	<link href="/static/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet" media="screen">
+	<link href="/static/bower_components/bootstrap-dialog/css/bootstrap-dialog.min.css" rel="stylesheet" type="text/css" />
+	{%if debug%}
+	<script src='/_ah/channel/jsapi'></script>
+	{%else%}
+	<script src='https://talkgadget.google.com/talkgadget/channel.js'></script>
+	{%endif%}
+	<link href="/static/css/solutions/style.css" rel="stylesheet" media="screen">
+
+	<script src="/static/js/jquery-1.10.0.min.js"></script>
+	<script src="/static/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+	<script src="/static/bower_components/bootstrap-dialog/js/bootstrap-dialog.min.js"></script>
+	<script src="/static/js/jquery.tmpl.min.js"></script>
+	<script src="/static/js/modernizr.custom.62420.js"></script>
+	<script language="javascript">
+	var service_user_email = '{{service_user_email}}';
+	$.ajaxSetup({
+	    headers: { 'X-Logged-In-As': service_user_email }
+	});
+	</script>
+
+	<script src="/static/js/stacktrace.js"></script>
+	<script src="/static/js/solutions/sln-utils-bs3.js"></script>
+	<script src="/static/js/solutions/common.js"></script>
+
+	<script language="javascript">
+	var CHANNEL_API_TOKEN = "{{ token }}";
+	var templates = {{ templates|safe }};
+	</script>
+
+	<style>
+	   body {
+		  padding-top: 70px;
+		}
+	</style>
+</head>
+
+<body>
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">{% translate language, "flex", "title" %}</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="/logout">{% translate language, "common", "Log out" %}</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+        <div class="locations"></div>
+    </div> <!-- /container -->
+
+    <script type="text/javascript">
+        $(function () {
+            sln.runChannel(CHANNEL_API_TOKEN);
+        });
+    </script>
+    <script src="/static/js/solutions/sln-locations.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "build",
+  "version": "1.0.0",
+  "description": "build scripts",
+  "main": "gulpfile.js",
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.mobicage.com:rogerthat/appengine.git"
+  },
+  "author": "",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-watch": "^4.3.5",
+    "shelljs": "^0.7.0",
+    "lodash": "latest"
+  }
+}

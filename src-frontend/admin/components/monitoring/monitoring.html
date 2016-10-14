@@ -1,0 +1,72 @@
+<div class="monitoring">
+    <div layout="row" class="osa-background monitoring" ng-controller="MonitoringController as ctrl">
+        <div ng-show="ctrl.noConnection" flex class="has-error center-both" layout-align="center center">
+            <h1>No internet connection</h1>
+        </div>
+        <div ng-hide="ctrl.noConnection" flex layout="column">
+            <div layout="row" layout-padding layout-align="center stretch"
+                 ng-class="{'has-error': ctrl.status.error_count, 'has-success':!ctrl.status.error_count}">
+                <div layout="column">
+                    <div>
+                        <h2>Server errors</h2>
+                    </div>
+                    <div>
+                        <p><span ng-if="!ctrl.status.error_count">No</span>
+                            <span ng-if="ctrl.status.error_count" ng-bind="ctrl.status.error_count"></span>
+                            errors
+                        </p>
+                        <p>Since <span ng-bind="ctrl.lastServerError | date:'EEE dd, H:mm'"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div layout="row" layout-padding flex layout-align="center stretch"
+                 ng-class="{'has-error': ctrl.slowQueues.length,'has-success':!ctrl.slowQueues.length}">
+                <div layout="column">
+                    <div ng-if="!ctrl.slowQueues.length">
+                        <h2>Queues</h2>
+                        <p>All queues normal.</p>
+                    </div>
+                    <div ng-if="ctrl.slowQueues.length">
+                        <h2>Slow queues</h2>
+                        <p ng-repeat="queue in ctrl.slowQueues">
+                            <span ng-bind="queue.name"></span>, <span ng-bind="queue.in_flight"></span> tasks
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-hide="ctrl.noConnection"
+             flex layout="column" layout-padding layout-align="space-between stretch"
+             ng-class="{'has-warning':ctrl.hasClientErrors, 'has-success':!ctrl.hasClientErrors}">
+            <div layout="row" layout-align="center stretch">
+                <div layout="column">
+                    <h2>Client errors</h2>
+                    <p ng-repeat="(platform, count) in ctrl.errorCounts">
+                        <span ng-bind="platform"></span>: <span ng-bind="count"></span>
+                </div>
+            </div>
+            <div layout="row" layout-align="center stretch">
+                <div layout="column">
+                    <md-button ng-click="ctrl.clearAllErrors()" class="md-raised clear-btn">
+                        <md-icon>clear</md-icon>
+                        Clear all
+                    </md-button>
+                </div>
+            </div>
+        </div>
+        <div ng-hide="ctrl.noConnection"
+             flex layout="column"
+             id="scoreboard" class="has-success scrollbar">
+            <h2>Scoreboard</h2>
+            <md-button layout="row"
+                       aria-label="Score"
+                       ng-repeat="score in ctrl.scoreboard | orderBy: 'datetime' : true"
+                       ng-click="ctrl.showScoreDetail(score, $event)">
+                <!--These values never change so don't bother watching them-->
+                <span flex>{{ ::score.datetime | date:'EEE H:mm' }}</span>
+                <span flex>{{ ::score.manager || score.customer | limitTo: 20 }}</span>
+                <span flex>{{ ::score.amount | currency: score.currency : 0 }}</span>
+            </md-button>
+        </div>
+    </div>
+</div>

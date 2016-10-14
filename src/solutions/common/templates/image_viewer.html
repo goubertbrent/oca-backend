@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>{% translate language, "flex", "title" %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" value="notranslate" />
+<!-- Bootstrap -->
+<link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet"
+    media="screen">
+
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<script src="/static/js/jquery.tmpl.min.js"></script>
+
+<script src="/static/js/stacktrace.js"></script>
+<script src="/static/js/solutions/sln-utils.js"></script>
+<script language="javascript">
+<!--
+$(function() {
+    $(window).resize(sln.resize_header);
+    sln.resize_header();
+    
+    var angle = 0, img = document.getElementById('order_image');
+    document.getElementById('rotate_right').onclick = function() {
+        angle = (angle+90)%360;
+        img.className = "rotate"+angle;
+    }
+    document.getElementById('rotate_left').onclick = function() {
+        angle = (angle+270)%360;
+        img.className = "rotate"+angle;
+    }
+});
+-->
+</script>
+<style media="screen">
+button.btn.control {
+    margin: 5px;
+}
+
+img.avatar {
+    float: left;
+    margin-right: 5px;
+}
+
+body {
+    overflow-y: scroll;
+}
+
+div.category-controls {
+    margin-top: 15px;
+}
+
+div.item-controls {
+    margin-top: 5px;
+}
+
+div.item-controls,div.category-controls {
+    float: right;
+}
+
+div.section {
+    margin-top: 20px;
+}
+
+.datepicker {
+    z-index: 9999;
+}
+
+body,html {
+    height: 100%;
+}
+
+#wrap {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto;
+}
+
+#push,#footer {
+    text-align: center;
+    width: 1000px;
+    padding: 5px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+div.navbar a.brand {
+    margin-left: 0px;
+}
+
+.flip_image {
+        -moz-transform: scaleX(-1);
+        -o-transform: scaleX(-1);
+        -webkit-transform: scaleX(-1);
+        transform: scaleX(-1);
+        filter: FlipH;
+        -ms-filter: "FlipH";
+}
+
+input.success {
+    border-color: #3c763d;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+
+input.error {
+    border-color: #b94a48;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+
+#image_holder img.rotate90 {
+    transform: rotate(90deg);
+    -webkit-transform: rotate(90deg);
+    -ms-transform: rotate(90deg);
+}
+#image_holder img.rotate180 {
+    transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    -ms-transform: rotate(180deg);
+}
+#image_holder img.rotate270 {
+    transform: rotate(270deg);
+    -webkit-transform: rotate(270deg);
+    -ms-transform: rotate(270deg);
+}
+</style>
+
+</head>
+
+<body>
+    <div id="wrap">
+        <div class="">
+            <div class="navbar navbar-fixed-top">
+                <div class="navbar-inner">
+                    <ul id="topmenu" class="nav">
+                        <li><a id="rotate_left" href="#"><i class="icon-repeat flip_image"></i></a></li>
+                        <li><a id="rotate_right" href="#"><i class="icon-repeat"></i></span></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div id="push-down"></div>
+            </div>
+            <div id="image_holder">
+                <img id="order_image" src="{{picture_url}}" />
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

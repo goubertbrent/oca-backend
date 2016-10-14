@@ -1,0 +1,842 @@
+indexes:
+- kind: AuditLog
+  properties:
+  - name: customer_id
+  - name: date
+    direction: desc
+
+- kind: AuditLog
+  properties:
+  - name: prospect_id
+  - name: date
+    direction: desc
+
+- kind: AuditLog
+  properties:
+  - name: user
+  - name: date
+    direction: desc
+
+- kind: Charge
+  properties:
+  - name: manager
+  - name: status
+  - name: date
+    direction: desc
+
+- kind: Charge
+  properties:
+  - name: status
+  - name: date
+    direction: desc
+
+- kind: Charge
+  ancestor: yes
+  properties:
+  - name: status
+  - name: date
+
+- kind: Contact
+  ancestor: yes
+  properties:
+  - name: first_name
+
+- kind: DjMaticProfile
+  properties:
+  - name: status
+  - name: creation_time
+
+- kind: DjMaticProfile
+  properties:
+  - name: status
+  - name: creation_time
+    direction: desc
+
+- kind: DjMaticProfile
+  properties:
+  - name: status
+  - name: start_trial_time
+
+- kind: Event
+  properties:
+  - name: deleted
+  - name: last_start_date
+
+- kind: Event
+  ancestor: yes
+  properties:
+  - name: calendar_id
+  - name: deleted
+  - name: first_start_date
+
+- kind: Event
+  ancestor: yes
+  properties:
+  - name: external_id
+
+- kind: Event
+  ancestor: yes
+  properties:
+  - name: start
+
+- kind: Invoice
+  properties:
+  - name: amount
+  - name: date
+  - name: operator
+
+- kind: Invoice
+  properties:
+  - name: legal_entity_id
+  - name: paid
+  - name: payment_type
+  - name: date
+    direction: desc
+
+- kind: Invoice
+  properties:
+  - name: legal_entity_id
+  - name: paid
+  - name: payment_type
+  - name: paid_timestamp
+
+- kind: Invoice
+  properties:
+  - name: operator
+  - name: paid
+  - name: payment_type
+  - name: date
+    direction: desc
+
+- kind: Invoice
+  properties:
+  - name: paid
+  - name: payment_type
+  - name: date
+    direction: desc
+
+- kind: Invoice
+  properties:
+  - name: payment_type
+  - name: date
+
+- kind: Invoice
+  ancestor: yes
+  properties:
+  - name: date
+    direction: desc
+
+- kind: MigrateServiceJob
+  properties:
+  - name: from_service_user
+  - name: phase
+
+- kind: MigrateServiceJob
+  properties:
+  - name: to_service_user
+  - name: phase
+
+- kind: News
+  properties:
+  - name: language
+  - name: datetime
+    direction: desc
+
+- kind: Order
+  properties:
+  - name: date_signed
+  - name: amount
+  - name: manager
+
+- kind: Order
+  properties:
+  - name: is_subscription_order
+  - name: status
+  - name: date
+
+- kind: Order
+  properties:
+  - name: is_subscription_order
+  - name: status
+  - name: next_charge_date
+
+- kind: Order
+  properties:
+  - name: manager
+  - name: status
+  - name: date
+    direction: desc
+
+- kind: Order
+  properties:
+  - name: status
+  - name: date
+    direction: desc
+
+- kind: Order
+  properties:
+  - name: status
+  - name: next_charge_date
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: date
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: date
+    direction: desc
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: is_subscription_extension_order
+  - name: is_subscription_order
+  - name: status
+  - name: next_charge_date
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: is_subscription_order
+  - name: manager
+  - name: status
+  - name: date
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: is_subscription_order
+  - name: status
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: is_subscription_order
+  - name: status
+  - name: date
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: status
+  - name: date
+
+- kind: Order
+  ancestor: yes
+  properties:
+  - name: status=
+  - name: date
+
+- kind: OrderItem
+  ancestor: yes
+  properties:
+  - name: number
+
+- kind: Product
+  properties:
+  - name: visible
+  - name: description
+
+- kind: Prospect
+  properties:
+  - name: app_id
+  - name: address
+
+- kind: Prospect
+  properties:
+  - name: app_id
+  - name: categories
+  - name: address
+
+- kind: Prospect
+  properties:
+  - name: app_id
+  - name: categories
+  - name: geo_point
+
+- kind: Prospect
+  properties:
+  - name: app_id
+  - name: geo_point
+
+- kind: Question
+  properties:
+  - name: author
+  - name: timestamp
+    direction: desc
+
+- kind: Question
+  properties:
+  - name: author
+  - name: visible
+  - name: timestamp
+
+- kind: Question
+  properties:
+  - name: author
+  - name: visible
+  - name: timestamp
+    direction: desc
+
+- kind: Question
+  properties:
+  - name: replied
+  - name: ask_time
+
+- kind: Question
+  properties:
+  - name: visible
+  - name: timestamp
+
+- kind: Question
+  properties:
+  - name: visible
+  - name: timestamp
+    direction: desc
+
+- kind: Question
+  properties:
+  - name: visible
+  - name: language
+  - name: timestamp
+    direction: desc
+
+- kind: QuestionReply
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: QuestionReply
+  ancestor: yes
+  properties:
+  - name: visible
+  - name: timestamp
+
+- kind: QuestionReply
+  ancestor: yes
+  properties:
+  - name: visible
+  - name: timestamp
+    direction: desc
+
+- kind: RegioManager
+  properties:
+  - name: app_ids
+  - name: name
+
+- kind: RestaurantMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: RestaurantMessage
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: shift_start
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: shift_start
+  - name: creation_date
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: shift_start
+  - name: creation_date
+    direction: desc
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: shift_start
+  - name: date
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: status
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: status
+  - name: tables
+  - name: shift_start
+
+- kind: RestaurantReservation
+  properties:
+  - name: service_user
+  - name: status
+  - name: user
+  - name: shift_start
+
+- kind: RestaurantReservation
+  properties:
+  - name: status
+  - name: user
+  - name: shift_start
+
+- kind: RestaurantReservation
+  properties:
+  - name: user
+  - name: shift_start
+
+- kind: RestaurantReservation
+  ancestor: yes
+  properties:
+  - name: shift_start
+
+- kind: RestaurantReservation
+  ancestor: yes
+  properties:
+  - name: shift_start
+  - name: date
+
+- kind: RestaurantReservation
+  ancestor: yes
+  properties:
+  - name: status
+
+- kind: SandwichOption
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: order
+
+- kind: SandwichOption
+  ancestor: yes
+  properties:
+  - name: order
+
+- kind: SandwichOptions
+  ancestor: yes
+  properties:
+  - name: order
+
+- kind: SandwichOrder
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: order_time
+
+- kind: SandwichOrder
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: order_time
+    direction: desc
+
+- kind: SandwichTopping
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: order
+
+- kind: SandwichTopping
+  ancestor: yes
+  properties:
+  - name: order
+
+- kind: SandwichType
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: order
+
+- kind: SandwichType
+  ancestor: yes
+  properties:
+  - name: description
+
+- kind: SandwichType
+  ancestor: yes
+  properties:
+  - name: order
+
+- kind: ShopLoyaltySlide
+  properties:
+  - name: apps
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: ShopLoyaltySlide
+  properties:
+  - name: deleted
+  - name: has_apps
+  - name: timestamp
+    direction: desc
+
+- kind: ShopLoyaltySlide
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: ShopTask
+  properties:
+  - name: app_id
+  - name: closed_time
+    direction: desc
+
+- kind: ShopTask
+  properties:
+  - name: app_id
+  - name: status
+  - name: execution_time
+
+- kind: ShopTask
+  properties:
+  - name: app_id
+  - name: status
+  - name: type
+  - name: execution_time
+
+- kind: ShopTask
+  properties:
+  - name: assignee
+  - name: status
+  - name: execution_time
+
+- kind: ShopTask
+  properties:
+  - name: status
+  - name: execution_time
+
+- kind: ShopTask
+  properties:
+  - name: status
+  - name: type
+  - name: execution_time
+
+- kind: ShopTask
+  ancestor: yes
+  properties:
+  - name: closed_time
+
+- kind: ShopTask
+  ancestor: yes
+  properties:
+  - name: closed_time
+    direction: desc
+    
+- kind: SolutionCityVoucherExportMerchant
+  ancestor: yes
+  properties:
+  - name: year_month
+    direction: desc
+
+- kind: SolutionCityVoucherTransaction
+  ancestor: yes
+  properties:
+  - name: action
+  - name: created
+
+- kind: SolutionDiscussionGroup
+  ancestor: yes
+  properties:
+  - name: topic
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: parent_message_key
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: parent_message_key
+  - name: read
+  - name: starred
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: parent_message_key
+  - name: read
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: parent_message_key
+  - name: starred
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: parent_message_key
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: parent_message_key
+  - name: read
+  - name: starred
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: parent_message_key
+  - name: read
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionInboxMessage
+  ancestor: yes
+  properties:
+  - name: parent_message_key
+  - name: trashed
+  - name: last_timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyExport
+  ancestor: yes
+  properties:
+  - name: year_month
+    direction: desc
+
+- kind: SolutionLoyaltyLottery
+  ancestor: yes
+  properties:
+  - name: claimed
+  - name: deleted
+  - name: winner_timestamp
+  
+- kind: SolutionLoyaltyLottery
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: pending
+  - name: end_timestamp
+
+- kind: SolutionLoyaltyScan
+  ancestor: yes
+  properties:
+  - name: processed
+  - name: timestamp
+
+- kind: SolutionLoyaltyScan
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionLoyaltySlide
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisit
+  ancestor: yes
+  properties:
+  - name: app_user
+  - name: redeemed
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisitLottery
+  ancestor: yes
+  properties:
+  - name: redeemed
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisitRevenueDiscount
+  ancestor: yes
+  properties:
+  - name: app_user
+  - name: redeemed
+  - name: timestamp
+
+- kind: SolutionLoyaltyVisitRevenueDiscount
+  ancestor: yes
+  properties:
+  - name: app_user
+  - name: redeemed
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisitRevenueDiscount
+  ancestor: yes
+  properties:
+  - name: redeemed
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisitRevenueDiscount
+  ancestor: yes
+  properties:
+  - name: redeemed_timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisitStamps
+  ancestor: yes
+  properties:
+  - name: app_user
+  - name: redeemed
+  - name: timestamp
+
+- kind: SolutionLoyaltyVisitStamps
+  ancestor: yes
+  properties:
+  - name: redeemed
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionLoyaltyVisitStamps
+  ancestor: yes
+  properties:
+  - name: redeemed_timestamp
+
+- kind: SolutionCityWideLotteryVisit
+  ancestor: yes
+  properties:
+  - name: redeemed
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionMessage
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionOrder
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionOrder
+  ancestor: yes
+  properties:
+  - name: status
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionOrder
+  ancestor: yes
+  properties:
+  - name: status
+  - name: user
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionOrder
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: SolutionOrder
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionPharmacyOrder
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionPharmacyOrder
+  ancestor: yes
+  properties:
+  - name: status
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionPharmacyOrder
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionRepairOrder
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: SolutionScheduledBroadcast
+  properties:
+  - name: deleted
+  - name: broadcast_epoch
+
+- kind: SolutionScheduledBroadcast
+  ancestor: yes
+  properties:
+  - name: broadcast_epoch
+
+- kind: SolutionScheduledBroadcast
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: broadcast_epoch
+
+- kind: SolutionCityVoucherExport
+  ancestor: yes
+  properties:
+  - name: year_month
+    direction: desc
+
+- kind: SolutionCityVoucherQRCodeExport
+  ancestor: yes
+  properties:
+  - name: created
+    direction: desc
+
+- kind: SolutionCityWideLottery
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: pending
+  - name: end_timestamp

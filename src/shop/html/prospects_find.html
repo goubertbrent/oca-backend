@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block custom_javascript %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_key }}&libraries=geometry"></script>
+<script src="/static/js/shop/prospects_find.js"></script>
+{% endblock %}
+
+{% block body %}
+<div>
+    <div id="map-canvas" class="pull-left img-polaroid" style="padding: 0px;"></div>
+
+    <div id="map-options" class="pull-left" style="padding-left: 20px; max-width: 500px;">
+        <form class="form-horizontal">
+            <fieldset>
+                <legend>Instructions</legend>
+                <p>
+                    - White rectangles show previous search areas.
+                    <br>
+                    - Complete the fields below and search for a city.
+                    An editable rectangle will appear on the map. This is the area to be searched.
+                    Update the rectangle if needed.
+                    <br>
+                    - Secondly, verify the selection.
+                    <br>
+                    - Finally, press submit.
+                </p>
+                <div class="control-group">
+                    <label class="control-label">App</label>
+                    <div class="controls">
+                        <select id="prospects_app_id">
+                            <option value="">Select an app...</option>
+{% for app in current_user_apps %}
+                            <option value="{{ app.app_id }}" app_name="{{ app.name }}">{{ app.name }} ({{ app.app_id }})</option>
+{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Postal code(s)</label>
+                    <div class="controls">
+                        <textarea id="prospects_postal_codes" placeholder="Separated by a comma"></textarea>
+                        <button type="button" id="save-postal-codes" class="btn btn-default"><i class="fa fa-save"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Density</label>
+                    <div class="controls">
+                        <select id="prospects_radius">
+                            <option value="400" selected="selected">Low populated area</option>
+                            <option value="200">Medium populated area</option>
+                            <option value="50">High populated area</option>
+                        </select>
+                    </div>
+                </div>
+                <hr />
+                <div class="control-group">
+                    <label class="control-label">Country</label>
+                    <div class="controls">
+                        <select id="prospects_search_country">
+                            {% for country_code, country_name in countries %}
+                            <option value="{{ country_code }}" {% if country_code == "BE" %}selected{% endif %}>{{ country_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">City</label>
+                    <div class="controls">
+                        <input type="text" id="prospects_search_input" class="search-query" />
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <a href="#" class="btn" id="prospects_search_btn" >1. Search</a>
+                    </div>
+                </div>
+                <hr />
+                <div class="control-group">
+                    <div class="controls">
+                        <a href="#" class="btn verify-btn disabled">2. Verify</a>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Circle count</label>
+                    <div class="controls">
+                        <input type="text" id="prospects_point_count" placeholder="Will be visible when verified" class="uneditable-input" disabled/>
+                        <br>
+                        <span id="prospects_point_count_error" class="help-inline hide">There will be too many circles. Select a lower density, or decrease the rectangle size.</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <label class=checkbox"><input type="checkbox" id="prospects_check_phone_number" checked>
+                            Skip prospects without phone number</label>
+                    </div>
+                </div>
+                <hr />
+                <div class="control-group">
+                    <label class="controls">
+                        <a href="#" class="btn submit-btn disabled">3. Submit</a>
+                    </label>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

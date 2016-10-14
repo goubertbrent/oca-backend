@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition
+        name="order"
+        language="{{ language }}"
+        startReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX2RldGFpbHMifQ==">
+        <formMessage
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX2RldGFpbHMifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3BpY3R1cmUifQ=="
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJlbmRfZW5kIn0=">
+            <content>{{ text_1|e }}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="TextBlockWidget"
+                    maxChars="500" />
+                <javascriptValidation>
+                    function run(result, rogerthat) {
+                        if (!result.value || result.value.length &lt; 5) {
+                            return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=5' %}";
+                        }
+                    }
+                </javascriptValidation>
+            </form>
+        </formMessage>
+        <formMessage
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3BpY3R1cmUifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="flow_code_phone_default"
+            vibrate="false"
+            autoLock="true"
+            negativeReference="flow_code_phone_default">
+            <content>{% translate language, 'common', 'order-flow-picture' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'skip' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="PhotoUploadWidget"
+                    camera="true"
+                    quality="best"
+                    gallery="false" />
+            </form>
+        </formMessage>
+        <flowCode
+                id="flow_code_phone_default"
+                exceptionReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3Bob25lIn0=">
+            <outlet
+                    reference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3Bob25lIn0="
+                    name="message_phone"
+                    value="message_phone"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    return { outlet: 'message_phone', defaultValue: rogerthat.user &amp;&amp; rogerthat.user.data.phone };
+                };
+            </javascriptCode>
+        </flowCode>
+        <formMessage
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3Bob25lIn0="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="flow_code_save"
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJlbmRfZW5kIn0=">
+            <content>{% translate language, 'common', 'order-flow-phone' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+                negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="TextLineWidget"
+                        keyboardType="PHONE"
+                        maxChars="50"
+                />
+                <javascriptValidation>
+                    function run(result, rogerthat) {
+                        if (!result.value || result.value.length &lt; 8) {
+                            return "{% translate language, 'common', 'please_enter_a_valid_phone_number' %}";
+                        }
+                    }
+                </javascriptValidation>
+            </form>
+        </formMessage>
+        <flowCode
+                id="flow_code_save"
+                exceptionReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJmbHVzaF9mbHVzaCJ9">
+            <outlet
+                    reference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJmbHVzaF9mbHVzaCJ9"
+                    name="message_rf"
+                    value="message_rf"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    if (rogerthat.user) {
+                        var shouldSave = false;
+                        var phoneNumber = messageFlowRun.steps[messageFlowRun.steps.length - 1].form_result.result.value;
+                        if(phoneNumber !== rogerthat.user.data.phone){
+                            rogerthat.user.data.phone = phoneNumber;
+                            shouldSave = true;
+                        }
+                        if (shouldSave) {
+                            rogerthat.user.put();
+                        }
+                    }
+                    return { outlet: 'message_rf', defaultValue: null };
+                };
+            </javascriptCode>
+        </flowCode>
+        <resultsFlush
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJmbHVzaF9mbHVzaCJ9"
+            reference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3RobngifQ==" />
+        <message
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJtZXNzYWdlX3RobngifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            allowDismiss="true"
+            vibrate="false"
+            dismissReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJlbmRfZW5kIn0="
+            autoLock="true">
+            <content>{% translate language, 'common', 'order-flow-tnx' %}</content>
+        </message>
+        <end
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2pZTEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnVnZjbVJsY2d3IiwibGFuZyI6ImVuIiwiaWQiOiJlbmRfZW5kIn0="
+            waitForFollowUpMessage="false" />
+    </definition>
+</messageFlowDefinitionSet>

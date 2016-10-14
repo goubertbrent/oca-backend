@@ -1,0 +1,1 @@
+This directory contains angular components that may be re-used in other projects.

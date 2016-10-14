@@ -1,0 +1,30 @@
+{% raw %}
+{{each(i, calendar) calendars}}
+<tr>
+	<td>
+		<div class="span9">
+			<h4>${calendar.name}</h4>
+		</div>
+    </td>
+    <td>
+		<div class="span2">
+			<div class="btn-group item-controls">
+				<button calendar_id="${calendar.id}" action="editCalendar" class="btn">
+					<i class="icon-pencil"></i>
+				</button>
+				{{if solution == "flex"}}
+				<button calendar_id="${calendar.id}" action="adminCalendar" class="btn">
+                    <i class="icon-cog"></i>
+                </button>
+                {{/if}}
+                {{if calendar.can_delete }}
+				<button calendar_id="${calendar.id}" action="deleteCalendar" class="btn">
+					<i class="icon-trash"></i>
+				</button>
+				{{/if}}
+			</div>
+		</div>
+	</td>
+</tr>
+{{/each}}
+{%- endraw %}

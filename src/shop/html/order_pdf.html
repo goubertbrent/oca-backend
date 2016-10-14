@@ -1,0 +1,217 @@
+<html>
+<style>
+    .clearfix {
+        *zoom: 1;
+    }
+
+    .clearfix:before,
+    .clearfix:after {
+        display: table;
+        line-height: 0;
+        content: "";
+    }
+
+    .clearfix:after {
+        clear: both;
+    }
+
+    @page {
+        margin: 2cm;
+        margin-bottom: 3.5cm;
+        @frame footer_frame {
+        -pdf-frame-content: footerContent;
+        bottom: 2cm;
+        margin-left: 2cm;
+        margin-right: 2cm;
+        height: 1cm;
+    }
+    }
+
+    #order_nr {
+        padding-top: 5px;
+        padding-bottom: 3px;
+        line-height: 50%;
+        margin-top: 10px;
+        margin-bottom: 50px;
+    }
+
+    #order_nr table, #order_nr th, #order_nr td {
+        border-top: 0.3pt solid black;
+        border-bottom: 0.3pt solid black;
+    }
+
+    img {
+        zoom: 80%;
+    }
+
+    #orders table, #orders th, #orders td {
+        border: 0.3pt solid black;
+    }
+
+    #orders td {
+        vertical-align: top;
+    }
+
+    .text-bold {
+        font-weight: bold;
+    }
+
+    .col1 {
+        width: 30%;
+    }
+
+    .col2 {
+        width: 36%;
+    }
+
+    .col3 {
+        width: 33%;
+    }
+
+</style>
+<body>
+<div id="footerContent" align="right">
+    <pdf:pagenumber> /
+        <pdf:pagecount>
+</div>
+<header>
+    <table>
+        <tbody>
+        <tr>
+            <td class="col1"><img src="{{ logo_path }}" width="200" height="200"/></td>
+            <td class="col2">
+                <p>
+                    <b>{{ customer.legal_entity.name }}</b>
+                </p>
+
+                <p>
+                    {{ customer.legal_entity.address }}<br>
+                    {{ customer.legal_entity.postal_code }} {{ customer.legal_entity.city }}<br>
+                    {{ customer.legal_entity.country(language) }}<br>
+                </p>
+
+                <p>
+                    {% shop_translate language, "telephone_abbr" %}: {{ customer.legal_entity.phone }}<br>
+                    {{ customer.legal_entity.email }}<br>
+                </p>
+
+                <p>
+                    {% shop_translate language, "vat" %}: {{ customer.legal_entity.vat_number }}<br>
+                    IBAN: {{ customer.legal_entity.iban }}<br>
+                    BIC: {{ customer.legal_entity.bic }}<br>
+                </p>
+            </td>
+            <td class="col3">
+                <p><b>{% shop_translate language, "customer_details" %}</b></p>
+
+                <p>
+                    {{ customer.name }}<br/>
+                    {{ order.contact.first_name }} {{ order.contact.last_name }}<br/>
+                </p>
+
+                <p>
+                    {{ customer.address1 }}<br>
+                    {% if customer.address2 %}
+                    {{ customer.address2 }}<br>
+                    {% endif %}
+                    {{ customer.zip_code}} {{ customer.city }}<br>
+                    {{ customer.country_str }}<br>
+                </p>
+
+                <p>
+                    {% shop_translate language, "telephone_abbr" %}: {{ order.contact.phone_number }}<br>
+                    {{ order.contact.email }}<br>
+                </p>
+
+                <p>
+                    {% if customer.vat %}{% shop_translate language, "vat" %}: {{ customer.vat }}{% else %}&nbsp;
+                    {% endif %}<br>
+                </p>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</header>
+<div id="order_nr" class="clearfix">
+    <table border="0" style="padding: 0.5em;">
+        <tr>
+            <td style="width:50%" align="left" class="clearfix">
+                <h1>{% shop_translate language, "order_number" %}: {{ order.order_number }}</h1>
+            </td>
+            <td style="width:50%" align="right" class="clearfix">
+                <b>{% shop_translate language, "date" %}: {{ order.date_str }}</b>
+            </td>
+        </tr>
+    </table>
+</div>
+<div id="orders" class="clearfix">
+    <table border="0" style="padding: 0.5em;">
+        <tr>
+            <td style="width:15%;">{% shop_translate language, "product_code" %}</td>
+            <td style="width:45%;">{% shop_translate language, "description" %}</td>
+            <td style="width:15%;">{% shop_translate language, "price" %}</td>
+            <td style="width:10%;">{% shop_translate language, "amount" %}</td>
+            <td style="width:15%;">{% shop_translate language, "total" %}</td>
+        </tr>
+        {% for i in order_items %}
+        <tr>
+            <td>{{ i.product_code }}</td>
+            <td>
+                <p>{{ i.product_description }} </p>
+                <i>{% for line in i.product_comment.splitlines() %}{{line}}<br>{% endfor %}</i></td>
+            <td>{{ i.price_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            <td>{% if i.price == 0 %}&nbsp;{% else %}{{ i.count }}{% endif %}</td>
+            <td>{{ i.total_price_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+        </tr>
+        {% endfor %}
+        {% if customer.should_pay_vat %}
+            <tr class="text-bold">
+                <td colspan="4" align="right">{% shop_translate language, "total_excl_vat" %}</td>
+                <td>{{ order.amount_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            </tr>
+        {% endif %}
+        <tr class="text-bold">
+            <td colspan="4" align="right">{% shop_translate language, "vat" %} ({{ order.vat_pct }}%)</td>
+            {% if customer.should_pay_vat %}
+                <td>{{ order.vat_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            {% else %}
+                <td>0 ({% shop_translate language, "export" %})</td>
+            {% endif %}
+        </tr>
+        <tr class="text-bold">
+            <td colspan="4" align="right">
+                {% shop_translate language, "total_incl_vat" if customer.should_pay_vat else "total" %}
+            </td>
+            <td>{{ order.total_amount_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+        </tr>
+    </table>
+</div>
+<h1>{% shop_translate language, "for_approval" %}:</h1>
+{% if order.signature_as_data_url %}
+<img src="{{ order.signature_as_data_url }}" width="530" height="150"/>
+{% else %}
+<p style="width:530px; height:150px;">&nbsp;</p>
+{% endif %}
+<h1>{{ order.contact.first_name }} {{ order.contact.last_name }}</h1>
+
+<pdf:nextpage/>
+
+<div style="font-size: 7pt;">
+    <h3>{% shop_translate language, "terms_and_conditions" %}</h3>
+{% if customer.legal_entity.is_mobicage %}
+    {% for i in range(1, 19) %}
+        {% if i == 15 %}
+    <p>{% shop_translate language, "tos_15", "tos_link=" + tos_link %}</p>
+        {% else %}
+    <p>{% shop_translate language, "tos_" + i|string %}</p>
+        {% endif %}
+    {% endfor %}
+{% else %}
+    {% for tos_line in customer.legal_entity.terms_of_use.splitlines() %}
+    <p>{{ tos_line }}</p>
+    {% endfor %}
+{% endif %}
+</div>
+
+</body>
+</html>

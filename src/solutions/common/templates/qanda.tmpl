@@ -1,0 +1,86 @@
+<div id="qanda" class="row page" style="display: none;">
+	<div class="span12">
+		<ul class="nav nav-tabs">
+			<li class="active" section="section_search"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "common", "qanda-search-answers" %}</a></li>
+			<li section="section_recent"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "common", "qanda-recent-questions" %}</a></li>
+			<li section="section_ask"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "common", "qanda-new-question" %}</a></li>
+			<li section="section_my"><a href="#" help="n7cQdQ9Q5V8">{% translate language, "common", "qanda-my-questions" %}</a></li>
+		</ul>
+		<section id="section_search">
+			<div class="input-prepend input-append">
+				<span class="add-on">{% translate language, "common", "Search" %}</span>
+				<input class="span6" id="search_key_words" type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}" autofocus>
+			</div>
+			<div id="qanda_search_questions" style="display: none;">
+			    <h4><span id="qanda_search_questions_count"></span> {% translate language, "common", "results found for" %} '<span id="qanda_search_questions_query"></span>'</h4>
+                <table class="table table-striped table-hover table-bordered">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+                
+                <div class="text-center">
+                    <button style="display: none;" class="btn load-more-search-questions" type="button">{% translate language, "common", "Load more" %}</button>
+                </div>
+            </div>
+		</section>
+		<section id="section_ask" style="display: none;">
+			<div class="alert">
+				<strong>{% translate language, "common", "warning" %}</strong> {% translate language, "common", "submit-new-question-search-warning" %}
+			</div>
+			<label>{% translate language, "common", "events-title" %}:</label>
+			<input class="span8" id="title" type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}" autofocus/><br>
+			<label>{% translate language, "common", "events-description" %}:</label>
+			<textarea id="question" rows="15" class="span8" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></textarea><br>
+			<label>{% translate language, "common", "question-tag-modules" %}:</label>
+			<div id="tags" class="row">
+				<div class="span8">
+					{% for mod in sln_settings.modules_labels %}<label class="checkbox inline"><input type="checkbox" value="{{mod.0}}"/>{{mod.1}}</label>{% endfor %}
+				</div>
+			</div><br>
+			<button id="send_question" class="btn btn-success span8" style="margin-left: 0;">{% translate language, "common", "Submit" %}</button>
+		</section>
+		<section id="section_recent" style="display: none;">
+            <div id="qanda_recent_questions">
+                <table class="table table-striped table-hover table-bordered">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+                
+                <div class="text-center">
+                    <button style="display: none;" class="btn load-more-recent-questions" type="button">{% translate language, "common", "Load more" %}</button>
+                </div>
+            </div>
+		</section>
+		<section id="section_my" style="display: none;">
+		  <div id="qanda_my_questions">
+                <table class="table table-striped table-hover table-bordered">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+                
+                <div class="text-center">
+                    <button style="display: none;" class="btn load-more-my-questions" type="button">{% translate language, "common", "Load more" %}</button>
+                </div>
+            </div>
+		</section>
+	</div>
+	
+	<div id="questionDetailModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="width: 98%; padding: 0px;  margin: 0px; left: 1%;">
+        <div class="modal-header clearfix">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h3></h3>
+            <div></div>
+        </div>
+        <div class="modal-body">
+            <div class="question-detail-questions"></div>
+            <div>
+                <textarea id="reply_question_text" rows="5" class="span8" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></textarea>
+            </div>
+            <div>
+                <button id="reply_question_btn" class="btn btn-success span8" style="margin-left: 0;" aria-hidden="true">{% translate language, "common", "inbox-reply" %}</button>
+            </div>
+        </div>
+    </div>
+	
+	<script src="/static/js/solutions/sln-qanda.js"></script>
+</div>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition
+        name="events_connect_via_scan"
+        language="{{ language }}"
+        startReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tjTEVncHRZeTEwY21GamEyVnlJZ3BtTVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUloWmpiMjV1WldOMExXbHVZbTk0TFhacFlTMXpZMkZ1REEiLCJpZCI6Im1lc3NhZ2Vfb2siLCJsYW5nIjoiZW4ifQ==">
+        <end
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tjTEVncHRZeTEwY21GamEyVnlJZ3BtTVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUloWmpiMjV1WldOMExXbHVZbTk0TFhacFlTMXpZMkZ1REEiLCJpZCI6ImVuZF9lbmQiLCJsYW5nIjoiZW4ifQ=="
+            waitForFollowUpMessage="false" />
+        <message
+            id="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tjTEVncHRZeTEwY21GamEyVnlJZ3BtTVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUloWmpiMjV1WldOMExXbHVZbTk0TFhacFlTMXpZMkZ1REEiLCJpZCI6Im1lc3NhZ2Vfb2siLCJsYW5nIjoiZW4ifQ=="
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="true"
+            vibrate="false"
+            dismissReference="base64:eyJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tjTEVncHRZeTEwY21GamEyVnlJZ3BtTVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUloWmpiMjV1WldOMExXbHVZbTk0TFhacFlTMXpZMkZ1REEiLCJpZCI6ImVuZF9lbmQiLCJsYW5nIjoiZW4ifQ=="
+            autoLock="true"
+            brandingKey="{{ branding_key }}">
+            <content>You are now an admin of {{ calendar.name }}.
+            </content>
+        </message>
+    </definition>
+</messageFlowDefinitionSet>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+{%- include 'translations.tmpl' %}
+<title>{% translate language, "djmatic", "title" %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" value="notranslate" />
+<!-- Bootstrap -->
+<link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+<link href="/static/bootstrap/datepicker/css/datepicker.css" rel="stylesheet" media="screen">
+<link href="/static/bootstrap/timepicker/css/bootstrap-timepicker.min.css" rel="stylesheet" media="screen">
+<link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet" media="screen">
+<link href="/static/css/solutions/style.css" rel="stylesheet" media="screen">
+<link href="/static/css/solutions/djm-style.css" rel="stylesheet" media="screen">
+{%if debug%}<script src='/_ah/channel/jsapi'></script>{%else%}<script src='https://talkgadget.google.com/talkgadget/channel.js'></script>{%endif%}
+<style>
+button.btn.control { margin: 5px; }
+img.avatar { float: left; margin-right: 5px; }
+body { overflow-y: scroll; }
+div.category-controls { margin-top: 15px; }
+div.item-controls { margin-top: 5px; }
+div.item-controls, div.category-controls {float: right;}
+div.section {margin-top: 20px;}
+.datepicker{ z-index: 9999; }
+body,html{ height:100%; }
+#wrap { min-height: 100%; height: auto !important; height: 100%; margin: 0 auto; }
+#footer {
+    text-align: center;
+    width: 1000px;
+    padding: 5px;
+    margin-left: auto;
+    margin-right: auto;
+}
+div.navbar a.brand { margin-left: 0px; }
+#djmatic_genres iframe { width: 100%; height: 700px;}
+
+input.success {
+    border-color: #3c763d;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+
+input.error {
+	border-color: #b94a48;
+  	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+</style>
+
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<script src="/static/bootstrap/datepicker/js/bootstrap-datepicker.js"></script>
+<script src="/static/bootstrap/timepicker/js/bootstrap-timepicker.min.js"></script>
+<script src="/static/js/jquery.tmpl.min.js"></script>
+<!-- Security measure, must be inserted after jquery before sln-utils.js -->
+<script language="javascript">
+var service_user_email = '{{service_user_email}}';
+$.ajaxSetup({
+    headers: { 'X-Logged-In-As': service_user_email }
+});
+</script>
+<script src="/static/js/stacktrace.js"></script>
+<script src="/static/js/solutions/sln-utils.js"></script>
+<script language="javascript">
+<!--
+var CHANNEL_API_TOKEN = "{{ token }}";
+var DJMaticTranslations = {
+    JUKEBOX_ENABLED : "{% translate language, 'djmatic', 'jukebox-enabled' %}",
+    JUKEBOX_DISABLED : "{% translate language, 'djmatic', 'jukebox-disabled' %}",
+    JUKEBOX_ON_BUTTON : "{% translate language, 'djmatic', 'jukebox-on-button' %}",
+    JUKEBOX_OFF_BUTTON : "{% translate language, 'djmatic', 'jukebox-off-button' %}"
+};
+var templates = {{ templates|safe }};
+var EMAIL_SETTINGS = {{ email_settings|safe }};
+var DJMATIC_SECRET = "{{ djmatic_profile.secret }}";
+var DJMATIC_PLAYER_ID = "{{ djmatic_profile.player_id }}";
+var DJMATIC_JUKEBOX_SERVER_API = "{{ jukebox_server_api }}";
+var DJMATIC_PROFILE_STATUS = "{{ djmatic_profile.status }}";
+var UNITS = {{ UNITS }};
+var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
+var CURRENCY = "{{ currency }}";
+var CONSTS = {{ CONSTS_JSON }};
+var orderSettings = {order_type: CONSTS.ORDER_TYPE_SIMPLE};
+var MODULES = {{ modules }};
+var ROUTES = {};
+var LocalCache = {};
+var modules = {};
+-->
+</script>
+{%- include 'settings_header.tmpl' %}
+<script src="/static/js/solutions/djmatic.js"></script>
+
+</head>
+<body>
+    <div id="wrap">
+    <div class="container">
+        <div id="crowd" class="row"  style="padding-top: 5px; padding-bottom: 5px;">
+            <div class="pull-right" style="margin-top: 15px;">
+                {{ service_name }} | {{ service_user_email }}
+            </div>
+            <img alt="Rogerthat logo" src="/static/images/logo-djmatic.png" />
+        </div>
+        <div class="row">
+            <div class="navbar">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <img alt="DJ-Matic logo" src="/static/images/logo-djmatic.png"
+                            style="margin: 5px 10px 0px 0px; height: 30px;"
+                            class="pull-left" />
+                        <a class="brand">{% translate language, "djmatic", "title" %}</a>
+                        <ul id="topmenu" class="nav">
+                            <li menu="jukebox_cfg" class="active">
+                                <a href="#">{% translate language, "djmatic", "jukebox-configuration" %}</a>
+                            </li>
+                            <li menu="inbox">
+                                <a href="#">{% translate language, "common", "Inbox" %}
+                                    <span class="badge badge-important sln-inbox-badge"></span>
+                                </a>
+                            </li>
+                            <li menu="menu"><a href="#">{% translate language,
+								"common", "menu-editor-menu" %}</a></li>
+							<li menu="events"><a href="#">{% translate language,
+								"common", "agenda" %}</a></li>
+                            <li menu="broadcast">
+                                <a href="#/broadcast">{% translate language, "common", "Broadcast" %}</a>
+                            </li>
+                            <li menu="settings">
+                                <a href="#">{% translate language, "common", "Settings" %}</a>
+                            </li>
+                            <li menu="statistics">
+								<a href="#">{% translate language, "common", "statistics" %}</a>
+							</li>
+                        </ul>
+                        <ul class="nav pull-right" >
+                            <li class="divider-vertical"></li>
+                            <li>
+                                <a href="/logout" class="">{% translate language, "common", "Log out" %}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sln-updates-pending-warning"></div>
+            <div class="sln-required-warning"></div>
+
+            {%- include 'inbox.tmpl' %}
+            {%- include 'menu.tmpl' %}
+			{%- include 'events.tmpl' %}
+			{%- include 'statistics.tmpl' %}
+            {%- include 'broadcast.tmpl' %}
+
+            <div id="jukebox_cfg" class="row page">
+                <div class="span12">
+                    <div class="btn-group">
+                          <button class="btn btn-success" id="jukeboxOn">{% translate language, "djmatic", "jukebox-enabled" %}</button>
+                          <button class="btn" id="jukeboxOff">&nbsp;</button>
+                    </div>
+                    <hr>
+                    <h3>Enabled On</h3>
+                    <div id="jukebox_days">
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="1"> Monday
+                        </label>
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="2"> Tuesday
+                        </label>
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="4"> Wednesday
+                        </label>
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="8" checked> Thursday
+                        </label>
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="16" checked> Friday
+                        </label>
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="32" checked> Saturday
+                        </label>
+                        <label class="checkbox inline">
+                           <input type="checkbox" value="64" checked> Sunday
+                        </label>
+                    </div>
+                    <br>
+                    <div>
+                        <div class="input-prepend input-append bootstrap-timepicker">
+                            <span class="add-on">From</span>
+                            <input id="timepickerEnabledFrom" type="text" class="input-small" />
+                            <span class="add-on">
+                                <i class="icon-time"></i>
+                            </span>
+                        </div>
+                        &nbsp;
+                        <div class="input-prepend input-append bootstrap-timepicker">
+                            <span class="add-on">Until</span>
+                            <input id="timepickerEnabledUntil" type="text" class="input-small" />
+                            <span class="add-on">
+                                <i class="icon-time"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div id="djmatic_genres"></div>
+                    <div id="jukebox_genres"></div>
+                </div>
+            </div>
+
+            <div id="settings" class="row page" style="display: none;">
+				<div class="span12">
+					<ul class="nav nav-tabs">
+						<li class="active" section="section_general"><a href="#">{%	translate language, "common", "settings-general" %}</a></li>
+                        <li class="" section="section_settings_inbox"><a href="#">{% translate language, "common", "Inbox" %}</a></li>
+						<li section="section_qr_codes"><a href="#">{% translate language, "common", "settings-qr-codes" %}</a></li>
+						<li class="" section="section_settings_agenda"><a href="#">{% translate language, "common", "agenda" %}</a></li>
+						<li section="section_bulk_invite"><a href="#">{% translate language, "common", "settings-bulk-invite" %}</a></li>
+					</ul>
+					<section id="section_general">
+						<div class="span6">
+							<div class="sln-set-visibility"></div>
+							<hr>
+							<form>
+						        <fieldset>
+							        <div id="max_songs_in_request_container"  style="display: none;">
+						                <label>Max songs in request list</label>
+	                                    <select id="max_songs_in_request_list" name="max_songs_in_request_list">
+	                                       <option value="10">10</option>
+	                                       <option value="15" selected>15</option>
+	                                       <option value="20">20</option>
+	                                       <option value="25">25</option>
+	                                    </select>
+	                                    <hr>
+							        </div>
+									<div class="sln-set-timezone"></div>
+									<div class="sln-set-avatar" url="/djmatic/settings/avatar/post"></div>
+		                            <div class="sln-set-logo"></div>
+		                            <div class="sln-set-name" required_setting="true"></div>
+		                            <div class="sln-set-phone-number"></div>
+		                            <div class="sln-set-facebook-action-url"></div>
+		                            <div class="sln-set-facebook-place"></div>
+		                            <div class="sln-set-currency"></div>
+		                            <div class="sln-set-description"></div>
+		                            <div class="sln-set-openinghours"></div>
+		                            <div class="sln-set-address"></div>
+								</fieldset>
+							</form>
+						</div>
+					</section>
+					<section id="section_settings_inbox" style="display: none;">
+                        <div class="row">
+                             <div class="span4">&nbsp;</div>
+                             {% if sln_settings.inbox_connector_qrcode %}
+                                <div class="span6">
+                                    <img src="{{ sln_settings.inbox_connector_qrcode }}" height="150" width="150"/>
+                                </div>
+                             {% endif %}
+                        </div>
+                        <div class="row">
+                            <div class="span4">
+                                <button id="add_mobile_inbox_forwarder" class="btn btn-primary">
+                                    <i class="icon-user icon-white"></i> {% translate language, "common", "add-mobile-inbox-forwarders" %}
+                                </button>
+                            </div>
+                            {% if sln_settings.inbox_connector_qrcode %}
+                                <div class="span6">
+                                    <h5>{% translate language, "common", "or-scan-qr-code-app" %}</h5>
+                                </div>
+                            {% endif %}
+                       </div>
+                       <div class="row">
+                            <div class="span4">
+                                <br>
+                                <button id="add_email_inbox_forwarder" class="btn btn-primary">
+                                    <i class="icon-envelope icon-white"></i> {% translate language, "common", "add-email-inbox-forwarders" %}
+                                </button>
+                            </div>
+                       </div>
+                       <hr>
+                       <h4>{% translate language, "common", "mobile-inbox-forwarders" %}:</h4>
+                       <ul id="mobile_inbox_forwarders"></ul>
+                       <div class="sln-inbox-email-reminders"></div>
+                    </section>
+					<section id="section_qr_codes" style="display: none;">
+						<div class="span6">
+							{% translate language, "djmatic", "settings-qr-connect" %}: <br>
+							<a href="{{ djmatic_profile.connect_qr_img_url }}?download=true"> <img
+								src="{{ djmatic_profile.connect_qr_img_url }}"
+								alt="{% translate language, 'djmatic', 'settings-qr-connect' %}" />
+							</a>
+						</div>
+						<div class="span11" style="text-align: center; margin-top: 20px;">
+							{% translate language, "common", "download-qr-code" %}</div>
+					</section>
+                    {%- include 'events_settings.tmpl' %}
+					{%- include 'bulk_invite.tmpl' %}
+				</div>
+			</div>
+        </div>
+    </div>
+    </div>
+    <div id="footer">
+        <div style="text-align: center;">
+            <img alt="Rogerthat logo" src="/static/images/solution-header-white.png" />
+        </div>
+    </div>
+    <img id="mark" src="/static/images/watermerk-DJM.png">
+    <div id="fb-root"></div>
+    <script src="/static/js/solutions/sln-router.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            sln.runChannel(CHANNEL_API_TOKEN);
+        });
+    </script>
+</body>
+</html>

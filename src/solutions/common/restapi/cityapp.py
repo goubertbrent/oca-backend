@@ -1,0 +1,79 @@
+# -*- coding: utf-8 -*-
+# Copyright 2016 Mobicage NV
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# @@license_version:1.1@@
+
+import logging
+
+from google.appengine.ext import db
+from mcfw.restapi import rest
+from mcfw.rpc import returns, arguments
+from rogerthat.rpc import users
+from rogerthat.rpc.service import BusinessException
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from solutions import translate
+from solutions.common import SOLUTION_COMMON
+from solutions.common.bizz.cityapp import get_uitdatabank_events
+from solutions.common.dal import get_solution_settings
+from solutions.common.dal.cityapp import get_cityapp_profile
+from solutions.common.to.cityapp import CityAppProfileTO
+
+
+@rest("/common/cityapp/settings/load", "get", read_only_access=True)
+@returns(CityAppProfileTO)
+@arguments()
+def load_cityapp_settings():
+    service_user = users.get_current_user()
+    settings = get_cityapp_profile(service_user)
+    return CityAppProfileTO.from_model(settings)
+
+
+@rest ("/common/cityapp/settings/save", "post")
+@returns(ReturnStatusTO)
+@arguments(uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
+def save_cityapp_settings(uitdatabank_key, uitdatabank_region, gather_events):
+    from solutions.common.bizz.cityapp import save_cityapp_settings as save_cityapp_settings_bizz
+    try:
+        service_user = users.get_current_user()
+        save_cityapp_settings_bizz(service_user, uitdatabank_key, uitdatabank_region, gather_events)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException, e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/cityapp/settings/check_uitdatabank", "get", read_only_access=True)
+@returns(ReturnStatusTO)
+@arguments()
+def uitdatabank_check_cityapp_settings():
+    service_user = users.get_current_user()
+    settings = get_cityapp_profile(service_user)
+    try:
+        success, result = get_uitdatabank_events(settings, 1, 50)
+    except Exception:
+        sln_settings = get_solution_settings(service_user)
+        logging.debug('Failed to check uitdatabank.be settings: %s', dict(key=settings.uitdatabank_key, region=settings.uitdatabank_region), exc_info=1)
+        return ReturnStatusTO.create(False, translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
+
+    def trans():
+        settings = get_cityapp_profile(service_user)
+        if success:
+            settings.uitdatabank_enabled = True
+            settings.put()
+            return RETURNSTATUS_TO_SUCCESS
+    
+        settings.uitdatabank_enabled = False
+        settings.put()
+        return ReturnStatusTO.create(False, result)
+    return db.run_in_transaction(trans)

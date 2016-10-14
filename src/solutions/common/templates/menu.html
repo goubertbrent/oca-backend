@@ -1,0 +1,195 @@
+{% raw %}
+<table class="table table-striped table-hover table-bordered table-condensed">
+	<thead></thead>
+	<tbody>
+		<tr>
+			<td>
+				<div class="span11">
+					<p class="menu-description">${menu.predescription}</p>
+				</div>
+				<div class="pull-right">
+					<div class="btn-group item-controls">
+						<button button_menu="pre" class="btn" button_menu_description="${menu.predescription}" action="editMenuDescription">
+							<i class="icon-pencil"></i>
+						</button>
+					</div>
+				</div>
+			</td>
+		</tr>
+	</tbody>
+</table>
+{{each(i, category) menu.categories}}
+<table class="table table-striped table-hover table-bordered table-condensed category"
+       id="category-${menu.categories.indexOf(category)}">
+	<thead>
+		<tr category_id="${category.id}">
+			<th>
+				<div class="span9">
+					<h3>${category.name}</h3>
+				</div>
+				<div class="span3" style="margin-left: 0;">
+					<div class="btn-group category-controls">
+						<button action="additem" class="btn btn-success">
+							<i class="fa fa-plus"></i>
+						</button>
+						<button class="btn" action="editCategory">
+							<i class="fa fa-edit"></i>
+						</button>
+						<button action="categoryUp" class="btn {{if i == 0}}disabled{{/if}}">
+							<i class="fa fa-arrow-up"></i>
+						</button>
+						<button action="categoryDown" class="btn {{if i == menu.categories.length - 1}}disabled{{/if}}">
+							<i class="fa fa-arrow-down"></i>
+						</button>
+						<button action="deletecategory" class="btn btn-danger">
+							<i class="fa fa-trash"></i>
+						</button>
+					</div>
+                    {{if showVisibleInCheckboxes}}
+                    <div class="pull-right" style="margin-top: 10px;">
+                        <label class="checkbox">
+                            <input type="checkbox" class="mark-all-visible-in"
+                                   value="${CONSTS.ORDER_ITEM_VISIBLE_IN_MENU}"
+                            {{if items.length === 0}}checked{{/if}}>
+                            ${t.visible_in} "${menuName}"
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" class="mark-all-visible-in"
+                                   value="${CONSTS.ORDER_ITEM_VISIBLE_IN_ORDER}"
+                            {{if items.length === 0}}checked{{/if}}>
+                            ${t.visible_in} "${t.order}"
+                        </label>
+                    </div>
+                    {{/if}}
+				</div>
+			</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>
+				<div class="span11">
+					<p class="menu-description">${category.predescription}</p>
+				</div>
+				<div class="pull-right">
+					<div class="btn-group item-controls">
+						<button category_id="${category.id}" button_category_id="pre" class="btn"
+								action="editCategoryDescription">
+							<i class="fa fa-edit"></i>
+						</button>
+					</div>
+				</div>
+			</td>
+		</tr>
+		{{each(j, item) items}}
+        <tr id="category-${menu.categories.indexOf(category)}-item-${items.indexOf(item)}">
+			<td item_id="${item.id}" category_id="${category.id}">
+				<div class="menu-item-content">
+					<h4>${item.name}</h4>
+                    {{if item.has_price}}
+					<div class="menu-item-price">
+						{{if item.unit === CONSTS.UNIT_GRAM}}
+						${currency} ${(item.price / 100).toFixed(2)}
+                        {{if advancedOrder}} / ${UNIT_SYMBOLS[CONSTS.UNIT_KG]}{{/if}}
+						{{else}}
+						${currency} ${(item.price / 100).toFixed(2)}
+                        {{if advancedOrder}}/ ${t[UNIT_SYMBOLS[item.unit]] || UNIT_SYMBOLS[item.unit] }{{/if}}
+						{{/if}}
+					</div>
+                    {{/if}}
+					{{if item.description}}
+					<p class="menu-description">${item.description}</p>
+					{{/if}}
+                    {{if showVisibleInCheckboxes}}
+                    <div class="control-group visibility-checkboxes">
+						<label class="checkbox inline">
+							<input type="checkbox" name="itemVisibleIn" value="${CONSTS.ORDER_ITEM_VISIBLE_IN_MENU}"
+								   {{if isFlagSet(item.visible_in, CONSTS.ORDER_ITEM_VISIBLE_IN_MENU)}}checked{{/if}}>
+							${t.visible_in} "${menuName}"
+						</label>
+						<label class="checkbox inline">
+							<input type="checkbox" name="itemVisibleIn" value="${CONSTS.ORDER_ITEM_VISIBLE_IN_ORDER}"
+								   {{if isFlagSet(item.visible_in, CONSTS.ORDER_ITEM_VISIBLE_IN_ORDER)}}checked{{/if}}>
+							${t.visible_in} "${t.order}"
+						</label>
+					</div>
+                    {{/if}}
+				</div>
+				<div class="pull-right">
+					<div class="btn-group item-controls">
+                        {{if advancedOrder}}
+						<button action="editImage" class="btn {{if item.image_id}}active{{/if}}">
+							<i class="fa fa-picture-o"></i>
+						</button>
+                        {{/if}}
+						<button action="editItem" class="btn">
+							<i class="fa fa-edit"></i>
+						</button>
+						<button action="itemUp" class="btn {{if j == 0}}disabled{{/if}}">
+							<i class="fa fa-arrow-up"></i>
+						</button>
+						<button action="itemDown" class="btn {{if j == category.items.length - 1}}disabled{{/if}}">
+							<i class="fa fa-arrow-down"></i>
+						</button>
+						<button action="deleteitem" class="btn btn-danger">
+							<i class="fa fa-trash"></i>
+						</button>
+					</div>
+				</div>
+			</td>
+		</tr>
+		{{/each}}
+		<tr>
+			<td>
+				<div class="span11">
+					<p class="menu-description">${category.postdescription}</p>
+				</div>
+				<div class="pull-right">
+					<div class="btn-group item-controls">
+						<button button_category_id="post" class="btn" category_id="${category.id}"
+								action="editCategoryDescription">
+							<i class="fa fa-edit"></i>
+						</button>
+					</div>
+				</div>
+			</td>
+		</tr>
+	</tbody>
+    {{if category.items.length >= 6 }}
+    <tfoot>
+    <tr category_id="${category.name}">
+        <td>
+            <div class="pull-right" style="margin:0 8px 18px;">
+                <div class="btn-group category-controls">
+                    <button action="additem" class="btn btn-success">
+                        <i class="fa fa-plus"></i> ${t.add_product}
+                    </button>
+                </div>
+            </div>
+        </td>
+    </tr>
+    </tfoot>
+    {{/if}}
+	{{/each}}
+</table>
+
+<table
+	class="table table-striped table-hover table-bordered table-condensed">
+	<tbody>
+		<tr>
+			<td>
+				<div class="span11">
+					<p class="menu-description">${menu.postdescription}</p>
+				</div>
+				<div class="pull-right">
+					<div class="btn-group item-controls">
+						<button button_menu="post"class="btn" button_menu_description="${menu.postdescription}" action="editMenuDescription">
+							<i class="fa fa-edit"></i>
+						</button>
+					</div>
+				</div>
+			</td>
+		</tr>
+	</tbody>
+</table>
+{%- endraw %}

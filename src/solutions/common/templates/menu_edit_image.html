@@ -1,0 +1,51 @@
+{% raw %}
+<div class="modal fade large-modal" id="modal-edit-menu-image">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">${t.current_image}</h4>
+    </div>
+    <div class="modal-body">
+        <div class="split-half {{if !item.image_id}}hide{{/if}}" id="existing-image-container">
+            <p>${t.current_image}:</p>
+            <div class="menu-item-image">
+                <img id="menu-item-existing-image"
+                     {{if item.image_id}}src="/solutions/common/public/menu/image/${item.image_id}"{{/if}}/>
+                <button id="remove-menu-item-image" class="btn btn-danger"><i class="fa fa-times"></i></button>
+            </div>
+        </div>
+        <div class="split-half">
+            <p>${t.upload_image_for_item.replace('%(item_name)s', item.name)}</p>
+            <div id="option1">
+                <span style="text-decoration: underline;">${t.option} 1</span>: 
+                <a id="show_picture_upload" style="cursor: pointer;">${t.upload_picture_here}</a>
+                <div id="upload-picture-container" class="hide">
+                    <input type="file" id="menu-image-upload-file" accept="image/*">
+                    <div id="image-resize-container">
+                        <p class="hide">${t.scroll_to_zoom}</p>
+                        <img id="menu-image-upload"/>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div id="option2">
+                <span style="text-decoration: underline;">${t.option} 2</span>: 
+                <a id="show_qr_code" style="cursor: pointer;">${t.use_your_smartphone}</a>
+                <div id="use-smartphone-container" class="hide">
+                    <p>${t.scan_to_take_picture}</p>
+                    <div style="height: 150px">
+                        <div id="spinner-container"
+                            style="height: 150px; width: 150px; position: absolute; z-index: 1;"></div>
+                        <div id="qr-code-container"
+                            style="height: 150px; width: 150px; position: absolute; z-index: 500;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn" data-dismiss="modal">${t.CLOSE}</button>
+        <button type="button" class="btn btn-primary" id="save-item-image">${t.SAVE}</button>
+    </div>
+</div>
+{% endraw %}

@@ -1,0 +1,27 @@
+<h3>Preview</h3>
+<article class="news-article">
+    <div class="article-media">
+        {{if article.news_type === 1}}
+        <div class="youtube-container">
+            <div class="youtube-player">
+                <img width="280" height="157" class="youtube-thumb"
+                     src="//img.youtube.com/vi/${article.youtube_id}/maxresdefault.jpg">
+
+                <div class="play-button"></div>
+            </div>
+        </div>
+        {{/if}}
+        {{if article.news_type === 2}}
+        <img src="${article.image_url}"></img>
+
+        {{/if}}
+    </div>
+    <div class="article-content">
+        <h3>${article.title}</h3>
+
+        <div class="article-date"><i>${date}</i></div>
+        <div class="article-text">
+            <p>{{html article.content}}</p>
+        </div>
+    </div>
+</article>

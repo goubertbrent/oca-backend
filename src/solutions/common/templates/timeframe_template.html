@@ -1,0 +1,17 @@
+{% raw %}
+{{each(i,timeframe) timeframes}}
+<tr id="${timeframe.id}" timeframe_id="${timeframe.id}">
+    <td>${timeframe.day_str}</td>
+    <td>${timeframe.time_from_str}</td>
+    <td>${timeframe.time_until_str}</td>
+    <td>
+        <button action="edit" timeframe_id="${timeframe.id}" href="#${ type }TimeframeModal" data-toggle="modal"
+                class="btn btn-success control">${CommonTranslations.EDIT}
+        </button>
+        <button action="delete" timeframe_id="${timeframe.id}" class="btn btn-warning control">
+            ${CommonTranslations.DELETE}
+        </button>
+    </td>
+</tr>
+{{/each}}
+{% endraw %}

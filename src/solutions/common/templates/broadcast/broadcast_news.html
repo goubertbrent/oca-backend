@@ -1,0 +1,276 @@
+{% raw %}
+    <ul class="breadcrumb">
+        <li><a href="#/broadcast">${T('news_items')}</a> <span class="divider">/</span></li>
+        <li class="active">${T(newsItem.id ? 'update_news': 'create_news')}</li>
+    </ul>
+    <div class="span6" id="news_form_container">
+        <form id="form_broadcast_news" autocomplete="off" class="row">
+            <h2>${T(newsItem.id ? 'update_news': 'create_news')}</h2>
+            <h3 id="step_title"></h3>
+            <p id="step_content_explanation"></p>
+            <div class="tab-content">
+                <div class="tab-pane active" id="tab0">
+                    <div class="control-group">
+                        <div class="controls">
+                            {{each(newsType, translation) newsTypes}}
+                            <label class="radio">
+                                <input type="radio" name="news_select_type" class="input-xlarge" required
+                                       value="${newsType}" {{if newsItem.type == newsType}}checked{{/if}}
+                                       {{if newsItem.id}}disabled{{/if}}>${translation}
+                            </label>
+                            {{/each}}
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane" id="tab1">
+                    <div class="control-group padding-top">
+                        <label class="control-label" for="news_input_title">${T('events-title')}</label>
+                        <div class="controls">
+                            <input type="text" name="news_input_title" id="news_input_title" class="input-xlarge"
+                                   value="${newsItem.qr_code_caption || newsItem.title}" required minlength="5" maxlength="80">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label" for="news_input_message">${T('inbox-message')}</label>
+                        <div class="controls">
+                            <textarea type="text" cols="20" rows="5" name="news_input_message" id="news_input_message"
+                                      class="input-xlarge" minlength="10" maxlength="500">${newsItem.message}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="tab2">
+                    <div class="control-group">
+                        <div class="controls">
+                            <input type="file" name="news_input_image" accept="image/*" class="input-xlarge"
+                                   id="news_input_image">
+                        </div>
+                    </div>
+                    <div id="news_image_editor_container" class="control-group">
+                        <div style="width: 480px; max-height:180px;">
+                            <img id="news_image_preview" style="max-width: 480px;" src="${newsItem.image_url}"/>
+                        </div>
+                        <div class="controls padding-top">
+                            <button class="btn btn-danger" type="button" id="news_button_remove_image">${T('Remove')}
+                            </button>
+                            <button class="btn btn-primary" type="button" id="news_button_save_image">${T('Save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- uncomment when needed
+               <div class="tab-pane" id="tab3">
+                    <div class="control-group">
+                        <div class="controls">
+                            <textarea type="text" cols="20" rows="5" name="news_input_qr_code_caption"
+                                      id="news_input_qr_code_caption" required maxlength="120"
+                                      class="input-xlarge">${newsItem.qr_code_caption}</textarea>
+                        </div>
+                    </div>
+                </div>
+                -->
+                <div class="tab-pane" id="tab3">
+                    <div class="control-group">
+                        <div class="controls">
+                            <select id="news_select_label" name="news_select_label" required>
+                                {{each(i, label) broadcastTypes}}
+                                <option value="${label}" {{if i===0}}selected{{/if}}>${label}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane" id="tab4" style="margin-bottom: 50px;">
+                    <div class="control-group">
+                        <div class="controls">
+                            <select id="select_broadcast_button" name="select_broadcast_button" class="input-xlarge">
+                                <option value="" style="font-style: italic;">${T('none')}</option>
+                                {{each(i, action) allowedButtonActions}}
+                                <option value="${action.value}" {{if actionButton.id === action.value}}selected{{/if}}>
+                                    ${action.translation}
+                                </option>
+                                {{/each}}
+                                <option disabled>_________</option>
+                                {{each(i, item) serviceMenu.items}}
+                                <option value="${item.tag}" {{if actionButton.id === item.tag}}selected{{/if}}>
+                                    ${item.label}
+                                </option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+                    {{if menu}}
+                    <div class="accordion news_action" id="news_action_order"
+                         {{if actionButton.id !== '__sln__.order'}}style="display: none;"{{/if}}>
+                        <p>${'news_action_order_explanation'}</p>
+                        {{each(catNumber, category) menu.categories}}
+                        <div class="accordion-group">
+                            <div class="accordion-heading">
+                                <a class="accordion-toggle" data-toggle="collapse" data-parent="#news_action_order"
+                                   href="#news_action_order_category_${category.index}">
+                                    ${category.name}
+                                </a>
+                            </div>
+                            <div id="news_action_order_category_${category.index}" class="accordion-body collapse">
+                                <div class="accordion-inner">
+                                    {{each(productNumber, product) category.items}}
+                                    {{if isFlagSet(product.visible_in, CONSTS.ORDER_ITEM_VISIBLE_IN_ORDER)}}
+                                    <p><b>${product.name}</b></p>
+                                    <p>{{if product.has_price}}${currency}{{/if}}
+                                        ${(product.price / 100).toFixed(2)} / ${UNITS[product.unit]}
+                                    </p>
+                                    <div class="input-prepend">
+                                        <span class="add-on">${CommonTranslations[UNIT_SYMBOLS[product.unit]] || UNIT_SYMBOLS[product.unit]}</span>
+                                        <input type="number" step="${product.step}" min="0"
+                                               data-category="${category.id}"
+                                               data-product="${product.id}" value="${product.selectedAmount || 0}">
+                                    </div>
+                                    {{/if}}
+                                    {{/each}}
+                                </div>
+                            </div>
+                        </div>
+                        {{/each}}
+                    </div>
+                    {{/if}}
+                    {{each(i, action) allowedButtonActions}}
+                    <div class="control-group news_action" id="news_action_${action.value}"
+                         {{if actionButton.id !== action.value}}style="display: none;"{{/if}}>
+                        <label class="control-label" for="news_action_${action.value}_caption">${T('Label')}</label>
+                        <div class="controls">
+                            <input type="text"
+                                   news_action_render_preview="true"
+                                   minlength="4" maxlength="30"
+                                   id="news_action_${action.value}_caption"
+                                   name="news_action_${action.value}_caption"
+                                   value="${actionButton.id === action.value ? actionButton.label : action.defaultLabel}">
+                        </div>
+                        <label class="control-label" for="news_action_${action.value}_field">${action.translation}</label>
+                        <div class="controls">
+                            <input type="${action.type}"
+                                   id="news_action_${action.value}_value"
+                                   name="news_action_${action.value}_value"
+                                   value="${actionButton.id === action.value ? actionButton.value: ''}"
+                                   required>
+                        </div>
+                    </div>
+                    {{/each}}
+
+                    <div class="control-group news_action" id="news_action_restaurant_reservation"
+                         {{if actionButton.id !== 'reserve1'}}style="display: none;"{{/if}}>
+                        <div class="controls" style="min-height: 250px;">
+                            <label for="news_action_restaurant_reservation_datepicker">${T('TIME')}</label>
+                            <div class="input-append input-group bootstrap-timepicker">
+                                <input class="span1 form-control" id="news_action_restaurant_reservation_datepicker"
+                                       data-date="${restaurantReservationDate}" type="text"/>
+                                <span class="add-on">
+                                     <i class="fa fa-calendar"></i>
+                                 </span>
+                            </div>
+                            <label for="news_action_restaurant_reservation_timepicker">${T('Date')}</label>
+                            <div class="input-append input-group bootstrap-timepicker">
+                                <input class="span1 form-control" id="news_action_restaurant_reservation_timepicker"
+                                       type="text"/>
+                                <span class="add-on">
+                                     <i class="fa fa-clock-o"></i>
+                                 </span>
+                            </div>
+                        </div>
+                    </div>
+                    {{if sandwichSettings}}
+                    <div class="control-group news_action" id="news_action_sandwich_bar"
+                         {{if actionButton.id !== '__sln__.sandwich_bar'}}style="display: none;"{{/if}}>
+                        <div class="controls">
+                            <label for="news_action_sandwich_bar_types">${T('bread_type')}</label>
+                            <select id="news_action_sandwich_bar_types" required>
+                                {{each(i, type) sandwichSettings.types}}
+                                <option value="${type.id}" {{if selectedSandwich.type === 'type_' + type.id}}selected
+                                        {{/if}}>
+                                    ${type.description}
+                                    {{if sandwichSettings.show_prices && type.price > 0}}- ${CURRENCY +
+                                    type.price_in_euro}{{/if}}
+                                </option>
+                                {{/each}}
+                            </select>
+                            <label for="news_action_sandwich_bar_toppings">${T('Toppings')}</label>
+                            <select id="news_action_sandwich_bar_toppings" required>
+                                {{each(i, topping) sandwichSettings.toppings}}
+                                <option value="${topping.id}"
+                                        {{if selectedSandwich.topping === 'topping_' + topping.id}}selected
+                                        {{/if}}>
+                                    ${topping.description}
+                                    {{if sandwichSettings.show_prices && topping.price > 0}}- ${CURRENCY +
+                                    topping.price_in_euro}{{/if}}
+                                </option>
+                                {{/each}}
+                            </select>
+                            <h3>${T('Options')}</h3>
+                            {{each(i, option) sandwichSettings.options}}
+                            <label class="checkbox" for="news_action_sandwich_bar_options_${option.id}">
+                                <input type="checkbox" name="news_action_sandwich_bar_options"
+                                       id="news_action_sandwich_bar_options_${option.id}" value="${option.id}" required
+                                       {{if selectedSandwich.options && selectedSandwich.options.includes('option_' + option.id)}}checked
+                                        {{/if}}>
+                                ${option.description}
+                                {{if sandwichSettings.show_prices && option. price > 0}}- ${CURRENCY +
+                                option.price_in_euro}{{/if}}
+                            </label>
+                            {{/each}}
+                        </div>
+                    </div>
+                    {{/if}}
+                </div>
+                <div class="tab-pane" id="tab5">
+                    <div class="control-group" {{if !canPromote }}style="display:none"{{/if}}>
+                        <div class="controls">
+                            <label for="checkbox_promote" class="checkbox">
+                                <input type="checkbox" id="checkbox_promote" name="checkbox_promote"
+                                       {{if newsItem.sticky}}checked disabled{{/if}}>
+                                ${T('promote')}
+                            </label>
+                            <span class="help-block">${T('promote_news_post_explanation')}</span>
+                        </div>
+                    </div>
+                    <div class="control-group promotion_active" style="display: none;">
+                        <label class="control-label" for="select_promotion_duration">${T('promotion_duration')}</label>
+                        <div class="controls">
+                            <select id="select_promotion_duration" name="select_promotion_duration" class="input-xlarge"
+                                    {{if newsItem.sticky}}disabled
+                                    {{/if}}>
+                                {{each(i, duration) promotionProduct.possible_counts}}
+                                <option value="${duration}">${product_counts_labels[i]} - ${product_prices[i]}</option>
+                                {{/each}}
+                            </select>
+                            <span class="help-block">${T('prices_exclusive_vat')}</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>${T('target_audience')}</label>
+                        <div class="controls">
+                            {{each(i, app) apps}}
+                            <label class="checkbox">
+                                <input type="checkbox" name="news_checkbox_apps" value="${app.id}" ${app.checked} ${app.disabled}>
+                                ${app.name} - ${T('not_connected_users')}: ${app.non_connected_users}
+                            </label>
+                            {{/each}}
+                        </div>
+                    </div>
+                    <div>
+                        <p>${T('broadcast-reach')}: <b><span id="news_total_reach">${totalReach}</span></b></p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="tab6"></div>
+            </div>
+
+            <div class="control-group" id="news_form_buttons">
+                <div class="controls">
+                    <button type="button" class="btn" id="news_back">${T('back')}</button>
+                    <button type="button" class="btn" id="news_next">${T('Next')}</button>
+                    <button type="button" class="btn btn-primary" id="news_submit">${T('Next')}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="span6" id="news_preview"></div>
+
+{% endraw %}

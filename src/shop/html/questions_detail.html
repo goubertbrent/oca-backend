@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+<input class="span8" id="title" type="text" placeholder="Enter title ..." value="{{ question.title }}"/>
+<button question_id="{{ question.id }}" id="save_title_btn" class="btn btn-success" style="margin-left: 10px; margin-bottom:10px;" aria-hidden="true">Save</button><br>
+    
+<div class="clearfix">
+ <strong>Modules:</strong><br>
+ <div id="tags" class="span8">
+     {% for mod in modules %}<label class="checkbox inline"><input {% if mod.0 in question.modules %}checked="checked"{% endif %} type="checkbox" value="{{mod.0}}"/>{{mod.1}}</label>{% endfor %}
+ </div>
+ <br>
+ <button question_id="{{ question.id }}" id="save_modules_btn" class="btn btn-success" aria-hidden="true">Save</button>
+</div>
+<br>
+    
+<table class="table table-striped table-hover table-bordered">
+    <thead></thead>
+    <tbody>
+        <tr>
+           <td>
+            <div>
+                <div class="clearfix">
+                    <strong style="float: left;">By {{ question.author }} - {{ question.get_author_name }}</strong>
+                    <p style="float: right;">{{ question.full_date_str }}</p>
+                </div>
+                <pre class="formatted">{{ question.description }}</pre>
+                <label class="question-visible checkbox inline"><input question_id="{{ question.id }}" type="checkbox" value="visible" {% if question.visible %}checked="checked"{% endif %} /> Visible</label>
+            </div>
+            </td>
+        </tr>
+        {% for answer in question.all_replies %}
+        <tr><td>
+            <div>
+                <div class="clearfix">
+                    <strong style="float: left;">By {{ answer.author }} - {{ answer.get_author_name }}</strong>
+                    <p style="float: right;">{{ answer.full_date_str }}</p>
+                </div>
+                <pre class="formatted">{{ answer.description }}</pre>
+                {% if question.visible %}
+                    <label class="question-visible checkbox inline"><input question_id="{{ question.id }}" question_reply_id="{{ answer.id }}" type="checkbox" value="visible" {% if answer.visible %}checked="checked"{% endif %}/> Visible</label>
+                {% endif %}
+            </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div>
+    <h3>Reply</h3>
+    <input id="author_name" type="text" placeholder="Enter author name ..." /><br>
+    <textarea id="reply_question_text" rows="5" class="span8" placeholder="Enter reply ..."></textarea><br>
+    <br>
+    <button id="reply_question_btn" question_id="{{ question.id }}" class="btn btn-success span8" style="margin-left: 0;" aria-hidden="true">Reply</button>
+    <br>
+    <br>
+</div>
+<script>
+$(function () {
+    
+    $("#save_title_btn").click(function() {
+        var question_id = parseInt($(this).attr("question_id"));
+        
+        var title = $("#title").val().trim();
+        if (!title) {
+            alert("Please provide a title.");
+            return;
+        }
+        
+        sln.call({
+            url: '/internal/shop/rest/question/title',
+            type: 'POST',
+            data: {
+                data: JSON.stringify({
+                        question_id: question_id,
+                        title: title
+                })
+            },
+            success: function () {
+                window.location.reload();
+            },
+            error: function () {
+                alert("An error occured, please check this with your administrator.");
+            }
+        });
+    });
+    
+    $("#save_modules_btn").click(function() {
+        var question_id = parseInt($(this).attr("question_id"));
+	    var tags = [];
+	    $("#tags input:checked").each(function () {
+	        tags.push($(this).val());
+	    });
+        console.log(tags);
+        
+        sln.call({
+            url: '/internal/shop/rest/question/modules',
+            type: 'POST',
+            data: {
+                data: JSON.stringify({
+                        question_id: question_id,
+                        modules: tags
+                })
+            },
+            success: function () {
+                window.location.reload();
+            },
+            error: function () {
+                alert("An error occured, please check this with your administrator.");
+            }
+        });
+    });
+    
+    $('.question-visible input[type="checkbox"]').change(function() {
+        var question_id = parseInt($(this).attr("question_id"));
+        var question_reply_id = parseInt($(this).attr("question_reply_id"));
+        var enabled = $(this).is(":checked");
+        
+        console.log("question_id: " + question_id);
+        console.log("question_reply_id: " + question_reply_id);
+        
+        if (question_reply_id === undefined) {
+            question_reply_id = null;
+        }
+        
+        sln.call({
+            url: '/internal/shop/rest/question/visible',
+            type: 'POST',
+            data: {
+                data: JSON.stringify({
+                        question_id: question_id,
+                        question_reply_id: question_reply_id,
+                        visible: enabled
+                })
+            },
+            success: function () {
+                window.location.reload();
+            },
+            error: function () {
+                alert("An error occured, please check this with your administrator.");
+            }
+        });
+    });
+    
+    $("#reply_question_btn").click(function() {
+        var question_id = parseInt($(this).attr("question_id"));
+        var reply = $("#reply_question_text").val().trim();
+        if (!reply) {
+                alert("Please provide an answer.");
+        }    
+        var author_name = $("#author_name").val().trim();
+        if (!author_name) {
+            alert("Please provide an name.");
+            return;
+        }
+        sln.call({
+	        url: '/internal/shop/rest/question/reply',
+	        type: 'POST',
+	        data: {
+	            data: JSON.stringify({
+	                    question_id: question_id,
+	                    description: reply,
+	                    author_name: author_name
+	            })
+	        },
+	        success: function () {
+	            window.location.reload();
+	        },
+	        error: function () {
+                alert("An error occured, please check this with your administrator.");
+	        }
+        }); 
+    });
+});
+</script>
+{% endblock %}

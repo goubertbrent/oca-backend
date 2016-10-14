@@ -1,0 +1,11 @@
+{%- raw -%}
+{{each(i, o) admins}}
+<tr user_key="${o}" functions="${functions[i]}" tablet_name="${names[i]}" >
+    <td>${names[i]}</td>
+    <td>
+        <button action="update" class="btn btn-primary control">${CommonTranslations.UPDATE}</button>
+        <button action="delete" class="btn btn-warning control">${CommonTranslations.DELETE}</button>
+    </td>
+</tr>
+{{/each}}
+{%- endraw -%}

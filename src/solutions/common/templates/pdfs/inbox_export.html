@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Inbox</title>
+    <style>
+        @page {
+            margin: 2cm;
+            margin-bottom: 3.5cm;
+            @frame footer_frame {
+            -pdf-frame-content: footerContent;
+            bottom: 2cm;
+            margin-left: 2cm;
+            margin-right: 2cm;
+            height: 1cm;
+        }
+        }
+
+        h3 {
+            display: block;
+            margin-top: 20px;
+            border-top: 1px solid #dddddd;
+            padding-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 0;
+            -pdf-keep-with-next: true;
+        }
+
+        h4 {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 0;
+            margin-left: 40px;
+            display: block;
+            -pdf-keep-with-next: true;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: bold;
+            display: block;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        p {
+            display: block;
+            -pdf-keep-with-next: true;
+        }
+
+        p.child {
+            margin-left: 40px;
+        }
+
+        b, strong {
+            font-weight: bold;
+        }
+
+        .message-date {
+            font-style: italic;
+            font-weight: 300;
+            display: inline;
+            color: #666666;
+            font-size: 12px;
+        }
+
+        div.separator {
+            -pdf-keep-with-next: false;
+            font-size: 6pt;
+        }
+
+    </style>
+</head>
+<body>
+<div id="footerContent" align="right">
+    <pdf:pagenumber> /
+        <pdf:pagecount>
+</div>
+<div class="header">
+    <table>
+        <tbody>
+        <tr>
+            <td style="width: 40%;"><img src="{{ logo_path }}" width="150" height="150"/></td>
+            <td>
+                <h1>{% translate language, 'common', 'message_history' %}</h1>
+                <h2>{{ sln_i_settings.name }}</h2>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+{% for msg in messages %}
+    <h3{% if loop.first %} style="border-top:none;"{% endif %}>{{ msg.sender.name or sln_i_settings.name }}
+        <div class="message-date">{{ msg.datetime }} ({% translate language, 'common', msg.inbox %})</div>
+    </h3>
+    <p>{{ msg.message }}</p>
+    {% for child in msg.children %}
+        <h4 class="child">{{ child.sender.name or sln_i_settings.name }}
+            <div class="message-date">{{ child.datetime }}</div>
+        </h4>
+        <p class="child">{{ child.message }}</p>
+    {% endfor %}
+    <div class="separator">&nbsp;</div>
+{% endfor %}
+</body>
+</html>

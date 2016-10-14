@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>{% translate language, "flex", "title" %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" value="notranslate" />
+
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+
+<script src="/static/js/stacktrace.js"></script>
+<script src="/static/js/solutions/sln-utils.js"></script>
+<script language="javascript">
+$(function() {
+    console.log("Full: {{ full_url }}");
+    console.log("Overlay: {{ overlay_url }}");
+});
+</script>
+<style media="screen">
+
+body {
+    background-color: #000000;
+}
+.image-container {
+    width: 1280px;
+    height: 800px;
+    padding: 20px;
+    margin: 0 auto;
+}
+
+.image-container .under {
+    width: 100%;
+	height: auto;
+	max-height: 100%;
+	position: relative;
+	left: 0px;
+	top: 0px;
+	z-index: -1;
+	background-position: center;
+    background-size: contain;
+}
+
+.image-container .over {
+    width: 100%;
+	height: auto;
+	position: relative;
+	left: 0;
+	bottom: 188px;
+	z-index: -1;
+	background-position: center;
+	background-size: contain;
+}
+
+</style>
+
+</head>
+
+<body>
+    <div class="image-container">
+        <img class="under" src="{{ full_url }}" />
+		<img class="over" src="{{ overlay_url }}" >
+    </div>
+</body>
+</html>

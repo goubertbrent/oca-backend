@@ -1,0 +1,19 @@
+bulkloader.py --dump --url=https://mobicagecloud.appspot.com/remote_api --bandwidth_limit=1000000 --batch_size=1000 --filename dump1.bin --rps_limit=1000
+bulkloader.py --restore --url=http://localhost:8080/remote_api --bandwidth_limit=1000000 --batch_size=1000 --filename dump1.bin --rps_limit=1000 --application=mobicagecloud
+
+
+bulkloader.py --dump --url=https://mobicagecloud.appspot.com/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --kind=Mobile
+bulkloader.py --restore --url=http://localhost:8080/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --application=mobicagecloud
+rm dump1.bin 
+bulkloader.py --dump --url=https://mobicagecloud.appspot.com/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --kind=AuthorizedUser
+bulkloader.py --restore --url=http://localhost:8080/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --application=mobicagecloud
+rm dump1.bin 
+bulkloader.py --dump --url=https://mobicagecloud.appspot.com/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --kind=Avatar
+bulkloader.py --restore --url=http://localhost:8080/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --application=mobicagecloud
+rm dump1.bin 
+bulkloader.py --dump --url=https://mobicagecloud.appspot.com/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --kind=FriendMap
+bulkloader.py --restore --url=http://localhost:8080/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --application=mobicagecloud
+rm dump1.bin 
+bulkloader.py --dump --url=https://mobicagecloud.appspot.com/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --kind=Profile
+bulkloader.py --restore --url=http://localhost:8080/remote_api --bandwidth_limit=1000000 --batch_size=1000000 --filename dump1.bin --rps_limit=1000000 --application=mobicagecloud
+rm dump1.bin 

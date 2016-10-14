@@ -1,0 +1,179 @@
+<header>
+    <table>
+        <tbody>
+        <tr>
+            <td class="col1"><img src="{{ logo_path }}" width="200" height="200"/></td>
+            <td class="col2">
+                <p>
+                    <b>{{ customer.legal_entity.name }}</b>
+                </p>
+
+                <p>
+                    {{ customer.legal_entity.address }}<br>
+                    {{ customer.legal_entity.postal_code }} {{ customer.legal_entity.city }}<br>
+                    {{ customer.legal_entity.country(language) }}<br>
+                </p>
+
+                <p>
+                    {% shop_translate language, "telephone_abbr" %}: {{ customer.legal_entity.phone }}<br>
+                    {{ customer.legal_entity.email }}<br>
+                </p>
+
+                <p>
+                    {% shop_translate language, "vat" %}: {{ customer.legal_entity.vat_number }}<br>
+                    IBAN: {{ customer.legal_entity.iban }}<br>
+                    BIC: {{ customer.legal_entity.bic }}<br>
+                </p>
+            </td>
+            <td class="col3">
+                <p><b>{% shop_translate language, "customer_details" %}</b></p>
+
+                <p>
+                    {{ customer.name }}<br/>
+                    {{ order.contact.first_name }} {{ order.contact.last_name }}<br/>
+                </p>
+
+                <p>
+                    {{ customer.address1 }}<br>
+                    {% if customer.address2 %}
+                    {{ customer.address2 }}<br>
+                    {% endif %}
+                    {{ customer.zip_code}} {{ customer.city }}<br>
+                    {{ customer.country_str }}<br>
+                </p>
+
+                <p>
+                    {% shop_translate language, "telephone_abbr" %}: {{ order.contact.phone_number }}<br>
+                    {{ order.contact.email }}<br>
+                </p>
+
+                <p>
+                    {% if customer.vat %}{% shop_translate language, "vat" %}: {{ customer.vat }}{% else %}&nbsp;
+                    {% endif %}<br>
+                </p>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</header>
+<div id="order_nr" class="clearfix">
+    <table border="0" style="padding: 0.5em;">
+        <tr>
+            <td style="width:50%" align="left" class="clearfix">
+                <h1>{% if invoice %}{% shop_translate language, "invoice_number" %}: {{ invoice.invoice_number }}{% else
+                    %}{% shop_translate language, "proforma_invoice" %}{% endif %}</h1>
+            </td>
+            <td style="width:50%" align="right" class="clearfix">
+            {% if invoice %}
+                <b>{% shop_translate language, "date" %}: {{ invoice.date_str }}</b>
+                {% if charge and charge.reference %}
+                <br><br><b>{% shop_translate language, "payment_reference" %}: {{ charge.reference }}</b>
+                {% endif %}
+            {% endif %}
+            {% if charge and charge.customer_po_number %}
+                <br><br><b>{% shop_translate language, "po_number" %}: {{ charge.customer_po_number }}</b>
+            {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+<div id="orders" class="clearfix">
+    <table border="0" style="padding: 0.5em;">
+        <tr>
+            <td style="width:15%;">{% shop_translate language, "product_code" %}</td>
+            <td style="width:45%;">{% shop_translate language, "description" %}</td>
+            <td style="width:15%;">{% shop_translate language, "price" %}</td>
+            <td style="width:10%;">{% shop_translate language, "amount" %}</td>
+            <td style="width:15%;">{% shop_translate language, "total" %}</td>
+        </tr>
+        {% for i in order_items %}
+        <tr>
+            <td>{{ i.product_code }}</td>
+            <td><p>{{ i.product_description }} </p> <i>{{ i.product_comment }}</i></td>
+            <td>{{ i.price_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            <td>{% if i.price == 0 %}&nbsp;{% else %}{% if recurrent %}{{ charge.subscription_extension_length }}
+            {% else %}{{ i.count }}{% endif %}{% endif %}</td>
+            <td>{% if recurrent %}{{ "{:.2f}".format(i.price * charge.subscription_extension_length/100) }}{% else %}
+                {{ i.total_price_in_euro }}{% endif %} {{ customer.legal_entity.currency_code }}
+            </td>
+        </tr>
+        {% endfor %}
+        {% if invoice or order %}
+            {% if customer.should_pay_vat %}
+                <tr style="font-weight: bold;">
+                    <td colspan="4" align="right">{% shop_translate language, "total_excl_vat" %}</td>
+                    <td>{{ charge.amount_in_euro if (invoice or recurrent) else order.amount_in_euro }}
+                        {{ customer.legal_entity.currency_code }}</td>
+                </tr>
+            {% endif %}
+            <tr style="font-weight: bold;">
+                {% if customer.should_pay_vat %}
+                    <td colspan="4" align="right">{% shop_translate language, "vat" %}
+                        ({{ customer.legal_entity.vat_percent }}%)
+                    </td>
+                    <td>{{ charge.vat_in_euro if (invoice or recurrent) else order.vat_in_euro }}
+                        {{ customer.legal_entity.currency_code }}</td>
+                {% else %}
+                    <td colspan="4" align="right">{% shop_translate language, "vat" %}</td>
+                    <td>0 ({% shop_translate language, "export" %})</td>
+                {% endif %}
+            </tr>
+            <tr style="font-weight: bold;">
+                <td colspan="4" align="right">
+                    {% shop_translate language, "total_incl_vat" if customer.should_pay_vat else "total" %}
+                </td>
+                <td>{{ charge.total_amount_in_euro if (invoice or recurrent) else order.total_amount_in_euro }}
+                    {{ customer.legal_entity.currency_code }}</td>
+            </tr>
+        {% endif %}
+    </table>
+</div>
+
+{% if charge.amount_paid_in_advance %}
+<h1 align="right">
+    {% shop_translate language, "paid_in_advance" %}:
+    {{ charge.amount_paid_in_advance_formatted }} {{ customer.legal_entity.currency_code }}
+</h1>
+{% endif %}
+
+{% if invoice and payment_type != 3 %}
+<h1 align="right">{% shop_translate language, "paid" %}</h1>
+{% elif customer.legal_entity.is_mobicage %}
+<h1 align="right">{% shop_translate language, "expiry_date" %}: {{ invoice.payment_term_formatted }}</h1>
+
+<pdf:nextpage/>
+
+<div id="payment" class="clearfix">
+    <table border="0" style="padding: 0.5em;">
+        <tr>
+            <td class="clearfix">
+                <h1>{% shop_translate language, "payment" %}</h1>
+            </td>
+        </tr>
+    </table>
+</div>
+<p style="font-size: 10pt;">
+    {% shop_translate language, "use_form_to_pay" %}<br>
+    <b>{% shop_translate language, "dont_forget_structured_comment" %}</b>
+</p>
+<img src="{{ payment_note }}"/>
+{% endif %}
+
+<pdf:nextpage />
+
+<div style="font-size: 7pt;">
+    <h3>{% shop_translate language, "terms_and_conditions" %}</h3>
+{% if customer.legal_entity.is_mobicage %}
+    {% for i in range(1, 19) %}
+        {% if i == 15 %}
+    <p>{% shop_translate language, "tos_15", "tos_link=" + tos_link %}</p>
+        {% else %}
+    <p>{% shop_translate language, "tos_" + i|string %}</p>
+        {% endif %}
+    {% endfor %}
+{% else %}
+    {% for tos_line in customer.legal_entity.terms_of_use.splitlines() %}
+    <p>{{ tos_line }}</p>
+    {% endfor %}
+{% endif %}
+</div>

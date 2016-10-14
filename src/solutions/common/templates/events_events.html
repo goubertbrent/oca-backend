@@ -1,0 +1,42 @@
+{% raw %}
+{{each(i, event) events}}
+<tr>
+	<td style="position: relative;">
+		<div class="span9">
+			<h4>{{html event.date}}</h4>
+			<h3>${CommonTranslations.TITLE}: ${event.title}</h3>
+			{{if event.picture}}
+			<img class="eventPicture" src="${event.picture}" style="max-width: 200px; max-height: 200px;">
+			{{/if}}
+                        <h4>${CommonTranslations.EVENT_PLACE}: ${event.place}</h4>
+			<p>${CommonTranslations.DESCRIPTION}: {{html event.htmlDescription}}</p>
+                        {{if event.organizer}}
+                        <p>${CommonTranslations.EVENT_ORGANIZER}: ${event.organizer}</p>
+                        {{/if}}
+		</div>
+		<div class="span2">
+			<div class="btn-group item-controls">
+			    {{if event.can_edit }}
+				<button action="editEvent" event_id="${event.id}" class="btn">
+					<i class="icon-pencil"></i>
+				</button>
+				{{/if}}
+				<button action="guestsEvent" event_id="${event.id}" class="btn">
+                                <i class="icon-user"></i>
+                            </button>
+				<button action="deleteEvent" event_id="${event.id}" class="btn">
+					<i class="icon-trash"></i>
+				</button>
+			</div>
+		</div>
+		{{if event.source == 0 }}
+		    <img src="/mobi/profile/my_avatar?user=${user_email}" width="50" heigth="50" style="position:absolute; bottom:8px; right:8px;"></div>
+	    {{else event.source == 1 }}
+                   <a href="${event.external_link}" target="_blank"><img src="/static/images/solutions/uit_50.png" width="50" heigth="50" style="position:absolute; bottom:8px; right:8px;"></div></a>
+              {{else event.source == 2 }}
+                         <a href="${event.external_link}" target="_blank"><img src="/static/images/solutions/google_calendar_50.png" width="50" heigth="50" style="position:absolute; bottom:8px; right:8px;"></div></a>
+                    {{/if}}
+	</td>
+</tr>
+{{/each}}
+{%- endraw %}

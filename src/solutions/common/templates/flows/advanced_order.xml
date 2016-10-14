@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition name="order"
+                language="{{ language }}"
+                startReference="flowcode_check_feature">
+        <end id="end_advanced_order"
+             waitForFollowUpMessage="false"/>
+        <end id="end_processing"
+             waitForFollowUpMessage="true"/>
+
+        <!-- BEGIN TODO: make re-usable -->
+        <flowCode
+            id="flowcode_check_feature"
+            exceptionReference="message_advanced_order">
+            <outlet
+                reference="message_advanced_order"
+                name="message_advanced_order"
+                value="message_advanced_order" />
+            <outlet
+                reference="message_feature_not_supported"
+                name="message_feature_not_supported"
+                value="message_feature_not_supported" />
+            <javascriptCode>
+                var notSupported = function() {
+                    return { outlet: &quot;message_feature_not_supported&quot; };
+                };
+                var run = function(rogerthat, messageFlowRun){
+                    if (!rogerthat.system || !rogerthat.system.appVersion) {
+                        return notSupported();
+                    }
+                    var appVersion = rogerthat.system.appVersion.split(&quot;.&quot;).map(function(x) {
+                        return parseInt(x);
+                    });
+                    if (rogerthat.system.os == &quot;android&quot;) {
+                        if (!(appVersion[0] &gt; 1
+                                || appVersion[1] &gt; {{ Features.ADVANCED_ORDER.android.major }}
+                                || appVersion[2] &gt;= {{ Features.ADVANCED_ORDER.android.minor }})) {
+                            return notSupported();
+                        }
+                    } else if (rogerthat.system.os == &quot;ios&quot;) {
+                        if (!(appVersion[0] &gt; 1
+                                || appVersion[1] &gt; {{ Features.ADVANCED_ORDER.ios.major }}
+                                || appVersion[2] &gt;= {{ Features.ADVANCED_ORDER.ios.minor }})) {
+                            return notSupported();
+                        }
+                    }
+
+                    var nextStepResult = {};
+    				nextStepResult.outlet = &quot;message_advanced_order&quot;;
+                    if (messageFlowRun.flow_params) {
+                    	var defaultValue = JSON.parse(messageFlowRun.flow_params);
+                    	if (defaultValue.advancedOrder) {
+                    		nextStepResult.defaultValue = defaultValue.advancedOrder;
+                    	}
+                    }
+                    return nextStepResult;
+                };
+            </javascriptCode>
+        </flowCode>
+        <message
+            brandingKey="{{ branding_key }}"
+            id="message_feature_not_supported"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="true"
+            dismissReference="end_feature_not_supported"
+            vibrate="false"
+            autoLock="true">
+            <content>{% translate language, 'common', 'message_feature_not_supported' %}</content>
+        </message>
+        <end
+            id="end_feature_not_supported"
+            waitForFollowUpMessage="false" />
+        <!-- END TODO: make re-usable -->
+
+        <formMessage id="message_advanced_order"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     brandingKey="{{ branding_key }}"
+                     positiveReference="message_comment"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_advanced_order">
+            <content>{% translate language, 'common', 'enter_your_order' %}
+
+{{ leap_time_message }}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="AdvancedOrderWidget"
+                        currency="{{ settings.currency }}"
+                        leapTime="{{ leap_time }}">
+                    {% for category in menu.categories %}
+                    {% if category.items and category.has_visible %}
+                    <category id="{{ category.id|e }}">
+                        <name>{{ category.name|e }}</name>
+                        {% for item in category.items %}
+                            {% if item.visible %}
+                            <item id="{{ item.id|e }}"
+                                  value="0"
+                                  unitPrice="{% if item.has_price %}{{ item.price }}{% else %}0{% endif %}"
+                                  hasPrice="{{ item.has_price|lower }}"
+                                  step="{{ item.step }}"
+                                  {% if item.step_unit %}
+                                  unit="{{ item.step_unit }}"
+                                  stepUnit="{{ item.unit_str }}"
+                                  stepUnitConversion="{{ item.step_unit_conversion }}"
+                                  {% else %}
+                                  unit="{{ item.unit_str }}"
+                                  {% endif %}
+                                  {% if item.image_url %}
+                                  imageUrl="{{ item.image_url }}"
+                                  {% endif %}
+                                >
+                                	<name>{{ item.name|e }}</name>
+                                	{% if item.description %}<description>{{ item.description|e }}</description>{% endif %}
+                                </item>
+                            {% endif %}
+                        {% endfor %}
+                    </category>
+                    {% endif %}
+                    {% endfor %}
+                </widget>
+            </form>
+        </formMessage>
+
+        <flowCode
+                id="flow_code_phone_default"
+                exceptionReference="message_phone">
+            <outlet
+                    reference="message_phone"
+                    name="message_phone"
+                    value="message_phone"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    return { outlet: 'message_phone', defaultValue: rogerthat.user.data.phone };
+                };
+            </javascriptCode>
+        </flowCode>
+
+        <formMessage id="message_phone"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     brandingKey="{{ branding_key }}"
+                     positiveReference="flowcode_set_datetime_step"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_advanced_order">
+            <content>{% translate language, 'common', 'order-flow-phone' %}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="" >
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="TextLineWidget"
+                        keyboardType="PHONE"
+                        maxChars="50"/>
+
+                <javascriptValidation>
+                    function run(result){
+                        if (!result.value || result.value.length &lt; 8) {
+                            return "{% translate language, 'common', 'please_enter_a_valid_phone_number' %}";
+                        }
+                     }
+                </javascriptValidation>
+            </form>
+        </formMessage>
+        <formMessage id="message_comment"
+                     brandingKey="{{ branding_key }}"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     positiveReference="flow_code_phone_default"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="flow_code_phone_default">
+            <content>{% translate language, 'common', 'add_unavailable_items_or_comment' %}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'skip' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="TextBlockWidget"
+                        maxChars="1000"
+                        placeholder=""
+                        value=""/>
+            </form>
+        </formMessage>
+        <formMessage brandingKey="{{ branding_key }}"
+                     id="message_takeaway_time"
+                     alertIntervalType="NONE" alertType="SILENT"
+                     positiveReference="flow_code_check_internet_before_flush"
+                     vibrate="false" autoLock="true"
+                     negativeReference="end_advanced_order">
+            <content>{% translate language, 'common', 'select_date_and_time_for_pickup' %}</content>
+            <form positiveButtonCaption="{% translate language, 'common', 'Send' %}"
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}" >
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="SelectDateWidget"
+                        minuteInterval="15"
+                        mode="date_time"
+                        unit="&lt;value/&gt;"
+                        />
+
+                <javascriptValidation>
+                    function run(result, rogerthat){
+                        {% if multiple_locations %}
+                        if (rogerthat === undefined) {
+                            return '{% translate language, 'common', 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
+                        }
+                        {% endif %}
+                        var holidayDates = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates;{% else %}{% if holiday_dates %}{{ holiday_dates }};{% else %}[];{% endif %}{% endif %}
+                        function isInHoliday(){
+                            for(var i = 0; i &lt; holidayDates.length; i ++){
+                                if(holidayDates[i].from &lt;= selectedDateTime &amp;&amp; selectedDateTime &lt; holidayDates[i].to){
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                        function isInWorkingHours(){
+                            var selectedDate = new Date(selectedDateTime * 1000);
+                            var dayToday = selectedDate.getUTCDay();
+                            var sAfterMidnight = selectedDateTime % 86400;
+                            var canOrder = orderableTimes.filter(function(t) {
+                                return dayToday === t.day &amp;&amp; (t.time_until &gt;= sAfterMidnight &amp;&amp; sAfterMidnight &gt;= t.time_from);
+                            });
+                            return !!canOrder.length;
+                        }
+                        var orderableTimes = {{ orderable_times }};
+                        var leapTime = {{ leap_time }};
+
+                        var timezoneOffsets = {{ timezone_offsets }};
+                        var currentDateTimeSeconds = new Date().getTime() / 1000;
+                        var timezoneOffset = 0;
+                        for (var i=0; i &lt; timezoneOffsets.length; i ++) {
+                            var zone = timezoneOffsets[i];
+                            if (zone[0] &lt; currentDateTimeSeconds &amp;&amp; currentDateTimeSeconds &lt;= zone[1]) {
+                                timezoneOffset = zone[2];
+                                break;
+                            }
+                        }
+                        var selectedDateTime = result.value;
+                        if(isInHoliday()){
+                            var holidayDatesStr = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates_str;{% else %}{{ holiday_dates_str }};{% endif %};
+                            var holidayStr = '';
+                            for(var i = 0; i &lt; holidayDatesStr.length; i ++){
+                                holidayStr += holidayDatesStr[i];
+                            }
+                            return '{% translate language, 'common', 'can_not_order_holiday', '_duplicate_backslashes=True' %}\n' + holidayStr;
+                        }
+                        else if (selectedDateTime &lt; (currentDateTimeSeconds + leapTime + timezoneOffset)){ /* no idea why timezone has to be added here but it works */
+                            return '{% translate language, 'common', 'please_order_after', 'leap_time=' + leap_time_str, '_duplicate_backslashes=True' %}';
+                        }else if(isInWorkingHours()){
+                            return;
+                        }
+                        else{
+                            return '{% translate language, 'common', 'can_not_order_at_that_time', '_duplicate_backslashes=True' %} {{orderable_times_str}}';
+                        }
+                    }
+                </javascriptValidation>
+            </form>
+        </formMessage>
+        <resultsFlush id="flush_advanced_order_processing"
+                      reference="end_processing"/>
+        <flowCode
+                id="flowcode_set_datetime_step"
+                exceptionReference="message_takeaway_time">
+            <outlet
+                    reference="message_takeaway_time"
+                    name="message_takeaway_time"
+                    value="message_takeaway_time" />
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun){
+                    var phoneNumber = messageFlowRun.steps[messageFlowRun.steps.length -1].form_result.result.value;
+                    if (phoneNumber !== rogerthat.user.data.phone) {
+                        rogerthat.user.data.phone = phoneNumber;
+                        rogerthat.user.put();
+                    }
+                    var holidayDates = rogerthat.service.data.settings.holidays.dates;
+                    var orderableTimes = {{ orderable_times }};
+                    var leapTime = {{ leap_time }};
+
+                    var timezoneOffsets = {{ timezone_offsets }};
+                    var currentDateTimeSeconds = new Date().getTime() / 1000;
+                    var timezoneOffset = 0;
+                    for (var i=0; i &lt; timezoneOffsets.length; i ++) {
+                        var zone = timezoneOffsets[i];
+                        if (zone[0] &lt; currentDateTimeSeconds &amp;&amp; currentDateTimeSeconds &lt;= zone[1]) {
+                            timezoneOffset = zone[2];
+                            break;
+                        }
+                    }
+
+                    var getOrderableTimes = function (startDay, startTime) {
+                        var a = [];
+                        for (var i=0; i&lt;orderableTimes.length; i++) {
+                            var ot = orderableTimes[i];
+                            ot = {day:ot.day, time_from:ot.time_from, time_until:ot.time_until};
+                            if ((ot.day == startDay &amp;&amp; ot.time_until &lt;= startTime) || ot.day &lt; startDay)
+                                ot.day += 7;
+                            ot.offsetDays = ot.day - startDay;
+                            a.push(ot);
+                        }
+                        a.sort(function (left, right) {
+                            return (left.day * 86400 + left.time_from) - (right.day * 86400 + right.time_from);
+                        });
+                        return a;
+                    };
+
+                    var applyLeapTime = true;
+                    var d = new Date();
+                    while (true) {
+                        var dt = d.getTime() / 1000 + (applyLeapTime ? leapTime : 0);
+                        applyLeapTime = false;
+                        var rest = dt % (60 * 15);
+                        dt -= rest;
+                        if (rest != 0) {
+                            dt += 60 * 15;
+                        }
+                        /* Apply timezoneOffset on dt */
+                        dt = dt + timezoneOffset + 60 * d.getTimezoneOffset();
+                        var ept = new Date(dt*1000);
+                        var eptDayOfWeek = ept.getDay();
+                        var eptHour = ept.getHours();
+                        var eptMinute = ept.getMinutes();
+                        var eptSecondsAfterMidnight = eptHour * 3600 + eptMinute * 60;
+                        /* TODO: Check if ept falls in a scheduled holiday */
+                        /* Lookup earliest pickupTime: */
+                        pts = getOrderableTimes(eptDayOfWeek, eptSecondsAfterMidnight);
+                        var pt = pts[0];
+                        if (!(pt.offsetDays == 0 &amp;&amp; eptSecondsAfterMidnight &gt;= pt.time_from &amp;&amp; eptSecondsAfterMidnight &lt; pt.time_until)) {
+                            ept = new Date((dt - (dt % 86400) + pt.offsetDays * 86400 + pt.time_from + 60 * ept.getTimezoneOffset()) * 1000);
+                        }
+                        /* Check holidays */
+                        var inHoliday = false;
+                        var eptTimestamp = ept.getTime() / 1000;
+                        for (var i=0; i&lt;holidayDates.length; i++) {
+                            var holiday = holidayDates[i];
+                            if (holiday.from &lt;= eptTimestamp &amp;&amp; eptTimestamp &lt;= holiday.to) {
+                                inHoliday = true;
+                                d = new Date((holiday.to+86401)*1000);
+                                break;
+                            }
+                        }
+                        if (!inHoliday)
+                            return { outlet: 'message_takeaway_time', defaultValue: ept.getTime() / 1000 - 60 * d.getTimezoneOffset()};
+                    }
+                };
+            </javascriptCode>
+        </flowCode>
+
+        <flowCode
+            id="flow_code_check_internet_before_flush"
+            exceptionReference="flush_advanced_order_processing">
+            <outlet
+                name="flush_advanced_order_processing"
+                value="flush_advanced_order_processing"
+                reference="flush_advanced_order_processing"/>
+            <outlet
+                name="message_no_internet"
+                value="message_no_internet"
+                reference="message_no_internet"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    if (rogerthat.system.internet &amp;&amp; !rogerthat.system.internet.connected) {
+                        return {outlet: 'message_no_internet'};
+                    }
+                    return {outlet: 'flush_advanced_order_processing'};
+                };
+            </javascriptCode>
+        </flowCode>
+
+        <message
+            brandingKey="{{ branding_key }}"
+            id="message_no_internet"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="false"
+            vibrate="true"
+            autoLock="true">
+            <content>{% translate language, 'common', 'message_no_internet_try_again' %}</content>
+            <answer
+                id="button_try_again"
+                caption="{% translate language, 'common', 'Try again' %}"
+                reference="flow_code_check_internet_before_flush" />
+            <answer
+                id="button_abort"
+                caption="{% translate language, 'common', 'Cancel order' %}"
+                reference="end_advanced_order" />
+        </message>
+
+    </definition>
+</messageFlowDefinitionSet>

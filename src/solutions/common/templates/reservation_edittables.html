@@ -1,0 +1,24 @@
+<div class="modal hide fade" tabindex="-1" role="dialog"
+    aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+            aria-hidden="true">&times;</button>
+        <h3 id="myModalLabel">{% translate language, "common", "edit-tables-reservation" %}</h3>
+    </div>
+    <div class="modal-body">
+        <form id="table_reservations" class="form-inline" role="form">
+           {% raw %}
+           {{each(i, table) tables}}
+           <label class="checkbox span2{{if $.inArray( table.key, reservation.tables ) != -1 }}{{else $.inArray( table.key, tables_in_use ) != -1 }} disabled table_reserved {{/if}}">
+              <input type="checkbox" table_key="${table.key}" {{if $.inArray( table.key, reservation.tables ) != -1 }} checked {{else $.inArray( table.key, tables_in_use ) != -1 }} disabled {{/if}} >
+              ${table.name} (${table.capacity})
+           </label>
+           {{/each}}
+           {%- endraw %}
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">{% translate language, "common", "Cancel" %}</button>
+        <button action="submit" class="btn btn-primary save">{% translate language, "common", "Save" %}</button>
+    </div>
+</div>

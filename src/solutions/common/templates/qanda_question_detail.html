@@ -1,0 +1,31 @@
+{% raw %}
+<table class="table table-striped table-hover table-bordered">
+    <thead></thead>
+    <tbody>
+	    <tr>
+	       <td>
+		    <div>
+			    <div class="clearfix">
+	                <strong style="float: left;">${CommonTranslations.BY} ${ question.author_name } ({{if question.author_role == 0}}${CommonTranslations.USER}{{else}}${CommonTranslations.STAFF}{{/if}})</strong>
+	                <p style="float: right;">${ question.timestamp_str }</p>
+	            </div>
+				<div>{{html question.description_html }}</div>
+		    </div>
+		    </td>
+		</tr>
+		{{each(i, answer) question.answers}}
+		<tr><td>
+			<div>
+			    <div class="clearfix">
+                    <strong style="float: left;">${CommonTranslations.BY} ${ answer.author_name } ({{if answer.author_role == 0}}${CommonTranslations.USER}{{else}}${CommonTranslations.STAFF}{{/if}})</strong>
+                    <p style="float: right;">${ answer.timestamp_str }</p>
+                </div>
+				<div>{{html answer.description_html }}</div>
+			</div>
+			</td>
+		</tr>
+		{{/each}}
+    
+    </tbody>
+</table>
+{%- endraw %}

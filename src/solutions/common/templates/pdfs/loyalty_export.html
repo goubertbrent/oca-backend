@@ -1,0 +1,209 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            margin: 2cm;
+            margin-bottom: 3.5cm;
+            @frame footer_frame {
+            -pdf-frame-content: footerContent;
+            bottom: 2cm;
+            margin-left: 2cm;
+            margin-right: 2cm;
+            height: 1cm;
+        }
+        }
+
+        .col1 {
+            width: 30%;
+        }
+
+        .col2 {
+            width: 36%;
+        }
+
+        .col3 {
+            width: 33%;
+        }
+
+        body {
+            font-family: "Lato", "Seravek";
+            color: #222222;
+        }
+
+        th {
+            border-bottom: 2px solid black;
+            text-align: left; /* Doesn't work */
+        }
+    </style>
+</head>
+<body>
+<header>
+    <table>
+        <tbody>
+        <tr>
+            <td class="col1"><img src="{{ logo_path }}" width="150" height="150"/></td>
+            <td class="col2">
+                <p>
+                    <b>Mobicage NV</b>
+                </p>
+
+                <p>
+                    Antwerpsesteenweg 19<br>
+                    9080 Lochristi<br>
+                    {{ mobicage_country }}<br>
+                </p>
+
+                <p>
+                    {% translate language, "common", "telephone_abbr" %}: +32 9 324 25 64<br>
+                    info@mobicage.com<br>
+                </p>
+
+                <p>
+                    {% translate language, "common", "vat" %}: BE 0835 560 572<br>
+                    IBAN: BE85 3630 8576 4006<br>
+                    BIC: BBRUBEBB<br>
+                </p>
+            </td>
+            <td class="col3">
+                <p><b>{% translate language, "common", "customer_details" %}</b></p>
+
+                <p>
+                    {{ customer.name }}<br/>
+                    {{ contact.first_name }} {{ contact.last_name }}<br/>
+                </p>
+
+                <p>
+                    {{ customer.address1 }}<br>
+                    {% if customer.address2 %}
+                    {{ customer.address2 }}<br>
+                    {% endif %}
+                    {{ customer.zip_code}} {{ customer.city }}<br>
+                    {{ customer.country_str }}<br>
+                </p>
+
+                <p>
+                    {% translate language, "common", "telephone_abbr" %}: {{ contact.phone_number }}<br>
+                    {{ contact.email }}<br>
+                </p>
+
+                <p>
+                    {% if customer.vat %}{% translate language, "common", "vat" %}: {{ customer.vat }}{% else %}&nbsp;
+                    {% endif %}<br>
+                </p>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</header>
+<div>
+    <h2 style="font-size: 24px; margin-top: 50px;">
+        {% translate customer.language, "common", "loyalty_expenses_in", "month=" + month %}
+    </h2>
+
+    {% if revenue_discounts|count > 0 %}
+    <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'discounts'%}</h3>
+    <table>
+        <thead>
+        <tr>
+            <th style="text-align: left; width:45%;">{% translate customer.language, 'common', 'User' %}</th>
+            <th style="text-align: left; width:25%;">{% translate customer.language, 'common', 'Date' %}</th>
+            <th style="text-align: left; width:15%;">{% translate customer.language, 'common', 'Spent' %}</th>
+            <th style="text-align: left; width:15%;">{% translate customer.language, 'common', 'Discount' %}
+                ({{ x_discount }}%)
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for d in revenue_discounts %}
+        <tr {% if loop.first %}style="padding-top:5px;" {% endif %}>
+            <td>{{ d.app_user_info.name }} ({{ d.app_user.email().split(':')[0] }})</td>
+            <td>{{ d.datetime }}</td>
+            <td>{{ currency }} {{ d.price_in_euro }}</td>
+            <td>{{ currency }} {{ d.discount_in_euro(x_discount) }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td></td>
+            <td><b>{% translate customer.language, 'common', 'total'%}</b></td>
+            <td><b>{{ currency }} {{ total_spent }}</b></td>
+            <td><b>{{ currency }} {{ total_revenue_discount }}</b></td>
+        </tr>
+        </tbody>
+    </table>
+    {% endif %}
+    {% if lotery|count > 0 %}
+    <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'Lottery'%}</h3>
+    <table>
+        <thead>
+        <tr>
+            <th style="text-align: left; width:45%;">{% translate customer.language, 'common', 'User' %}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'Date'%}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'prize'%}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for l in lotery %}
+        <tr {% if loop.first %}style="padding-top:5px;" {% endif %}>
+            <td>{{ l.winner_info.name }} ({{ l.winner_info.email.split(':')[0] }})</td>
+            <td>{{ l.datetime }}</td>
+            <td>{{ l.winnings }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if stamps|count > 0 %}
+    <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'stamps'%}</h3>
+    <table>
+        <thead>
+        <tr>
+            <th style="text-align: left; width:45%;">{% translate customer.language, 'common', 'User' %}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'Date'%}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'prize'%}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for s in stamps %}
+        <tr {% if loop.first %}style="padding-top:5px;" {% endif %}>
+            <td>{{ s.name }} ({{ s.email }})</td>
+            <td>{{ s.datetime }}</td>
+            <td>{{ s.winnings }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if coupons|count > 0 %}
+        <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'Coupons' %}</h3>
+        <table>
+            <thead>
+            <tr>
+                <th style="text-align: left; width:80%;">{% translate customer.language, 'common', 'coupon_content' %}</th>
+                <th style="width:10%;"></th>
+                <th style="text-align: left; width:10%;">{% translate customer.language, 'common', 'amount' %}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for coupon in coupons %}
+                <tr {% if loop.first %}style="padding-top:5px;" {% endif %}>
+                    <td>{{ coupon.content }}</td>
+                    <td></td>
+                    <td>{{ coupon.count }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+<footer>
+    <div id="footerContent" align="right">
+        <pdf:pagenumber> /
+            <pdf:pagecount>
+    </div>
+</footer>
+
+</body>
+</html>

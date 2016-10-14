@@ -1,0 +1,25 @@
+{%- raw -%}
+{{each(i, o) data}}
+<tr key="${o.key}">
+    <td>${o.date}</td>
+    <td>${o.tablet_name}</td>
+    <td>
+        <img draggable="false" src="${o.points.user_details.avatar_url}" 
+             style="width: 30px; height: 30px; margin-right: 10px;" class="img-polaroid img-rounded" />
+        <span>${o.points.user_details.name}</span>
+    </td>
+    <td>${o.points.visit_count}</td>
+    {{if loyalty_type == 1}}
+    <td>{% endraw %}{{ currency }}{% raw %} ${o.points.total_spent / 100}</td>
+    <td>{% endraw %}{{ currency }}{% raw %} ${o.points.tmp_discount / 100}</td>
+    {{/if}}
+    {{if loyalty_type == 3}}
+    <td>${o.points.total_spent}</td>
+    {{/if}}
+    <td>
+        <button action="add" class="btn btn-primary control">${CommonTranslations.ADD}</button>
+        <button action="redeem" class="btn btn-primary control">${CommonTranslations.REDEEM}</button>
+    </td>
+</tr>
+{{/each}}
+{%- endraw -%}

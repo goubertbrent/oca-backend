@@ -1,0 +1,127 @@
+{% raw %}
+{{if cartTitle}}
+<h3>${cartTitle}</h3>
+{{/if}}
+{{if items.length}}
+    <table style="width: 100%;">
+        <thead>
+        <tr>
+            <th class="text-left"><b>${t.product}</b></th>
+            <th class="text-left"><b>${t.DESCRIPTION}</b></th>
+            {{if checkout}}<th></th>{{/if}}
+            <th class="text-right"><b>${t.price}</b></th>
+            <th class="text-right"><b>${t.amount}</b></th>
+            <th class="text-right"><b>${t.total}</b></th>
+            {{if !checkout}}<th></th>{{/if}}
+        </tr>
+        </thead>
+        <tbody>
+        {{each(i, item) items}}
+        <tr>
+            <td class="span2 align-top"><a href="#/shop/product/${item.product}">${item.product}</a></td>
+            {{if item.app_id}}
+            <td class="description span6 align-top">${item.service_visible_in}</td>
+            {{else}}
+            <td class="description span6 align-top">${item.description}</td>
+            {{/if}}
+            {{if checkout}}<td></td>{{/if}}
+            <td class="price span1 text-right align-top">${LEGAL_ENTITY_CURRENCY} ${item.price/100}</td>
+            <td class="count span1 text-right align-top">${item.count}</td>
+            <td class="total span1 text-right align-top">${LEGAL_ENTITY_CURRENCY} ${item.price * item.count / 100}</td>
+            {{if !checkout}}
+            <td class="delete pull-right">
+                <button class="btn btn-small btn-danger" data-app-id="${item.app_id}" data-item-id="${item.id}"><i
+                        class="fa fa-remove"></i></button>
+            </td>
+            {{/if}}
+        </tr>
+        {{/each}}
+        <tr class="cart-totals">
+            <td><b>${t.total}</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="text-right">${LEGAL_ENTITY_CURRENCY} ${totalExclVat}</td>
+        </tr>
+        <tr class="cart-totals">
+            <td><b>${t.vat} (${vatPct} &#37;)</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="text-right">${LEGAL_ENTITY_CURRENCY} ${vat}</td>
+        </tr>
+        <tr class="cart-totals">
+            <td><b>${t.total_with_vat}</b></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="text-right">${LEGAL_ENTITY_CURRENCY} ${total}</td>
+        </tr>
+        </tbody>
+    </table>
+{{else}}
+    <p>${t.cart_empty}</p>
+{{/if}}
+<div class="span12">
+    <div class="padding-top row">
+    {{if items.length}}
+        {{if !checkout}}
+            <a href="#/shop/product/XCTY" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.continue_shopping}</a>
+            <a href="#/shop/cart/checkout" class="btn btn-success pull-right"><i class="fa fa-arrow-right"></i> ${t.continue_order}</a>
+        {{else}}
+            {{if !customBackButton}}
+            <a href="#/shop/cart" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.back}</a>
+            {{else}}
+            <button type="button" class="btn btn-default pull-left" id="shopping_cart_back_button">
+                <i class="fa fa-arrow-left"></i> ${customBackButton}
+            </button>
+            {{/if}}
+            <button type="button" class="btn btn-success pull-right" id="checkout">
+                <span class="normal"><i class="fa fa-credit-card"></i> ${t.pay_with_cc}</span>
+                <span class="loading" style="display: none;"><i class="fa fa-spinner fa-pulse"></i> ${t.LOADING_DOT_DOT_DOT}</span>
+            </button>
+        {{/if}}
+    {{else}}
+        <div class="cart-empty">
+            <a href="#/shop/product/XCTY" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.to_store}</a>
+
+        </div>
+    {{/if}}
+    </div>
+    <div  class="row">
+    {{if checkout}}
+        {{if creditCard}}
+        <div class="pull-right ccinfo">
+            <span>${t.credit_card}: ${creditCard.brand}, **** **** **** ${creditCard.last4}</span>
+            <button type="button" class="btn btn-mini btn-primary" id="change-creditcard">${t.adjust}</button>
+        </div>
+        {{else}}
+            {{if creditCard === false}}
+             <div class="pull-right ccinfo"><span>${t.no_cc_linked}</span>
+                <button type="button" class="btn btn-small btn-primary" id="add-creditcard">${t.link_cc}</button>
+            </div>
+            {{else}}
+            <div class="pull-right ccinfo">
+                <button type="button" class="btn btn-small btn-primary" disabled>${t.LOADING_DOT_DOT_DOT}</button>
+            </div>
+            {{/if}}
+        {{/if}}
+    {{/if}}
+    </div>
+</div>
+<div class="modal hide fade" id="submit-order-error">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>${t.info}</h3>
+    </div>
+	<div class="modal-body">
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn pull-left" id="close-message-dialog" data-dismiss="modal">${t.CLOSE}</button>
+        <button type="button" class="btn btn-success pull-right" id="link-cc" style="display: none;">${t.link_cc}</button>
+    </div>
+</div>
+{% endraw %}

@@ -1,0 +1,28 @@
+<style>
+    .sln-set-logo #logo_div {
+        overflow: hidden;
+        width: {{ SLN_LOGO_WIDTH }}px;
+        height: {{ SLN_LOGO_HEIGHT }}px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        border: solid lightgray 1px;
+    }
+</style>
+<script src="https://checkout.stripe.com/checkout.js"></script>
+<link rel="stylesheet" href="/static/css/imgareaselect/imgareaselect-default.css" />
+<script type="text/javascript" src="/static/js/jquery.imgareaselect.min.js"></script>
+<script type="text/javascript" src="/static/js/jquery.imgareaselect.pack.js"></script>
+<script language="javascript">
+<!--
+var STRIPE_PUBLIC_KEY = "{{ stripePublicKey }}";
+var SOLUTION = "{{ sln_settings.solution }}";
+var SLN_LOGO_WIDTH = {{ SLN_LOGO_WIDTH }};
+var SLN_LOGO_HEIGHT = {{ SLN_LOGO_HEIGHT }};
+-->
+</script>
+{% if not loyalty %}
+<script src="/static/js/solutions/sln-settings.js"></script>
+{% endif %}
+{%- if SolutionModule.CITY_APP in sln_settings.modules and not loyalty %}
+<script src="/static/js/solutions/cityapp.js"></script>
+{% endif %}

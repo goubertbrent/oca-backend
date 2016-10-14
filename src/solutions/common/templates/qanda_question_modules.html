@@ -1,0 +1,5 @@
+{% raw %}
+{{each(i, module) modules}}
+<span module="${ module.key }" class="badge badge-info" style="margin-right: 5px;">${ module.label }</span>
+{{/each}}
+{%- endraw %}

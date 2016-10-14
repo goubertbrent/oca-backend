@@ -1,0 +1,117 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog"
+	aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal"
+			aria-hidden="true">&times;</button>
+		<h3 id="myModalLabel">${header}</h3>
+	</div>
+	<div class="modal-body" id="shiftForm">
+		<div class="span3 control-group" id="nameerror">
+			<input type="text" class="span3" placeholder="${CommonTranslations.ENTER_DOT_DOT_DOT}" id="name">
+		</div>
+		<div class="span3 control-group" id="capacityerror">
+			<div class="input-prepend">
+                <span class="add-on">${CommonTranslations.CAPACITY}</span> <input type="number" min="1" value="30"
+                                                                                  class="input-small" placeholder="${CommonTranslations.ENTER_DOT_DOT_DOT}" id="capacity">
+			</div>
+			<i class="icon-question-sign"
+				hint="${CommonTranslations.SHIFT_MAX_PEOPLE}"></i>
+		</div>
+		<div
+			class="span3 input-append input-prepend bootstrap-timepicker control-group"
+			id="starterror">
+			<span class="add-on">${CommonTranslations.START}</span> <input id="shiftstart" type="text"
+				class="input-small"> <span class="add-on"><i
+				class="icon-time"></i></span>
+		</div>
+		<div
+			class="span3 input-append input-prepend bootstrap-timepicker control-group"
+			id="enderror">
+			<span class="add-on">${CommonTranslations.END}</span> <input id="shiftend" type="text"
+				class="input-small"> <span class="add-on"><i
+				class="icon-time"></i></span>
+		</div>
+		<div class="span3">
+			${CommonTranslations.LEAPTIME} <select id="leaptime" style="width: auto;">
+                <option value="-1">-1</option>
+				<option value="15">15</option>
+				<option value="30" selected>30</option>
+				<option value="45">45</option>
+				<option value="60">60</option>
+			</select> <i class="icon-question-sign"
+				hint="${CommonTranslations.SHIFT_LEAP_TIME}"></i>
+		</div>
+		<div class="span3">
+			<span>${CommonTranslations.GROUP_SIZE}</span> <select id="groupsize" style="width: auto;">
+				<option value="5">5</option>
+				<option value="6" selected>6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+				<option value="11">11</option>
+				<option value="12">12</option>
+				<option value="13">13</option>
+				<option value="14">14</option>
+				<option value="15">15</option>
+			</select> <i class="icon-question-sign"
+				hint="${CommonTranslations.SHIFT_MAX_GROUP_SIZE}"></i>
+		</div>
+		<div class="span6">
+			${CommonTranslations.BOOKING_THRESHOLD} <select id="bookingthreshold" style="width: auto;">
+				<option value="10">10 %</option>
+				<option value="20">20 %</option>
+				<option value="30">30 %</option>
+				<option value="40">40 %</option>
+				<option value="50">50 %</option>
+				<option value="60">60 %</option>
+				<option value="70" selected>70 %</option>
+				<option value="80">80 %</option>
+				<option value="90">90 %</option>
+			</select> <i class="icon-question-sign"
+				hint="${CommonTranslations.SHIFT_BOOKING_THRESHOLD}"></i>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="1">${DAYS_STR[0]}
+			</label>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="2">${DAYS_STR[1]}
+			</label>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="3">${DAYS_STR[2]}
+			</label>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="4">${DAYS_STR[3]}
+			</label>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="5">${DAYS_STR[4]}
+			</label>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="6">${DAYS_STR[5]}
+			</label>
+		</div>
+		<div class="span2">
+			<label class="checkbox"> <input type="checkbox"
+				name="shiftday" value="7">${DAYS_STR[6]}
+			</label>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button action="cancel" class="btn" data-dismiss="modal"
+			aria-hidden="true">${cancelBtn}</button>
+		<button action="submit" class="btn btn-primary">${submitBtn}</button>
+	</div>
+</div>
+{%- endraw %}

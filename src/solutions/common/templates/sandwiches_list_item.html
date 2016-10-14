@@ -1,0 +1,37 @@
+{% raw %}
+{{each(i,sandwich) sandwiches}}
+<tr id="${sandwich.id}"
+    class="{{if sandwich.status == STATUS_READY}}success{{/if}} {{if sandwich.status == STATUS_REPLIED}}info{{/if}}"
+    sandwich_id="${sandwich.id}">
+    <td>${sandwich.date_time}</td>
+    <td><img class="avatar" src="${sandwich.sender_avatar_url}">${sandwich.sender_name}</td>
+    <td>${sandwich.type.description} {{if sandwich.type.price != 0}}(${CURRENCY}
+        ${sandwich.type.price_in_euro}){{/if}}</td>
+    <td>${sandwich.topping.description} {{if sandwich.topping.price != 0}}(${CURRENCY}
+        ${sandwich.topping.price_in_euro}){{/if}}</td>
+    <td>
+        <ul>{{each(ii,option) sandwich.options}}
+            <li>${option.description} {{if option.price != 0}}(${CURRENCY} ${option.price_in_euro}){{/if}}</li>
+            {{/each}}</ul>
+    </td>
+    <td>${sandwich.remark}
+        {{if sandwich.takeaway_time_formatted}}
+        <br>${t.takeaway_time}: ${sandwich.takeaway_time_formatted}
+        {{/if}}
+    </td>
+    <td>${CURRENCY} ${sandwich.price_in_euro}</td>
+    <td>
+        {{if sandwich.status == STATUS_RECEIVED}}
+        <button action="reply" sandwich_id="${sandwich.id}" class="btn btn-primary control">
+            ${CommonTranslations.REPLY}
+        </button>
+        <button action="ready" sandwich_id="${sandwich.id}" class="btn btn-success control">
+            ${CommonTranslations.READY}
+        </button>
+        <button action="delete" sandwich_id="${sandwich.id}" class="btn btn-warning control">
+            ${CommonTranslations.DELETE}
+        </button>
+        {{/if}}
+    </td>
+{{/each}}
+{% endraw %}

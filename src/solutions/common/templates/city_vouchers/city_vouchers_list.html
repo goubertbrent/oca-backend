@@ -1,0 +1,27 @@
+{% raw %}
+{{each(i, voucher) vouchers}}
+<tr>
+    <td style="position: relative;">
+        <div class="span9">
+            <h4>${voucher.uid}</h4>
+            {{if voucher.redeemed }}
+        		<span class="label"style="margin-right: 10px;" >${CommonTranslations.REDEEMED}</span>
+        	{{else}}
+            	{{if voucher.activated }}
+	            	<p><span class="label label-success">${CommonTranslations.ENABLED}</span></p>
+	         	{{else}}
+	            	<p><span class="label">${CommonTranslations.DISABLED}</span></p>
+	         	{{/if}}
+	        {{/if}}
+        </div>
+        <div class="span2">
+            <div class="btn-group item-controls">
+                <button action="voucherHistory" voucher_id="${voucher.id}" class="btn">
+                    <i class="fa fa-history"></i>
+                </button>
+            </div>
+        </div>
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

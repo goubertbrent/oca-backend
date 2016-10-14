@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition
+        name="Upload image"
+        language="{{ language }}"
+        startReference="message_upload">
+        <end
+            id="end_done"
+            waitForFollowUpMessage="false" />
+        <formMessage
+            id="message_upload"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            brandingKey="{{ branding_key }}"
+            positiveReference="flush_upload"
+            vibrate="false"
+            autoLock="true"
+            negativeReference="end_done">
+            <content>{% translate language, 'common', 'upload_product_image' %}</content>
+            <form
+                positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="PhotoUploadWidget"
+                    camera="true"
+                    quality="100000"
+                    ratio="720x404"
+                    gallery="true" />
+            </form>
+        </formMessage>
+        <resultsFlush
+            id="flush_upload"
+            reference="end_done" />
+    </definition>
+</messageFlowDefinitionSet>

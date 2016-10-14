@@ -1,0 +1,13 @@
+<div>
+    <a href="#/discussion_groups" class="btn"><i class="fa fa-arrow-left"></i> ${T.back}</a>
+    <form>
+        <fieldset>
+            <legend>${group.id ? T.edit_discussion_group : T.new_discussion_group}</legend>
+            <label for="dg_topic">${T.topic}</label>
+            <input type="text" id="dg_topic" value="${group.topic}" maxlength="200">
+            <label for="dg_description">${T.DESCRIPTION}</label>
+            <textarea id="dg_description" rows="5">${group.description}</textarea>
+        </fieldset>
+        <button class="btn btn-default" type="submit" id="put_discussion_group">${T.SAVE}</button>
+    </form>
+</div>

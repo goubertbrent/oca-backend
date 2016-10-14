@@ -1,0 +1,14 @@
+<div>
+    <a href="#/news/new" class="btn btn-success" style="margin-bottom: 20px;"><i class="fa fa-plus"></i> New</a>
+
+    {{each(i, n) news }}
+    <div class="news-list-item">
+        <div class="span5"><a href="#/news/edit/${n.news_id}">${n.title}</a></div>
+        <div class="span3">${n.dateFormatted}</div>
+        <div class="span2">
+            <a class="btn btn-primary" href="#/news/edit/${n.news_id}"><i class="fa fa-edit"></i></a>
+            <a class="btn btn-danger" href="#/news/delete/${n.news_id}"><i class="fa fa-remove"></i></a>
+        </div>
+    </div>
+    {{/each}}
+</div>

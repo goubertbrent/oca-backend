@@ -1,0 +1,66 @@
+<a class="btn btn-default" href="#/legal_entities"><i class="fa fa-arrow-left"></i> Back to overview</a>
+<form class="form-horizontal">
+    <fieldset>
+        {{if entity.id}}
+        <legend>Update ${entity.name} legal entity</legend>
+        {{else}}
+        <legend>Create legal entity</legend>
+        {{/if}}
+        <label for="entity_name">Name</label>
+        <input type="text" id="entity_name" name="entity_name" required value="${entity.name}">
+        <label for="entity_address">Address</label>
+        <input type="text" id="entity_address" name="entity_address" required value="${entity.address}">
+        <label for="entity_postal_code">Postal code</label>
+        <input type="text" id="entity_postal_code" name="entity_postal_code" required value="${entity.postal_code}">
+        <label for="entity_city">City</label>
+        <input type="text" id="entity_city" name="entity_city" required value="${entity.city}">
+        <label for="entity_country_code">Country</label>
+        <select id="entity_country_code" name="entity_country_code" required>
+            <option value="">Select country</option>
+            {{each(code, country) COUNTRIES}}
+            <option {{if entity.country_code === code}}selected {{/if}}value="${code}">${country}</option>
+            {{/each}}
+            </select>
+        <label for="entity_phone">Phone number</label>
+        <input type="text" id="entity_phone" name="entity_phone" required value="${entity.phone}">
+        <label for="entity_email">Email</label>
+        <input type="email" id="entity_email" name="entity_email" required value="${entity.email}">
+        <label for="entity_vat_percent">VAT percent</label>
+        <input type="number" id="entity_vat_percent" name="entity_vat_percent" min="0" max="100" required
+               value="${entity.vat_percent}">
+        <label for="entity_vat_number">VAT</label>
+        <input type="text" id="entity_vat_number" name="entity_vat_number" required value="${entity.vat_number}">
+        <label for="entity_currency_code">Currency</label>
+        <select id="entity_currency_code" name="entity_currency_code" required>
+            {{each(i, currency) CURRENCIES}}
+            <option value="${currency.symbol}" {{if currency.symbol === entity.currency_code}}selected{{/if}}>
+                ${currency.name}</option>
+            {{/each}}
+        </select>
+        <label for="entity_iban">IBAN</label>
+        <input type="text" id="entity_iban" name="entity_iban" required value="${entity.iban}">
+        <label for="entity_bic">BIC</label>
+        <input type="text" id="entity_bic" name="entity_bic" required value="${entity.bic}">
+        <label for="entity_terms_of_use">Terms and conditions</label>
+        <textarea id="entity_terms_of_use" name="entity_terms_of_use" rows="10" style="width: 100%;">${entity.terms_of_use}</textarea>
+        <span class="help-block">
+            <strong>The following text must always be present in the terms of use, select the correct language in the
+                dropdown to get the translated text.</strong>
+        </span>
+        <select id="mobicage_terms_of_use">
+            {{each(lang, terms) TERMS_OF_USE}}
+            <option value="${lang}" {{if lang === 'en'}}selected{{/if}}>${lang}</option>
+            {{/each}}
+        </select>
+        <div id="mobicage_terms_of_use_translated"></div>
+        <div style="margin-top: 10px;">
+            {{if entity.id}}
+            <button type="button" class="btn btn-success" id="submit_legal_entity"><i class="fa fa-save"></i> Save
+            </button>
+            {{else}}
+            <button type="button" class="btn btn-success" id="submit_legal_entity"><i class="fa fa-plus"></i> Create
+            </button>
+            {{/if}}
+        </div>
+    </fieldset>
+</form>

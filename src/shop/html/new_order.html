@@ -1,0 +1,66 @@
+<h4>New order</h4>
+<form id="new_order" class="form-inline">
+    <fieldset>
+        <div class="alert alert-error hide" id="new_order_error">
+            <strong>Error!</strong> <span></span>
+        </div>
+        <label>Contact: </label>
+        <select id="new_order_contact"></select><br>
+        <div class="sub-buttons" id="subscription-buttons" style="display:none;">
+            <button type="button" class="btn silver" data-sub="silver">Silver</button>
+            <button type="button" class="btn gold" data-sub="gold">Gold</button>
+            <button type="button" class="btn platinum" data-sub="platinum">Platinum</button>
+        </div>
+        <div id="duplicate_error">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span></span>
+        </div>
+        <table class="table" id="new_order_items">
+            <thead>
+            <tr>
+                <th>Product</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Count</th>
+                <th>Total</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+            <tr>
+                <td colspan="4" class="right">Total VAT excl:</td>
+                <td id="new_order_total_excl_vat" class="right">{{order.amount_in_euro}}</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="right">VAT (<span id="new_order_vat_percentage">{{order.vat_pct}}</span>%):
+                </td>
+                <td id="new_order_vat" class="right">{{order.vat_in_euro}}</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="right">Total VAT incl:</td>
+                <td id="new_order_total_incl_vat" class="right">{{order.total_amount_in_euro}}</td>
+            </tr>
+            </tfoot>
+        </table>
+    </fieldset>
+</form>
+<div id="order_item_template" style="display: none;">
+    <table>
+        <tbody>
+        <tr>
+            <td class="product_code"></td>
+            <td>
+                <span class="description"></span><br>
+                <span class="comment"></span>
+            </td>
+            <td class="price"></td>
+            <td class="count"></td>
+            <td class="total right"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<script>
+var True = true;
+var False = false;
+</script>

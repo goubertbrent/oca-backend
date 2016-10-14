@@ -1,0 +1,94 @@
+application: mobicagecloudhr
+runtime: python27
+version: 1
+api_version: 1
+
+threadsafe: false
+instance_class: F2
+automatic_scaling:
+  min_idle_instances: 0
+  
+handlers: 
+- url: /internal/.*
+  script: main_google_authenticated.app
+  login: required
+  secure: always
+
+- url: /admin/.*
+  script: main_admin.app 
+  login: admin
+  secure: always
+ 
+- url: /(djmatic|common|flex)/
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /(djmatic|common|flex)/.*
+  script: main_authenticated.app
+  secure: always
+ 
+- url: /solutions/common/public/.*
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /djmatic_overview
+  script: main_google_authenticated.app
+  login: required
+  secure: always
+
+- url: /djmatic_overview/.*
+  script: main_google_authenticated.app
+  login: required
+  secure: always
+
+- url: /solutions/djmatic/api/1.*
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /bob/.*
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /shop/(products|invoices)/export
+  script: main_unauthenticated.app
+  secure: always
+  
+- url: /shop/prospects/callback
+  script: main_unauthenticated.app
+  secure: always
+  
+- url: /shop/beacons/app/validate_url
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /shop/prospects/discover/callback
+  script: main_unauthenticated.app
+  secure: always
+  
+- url: /shop/oauth2callback
+  script: main_google_authenticated.app
+  secure: always
+
+- url: /customers/.*
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /unauthenticated/loyalty/.*
+  script: main_unauthenticated.app
+  secure: always
+
+- url: /unauthenticated/osa/.*
+  script: main_unauthenticated.app
+  secure: always
+
+admin_console:
+  pages:
+  - name: OSA Launcher
+    url: /admin/osa/launcher/apps
+    
+  - name: DJMatic overview logs
+    url: /admin/djmatic_overview_logs
+    
+  - name: DJMatic export
+    url: /admin/djmatic_export
+    

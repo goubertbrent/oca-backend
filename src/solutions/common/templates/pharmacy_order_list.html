@@ -1,0 +1,19 @@
+{% raw %}
+    {{each(i, order) orders}}
+    <tr {{if order.status == 2}}class="success"{{/if}} order_key="${order.key}">
+        <td>${order.date_time}</td>
+        <td><img class="avatar" src="${order.sender_avatar_url}">${order.sender_name}</td>
+        <td>${order.remarks}</td>
+        <td>
+            {{if order.status !== 2}}
+            <button action="delete" order_key="${order.key}" class="btn btn-warning control pull-right">
+                ${CommonTranslations.DELETE}
+            </button>
+            {{/if}}
+            <button action="view" order_key="${order.key}" class="btn btn-success control pull-right">
+                ${CommonTranslations.VIEW_ORDER}
+            </button>
+        </td>
+    </tr>
+    {{/each}}
+{% endraw %}

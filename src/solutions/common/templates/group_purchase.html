@@ -1,0 +1,21 @@
+{% raw %}
+{{each(i, m) group_purchases}}
+<tr id="${m.id}" group_purchase_id="${m.id}">
+    <td>${m.title}</td>
+    <td>{{if m.picture}}
+        <img class="eventPicture" src="${m.picture}" style="max-width: 200px; max-height: 200px;">
+        {{/if}}
+    </td>
+    <td>${m.time_from_str}</td>
+    <td>${m.time_until_str}</td>
+    <td>${m.units}</td>
+    <td>${CURRENCY} ${m.unit_price_in_euro}</td>
+    <td>${m.units_available}</td>
+    <td>
+        <button action="subscriptions" href="#groupPurchaseSubscriptionsModal" data-toggle="modal" group_purchase_id="${m.id}" class="btn btn-primary control">${CommonTranslations.PARTICIPANTS}</button>
+        <button action="edit" group_purchase_id="${m.id}" class="btn btn-success control" href="#groupPurchaseModal" data-toggle="modal">${CommonTranslations.EDIT}</button>
+        <button action="delete" group_purchase_id="${m.id}" class="btn btn-warning control">${CommonTranslations.DELETE}</button>
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

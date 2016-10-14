@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block body %}
+<button class="add-loyalty-slide btn btn-primary">Add</button>
+<br><br>
+<table id="slides" class="table table-striped table-hover table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Time (seconds)</th>
+            <th>Picture</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for slide in slides %}
+        <tr id="{{ slide.id }}" slide_id="{{ slide.id }}" slide_name="{{ slide.name }}" slide_time="{{ slide.time }}" slide_function_dependencies="{% if slide.function_dependencies %}{{slide.function_dependencies}}{% else %}0{% endif %}" slide_apps="{{ slide.str_apps }}">
+            <td>{{ slide.name }}</td>
+            <td>{{ slide.time }}</td>
+            <td><img src="{{ slide.url }}=s200"></td>
+            <td>
+                <button action="update" slide_id="{{ slide.id }}" class="btn btn-primary control">Update</button>
+                <button action="delete" slide_id="{{ slide.id }}" class="btn btn-warning control">Delete</button>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+
+<div id="loyalty_slide" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 id="myModalLabel"></h3>
+    </div>
+
+    <div class="modal-body">
+        <iframe id="slide_hidden_upload" name="slide_hidden_upload" style="width: 0px; height: 0px; border: 0px; color: #fff; padding: 0px"></iframe>
+        <form id="slide_form" target="slide_hidden_upload" method="POST" enctype="multipart/form-data">
+            <input type="hidden" id="slide_id" name="slide_id">
+            <input type="hidden" id="slide_function_dependencies" name="slide_function_dependencies">
+            <input type="hidden" id="slide_apps" name="slide_apps">
+        
+            <div class="control-group">
+                <b>Name</b><br>
+                <input type="text" id="slide_name" name="slide_name" style="width: 300px;">
+            </div>
+    
+            <div class="control-group">
+                <b>Time</b><br>
+                <input type="text" id="slide_time" name="slide_time" style="width: 300px;">
+            </div>
+    
+            <div class="control-group">
+                <b>Picture (1280 x 800)</b><br>
+                <input type="file" id="slide_file" name="slide_file" accept="image/*" style="width: 300px;">
+            </div>
+        </form>
+        
+        <b>Function dependencies</b>
+        <div class="controls function-dependencies">
+            <label class="checkbox">
+                <input type="checkbox" value="1" id="function_scan" /> Scan
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" value="2" id="function_slideshow" /> Slideshow
+            </label>
+            <label class="checkbox">
+                <input type="checkbox" value="4" id="function_control" /> Redeem / Add loyalty points
+            </label>
+        </div>
+        
+        <b>Apps</b>
+        <div class="controls show-in-apps">
+{% for app in current_user_apps %}
+            <label class="checkbox">
+                <input type="checkbox" value="{{ app.app_id }}" /> {{ app.name }}
+            </label>
+{% endfor %}
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        <button action="submit" class="btn btn-primary">Save</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_javascript %}
+<script>
+var isFlagSet = function(flag, value) {
+    return (value & flag) == flag;
+};
+
+var setFlag = function(flag, value) {
+    return flag | value;
+};
+
+
+$(function () {
+    var loyaltySlideAddModal = null;
+
+    var channelUpdates = function(data) {
+        console.log(data);
+        if (data.type == "rogerthat.internal.shop.loyalty.slide.post_result") {
+            sln.hideProcessing();
+            if (loyaltySlideAddModal != null) {
+                $('#loyalty_slide').modal('hide');
+                loyaltySlideAddModal = null;
+            }
+            if (data.error != null) {
+                sln.alert(data.error);
+            } else {
+                window.location.reload();
+            }
+        }
+    };
+    
+    var showPutSlideModal = function(slideId) {
+        var slide = null;
+        if (slideId != null) {
+            slide = {};
+            slide["id"] = slideId;
+            slide["name"] = $("#"+ slideId).attr("slide_name");
+            slide["time"] = $("#"+ slideId).attr("slide_time");
+            slide["function_dependencies"] = parseInt($("#"+ slideId).attr("slide_function_dependencies"));
+            var tmp_app = $("#"+ slideId).attr("slide_apps");
+            if (tmp_app == "") {
+                slide["apps"] = [];
+            } else{
+                slide["apps"] = JSON.parse(tmp_app);
+            }
+            console.log(slide);
+        }
+        sln.call({
+            url : '/internal/shop/loyalty/slides/get_upload_url',
+            success : function(upload_url) {
+                var html = $('#loyalty_slide').modal('show');
+                html.attr('mode', 'new');
+                $("#myModalLabel", html).text(slide != null ? "Update slide" : "Add slide");
+                
+                $("#slide_form", html).attr("action", upload_url);
+                $('#loyalty_slide .function-dependencies input[type="checkbox"]').each(function() {
+                    var checkbox = $(this);
+                    checkbox.prop('checked', false);
+                });
+                $('#loyalty_slide .show-in-apps input[type="checkbox"]').each(function() {
+                    var checkbox = $(this);
+                    checkbox.prop('checked', false);
+                });
+                
+                if (slide == null) {
+                    $("#slide_id", html).val("");
+                    $("#slide_name", html).val("");
+                    $("#slide_time", html).val(10);
+                    
+                } else {
+                    $("#slide_id", html).val(slide.id);
+                    $("#slide_name", html).val(slide.name);
+                    $("#slide_time", html).val(slide.time);
+                    
+                    $('#loyalty_slide .function-dependencies input[type="checkbox"]').each(function() {
+                        var checkbox = $(this);
+                        if (isFlagSet(checkbox.val(), slide["function_dependencies"])) {
+                            checkbox.prop('checked', true);
+                        }
+                    });
+                    
+                    $('#loyalty_slide .show-in-apps input[type="checkbox"]').each(function() {
+                        var checkbox = $(this);
+                        if (slide["apps"].indexOf(checkbox.val()) > -1 )
+                            checkbox.prop('checked', true);
+                    });
+                }
+                
+                loyaltySlideAddModal = html;
+                $('button[action="submit"]', html).click(function() {
+                    var slideFile = document.getElementById('slide_file', html);
+                    if (slideFile.files.length > 0 || slide != null) {
+                        var function_dependencies = 0;
+                        $('#loyalty_slide .function-dependencies input[type="checkbox"]:checked').map(function() {
+                            function_dependencies = setFlag(parseInt(this.value), function_dependencies)
+                        });
+                        $("#slide_function_dependencies").val(function_dependencies);
+                        var supported_apps = [];
+                        $('#loyalty_slide .show-in-apps input[type="checkbox"]:checked').map(function() {
+                            supported_apps.push(this.value);
+                        });
+                        $("#slide_apps").val(JSON.stringify(supported_apps));
+                        
+                        sln.showProcessing("Uploading, this may take a few seconds...");
+                        $("#slide_form", html).submit();
+                    } else {
+                        sln.alert("Please select a picture", null, "Error");
+                    }
+                });
+                
+            },
+            error : function() {
+                sln.alert("Could not create new slide", null, "Error");
+            }
+        });
+    };
+    
+    $(".add-loyalty-slide").click(function() {
+        showPutSlideModal(null);
+    });
+    
+    var slideUpdatePressed = function() {
+        var slideId = parseInt($(this).attr("slide_id"));
+        showPutSlideModal(slideId);
+    };
+    
+    var slideDeletePressed = function() {
+        var slideId = parseInt($(this).attr("slide_id"));
+        sln.confirm("Are you sure you wish to delete this slide?", function() {
+            sln.call({
+                url : "/internal/shop/rest/loyalty/slides/delete",
+                type : "POST",
+                data : {
+                    data : JSON.stringify({
+                        slide_id : slideId
+                    })
+                },
+                success : function(data) {
+                    if (!data.success) {
+                        return sln.alert(data.errormsg, null, "Error");
+                    }
+                    $('#slides tbody tr[slide_id="' + slideId + '"]').fadeOut('slow', function() {
+                        $(this).remove();
+                    });
+                },
+                error : sln.showAjaxError
+            });
+        }, null, "Delete", "Cancel", "Confirm");
+    };
+    
+    $('#slides tbody button[action="update"]').click(slideUpdatePressed);
+    $('#slides tbody button[action="delete"]').click(slideDeletePressed);
+    
+    sln.registerMsgCallback(channelUpdates);
+});
+</script>
+{% endblock %}

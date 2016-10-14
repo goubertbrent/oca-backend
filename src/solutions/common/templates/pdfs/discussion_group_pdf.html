@@ -1,0 +1,65 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            margin: 2cm;
+            margin-bottom: 3.5cm;
+            @frame footer_frame {
+            -pdf-frame-content: footerContent;
+            bottom: 2cm;
+            margin-left: 2cm;
+            margin-right: 2cm;
+            height: 1cm;
+        }
+        }
+
+        body {
+            font-family: "Lato", "Seravek";
+            color: #222222;
+        }
+
+        th {
+            border-bottom: 2px solid black;
+            text-align: left;
+        }
+
+        i {
+            color: #555555;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <h2>{% translate language, 'common', 'topic' %}: {{ discussion_group.topic }}</h2>
+    <i>{% translate language, 'common', 'events-description' %}: {{ discussion_group.description }}</i>
+    <br><br><br>
+    {% for message in messages %}
+        {% if message.sender %}
+            <table class="message">
+                <tbody>
+                <tr>
+                    {#                    <td style="width:10%;">{% if message.sender %}#}
+                    {#                        <img src="{{ avatars[message.sender.email] }}" style="width:100%;height:100%;"/>#}
+                    {#                    {% endif %}#}
+                    {#                    </td>#}
+                    <td style="width:90%;">
+                        <b>{{ message.sender.name if message.sender else '' }}</b> - <i>{{ dates[message.message_key]}}</i>
+                        <br/>
+                        {{ message.message.replace('\n', '<br>') }}<br/><br/>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        {% endif %}
+    {% endfor %}
+</div>
+<footer>
+    <div id="footerContent" align="right">
+        <pdf:pagenumber> /
+            <pdf:pagecount>
+    </div>
+</footer>
+
+</body>
+</html>

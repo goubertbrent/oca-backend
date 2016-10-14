@@ -1,0 +1,4 @@
+Create a file named consts.py in this module with the following variables
+
+- SHOP_OAUTH_CLIENT_ID
+- SHOP_OAUTH_CLIENT_SECRET

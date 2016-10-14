@@ -1,0 +1,27 @@
+{% raw %}
+    {{each(i, item) sc}}
+    <tr id="static-content-${item.id}">
+        <td>
+            <div class="rounded_icon_background" style="background-color: #${ menu_item_color };">
+                {{if item.icon_name.indexOf('fa-') ===0 }}
+                <i class="fa ${item.icon_name} rounded_icon"
+                   style="color: ${menu_background_color}; background-color: #${ menu_item_color };"></i>
+                {{else}}
+                <img src="/mobi/service/menu/icons/lib/${item.icon_name}?color=${ menu_item_color }"
+                     width="44" height="44" style="border-radius:50%; background-color: ${ menu_background_color };"/>
+                {{/if}}
+            </div>
+        </td>
+        <td>{{if item.visible}}${item.position_str}{{else}}${t.INVISIBLE}{{/if}}</td>
+        <td>${item.icon_label}</td>
+        <td>
+            <button action="edit" static_content_id="${item.id}" class="btn btn-success">
+                ${CommonTranslations.EDIT}
+            </button>
+            <button action="delete" static_content_id="${item.id}" class="btn btn-warning">
+                ${CommonTranslations.DELETE}
+            </button>
+        </td>
+    </tr>
+    {{/each}}
+{% endraw %}

@@ -1,0 +1,1 @@
+exports.dependencies = ['build-index', 'build-styles', 'build-pages', 'build-js'];

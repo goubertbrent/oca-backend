@@ -1,0 +1,15 @@
+{
+  "name": "oca-dependencies",
+  "version": "1.0.0",
+  "description": "build scripts",
+  "main": "gulpfile.js",
+  "license": "Apache 2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/our-city-app/oca-backend.git"
+  },
+  "author": "Our City App",
+  "dependencies": {
+    "font-awesome": "^4.6.3"
+  }
+}

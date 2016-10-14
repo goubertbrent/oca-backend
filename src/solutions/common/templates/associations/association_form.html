@@ -1,0 +1,108 @@
+{% raw %}
+<form class="form-horizontal row" id="association-form">
+
+    <fieldset class="span6">
+
+        <legend><a href="#/associations" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${t.back}</a>
+            {{if edit}}${t.update_association}{{else}}${t.create_association}{{/if}}
+        </legend>
+
+        <div class="control-group">
+            <label for="association-name" class="control-label">${t.association_name}</label>
+
+            <div class="controls">
+                <input type="text" id="association-name" name="association-name" value="${association.name}">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-address1" class="control-label">${t.ADDRESS}</label>
+
+            <div class="controls">
+                <input type="text" id="association-address1" name="association-address1"
+                       value="${association.address1}">
+                <input type="text" id="association-address2" name="association-address2"
+                       value="${association.address2}" style="margin-top:10px;">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-city" class="control-label">${t.city}</label>
+
+            <div class="controls">
+                <input type="text" id="association-zip" name="association-zip" value="${ association.zip }"
+                       maxlength="5" style="width:100px;" placeholder="${t.zip_code}">
+                <input type="text" id="association-city" name="association-city" value="${ association.city }"
+                       style="width:214px" placeholder="${t.city}">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-email" class="control-label">${t.EMAIL}</label>
+
+            <div class="controls">
+                <input type="email" id="association-email" name="association-email" value="${ association.user_email }">
+                {{if edit}}
+                <small><i class="fa fa-warning"></i> ${t.edit_association_email_warning}
+                </small>
+                {{else}}
+                <small>${t.association_email_info}</small>
+                {{/if}}
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-phone" class="control-label">${t.PHONE_NUMBER}</label>
+
+            <div class="controls">
+                <input type="tel" id="association-phone" name="association-phone" value="${ association.telephone }">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-language" class="control-label">${t.LANGUAGE}</label>
+
+            <div class="controls">
+                <select id="association-language" name="association-language">
+                    {{each(i, lang) languages}}
+                    <option value="${lang.code}" {{if (!association && lang.default== lang.code) || association.language==lang.code}} selected{{/if}}>${lang.name}</option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-modules" class="control-label">${t.modules}</label>
+
+            <div class="controls" id="association-modules-container">
+                {{each(i, m) modules}}
+                <label class="checkbox">
+                    <input type="checkbox" name="association-modules" value="${m.key}"
+{{if edit}}
+    {{if association.modules.indexOf(m.key)!==-1}}checked{{/if}}
+{{else}}
+checked
+{{/if}}>${m.label}</label>
+                {{/each}}
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="association-broadcast-types" class="control-label">${t.broadcast_types}</label>
+
+            <div class="controls" id="association-broadcast-types-container">
+                {{if edit}}
+                {{each(i, b) association.broadcast_types}}
+                <label class="checkbox"><input type="checkbox" name="association-broadcast-types" value="${b}"
+                                               checked>${b}</label>
+                {{/each}}
+                {{else}}
+                {{each(i, b) broadcastTypes}}
+                <label class="checkbox"><input type="checkbox" name="association-broadcast-types" value="${b}"
+                                               checked>${b}</label>
+                {{/each}}
+                {{/if}}
+                <input type="text" id="association-extra-broadcast-type" placeholder="${t.add_custom_broadcast_type}"
+                       style="width: 292px;">
+                <button type="button" id="association-extra-broadcast-type-add" class="btn btn-default">
+                    <i class="fa fa-plus"></i></button>
+                <button type="button" id="association-submit" class="btn btn-success pull-right"
+                        style="margin-top: 10px;">{{if edit}}${t.SAVE}{{else}}${t.create_association}{{/if}}
+            </div>
+        </div>
+    </fieldset>
+</form>
+{% endraw %}

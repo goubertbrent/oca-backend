@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block body %}
+    <h2>Expired subscriptions</h2>
+    <table class="table table-striped table-hover table-bordered">
+        <thead>
+        <tr>
+            <th>Expiration date</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Status updated</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        {% for expired_subscription, customer in expired_subscriptions %}
+            <tr data-customer-id="{{ customer.id }}" data-subscription-status="{{ expired_subscription.status }}">
+                <td>{{ expired_subscription.expiration_timestamp_str }}</td>
+                <td><a href="#customer-{{ customer.id }}"
+                       open-customer-popup="{{ customer.id }}">{{ customer.name }}</a>
+                </td>
+                <td>{{ expired_subscription.status_str }}</td>
+                <td>{{ expired_subscription.status_updated_timestamp_str }}</td>
+                <td>
+                    <button type="button" class="btn btn-success" action="set_expired_subscription_status">Set status
+                    </button>
+                    <button type="button" class="btn btn-danger" action="delete_expired_subscription"><i class="fa fa-trash"></i></button>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    <div class="modal fade" id="set_expired_subscription_modal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Set expired subscription status</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="control-group">
+                        <label class="control-label" for="expired-subscription-status">Status</label>
+                        <select id="expired-subscription-status">
+                            {% for key, status in statuses %}
+                                {% if not forloop.first %}
+                                    <option value="{{ key }}">{{ status }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div>
+                            <small>Select 'Will link credit card' if the customer will link his credit card so his
+                                service can be automatically extended. Select 'Extend subscription' to extend the
+                                subscription now.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="save-expired-subscription-status">Save changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/shop/expired_subscriptions.js"></script>
+{% endblock %}

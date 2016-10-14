@@ -1,0 +1,77 @@
+{% raw %}
+<form class="form-horizontal">
+    <div class="control-group">
+        <label class="control-label"
+               for="logo">${t.LOGO}<br>${t.CLICK_TO_ENLARGE}
+        </label>
+        <div class="controls">
+            <div id="logo_div">
+                <img src="/common/settings/my_logo">
+            </div>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="show_name">${t.name_visible}</label>
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox" id="show_name" {{if brandingSettings.show_identity_name }}checked{{/if}}/>
+            </label>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="show_avatar">${t.avatar_visible}</label>
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox" id="show_avatar" {{if brandingSettings.show_avatar }}checked{{/if}}/>
+            </label>
+        </div>
+    </div>
+    <div class="control-group" style="display: none;">
+        <label class="control-label" for="color_scheme">${t.color_scheme}</label>
+        <div class="controls">
+            <select id="color_scheme">
+                <option value="light" {{if brandingSettings.color_scheme === "light"}}selected{{/if}}>
+                    ${t.light}
+                </option>
+                <option value="dark" {{if brandingSettings.color_scheme === "dark"}}selected{{/if}}>
+                    ${t.dark}
+                </option>
+            </select>
+        </div>
+    </div>
+    <div class="control-group" style="display: none;">
+        <label class="control-label"
+               for="background_color">${t.background_color}</label>
+        <div class="controls">
+            <input type="text" id="background_color" class="color" placeholder="FFFFFF"
+                   value="${brandingSettings.background_color}"/>
+            <input type="color" id="background_color_picker" class="color-picker"
+            value="#${brandingSettings.background_color}"/>
+        </div>
+    </div>
+    <div class="control-group" style="display: none;">
+        <label class="control-label" for="text_color">${t.text_color}</label>
+        <div class="controls">
+            <input type="text" id="text_color" class="color" placeholder="000000"
+                   value="${brandingSettings.text_color}"/>
+            <input type="color" id="text_color_picker" class="color-picker"
+            value="#${brandingSettings.text_color}"/>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label"
+               for="menu_item_color">${t.menu_item_color}</label>
+        <div class="controls">
+            <input type="text" id="menu_item_color" class="color" placeholder="000000"
+                   value="${brandingSettings.menu_item_color}"/>
+            <input type="color" id="menu_item_color_picker" class="color-picker"
+            value="#${brandingSettings.menu_item_color}"/>
+        </div>
+    </div>
+    <div class="control-group">
+        <div class="controls">
+            <button id="save_button" type="button" class="btn btn-success">${t.SAVE}</button>
+        </div>
+    </div>
+</form>
+{% endraw %}

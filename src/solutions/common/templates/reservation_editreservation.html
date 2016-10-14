@@ -1,0 +1,97 @@
+<div class="modal hide fade" tabindex="-1" role="dialog"
+	aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal"
+			aria-hidden="true">&times;</button>
+		<h3 id="myModalLabel">{% translate language, "common", "edit-reservation" %}</h3>
+	</div>
+	<div class="modal-body">
+		<form>
+			<fieldset>
+				<h4>{% raw %}${reservation.when}: ${reservation.name}{% endraw %}</h4>
+				<div id="edit-reservation-date-control" class="input-append date"
+                    data-date="12-02-2012">
+                    <input id="edit-reservation-date" class="input-small" size="16"
+                        type="text" value="12-02-2012" readonly
+                        style="cursor: text;"> <span class="add-on"><i
+                        class="icon-th"></i></span>
+                </div>
+                <div class="input-append bootstrap-timepicker">
+                    <input id="edit-reservation-time" type="text" class="input-mini"
+                        readonly style="cursor: text;"> <span class="add-on"><i
+                        class="icon-time"></i></span>
+                </div>
+                <label>{% translate language, "common", "reservation-people" %}:</label>
+                <div class="input-append">
+                    <input class="input-mini" id="reservation-people" type="text" placeholder="{% translate language, 'common', 'reservation-people' %}" value="{% raw %}${reservation.people}{% endraw %}">
+                    <button id="reservation-people-plus" class="btn btn-success" type="button">+</button>
+                    <button id="reservation-people-min" class="btn btn-warning" type="button">-</button>
+                </div>
+				<label>{% translate language, "common", "reservation-comment" %}:</label>
+                <textarea style="width: 512px; height: 112px;">{% raw %}${reservation.comment}{% endraw %}</textarea>
+			</fieldset>
+		</form>
+        <div class="server-validation-error restaurant-closed">
+            <div class="span6">
+            	<div class="alert alert-error">
+            		{% translate language, 'common', 'reservation-failed' %}<br>
+            		{% translate language, 'common', 'restaurant-closed' %}
+            	</div>
+            </div>
+        </div>
+        <div class="row server-validation-error in-holiday">
+            <div class="span6">
+                <div class="alert alert-error">
+                    {% translate language, 'common', 'reservation-failed' %}<br>
+                    {% translate language, 'common', 'in-holiday' %}
+                </div>
+            </div>
+        </div>
+        <div class="row server-validation-error kitchen-closed">
+           <div class="span6">
+                <div class="alert alert-error">
+                   {% translate language, 'common', 'reservation-failed' %}<br>
+                   {% translate language, 'common', 'kitchen-closed',
+                   'reservation_time=' %}
+                </div>
+            </div>
+        </div>
+        <div class="server-validation-error past-reservation">
+            <div class="span6">
+            	<div class="alert alert-error">
+            		{% translate language, 'common', 'reservation-failed' %}<br>
+            		{% translate language, 'common', 'past-reservation' %}
+            	</div>
+            </div>
+        </div>
+        <div class="server-validation-error short-notice">
+            <div class="span6">
+            	<div class="alert alert-error">
+            		{% translate language, 'common', 'reservation-failed' %}<br>
+            		{% translate language, 'common', 'short-notice' %}
+            	</div>
+            </div>
+        </div>
+        <div class="server-validation-error too-many-people">
+            <div class="span6">
+            	<div class="alert alert-error">
+            		{% translate language, 'common', 'reservation-failed' %}<br>
+            		{% translate language, 'common', 'too-many-people' %}
+            	</div>
+            </div>
+        </div>
+        <div class="server-validation-error no-tables">
+            <div class="span6">
+            	<div class="alert alert-error">
+            		{% translate language, 'common', 'reservation-failed' %}<br>
+            		{% translate language, 'common', 'no-tables' %}
+            	</div>
+            </div>
+        </div>
+  	</div>
+	<div class="modal-footer">
+		<button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">{% translate language, "common", "Cancel" %}</button>
+		<button action="submit" class="btn btn-primary save">{% translate language, "common", "Save" %}</button>
+		<button action="submit" class="btn btn-danger force-save" style="display: none;">{% translate language, "common", "reservation-force-save" %}</button>
+	</div>
+</div>

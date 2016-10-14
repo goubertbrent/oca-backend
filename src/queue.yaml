@@ -1,0 +1,7 @@
+queue:
+- name: maps-queue
+  rate: 9/s
+- name: maps-controller-queue
+  rate: 20/s
+- name: phone
+  rate: 3/m

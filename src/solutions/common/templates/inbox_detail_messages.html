@@ -1,0 +1,33 @@
+{% raw %}
+{{each(i, m) messages}}
+<tr id="${m.key}" message_key="${m.key}">
+    <td>
+        <div>
+            <div class="clearfix">
+                <strong style="float: left;">${CommonTranslations.BY} ${ m.sender_name } ({{if m.sent_by_service }}${CommonTranslations.STAFF}{{else}}${CommonTranslations.USER}{{/if}})</strong>
+                <p style="float: right;">${ m.date_time }</p>
+            </div>
+            <div>{{html formatHtml(message) }}</div>
+            {{if m.picture_urls && m.picture_urls.length > 0 }}
+            <div>
+                <br>
+                {{each(i, picture_url) m.picture_urls}}
+                    <a href="/common/image_viewer?p=${picture_url}" target="_blank"><img src="${picture_url}" style="max-width: 200px; max-height: 200px; margin: 5px;"></a>
+                {{/each}}
+            </div>
+            {{/if}}
+            {{if m.video_urls && m.video_urls.length > 0 }}
+            <div>
+                <br>
+                {{each(i, video_url) m.video_urls}}
+                    <video width="300" controls style="margin: 5px;">
+                      <source src="${video_url}" type="video/mp4">
+                    </video>
+                {{/each}}
+            </div>
+            {{/if}}
+        </div>
+    </td>
+</tr>
+{{/each}}
+{%- endraw %}

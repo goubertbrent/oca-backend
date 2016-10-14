@@ -1,0 +1,47 @@
+{%- raw -%}
+{{each(i, lottery) data}}
+	<div class="clearfix {{if lottery.pending_lottery }}alert alert-info{{/if}}" {{if lottery.pending_lottery }}style="margin: 0 -15px 0 -15px; padding: 15px;"{{/if}}>
+	   <div class="clearfix" style="position: relative;">
+		   <h4 class="pull-left">${CommonTranslations.LOTTERY_WITH_DATE}: ${lottery.end_timestamp_str}</h4>
+		   <div class="pull-right" style="margin-left: 20px;">
+		       {{if !lottery.redeemed}}
+		          {{if lottery.claimed}}
+			          <h4>${CommonTranslations.LOTTERY_NOT_REDEEMED}</h4>
+		          {{else}}
+		              {{if lottery.winners[0] }}
+		                  <h4>${ CommonTranslations.LOTTERY_NOT_REDEEMED_NEXT_WINNER.replace("%(date)s", sln.formatUTCDate(lottery.next_winner_timestamp, true, false)) }</h4>
+		              {{else}}
+		                  <button type="button" class="btn btn-primary pull-right lottery-edit" key="${lottery.key}">${CommonTranslations.EDIT}</button>
+		                  {{if !lottery.pending_lottery }}
+		                      <button type="button" class="btn btn-danger pull-right lottery-delete" key="${lottery.key}" style="position: absolute; top: 35px; right: 0;">${CommonTranslations.DELETE}</button>
+		                  {{/if}}
+		              {{/if}}
+		          {{/if}}
+		       {{/if}}
+		   </div>
+	   </div>
+	   
+	   <div class="clearfix" style="margin-left: 20px;">
+           <div class="pull-left" style="width: 340px;">
+	           {{if lottery.winners[0] }}
+                <h5>${CommonTranslations.WINNER}</h5>
+                {{each(ii, winner) lottery.winners}}
+                <div style="height: 50px; width: 280px; padding: 10px; text-align: left; background-color: #fff;">
+	                <img style="display: block;max-width: 100%;margin-right: auto;float: left;" height="50px" width="50px" src="${winner.avatar_url}">
+	                <div style="float:left;margin-left: 5px;width:225px;height:50px;">
+	                   <p style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">${CommonTranslations.APP}: ${winner.app_name}</p>
+	                   <p style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">${winner.name}</p>
+	               </div>
+                 </div>
+                 {{/each}}
+	           {{/if}}
+           </div>
+           <div class="pull-left" style="{{if !lottery.winners[0]}}margin-left: 340px;{{/if}} width: 400px;">
+                <h5>${CommonTranslations.WHAT_CAN_YOU_WIN}</h5>
+                <div>{{html lottery.winnings_html}}</div>
+           </div>
+	       {{if lottery.redeemed}}<button type="button" class="btn btn-primary pull-right lottery-winner-close" key="${lottery.key}">${CommonTranslations.DELETE}</button>{{/if}}
+	   </div>
+	</div>
+{{/each}}
+{%- endraw -%}

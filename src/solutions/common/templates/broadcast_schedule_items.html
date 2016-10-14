@@ -1,0 +1,60 @@
+{% raw %}
+	{{each(i, ssb) data}}
+	<tr>
+		<td>
+		  <div class="span9">
+			  <h4>{{html ssb.date}}</h4>
+			  <p>${CommonTranslations.BROADCAST_TYPE}: ${ssb.broadcast_type}</p>
+			  <p>${CommonTranslations.INBOX_MESSAGE}: {{html ssb.htmlMessage}}</p>
+			  {{if ssb.attachments.length > 0 }}
+			  <div class="span6">
+				  <table class="table table-striped table-hover table-bordered table-condensed row">
+			          <caption>${CommonTranslations.ATTACHMENTS}:</caption>
+	                  <thead>
+	                  </thead>
+	                  <tbody>
+				      {{each(ii, attachment) ssb.attachments}}
+		               <tr>
+		                <td><div class="span4">${attachment.name}</div> <div class="btn-group pull-right">
+							<a href="${attachment.download_url}" target="_blank">
+								<button action="link" class="btn"><i class="fa fa-external-link"></i></button>
+							</a>
+		                </div></td>
+		               </tr>
+		              {{/each}}
+	                  </tbody>
+	              </table>
+			  </div>
+	          {{/if}}
+	          {{if ssb.urls.length > 0 }}
+	          <div class="span6">
+				  <table class="table table-striped table-hover table-bordered table-condensed row">
+	                  <caption>${CommonTranslations.URLS}:</caption>
+	                  <thead>
+	                  </thead>
+	                  <tbody>
+	                  {{each(ii, u) ssb.urls}}
+	                   <tr>
+	                    <td><div class="span4">${u.name}</div> <div class="btn-group pull-right">
+							<a href="${u.url}" target="_blank">
+								<button action="link" class="btn"><i class="fa fa-external-link"></i></button>
+							</a>
+	                    </div></td>
+	                   </tr>
+	                  {{/each}}
+	                  </tbody>
+	              </table>
+	          </div>
+	          {{/if}}
+	       </div>
+	       <div class="span2">
+                <div class="btn-group item-controls">
+                    <button action="delete" key="${ssb.key}" class="btn">
+						<i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+		</td>
+	</tr>
+	{{/each}}
+{%- endraw %}

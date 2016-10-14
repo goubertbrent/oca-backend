@@ -1,0 +1,19 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>${CommonTranslations.REDEEM}</h3>
+    </div>
+    <div class="modal-body">
+        <div class="input-append">
+		    <input class="input-mini" id="redeem-stamps-count" type="number" value="1">
+		    <button id="redeem-stamps-plus" class="btn btn-success" type="button">+</button>
+		    <button id="redeem-stamps-min" class="btn btn-warning" type="button">-</button>
+		</div>
+    </div>
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${CommonTranslations.CLOSE}</button>
+        <button action="submit" class="btn btn-primary">${CommonTranslations.REDEEM}</button>
+    </div>
+</div>
+{%- endraw %}

@@ -1,0 +1,21 @@
+<md-sidenav class="md-sidenav-left md-whiteframe-z2 left-sidebar scrollbar" md-component-id="left">
+    <!--md-is-locked-open="$mdMedia('gt-md')"-->
+    <div ng-controller="LeftSidebarController as ctrl" ng-cloak>
+        <md-toolbar class="md-default-theme left-sidebar-header">
+            <div class="md-toolbar-tools">
+                <span flex ng-bind="$state.current.data.pageTitle"></span>
+            </div>
+        </md-toolbar>
+        <md-content>
+            <md-list>
+                <md-list-item ng-repeat="module in ctrl.modules | orderBy: 'sortOrder'"
+                              ui-sref="{{ ::module.state }}"
+                              aria-label="{{ ::module.name }}"
+                              ng-class="{active: $root.currentModule.indexOf(module.name) === 0}">
+                    <md-icon ng-bind="module.icon"></md-icon>
+                    <p layout="row" layout-align="space-between center" ng-bind="module.pageName"></p>
+                </md-list-item>
+            </md-list>
+        </md-content>
+    </div>
+</md-sidenav>

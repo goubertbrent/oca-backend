@@ -1,0 +1,86 @@
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition
+            name="reservation1"
+            language="{{ language }}"
+            startReference="flowcode_set_default_date">
+        <end
+            id="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfc3VjY2VzcyIsICJsYW5nIjogIm5sIn0="
+            waitForFollowUpMessage="true" />
+        <end
+            id="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfZmFpbCIsICJsYW5nIjogIm5sIn0="
+            waitForFollowUpMessage="false" />
+        <formMessage
+            id="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogIm1lc3NhZ2VfcGVvcGxlIiwgImxhbmciOiAibmwifQ=="
+            brandingKey="{{ branding_key }}"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            positiveReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImZsdXNoX2ZsdXNoIiwgImxhbmciOiAibmwifQ=="
+            vibrate="false"
+            autoLock="true"
+            negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfZmFpbCIsICJsYW5nIjogIm5sIn0=">
+            <content>{% translate language, 'common', 'reservation-message-amount-people' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'reservation-button-check-db' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="SliderWidget"
+                    max="20.000000"
+                    step="1.000000"
+                    precision="0"
+                    unit="&lt;value/&gt;"
+                    min="1.000000"
+                    value="2.000000" />
+            </form>
+        </formMessage>
+        <flowCode
+                id="flowcode_set_default_date"
+                exceptionReference="message_date">
+            <outlet
+                    reference="message_date"
+                    name="message_date"
+                    value="message_date"/>
+            <javascriptCode>
+                function run(rogerthat, mfr) {
+                    if (mfr.flow_params &amp;&amp; mfr.flow_parms.reservationDate) {
+                        return {
+                            outlet: 'message_date',
+                            defaultValue: mfr.flow_params.reservationDate
+                        }
+                    }
+                    return {
+                        outlet: 'message_date'
+                    }
+                }
+            </javascriptCode>
+        </flowCode>
+        <formMessage
+                id="message_date"
+                brandingKey="{{ branding_key }}"
+                alertIntervalType="NONE"
+                alertType="SILENT"
+                positiveReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogIm1lc3NhZ2VfcGVvcGxlIiwgImxhbmciOiAibmwifQ=="
+                vibrate="false"
+                autoLock="true"
+                negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfZmFpbCIsICJsYW5nIjogIm5sIn0=">
+            <content>{% translate language, 'common', 'reservation-message-date-time' %}</content>
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonConfirmation="">
+                <widget
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:type="SelectDateWidget"
+                    minuteInterval="15"
+                    mode="date_time"
+                    unit="&lt;value/&gt;" />
+            </form>
+        </formMessage>
+        <resultsFlush
+            id="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImZsdXNoX2ZsdXNoIiwgImxhbmciOiAibmwifQ=="
+            reference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfc3VjY2VzcyIsICJsYW5nIjogIm5sIn0=" />
+    </definition>
+</messageFlowDefinitionSet>

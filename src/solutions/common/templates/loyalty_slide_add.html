@@ -1,0 +1,35 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+		<h3 id="myModalLabel">${header}</h3>
+	</div>
+
+	<div class="modal-body">
+		<iframe id="slide_hidden_upload" name="slide_hidden_upload" style="width: 0px; height: 0px; border: 0px; color: #fff; padding: 0px"></iframe>
+	    <form id="slide_form" target="slide_hidden_upload" method="POST" enctype="multipart/form-data">
+	        <input type="hidden" id="slide_id" name="slide_id">
+	    
+			<div class="control-group">
+				<b>${CommonTranslations.NAME}</b><br>
+				<input type="text" id="slide_name" name="slide_name" style="width: 300px;">
+			</div>
+	
+	        <div class="control-group">
+	            <b>${CommonTranslations.TIME_IN_SECONDS}</b><br>
+	            <input type="text" id="slide_time" name="slide_time" style="width: 300px;">
+	        </div>
+	
+			<div class="control-group">
+				<b>${CommonTranslations.PICTURE} (1280 x 800)</b><br>
+				<input type="file" id="slide_file" name="slide_file" accept="image/*" style="width: 300px;">
+			</div>
+		</form>
+	</div>
+
+	<div class="modal-footer">
+		<button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>
+		<button action="submit" class="btn btn-primary">${submitBtn}</button>
+	</div>
+</div>
+{%- endraw %}

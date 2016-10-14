@@ -1,0 +1,22 @@
+{
+  "name": "rogerthat",
+  "description": "Rogerthat",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "angular": "~1.5.5",
+    "angular-route": "~1.5.5",
+    "angular-loader": "~1.5.5",
+    "angular-resource": "~1.5.5",
+    "angular-mocks": "~1.5.5",
+    "angular-sanitize": "^1.5.5",
+    "angular-touch": "^1.5.5",
+    "angular-translate": "~2.11.0",
+    "angular-translate-loader-url": "~2.11.0",
+    "angular-translate-handler-log": "^2.11.0",
+    "angular-ui-router": "^1.0.0-alpha.4",
+    "angular-material": "1.0.8",
+    "angular-local-storage": "^0.2.7",
+    "source-map": "~0.5.6"
+  }
+}

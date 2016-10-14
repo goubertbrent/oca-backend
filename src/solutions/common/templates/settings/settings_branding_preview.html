@@ -1,0 +1,30 @@
+{% raw %}
+<div class="mobile_preview branding_settings">
+    <div id="canvas" style="background-color:${brandingSettings.background_color}">
+        <iframe id="preview_frame" src="/common/main_branding/branding.html"></iframe>
+        <table class="service-menu-preview">
+            <tbody>
+            {{each(i, row) menuItems}}
+            <tr>
+                {{each(j, smi) row.menu_items}}
+                <td id="${ smi.coords }" class="rt-cs-${brandingSettings.color_scheme}">
+                    {{if smi.iconName}}
+                    <div>
+                        {{if smi.iconName.indexOf('fa-') === 0}}
+                        <span><i class="fa ${smi.iconName}" style="color: #${brandingSettings.menu_item_color};"></i></span>
+                        {{else}}
+                        <img src="${ smi.iconUrl }?color=${brandingSettings.menu_item_color}"
+                                {{if smi.iconName }} icon_name="${ smi.iconName }"{{/if}}/>
+                        {{/if}}
+                        <div>${ smi.label }</div>
+                    </div>
+                    {{/if}}
+                </td>
+                {{/each}}
+            </tr>
+            {{/each}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endraw %}

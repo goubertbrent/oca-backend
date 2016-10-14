@@ -1,0 +1,157 @@
+<div id="broadcast" class="page" style="display: none;">
+    <div class="sln-broadcast-hint"></div>
+    <div id="broadcast_page_news" style="display: none;"></div>
+    <div id="broadcast_page_message" style="display:none;">
+        <h2>Broadcast message</h2>
+        <legend>
+            {% if SolutionModule.CITY_APP in sln_settings.modules %}
+            {% translate language, "common", "broadcast-reach-out-cityapp" %}
+            {% else %}
+            {% translate language, "common", "broadcast-reach-out" %}
+            {% endif %}
+        </legend>
+        <div class="span6">
+            <div class="row">
+                <div id="broadcast_types"></div>
+                    <textarea id="broadcast_message" class="span6 margin-top" rows="10"
+                              placeholder="{% translate language, 'common', 'broadcast-enter-message' %}"
+                              style="resize: vertical;"></textarea>
+
+                <div class="pull-right" style="position: relative;right: 20px"><span id="char_count">0</span> {%
+                    translate
+                    language, "common", "characters" %}
+                </div>
+                <div class="broadcast-reach">
+                     {% translate language, "common", "broadcast-reach" %}:
+                        <div id="broadcastReach" style="display: inline;"><span
+                         id="broadcastReached">0</span> {% translate language, "common", "broadcast-out-of" %}
+                            <span id="broadcastTotal">0</span>
+                        </div>
+                         <img id="broadcastReachCalculation" src="/static/images/ajax-loader.gif" style="display: none; height: 15px;"/>
+                </div>
+
+                <div class="broadcast-button-group">
+
+                    <div class="broadcast-buttons">
+                        <button id="schedule-broadcast-button" type="button" class="btn btn-success span3"><i
+                                class="fa fa-clock-o"></i> {% translate language, "common", "Broadcast later" %}
+                        </button>
+                        <button id="broadcast-button" type="button" class="btn btn-success span3"><i
+                                class="fa fa-paper-plane"></i> {% translate language, "common", "Broadcast now" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="span6">
+            <div class="row">
+                <h3>{% translate language, "common", "add-attachment" %}</h3>
+                <button id="add_attachment" class="btn btn-primary"><i class="fa fa-plus"></i> {% translate language,
+                    "common", "reservation-add" %}
+                </button>
+                <div id="attachments" style="display: none">
+                    <table class="table table-striped table-bordered table-condensed">
+                        <thead>
+                        <tr>
+                            <th>{% translate language, "common", "name-attachment" %}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    </div>
+                <h3>{% translate language, "common", "add-website" %}</h3>
+                <button id="add_url" class="btn btn-primary"><i class="fa fa-plus"></i> {% translate language, "common",
+                    "reservation-add" %}
+                </button>
+                <div id="urls" style="display: none">
+                    <table class="table table-striped table-bordered table-condensed">
+                        <thead>
+                        <tr>
+                            <th>{% translate language, "common", "name-website" %}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                <h3>{% translate language, "common", "Options" %}</h3>
+
+                <div id="broadcast_message_on_facebook" class="checkbox"
+                    <label class="checkbox" for="input-broadcast-facebook">
+                        <input id="input-broadcast-facebook"
+                               value="{% if sln_settings.facebook_page %}{{ sln_settings.facebook_page }}{% endif %}"
+                               type="checkbox" {% if sln_settings.broadcast_on_facebook %}checked{% endif %}>
+                        {% translate language, 'common', 'put-on-facebook' %}
+                    </label>
+                </div>
+                <div id="broadcast_message_on_twitter" class="checkbox"
+                    <label class="checkbox" for="input-broadcast-twitter">
+                        <input id="input-broadcast-twitter"
+                               value="{% if sln_settings.twitter_username %}{{ sln_settings.twitter_username }}{% endif %}"
+                               type="checkbox" {% if sln_settings.broadcast_on_twitter %}checked{% endif %}>
+                        {% translate language, 'common', 'put-on-twitter' %}
+                    </label>
+
+                    <div id="twitter_disabled_reason_chars" style="display: none; color: #FF3500;">{% translate
+                        language, 'common', 'twitter-disabled-reason-chars' %}
+                    </div>
+                </div>
+                {% if has_multiple_locations %}
+                <div id="broadcast_message_to_all_locations" class="checkbox">
+                    <label class="checkbox" for="input-broadcast-locations">
+                        <input id="input-broadcast-locations"
+                               value="{{ sln_settings.broadcast_to_all_locations }}"
+                               type="checkbox"> {% translate language, 'common', 'broadcast-to-all-locations' %}
+                    </label>
+                </div>
+                {% endif %}
+                <div id="configure_target_audience" class="checkbox">
+                    <label class="checkbox" for="input-broadcast-target">
+                        <input id="input-broadcast-target" value="false" type="checkbox"> {% translate language,
+                        'common',
+                        'configure-target-audience' %}
+                    </label>
+                </div>
+                <div id="target_audience" style="display:none;">
+                    <div class="clearfix">
+                        <div class="pull-left">
+                            <h4>{% translate language, 'common', 'age-min' %}</h4>
+
+                            <div class="input-append">
+                                <input class="input-mini" id="age_min" type="number" value="0" min="0" max="130">
+                                <button id="age_min_plus" class="btn btn-success" type="button">+</button>
+                                <button id="age_min_min" class="btn btn-warning" type="button">-</button>
+                            </div>
+                            </div>
+                        <div class="pull-left" style="margin-left:20px">
+                            <h4>{% translate language, 'common', 'age-max' %}</h4>
+
+                            <div class="input-append">
+                                <input class="input-mini" id="age_max" type="number" value="100"  min="0" max="130">
+                                <button id="age_max_plus" class="btn btn-success" type="button">+</button>
+                                <button id="age_max_min" class="btn btn-warning" type="button">-</button>
+                            </div>
+                        </div>
+                        </div>
+                    <h4>{% translate language, 'common', 'gender' %}</h4>
+                    <select id="gender">
+                        <option value="MALE_OR_FEMALE">{% translate language, 'common', 'gender-male-female' %}</option>
+                        <option value="MALE">{% translate language, 'common', 'gender-male' %}</option>
+                        <option value="FEMALE">{% translate language, 'common', 'gender-female' %}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        </div>
+    <div id="scheduled_broadcasts" class="row" style="display: none; margin-top: 40px;">
+        <legend>{% translate language, "common", "Scheduled broadcasts" %}</legend>
+        <table class="table table-striped table-hover table-bordered table-condensed">
+            <thead>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script src="/static/js/solutions/sln-broadcast.js"></script>
+</div>

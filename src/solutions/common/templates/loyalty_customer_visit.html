@@ -1,0 +1,30 @@
+{%- raw -%}
+<h3>{{if loyalty_type == 1}}${CommonTranslations.TOTAL_NUMBER_OF_CUSTOMERS}{{else}}${CommonTranslations.TOTAL_NUMBER_OF_PARTICIPANTS}{{/if}} ${data.count}</h3>
+{{each(i, day) data.days}}
+    <h4>${day.timestamp_day_str} - {{if loyalty_type == 1}}${CommonTranslations.CUSTOMERS}{{else}}${CommonTranslations.PARTICIPANTS}{{/if}}: ${day.count}</h4>
+    {{each(ii, visit) day.visits}}
+        <div class="clearfix customer-visits-detail" style="margin-left: 20px; cursor: pointer;" email="${visit.user_details.email}" app_id="${visit.user_details.app_id}">
+            <div class="pull-left">
+                <img draggable="false" style="width: 30px; height: 30px;" class="img-polaroid img-rounded" src="${visit.user_details.avatar_url}" />
+            </div>
+            <div class="pull-left" style="margin-left: 10px; line-height: 40px; width: 400px;">
+                ${visit.text_1}
+            </div>
+            {{if loyalty_type == 1}}
+	            <div class="pull-left" style="margin-left: 10px; line-height: 40px; width: 150px;">
+	                ${CommonTranslations.SPENT}: {% endraw %}{{ currency }}{% raw %} ${visit.value_number / 100}
+	            </div>
+	            <div class="pull-left" style="margin-left: 10px; line-height: 40px; width: 150px;">
+	                ${CommonTranslations.DISCOUNT}: {% endraw %}{{ currency }}{% raw %} ${visit.discount / 100}
+	            </div>
+            {{/if}}
+            {{if loyalty_type == 3}}
+                <div class="pull-left" style="margin-left: 10px; line-height: 40px; width: 150px;">
+                    ${CommonTranslations.NUMBER_OF_STAMPS}: ${visit.value_number}
+                </div>
+            {{/if}}
+            <a class="pull-right btn btn-success customer-visits-detail" email="${visit.user_details.email}" app_id="${visit.user_details.app_id}" href="#">${CommonTranslations.VIEW}</a>
+        </div>
+    {{/each}}
+{{/each}}
+{%- endraw -%}

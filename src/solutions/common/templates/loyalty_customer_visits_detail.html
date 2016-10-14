@@ -1,0 +1,54 @@
+{% raw %}
+<tr>
+	<td>
+		<div class="pull-left">
+			<img draggable="false" src="${user_details.avatar_url}"	style="width: 30px; height: 30px;" class="img-polaroid img-rounded" />
+		</div>
+		<div class="pull-left" style="margin-left: 10px; line-height: 40px;">
+			${user_details.name}
+		</div>
+
+		<div class="pull-right" style="margin-left: 10px; line-height: 40px;">
+			${user_details.app_name}
+		</div>
+	</td>
+</tr>
+<tr>
+	<td>
+		<div class="pull-right visit-abuse"	style="margin: 0 5px; width: 50px; text-align: right; display: none;">&nbsp;</div>
+		{{if loyalty_type == 1}}
+		<div class="pull-right"	style="margin: 0 5px; width: 150px; text-align: right;">${CommonTranslations.DISCOUNT}:
+			{%- endraw %} {{ currency }}{% raw %}${discount / 100}</div>
+		<div class="pull-right"	style="margin: 0 5px; width: 150px; text-align: right;">${CommonTranslations.SPENT}:
+			{%- endraw %} {{ currency }}{% raw %}${value_number / 100}</div> {{/if}}
+		{{if loyalty_type == 2}}
+		<div class="pull-right lottery-chance" style="margin: 0 5px; text-align: right;">${CommonTranslations.LOADING_DOT_DOT_DOT}</div>
+		{{/if}}
+		{{if loyalty_type == 3}}
+		<div class="pull-right" style="margin: 0 5px; width: 150px; text-align: right;">${CommonTranslations.NUMBER_OF_STAMPS}:
+			${value_number}
+	   </div>
+	   {{/if}}
+	</td>
+</tr>
+{{each(i, v) visits}}
+<tr>
+	<td>${v.timestamp_str}
+		<div class="pull-right visit-abuse" style="margin: 0 5px; width: 50px; text-align: right; display: none;">
+			<button visit_key="${v.key}" class="btn btn-danger visit-action-trash">
+				<i class="icon-trash icon-white"></i>
+			</button>
+		</div>
+		{{if loyalty_type == 1}}
+		<div class="pull-right" style="margin: 0 5px; width: 150px; text-align: right;">{%- endraw %} {{ currency }}{% raw %}${v.discount / 100}</div>
+		<div class="pull-right" style="margin: 0 5px; width: 150px; text-align: right;">{%- endraw %} {{ currency }}{% raw %}${v.value_number / 100}</div>
+		{{/if}}
+		{{if loyalty_type == 3}}
+		<div class="pull-right" style="margin: 0 5px; width: 150px; text-align: right;">
+			${v.value_number}
+	    </div>
+	    {{/if}}
+	</td>
+</tr>
+{{/each}}
+{%- endraw %}

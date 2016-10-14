@@ -1,0 +1,13 @@
+<section id="section_qr_codes" style="display: none;">
+{% for qr_code in qr_codes %}
+    <div class="span3">
+        {{ qr_code.name }}: <br>
+        <a href="{{ qr_code.image_url }}?download=true">
+            <img src="{{ qr_code.image_url }}" alt="{{ qr_code.description }}" />
+        </a>
+    </div>
+{% endfor %}
+    <div class="span11" style="text-align: center; margin-top: 20px;">
+        {% translate language, "common", "download-qr-code" %}
+    </div>
+</section>

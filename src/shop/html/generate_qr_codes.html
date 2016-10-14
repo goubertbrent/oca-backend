@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block custom_javascript %}
+    <script src="/static/js/shop/generate_qr_codes.js"></script>
+{% endblock %}
+{% block body %}
+    <div class="container">
+        <h2>Generate QR codes</h2>
+        <div class="control-group" id="app-search-group">
+            <label class="control-label" for="app-search">App</label>
+            <input type="text" placeholder="Search for apps..." id="app-search" autocomplete="off">
+        </div>
+        <div class="control-group">
+            <label class="control-label" for="qr-code-mode">Output format</label>
+            <select id="qr-code-mode">
+                <option value="excel" selected>Excel sheet with URLs</option>
+                <option value="svg">SVG files</option>
+            </select>
+        </div>
+        <div class="control-group" id="qr-code-amount-group">
+            <label class="control-label" for="qr-code-amount">Amount</label>
+            <input type="number" step="20" id="qr-code-amount" value="500">
+        </div>
+        <button class="btn btn-success" id="start-generating"><i class="fa fa-magic"></i> Generate</button>
+    </div>
+{% endblock %}
