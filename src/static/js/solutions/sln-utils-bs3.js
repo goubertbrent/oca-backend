@@ -222,7 +222,7 @@ $(document).ready(function() {
             });
         }
     });
-    
+
     window.onerror = function(msg, url, line, column, error) {
         var stack_trace = '';
         if(column) {
@@ -234,7 +234,7 @@ $(document).ready(function() {
                     e: error
                 }).join('\n');
         }
-        var errorMsg = msg + '\n in ' + url + ' at line' + line + column + stack_trace;
+        var errorMsg = msg + '\n in ' + url + ' at line ' + line + column + stack_trace;
         $.ajax({
             hideProcessing: true,
             url: SLN_CONSTS.LOG_ERROR_URL,

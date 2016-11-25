@@ -33,6 +33,7 @@ from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
+from solutions.common.utils import limit_string
 
 
 BROADCAST_TYPE_NEWS = u"News"
@@ -49,6 +50,7 @@ class SolutionNewsScraper(webapp.RequestHandler):
             except:
                 pass
 
+
 def transl(key, language):
     try:
         return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
@@ -60,8 +62,6 @@ def transl(key, language):
 @arguments(sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode, permalink=unicode)
 def create_news_item(sln_settings, broadcast_type, message, title, permalink):
     service_user = sln_settings.service_user
-    title = title.strip()
-    message = message.strip() if message else None
     logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s', service_user, message, title, broadcast_type,
                  permalink)
 
@@ -77,22 +77,29 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink):
         si = get_default_service_identity(service_user)
         app_ids = si.appIds
 
-        if len(title) > 80:
-            title = title[:77] + '...'
-        if message and len(message) > 497:
-            message = message[:497] + '...'
-
-        news.publish(sticky, sticky_until, title, message, image, news_type, broadcast_type, action_button,
-                     qr_code_content, qr_code_caption, app_ids)
+        title = limit_string(title, NewsItem.MAX_TITLE_LENGTH)
+        news.publish(sticky=sticky,
+                     sticky_until=sticky_until,
+                     title=title,
+                     message=message,
+                     image=image,
+                     news_type=news_type,
+                     flags=NewsItem.DEFAULT_FLAGS,
+                     broadcast_type=broadcast_type,
+                     action_buttons=[action_button],
+                     qr_code_content=qr_code_content,
+                     qr_code_caption=qr_code_caption,
+                     scheduled_at=0,
+                     app_ids=app_ids)
 
 
 def html_unescape(s):
-    return re.sub('&(%s);' % '|'.join(name2codepoint), lambda m: unichr(name2codepoint[m.group(1)]), s)
+    return re.sub('&(%s);' % '|'.join(name2codepoint), lambda m: unichr(name2codepoint[m.group(1)]), s).strip()
 
 
 def parse_html_content(html_content):
     if not html_content:
-        return html_content
+        return html_content, [], []
 
     if not isinstance(html_content, unicode):
         html_content = html_content.decode('utf8')
@@ -142,5 +149,4 @@ def parse_html_content(html_content):
                 logging.debug(m.group(0))
 
             html_content = html_content.replace(m.group(), name)
-
-    return html2text.html2text(html_unescape(html_content)), mailtos.items(), hrefs.items()
+    return html2text.html2text(html_unescape(html_content), None, 0), mailtos.items(), hrefs.items()

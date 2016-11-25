@@ -323,8 +323,8 @@ var showServiceTab = function() {
         if (!$(this).attr('disabled'))
             showChangeServiceEmail(currentCustomer);
     });
-    
-    customerForm.find("#button_add_location").toggle(currentCustomer.is_admin).unbind('click').click(function () {
+
+    customerForm.find("#button_add_location").toggle(!!(currentCustomer.is_admin && currentCustomer.service_email)).unbind('click').click(function () {
         if (!$(this).attr('disabled'))
             showAddLocation(currentCustomer);
     });
@@ -388,17 +388,17 @@ var resetCustomerServiceApps = function(current_apps, service_apps, current_user
     $.each(current_user_apps, function(i , user_app) {
         var _label = $('<label class="checkbox"></label>');
         var _input = $('<input type="checkbox">').val(user_app.id);
-        
+
         _label.append(_input);
         _label.append(" " + user_app.name + " (" + user_app.id + ")");
-        
+
         otherApps.append(_label);
-        
+
         if (current_apps[0] == user_app.id) {
             defaultAppFound = true;
         }
     });
-    
+
     var defaultApps = $("#service_default_app").empty();
     if (!defaultAppFound) {
         $.each(service_apps, function(i , service_app) {
@@ -409,7 +409,7 @@ var resetCustomerServiceApps = function(current_apps, service_apps, current_user
             }
         });
     }
-    
+
     $.each(current_user_apps, function(i , user_app) {
         var _option = $('<option></option>').val(user_app.id).text(user_app.name + " (" + user_app.id + ")");
         defaultApps.append(_option);
@@ -419,7 +419,7 @@ var resetCustomerServiceApps = function(current_apps, service_apps, current_user
 var customerSelected = function(customer) {
     newService.app_infos = [];
     newService.current_user_app_infos = [];
-    
+
     if (customer.service_email) {
         sln.call({
             url : '/internal/shop/rest/customer/service/get',
@@ -428,7 +428,7 @@ var customerSelected = function(customer) {
             },
             success : function(service) {
                 showServiceError(null);
-                
+
                 resetCustomerServiceApps(service.apps, service.app_infos, service.current_user_app_infos);
 
                 var createServiceForm = $('#create_service_form');
@@ -487,7 +487,7 @@ var customerSelected = function(customer) {
                 }
             });
         }
-        
+
         sln.call({
             url : '/internal/shop/rest/regio_manager/apps',
             success : function(data) {
@@ -495,7 +495,7 @@ var customerSelected = function(customer) {
                 selectDefaultApps();
             }
         });
-        
+
         //set default apps
         if(currentCustomer.prospect_id){
             // get prospect

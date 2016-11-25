@@ -28,6 +28,7 @@ from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from google.appengine.api import users as gusers, images
 from google.appengine.ext import db, blobstore
+
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
@@ -146,7 +147,7 @@ class RegioManager(db.Model):
     show_in_stats = db.BooleanProperty(default=True, indexed=False)
     internal_support = db.BooleanProperty(default=False)
     phone = db.StringProperty(indexed=False)
-    credentials = CredentialsProperty(indexed=False)
+    credentials = CredentialsProperty(indexed=False)  # type: Credentials
     team_id = db.IntegerProperty(indexed=False)
 
     @property
@@ -232,10 +233,6 @@ class Product(db.Model):
     # Same as above
     description_translation_key = db.StringProperty(indexed=False)
     legal_entity_id = db.IntegerProperty()
-
-    @property
-    def possible_counts_as_int(self):
-        return [int(pc) for pc in self.possible_counts]
 
     @property
     def code(self):

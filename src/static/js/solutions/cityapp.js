@@ -17,19 +17,20 @@
  */
 
 $(function() {
+    'use strict';
     var uitdatabankStatusEnabled = true;
     var gatherEvents = true;
     var TMPL_SET_EVENTS_STATUS = '<div id="uitdatabankStatus" class="alert alert-success">'
         + '    <h4>Uitdatabank.be</h4> <div id="uitdatabankStatusText" >' + CommonTranslations.STATUS_ENABLED + '</div>'
         + '</div>';
-    
+
     var TMPL_SET_EVENTS_KEY = '<label>' + CommonTranslations.KEY + ' (uitdatabank.be):</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" class="span4">';
     var TMPL_SET_EVENTS_REGION = '<label>' + CommonTranslations.REGION + ':</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" class="span4">';
-    
+
     var TMPL_SET_GATHER_EVENTS = '<div class="btn-group">'
         + '      <button class="btn btn-success" id="gatherEventsEnabled">' + CommonTranslations.GATHER_EVENTS_DISABLED + '</button>'
         + '      <button class="btn" id="gatherEventsDisabled">&nbsp;</button>' + '</div>';
-    
+
     var gatherEventsEnabled = function() {
         setGatherEvents(!gatherEvents);
         saveCityAppSettings();
@@ -50,13 +51,13 @@ $(function() {
             $('#gatherEventsDisabled').addClass("btn-danger").text(CommonTranslations.GATHER_EVENTS_DISABLED);
         }
     };
-    
+
     $(".sln-set-gather-events").html(TMPL_SET_GATHER_EVENTS);
     $('#gatherEventsEnabled').click(gatherEventsEnabled);
     $('#gatherEventsDisabled').click(gatherEventsDisabled);
-    
+
     $("#topmenu li a").click(menuPress);
-    
+
     var saveCityAppSettings = function() {
         var allOK = true;
         // Check name
@@ -94,7 +95,6 @@ $(function() {
                             url : "/common/cityapp/settings/check_uitdatabank",
                             type : "GET",
                             success : function(data) {
-                                console.log(data)
                                 if (data.success) {
                                     setUitdatabankStatus(true);
                                 } else {
@@ -109,7 +109,7 @@ $(function() {
             error : sln.showAjaxError
         });
     };
-    
+
     var loadCityAppSettings = function() {
         sln.call({
             url : "/common/cityapp/settings/load",
@@ -118,46 +118,44 @@ $(function() {
                 $('.sln-set-events-key input').data('updateVal')(data.uitdatabank_key);
                 $('.sln-set-events-region input').data('updateVal')(data.uitdatabank_region);
                 setUitdatabankStatus(data.uitdatabank_enabled);
-                setGatherEvents(data.gather_events)
+                setGatherEvents(data.gather_events);
             },
             error : sln.showAjaxError
         });
     };
-    
-    var setUitdatabankStatus = function(newUitdatabankStatusEnabled, reason) {
-        uitdatabankStatusEnabled = newUitdatabankStatusEnabled;
-        if (newUitdatabankStatusEnabled) {
-            $('#uitdatabankStatus').removeClass("alert-danger");
-            $('#uitdatabankStatus').addClass("alert-success");
-            $('#uitdatabankStatusText').text(CommonTranslations.STATUS_ENABLED);
-        } else {
-            $('#uitdatabankStatus').removeClass("alert-success");
-            $('#uitdatabankStatus').addClass("alert-danger");
-            $('#uitdatabankStatusText').text(CommonTranslations.STATUS_DISABLED + (reason === undefined ? "" : (": " + reason)));
+
+    var setUitdatabankStatus = function (enabled, reason) {
+        uitdatabankStatusEnabled = enabled;
+        $('#uitdatabankStatus').toggleClass('alert-danger', !enabled).toggleClass('alert-success', enabled);
+        var text = CommonTranslations.STATUS_ENABLED;
+        if (!enabled) {
+            text = CommonTranslations.STATUS_DISABLED + (reason === undefined ? "" : (": " + reason));
         }
+        $('#uitdatabankStatusText').text(text);
     };
-    
+
     $(".sln-set-events-status").html(TMPL_SET_EVENTS_STATUS);
     $(".sln-set-events-key").html(TMPL_SET_EVENTS_KEY);
     $(".sln-set-events-region").html(TMPL_SET_EVENTS_REGION);
-    
+
     $('#uitdatabankStatusEnabled').click(function() {
         setUitdatabankStatus(!uitdatabankStatusEnabled);
     });
     $('#uitdatabankStatusDisabled').click( function() {
         setUitdatabankStatus(!uitdatabankStatusEnabled);
     });
-    
+
     sln.configureDelayedInput($('.sln-set-events-key input'), saveCityAppSettings);
     sln.configureDelayedInput($('.sln-set-events-region input'), saveCityAppSettings);
-    
+
     $("#inbox").show();
     loadCityAppSettings();
+
+    function menuPress() {
+        $("#topmenu li").removeClass("active");
+        var li = $(this).parent().addClass("active");
+        $("div.page").hide();
+        $("div#" + li.attr("menu")).show();
+    }
 });
 
-var menuPress = function() {
-    $("#topmenu li").removeClass("active");
-    var li = $(this).parent().addClass("active");
-    $("div.page").hide();
-    $("div#" + li.attr("menu")).show();
-};

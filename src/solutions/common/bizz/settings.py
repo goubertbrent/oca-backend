@@ -104,14 +104,15 @@ def save_settings(service_user, service_identity, name, description=None, openin
     broadcast_updates_pending(sln_settings)
 
 
-def _temp_blob_to_bytes(tmp_blob_key, x1, y1, x2, y2, width, height, max_size):
+def _temp_blob_to_bytes(tmp_blob_key, x1, y1, x2, y2, width, height, max_size, substitution_color):
     tb = TempBlob.get(tmp_blob_key)
     quality = 100
+    color = int('0x%s' % substitution_color, 0)
     while True:
         img = images.Image(str(tb.blob))
         img.crop(x1, y1, x2, y2)
         img.resize(width, height)
-        jpg_bytes = img.execute_transforms(images.JPEG, quality)
+        jpg_bytes = img.execute_transforms(images.JPEG, quality, transparent_substitution_rgb=color)
         if len(jpg_bytes) <= max_size:
             break
         quality -= 5
@@ -123,8 +124,10 @@ def _temp_blob_to_bytes(tmp_blob_key, x1, y1, x2, y2, width, height, max_size):
 @arguments(service_user=users.User, tmp_avatar_key=unicode,
            x1=(float, int), y1=(float, int), x2=(float, int), y2=(float, int))
 def set_avatar(service_user, tmp_avatar_key, x1, y1, x2, y2):
-    logging.info("%s: Saving avatar" % service_user.email())
-    jpg_bytes = _temp_blob_to_bytes(tmp_avatar_key, x1, y1, x2, y2, SLN_AVATAR_WIDTH, SLN_AVATAR_HEIGHT, SLN_AVATAR_MAX_SIZE)
+    logging.info('%s: Saving avatar' % service_user.email())
+    branding_settings = SolutionBrandingSettings.get(SolutionBrandingSettings.create_key(service_user))
+    jpg_bytes = _temp_blob_to_bytes(tmp_avatar_key, x1, y1, x2, y2, SLN_AVATAR_WIDTH, SLN_AVATAR_HEIGHT,
+                                    SLN_AVATAR_MAX_SIZE, branding_settings.background_color)
 
     def trans():
         avatar_key = SolutionAvatar.create_key(service_user)
@@ -152,7 +155,9 @@ def set_avatar(service_user, tmp_avatar_key, x1, y1, x2, y2):
            x1=(float, int), y1=(float, int), x2=(float, int), y2=(float, int))
 def set_logo(service_user, tmp_logo_key, x1, y1, x2, y2):
     logging.info("%s: Saving logo" % service_user.email())
-    jpg_bytes = _temp_blob_to_bytes(tmp_logo_key, x1, y1, x2, y2, SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT, SLN_LOGO_MAX_SIZE)
+    branding_settings = SolutionBrandingSettings.get(SolutionBrandingSettings.create_key(service_user))
+    jpg_bytes = _temp_blob_to_bytes(tmp_logo_key, x1, y1, x2, y2, SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT, SLN_LOGO_MAX_SIZE,
+                                    branding_settings.background_color)
 
     def trans():
         logo = get_solution_logo(service_user) or SolutionLogo(key=SolutionLogo.create_key(service_user))

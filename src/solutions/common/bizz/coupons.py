@@ -28,6 +28,7 @@ from rogerthat.to.news import NewsItemTO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.app import get_app_user_tuple
+from rogerthat.utils.service import get_identity_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.dal import get_solution_settings
@@ -77,13 +78,13 @@ def solution_coupon_resolve(service_user, email, method, params, tag, service_id
 def solution_coupon_redeem(service_user, email, method, params, tag, service_identity, user_details):
     data = json.loads(params)
     coupon_id = data.get('coupon_id')
-    redeeming_user = data.get('redeeming_user')
+    redeeming_user = users.User(data.get('redeeming_user'))
     response = SendApiCallCallbackResultTO()
     lang = get_solution_settings(service_user).main_language
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
 
     try:
-        coupon = redeem_news_coupon(coupon_id, service_identity_user, users.User(redeeming_user))
+        coupon = redeem_news_coupon(coupon_id, service_identity_user, redeeming_user)
         with users.set_user(service_user):
             news_item = news.get(coupon.news_id, service_identity)
             response.result = u'%s' % json.dumps(serialize_complex_value(news_item, NewsItemTO, False))
@@ -91,8 +92,8 @@ def solution_coupon_redeem(service_user, email, method, params, tag, service_ide
         response.error = t(lang, 'coupon_not_found')
     except NewsCouponAlreadyUsedException:
         response.error = t(lang, 'you_have_already_used_this_coupon')
-        email, app_id = get_app_user_tuple(redeeming_user)
-        member = BaseMemberTO(email, app_id)
+        user, app_id = get_app_user_tuple(redeeming_user)
+        member = BaseMemberTO(user.email(), app_id)
         disable_news_with_coupon(coupon_id, service_identity_user, member)
     except Exception as exception:
         logging.error(exception)
@@ -152,6 +153,9 @@ def redeem_news_coupon(coupon_id, service_identity_user, redeeming_user):
         kv_store['users'].append(redeemed_object)
         coupon.redeemed_by.from_json_dict(kv_store)
         coupon.put()
+        user, app_id = get_app_user_tuple(redeeming_user)
+        member = BaseMemberTO(user.email(), app_id)
+        news.disable_news(coupon.news_id, [member], get_identity_from_service_identity_user(service_identity_user))
         return coupon
 
     return run_in_xg_transaction(trans)
@@ -161,4 +165,4 @@ def redeem_news_coupon(coupon_id, service_identity_user, redeeming_user):
 @arguments(coupon_id=(int, long), service_identity_user=users.User, member=BaseMemberTO)
 def disable_news_with_coupon(coupon_id, service_identity_user, member):
     coupon = NewsCoupon.get(NewsCoupon.create_key(coupon_id, service_identity_user))
-    news.disable_news(service_identity_user, coupon.news_id, member)
+    news.disable_news(coupon.news_id, [member], get_identity_from_service_identity_user(service_identity_user))

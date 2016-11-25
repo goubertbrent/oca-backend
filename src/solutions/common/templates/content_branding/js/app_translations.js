@@ -61,6 +61,7 @@ var Translations = {
     YOU_ARE_THE_WINNER: "{% translate language, 'common', 'loyalty-lottery-winner' %}",
     coupon: '{% translate language, "common", "coupon", "_duplicate_backslashes=true" %}',
     coupon_redeemed: '{% translate language, "common", "coupon_redeemed", "_duplicate_backslashes=true" %}',
+    loading_coupon: '{% translate language, "common", "loading_coupon", "_duplicate_backslashes=true" %}',
     redeem_coupon_for_user: '{% translate language, "common", "redeem_coupon_for_user", "_duplicate_backslashes=true" %}',
     redeem_coupon: '{% translate language, "common", "redeem_coupon", "_duplicate_backslashes=true" %}',
     redeeming_coupon: '{% translate language, "common", "redeeming_coupon", "_duplicate_backslashes=true" %}',

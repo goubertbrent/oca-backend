@@ -134,11 +134,12 @@ $(function () {
         modules.settings = {
             renderBroadcastSettings: renderBroadcastSettings
         };
+        LocalCache.settings = {};
     }
 
     function router(urlHash) {
         var page = urlHash[1];
-        if (['general', 'branding', 'broadcast'].indexOf(page) === -1) {
+        if (['general', 'branding', 'broadcast', 'app'].indexOf(page) === -1) {
             page = 'general';
             window.location.hash = '#/' + urlHash[0] + '/' + page;
             return;
@@ -149,6 +150,8 @@ $(function () {
             showSettingsBranding();
         } else if (page === 'broadcast') {
             renderBroadcastSettings();
+        } else if (page === 'app') {
+            renderAppSettings();
         }
     }
 
@@ -162,7 +165,7 @@ $(function () {
                 if (data.success) {
                     toggleUpdatesPending(false);
                 } else {
-                    sln.alert(data.errormsg);
+                    sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
                 }
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -1464,5 +1467,50 @@ $(function () {
         var logoUrl = LOGO_URL + '?_=' + new Date().getTime();
         $('#logo_div').find('img').attr('src', logoUrl);
         $('#preview_frame').contents().find('#logo').attr('src', logoUrl);
+    }
+
+    function getAppSettings(callback) {
+        if (LocalCache.settings.app) {
+            callback(LocalCache.settings.app);
+        } else {
+            sln.call({
+                url: '/common/settings/app',
+                success: function (data) {
+                    LocalCache.settings.app = data;
+                    callback(data);
+                }
+            });
+        }
+    }
+
+    function saveAppSettings() {
+        var birthdayMessageEnabled = $('#birthday_message_enabled').prop('checked'),
+            birthdayMessage = $('#birthday_message').val();
+        sln.call({
+            url: '/common/settings/app',
+            method: 'post',
+            data: {
+                settings: {
+                    birthday_message_enabled: birthdayMessageEnabled,
+                    birthday_message: birthdayMessage
+                }
+            },
+            success: function (data) {
+                LocalCache.settings.app = data;
+            }
+        });
+    }
+
+    function renderAppSettings() {
+        getAppSettings(render);
+        function render(appSettings) {
+            var html = $.tmpl(templates['settings/app_settings'], {
+                settings: appSettings,
+                sln: sln
+            });
+            $('#section_app_settings').html(html);
+            $('#birthday_message_enabled').change(saveAppSettings);
+            sln.configureDelayedInput($('#birthday_message'), saveAppSettings);
+        }
     }
 });

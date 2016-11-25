@@ -16,29 +16,28 @@
 # @@license_version:1.1@@
 
 import base64
-import logging
 from contextlib import closing
+import logging
 from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from google.appengine.ext import db
-
-from rogerthat.bizz.branding import BrandingValidationException
-from rogerthat.dal import put_and_invalidate_cache, parent_key
-from rogerthat.rpc import users
-from rogerthat.rpc.service import ServiceApiException, BusinessException
-from rogerthat.service.api import system
-from rogerthat.utils.channel import send_message
-from rogerthat.utils.transactions import run_in_transaction
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
+from rogerthat.dal import put_and_invalidate_cache, parent_key
+from rogerthat.exceptions.branding import BrandingValidationException
+from rogerthat.rpc import users
+from rogerthat.rpc.service import ServiceApiException, BusinessException
+from rogerthat.utils.channel import send_message
+from rogerthat.utils.transactions import run_in_transaction
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending
+from solutions.common.bizz import broadcast_updates_pending, put_branding
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.to import SolutionStaticContentTO
+
 
 try:
     from cStringIO import StringIO
@@ -143,5 +142,5 @@ def store_static_content_branding(service_user, background_color, text_color, ht
 
         branding_content = new_zip_stream.getvalue()
 
-    branding_hash = system.store_branding(u"Static content: %s" % icon_label, base64.b64encode(branding_content)).id
+    branding_hash = put_branding(u"Static content: %s" % icon_label, base64.b64encode(branding_content)).id
     return branding_hash

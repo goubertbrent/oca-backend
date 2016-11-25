@@ -15,35 +15,32 @@
 #
 # @@license_version:1.1@@
 
-import importlib
-import logging
-import os
-import time
-from PIL.Image import Image
 from collections import defaultdict
 from datetime import datetime
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import importlib
+import logging
+import os
+import time
 from types import NoneType
 
+from PIL.Image import Image
 import pytz
+
 from babel.dates import format_date, format_time
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
-from google.appengine.ext.deferred.deferred import PermanentTaskFailure
 from google.appengine.ext.webapp import template
-from xhtml2pdf import pisa
-
-import solutions
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
     azzert, long_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
-from rogerthat.bizz.branding import is_branding, BrandingValidationException, TYPE_BRANDING
+from rogerthat.bizz.branding import is_branding, TYPE_BRANDING
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
     InvalidBroadcastTypeException
@@ -51,6 +48,7 @@ from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
+from rogerthat.exceptions.branding import BrandingValidationException
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
@@ -58,6 +56,7 @@ from rogerthat.rpc.users import User
 from rogerthat.service.api import qr, app
 from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
+from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -66,13 +65,17 @@ from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZe
 from rogerthat.utils.transactions import run_in_transaction
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import OUR_CITY_APP_COLOUR
 from solutions.common.dal import get_solution_settings
+from solutions.common.exceptions import TranslatedException
 from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionBrandingSettings, SolutionLogo, \
      FileBlob
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
+from xhtml2pdf import pisa
+
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
@@ -597,9 +600,12 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None):
             sln_settings = db.run_in_transaction(trans)
         broadcast_updates_pending(sln_settings)
         logging.debug('Provisioning took %s seconds', time.time() - start)
-    except:
+    except TranslatedException:
+        raise
+    except Exception:
         logging.exception('Failure in common_provision', _suppress=False)
-        raise PermanentTaskFailure()
+        raise BusinessException(
+            common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
 
 
 @returns()
@@ -819,3 +825,19 @@ def save_broadcast_types_order(service_user, broadcast_types):
         put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
     run_in_transaction(trans, True)
+
+
+@db.non_transactional
+@returns(BrandingTO)
+@arguments(description=unicode, content=unicode)
+def put_branding(description, content):
+    from rogerthat.service.api import system
+    return system.store_branding(description, content)
+
+
+@db.non_transactional
+@returns(BrandingTO)
+@arguments(description=unicode, content=unicode)
+def put_pdf_branding(description, content):
+    from rogerthat.service.api import system
+    return system.store_pdf_branding(description, content)

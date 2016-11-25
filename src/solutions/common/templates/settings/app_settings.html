@@ -1,0 +1,16 @@
+{% raw %}
+    <form id="app_settings_form">
+        <h3>${T('birthday_message')}</h3>
+        <p>${T('birthday_message_explanation')}</p>
+        <label class="checkbox">
+            <input type="checkbox" id="birthday_message_enabled" {{if settings.birthday_message_enabled}}checked{{/if}}>
+            ${T('birthday_message_enabled')}
+        </label>
+        <div class="control-group">
+            <label for="birthday_message" class="control-label">${T('inbox-message')}</label>
+            <div class="controls">
+                <textarea id="birthday_message" rows="5" style="width: 400px;">${settings.birthday_message}</textarea>
+            </div>
+        </div>
+    </form>
+{% endraw %}

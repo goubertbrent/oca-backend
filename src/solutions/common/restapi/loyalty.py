@@ -19,6 +19,8 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import blobstore, db
+
+from mcfw.consts import MISSING
 from mcfw.properties import object_factory
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -244,7 +246,7 @@ def load_customer_points(loyalty_type=None, cursor=None):
             del result_dict[app_user]
             continue
         saved_points = result_dict[app_user]
-        saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info)
+        saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info, None)
         app_info = get_app_info_cached(saved_points.user_details.app_id)
         saved_points.user_details.app_name = app_info.name
         saved_points.visits = sorted(saved_points.visits,
@@ -305,7 +307,7 @@ def load_detail_customer_points(loyalty_type, email, app_id):
     for app_user, profile_info in zip([app_user], profile_infos):
         if not profile_info or profile_info.isServiceIdentity:
             continue
-        r.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info)
+        r.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info, None)
         app_info = get_app_info_cached(r.user_details.app_id)
         r.user_details.app_name = app_info.name
     r.visits = [SolutionLoyaltyVisitTO.fromModel(visit) for visit in visits]
@@ -581,10 +583,10 @@ def load_loyalty_export_list(cursor=None):
 
 @rest('/common/loyalty/request_device', 'get')
 @returns(ReturnStatusTO)
-@arguments()
-def rest_request_loyalty_device():
+@arguments(source=unicode)
+def rest_request_loyalty_device(source=MISSING):
     try:
-        request_loyalty_device(users.get_current_user())
+        request_loyalty_device(users.get_current_user(), source if source is not MISSING else None)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, exception:
         return ReturnStatusTO.create(False, exception.message)
@@ -623,7 +625,7 @@ def load_city_wide_lottery_customer_points(city_app_id, cursor=None):
             del result_dict[app_user]
             continue
         saved_points = result_dict[app_user]
-        saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info)
+        saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info, None)
         app_info = get_app_info_cached(saved_points.user_details.app_id)
         saved_points.user_details.app_name = app_info.name
         saved_points.visits = sorted(saved_points.visits,
@@ -650,7 +652,7 @@ def load_city_wide_lottery_detail_customer_points(city_app_id, email, app_id):
     for app_user, profile_info in zip([app_user], profile_infos):
         if not profile_info or profile_info.isServiceIdentity:
             continue
-        r.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info)
+        r.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info, None)
         app_info = get_app_info_cached(r.user_details.app_id)
         r.user_details.app_name = app_info.name
     r.visits = [SolutionLoyaltyVisitTO.fromModel(visit) for visit in visits]

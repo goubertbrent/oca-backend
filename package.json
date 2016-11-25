@@ -9,9 +9,10 @@
   },
   "author": "",
   "devDependencies": {
+    "del": "^2.2.2",
     "gulp": "^3.9.1",
     "gulp-watch": "^4.3.5",
-    "shelljs": "^0.7.0",
-    "lodash": "latest"
+    "lodash": "latest",
+    "shelljs": "^0.7.0"
   }
 }

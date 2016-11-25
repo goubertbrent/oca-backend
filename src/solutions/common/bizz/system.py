@@ -19,9 +19,9 @@ import base64
 from os import path
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from rogerthat.service.api.system import store_branding
-from rogerthat.to.branding import BrandingTO
 from mcfw.rpc import returns, arguments
+from rogerthat.to.branding import BrandingTO
+from solutions.common.bizz import put_branding
 from solutions.common.models import SolutionMainBranding
 
 
@@ -53,4 +53,4 @@ def generate_branding(branding, description, nuntiuz_message_replacement, files=
     finally:
         zip_file.close()
 
-    return store_branding(description, base64.b64encode(new_zip_stream.getvalue()))
+    return put_branding(description, base64.b64encode(new_zip_stream.getvalue()))

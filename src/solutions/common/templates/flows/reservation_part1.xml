@@ -44,14 +44,13 @@
                     value="message_date"/>
             <javascriptCode>
                 function run(rogerthat, mfr) {
-                    if (mfr.flow_params &amp;&amp; mfr.flow_parms.reservationDate) {
-                        return {
-                            outlet: 'message_date',
-                            defaultValue: mfr.flow_params.reservationDate
-                        }
+                    var flowParams = {};
+                    if (mfr.flow_params) {
+                        flowParams = JSON.parse(mfr.flow_params);
                     }
                     return {
-                        outlet: 'message_date'
+                        outlet: 'message_date',
+                        defaultValue: flowParams.reservationDate
                     }
                 }
             </javascriptCode>

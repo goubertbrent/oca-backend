@@ -20,7 +20,6 @@ import logging
 import os
 
 from babel import dates
-
 from google.appengine.api import users as gae_users
 import jinja2
 from mcfw.rpc import serialize_complex_value
@@ -29,9 +28,9 @@ from rogerthat.consts import DEBUG
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
-from solution_server_settings import get_solution_server_settings
 from shop.constants import LOGO_LANGUAGES
-from solutions import translate
+from solution_server_settings import get_solution_server_settings
+from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
@@ -99,6 +98,10 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
         months = self._get_months(sln_settings, 'wide')
         months_short = self._get_months(sln_settings, 'abbreviated')
         week_days = self._get_week_days(sln_settings)
+        all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
+                            translations[SOLUTION_COMMON]['en']}
+        for key in COMMON_JS_KEYS:
+            all_translations[key] = translate(sln_settings.main_language, SOLUTION_COMMON, COMMON_JS_KEYS[key])
 
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
@@ -116,41 +119,47 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'ORDER_ITEM_VISIBLE_IN_MENU': MenuItem.VISIBLE_IN_MENU,
             'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItem.VISIBLE_IN_ORDER
         }
-        self.response.out.write(jinja_template.render({ 'language': DEFAULT_LANGUAGE,
-                                                        'solution': sln_settings.solution,
-                                                        'logo_languages': LOGO_LANGUAGES,
-                                                        'debug': DEBUG,
-                                                        'token': token,
-                                                        'templates': templates,
-                                                        'service_user_email': service_user.email().encode("utf-8"),
-                                                        'service_name': sln_settings.name,
-                                                        'has_multiple_locations': False,
-                                                        'sln_settings': sln_settings,
-                                                        'days': days,
-                                                        'day_flags': day_flags,
-                                                        'months': months,
-                                                        'months_short': months_short,
-                                                        'week_days' : week_days,
-                                                        'djmatic_profile': get_djmatic_profile(service_user),
-                                                        'jukebox_server_api': JUKEBOX_SERVER_API_URL,
-                                                        'bulk_invite_message': bulk_invite_message,
-                                                        'SolutionModule': SolutionModule,
-                                                        'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
-                                                        'SLN_LOGO_WIDTH' : SLN_LOGO_WIDTH,
-                                                        'SLN_LOGO_HEIGHT' : SLN_LOGO_HEIGHT,
-                                                        'UNITS': json.dumps(UNITS),
-                                                        'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
-                                                        'CONSTS': consts,
-                                                        'CONSTS_JSON': json.dumps(consts),
-                                                        'modules': json.dumps(sln_settings.modules),
-                                                        }))
+        params = {
+            'language': DEFAULT_LANGUAGE,
+            'solution': sln_settings.solution,
+            'logo_languages': LOGO_LANGUAGES,
+            'debug': DEBUG,
+            'token': token,
+            'templates': templates,
+            'service_user_email': service_user.email().encode("utf-8"),
+            'service_name': sln_settings.name,
+            'has_multiple_locations': False,
+            'sln_settings': sln_settings,
+            'days': days,
+            'day_flags': day_flags,
+            'months': months,
+            'months_short': months_short,
+            'week_days': week_days,
+            'djmatic_profile': get_djmatic_profile(service_user),
+            'jukebox_server_api': JUKEBOX_SERVER_API_URL,
+            'bulk_invite_message': bulk_invite_message,
+            'SolutionModule': SolutionModule,
+            'email_settings': json.dumps(
+                serialize_complex_value(
+                    SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user),
+                    SolutionEmailSettingsTO, False)),
+            'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
+            'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
+            'UNITS': json.dumps(UNITS),
+            'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
+            'CONSTS': consts,
+            'CONSTS_JSON': json.dumps(consts),
+            'modules': json.dumps(sln_settings.modules),
+            'translations': json.dumps(all_translations)
+        }
+        self.response.out.write(jinja_template.render(params))
 
 
 class DJMaticOverviewHandler(webapp2.RequestHandler):
 
     def get(self):
         solution_server_settings = get_solution_server_settings()
-        VALID_USERS = [gae_users.User(email) for email in solution_server_settings.djmatic_overview_users] 
+        VALID_USERS = [gae_users.User(email) for email in solution_server_settings.djmatic_overview_users]
         user = gae_users.get_current_user()
         if user and user in VALID_USERS:
 

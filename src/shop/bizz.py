@@ -42,11 +42,14 @@ import httplib2
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
     OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD
 from rogerthat.dal import put_and_invalidate_cache
+from rogerthat.dal.app import get_app_settings
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import App, ServiceIdentityStatistic, UserProfile
@@ -76,6 +79,9 @@ from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Ord
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity
 from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO
 from solution_server_settings import get_solution_server_settings
+from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
+from solutions import SOLUTION_COMMON
+from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.dal import get_solution_settings
@@ -87,13 +93,20 @@ from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
 import stripe
 from xhtml2pdf import pisa
-from xhtml2pdf import pisa
 
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+
+
+shopOauthDecorator = OAuth2Decorator(
+    client_id=SHOP_OAUTH_CLIENT_ID,
+    client_secret=SHOP_OAUTH_CLIENT_SECRET,
+    scope=u'https://www.googleapis.com/auth/calendar',
+    callback_path=u'/shop/oauth2callback',)
+
 
 TROPO_URL = 'https://api.tropo.com/1.0'
 TROPO_SESSIONS_URL = '%s/sessions' % TROPO_URL
@@ -395,7 +408,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
         product = all_products[item.product]
         if not product:
             raise ProductNotFoundException(item.product)
-        elif item.count < 1 or item.count not in product.possible_counts:
+        elif item.count < 1 or (product.possible_counts and item.count not in product.possible_counts):
             raise InvalidProductAmountException(item.count, item.product)
         if product.is_subscription:
             is_subscription = True
@@ -654,11 +667,39 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
 @arguments(customer_key=db.Key, user_email=unicode, r=ProvisionResponseTO, is_redeploy=bool, app_ids=[unicode],
            broadcast_to_users=[users.User])
 def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users):
+    """
+    Args:
+        customer_key (db.Key)
+        user_email (unicode)
+        r (ProvisionResponseTO)
+        is_redeploy (bool)
+        app_ids (list of unicode)
+        broadcast_to_users (list of users.User)
+    """
+
     def trans():
         customer = Customer.get(customer_key)
         updated = False
+        to_put = []
         if customer.app_ids != app_ids:
-            customer.default_app_id = app_ids[0]
+            sln_settings = get_solution_settings(users.User(r.login))
+            new_default_app_id = app_ids[0]
+            if SolutionModule.CITY_APP in sln_settings.modules:
+                old_default_app = App.get_by_key_name(customer.default_app_id) if customer.default_app_id else None
+                new_default_app = App.get_by_key_name(new_default_app_id)  # type: App
+                if old_default_app and customer.default_app_id != new_default_app_id and r.login in old_default_app.admin_services:
+                    # remove from admin service
+                    old_default_app.admin_services.remove(r.login)
+                    to_put.append(old_default_app)
+                # add to admin service
+                new_default_app.admin_services.append(r.login)
+                to_put.append(new_default_app)
+                if not is_redeploy:
+                    app_settings = get_app_settings(new_default_app_id)
+                    app_settings.birthday_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                                                     u'birthday_message_default_text')
+                    to_put.append(app_settings)
+            customer.default_app_id = new_default_app_id
             customer.app_ids = app_ids
             updated = True
 
@@ -668,37 +709,43 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             updated = True
 
         if updated:
-            customer.put()
+            to_put.append(customer)
+
         deferred.defer(re_index_customer, customer_key, _transactional=True, _queue=FAST_QUEUE)
-        return customer, Contact.get_one(customer_key)
 
-    customer, contact = db.run_in_transaction(trans)
-    if not is_redeploy:
-        settings = get_server_settings()
+        if broadcast_to_users:
+            channel.send_message(broadcast_to_users, 'shop.provision.success')
 
-        # TODO: email with OSA style in header, footer
-        with closing(StringIO()) as sb:
-            sb.write(shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
-            sb.write('\n\n')
-            sb.write(shop_translate(customer.language, 'your_service_created').encode('utf-8'))
-            sb.write('\n\n')
-            sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=settings.baseUrl,
-                                    login=user_email, password=r.password).encode('utf-8'))
-            sb.write('\n\n')
-            sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
-            sb.write('\n\n')
-            sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-            body = sb.getvalue()
+        if not is_redeploy:
+            settings = get_server_settings()
+            contact = Contact.get_one(customer_key)
 
-        # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
+            # TODO: email with OSA style in header, footer
+            with closing(StringIO()) as sb:
+                sb.write(shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
+                sb.write('\n\n')
+                sb.write(shop_translate(customer.language, 'your_service_created').encode('utf-8'))
+                sb.write('\n\n')
+                sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=settings.baseUrl,
+                                        login=user_email, password=r.password).encode('utf-8'))
+                sb.write('\n\n')
+                sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
+                sb.write('\n\n')
+                sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
+                body = sb.getvalue()
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = shop_translate(customer.language, 'service_created')
-        msg['From'] = settings.senderEmail
-        msg['To'] = user_email
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
-        send_mail_via_mime(settings.dashboardEmail, [user_email], msg)
-    channel.send_message(broadcast_to_users, 'shop.provision.success')
+            # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
+
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = shop_translate(customer.language, 'service_created')
+            msg['From'] = settings.senderEmail
+            msg['To'] = user_email
+            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            send_mail_via_mime(settings.dashboardEmail, [user_email], msg, transactional=True)
+        if to_put:
+            db.put(to_put)
+
+    run_in_xg_transaction(trans)
 
 
 @returns([Invoice])
@@ -1220,7 +1267,8 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
             order = db.get(Order.create_key(customer_or_id.id, order_number))
         else:
             customer_id = customer_or_id
-            customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
+            customer, order = db.get((Customer.create_key(customer_id),
+                                      Order.create_key(customer_id, order_number)))  # type: Customer, Order
 
         if order.status == Order.STATUS_CANCELED:
             raise OrderAlreadyCanceledException(order)
@@ -1282,6 +1330,7 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
             if service_deleted:
                 customer.service_email = None
                 customer.user_email = None
+                customer.app_ids = []
             customer.subscription_order_number = None
         to_put.append(customer)
         db.put(to_put)
@@ -1774,6 +1823,7 @@ def set_prospect_status(current_user, prospect_id, status, reason=None, action_t
                 calendar_error = 'Could not automatically create a calendar event for this visit because no' \
                                  ' permission to use the calendar of %s was granted.' \
                                  ' Please create the event manually.' % manager.name
+
             else:
                 http = manager.credentials.authorize(httplib2.Http(timeout=15))
                 calendar_service = build('calendar', 'v3')
@@ -1849,6 +1899,12 @@ def set_prospect_status(current_user, prospect_id, status, reason=None, action_t
                     # If the email address doesn't exist Google will send an email to the regiomanager.
                     calendar_service.events().insert(calendarId='primary', body=event,
                                                      sendNotifications=True).execute(http=http)
+                except HttpAccessTokenRefreshError as e:
+                    logging.warning(u'Could not create calendar event for user %s: %s', assignee, e.message)
+                    manager.credentials.revoke(httplib2.Http(timeout=15))
+                    calendar_error = u'Task created, but could not automatically create an event in the manager his' \
+                                     u' calendar (error was \"%s\").' \
+                                     u' Please refresh the page to prevent this error in the future.' % e.message
                 except HttpError, error:
                     # This can happen when for example the email address was invalid (e.g test@examplecom)
                     logging.warning(

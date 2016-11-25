@@ -17,20 +17,29 @@
 
 import base64
 from datetime import date, datetime, timedelta
-import dateutil.parser
-from dateutil.relativedelta import relativedelta
 import json
 import logging
 import os
-import pytz
 import re
 import time
 from types import FunctionType, NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import dateutil.parser
+from dateutil.relativedelta import relativedelta
 from lxml import etree, html
 
 from apiclient.discovery import build
+from google.appengine.api import images, urlfetch
+from google.appengine.ext import db, deferred
+import httplib2
+from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
+from mcfw.consts import MISSING
+from mcfw.properties import object_factory
+from mcfw.rpc import returns, arguments, serialize_complex_value
+from oauth2client import client
+from oauth2client.client import HttpAccessTokenRefreshError
+import pytz
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.dal.app import get_app_by_id
@@ -51,19 +60,11 @@ from rogerthat.utils.app import create_app_user
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.rfc3339 import rfc3339
 from rogerthat.utils.service import create_service_identity_user
-from google.appengine.api import images, urlfetch
-from google.appengine.ext import db, deferred
-import httplib2
-from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
-from mcfw.consts import MISSING
-from mcfw.properties import object_factory
-from mcfw.rpc import returns, arguments, serialize_complex_value
-from oauth2client import client
 from solutions import translate
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision
+from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision, put_branding
 from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
     get_solution_main_branding, get_solution_calendars_for_user, get_admins_of_solution_calendars
 from solutions.common.handlers import JINJA_ENVIRONMENT
@@ -72,6 +73,7 @@ from solutions.common.models.agenda import Event, EventReminder, SolutionCalenda
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO
 from solution_server_settings import get_solution_server_settings
+
 
 try:
     from cStringIO import StringIO
@@ -204,9 +206,19 @@ def update_events_from_google(service_user, calendar_id):
         for google_calendar_id in google_calendar_ids:
             page_token = None
             while True:
-                events = calendar_service.events().list(calendarId=google_calendar_id, maxResults=200,
-                                                        pageToken=page_token, singleEvents=True, timeMin=time_min,
-                                                        timeMax=time_max, showDeleted=True).execute(http=http_auth)
+                try:
+                    events = calendar_service.events().list(calendarId=google_calendar_id, maxResults=200,
+                                                            pageToken=page_token, singleEvents=True, timeMin=time_min,
+                                                            timeMax=time_max, showDeleted=True).execute(http=http_auth)
+                except HttpAccessTokenRefreshError as e:
+                    logging.warning(u'Could not update google calendars for calendar_id %s and service_user %s: %s', google_calendar_id, service_user, e.message)
+                    def trans_reset_credentials():
+                        sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
+                        if sc and sc.google_credentials:
+                            sc.google_credentials = None
+                            sc.put()
+                    db.run_in_transaction_options(xg_on, trans_reset_credentials)
+                    break
                 page_token = events.get('nextPageToken')
                 if events['items']:
                     deferred.defer(put_google_events, service_user, calendar_str_key, calendar_id, sln_settings.solution, not page_token, events['items'], sln_settings.main_language)
@@ -786,7 +798,14 @@ def new_event_received(service_user, message_flow_run_id, member, steps, end_id,
     deferred.defer(common_provision, service_user)
     return None
 
+
 def provision_events_branding(solution_settings, main_branding, language):
+    """
+    Args:
+        solution_settings (SolutionSettings)
+        main_branding (solutions.common.models.SolutionMainBranding)
+        language (unicode)
+    """
     if not solution_settings.events_branding_hash:
         logging.info("Storing EVENTS branding")
         stream = ZipFile(StringIO(main_branding.blob))
@@ -849,7 +868,7 @@ div.backgoundDark{background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
             events_branding_content = new_zip_stream.getvalue()
             new_zip_stream.close()
 
-            solution_settings.events_branding_hash = system.store_branding(u"Events App", base64.b64encode(events_branding_content)).id
+            solution_settings.events_branding_hash = put_branding(u"Events App", base64.b64encode(events_branding_content)).id
             solution_settings.put()
         finally:
             stream.close()

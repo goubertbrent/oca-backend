@@ -21,6 +21,7 @@ import logging
 from babel.dates import format_date
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
@@ -38,10 +39,10 @@ from rogerthat.utils import now, channel, today, format_price
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import send_order_email, update_regiomanager_statistic, generate_order_or_invoice_pdf, create_task, \
     get_payed, broadcast_task_updates
-from shop.constants import STORE_MANAGER
 from shop.business.legal_entities import get_vat_pct
 from shop.business.order import get_subscription_order_remaining_length
 from shop.business.prospect import create_prospect_from_customer
+from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
 from shop.models import Order, OrderItem, Product, Charge, OrderNumber, ShopTask, Prospect, Customer, \
     RegioManagerTeam, Contact
@@ -49,7 +50,6 @@ from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatus
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings
-
 
 try:
     from cStringIO import StringIO
@@ -179,7 +179,8 @@ def add_item_to_order(item):
 
         # Check if the item has a correct count.
         # Should never happen unless the user manually recreates the ajax request..
-        azzert(item.count in product.possible_counts or item.code == Product.PRODUCT_EXTRA_CITY,
+        azzert(
+            not product.possible_counts or item.count in product.possible_counts or item.code == Product.PRODUCT_EXTRA_CITY,
                u'Invalid amount of items supplied')
         number = 0
         existing_order_items = list()
@@ -210,8 +211,9 @@ def add_item_to_order(item):
                     # Check if there already is an orderitem with the same product code.
                     # If so, add the count of this new item to the existing item.
                     for it in order_items:
-                        if it.product_code != Product.PRODUCT_EXTRA_CITY and it.product_code == item.code:
-                            if (it.count + item.count) in product.possible_counts:
+                        if it.product_code == item.code and it.product_code not in (
+                        Product.PRODUCT_EXTRA_CITY, Product.PRODUCT_NEWS_PROMOTION):
+                            if (it.count + item.count) in product.possible_counts or not product.possible_counts:
                                 it.count += item.count
                                 item_already_added = True
                                 to_put.append(it)

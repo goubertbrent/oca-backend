@@ -15,15 +15,15 @@
 #
 # @@license_version:1.1@@
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from types import NoneType
 
 import pytz
-
 from babel import dates
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import deferred, db
+
 from mcfw.properties import azzert
 from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -46,6 +46,7 @@ from solutions.common.bizz.inbox import create_solution_inbox_message, add_solut
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
+from solutions.common.exceptions.sandwich import InvalidSandwichSettingsException
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.properties import SolutionUser
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, \
@@ -96,7 +97,7 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
     # Calculate price
     type_id = int(type_.split('_')[-1])
     topping_id = int(topping.split('_')[-1])
-    option_ids = [int(c) for c in customizations] if customizations else []
+    option_ids = [int(c.split('_')[-1]) for c in customizations] if customizations else []
 
     logging.info("type: %s", type_id)
     logging.info("topping: %s", topping_id)
@@ -334,6 +335,7 @@ def delete_sandwich_order(service_user, service_identity, sandwich_id, message):
 
     send_message(service_user, sm_data, service_identity=sandwich_order.service_identity)
 
+
 @returns(MessageAcknowledgedCallbackResultTO)
 @arguments(service_user=users.User, status=int, answer_id=unicode, received_timestamp=int, member=unicode,
            message_key=unicode, tag=unicode, acked_timestamp=int, parent_message_key=unicode, result_key=unicode,
@@ -358,3 +360,42 @@ def sandwich_order_from_broadcast_pressed(service_user, status, answer_id, recei
 def get_sandwich_reminder_broadcast_type(language, day):
     return common_translate(language, SOLUTION_COMMON, u'order-sandwich-broadcast-day-broadcast-type',
                             day=dates.get_day_names('wide', 'format', language)[SandwichSettings.DAYS.index(day)])
+
+
+def validate_sandwiches(language, sandwich_types, sandwich_toppings, sandwich_options):
+    """
+    Args:
+        language (unicode)
+        sandwich_types (list of SandwichType)
+        sandwich_toppings (list of SandwichToppings)
+        sandwich_options (list of SandwichOptions)
+    Raises:
+        InvalidSandwichSettingsException
+    """
+    errors = set()
+    type_labels = []
+    topping_lables = []
+    option_labels = []
+    for sandwich_type in sandwich_types:
+        if sandwich_type.description in type_labels:
+            msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_type',
+                                   label=sandwich_type.description)
+            errors.add(msg)
+        else:
+            type_labels.append(sandwich_type.description)
+    for sandwich_topping in sandwich_toppings:
+        if sandwich_topping.description in topping_lables:
+            msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_topping',
+                                   label=sandwich_topping.description)
+            errors.add(msg)
+        else:
+            topping_lables.append(sandwich_topping.description)
+    for sandwich_option in sandwich_options:
+        if sandwich_option.description in option_labels:
+            msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_option',
+                                   label=sandwich_option.description)
+            errors.add(msg)
+        else:
+            option_labels.append(sandwich_option.description)
+    if errors:
+        raise InvalidSandwichSettingsException('\n'.join(errors))

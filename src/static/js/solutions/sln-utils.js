@@ -47,6 +47,40 @@ if (!String.prototype.includes) {
         }
     };
 }
+if (!Array.prototype.includes) {
+    Array.prototype.includes = function (searchElement /*, fromIndex*/) {
+        'use strict';
+        if (this == null) {
+            throw new TypeError('Array.prototype.includes called on null or undefined');
+        }
+
+        var O = Object(this);
+        var len = parseInt(O.length, 10) || 0;
+        if (len === 0) {
+            return false;
+        }
+        var n = parseInt(arguments[1], 10) || 0;
+        var k;
+        if (n >= 0) {
+            k = n;
+        } else {
+            k = len + n;
+            if (k < 0) {
+                k = 0;
+            }
+        }
+        var currentElement;
+        while (k < len) {
+            currentElement = O[k];
+            if (searchElement === currentElement ||
+                (searchElement !== searchElement && currentElement !== currentElement)) { // NaN !== NaN
+                return true;
+            }
+            k++;
+        }
+        return false;
+    };
+}
 var SLN_CONSTS = {
     LOG_ERROR_URL: "/mobi/rest/system/log_error",
     PROCESSING_TIMEOUT: 400
@@ -966,7 +1000,7 @@ $(document).ready(function() {
                     e: error
                 }).join('\n');
         }
-        var errorMsg = msg + '\n in ' + url + ' at line' + line + column + stack_trace;
+        var errorMsg = msg + '\n in ' + url + ' at line ' + line + column + stack_trace;
         $.ajax({
             hideProcessing: true,
             url: SLN_CONSTS.LOG_ERROR_URL,

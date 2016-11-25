@@ -64,7 +64,7 @@ from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import render_common_content, SolutionModule
+from solutions.common.bizz import render_common_content, SolutionModule, put_branding
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, count_unread_solution_inbox_messages, \
     get_solution_settings_or_identity_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
@@ -535,7 +535,7 @@ def add_loyalty_for_user(service_user, service_identity, admin_user, app_user, j
             city_app_id = _get_app_id_if_using_city_wide_tombola(service_user, service_identity, False)
             if city_app_id:
                 success = is_put = True
-                deferred.defer(add_city_wide_lottery_visit, service_user, service_identity, user_detail.email, user_detail.app_id, loyalty_type, visit_key, now_, _countdown=5)
+                deferred.defer(add_city_wide_lottery_visit, service_user, service_identity, user_detail, loyalty_type, visit_key, now_, _countdown=5)
             else:
                 custom_error_message_key = u"City wide lottery not enabled"
         else:
@@ -546,7 +546,7 @@ def add_loyalty_for_user(service_user, service_identity, admin_user, app_user, j
     if success:
         deferred.defer(update_user_data_user_loyalty, service_user, service_identity, user_detail.email, user_detail.app_id, loyalty_type, _countdown=5)
         if is_put and visit_key:
-            deferred.defer(add_city_wide_lottery_visit, service_user, service_identity, user_detail.email, user_detail.app_id, loyalty_type, visit_key, now_, _countdown=5)
+            deferred.defer(add_city_wide_lottery_visit, service_user, service_identity, user_detail, loyalty_type, visit_key, now_, _countdown=5)
         if message:
             deferred.defer(_send_message_to_user_for_loyalty_update, service_user, service_identity, admin_user, app_user, message, _countdown=5)
         send_message(service_user, u"solutions.common.loyalty.points.update", service_identity=service_identity)
@@ -1356,7 +1356,7 @@ def provision_loyalty_branding(solution_settings, main_branding, language, loyal
             loyalty_branding_content = new_zip_stream.getvalue()
             new_zip_stream.close()
 
-            solution_settings.loyalty_branding_hash = system.store_branding(u"Loyalty App", base64.b64encode(loyalty_branding_content)).id
+            solution_settings.loyalty_branding_hash = put_branding(u"Loyalty App", base64.b64encode(loyalty_branding_content)).id
             solution_settings.put()
         except:
             logging.error("Failure while parsing loyalty app branding", exc_info=1)
@@ -1724,15 +1724,9 @@ def create_loyalty_statistics_for_service(service_user, service_identity, first_
                                             "winnings": s.winnings.replace('\n', '<br />') if s.winnings else u""}
     coupons = {}
     for coupon in coupons_ds:
-        logging.warn(service_user)
-        logging.warn(service_identity_user)
-        logging.warn(coupon)
         if coupon.redeemed_by:
             redeemed_by = coupon.redeemed_by.to_json_dict()
             for user in redeemed_by['users']:
-                logging.warn(user)
-                logging.warn(first_day_of_last_month)
-                logging.warn(first_day_of_current_month)
                 if first_day_of_last_month < user['redeemed_on'] < first_day_of_current_month:
                     if coupon.id not in coupons:
                         coupons[coupon.id] = {
@@ -1786,8 +1780,8 @@ def create_loyalty_statistics_for_service(service_user, service_identity, first_
 
 
 @returns()
-@arguments(service_user=users.User)
-def request_loyalty_device(service_user):
+@arguments(service_user=users.User, source=unicode)
+def request_loyalty_device(service_user, source):
     # Create ShopTask
     from shop.bizz import create_task, broadcast_task_updates
     from shop.business.prospect import create_prospect_from_customer
@@ -1799,6 +1793,9 @@ def request_loyalty_device(service_user):
         prospect = create_prospect_from_customer(customer)
         rmt = RegioManagerTeam.get(RegioManagerTeam.create_key(customer.team_id))
     azzert(rmt.support_manager, 'No support manager found for team %s' % rmt.name)
+    comment = u'Customer is interested in the Our City App terminal and wants a loyalty system.'
+    if source:
+        comment += u' Source: %s' % source
     task = create_task(prospect_or_key=prospect,
                        status=ShopTask.STATUS_NEW,
                        task_type=ShopTask.TYPE_SUPPORT_NEEDED,
@@ -1807,7 +1804,7 @@ def request_loyalty_device(service_user):
                        assignee=rmt.support_manager,
                        execution_time=today() + 86400 + 10 * 3600,  # tomorrow, 10:00 UTC
                        app_id=prospect.app_id,
-                       comment=u"Customer is interested in the Our City App terminal and wants a loyalty system.",
+                       comment=comment,
                        notify_by_email=True)
     task.put()
 
@@ -1844,17 +1841,18 @@ def _get_app_id_if_using_city_wide_tombola(service_user, service_identity, shoul
     return None
 
 @returns()
-@arguments(service_user=users.User, service_identity=unicode, email=unicode, app_id=unicode, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long),)
-def add_city_wide_lottery_visit(service_user, service_identity, email, app_id, loyalty_type, visit_key, now_):
+@arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long),)
+def add_city_wide_lottery_visit(service_user, service_identity, user_detail, loyalty_type, visit_key, now_):
     city_app_id = _get_app_id_if_using_city_wide_tombola(service_user, service_identity)
     if not city_app_id:
         return
 
-    app_user = create_app_user(users.User(email), app_id)
+    app_user = create_app_user(users.User(user_detail.email), user_detail.app_id)
     sln_cwt_visit_parent_key = SolutionCityWideLotteryVisit.create_parent_key(city_app_id, service_user, service_identity, app_user)
     def trans():
         sln_cwt_visit = SolutionCityWideLotteryVisit(parent=sln_cwt_visit_parent_key)
         sln_cwt_visit.app_user = app_user
+        sln_cwt_visit.app_user_info = SolutionUser.fromTO(user_detail)
         sln_cwt_visit.original_visit_key = unicode(visit_key) if visit_key else None
         sln_cwt_visit.original_loyalty_type = loyalty_type
         sln_cwt_visit.timestamp = now_

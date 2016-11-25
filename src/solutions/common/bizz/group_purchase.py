@@ -40,7 +40,7 @@ from rogerthat.utils.channel import send_message
 from solutions import translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending
+from solutions.common.bizz import broadcast_updates_pending, put_branding
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models.group_purchase import SolutionGroupPurchase, SolutionGroupPurchaseSubscription
@@ -276,7 +276,7 @@ h2.title { margin: 0;}
             branding_content = new_zip_stream.getvalue()
             new_zip_stream.close()
 
-            sln_group_purchase_settings.branding_hash = system.store_branding(u"Group Purchase App", base64.b64encode(branding_content)).id
+            sln_group_purchase_settings.branding_hash = put_branding(u"Group Purchase App", base64.b64encode(branding_content)).id
             sln_group_purchase_settings.put()
         except:
             logging.error("Failure while parsing group purchase app branding", exc_info=1)

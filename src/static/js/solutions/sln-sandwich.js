@@ -27,7 +27,9 @@ $(function () {
     var STATUS_READY = 2;
     var STATUS_REPLIED = 3;
 
-    LocalCache.sandwichSettings = null;
+    LocalCache.sandwich = {
+        settings: null
+    };
 	var showAllOrders = false;
 	var sandwichOrders = [];
 
@@ -252,8 +254,8 @@ $(function () {
     }
 
     function getSandwichSettings(callback) {
-        if (LocalCache.sandwichSettings) {
-            callback(LocalCache.sandwichSettings);
+        if (LocalCache.sandwich.settings) {
+            callback(LocalCache.sandwich.settings);
         } else {
             loadSettings(callback);
         }
@@ -266,11 +268,11 @@ $(function () {
             url: '/common/sandwich/settings/load',
 			data: data,
 			success: function (data) {
-                LocalCache.sandwichSettings = data;
+                LocalCache.sandwich.settings = data;
                 setSandwichSettingsEvents(data);
 				loading = false;
 				if (callback)
-                    callback(LocalCache.sandwichSettings);
+                    callback(LocalCache.sandwich.settings);
             }
 		});
     }
@@ -314,14 +316,14 @@ $(function () {
 		var val = parseInt(checkbox.val());
 		var reminder_checkbox = $("#sandwiches_broadcast_days input[value="+val+"]");
 		if (! checkbox.prop('checked')) {
-            LocalCache.sandwichSettings.days = LocalCache.sandwichSettings.days & ~val;
-            LocalCache.sandwichSettings.reminder_days = LocalCache.sandwichSettings.reminder_days & ~val;
+            LocalCache.sandwich.settings.days = LocalCache.sandwich.settings.days & ~val;
+            LocalCache.sandwich.settings.reminder_days = LocalCache.sandwich.settings.reminder_days & ~val;
 			reminder_checkbox.prop('checked', false).prop('disabled', true);
 		} else {
-            LocalCache.sandwichSettings.days = LocalCache.sandwichSettings.days | val;
+            LocalCache.sandwich.settings.days = LocalCache.sandwich.settings.days | val;
 			reminder_checkbox.prop('disabled', false);
 		}
-        var data = {days: LocalCache.sandwichSettings.days, reminder_days: LocalCache.sandwichSettings.reminder_days};
+        var data = {days: LocalCache.sandwich.settings.days, reminder_days: LocalCache.sandwich.settings.reminder_days};
 		saveSettings(data);
 	});
 
@@ -329,11 +331,11 @@ $(function () {
 		var checkbox = $(this);
 		var val = parseInt(checkbox.val());
 		if (! checkbox.prop('checked')) {
-            LocalCache.sandwichSettings.reminder_days = LocalCache.sandwichSettings.reminder_days & ~val;
+            LocalCache.sandwich.settings.reminder_days = LocalCache.sandwich.settings.reminder_days & ~val;
 		} else {
-            LocalCache.sandwichSettings.reminder_days = LocalCache.sandwichSettings.reminder_days | val;
+            LocalCache.sandwich.settings.reminder_days = LocalCache.sandwich.settings.reminder_days | val;
 		}
-        var data = {reminder_days: LocalCache.sandwichSettings.reminder_days};
+        var data = {reminder_days: LocalCache.sandwich.settings.reminder_days};
 		saveSettings(data);
 	});
 
@@ -382,14 +384,14 @@ $(function () {
     });
 
     $("#sandwichHidePrices, #sandwichShowPrices").click(function () {
-        LocalCache.sandwichSettings.show_prices = !LocalCache.sandwichSettings.show_prices;
+        LocalCache.sandwich.settings.show_prices = !LocalCache.sandwich.settings.show_prices;
 		updateShowHideSandwichPrices();
-        saveSettings({show_prices: LocalCache.sandwichSettings.show_prices});
+        saveSettings({show_prices: LocalCache.sandwich.settings.show_prices});
 		$(this).blur();
 	});
 
     function updateShowHideSandwichPrices() {
-        if (LocalCache.sandwichSettings.show_prices) {
+        if (LocalCache.sandwich.settings.show_prices) {
 			$("#sandwichHidePrices").html('&nbsp;');
             $("#sandwichShowPrices").addClass('btn-success').text(CommonTranslations.SHOW_PRICES);
 		} else {
@@ -410,11 +412,11 @@ $(function () {
 			return 0;
 		}
 
-        var items = LocalCache.sandwichSettings[kind].sort(compare);
+        var items = LocalCache.sandwich.settings[kind].sort(compare);
 		$.each(items, function (i, item) {
 			var tr = template.clone();
 			$("td.sandwich-description", tr).text(item.description);
-            $("td.sandwich-price", tr).text(LocalCache.sandwichSettings.currency + " " + (item.price / 100).toFixed(2));
+            $("td.sandwich-price", tr).text(LocalCache.sandwich.settings.currency + " " + (item.price / 100).toFixed(2));
 			tr.data('item', item);
 			if ( i == 0 )
 				$("a.move-up", tr).addClass('disabled');
@@ -453,7 +455,7 @@ $(function () {
 				var data = {};
 				data[kind] = [this_item];
 				saveSettings(data);
-                LocalCache.sandwichSettings[kind].splice(LocalCache.sandwichSettings[kind].indexOf(this_item), 1);
+                LocalCache.sandwich.settings[kind].splice(LocalCache.sandwich.settings[kind].indexOf(this_item), 1);
 				updateTypesToppingsOptions(kind);
 			});
 			$('a.edit', tr).click(function () {
@@ -484,9 +486,9 @@ $(function () {
                     sandwich_settings: updatedSettings
 				})
 			},
-			success: function () {
+            success: function (data) {
 				if (callback)
-					callback();
+                    callback(data);
 			},
 			error : errback ? errback : sln.showAjaxError
 		});
@@ -518,17 +520,19 @@ $(function () {
 		var kind = modal.attr('item-kind');
 		var data = {};
 		if (modal.attr('mode') == 'add') {
-            var items = LocalCache.sandwichSettings[kind];
+            var items = LocalCache.sandwich.settings[kind];
 			var order = 0;
 			$.each(items, function (i, item) { order = Math.max(order, item.order); });
 			data[kind] = [{description: description, price: Math.round(price*100), order: order+1}];
 			sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
-			saveSettings(data, function () {
+            saveSettings(data, function (updatedSettings) {
                 sln.hideProcessing();
 				modal.modal('hide');
+                LocalCache.sandwich.settings = updatedSettings;
+                updateTypesToppingsOptions(kind);
 			}, function (err) {
 				sln.hideProcessing();
-				sln.showAjaxError(err)
+                sln.showAjaxError(err);
 			});
 		} else {
 			var this_item = modal.data('item');

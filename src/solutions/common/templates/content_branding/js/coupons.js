@@ -42,6 +42,7 @@
     }
 
     function resolveCouponFailed() {
+        hideLoadingAndRestartScanning();
         resolvingCouponUID = null;
     }
 
@@ -99,7 +100,7 @@
 
     function processCouponResolved(couponId, user, data) {
         // data should be a NewsCouponTO
-        var msg = T('redeem_coupon_for_user', {user: user, coupon_content: data.caption});
+        var msg = T('redeem_coupon_for_user', {user: user, coupon_content: data.content});
         BootstrapDialog.confirm({
             title: T('redeem_coupon'),
             message: msg,

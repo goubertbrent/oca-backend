@@ -18,11 +18,15 @@
 import logging
 
 from google.appengine.ext import db
+
+from mcfw.consts import MISSING
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
+from rogerthat.service.api import app
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.to.app import AppSettingsTO
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz.cityapp import get_uitdatabank_events
@@ -40,6 +44,27 @@ def load_cityapp_settings():
     return CityAppProfileTO.from_model(settings)
 
 
+@rest('/common/settings/app', 'get', read_only_access=True)
+@returns(AppSettingsTO)
+@arguments()
+def rest_get_app_settings():
+    return app.get_settings()
+
+
+@rest('/common/settings/app', 'post')
+@returns(AppSettingsTO)
+@arguments(settings=AppSettingsTO)
+def rest_save_app_settings(settings):
+    """
+    Args:
+        settings (AppSettingsTO)
+    """
+    settings.oauth = MISSING
+    settings.background_fetch_timestamps = MISSING
+    settings.wifi_only_downloads = MISSING
+    return app.put_settings(settings)
+
+
 @rest ("/common/cityapp/settings/save", "post")
 @returns(ReturnStatusTO)
 @arguments(uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
@@ -49,7 +74,7 @@ def save_cityapp_settings(uitdatabank_key, uitdatabank_region, gather_events):
         service_user = users.get_current_user()
         save_cityapp_settings_bizz(service_user, uitdatabank_key, uitdatabank_region, gather_events)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -72,7 +97,7 @@ def uitdatabank_check_cityapp_settings():
             settings.uitdatabank_enabled = True
             settings.put()
             return RETURNSTATUS_TO_SUCCESS
-    
+
         settings.uitdatabank_enabled = False
         settings.put()
         return ReturnStatusTO.create(False, result)

@@ -46,12 +46,22 @@
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                        xsi:type="SelectSingleWidget">
+                        xsi:type="SelectSingleWidget" value="">
                     {% for type in types %}
                         <choice value="type_{{ type.type_id }}"
                                 label="{{ type.description|e }}{% if sandwich_settings.show_prices and type.price > 0 %} ({{ settings.currency }}{{ type.price_in_euro }}){% endif %}"/>
                     {% endfor %}
                 </widget>
+                <javascriptValidation>
+                    function run(result, rogerthat){
+                        'use strict';
+                        var type = result.value;
+                        if(!type){
+                            return "{% translate language, 'common', 'please_select_a_sandwich_type' %}"
+                        }
+
+                    }
+                </javascriptValidation>
             </form>
         </formMessage>
         <flowCode id="flowcode_message_topping"
@@ -62,9 +72,13 @@
             <javascriptCode>
                 function run(rogerthat, mfr) {
                     'use strict';
-                    var defaultValue = {};
-                    if (mfr.flow_params &amp;&amp; mfr.flow_params.topping) {
-                        defaultValue = mfr.flow_params.topping;
+                    var flowParams = {},
+                        defaultValue = {};
+                    if (mfr.flow_params) {
+                        flowParams = JSON.parse(mfr.flow_params);
+                    }
+                    if (flowParams.sandwichTopping) {
+                        defaultValue = flowParams.sandwichTopping;
                     }
                     return {
                         outlet: 'message_topping',
@@ -88,12 +102,22 @@
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                        xsi:type="SelectSingleWidget">
+                        xsi:type="SelectSingleWidget" value="">
                     {% for topping in toppings %}
                         <choice value="topping_{{ topping.topping_id }}"
                                 label="{{ topping.description|e }}{% if sandwich_settings.show_prices and topping.price > 0 %} ({{ settings.currency }}{{ topping.price_in_euro }}){% endif %}"/>
                     {% endfor %}
                 </widget>
+                <javascriptValidation>
+                    function run(result, rogerthat){
+                        'use strict';
+                        var topping = result.value;
+                        if(!topping){
+                            return "{% translate language, 'common', 'please_select_a_topping' %}"
+                        }
+
+                    }
+                </javascriptValidation>
             </form>
         </formMessage>
         {%- if options|length > 0 %}
@@ -105,13 +129,14 @@
             <javascriptCode>
                 function run(rogerthat, mfr) {
                     'use strict';
-                    var defaultValue = {};
-                    if (mfr.flow_params &amp;&amp; mfr.flow_params.options) {
-                        defaultValue = mfr.flow_params.options;
+                    var flowParams = {},
+                        defaultValue = {};
+                    if (mfr.flow_params) {
+                        flowParams = JSON.parse(mfr.flow_params);
                     }
                     return {
                         outlet: 'message_customize',
-                        defaultValue: defaultValue
+                        defaultValue: flowParams.sandwichOptions
                     }
                 }
             </javascriptCode>
@@ -136,7 +161,7 @@
                     xsi:type="SelectMultiWidget">
                     {%- for option in options %}
                     <choice
-                        value="{{ option.option_id }}"
+                        value="option_{{ option.option_id }}"
                         label="{{ option.description|e }}{% if sandwich_settings.show_prices and option.price > 0 %} ({{settings.currency}}{{option.price_in_euro}}){% endif %}" />
                     {%- endfor %}
                 </widget>
@@ -247,13 +272,17 @@
                     name="message_holiday"
                     value="message_holiday"/>
             <outlet reference="message_type"
-                    name="message_holiday_check_continue"
-                    value="message_holiday_check_continue"/>
+                    name="message_type"
+                    value="message_type"/>
             <outlet reference="message_cannot_order_now"
                     name="message_cannot_order_now"
                     value="message_cannot_order_now"/>
             <javascriptCode>
                 function run(rogerthat, messageFlowRun) {
+                    var flowParams = {};
+                    if (messageFlowRun.flow_params) {
+                        flowParams = JSON.parse(messageFlowRun.flow_params);
+                    }
                     var timezoneOffsets = rogerthat.service.data.settings.timezoneOffsets;
                     var currentDateTimeSeconds = new Date().getTime() / 1000;
                     var timezoneOffset = 0;
@@ -275,9 +304,7 @@
                     }
                     else {
                         nextStepResult.outlet = 'message_type';
-                        if (messageFlowRun.flow_params &amp;&amp; messageFlowRun.flow_params.sandwichType) {
-                            nextStepResult.defaultValue = messageFlowRun.flow_params.sandwichType
-                        }
+                        nextStepResult.defaultValue = flowParams.sandwichType
                     }
                     return nextStepResult;
 

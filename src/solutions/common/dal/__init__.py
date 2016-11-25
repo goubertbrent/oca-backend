@@ -15,11 +15,12 @@
 #
 # @@license_version:1.1@@
 
-from rogerthat.dal import parent_key, generator, parent_key_unsafe
-from rogerthat.rpc import users
 from google.appengine.ext import db
+
 from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
+from rogerthat.dal import parent_key, generator, parent_key_unsafe
+from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionLogo, \
     RestaurantMenu, SolutionScheduledBroadcast, SolutionInboxMessage, SolutionEmailSettings, SolutionAvatar, \
@@ -78,6 +79,12 @@ def get_solution_inbox_messages(service_user, service_identity, count, name, cur
 @returns(SolutionSettings)
 @arguments(service_user=users.User)
 def get_solution_settings(service_user):
+    """
+    Args:
+        service_user (users.User)
+    Returns:
+        SolutionSettings
+    """
     return SolutionSettings.get(SolutionSettings.create_key(service_user))
 
 @returns(SolutionIdentitySettings)

@@ -25,6 +25,7 @@ from google.appengine.ext.deferred import deferred
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.service import re_index
 from rogerthat.consts import MC_DASHBOARD
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
@@ -36,7 +37,7 @@ from rogerthat.service.api import news
 from rogerthat.settings import get_server_settings
 from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsItemListResultTO
 from rogerthat.utils import now, channel
-from rogerthat.utils.service import get_service_identity_tuple
+from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import update_regiomanager_statistic, get_payed
 from shop.business.legal_entities import get_vat_pct
@@ -45,14 +46,20 @@ from shop.dal import get_customer
 from shop.exceptions import NoCreditCardException, AppNotFoundException
 from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
 from shop.to import OrderItemTO
+from solutions.common.bizz import SolutionModule
+from solutions.common.dal import get_solution_settings
 from solutions.common.models.news import NewsCoupon
 from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
+from solutions.common.to.news import SponsoredNewsItemCount
+
+FREE_SPONSORED_ITEMS_PER_APP = 5
+SPONSOR_DAYS = 7
 
 
 @returns(NewsItemListResultTO)
 @arguments(cursor=unicode, service_identity=unicode)
 def get_news(cursor=None, service_identity=None):
-    return news.list_news(cursor, 20, service_identity)
+    return news.list_news(cursor, 20, service_identity, True)
 
 
 def _save_coupon_news_id(news_item_id, coupon):
@@ -66,11 +73,12 @@ def _save_coupon_news_id(news_item_id, coupon):
 
 
 @returns(NewsItemTO)
-@arguments(service_identity_user=users.User, title=unicode, message=unicode, label=unicode, sponsored=bool,
+@arguments(service_identity_user=users.User, title=unicode, message=unicode, broadcast_type=unicode, sponsored=bool,
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
-           news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], news_id=(NoneType, int, long))
-def put_news_item(service_identity_user, title, message, label, sponsored, image, action_button, order_items, news_type,
-                  qr_code_caption, app_ids, news_id=None):
+           news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
+           news_id=(NoneType, int, long))
+def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
+                  news_type, qr_code_caption, app_ids, scheduled_at, news_id=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -78,37 +86,36 @@ def put_news_item(service_identity_user, title, message, label, sponsored, image
         service_identity_user (users.User)
         title (unicode)
         message (unicode)
-        label (unicode)
+        broadcast_type (unicode)
         sponsored (bool)
         image (unicode)
         action_button (NewsActionButtonTO)
         order_items (list of OrderItemTO)
         news_type (int)
+        qr_code_caption (unicode)
         app_ids (list of unicode)
+        scheduled_at (long)
         news_id (long): id of the news item to update. When not provided a new news item will be created.
 
     Returns:
-        NewsItem
+        news_item (NewsItem)
     """
     if not order_items or order_items is MISSING:
         order_items = []
-
+    if news_type == NewsItem.TYPE_QR_CODE:
+        sln_settings = get_solution_settings(get_service_user_from_service_identity_user(service_identity_user))
+        azzert(SolutionModule.LOYALTY in sln_settings.modules)
     sponsored_until = None
     should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id
-    sponsoring_length = None
-    sponsored_app_ids = []
+    sponsored_app_ids = set()
     extra_app_ids = []
     si = get_service_identity(service_identity_user)
     for order_item in reversed(order_items):
         if order_item.product == Product.PRODUCT_NEWS_PROMOTION and sponsored:
-            if sponsoring_length and sponsoring_length != order_item.count:
-                raise BusinessException('All sponsored order items should have the same count')
-            sponsoring_length = order_item.count
-            sponsored_until_date = datetime.datetime.utcnow() + datetime.timedelta(days=sponsoring_length)
-            sponsored_until = long(sponsored_until_date.strftime('%s'))
             azzert(order_item.app_id)
             azzert(order_item.app_id not in sponsored_app_ids)
-            sponsored_app_ids.append(order_item.app_id)
+            sponsored_app_ids.add(order_item.app_id)
+            order_item.count = get_sponsored_news_count_in_app(service_identity_user, order_item.app_id).count
         elif order_item.product == Product.PRODUCT_EXTRA_CITY:
             azzert(order_item.app_id)
             azzert(order_item.app_id not in extra_app_ids)
@@ -120,22 +127,32 @@ def put_news_item(service_identity_user, title, message, label, sponsored, image
 
     if not news_id and not app_ids:
         raise BusinessException('Please select at least one app to publish this news in')
-    if not (order_items or news_id):
-        sponsored = False
     if sponsored:
-        app_ids = sponsored_app_ids
+        sponsored_until_date = datetime.datetime.utcnow() + datetime.timedelta(days=SPONSOR_DAYS)
+        sponsored_until = long(sponsored_until_date.strftime('%s'))
+        # for sponsored news that is free in certain apps no order item is given, so add it here
+        sponsored_counts = get_sponsored_news_count(service_identity_user, app_ids)
+        for sponsored_count in sponsored_counts:
+            if sponsored_count.remaining_free != 0 and sponsored_count.app_id in app_ids:
+                sponsored_app_ids.add(sponsored_count.app_id)
+        app_ids = list(sponsored_app_ids)
+
     service_user, identity = get_service_identity_tuple(service_identity_user)
+    default_app = get_app(si.defaultAppId)
     if App.APP_ID_ROGERTHAT in si.appIds and App.APP_ID_ROGERTHAT not in app_ids:
         app_ids.append(App.APP_ID_ROGERTHAT)
+    if default_app.demo:
+        app_ids.remove(App.APP_ID_ROGERTHAT)
     kwargs = {
         'sticky': sponsored,
         'sticky_until': sponsored_until,
         'message': message,
-        'label': label,
+        'broadcast_type': broadcast_type,
         'service_identity': identity,
         'news_id': news_id,
         'app_ids': app_ids,
-        'image': image
+        'image': image,
+        'scheduled_at': scheduled_at
     }
     if not news_id:
         kwargs['news_type'] = news_type
@@ -154,7 +171,7 @@ def put_news_item(service_identity_user, title, message, label, sponsored, image
         kwargs['qr_code_caption'] = qr_code_caption
     elif news_type == NewsItem.TYPE_NORMAL:
         kwargs.update({
-            'action_button': action_button,
+            'action_buttons': [action_button] if action_button else [],
             'title': title
         })
     else:
@@ -319,20 +336,74 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     customer.extra_apps_count += len(added_app_ids)
     to_put.append(customer)
     db.put(to_put)
-    deferred.defer(re_index, si.user, _transactional=True)
+    deferred.defer(re_index, si.user)
 
     # charge the credit card
-    get_payed(customer.id, order, charge)
+    if charge.total_amount > 0:
+        get_payed(customer.id, order, charge)
+        server_settings = get_server_settings()
+        send_to = server_settings.supportWorkers
+        send_to.append(MC_DASHBOARD.email())
+        channel_data = {
+            'customer': customer.name,
+            'no_manager': True,
+            'amount': charge.amount / 100,
+            'currency': charge.currency
+        }
+        channel.send_message(map(users.User, send_to), 'shop.monitoring.signed_order', info=channel_data)
+    else:
+        charge.status = Charge.STATUS_EXECUTED
+        charge.date_executed = now()
+        charge.put()
     channel.send_message(service_user, 'common.billing.orders.update')
-    channel_data = {
-        'customer': customer.name,
-        'no_manager': True,
-        'amount': charge.amount / 100,
-        'currency': charge.currency
-    }
-    server_settings = get_server_settings()
-    send_to = server_settings.supportWorkers
-    send_to.append(MC_DASHBOARD.email())
-    channel.send_message(map(users.User, send_to), 'shop.monitoring.signed_order',
-                         info=channel_data)
 
+
+def delete_news(news_id):
+    news.delete(news_id)
+
+
+@returns(SponsoredNewsItemCount)
+@arguments(service_identity_user=users.User, app_id=unicode)
+def get_sponsored_news_count_in_app(service_identity_user, app_id):
+    """
+    Args:
+        service_identity_user (users.User)
+        app_id (unicode)
+    """
+    news_items = NewsItem.list_sticky_by_sender_in_app(service_identity_user, app_id).fetch(
+        FREE_SPONSORED_ITEMS_PER_APP)
+    count = 0
+    if len(news_items) == FREE_SPONSORED_ITEMS_PER_APP:
+        for news_item in news_items:
+            item_stats = news_item.statistics[app_id]
+            if item_stats:
+                count += item_stats.reached_total
+    remaining_free_items = FREE_SPONSORED_ITEMS_PER_APP - len(news_items)
+    return SponsoredNewsItemCount(app_id, count, remaining_free_items)
+
+
+@returns([SponsoredNewsItemCount])
+@arguments(service_identity_user=users.User, app_ids=[unicode])
+def get_sponsored_news_count(service_identity_user, app_ids):
+    """
+      Calculate price for a news in every app, based on the average reach of the last five news items.
+      First five news items in an app should be free.
+    Args:
+        service_identity_user (users.User)
+        app_ids (list of unicode)
+    Returns:
+        things (list of SponsoredNewsItemCount)
+    """
+    price_per_apps = []
+    for app_id in app_ids:
+        news_items = NewsItem.list_sticky_by_sender_in_app(service_identity_user, app_id).fetch(
+            FREE_SPONSORED_ITEMS_PER_APP)
+        count = 0
+        if len(news_items) == FREE_SPONSORED_ITEMS_PER_APP:
+            for news_item in news_items:
+                item_stats = news_item.statistics[app_id]
+                if item_stats:
+                    count += item_stats.reached_total
+        remaining_free_items = FREE_SPONSORED_ITEMS_PER_APP - len(news_items)
+        price_per_apps.append(SponsoredNewsItemCount(app_id, int(count / 5), remaining_free_items))
+    return price_per_apps

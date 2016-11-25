@@ -280,7 +280,7 @@ $(function () {
         });
         $('button[action="submit"]', modal).click(function () {
             var description = $("#description", modal).val();
-            if (buttonCategory == "pre") {
+            if (buttonCategory === "pre") {
                 category.predescription = description;
             } else {
                 category.postdescription = description;

@@ -33,8 +33,7 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                               doc="The secret used for incoming api request",
                               order=2)
 
-    
-    
+
     shop_reply_to_email = add_meta(db.StringProperty(indexed=False),
                                    doc="The email address that is used as reply-to in all e-mails.",
                                    order=301)
@@ -65,8 +64,8 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_new_prospect_sik = add_meta(db.StringProperty(indexed=False),
                                       doc="New prospect sik",
                                       order=310)
-    
-    
+
+
     solution_news_scrapers = add_meta(db.StringListProperty(indexed=False),
                                       doc="News scrapers  (2 entries per combination. eg: - be_loc - test@example.com)",
                                       order=601)
@@ -91,8 +90,11 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_sync_calendar_events_client_secret = add_meta(db.StringProperty(indexed=False),
                                             doc="Client secret to sync calendar events",
                                             order=608)
-    
-    
+    solution_apps_with_news = add_meta(db.StringListProperty(indexed=False),
+                                       doc="Apss that have the news feature",
+                                       order=609)
+
+
     djmatic_service_email = add_meta(db.StringProperty(indexed=False),
                                      doc="The main DJ-Matic service email",
                                      order=901)
@@ -105,39 +107,38 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     djmatic_category_id = add_meta(db.StringProperty(indexed=False),
                                    doc="The main DJ-Matic service email",
                                    order=904)
-    
-    
-    
+
+
     tropo_token = add_meta(db.StringProperty(indexed=False),
                            doc="The token used to in api request to tropo",
                            order=1001)
     tropo_callback_token = add_meta(db.StringProperty(indexed=False),
                                     doc="The callback token used in requests from tropo",
                                     order=1002)
-    
+
+
     data_be_app_id = add_meta(db.StringProperty(indexed=False),
                               doc="The app_id for data.be",
                               order=1101)
     data_be_app_key = add_meta(db.StringProperty(indexed=False),
                                doc="The app_key for data.be",
                                order=1103)
-    
+
+
     twitter_app_key = add_meta(db.StringProperty(indexed=False),
                                doc="The app_key for twitter",
                                order=1201)
     twitter_app_secret = add_meta(db.StringProperty(indexed=False),
                                   doc="The app_secret for twitter",
                                   order=1202)
-    
+
     stripe_public_key = add_meta(db.StringProperty(indexed=False),
                                       doc="Stripe public key",
                                       order=1301)
     stripe_secret_key = add_meta(db.StringProperty(indexed=False),
                                       doc="Stripe secret key",
                                       order=1302)
-    
-    
-    
+
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
@@ -148,11 +149,14 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
 def ds_ss(stream):
     return ds_model(stream, SolutionServerSettings)
 
+
 @serializer
 def s_ss(stream, solution_server_settings):
     s_model(stream, solution_server_settings, SolutionServerSettings)
 
+
 register(SolutionServerSettings, s_ss, ds_ss)
+
 
 @cached(1)
 @returns(SolutionServerSettings)
@@ -165,6 +169,7 @@ def get_solution_server_settings():
             ss = SolutionServerSettings(key_name="MainSettings")
         return ss
     return get()
+
 
 del ds_ss
 del s_ss

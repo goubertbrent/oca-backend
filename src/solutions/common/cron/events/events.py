@@ -312,13 +312,25 @@ def _populate_uit_events(sln_settings, uitdatabank_key, external_id, uitdatabank
     event.calendar_id = sln_settings.default_calendar
     events = [event]
 
-    uitdatabank_actor_id = detail_result.get("organiser", {}).get("actor", {}).get("cdbid", None)
-    if uitdatabank_actor_id:
-        logging.debug("organiser.actor.cdbid: %s", uitdatabank_actor_id)
-        if uitdatabank_actor_id not in uitdatabank_actors:
-            uitdatabank_actors[uitdatabank_actor_id] = []
+    uitdatabank_created_by = detail_result.get("createdby", None)
+    logging.debug("uitdatabank_created_by: %s", uitdatabank_created_by)
+    uitdatabank_lastupdated_by = detail_result.get("lastupdatedby", None)
+    logging.debug("uitdatabank_lastupdated_by: %s", uitdatabank_lastupdated_by)
 
-        for organizer_sln_settings in uitdatabank_actors[uitdatabank_actor_id]:
+    if uitdatabank_created_by or uitdatabank_lastupdated_by:
+        if uitdatabank_created_by and uitdatabank_created_by not in uitdatabank_actors:
+            uitdatabank_actors[uitdatabank_created_by] = []
+        if uitdatabank_lastupdated_by and uitdatabank_lastupdated_by not in uitdatabank_actors:
+            uitdatabank_actors[uitdatabank_lastupdated_by] = []
+
+        origanizer_settings = []
+        if uitdatabank_created_by:
+            origanizer_settings.extend(uitdatabank_actors[uitdatabank_created_by])
+        if uitdatabank_lastupdated_by and uitdatabank_created_by != uitdatabank_lastupdated_by:
+            origanizer_settings.extend(uitdatabank_actors[uitdatabank_lastupdated_by])
+
+        logging.debug("len(origanizer_settings): %s", len(origanizer_settings))
+        for organizer_sln_settings in origanizer_settings:
             organizer_event_parent_key = parent_key(organizer_sln_settings.service_user, organizer_sln_settings.solution)
             organizer_event = Event.all().ancestor(organizer_event_parent_key).filter("source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
             if not organizer_event:

@@ -371,7 +371,7 @@ def create_mssu_product(legal_entity_id):
     p.price = 1000
     p.default_count = 12
     p.default = False
-    p.possible_counts = [12, 24, 36]
+    p.possible_counts = [6, 12, 24, 36]
     p.is_subscription = True
     p.is_subscription_discount = False
     p.module_set = 'STATIC_MODULES'
@@ -707,10 +707,10 @@ def create_suby_product(legal_entity_id):
 
 def create_news_product(legal_entity_id):
     p = Product(key_name=Product.PRODUCT_NEWS_PROMOTION)
-    p.price = 5000
+    p.price = 1
     p.default_count = 1
     p.default = False
-    p.possible_counts = [2, 4, 7]
+    p.possible_counts = []
     p.is_subscription = False
     p.organization_types = []
     p.product_dependencies = []

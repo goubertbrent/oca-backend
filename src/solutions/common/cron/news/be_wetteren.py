@@ -21,8 +21,6 @@ from lxml import html
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 
-from rogerthat.consts import DEBUG
-from rogerthat.rpc import users
 from solutions.common.cron.news import BROADCAST_TYPE_NEWS, transl, create_news_item
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionNewsScraperSettings

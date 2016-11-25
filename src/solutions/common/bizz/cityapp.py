@@ -52,7 +52,7 @@ def get_uitdatabank_events(city_app_profile, page, pagelength, changed_since=Non
               'pagelength' : pagelength }
     data = urllib.urlencode(values)
     logging.debug(url + data);
-    result = urlfetch.fetch(url + data)
+    result = urlfetch.fetch(url + data, deadline=60)
     r = json.loads(result.content)
 
     if not r:
@@ -71,7 +71,7 @@ def get_uitdatabank_events_detail(uitdatabank_key, cbd_id):
     values = {'key' : uitdatabank_key,
               'format' : "json" }
     data = urllib.urlencode(values)
-    result = urlfetch.fetch(url + data)
+    result = urlfetch.fetch(url + data, deadline=60)
     r = json.loads(result.content)
 
     if not isinstance(r, list):

@@ -195,7 +195,9 @@ def get_menu_item_qr_url(service_user, category_index, item_index):
             qr_template_id = qr_templates[0].id if qr_templates else None
             tag = {u'__rt__.tag': POKE_TAG_MENU_ITEM_IMAGE_UPLOAD,
                    u'category_name': category.name,
-                   u'item_name': item.name}
+                   u'item_name': item.name,
+                   u'category_id': category.id,
+                   u'item_id': item.id}
 
             def create_qr():
                 return qr.create(common_translate(get_solution_settings(service_user).main_language,
@@ -233,6 +235,8 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
     tag_dict = json.loads(tag)
     category_name = tag_dict['category_name']
     item_name = tag_dict['item_name']
+    category_id = tag_dict['category_id']
+    item_id = tag_dict['item_id']
 
     def create_error(message):
         result = MessageCallbackResultTypeTO()
@@ -247,12 +251,12 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
     def trans():
         sln_settings = get_solution_settings(service_user)
         menu = get_restaurant_menu(service_user, sln_settings.solution)
-        category = menu.categories[category_name]
+        category = menu.categories[category_id]
         if not category:
             return create_error(common_translate(sln_settings.main_language, SOLUTION_COMMON, u'category_not_found',
                                                  name=category_name))
         for item in category.items:
-            if item.name == item_name:
+            if item.id == item_id:
                 break
         else:
             return create_error(common_translate(sln_settings.main_language, SOLUTION_COMMON, u'item_not_found',

@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 # @@license_version:1.1@@
-import json
 
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns

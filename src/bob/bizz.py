@@ -29,12 +29,12 @@ from google.appengine.ext import db
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments, serialize_complex_value, parse_complex_value
 from rogerthat.bizz.app import validate_user_regex, AppAlreadyExistsException, get_app, add_auto_connected_services
-from rogerthat.bizz.branding import BrandingValidationException, store_branding_zip
+from rogerthat.bizz.branding import store_branding_zip
+from rogerthat.exceptions.branding import BrandingValidationException
 from rogerthat.bizz.job import run_job, hookup_with_default_services
 from rogerthat.bizz.qrtemplate import store_template
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import create_qr_template_key_name
-from rogerthat.consts import DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_default_app_key
 from rogerthat.dal.profile import get_profile_key, get_user_profile_keys_by_app_id
@@ -163,7 +163,7 @@ def create_app(app_id, app_name, app_type, facebook_registration_enabled, facebo
                  facebook_user_access_token, contact_email_address, user_regex, qr_templates_to,
                  default_qr_template_index, demo, beta, admin_services)
     if facebook_registration_enabled:
-        
+
         solution_server_settings = get_solution_server_settings()
         for user_id in solution_server_settings.bob_facebook_role_ids:
             role = FacebookRoleTO.create(user_id, FacebookRoleTO.ROLE_ADMINISTRATOR)

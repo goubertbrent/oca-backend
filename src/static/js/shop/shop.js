@@ -15,7 +15,7 @@
  *
  * @@license_version:1.1@@
  */
-
+'use strict';
 var TMPL_PROCESSING = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">'
     + '    <div class="modal-header">'
     + '        <h3 id="myModalLabel">${header}</h3>'
@@ -753,7 +753,7 @@ var showContacts = function (customerId, reload) {
 
 var showProspect = function (reload) {
     $('a[data-target="#tab-prospect"]').tab('show');
-    customerId = currentCustomer.id;
+    var customerId = currentCustomer.id;
     showRelevantButtons(TABTYPES.PROSPECT);
     // Load the prospect from remote, if necessary.
     if (currentCustomer.prospect && !reload) {
@@ -807,7 +807,7 @@ var showNewOrder = function () {
         $('button[data-sub]').unbind('click').click(function () {
             // Remove any previous selected items
             $('#new_order table tbody > tr').remove();
-            $this = $(this);
+            var $this = $(this);
             var sub = $this.attr('data-sub');
             currentSubscription = sub;
             $.each(products, function (i, p) {
@@ -841,16 +841,12 @@ var showNewOrder = function () {
                 }
                 else {
                     // No subscription yet.
-                    count = 12;
-                    if (currentSubscription == 'gold') {
-                        count *= 2;
-                    } else if (currentSubscription == 'platinum') {
-                        count *= 3;
-                    }
+                    count = getSubscriptionLength();
                 }
                 var comment = products.XCTY.default_comment;
                 var mode = 'new';
                 add_order_item(product, count, comment, mode);
+                recalc_totals();
             });
         });
         elemButtonActionExtraCities.unbind('click').click(function () {
@@ -867,20 +863,30 @@ var showNewOrder = function () {
                 }
                 else {
                     // No subscription yet.
-                    count = 12;
-                    if (currentSubscription == 'gold') {
-                        count *= 2;
-                    } else if (currentSubscription == 'platinum') {
-                        count *= 3;
-                    }
+                    count = getSubscriptionLength();
                 }
                 var comment = products.A3CT.default_comment;
                 var mode = 'new';
                 add_order_item(product, count, comment, mode);
+                recalc_totals();
             });
         });
     });
 };
+
+function getSubscriptionLength() {
+    var subscriptionLength = 1;
+    $('#new_order').find('table tbody > tr').each(function () {
+        var item = $(this).data('order_item');
+        if (item) {
+            var product = products[item.product];
+            if (product.is_subscription) {
+                subscriptionLength = item.count;
+            }
+        }
+    });
+    return subscriptionLength;
+}
 
 var fillContactsDropdown = function () {
     var select = $('#customer_form').find('#new_order_contact');

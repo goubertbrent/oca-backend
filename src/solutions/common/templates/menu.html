@@ -73,7 +73,7 @@
 				</div>
 				<div class="pull-right">
 					<div class="btn-group item-controls">
-						<button category_id="${category.id}" button_category_id="pre" class="btn"
+						<button category_id="${category.id}" button_category="pre" class="btn"
 								action="editCategoryDescription">
 							<i class="fa fa-edit"></i>
 						</button>
@@ -146,7 +146,7 @@
 				</div>
 				<div class="pull-right">
 					<div class="btn-group item-controls">
-						<button button_category_id="post" class="btn" category_id="${category.id}"
+						<button button_category="post" class="btn" category_id="${category.id}"
 								action="editCategoryDescription">
 							<i class="fa fa-edit"></i>
 						</button>
@@ -157,7 +157,7 @@
 	</tbody>
     {{if category.items.length >= 6 }}
     <tfoot>
-    <tr category_id="${category.name}">
+    <tr category_id="${category.id}">
         <td>
             <div class="pull-right" style="margin:0 8px 18px;">
                 <div class="btn-group category-controls">

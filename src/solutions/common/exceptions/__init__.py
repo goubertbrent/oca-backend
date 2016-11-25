@@ -14,3 +14,8 @@
 # limitations under the License.
 #
 # @@license_version:1.1@@
+from rogerthat.rpc.service import BusinessException
+
+
+class TranslatedException(BusinessException):
+    pass

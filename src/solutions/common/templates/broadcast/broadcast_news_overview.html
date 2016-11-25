@@ -1,45 +1,67 @@
 {% raw %}
-    <h2>${T('previous_news_items')}</h2>
-    <div style="position:relative;height:40px;">
-        <a href="#/broadcast/add" class="btn btn-success">
+    <div class="layout-row layout-align-space-between-center" style="margin-left: 8px;">
+        <h2>${T('previous_news_items')}</h2>
+        <a href="#/broadcast/add" class="md-button md-raised md-primary">
             <i class="fa fa-plus"></i> ${T('create_news')}
         </a>
     </div>
-    {{if !newsItems.length}}
-    <p>${T('no_previous_news_items')}</p>
-    {{else}}
-    <table class="table table-striped table-bordered">
-        <thead>
-        <tr>
-            <th class="span2">${T('Date')}</th>
-            <th class="span2">${T('Type')}</th>
-            <th class="span2">${T('promoted')}</th>
-            <th class="span5">${T('events-title')}</th>
-            <th class="span1"></th>
-        </tr>
-        </thead>
-        <tbody>
-        {{each(i, news) newsItems}}
-        <tr class="news_item table">
-            <td>
-                <span>${news.datetime}</span>
-            </td>
-            <td>${newsTypes[news.type]}</td>
-            <td>${T(news.sticky ? 'YES' : 'NO')}</td>
-            <td>
-                <a href="#/broadcast/edit/${news.id}">${news.title || news.qr_code_caption}</a>
-            </td>
-            <td>
-                <a href="#/broadcast/edit/${news.id}" class="btn btn-small btn-primary">
-                    <i class="fa fa-pencil-square-o"></i>
-                </a>
-            </td>
-        </tr>
-        {{/each}}
-        </tbody>
-    </table>
+    <div class="layout-column">
+        {{if !newsItems.length}}
+        <p>${T('no_previous_news_items')}</p>
+        {{else}}
+        {{each(i, newsItem) newsItems}}
+        <md-card class="news-card" id="news_item_${newsItem.id}">
+            <md-card-title>
+                <md-card-title-text class="card-title-text">
+                    <span class="md-headline">${newsItem.title || newsItem.qr_code_caption}</span>
+                    {{if newsItem.published}}
+                    <span class="md-subhead">${newsItem.broadcast_type} - ${newsItem.datetime}</span>
+                    {{else}}
+                    <span class="md-subhead">${newsItem.broadcast_type} - ${scheduledAt(newsItem.scheduled_at)}</span>
+                    {{/if}}
+                    <span class="card-title-text-right">${T(newsItem.sticky ? 'promoted' : 'not_promoted')}</span>
+                </md-card-title-text>
+            </md-card-title>
+            <md-card-content>
+                <div class="layout-row layout-align-space-between-center">
+                    <div class="layout-row layout-align-start-center card-stats-container">
+                        <div class="statistics_chip">
+                            <span>${T('broadcast-reach')}: ${newsItem.reach}</span>
+                        </div>
+                        <div class="statistics_chip">
+                            <span>${T('rogered')}: ${newsItem.users_that_rogered.length}</span>
+                        </div>
+                        <div class="statistics_chip">
+                            <span>${T('action')}: ${newsItem.action}</span>
+                        </div>
+                        <div class="statistics_chip">
+                            <span>${T('followed')}: ${newsItem.followed}</span>
+                        </div>
+                    </div>
+                    <div class="layout-align-end-center">
+                        {{if newsItem.published}}
+                        <a class="md-button show_more_stats_button md-raised" news_id="${newsItem.id}">
+                            ${T('show_statistics')}
+                        </a>
+                        {{/if}}
+                        <a href="#/broadcast/edit/${newsItem.id}" class="md-button md-raised">
+                            <i class="fa fa-pencil-square-o"></i> ${T('EDIT')}
+                        </a>
+                        {{if !newsItem.published}}
+                        <a news_id="${newsItem.id}" class="md-button md-warn delete_news_button md-raised" type="button">
+                            <i class="fa fa-times"></i> ${T('CANCEL')}
+                        </a>
+                        {{/if}}
+                    </div>
+                </div>
+                <div class="news_more_stats layout-column" id="show_more_stats_${newsItem.id}"
+                     style="display:none;"></div>
+            </md-card-content>
+        </md-card>
+    </div>
+    {{/each}}
     <div class="text_align_center">
-        <button type="button" id="load_more_news" class="btn btn-default">${T('Load more')}</button>
+        <button type="button" id="load_more_news" class="md-button md-primary">${T('Load more')}</button>
     </div>
     {{/if}}
 {% endraw %}

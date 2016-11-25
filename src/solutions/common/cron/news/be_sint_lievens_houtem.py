@@ -21,8 +21,6 @@ from xml.dom import minidom
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 
-from rogerthat.consts import DEBUG
-from rogerthat.rpc import users
 from solutions.common.cron.news import BROADCAST_TYPE_NEWS, transl, create_news_item, parse_html_content
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionNewsScraperSettings
@@ -60,7 +58,7 @@ def check_for_news(service_user):
             url = u'%s' % item.getElementsByTagName("link")[0].firstChild.nodeValue
             description_html = item.getElementsByTagName("description")[0].firstChild.nodeValue
 
-            message, mailtos, hrefs = parse_html_content(description_html)
+            message, _, _ = parse_html_content(description_html)
 
         except:
             logging.debug("title: %s", title)

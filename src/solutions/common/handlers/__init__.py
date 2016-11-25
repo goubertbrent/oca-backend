@@ -42,7 +42,7 @@ from shop.exceptions import CustomerNotFoundException
 from shop.models import Order
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending
+from solutions.common.bizz import broadcast_updates_pending, put_pdf_branding
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings
 from solutions.common.models import SolutionLogo, SolutionAvatar
 from solutions.common.models.static_content import SolutionStaticContent
@@ -187,8 +187,13 @@ class SolutionMainBrandingHandler(webapp2.RequestHandler):
 
         main_branding = get_solution_main_branding(service_user)
         with closing(ZipFile(StringIO(main_branding.blob))) as zip_file:
-            content = zip_file.read(page)
-
+            try:
+                content = zip_file.read(page)
+            except KeyError:
+                if page == 'avatar.jpg':
+                    self.abort(404)
+                else:
+                    raise
 
         if page == 'branding.html':
             doc = html.fromstring(content)
@@ -328,7 +333,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
                                                                         error=error))
                     return
 
-                branding_hash = system.store_pdf_branding(u"Static content pdf: %s" % icon_label, base64.b64encode(pdf_bytes)).id
+                branding_hash = put_pdf_branding(u"Static content pdf: %s" % icon_label, base64.b64encode(pdf_bytes)).id
 
             def trans():
                 if static_content_id:

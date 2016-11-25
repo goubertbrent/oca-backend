@@ -19,5 +19,6 @@ src/static/admin
 src/static/libs
 src/shop/admin/admin.min.html
 src/solution_server_settings/consts.py
+src/migrations/
 node_modules/
 npm-debug.log

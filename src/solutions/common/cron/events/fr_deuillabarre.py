@@ -76,14 +76,24 @@ def _get_event_details(url):
     try:
         start_time_str = _optional_xpath_text(tree, '//span[@class="ic-single-starttime"]')  # 09:00
         end_time_str = _optional_xpath_text(tree, '//span[@class="ic-single-endtime"]')  # 19:00
-        start_date_str = tree.xpath('//span[@class="ic-period-startdate"]')[0].text  # 19/05/2016
+        start_date_str = _optional_xpath_text(tree, '//span[@class="ic-single-startdate"]')  # 19/05/2016
+        if not start_date_str:
+            start_date_str = tree.xpath('//span[@class="ic-period-startdate"]')[0].text  # 19/05/2016
         end_date_str = _optional_xpath_text(tree, '//span[@class="ic-period-enddate"]')  # 21/05/2016
     except:
         try:
             start_date_str = tree.xpath('//span[@class="ic-single-next"]')[0].text
         except:
-            start_date_str = tree.xpath('//div[@id="icagenda"]//div[@class="ic-divCell ic-label"][text()="Date"]/../div[@class="ic-divCell ic-value"]')[0].text
-            start_and_end_time_str = _optional_xpath_text(tree, '//div[@id="icagenda"]//div[@class="ic-divCell ic-label"][text()="Date"]/../div[@class="ic-divCell ic-value"]/small')
+            start_date_str = None
+            for tmp_start_date_str in tree.xpath('//div[@id="icagenda"]//div[@class="details ic-details"]/text()'):
+                if "/" in tmp_start_date_str:
+                    start_date_str = tmp_start_date_str
+                    break
+
+            if not start_date_str:
+                raise Exception("Could not gues start date")
+
+            start_and_end_time_str = _optional_xpath_text(tree, '//div[@id="icagenda"]//div[@class="details ic-details"]/small')
             if start_and_end_time_str:
                 splitted_hours = start_and_end_time_str.split(' - ')
                 start_time_str = splitted_hours[0]
@@ -129,29 +139,23 @@ def _filter_chars(txt):
 def _process_events(service_user, page):
     sln_settings = get_solution_settings(service_user)
     if SolutionModule.AGENDA not in sln_settings.modules:
-        logging.error("check_for_events_in_fr_deuillabarre failed module found")
+        logging.error("check_for_events_in_fr_deuillabarre failed: module found")
         return
 
-    url = u"http://www.mairie-deuillabarre.fr/agenda/list?page=%s" % page
+    url = u"http://www.mairie-deuillabarre.fr/agenda?page=%s" % page
     response = urlfetch.fetch(url, deadline=60)
     if response.status_code != 200:
-        logging.error("Could not check for events in fr_deuillabarre.\n%s" % response.content)
+        logging.error("Could not check for events in fr_deuillabarre page %s.\n%s", page, response.content,
+                      _suppress=False)
         return
 
     tree = html.fromstring(response.content.decode("utf8"))
 
-    events = tree.xpath('//div[@id="icagenda"]//div[@class="ic-event ic-clearfix"]')
+    events = tree.xpath('//form[@id="icagenda-list"]//div[@class="event ic-event ic-clearfix"]')
     to_put = []
     for event in events:
-        tmp = event.getchildren()[0].getchildren()[1].getchildren()[0].getchildren()
-        if len(tmp) == 3:
-            h2_title, div_place = tmp[0], tmp[1]
-        elif len(tmp) == 2:
-            h2_title, div_place = tmp[0], None
-        else:
-            logging.error("Could not parse details in fr_deuillabarre.\n%s" % tmp)
-            continue
-
+        h2_title = event.getchildren()[1].getchildren()[0].getchildren()[0].getchildren()[0]
+        div_place = event.getchildren()[1].getchildren()[2]
 
         title = _filter_chars(h2_title.getchildren()[0].text)
         url = h2_title.getchildren()[0].xpath("@href")[0]

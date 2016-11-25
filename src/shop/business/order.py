@@ -21,6 +21,7 @@ import logging
 import dateutil
 
 from mcfw.rpc import returns, arguments
+from rogerthat.consts import DAY
 from rogerthat.rpc.service import BusinessException
 from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -71,7 +72,11 @@ def set_next_charge_date(customer_id, next_charge_date):
 def get_subscription_order_remaining_length(customer_id, subscription_order_number):
     subscription_order = Order.get(Order.create_key(customer_id, subscription_order_number))
     if subscription_order.next_charge_date:
-        next_charge_datetime = datetime.datetime.utcfromtimestamp(subscription_order.next_charge_date)
+        if subscription_order.next_charge_date == Order.NEVER_CHARGE_DATE:
+            next_charge_date = subscription_order.next_charge_date
+        else:
+            next_charge_date = subscription_order.next_charge_date + DAY * 14
+        next_charge_datetime = datetime.datetime.utcfromtimestamp(next_charge_date)
         timedelta = dateutil.relativedelta.relativedelta(next_charge_datetime, datetime.datetime.now())
         months_till_charge = timedelta.years * 12 + timedelta.months
         if months_till_charge < 1:

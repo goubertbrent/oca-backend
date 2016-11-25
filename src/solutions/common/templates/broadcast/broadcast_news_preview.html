@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <div class="news_content" id="news_content">
-                    <p class="news_message">${newsItem.message}</p>
+                    <p class="news_message">{{html htmlize(newsItem.message)}}</p>
                 </div>
                 <div class="news_read_more_text" id="news_read_more_text" style="display: none;">
                     <label class="read_more_trigger">
@@ -36,7 +36,7 @@
                 </div>
                 <div class="news_info">
                     <div class="news_reach">${T('broadcast-reach')}: <b>${reach}</b></div>
-                    <div class="news_label">[${newsItem.label}]</div>
+                    <div class="news_label">[${newsItem.broadcast_type}]</div>
                 </div>
                 <div class="news_bottom_row">
                     <span class="news_button">${T('Roger that')}</span>

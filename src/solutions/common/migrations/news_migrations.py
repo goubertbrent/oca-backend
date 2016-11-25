@@ -23,6 +23,7 @@ from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 
 from mcfw.cache import DSCache
+from mcfw.utils import chunks
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.news import put_news
 from rogerthat.bizz.service import re_index
@@ -30,7 +31,7 @@ from rogerthat.consts import DAY, MIGRATION_QUEUE
 from rogerthat.dal.profile import is_trial_service, get_service_profile
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
 from rogerthat.models import ServiceIdentity, FlowStatistics, App
-from rogerthat.models.news import NewsItem
+from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.to.news import NewsActionButtonTO
@@ -42,10 +43,13 @@ from rogerthat.utils.transactions import allow_transaction_propagation
 from solutions import SOLUTION_FLEX, SOLUTION_COMMON, translate
 from solutions.common.bizz.provisioning import get_default_language, get_and_complete_solution_settings, \
     get_and_store_main_branding, put_avatar_if_needed, populate_identity, provision_all_modules
+from solutions.common.dal import get_solution_settings
 from solutions.common.models import RestaurantMenu, SolutionSettings
 from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models import SolutionScheduledBroadcast
+from solutions.common.models.news import NewsCoupon
 from solutions.common.models.statistics import AppBroadcastStatistics
+from solutions.common.utils import limit_string
 from solutions.flex.bizz import DEFAULT_COORDS
 
 
@@ -72,6 +76,14 @@ def _migrate_menu(restaurant_menu_key):
         for item in category.items:
             if not item.id:
                 item.id = unicode(str(uuid.uuid4()))
+    menu.put()
+
+
+def _clear_qr_url_menu(restaurant_menu_key):
+    menu = RestaurantMenu.get(restaurant_menu_key)
+    for category in menu.categories:
+        for item in category.items:
+            item.qr_url = None
     menu.put()
 
 
@@ -133,15 +145,10 @@ def _create_news_item(message, service_identity, service_user, broadcast_type, u
         service_identity_user = si.service_identity_user
     if '\n' in message:
         split = message.splitlines()
-        title = split[0]
-        if len(title) > 80:
-            title = title[:77] + '...'
+        title = limit_string(split[0], NewsItem.MAX_TITLE_LENGTH)
         message = '\n'.join(split[1:])
-    elif len(message) > 80:
-        title = message[:77] + '...'
     else:
-        title = message
-        message = None
+        title = limit_string(message, NewsItem.MAX_TITLE_LENGTH)
     news_buttons = []
     if urls:
         for url in urls:
@@ -149,6 +156,9 @@ def _create_news_item(message, service_identity, service_user, broadcast_type, u
                 id_ = u'url'
                 caption = u'%s' % url['name']
                 action = u'%s' % url['url']
+                if len(caption) > NewsItem.MAX_BUTTON_CAPTION_LENGTH:
+                    sln_settings = get_solution_settings(service_user)
+                    caption = translate(sln_settings.main_language, SOLUTION_COMMON, u'read_more')
                 news_buttons.append(NewsActionButtonTO(id_, caption, action))
                 break
 
@@ -160,7 +170,7 @@ def _create_news_item(message, service_identity, service_user, broadcast_type, u
                     message=message,
                     image=None,
                     news_type=NewsItem.TYPE_NORMAL,
-                    label=broadcast_type,
+                    broadcast_type=broadcast_type,
                     news_buttons=news_buttons,
                     qr_code_content=None,
                     qr_code_caption=None,
@@ -174,6 +184,9 @@ def add_ids_to_menus():
     run_job(_get_all_restaurant_menu_keys, [], _migrate_menu, [],
             worker_queue=MIGRATION_QUEUE)
 
+def clear_qr_url_from_menus():
+    # Run this second
+    run_job(_get_all_restaurant_menu_keys, [], _clear_qr_url_menu, [], worker_queue=MIGRATION_QUEUE)
 
 def re_index_all_services():
     # Run this first
@@ -236,6 +249,15 @@ def _provision_without_publish(sln_settings_key):
 
 def clear_cache():
     deferred.defer(_clear_cache, _queue=MIGRATION_QUEUE)
+
+
+def nuke_news():
+    for keys in chunks(list(NewsItem.all(keys_only=True)), 200):
+        db.delete(keys)
+    for keys in chunks(list(NewsCoupon.all(keys_only=True)), 200):
+        db.delete(keys)
+    for keys in chunks(list(NewsItemImage.all(keys_only=True)), 200):
+        db.delete(keys)
 
 
 def _clear_cache():

@@ -130,8 +130,8 @@ var modules = {};
 {% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
                         <li menu="events"><a href="#" help="dafoHacdVAU">{% translate language, "common", "agenda" %}</a></li>
 {% endif %}
-{% if SolutionModule.BROADCAST in sln_settings.modules and not loyalty %}
-                        <li menu="broadcast"><a href="#/broadcast" help="MMvE7paS59k">{% translate language, "common", "Broadcast" %}</a></li>
+{% if SolutionModule.BROADCAST in sln_settings.modules %}
+                        <li menu="broadcast"><a href="#/broadcast" help="MMvE7paS59k">{% if news_enabled %}{% translate language, "common", "News & actions" %}{% else %}{% translate language, "common", "Broadcast" %}{% endif %}</a></li>
 {% endif %}
 {% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
                         <li menu="static_content"><a href="#" help="aBXQnE69UEE">{% translate language, "common", "static-content" %}</a></li>
@@ -277,7 +277,7 @@ var modules = {};
 {% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
     {%- include 'events.tmpl' %}
 {% endif %}
-{% if SolutionModule.BROADCAST in sln_settings.modules and not loyalty %}
+{% if SolutionModule.BROADCAST in sln_settings.modules %}
     {%- include 'broadcast.tmpl' %}
 {% endif %}
 {% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
@@ -318,6 +318,11 @@ var modules = {};
                             <li class="active" section="section_general"><a href="#/settings/general"
                                                                             help="5EQJZ12RZ9Q">{% translate language, "common", "settings-general" %}</a>
                             </li>
+                            {% if SolutionModule.CITY_APP in sln_settings.modules %}
+                                <li section="section_app_settings">
+                                    <a href="#/settings/app">{% translate language, 'common', 'app' %}</a>
+                                </li>
+                            {% endif %}
                             {% if SolutionModule.BILLING in sln_settings.modules %}
                                 <li section="section_billing"><a href="#" help="e76_LF0Haw8">{% translate language, "common", "Billing" %}</a></li>
                             {% endif %}
@@ -367,6 +372,9 @@ var modules = {};
                         <section id="section_general">
                             {% include 'settings.tmpl' %}
                         </section>
+                        {% if SolutionModule.CITY_APP in sln_settings.modules %}
+                            <section id="section_app_settings" style="display: none;"></section>
+                        {% endif %}
                         {% if SolutionModule.BILLING in sln_settings.modules %}
                             <section id="section_billing" style="display: none;">
                                 {% include 'billing_settings.tmpl' %}

@@ -16,26 +16,28 @@
 # @@license_version:1.1@@
 
 from google.appengine.ext import deferred, db
+
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import MIGRATION_QUEUE
-from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.models import SolutionSettings
 
 
-def job():
-    run_job(_get_agenda_solution_settings, [], _update_settings, [])
+def job(provision=True):
+    run_job(_get_agenda_solution_settings, [], _update_settings, [provision])
 
 
 def _get_agenda_solution_settings():
     return SolutionSettings.all(keys_only=True).filter("modules =", SolutionModule.AGENDA)
 
 
-def _update_settings(sln_settings_key):
+def _update_settings(sln_settings_key, provision):
     def trans():
         sln_settings = db.get(sln_settings_key)
         sln_settings.events_branding_hash = None
         sln_settings.put()
-        deferred.defer(common_provision, sln_settings.service_user, _queue=MIGRATION_QUEUE, _countdown=1,
-                       _transactional=True)
-    run_in_xg_transaction(trans)
+        if provision:
+            deferred.defer(common_provision, sln_settings.service_user, _queue=MIGRATION_QUEUE, _countdown=1,
+                           _transactional=True)
+
+    db.run_in_transaction(trans)

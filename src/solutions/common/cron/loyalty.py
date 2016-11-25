@@ -33,6 +33,7 @@ from mcfw.rpc import serialize_complex_value, returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_key_unsafe, put_and_invalidate_cache
+from rogerthat.dal.profile import get_profile_infos
 from rogerthat.models import Message
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging, system
@@ -60,6 +61,7 @@ from solutions.common.models.properties import SolutionUser
 from solutions.common.to import SolutionInboxMessageTO
 from solutions.common.to.loyalty import ExtendedUserDetailsTO
 from solutions.common.utils import create_service_identity_user_wo_default
+from rogerthat.rpc.users import set_user
 
 
 class LootLotteryCronHandler(webapp.RequestHandler):
@@ -171,12 +173,20 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
 
     azzert(slvl, "SolutionLoyaltyVisitLottery for app_user %s not found!" % winner)
 
-    user_detail = UserDetailsTO()
-    user_detail.email = slvl.app_user_info.email
-    user_detail.name = slvl.app_user_info.name
-    user_detail.language = slvl.app_user_info.language
-    user_detail.avatar_url = slvl.app_user_info.avatar_url
-    user_detail.app_id = slvl.app_user_info.app_id
+    if slvl.app_user_info:
+        user_detail = UserDetailsTO()
+        user_detail.email = slvl.app_user_info.email
+        user_detail.name = slvl.app_user_info.name
+        user_detail.language = slvl.app_user_info.language
+        user_detail.avatar_url = slvl.app_user_info.avatar_url
+        user_detail.app_id = slvl.app_user_info.app_id
+    else:
+        # XXX: don't use get_profile_infos
+        profile_info = get_profile_infos([slvl.app_user], allow_none_in_results=True)[0]
+        if not profile_info or profile_info.isServiceIdentity:
+            azzert(False, "profile_info for app_user %s not found!" % winner)
+        else:
+            user_detail = UserDetailsTO.fromUserProfile(profile_info)
 
     loot_datetime_tz = datetime.fromtimestamp(sln_loyalty_lottery.end_timestamp, pytz.timezone(sln_settings.timezone))
     loot_date_str = format_datetime(loot_datetime_tz, format='medium', locale=sln_settings.main_language or DEFAULT_LANGUAGE)
@@ -356,6 +366,7 @@ def _pick_city_wide_lottery_winner(service_user, sln_cwl_lottery_key):
         return
     else:
         winners_needed = sln_cwl.x_winners
+        logging.debug("winners_needed: %s", winners_needed)
         if len(possible_winners) < winners_needed:
             winners_needed = len(possible_winners)
 
@@ -381,18 +392,28 @@ def _pick_city_wide_lottery_winner(service_user, sln_cwl_lottery_key):
 
         azzert(slvl, "SolutionLoyaltyVisitLottery for app_user %s not found!" % winner)
 
-        eud = ExtendedUserDetailsTO()
-        eud.email = slvl.app_user_info.email
-        eud.name = slvl.app_user_info.name
-        eud.language = slvl.app_user_info.language
-        eud.avatar_url = slvl.app_user_info.avatar_url
-        eud.app_id = slvl.app_user_info.app_id
-        app_info = get_app_info_cached(eud.app_id)
+        if slvl.app_user_info:
+            eud = ExtendedUserDetailsTO()
+            eud.email = slvl.app_user_info.email
+            eud.name = slvl.app_user_info.name
+            eud.language = slvl.app_user_info.language
+            eud.avatar_url = slvl.app_user_info.avatar_url
+            eud.app_id = slvl.app_user_info.app_id
+        else:
+            # XXX: don't use get_profile_infos
+            profile_info = get_profile_infos([slvl.app_user], allow_none_in_results=True)[0]
+            if not profile_info or profile_info.isServiceIdentity:
+                continue
+            else:
+                eud = ExtendedUserDetailsTO.fromUserProfile(profile_info, None)
+
+        with set_user(service_user):
+            app_info = get_app_info_cached(eud.app_id)
         eud.app_name = app_info.name
         eud.public_key = None
         winners_info.append(eud)
 
-        winner_text = winner_text + "\n - %s (%s)" % (slvl.app_user_info.name, slvl.app_user_info.email)
+        winner_text = winner_text + "\n - %s (%s)" % (eud.name, eud.email)
 
     def trans():
         sln_cwl.pending = False

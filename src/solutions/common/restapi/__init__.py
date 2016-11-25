@@ -33,8 +33,10 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import InvalidValueException
+from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -101,6 +103,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
+from solution_server_settings import get_solution_server_settings
 
 
 @rest("/solutions/common/public/menu/load", "get", authenticated=False)
@@ -438,7 +441,10 @@ def rest_get_broadcast_options():
     extra_city_product_key = Product.create_key(Product.PRODUCT_EXTRA_CITY)
     to_get = (sln_settings_key, news_promotion_product_key, extra_city_product_key)
     sln_settings, news_promotion_product, extra_city_product = db.get(to_get)
-    session_ = users.get_current_session()
+
+    service_identity = users.get_current_session().service_identity or ServiceIdentity.DEFAULT
+    service_identity_user = create_service_identity_user(users.get_current_user(), service_identity)
+    si = get_service_identity(service_identity_user)
 
     def transl(key):
         try:
@@ -454,24 +460,21 @@ def rest_get_broadcast_options():
         broadcast_types.extend(abt_agenda.broadcast_types)
     news_promotion_product_to = ProductTO.create(news_promotion_product, sln_settings.main_language)
     extra_city_product_to = ProductTO.create(extra_city_product, sln_settings.main_language)
-    news_enabled = session_.shop
+    news_enabled = si.app_id in get_solution_server_settings().solution_apps_with_news
     customer = get_customer(service_user)
     remaining_length = 0
     sub_order = None
     can_order_extra_apps = True
-    has_signed_order = has_next_charge_date = False
+    has_signed_order = False
     if customer and customer.organization_type != OrganizationType.CITY:
         remaining_length, sub_order = get_subscription_order_remaining_length(customer.id,
                                                                               customer.subscription_order_number)
         has_signed_order = sub_order.status == Order.STATUS_SIGNED if sub_order else False
-        has_next_charge_date = sub_order.next_charge_date is not None
     else:
         can_order_extra_apps = False
 
     subscription_order_charge_date = None
-    # next_charge_date should *never* be None but due to a bug it is.
-    # TODO 12/10/2016: Remove 'and' statement after fixing orders without next_charge_date.
-    if has_signed_order and has_next_charge_date:
+    if has_signed_order:
         subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
                                                  locale=sln_settings.main_language)
     subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
@@ -579,13 +582,12 @@ def settings_publish_changes():
     try:
         common_provision(service_user)
         return RETURNSTATUS_TO_SUCCESS
-    except InvalidValueException, e:
+    except InvalidValueException as e:
         reason = e.fields.get('reason')
         property_ = e.fields.get('property')
         logging.warning("Invalid value for property %s: %s", property_, reason, exc_info=1)
         return ReturnStatusTO.create(False, reason or e.message)
-    except BusinessException, e:
-        logging.error(e.message, exc_info=1)
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -602,7 +604,7 @@ def _update_image(bizz_func, tmp_avatar_key, x1, y1, x2, y2):
     y2 = float(y2)
     try:
         bizz_func(service_user, tmp_avatar_key, x1, y1, x2, y2)
-    except Exception, e:
+    except Exception as e:
         logging.exception(e)
         return e.message
 
@@ -1303,7 +1305,7 @@ def repair_order_send_message(order_key, order_status, message):
 @rest("/common/sandwich/settings/load", "get", read_only_access=True)
 @returns(SandwichSettingsTO)
 @arguments()
-def load_sandwich_settings():
+def rest_load_sandwich_settings():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
 
@@ -1316,74 +1318,78 @@ def load_sandwich_settings():
 
 
 @rest("/common/sandwich/settings/save", "post")
-@returns(NoneType)
+@returns(SandwichSettingsTO)
 @arguments(sandwich_settings=SandwichSettingsTO)
 def save_sandwich_settings(sandwich_settings):
     """
     Args:
-        sandwich_settings (SandwichSettingsTO):
+        sandwich_settings (SandwichSettingsTO)
+    Returns:
+        sandwich_settings (SandwichSettingsTO)
     """
     service_user = users.get_current_user()
 
-    def trans():
-        sln_settings = get_solution_settings(service_user)
-        simple_members = get_members(SandwichSettingsTO)[1]
-        to_put = []
+    sln_settings = get_solution_settings(service_user)
+    simple_members = get_members(SandwichSettingsTO)[1]
+    to_put = []
 
-        if any(getattr(sandwich_settings, name) is not MISSING for name, _ in simple_members):
-            sandwich_settings_model = SandwichSettings.get_settings(service_user, sln_settings.solution)
-            if sandwich_settings.show_prices != MISSING:
-                sandwich_settings_model.show_prices = sandwich_settings.show_prices
-            if sandwich_settings.days != MISSING:
-                sandwich_settings_model.status_days = sandwich_settings.days
-            if sandwich_settings.from_ != MISSING:
-                sandwich_settings_model.time_from = sandwich_settings.from_
-            if sandwich_settings.till != MISSING:
-                sandwich_settings_model.time_until = sandwich_settings.till
-            if sandwich_settings.reminder_days != MISSING:
-                sandwich_settings_model.broadcast_days = sandwich_settings.reminder_days
-            if sandwich_settings.reminder_message != MISSING:
-                sandwich_settings_model.reminder_broadcast_message = sandwich_settings.reminder_message
-            if sandwich_settings.reminder_at != MISSING:
-                sandwich_settings_model.remind_at = sandwich_settings.reminder_at
-            if sandwich_settings.leap_time is not MISSING:
-                sandwich_settings_model.leap_time = sandwich_settings.leap_time
-            if sandwich_settings.leap_time_enabled is not MISSING:
-                sandwich_settings_model.leap_time_enabled = sandwich_settings.leap_time_enabled
-            if sandwich_settings.leap_time_type is not MISSING:
-                sandwich_settings_model.leap_time_type = sandwich_settings.leap_time_type
+    if any(getattr(sandwich_settings, name) is not MISSING for name, _ in simple_members):
+        sandwich_settings_model = SandwichSettings.get_settings(service_user, sln_settings.solution)
+        if sandwich_settings.show_prices != MISSING:
+            sandwich_settings_model.show_prices = sandwich_settings.show_prices
+        if sandwich_settings.days != MISSING:
+            sandwich_settings_model.status_days = sandwich_settings.days
+        if sandwich_settings.from_ != MISSING:
+            sandwich_settings_model.time_from = sandwich_settings.from_
+        if sandwich_settings.till != MISSING:
+            sandwich_settings_model.time_until = sandwich_settings.till
+        if sandwich_settings.reminder_days != MISSING:
+            sandwich_settings_model.broadcast_days = sandwich_settings.reminder_days
+        if sandwich_settings.reminder_message != MISSING:
+            sandwich_settings_model.reminder_broadcast_message = sandwich_settings.reminder_message
+        if sandwich_settings.reminder_at != MISSING:
+            sandwich_settings_model.remind_at = sandwich_settings.reminder_at
+        if sandwich_settings.leap_time is not MISSING:
+            sandwich_settings_model.leap_time = sandwich_settings.leap_time
+        if sandwich_settings.leap_time_enabled is not MISSING:
+            sandwich_settings_model.leap_time_enabled = sandwich_settings.leap_time_enabled
+        if sandwich_settings.leap_time_type is not MISSING:
+            sandwich_settings_model.leap_time_type = sandwich_settings.leap_time_type
 
-            to_put.append(sandwich_settings_model)
+        to_put.append(sandwich_settings_model)
 
-        def update(items, clazz):
-            for item in items:
-                if item.id == MISSING:
-                    clazz(parent=parent_key(service_user, sln_settings.solution), description=item.description,
-                          price=item.price, order=item.order).put()
-                else:
-                    item_model = clazz.get_by_id(item.id, parent_key(service_user, sln_settings.solution))
-                    if item.deleted:
-                        item_model.deleted = True
-                    else:
-                        item_model.description = item.description
-                        item_model.price = item.price
-                        item_model.order = item.order
-                    to_put.append(item_model)
+    has_new = False
 
-        if sandwich_settings.types != MISSING:
-            update(sandwich_settings.types, SandwichType)
-        if sandwich_settings.toppings != MISSING:
-            update(sandwich_settings.toppings, SandwichTopping)
-        if sandwich_settings.options != MISSING:
-            update(sandwich_settings.options, SandwichOption)
-        sln_settings.updates_pending = True
-        to_put.append(sln_settings)
-        put_in_chunks(to_put)
-        return sln_settings
+    def update(items, clazz):
+        has_new_items = False
+        # XXX: multiget
+        for item in items:
+            if item.id is MISSING:
+                item_model = clazz(parent=parent_key(service_user, sln_settings.solution))
+                has_new_items = True
+            else:
+                item_model = clazz.get_by_id(item.id, parent_key(service_user, sln_settings.solution))
+                if item.deleted:
+                    item_model.deleted = True
+            item_model.description = item.description
+            item_model.price = item.price
+            item_model.order = item.order
+            to_put.append(item_model)
+            return has_new_items
 
-    xg_on = db.create_transaction_options(xg=True)
-    sln_settings = db.run_in_transaction_options(xg_on, trans)
+    if sandwich_settings.types != MISSING:
+        has_new = has_new or update(sandwich_settings.types, SandwichType)
+    if sandwich_settings.toppings != MISSING:
+        has_new = has_new or update(sandwich_settings.toppings, SandwichTopping)
+    if sandwich_settings.options != MISSING:
+        has_new = has_new or update(sandwich_settings.options, SandwichOption)
+    sln_settings.updates_pending = True
+    to_put.append(sln_settings)
+    put_in_chunks(to_put)
+
     broadcast_updates_pending(sln_settings)
+    if has_new:
+        return rest_load_sandwich_settings()
 
 
 @rest("/common/sandwich/orders/load", "get", read_only_access=True)

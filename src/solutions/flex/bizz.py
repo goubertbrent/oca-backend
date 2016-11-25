@@ -19,12 +19,11 @@ import logging
 from types import NoneType
 import uuid
 
+from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceMenuDef
 from rogerthat.rpc import users
 from rogerthat.service.api import system
-from rogerthat.utils.transactions import allow_transaction_propagation
-from google.appengine.ext import db
-from mcfw.rpc import returns, arguments
+from rogerthat.utils.transactions import allow_transaction_propagation, run_in_xg_transaction
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import create_or_update_solution_service, SolutionModule, OrganizationType
@@ -102,8 +101,8 @@ DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_pa
 
 
 @returns(NoneType)
-@arguments(service_user=users.User)
-def provision(service_user):
+@arguments(service_user=users.User, transactional=bool)
+def provision(service_user, transactional=True):
     with users.set_user(service_user):
         default_lang = get_default_language()
         sln_settings = get_and_complete_solution_settings(service_user, SOLUTION_FLEX)
@@ -116,8 +115,11 @@ def provision(service_user):
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
 
-        xg_on = db.create_transaction_options(xg=True)
-        allow_transaction_propagation(db.run_in_transaction_options, xg_on, provision_all_modules, sln_settings, DEFAULT_COORDS, main_branding, default_lang)
+        if transactional:
+            allow_transaction_propagation(run_in_xg_transaction, provision_all_modules, sln_settings, DEFAULT_COORDS,
+                                          main_branding, default_lang)
+        else:
+            provision_all_modules(sln_settings, DEFAULT_COORDS, main_branding, default_lang)
 
         system.publish_changes()
         logging.info('Service populated!')

@@ -29,19 +29,18 @@ window.onload = function() {
             console.log("BACK pressed");
             var activePage = $.mobile.activePage.attr('id');
             var newPage = null;
-            if (activePage == null) {
-            } else if (activePage == "events") {
+            if (activePage == "events") {
             } else if (activePage == "detail") {
                 newPage = "events";
-            } else if (activePage == "broadcast") {
+            } else if (activePage === "broadcast") {
                 newPage = "events";
-            } else if (activePage == "calendars") {
+            } else if (activePage === "calendars") {
                 newPage = "events";
-            } else if (activePage == "guests") {
+            } else if (activePage === "guests") {
                 newPage = "detail";
             }
 
-            if (newPage == null) {
+            if (newPage === null) {
                 return false;
             }
             setTimeout(function() {
@@ -50,7 +49,7 @@ window.onload = function() {
             return true; // we handled the back press
         });
     });
-}; 
+};
 
 var events = null;
 var eventsDict = {};
@@ -124,7 +123,7 @@ var getAdminCalendars = function() {
             calendars.push(calendar.id);
         }
     });
-    return calendars; 
+    return calendars;
 };
 
 var padLeft = function(string, length, char) {
@@ -283,13 +282,18 @@ var hideEventRemovePopupOverlay = function() {
 
 var onRogerthatReady = function() {
     console.log("onRogerthatReady()");
+    var modules = rogerthat.service.data.settings.modules;
+    if (modules && modules.indexOf('broadcast') === -1) {
+        $('#broadcast-to-calendar').remove();
+    }
     rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
     rogerthat.callbacks.serviceDataUpdated(loadEvents);
 
     rogerthat.user.data.agenda = null;
-    if(rogerthat.user.data.calendar == undefined) {
+    if (!rogerthat.user.data.calendar) {
         rogerthat.user.data.calendar = {};
     }
+
 
     loadEvents();
 
@@ -471,13 +475,13 @@ var onRogerthatReady = function() {
 
         rogerthat.api.call("solutions.events.remind", paramsss, "");
     });
-    
+
     $(document).on("click", ".eventRemoveOptionSelector", function() {
         var shouldRemove = parseInt($(this).attr("delete"));
         if (shouldRemove == 1) {
             var event = $("#detail").data("event");
             removedEvents.push(event.id);
-            
+
             var eventRemoveParams = {
                     'eventId' : event.id
             };
@@ -505,7 +509,7 @@ var onRogerthatReady = function() {
         }
         guestsDict[event.id].your_status = status;
         guestsDict[event.id].include_details = 0;
-        
+
         if (status == 1) {
             guestsDict[event.id].guests_count_going += 1;
         } else if (status == 2) {
@@ -619,7 +623,7 @@ var onRogerthatReady = function() {
         var paramsss = JSON.stringify(broadcastParams);
         rogerthat.api.call("solutions.calendar.broadcast", paramsss, "");
     });
-    
+
     var eventGuestsClicked = function (status) {
         $.mobile.navigate( "#guests" , {transition: "slide"});
         var event = $("#detail").data("event");
@@ -649,11 +653,11 @@ var onRogerthatReady = function() {
     $(document).on("click", ".event-detail-guests-detail-not-going", function() {
         eventGuestsClicked(3);
     });
-    
+
     $(document).on("pagecontainershow", function () {
         var activePage = $.mobile.pageContainer.pagecontainer("getActivePage");
         var activePageId = activePage[0].id;
-        
+
         switch (activePageId) {
             case 'guests':
                 var event = $("#detail").data("event");
@@ -697,19 +701,19 @@ var htmlize = function(value) {
 
 var loadGuests = function(eventId) {
     var r = guestsDict[eventId];
-    
+
     $('input[name="radio-choice-guests"]').checkboxradio();
-    
+
     $('input[name="radio-choice-guests"][value="1"]').prop('checked', false).checkboxradio("refresh");
     $('input[name="radio-choice-guests"][value="2"]').prop('checked', false).checkboxradio("refresh");
     $('input[name="radio-choice-guests"][value="3"]').prop('checked', false).checkboxradio("refresh");
     if (r.your_status) {
         $('input[name="radio-choice-guests"][value="' + r.your_status + '"]').prop('checked', true).checkboxradio("refresh");
-    } 
+    }
     $("#event-detail-guests-count-going").text(r.guests_count_going);
     $("#event-detail-guests-count-maybe").text(r.guests_count_maybe);
     $("#event-detail-guests-count-not-going").text(r.guests_count_not_going);
-    
+
     $("#detail .event-detail-guests-loading").hide();
     $("#detail .event-detail-guests").show();
 
@@ -744,7 +748,7 @@ var loadGuestsDetails = function(eventId, status) {
     var listGoing = $("#guests-tabs-going ul");
     var listMaybe = $("#guests-tabs-maybe ul");
     var listNotGoing = $("#guests-tabs-not-going ul");
-    
+
     $.each(r.guests, function (i, guest) {
         var guestItem = createGuestDetailListItem(guest)
         if (guest.status == 1) {
@@ -767,7 +771,7 @@ var loadGuestsDetails = function(eventId, status) {
 var loadEvents = function() {
     if (rogerthat.service.data.solutionCalendars === undefined)
         return;
-    
+
     if (rogerthat.service.data.solutionCalendars.length > 1) {
         $("#events-footer").show();
     } else {
@@ -787,33 +791,33 @@ var loadEvents = function() {
         }
 
         if (rogerthat.user.data.calendar.disabled == undefined)
-            return eventIsInFuture
+            return eventIsInFuture;
         var isCalendarDisabled = $.inArray(event.calendar_id, rogerthat.user.data.calendar.disabled) > -1;
         return !isCalendarDisabled;
     });
-    
+
     $.each(events, function (i, event){
         var nextEvent = getNextStartAndEndTime(event, now, true);
         var nextEventDate = new Date(nextEvent.start.year, nextEvent.start.month - 1, nextEvent.start.day, nextEvent.start.hour, nextEvent.start.minute);
         event.tmp_date_epoch = nextEventDate.getTime();
     });
-    
+
     events.sort(function(a, b) {
         return a.tmp_date_epoch - b.tmp_date_epoch;
     });
-    
+
     calendarsDict = {};
     $.each(rogerthat.service.data.solutionCalendars, function (i, calendar) {
         calendarsDict[calendar.id] = calendar;
     });
 
     var adminCalendars = getAdminCalendars();
-    if (adminCalendars.length == 0){
-        $("#broadcast-to-calendar").hide();
+    if (adminCalendars.length === 0){
+    	$("#broadcast-to-calendar").hide();
     } else {
-        $("#broadcast-to-calendar").show();
+    	$("#broadcast-to-calendar").show();
     }
-
+    
     var eventsListview = $("#events-listview");
     eventsListview.empty();
     if (events.length == 0){
@@ -844,7 +848,7 @@ var loadEvents = function() {
                 eventsForDay = [];
             }
         }
-        
+
         previousDate = eventDate;
         eventsForDay.push({"event": event, "time": parseDateToEventDateFromTill(eventDate, eventDateEnd), "upcommingEvents": upcommingEvents});
         eventsDict[event.id] = event;
@@ -852,7 +856,7 @@ var loadEvents = function() {
     if ( eventsForDay.length > 0 ) {
         days.push({"date": parseDateToEventDate(previousDate), "events": eventsForDay});
     }
-    
+
     var html = $.tmpl(eventsTemplate, {
         days : days
     });
@@ -865,13 +869,13 @@ var eventsTemplate = '{{each(i, d) days}}'
     + '</li>'
     + '{{each(i, e) d.events}}'
     + '<li class="eventItem" event_id="${e.event.id}" onclick="">'
-    
+
     + '<a href="#detail" data-transition="slide" class="ui-btn ui-btn-icon-right ui-icon-carat-r">'
     + '<p class="ui-li-aside ui-li-desc" style="top: 0.3em;"><strong>${e.time}</strong></p>'
     + '<h2 class="ui-li-heading">${e.event.title}</h2>'
     + '<p class="ui-li-desc">${e.event.description}</p>'
     + '</a>'
-    
+
     + '</li>'
     + '{{/each}}'
     + '{{/each}}';

@@ -15,10 +15,10 @@
 #
 # @@license_version:1.1@@
 
+from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.utils.service import create_service_identity_user
-from mcfw.rpc import returns, arguments
 
 
 @returns(bool)
@@ -37,3 +37,17 @@ def create_service_identity_user_wo_default(service_user, service_identity):
         return service_user
     else:
         return create_service_identity_user(service_user, service_identity)
+
+
+def limit_string(string, limit):
+    """
+    Cuts off a string on last word instead of max chars and adds ellipsis at the end
+    Args:
+        string (unicode)
+        limit (int)
+    """
+    string = string.strip()
+    if len(string) > limit:
+        string = string[:limit - 3]
+        string = string.rsplit(' ', 1)[0] + '...'
+    return string

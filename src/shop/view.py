@@ -19,6 +19,7 @@ import base64
 from collections import namedtuple
 import csv
 from datetime import date, timedelta
+import datetime
 import json
 import logging
 import os
@@ -35,12 +36,12 @@ from google.appengine.api import urlfetch
 from google.appengine.api import users as gusers
 from google.appengine.ext import db, deferred, blobstore
 from google.appengine.ext.webapp import template, blobstore_handlers
+from googleapiclient.discovery import build
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
-from oauth2client.appengine import OAuth2Decorator
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
@@ -67,10 +68,10 @@ from shop.bizz import search_customer, create_or_update_customer, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
     put_prospect, put_regio_manager, is_admin, is_payment_admin, delete_regio_manager, \
     dict_str_for_audit_log, link_prospect_to_customer, list_history_tasks, put_hint, delete_hint, \
-    get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, STORE_MANAGER, put_surrounding_apps, \
+    get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, put_surrounding_apps, \
     get_all_news, put_news, remove_news, create_contact, create_order, export_customers_csv, put_service, update_contact, \
     put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
-    finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast
+    finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -117,18 +118,10 @@ from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 import webapp2
 from xhtml2pdf import pisa
 
-from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
-shopOauthDecorator = OAuth2Decorator(
-    client_id=SHOP_OAUTH_CLIENT_ID,
-    client_secret=SHOP_OAUTH_CLIENT_SECRET,
-    scope=u'https://www.googleapis.com/auth/calendar',
-    callback_path=u'/shop/oauth2callback',)
 
 
 @returns(ReturnStatusTO)
@@ -258,7 +251,16 @@ class BizzManagerHandler(webapp2.RequestHandler):
 class BizzAdminHandler(BizzManagerHandler):
     @shopOauthDecorator.oauth_required
     def get(self, *args, **kwargs):
-        credentials = shopOauthDecorator.credentials
+        credentials = shopOauthDecorator.credentials  # type: Credentials
+
+        http_auth = credentials.authorize(shopOauthDecorator.http())
+        calendar_service = build('calendar', 'v3', http=http_auth)
+        try:
+            now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+            calendar_service.events().list(calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
+        except Exception, e:
+            logging.error('An error occurred while loading events: %s', e)
+
         user = gusers.get_current_user()
         regiomanager = RegioManager.get(RegioManager.create_key(user.email()))
         # always save the latest credentials in the datastore.
@@ -1771,7 +1773,7 @@ def invite_prospect(prospect_key):
     prospect_interation.type = ProspectInteractions.TYPE_INVITE
     prospect_interation.timestamp = now()
     prospect_interation.put()
-    
+
     solution_server_settings = get_solution_server_settings()
 
     url = '%s?%s' % (TROPO_SESSIONS_URL, urllib.urlencode((('action', 'create'),

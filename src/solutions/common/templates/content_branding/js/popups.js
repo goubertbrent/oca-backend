@@ -43,11 +43,11 @@ var showQRScannedSelectPopupOverlay = function() {
             return;
         }
     }
-    
+
     var TMPL_TEXT = '<button style="float: left;" class="closeQrScannedSelectPopup square-btn ui-btn ui-btn-b ui-corner-all" onclick=""></button>';
     var TMPL_TEXT_RED = '<button style="float: left;" class="closeQrScannedSelectPopup square-btn ui-btn btn-red ui-corner-all" onclick=""></button>';
     $("#main #qr-scanned-select-popup-options").empty();
-    
+
     var a_1 =  $(TMPL_TEXT);
     a_1.text(Translations.ADD_LOYALTY_POINTS);
     a_1.attr("qr-scanned-select", "add");
@@ -181,7 +181,7 @@ var hideHelloPopupOverlay = function() {
     $("#main #hello-popup").popup("close");  // needs to be double for first close
     if (shouldDoubleClose)
         $("#main #hello-popup").popup("close");
-    
+
 };
 
 var showHelloPopupOverlay = function(helloMsg) {
@@ -189,7 +189,7 @@ var showHelloPopupOverlay = function(helloMsg) {
     isHelloPopupShown = true;
     $("#main #hello-popup .hello_msg").text(helloMsg);
     $("#main #hello-popup").popup("open", {positionTo: 'window'});
-    
+
     $('#main').trigger('create');
 };
 
@@ -225,7 +225,7 @@ var showTextPopupOverlay = function(textMsg, errorMsg, subMsg, canClose, isHtml)
     } else {
         $("#main #text-popup .error_msg").hide();
     }
-    
+
     if (subMsg != null) {
         $("#main #text-popup .sub_msg").show();
         if (isHtml) {
@@ -254,6 +254,7 @@ var showLoading = function(text) {
 };
 
 var hideLoading = function() {
+    console.log('hiding loading');
     $.mobile.loading('hide');
 };
 
@@ -264,7 +265,7 @@ $(document).on("touchend click", ".closeQrScannedSelectPopup", function(event) {
     event.preventDefault();
 
     var selected = $(this).attr("qr-scanned-select");
-    
+
     console.log("closeQrScannedSelectPopup selected: " + selected);
     if (selected == "add") {
         hideQRScannedSelectPopupOverlay(showAdd);
@@ -278,7 +279,7 @@ $(document).on("touchend click", ".closeQrScannedSelectPopup", function(event) {
 $(document).on("touchend click", ".closeErrorPopup", function(event) {
     event.stopPropagation();
     event.preventDefault();
-    
+
     var selected = $(this).attr("errorAction");
     console.log("closeErrorPopup selected: " + selected);
     hideErrorPopupOverlay(startScanningForQRCode);
@@ -287,7 +288,7 @@ $(document).on("touchend click", ".closeErrorPopup", function(event) {
 $(document).on("touchend click", ".closeTextPopup", function() {
     event.stopPropagation();
     event.preventDefault();
-    
+
     console.log("closeTextPopup");
     hideTextPopupOverlay(startScanningForQRCode);
 });
@@ -295,7 +296,7 @@ $(document).on("touchend click", ".closeTextPopup", function() {
 $(document).on("touchend click", ".closeHelloPopup", function() {
     event.stopPropagation();
     event.preventDefault();
-    
+
     console.log("closeHelloPopup");
     hideHelloPopupOverlay();
 });
@@ -308,7 +309,7 @@ $(document).on("touchend click", ".closeCoupleQRCodePopup", function(event) {
     console.log("closeCoupleQRCodePopup selected: " + selected);
     if (selected == "submit") {
         var input = $('#main #couple-qr-code-popup #email');
-        
+
         var re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         var ok = re.test(input.val().trim());
         if (!ok) {
@@ -316,21 +317,21 @@ $(document).on("touchend click", ".closeCoupleQRCodePopup", function(event) {
             $("#main #couple-qr-code-popup .error_msg").show();
             return;
         }
-        
+
         solutionsLoyaltyCoupleGuid = rogerthat.util.uuid();
         var tag = solutionsLoyaltyCoupleGuid;
-        
-        rogerthat.api.call("solutions.loyalty.couple", 
+
+        rogerthat.api.call("solutions.loyalty.couple",
                 JSON.stringify({
                         'timestamp': Math.floor(Date.now() / 1000),
                         'url' : currentScannedUrl,
                         'email' : input.val()
                 }),
                 tag);
-        
+
         hideCoupleQrCodePopupOverlay();
         showLoading(Translations.SAVING_DOT_DOT_DOT);
-        
+
         setTimeout(function(){
             if (tag == solutionsLoyaltyCoupleGuid) {
                 console.log("solutions.loyalty.couple timeout");
@@ -339,7 +340,7 @@ $(document).on("touchend click", ".closeCoupleQRCodePopup", function(event) {
                 showErrorPopupOverlay(Translations.INTERNET_SLOW_CONTINUE);
             }
         }, 15000);
-        
+
     } else {
         hideCoupleQrCodePopupOverlay(startScanningForQRCode);
     }

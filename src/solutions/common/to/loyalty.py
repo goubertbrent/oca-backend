@@ -182,6 +182,12 @@ class SolutionLoyaltyVisitTO(object):
 class ExtendedUserDetailsTO(UserDetailsTO):
     app_name = unicode_property('51')
 
+    @classmethod
+    def fromUserProfile(cls, user_profile, app_name):
+        to = super(ExtendedUserDetailsTO, cls).fromUserProfile(user_profile)
+        to.app_name = app_name
+        return to
+
 class LoyaltyCustomerPointsTO(object):
     user_details = typed_property('1', ExtendedUserDetailsTO, False)
     visits = typed_property('2', SolutionLoyaltyVisitTO, True)

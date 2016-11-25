@@ -50,8 +50,9 @@ from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import _get_location, timezone_offset, render_common_content, SolutionModule, \
-    get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, OrganizationType
+from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
+    get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, OrganizationType, \
+    put_branding
 from solutions.common.bizz.events import provision_events_branding, create_new_event_flows
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
@@ -62,7 +63,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS
 from solutions.common.bizz.reservation import put_default_restaurant_settings
-from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type
+from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_GRAM, UNIT_KG, SECONDS_IN_HOUR, \
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
@@ -157,15 +158,6 @@ def get_and_complete_solution_settings(service_user, solution):
         settings.search_enabled = False
         updated = True
 
-    if settings.address:
-        logging.info('Updating location')
-        try:
-            lat, lon = _get_location(settings.address)
-            settings.location = db.GeoPt(lat, lon)
-            updated = True
-        except:
-            logging.warning("Failed to resolve address: %s" % settings.address, exc_info=1)
-
     if updated:
         settings.put()
 
@@ -210,6 +202,8 @@ def get_and_store_main_branding(service_user):
                                 content = str(solution_logo.picture)
 
                         elif f_name == 'avatar.jpg':
+                            if not branding_settings.show_avatar:
+                                continue
                             solution_avatar = get_solution_avatar(service_user)
                             if solution_avatar:
                                 content = str(solution_avatar.picture)
@@ -225,7 +219,7 @@ def get_and_store_main_branding(service_user):
 
     if must_store_branding:
         logging.info('Storing MAIN branding')
-        main_branding.branding_key = system.store_branding(u'Main', base64.b64encode(str(main_branding.blob))).id
+        main_branding.branding_key = put_branding(u'Main', base64.b64encode(str(main_branding.blob))).id
         main_branding.branding_creation_time = now()
         main_branding.put()
     return main_branding
@@ -288,7 +282,7 @@ def get_and_store_content_branding(service_user, language):
                 zip_.writestr('img/osa_slide_overlay.png', get_loyalty_slide_footer())
 
             logging.info('Storing CONTENT branding')
-            loyalty_settings.branding_key = system.store_branding(u'Content', base64.b64encode(stream.getvalue())).id
+            loyalty_settings.branding_key = put_branding(u'Content', base64.b64encode(stream.getvalue())).id
             loyalty_settings.branding_creation_time = now()
             loyalty_settings.put()
 
@@ -444,6 +438,8 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
         except TypeError:
             timezone_offsets.append([0, now() + (DAY * 7 * 52 * 20), timezone_offset(sln_settings.timezone)])
             break
+        if t is None:
+            break
         timezone_offsets.append([int(time.mktime(start.timetuple())),
                                  int(time.mktime(t.activates.timetuple())),
                                  int(t.from_offset)])
@@ -475,7 +471,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
         params = urllib.urlencode(dict(q=address,
                 t=u"d"))
         address_url = u"https://maps.google.com/maps?%s" % params
-    app_data['settings'] = dict()
+    app_data['settings'] = {}
     app_data['settings']['app_name'] = default_app_name
     app_data['settings']['service_identity'] = service_identity or u"+default+"
     app_data['settings']['name'] = sln_i_settings.name
@@ -492,6 +488,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
         sln_i_settings.holiday_out_of_office_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
             'holiday-out-of-office')
     app_data['settings']['holidays']['out_of_office_message'] = xml_escape(sln_i_settings.holiday_out_of_office_message)
+    app_data['settings']['modules'] = sln_settings.modules
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
         if module in sln_settings.modules:
             get_app_data_func = MODULES_GET_APP_DATA_FUNCS[module]
@@ -1085,7 +1082,8 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
 
 
     if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY:
-        logging.info("Clearing LOYALY icon")
+        logging.info("Clearing LOYALTY icon")
+        _default_delete(sln_settings, current_coords)
         return []
 
     logging.info('Creating LOYALTY screen branding')
@@ -1437,9 +1435,9 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
     logging.info('Creating ORDER SANDWICH message flow')
     lang = sln_settings.main_language
     service_user = sln_settings.service_user
-    default_data = list()
+    default_data = []
     types = list(SandwichType.list(service_user, sln_settings.solution))
-    to_put = list()
+    to_put = []
     if not types:
         # Add some default data
         types.append(SandwichType(parent=parent_key(service_user, sln_settings.solution),
@@ -1491,6 +1489,8 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
         default_data.extend(options)
     else:
         options = list(SandwichOption.list(service_user, sln_settings.solution))
+
+    validate_sandwiches(sln_settings.main_language, types, toppings, options)
 
     sandwich_settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
 

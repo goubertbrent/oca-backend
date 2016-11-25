@@ -21,12 +21,11 @@ import os
 from babel import dates
 
 import jinja2
-from mcfw.properties import azzert
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG
-from rogerthat.models import App, ServiceIdentity
+from rogerthat.models import ServiceIdentity
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
 from rogerthat.service.api import system
@@ -36,7 +35,7 @@ from solution_server_settings import get_solution_server_settings
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
-from solutions import translate
+from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
@@ -96,9 +95,11 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                                  'broadcast_settings_list',
                                                                  'broadcast/broadcast_news',
                                                                  'broadcast/broadcast_news_overview',
-                                                                 'broadcast/broadcast_news_preview'],
+                                                                 'broadcast/broadcast_news_preview',
+                                                                 'broadcast/news_stats_row'],
                                SolutionModule.CITY_APP: ['associations/association',
-                                                         'associations/association_form'],
+                                                         'associations/association_form',
+                                                         'settings/app_settings'],
                                SolutionModule.CITY_VOUCHERS : ['city_vouchers/city_vouchers_list',
                                                                'city_vouchers/city_vouchers_transactions',
                                                                'city_vouchers/city_vouchers_qrcode_export_list',
@@ -172,7 +173,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         for tmpl in templates_to_get:
             templates[tmpl] = JINJA_ENVIRONMENT.get_template(tmpl + '.html').render(tmpl_params)
         templates = json.dumps(templates)
-        return templates;
+        return templates
 
     def _get_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
@@ -219,6 +220,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
         # only a shop user can update the loyalty type
         session_ = users.get_current_session()
         token = create_channel_for_current_session()
+        all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
+                            translations[SOLUTION_COMMON]['en']}
+        for key in COMMON_JS_KEYS:
+            all_translations[key] = translate(sln_settings.main_language, SOLUTION_COMMON, COMMON_JS_KEYS[key])
         if sln_settings.identities:
             if not session_.service_identity:
                 jinja_template = JINJA_ENVIRONMENT.get_template('locations.html')
@@ -230,6 +235,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                           'service_display_email': sln_settings.qualified_identifier or service_user.email().encode("utf-8"),
                           'service_user_email': service_user.email().encode("utf-8"),
                           'currency': sln_settings.currency,
+                          'translations': json.dumps(all_translations)
                           }
                 self.response.out.write(jinja_template.render(params))
                 return
@@ -302,6 +308,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'has_multiple_locations': True if sln_settings.identities else False,
                   'qr_codes': self._get_qr_codes(sln_settings, service_identity),
                   'SolutionModule': SolutionModule,
+                  'news_enabled': city_app_id in solution_server_settings.solution_apps_with_news,
                   'days': days,
                   'day_flags': day_flags,
                   'months': months,
@@ -333,7 +340,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                                        not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
                   'VAT_PCT': vat_pct,
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
-                  'LEGAL_ENTITY_CURRENCY': legal_entity_currency
+                  'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
+                  'translations': json.dumps(all_translations)
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

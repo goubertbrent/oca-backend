@@ -15,10 +15,13 @@
 #
 # @@license_version:1.1@@
 
-from rogerthat.utils import now
+import logging
+
 from google.appengine.ext import webapp, db
 from google.appengine.ext.deferred import deferred
+
 from mcfw.utils import chunks
+from rogerthat.utils import now
 from shop.models import Customer
 from solutions.common.models import SolutionInboxMessage, SolutionScheduledBroadcast
 from solutions.common.models.agenda import Event
@@ -83,6 +86,9 @@ def update_statistic():
                 statistics[customer.app_id] = stats
             else:
                 stats = statistics[customer.app_id]
+            if not service_email:
+                logging.error(u'Association customer %s(%d) has no service_email!', customer.name, customer.id)
+                continue
             stats.customer_emails.append(service_email)
 
             if service_email in broadcast_count_dict:

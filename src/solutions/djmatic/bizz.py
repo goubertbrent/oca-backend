@@ -26,12 +26,13 @@ from google.appengine.api import urlfetch, urlfetch_errors
 from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.branding import is_branding, BrandingValidationException, TYPE_APP
+from rogerthat.bizz.branding import is_branding, TYPE_APP
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import BrandingNotFoundException
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import QR_TEMPLATE_BLACK_HAND
 from rogerthat.dal import put_and_invalidate_cache
+from rogerthat.exceptions.branding import BrandingValidationException
 from rogerthat.models import ServiceTranslation, ServiceMenuDef
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
@@ -40,7 +41,8 @@ from rogerthat.utils import generate_random_key, now
 from rogerthat.utils.zip_utils import rename_file_in_zip_blob
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import create_solution_service, find_qr_template, SolutionModule, SolutionServiceMenuItem
+from solutions.common.bizz import create_solution_service, find_qr_template, SolutionModule, SolutionServiceMenuItem, \
+    put_branding
 from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_WHEN_WHERE, POKE_TAG_MENU, POKE_TAG_EVENTS, \
     POKE_TAG_NEW_EVENT
 from solutions.common.bizz.provisioning import get_and_store_main_branding, get_default_translations, get_and_complete_solution_settings, populate_identity, provision_all_modules, \
@@ -117,7 +119,7 @@ def put_djmatic_jukebox(sln_settings, current_coords, main_branding, default_lan
         jb_app_branding = get_jukebox_app_branding()
         azzert(jb_app_branding, "No JukeboxAppBranding found!")
         jb_branding_content = base64.b64encode(StringIO(jb_app_branding.blob).read())
-        jukebox_branding_hash = system.store_branding(u"Jukebox App", jb_branding_content).id
+        jukebox_branding_hash = put_branding(u"Jukebox App", jb_branding_content).id
         djmatic_profile.jukebox_branding_hash = jukebox_branding_hash
         djmatic_profile.put()
 

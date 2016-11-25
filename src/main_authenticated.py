@@ -32,7 +32,7 @@ from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, Loyalty
     LoyaltySlideOverlayHandler, ExportLoyaltyHandler
 import solutions.common.restapi.associations
 import solutions.common.restapi.billing
-import solutions.common.restapi.city_vouchers 
+import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
 import solutions.common.restapi.discussion_groups
 import solutions.common.restapi.hints

@@ -64,48 +64,48 @@ var onRogerthatReady = function() {
     cameraType = rogerthat.camera.FRONT;
     var serviceEmail = rogerthat.service.account;
     var userEmail = rogerthat.user.account;
-    
+
     console.log("onRogerthatReady()");
     console.log("OSA Loyalty ADMIN v1.0.6");
     console.log("LOYALTY_TYPE: " + LOYALTY_TYPE);
     console.log("service_email: " + serviceEmail);
     console.log("user_email: " + userEmail);
     console.log("Language: " + language);
-    
+
     console.log("rogerthat.system.os: " + rogerthat.system.os);
     shouldDoubleClose = rogerthat.system.os !== "android";
-    
+
     $(document).on("touchend click", "#open_dashboard", function (event) {
         event.stopPropagation();
         event.preventDefault();
         if (isBacklogConnected) {
             console.log("Going to dashboard ...");
-            window.location = $(this).attr("open_url") + "&si=" + encodeURIComponent(rogerthat.service.data.settings.service_identity); 
+            window.location = $(this).attr("open_url") + "&si=" + encodeURIComponent(rogerthat.service.data.settings.service_identity);
         } else {
             showErrorPopupOverlay(Translations.NO_INTERNET_CONNECTION);
         }
     });
-    
+
     $(document).on("touchend click", "#open_website", function (event) {
         event.stopPropagation();
         event.preventDefault();
         if (isBacklogConnected) {
             console.log("Going to website ...");
-            window.location = $(this).attr("open_url"); 
+            window.location = $(this).attr("open_url");
         } else {
             showErrorPopupOverlay(Translations.NO_INTERNET_CONNECTION);
         }
     });
-    
+
     setLoyaltySettings();
-    
+
     var onReceivedApiResult = function(method, result, error, tag){
         console.log("onReceivedApiResult");
         console.log("method: " + method);
         console.log("result: " + result);
         console.log("error: " + error);
         console.log("tag: " + tag);
-        
+
         if (method == "solutions.loyalty.load") {
             if (solutionsLoyaltyLoadGuid == null || tag == null) {
                 return;
@@ -335,14 +335,14 @@ var onRogerthatReady = function() {
             }
         }
     };
-    
+
     rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
-    
+
     rogerthat.callbacks.serviceDataUpdated(function () {
         console.log("rogerthat.callbacks.serviceDataUpdated");
         setLoyaltySettings();
     });
-    
+
     rogerthat.callbacks.userDataUpdated(function () {
         console.log("rogerthat.callbacks.userDataUpdated");
         setTabletFunctions();
@@ -351,13 +351,13 @@ var onRogerthatReady = function() {
         console.log("userDataUpdated startScanningForQRCode");
         startScanningForQRCode();
     });
-    
+
     rogerthat.callbacks.qrCodeScanned(function(result) {
         console.log("rogerthat.callbacks.qrCodeScanned");
         console.log(result.status);
         console.log(result.content);
         var now_ = Math.floor(Date.now() / 1000);
-        
+
         if (result.status == "resolving") {
             playSound('sound/scanned.mp3');
             showLoading(Translations.LOADING_USER_INFO);
@@ -408,7 +408,7 @@ var onRogerthatReady = function() {
                     			'url' : result.content
                     		}),
                     		tag);
-                    
+
                     setTimeout(function(){
                         if (tag == solutionsVoucherResolveGuid) {
                             console.log("solutions.voucher.resolve timeout");
@@ -424,7 +424,7 @@ var onRogerthatReady = function() {
             }
         }
     });
-    
+
     rogerthat.callbacks.onBackendConnectivityChanged(function(connected) {
         console.log("rogerthat.callbacks.onBackendConnectivityChanged");
         console.log("connected: " + connected);
@@ -432,9 +432,9 @@ var onRogerthatReady = function() {
         isBacklogConnected = !!connected;
         updateBacklogConnectedVisibility();
     });
-    
+
     setTabletFunctions();
-    
+
     setTimeout(function(){
         setPendingNotifications();
         setSlides();
@@ -465,7 +465,9 @@ function processQRContent(json) {
             hideLoading();
             showErrorPopupOverlay(Translations.UNKNOWN_QR_CODE_SCANNED);
         } else if (checkInternetConnection()) {
+            showLoading(Translations.loading_coupon);
             modules.coupons.resolveCoupon(json.c, json.u, function (data) {
+                hideLoading();
                 modules.coupons.processCouponResolved(json.c, json.u, data);
             });
         }

@@ -15,20 +15,22 @@
 #
 # @@license_version:1.1@@
 
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 from types import NoneType
 
 import pytz
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from google.appengine.ext.blobstore import BlobInfo
+from google.appengine.ext.deferred import PermanentTaskFailure
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
+from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message, ServiceIdentity
@@ -85,7 +87,6 @@ from solutions.common.dal import get_solution_main_branding, get_solution_settin
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
-
 
 POKE_TAG_APPOINTMENT = u"__sln__.appointment"
 POKE_TAG_ASK_QUESTION = u"__sln__.question"
@@ -367,6 +368,7 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
     result.value.form.widget.max_chars = 500
     result.value.form.widget.place_holder = u''
     result.value.form.widget.value = u''
+    result.value.form.widget.auto_complete()
 
     result.value.message = common_translate(user_details[0].language, SOLUTION_COMMON, u'inbox-forwarding-reply-to') % {
                     'if_name': user_details[0].name,
@@ -661,8 +663,8 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
 
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     members = [MemberTO.from_user(users.User(f)) for f in sln_i_settings.inbox_forwarders]
+    inbox_forwarders = list(members)
     if not reply_enabled:
-        inbox_forwarders = list(members)
         while inbox_forwarders:
             users.set_user(service_user)
             try:
@@ -677,13 +679,23 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                                service_identity=service_identity,
                                attachments=attachments)
                 break
-            except CanOnlySendToFriendsException, e:
+            except CanOnlySendToFriendsException as e:
                 logging.exception('Tried to forward inbox message to a non-friend: %s', e.fields)
-                for mto in inbox_forwarders:
-                    if mto.member == e.fields['member'] and mto.app_id == e.fields['app_id']:
-                        inbox_forwarders.remove(mto)
+                for member in inbox_forwarders:
+                    if member.member == e.fields['member'] and member.app_id == e.fields['app_id']:
+                        inbox_forwarders.remove(member)
                         break
+                else:
+                    raise PermanentTaskFailure('Non-friend not found in members. Should never happen.')
                 sln_i_settings.inbox_forwarders.remove(create_app_user_by_email(e.fields['member'], e.fields['app_id']).email())
+            except InvalidAppIdException as e:
+                logging.warn(e)
+                app_id = e.fields['app_id']
+                for member in inbox_forwarders:
+                    if member.app_id == app_id:
+                        inbox_forwarders.remove(member)
+                        sln_i_settings.inbox_forwarders.remove(
+                            create_app_user_by_email(member.member, member.app_id).email())
             finally:
                 users.clear_user()
                 if inbox_forwarders != members:
@@ -708,15 +720,29 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                 metadata.append(KeyValueTO.create(common_translate(sln_settings.main_language, SOLUTION_COMMON, "Date"),
                                                   "%s %s" % (msg_params['if_date'], msg_params['if_time'])))
                 avatar = system.get_avatar()
-                message.message_key = messaging.start_chat(list(set(members)),
-                                                           common_translate(sln_settings.main_language, SOLUTION_COMMON, message.chat_topic_key),
-                                                           "%s <%s>" % (msg_params['if_name'], msg_params['if_email']),
-                                                           service_identity=service_identity,
-                                                           tag=tag,
-                                                           flags=flags,
-                                                           metadata=metadata,
-                                                           avatar=avatar,
-                                                           default_sticky=True)
+                try:
+                    message.message_key = messaging.start_chat(list(set(members)),
+                                                               common_translate(sln_settings.main_language, SOLUTION_COMMON, message.chat_topic_key),
+                                                               "%s <%s>" % (msg_params['if_name'], msg_params['if_email']),
+                                                               service_identity=service_identity,
+                                                               tag=tag,
+                                                               flags=flags,
+                                                               metadata=metadata,
+                                                               avatar=avatar,
+                                                               default_sticky=True)
+                except InvalidAppIdException as e:
+                    app_id = e.fields['app_id']
+                    for member in inbox_forwarders:
+                        if member.app_id == app_id:
+                            inbox_forwarders.remove(member)
+                            sln_i_settings.inbox_forwarders.remove(
+                                create_app_user_by_email(member.member, member.app_id).email())
+
+                    if inbox_forwarders != members:
+                        sln_i_settings.put()
+
+                    raise
+
                 if sender_member:
                     message.awaiting_first_message = True
                 message.put()

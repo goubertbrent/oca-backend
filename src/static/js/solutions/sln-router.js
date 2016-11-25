@@ -61,27 +61,6 @@ function routingHandler(hash) {
             case 'news':
                 showNews();
                 break;
-            case 'associations':
-                topMenuElement.find('[menu=associations] a').click();
-
-                getAssociations(function () {
-                    switch (hash[1]) {
-                        case 'add':
-                            renderAssociationsForm(hash[1]);
-                            break;
-                        case 'edit':
-                            if (!hash[2]) {
-                                window.location.hash = '#/associations';
-                            } else {
-                                renderAssociationsForm(hash[1], hash[2]);
-                            }
-                            break;
-                        default:
-                            renderAssociationsList();
-                            break;
-                    }
-                });
-                break;
             case 'loyalty':
             	if (currentLoyaltyType > 0) {
             		if (currentLoyaltyType == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
