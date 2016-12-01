@@ -5,7 +5,7 @@
   "main": "gulpfile.js",
   "repository": {
     "type": "git",
-    "url": "git@gitlab.mobicage.com:rogerthat/appengine.git"
+    "url": "git@github.com:our-city-app/oca-backend.git"
   },
   "author": "",
   "devDependencies": {
