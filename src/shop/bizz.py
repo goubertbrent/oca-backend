@@ -510,9 +510,9 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
                 extra_apps_count += 1
             elif item.product == Product.PRODUCT_ACTION_3_EXTRA_CITIES:
                 extra_apps_count += 3
-            if item.product in ['MSSU', Product.PRODUCT_FREE_PRESENCE]:
+            if item.product in ['MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE]:
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
-            elif item.product == 'MSUP':
+            elif item.product in ['MSUP', 'SUBX']:
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
             elif item.product == 'LOYA' or item.product == 'LSUP':
                 customer.has_loyalty = True
