@@ -20,14 +20,16 @@ from mcfw.properties import unicode_property, bool_property
 
 class CityAppProfileTO(object):
     uitdatabank_enabled = bool_property('0')
-    uitdatabank_key = unicode_property('1')
-    uitdatabank_region = unicode_property('2')
-    gather_events = bool_property('3')
+    uitdatabank_secret = unicode_property('1')
+    uitdatabank_key = unicode_property('2')
+    uitdatabank_region = unicode_property('3')
+    gather_events = bool_property('4')
 
     @staticmethod
     def from_model(model):
         to = CityAppProfileTO()
         to.uitdatabank_enabled = model.uitdatabank_enabled
+        to.uitdatabank_secret = model.uitdatabank_secret
         to.uitdatabank_key = model.uitdatabank_key
         to.uitdatabank_region = model.uitdatabank_region
         to.gather_events = model.gather_events_enabled

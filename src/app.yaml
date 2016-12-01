@@ -80,7 +80,7 @@ handlers:
 - url: /unauthenticated/osa/.*
   script: main_unauthenticated.app
   secure: always
-
+  
 admin_console:
   pages:
   - name: OSA Launcher

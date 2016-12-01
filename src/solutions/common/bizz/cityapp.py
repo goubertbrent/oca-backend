@@ -15,10 +15,14 @@
 #
 # @@license_version:1.1@@
 
+from hashlib import sha1
+from hmac import new as hmac
 import json
 import logging
+from random import getrandbits
 import time
 from types import NoneType
+from urllib import quote as urlquote
 import urllib
 
 from google.appengine.api import urlfetch
@@ -30,19 +34,28 @@ from solutions.common.models.cityapp import CityAppProfile
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
-def save_cityapp_settings(service_user, uitdatabank_key, uitdatabank_region, gather_events):
+@arguments(service_user=users.User, uitdatabank_secret=unicode, uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
+def save_cityapp_settings(service_user, uitdatabank_secret, uitdatabank_key, uitdatabank_region, gather_events):
     def trans():
-        settings = get_cityapp_profile(service_user)
-        settings.uitdatabank_key = uitdatabank_key
-        settings.uitdatabank_region = uitdatabank_region
-        settings.gather_events_enabled = gather_events
-        settings.put()
+        cap = get_cityapp_profile(service_user)
+        cap.uitdatabank_secret = uitdatabank_secret
+        cap.uitdatabank_key = uitdatabank_key
+        cap.uitdatabank_region = uitdatabank_region
+        cap.gather_events_enabled = gather_events
+        cap.put()
     run_in_transaction(trans, False)
 
 @returns(tuple)
 @arguments(city_app_profile=CityAppProfile, page=(int, long), pagelength=(int, long), changed_since=(int, long, NoneType))
 def get_uitdatabank_events(city_app_profile, page, pagelength, changed_since=None):
+    if city_app_profile.uitdatabank_secret:
+        return _get_uitdatabank_events_v2(city_app_profile, page, pagelength)
+    return _get_uitdatabank_events_old(city_app_profile, page, pagelength, changed_since)
+
+
+@returns(tuple)
+@arguments(city_app_profile=CityAppProfile, page=(int, long), pagelength=(int, long), changed_since=(int, long, NoneType))
+def _get_uitdatabank_events_old(city_app_profile, page, pagelength, changed_since=None):
     url = "http://build.uitdatabank.be/api/events/search?"
     values = {'key' : city_app_profile.uitdatabank_key,
               'format' : "json",
@@ -66,18 +79,70 @@ def get_uitdatabank_events(city_app_profile, page, pagelength, changed_since=Non
     return True, r
 
 
-def get_uitdatabank_events_detail(uitdatabank_key, cbd_id):
-    url = "http://build.uitdatabank.be/api/event/%s?" % cbd_id
-    values = {'key' : uitdatabank_key,
-              'format' : "json" }
-    data = urllib.urlencode(values)
-    result = urlfetch.fetch(url + data, deadline=60)
-    r = json.loads(result.content)
+@returns(tuple)
+@arguments(city_app_profile=CityAppProfile, page=(int, long), pagelength=(int, long))
+def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
 
-    if not isinstance(r, list):
-        event = r.get("event")
-        if event is not None:
-            return True, event
-    elif "error" in r[0]:
+    def encode(text):
+        return urlquote(str(text), "~")
+
+    secret = city_app_profile.uitdatabank_secret.encode("utf8")
+    key = city_app_profile.uitdatabank_key.encode("utf8")
+    city = city_app_profile.uitdatabank_region.encode("utf8")
+
+    url = "https://www.uitid.be/uitid/rest/searchv2/search"
+    headers = {}
+
+    params = {
+        "oauth_consumer_key": key,
+        "oauth_timestamp": str(int(time.time())),
+        "oauth_nonce": str(getrandbits(64)),
+        "oauth_signature_method": "HMAC-SHA1",
+        "oauth_version": "1.0",
+    }
+
+    url_params = {"q": "city:%s" % city,
+                  "rows": pagelength,
+                  "start": (page - 1) * pagelength,
+                  "datetype": "next3months",
+                  "group": "event"}
+    params.update(url_params)
+
+    for k, v in params.items():
+        if isinstance(v, unicode):
+            params[k] = v.encode('utf8')
+
+    params_str = "&".join(["%s=%s" % (encode(k), encode(params[k]))
+                                                 for k in sorted(params)])
+
+    base_string = "&".join(["GET", encode(url), encode(params_str)])
+
+    signature = hmac("%s&" % secret, base_string, sha1)
+    digest_base64 = signature.digest().encode("base64").strip()
+    params["oauth_signature"] = encode(digest_base64)
+    headers['Accept'] = "application/json"
+    headers['Authorization'] = 'OAuth oauth_consumer_key="%s",oauth_signature_method="%s",oauth_timestamp="%s",oauth_nonce="%s",oauth_version="1.0",oauth_signature="%s"' % (
+         encode(params['oauth_consumer_key']),
+         encode(params['oauth_signature_method']),
+         encode(params['oauth_timestamp']),
+         encode(params['oauth_nonce']),
+         params["oauth_signature"])
+
+    data = urllib.urlencode(url_params)
+    url = "%s?%s" % (url, data)
+    logging.debug(url);
+    result = urlfetch.fetch(url, headers=headers, deadline=30)
+    if result.status_code != 200:
+        return False, "Make sure your credentials are correct."
+
+    r = json.loads(result.content)["rootObject"]
+
+    if "error" in r[0]:
         return False, r[0]["error"]
-    return False, "Unknown error occurred"
+
+    event_count = r[0]["Long"]
+    if event_count == 0:
+        if page != 1:
+            return True, []
+        return False, "0 upcoming events. Make sure your region is correct."
+    return True, [e["event"] for e in r[1:]]

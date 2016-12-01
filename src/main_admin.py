@@ -29,8 +29,9 @@ from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.broadcast import CleanUpSolutionTempBlobs
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler
 from solutions.common.cron.events import SolutionEventsScraper
-from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, CityAppSolutionEventsUitdatabank, \
+from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
     SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, CityAppSolutionGatherEvents
+from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler

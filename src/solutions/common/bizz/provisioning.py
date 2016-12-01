@@ -595,12 +595,6 @@ def get_app_data_loyalty(sln_settings, service_identity):
 def get_app_data_sandwich_bar(sln_settings, service_identity):
     service_user = sln_settings.service_user
     sandwich_settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
-    if not sandwich_settings:
-        sandwich_settings = SandwichSettings(key_name=service_user.email(),
-                                             parent=parent_key(service_user, sln_settings.solution))
-        sandwich_settings.reminder_broadcast_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                                        u'order-sandwich-reminder-message')
-        sandwich_settings.put()
     return {
         'sandwich_settings': {
             'status_days': sandwich_settings.status_days,

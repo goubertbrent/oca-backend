@@ -27,6 +27,7 @@ class CityAppProfile(db.Model):
 
     uitdatabank_last_query = db.IntegerProperty(indexed=False)
     uitdatabank_enabled = db.BooleanProperty(indexed=True, default=False)
+    uitdatabank_secret = db.StringProperty(indexed=False)
     uitdatabank_key = db.StringProperty(indexed=False)
     uitdatabank_region = db.StringProperty(indexed=False)
 

@@ -1850,7 +1850,7 @@ $(function () {
                         }
                     } else {
                         text = T('news_item_scheduled_for_datetime', {
-                            datetime: sln.format(new Date(result.scheduled_at) * 1000)
+                            datetime: sln.format(new Date(result.scheduled_at * 1000))
                         });
                     }
                     sln.alert(text, gotoNewsOverview);

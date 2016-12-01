@@ -27,6 +27,8 @@ UNIT_DAY = 7
 UNIT_PERSON = 8
 UNIT_SESSION = 9
 UNIT_PLATTER = 10
+UNIT_WEEK = 11
+UNIT_MONTH = 12
 # values are the translation keys
 UNITS = {
     UNIT_PIECE: 'piece',
@@ -36,6 +38,8 @@ UNITS = {
     UNIT_HOUR: 'hour',
     UNIT_MINUTE: 'minute',
     UNIT_DAY: 'day',
+    UNIT_WEEK: 'week',
+    UNIT_MONTH: 'month',
     UNIT_PERSON: 'person',
     UNIT_SESSION: 'session',
     UNIT_PLATTER: 'platter'
@@ -50,6 +54,8 @@ UNIT_SYMBOLS = {
     UNIT_HOUR: 'h',
     UNIT_MINUTE: 'min',
     UNIT_DAY: 'day_short',
+    UNIT_WEEK: 'week_short',
+    UNIT_MONTH: 'month_short',
     UNIT_PERSON: 'person_short',
     UNIT_SESSION: 'session',
     UNIT_PLATTER: 'platter'

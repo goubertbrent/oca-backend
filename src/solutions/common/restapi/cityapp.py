@@ -18,7 +18,6 @@
 import logging
 
 from google.appengine.ext import db
-
 from mcfw.consts import MISSING
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -67,12 +66,12 @@ def rest_save_app_settings(settings):
 
 @rest ("/common/cityapp/settings/save", "post")
 @returns(ReturnStatusTO)
-@arguments(uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
-def save_cityapp_settings(uitdatabank_key, uitdatabank_region, gather_events):
+@arguments(uitdatabank_secret=unicode, uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
+def save_cityapp_settings(uitdatabank_secret, uitdatabank_key, uitdatabank_region, gather_events):
     from solutions.common.bizz.cityapp import save_cityapp_settings as save_cityapp_settings_bizz
     try:
         service_user = users.get_current_user()
-        save_cityapp_settings_bizz(service_user, uitdatabank_key, uitdatabank_region, gather_events)
+        save_cityapp_settings_bizz(service_user, uitdatabank_secret, uitdatabank_key, uitdatabank_region, gather_events)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
@@ -83,22 +82,23 @@ def save_cityapp_settings(uitdatabank_key, uitdatabank_region, gather_events):
 @arguments()
 def uitdatabank_check_cityapp_settings():
     service_user = users.get_current_user()
-    settings = get_cityapp_profile(service_user)
+
+    cap = get_cityapp_profile(service_user)
     try:
-        success, result = get_uitdatabank_events(settings, 1, 50)
+        success, result = get_uitdatabank_events(cap, 1, 50)
     except Exception:
         sln_settings = get_solution_settings(service_user)
-        logging.debug('Failed to check uitdatabank.be settings: %s', dict(key=settings.uitdatabank_key, region=settings.uitdatabank_region), exc_info=1)
+        logging.debug('Failed to check uitdatabank.be settings: %s', dict(key=cap.uitdatabank_key, region=cap.uitdatabank_region), exc_info=1)
         return ReturnStatusTO.create(False, translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
 
     def trans():
-        settings = get_cityapp_profile(service_user)
+        cap = get_cityapp_profile(service_user)
         if success:
-            settings.uitdatabank_enabled = True
-            settings.put()
+            cap.uitdatabank_enabled = True
+            cap.put()
             return RETURNSTATUS_TO_SUCCESS
 
-        settings.uitdatabank_enabled = False
-        settings.put()
+        cap.uitdatabank_enabled = False
+        cap.put()
         return ReturnStatusTO.create(False, result)
     return db.run_in_transaction(trans)

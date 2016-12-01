@@ -109,9 +109,6 @@ def provision(service_user, transactional=True):
         put_avatar_if_needed(service_user)
         main_branding = get_and_store_main_branding(service_user)
 
-        # old_branding_key is added by get_and_store_main_branding
-        populate_identity(sln_settings, main_branding.branding_key, main_branding.old_branding_key)
-
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
 
@@ -120,6 +117,9 @@ def provision(service_user, transactional=True):
                                           main_branding, default_lang)
         else:
             provision_all_modules(sln_settings, DEFAULT_COORDS, main_branding, default_lang)
+            
+        # old_branding_key is added by get_and_store_main_branding
+        populate_identity(sln_settings, main_branding.branding_key, main_branding.old_branding_key)
 
         system.publish_changes()
         logging.info('Service populated!')
