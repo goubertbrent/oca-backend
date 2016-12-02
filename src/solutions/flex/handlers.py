@@ -308,7 +308,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'has_multiple_locations': True if sln_settings.identities else False,
                   'qr_codes': self._get_qr_codes(sln_settings, service_identity),
                   'SolutionModule': SolutionModule,
-                  'news_enabled': city_app_id in solution_server_settings.solution_apps_with_news,
+                  'news_enabled': True,
                   'days': days,
                   'day_flags': day_flags,
                   'months': months,

@@ -22,9 +22,9 @@ from types import NoneType
 
 from babel.dates import format_date
 from babel.numbers import format_currency
+
 from google.appengine.api.blobstore import blobstore
 from google.appengine.ext import db, deferred
-
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.properties import get_members
@@ -58,6 +58,7 @@ from shop.dal import get_customer
 from shop.exceptions import InvalidEmailFormatException
 from shop.models import Product, Order
 from shop.to import ProductTO
+from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
@@ -103,7 +104,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
-from solution_server_settings import get_solution_server_settings
+from solutions.flex import SOLUTION_FLEX
 
 
 @rest("/solutions/common/public/menu/load", "get", authenticated=False)
@@ -442,10 +443,6 @@ def rest_get_broadcast_options():
     to_get = (sln_settings_key, news_promotion_product_key, extra_city_product_key)
     sln_settings, news_promotion_product, extra_city_product = db.get(to_get)
 
-    service_identity = users.get_current_session().service_identity or ServiceIdentity.DEFAULT
-    service_identity_user = create_service_identity_user(users.get_current_user(), service_identity)
-    si = get_service_identity(service_identity_user)
-
     def transl(key):
         try:
             return common_translate(sln_settings.main_language, SOLUTION_COMMON, key, suppress_warning=True)
@@ -460,7 +457,7 @@ def rest_get_broadcast_options():
         broadcast_types.extend(abt_agenda.broadcast_types)
     news_promotion_product_to = ProductTO.create(news_promotion_product, sln_settings.main_language)
     extra_city_product_to = ProductTO.create(extra_city_product, sln_settings.main_language)
-    news_enabled = si.app_id in get_solution_server_settings().solution_apps_with_news
+    news_enabled = sln_settings.solution == SOLUTION_FLEX
     customer = get_customer(service_user)
     remaining_length = 0
     sub_order = None

@@ -90,10 +90,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_sync_calendar_events_client_secret = add_meta(db.StringProperty(indexed=False),
                                             doc="Client secret to sync calendar events",
                                             order=608)
-    solution_apps_with_news = add_meta(db.StringListProperty(indexed=False),
-                                       doc="Apss that have the news feature",
-                                       order=609)
-
 
     djmatic_service_email = add_meta(db.StringProperty(indexed=False),
                                      doc="The main DJ-Matic service email",
