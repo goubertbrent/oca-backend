@@ -27,6 +27,9 @@ from solutions.common.models import SolutionNewsScraperSettings
 
 
 def check_for_news(service_user):
+    deferred.defer(_check_for_news, service_user)
+
+def _check_for_news(service_user):
     sln_settings = get_solution_settings(service_user)
     if BROADCAST_TYPE_NEWS not in sln_settings.broadcast_types:
         logging.error("check_for_news_in_be_wetteren failed no broadcast type found with name '%s'", BROADCAST_TYPE_NEWS)

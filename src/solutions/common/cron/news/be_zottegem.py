@@ -54,4 +54,7 @@ class BeZottegemNewsScraper(NewsScraper):
 
 
 def check_for_news(service_user):
+    deferred.defer(_check_for_news, service_user)
+
+def _check_for_news(service_user):
     BeZottegemNewsScraper(service_user).check_for_news()

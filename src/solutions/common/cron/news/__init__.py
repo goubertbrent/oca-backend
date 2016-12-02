@@ -24,6 +24,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.deferred import deferred
 import html2text
 from mcfw.rpc import arguments, returns
+from mcfw.utils import chunks
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models.news import NewsItem
 from rogerthat.rpc import users
@@ -43,10 +44,10 @@ class SolutionNewsScraper(webapp.RequestHandler):
 
     def get(self):
         solution_server_settings = get_solution_server_settings()
-        for module_name, service_user in solution_server_settings.solution_news_scrapers:
+        for module_name, service_user in chunks(solution_server_settings.solution_news_scrapers, 2):
             try:
                 module = importlib.import_module("solutions.common.cron.news.%s" % module_name)
-                getattr(module, 'check_for_news')(service_user)
+                getattr(module, 'check_for_news')(users.User(service_user))
             except:
                 pass
 

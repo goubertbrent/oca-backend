@@ -34,7 +34,6 @@ from rogerthat.utils import now
 from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.models import delete_all
 from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
-from shop.constants import MAPS_QUEUE
 from shop.models import Customer
 from solutions.common.bizz import timezone_offset, OrganizationType, SolutionModule
 from solutions.common.bizz.events import update_events_from_google

@@ -33,7 +33,7 @@ from solutions.common.models.agenda import Event
 
 
 def check_for_events(service_user):
-    _process_events(service_user, 1)
+    deferred.defer(_process_events, service_user, 1)
 
 
 def _optional_xpath_text(tree, qry):
