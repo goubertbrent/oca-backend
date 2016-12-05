@@ -9,7 +9,7 @@ clone [rogerthat-backend](https://github.com/rogerthat-platform/rogerthat-backen
 - folder/oca-backend
 
 ### Server setup
-- npm install
+- ./install.sh
 - gulp
 - ./start_rogerthat.sh
 
