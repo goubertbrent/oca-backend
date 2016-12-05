@@ -418,7 +418,7 @@ def create_message_statistics_excel(messages_months_dict, language):
     messages_sheet.col(column_total_messages).width = 5000
 
     # start with last month, end with current month
-    current_month = datetime.datetime.now().month + 1
+    current_month = datetime.datetime.now().month
     i = 0
     for i in xrange(1, len(messages_months_dict) + 1):
         month_string = format_datetime(time.mktime((2015, current_month, 1, 12, 0, 0, 0, 0, 0)), format='MMMM',
@@ -427,9 +427,9 @@ def create_message_statistics_excel(messages_months_dict, language):
         messages_sheet.write(i, column_messages, messages_months_dict[current_month].incomming_messages)
         messages_sheet.write(i, column_replies, messages_months_dict[current_month].child_messages)
         messages_sheet.write(i, column_total_messages, messages_months_dict[current_month].total_messages)
-        current_month += 1
-        if current_month > 12:
-            current_month = 1
+        current_month -= 1
+        if current_month < 1:
+            current_month = 12
 
     excel_file = StringIO()
     book.save(excel_file)
