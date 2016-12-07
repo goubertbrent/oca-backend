@@ -59,7 +59,7 @@ SPONSOR_DAYS = 7
 @returns(NewsItemListResultTO)
 @arguments(cursor=unicode, service_identity=unicode)
 def get_news(cursor=None, service_identity=None):
-    return news.list_news(cursor, 20, service_identity, True)
+    return news.list_news(cursor, 5, service_identity, True)
 
 
 def _save_coupon_news_id(news_item_id, coupon):
