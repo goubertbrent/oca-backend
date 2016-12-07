@@ -874,9 +874,6 @@ $(function () {
                     LocalCache.newsItems.result.map(function (item) {
                         uniqueNews[item.id] = item;
                     });
-                    LocalCache.newsItems.result = Object.values(uniqueNews).sort(function (item1, item2) {
-                        return item2.timestamp - item1.timestamp;
-                    });
                     hasMoreNews = data.result.length === MAX_NEWS_ITEMS_PER_PAGE;
                     renderNewsOverview(LocalCache.newsItems.result);
                 },
