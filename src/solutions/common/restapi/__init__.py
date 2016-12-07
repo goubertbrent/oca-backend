@@ -464,9 +464,15 @@ def rest_get_broadcast_options():
     can_order_extra_apps = True
     has_signed_order = False
     if customer and customer.organization_type != OrganizationType.CITY:
-        remaining_length, sub_order = get_subscription_order_remaining_length(customer.id,
-                                                                              customer.subscription_order_number)
-        has_signed_order = sub_order.status == Order.STATUS_SIGNED if sub_order else False
+        if customer.subscription_cancel_pending_date != 0 and customer.subscription_order_number:
+            can_order_extra_apps = False
+            has_signed_order = False
+        else:
+            remaining_length, sub_order = get_subscription_order_remaining_length(customer.id,
+                                                                                  customer.subscription_order_number)
+            has_signed_order = sub_order.status == Order.STATUS_SIGNED if sub_order else False
+            if has_signed_order:
+                can_order_extra_apps = False
     else:
         can_order_extra_apps = False
 
