@@ -796,13 +796,20 @@ $(function () {
 
     $("#addholiday").click(addHoliday);
     sln.configureDelayedInput($("#oof-message"), saveOOFMessage);
+    
+    
 
     /* END HOLIDAYS */
 
     $(".sln-set-avatar").html(TMPL_SET_AVATAR);
     $(".sln-set-avatar #avatar_div").click(uploadAvatar);
     $(".sln-set-logo").html(TMPL_SET_LOGO);
-    $(".sln-set-logo #logo_div").click(uploadLogo).css('width', '320px').css('height',
+    
+    $('.sln-set-logo #logo_div').click(function () {
+        uploadLogo();
+    });
+    
+    $(".sln-set-logo #logo_div").css('width', '320px').css('height',
         (320 * SLN_LOGO_HEIGHT / SLN_LOGO_WIDTH) + 'px');
     $(".sln-set-name").html(TMPL_SET_NAME);
     $(".sln-set-email-address").html(TMPL_SET_EMAIL);
