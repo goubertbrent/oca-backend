@@ -99,7 +99,7 @@ class CustomerTO(CompanyTO):
         c.can_edit = can_edit
         c.is_admin = is_admin
         c.service_disabled_at = customer.service_disabled_at
-        if customer.subscription_cancel_pending_date != 0:
+        if customer.subscription_cancel_pending_date != 0 and customer.subscription_order_number:
             c.cancelling_on_date = Order.get(
                 Order.create_key(customer.id, customer.subscription_order_number)).next_charge_date
         else:

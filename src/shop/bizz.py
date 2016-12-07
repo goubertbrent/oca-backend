@@ -192,12 +192,18 @@ def search_customer(search_string, app_ids, team_id, limit=20):
     customer_index = search.Index(name=CUSTOMER_INDEX)
     q = normalize_search_string(search_string)
     if team_id:
+        if not q.strip():
+            return []
+
         team_qry = 'customer_team_id:"%s"' % unicode(team_id)
         if q:
             q += u' AND %s' % team_qry
         else:
             q = team_qry
     if app_ids:
+        if not q.strip():
+            return []
+
         or_query = ''
         for app_id in app_ids:
             if or_query:
@@ -208,6 +214,7 @@ def search_customer(search_string, app_ids, team_id, limit=20):
             q += ' AND app_ids:(%s)' % or_query
         else:
             q = 'app_ids:(%s)' % or_query
+
     query = search.Query(query_string=q, options=search.QueryOptions(limit=limit))
 
     search_result = customer_index.search(query)
