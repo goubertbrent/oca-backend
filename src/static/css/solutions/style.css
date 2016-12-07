@@ -693,6 +693,7 @@ md-card md-card-title md-card-title-text {
     font-size: 24px;
     font-weight: 400;
     line-height: 32px;
+    width: 85%;
 }
 
 .md-subhead {
