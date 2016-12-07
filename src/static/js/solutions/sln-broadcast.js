@@ -1853,7 +1853,7 @@ $(function () {
                             datetime: sln.format(new Date(result.scheduled_at * 1000))
                         });
                     }
-                    sln.alert(text, gotoNewsOverview);
+                    sln.alert(text, gotoNewsOverview, CommonTranslations.SUCCESS);
                     $.each(orderItems, function (i, orderItem) {
                         if (orderItem.app_id) {
                             ACTIVE_APPS.push(orderItem.app_id);
