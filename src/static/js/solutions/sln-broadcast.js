@@ -918,19 +918,9 @@ $(function () {
         });
     }
 
-    function getTotalCount(statisticsPerApp, property) {
-        var total = 0;
-        for (var i = 0, len = statisticsPerApp.length; i < len; i++) {
-            total += statisticsPerApp[i][property].total;
-        }
-        return total;
-    }
-
     function renderNewsOverview(newsItems) {
         newsItems.map(function (n) {
             n.datetime = sln.format(new Date(n.timestamp * 1000));
-            n.action = getTotalCount(n.statistics, 'action');
-            n.followed = getTotalCount(n.statistics, 'followed');
         });
         var html = $.tmpl(templates['broadcast/broadcast_news_overview'], {
             newsItems: newsItems,
@@ -947,7 +937,6 @@ $(function () {
         function loadMoreNews() {
             showNewsOverview(true);
         }
-
     }
 
     function addZerosToTimeData(timeData) {
@@ -968,12 +957,25 @@ $(function () {
         var dis = $(this);
         var newsId = parseInt(dis.attr('news_id'));
         var container = $('#show_more_stats_' + newsId);
-        var hide = container.css('display') === 'none';
-        dis.text(hide ? T('hide_statistics') : T('show_statistics'));
         if (container.html()) {
             container.slideToggle();
-            return;
+        } else {
+        	sln.call({
+                url: '/common/news/statistics',
+                data: {
+                    news_id: newsId
+                },
+                type: 'GET',
+                success: function (newsItem) {
+                	renderStatistics(dis, container, newsId, newsItem);
+                }
+            });
         }
+    }
+    
+    function renderStatistics(dis, container, newsId, newsItem) {
+        var hide = container.css('display') === 'none';
+        dis.text(hide ? T('hide_statistics') : T('show_statistics'));
         google.charts.load('current', {'packages': ['corechart', 'line']});
         google.charts.setOnLoadCallback(drawCharts);
         function drawCharts() {
@@ -989,7 +991,6 @@ $(function () {
                     width: 300,
                     height: 200
                 };
-            var newsItem = getNewsItem(newsId);
             var ageData, genderData, timeData;
             // structure:
             // [

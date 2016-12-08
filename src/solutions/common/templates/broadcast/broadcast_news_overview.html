@@ -31,11 +31,11 @@
                         <div class="statistics_chip">
                             <span>${T('rogered')}: ${newsItem.users_that_rogered.length}</span>
                         </div>
-                        <div class="statistics_chip">
-                            <span>${T('action')}: ${newsItem.action}</span>
+                        <div class="statistics_chip" {{if newsItem.action_count < 0}}style="display: none;"{{/if}}>
+                            <span>${T('action')}: ${newsItem.action_count}</span>
                         </div>
-                        <div class="statistics_chip">
-                            <span>${T('followed')}: ${newsItem.followed}</span>
+                        <div class="statistics_chip" {{if newsItem.action_count < 0}}style="display: none;"{{/if}}>
+                            <span>${T('followed')}: ${newsItem.follow_count}</span>
                         </div>
                     </div>
                     <div class="layout-align-end-center">
