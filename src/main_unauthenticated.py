@@ -15,7 +15,6 @@
 #
 # @@license_version:1.1@@
 
-import solutions.djmatic.api
 from add_1_monkey_patches import dummy2
 from add_2_zip_imports import dummy
 from add_3_solution_handlers import register_solution_callback_api_handlers
@@ -36,6 +35,7 @@ from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.restapi import yourservicehere
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
+import solutions.djmatic.api
 
 dummy2()
 dummy()
