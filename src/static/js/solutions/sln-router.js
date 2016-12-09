@@ -58,9 +58,6 @@ function routingHandler(hash) {
                     }
                 });
                 break;
-            case 'news':
-                showNews();
-                break;
             case 'loyalty':
             	if (currentLoyaltyType > 0) {
             		if (currentLoyaltyType == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
