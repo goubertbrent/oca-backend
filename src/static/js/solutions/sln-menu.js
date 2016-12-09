@@ -18,7 +18,7 @@
 
 $(function () {
     'use strict';
-    LocalCache.menu = null;
+    LocalCache.menu = {};
     modules.menu = {
         getMenu: getMenu,
         loadMenu: loadMenu,
@@ -195,7 +195,7 @@ $(function () {
     }
 
     function getMenu(callback) {
-        if (LocalCache.menu) {
+        if (LocalCache.menu.name) {
             callback(LocalCache.menu);
         } else {
             loadMenu(callback);
