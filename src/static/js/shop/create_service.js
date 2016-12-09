@@ -303,8 +303,7 @@ var showServiceTab = function() {
         var appId = $(this).val();
         form.find('#form_apps input[type="checkbox"]').each(function() {
             var checkbox = $(this);
-            var value = checkbox.val();
-            var isDefault = value === appId || value === 'rogerthat';
+            var isDefault = checkbox.val() === appId;
             checkbox.prop('checked', isDefault || checkbox.is(':checked')).attr('disabled', isDefault)
                 .parents('label').toggleClass('default-app', isDefault);
         });
@@ -550,12 +549,6 @@ function selectDefaultApps(){
             var elem = $('#other-apps').find('[value=' + app + ']').prop('checked', true);
             if(i === 0){
                 $('#service_default_app').val(currentCustomer.service.apps[0]).change();
-            }
-            if (app === 'rogerthat') {
-                elem.prop({
-                    'checked': true,
-                    'disabled': true
-                }).parent().addClass('default-app');
             }
         });
     } else if (currentCustomer.prospect) {

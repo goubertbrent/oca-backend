@@ -16,34 +16,37 @@
 # @@license_version:1.1@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
+import logging
+import os
+import sys
+from collections import OrderedDict
+from contextlib import closing
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import logging
-import os
-import sys
 from types import NoneType
 
+import httplib2
+import stripe
 from PIL.Image import Image
-from dateutil.relativedelta import relativedelta
-
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images
 from google.appengine.api import users as gusers
 from google.appengine.ext import deferred, db
-import httplib2
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
+from xhtml2pdf import pisa
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
@@ -91,9 +94,6 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-import stripe
-from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -582,6 +582,15 @@ def validate_service(service):
            search_enabled=bool, skip_email_check=bool, broadcast_to_users=[users.User])
 def put_service(customer_or_id, service, skip_module_check=False, search_enabled=False, skip_email_check=False,
                 broadcast_to_users=None):
+    """
+    Args:
+        customer_or_id (Customer or int)
+        service (CustomerServiceTO)
+        skip_module_check (bool)
+        search_enabled (bool)
+        skip_email_check (bool)
+        broadcast_to_users (list of users.User)
+    """
     validate_service(service)
 
     if isinstance(customer_or_id, Customer):
@@ -632,8 +641,10 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
         customer.extra_apps_count = 0
 
     # customer should have the same amount of active apps as he paid for
-    # Ensure all services are present in the rogerthat app
-    if App.APP_ID_ROGERTHAT not in service.apps:
+    # Ensure all services are present in the rogerthat app (for non-demo services)
+    if not is_demo:
+        is_demo = get_app(service.apps[0]).demo
+    if App.APP_ID_ROGERTHAT not in service.apps and not is_demo:
         service.apps.append(App.APP_ID_ROGERTHAT)
     app_list = list(service.apps)
     if App.APP_ID_OSA_LOYALTY in app_list:
