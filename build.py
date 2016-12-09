@@ -25,9 +25,10 @@ import yaml
 CURRENT_DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s [BUILD] %(asctime)s %(message)s', datefmt='%Y-%d-%m %H:%M:%S')
 YAML_FILES = ['app', 'cron', 'index', 'queue']
+MERGE_FILES = ['rogerthat_service_api_calls.py']
 KNOWN_LISTS = ['handlers', 'libraries', 'cron', 'indexes', 'queue']
 KNOWN_DICTS = ['admin_console']
-IGNORED_FILES = ['.DS_Store', '.pyc', '.pyo', '.yaml']
+IGNORED_FILES = ['.DS_Store', '.pyc', '.pyo', '.yaml'] + MERGE_FILES
 
 def copytree(src, dst, symlinks=False, ignore=None):
     if not os.path.exists(dst):
@@ -117,6 +118,7 @@ def merge_yaml(first_file, second_file, output_file):
                     output_file_contents.write(yaml.safe_dump(first))
 
 
+# noinspection Restricted_Python_calls
 def merge_source_files(open_source_dir, closed_source_dir, result_source_dir, open_source_name, closed_source_name):
     # Only remove the files that are no longer present in the open source or closed source folder
     for subdir, dirs, files in os.walk(result_source_dir):
@@ -147,6 +149,19 @@ def merge_source_files(open_source_dir, closed_source_dir, result_source_dir, op
         second_yaml = os.path.join(closed_source_dir, '%s.yaml' % yaml_file)
         output_yaml = os.path.join(result_source_dir, '%s.yaml' % yaml_file)
         merge_yaml(first_yaml, second_yaml, output_yaml)
+    for merge_file in MERGE_FILES:
+        first_file = os.path.join(open_source_dir, merge_file)
+        second_file = os.path.join(closed_source_dir, merge_file)
+        output_file = os.path.join(result_source_dir, merge_file)
+        with open(first_file) as f:
+            first_contents = f.read()
+        with open(second_file) as f:
+            second_contents = f.read()
+        with open(output_file, 'w') as f:
+            f.seek(0)
+            f.write(first_contents)
+            f.write(second_contents)
+            f.truncate()
 
 
 if __name__ == '__main__':

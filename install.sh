@@ -14,6 +14,7 @@ npm install
 bower install --allow-root
 gulp build --project admin ${build_type}
 popd
+npm install
 pushd src/static
 npm install
 popd

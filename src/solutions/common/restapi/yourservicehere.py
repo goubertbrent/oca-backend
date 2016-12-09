@@ -22,6 +22,7 @@ from rogerthat.rpc.service import service_api
 from rogerthat.to.profile import TrialServiceTO
 from solution_server_settings import get_solution_server_settings
 
+
 @service_api(function=u"service.trial_signup")
 @returns(TrialServiceTO)
 @arguments(user=unicode, service_name=unicode, service_description=unicode)
