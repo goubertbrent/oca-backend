@@ -153,15 +153,22 @@ def merge_source_files(open_source_dir, closed_source_dir, result_source_dir, op
         first_file = os.path.join(open_source_dir, merge_file)
         second_file = os.path.join(closed_source_dir, merge_file)
         output_file = os.path.join(result_source_dir, merge_file)
-        with open(first_file) as f:
-            first_contents = f.read()
-        with open(second_file) as f:
-            second_contents = f.read()
-        with open(output_file, 'w') as f:
-            f.seek(0)
-            f.write(first_contents)
-            f.write(second_contents)
-            f.truncate()
+        time_first_file = os.stat(first_file).st_mtime
+        time_second_file = os.stat(second_file).st_mtime
+        if os.path.exists(output_file):
+            time_output_file = os.stat(output_file).st_mtime
+        else:
+            time_output_file = 0
+        if (time_first_file > time_output_file) or (time_second_file > time_output_file):
+            with open(first_file) as f:
+                first_contents = f.read()
+            with open(second_file) as f:
+                second_contents = f.read()
+            with open(output_file, 'w') as f:
+                f.seek(0)
+                f.write(first_contents)
+                f.write(second_contents)
+                f.truncate()
 
 
 if __name__ == '__main__':
