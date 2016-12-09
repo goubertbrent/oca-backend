@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.1@@
+
 import logging
 from types import NoneType
 
@@ -26,7 +27,8 @@ from rogerthat.to import ReturnStatusTO
 from rogerthat.to.news import NewsItemListResultTO, NewsItemTO, NewsActionButtonTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.to import NewsTO, OrderItemTO
-from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count
+from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
+    get_news_statistics
 from solutions.common.dal import get_solution_settings
 from solutions.common.to.news import SponsoredNewsItemCount
 from solutions.common.utils import is_default_service_identity
@@ -48,6 +50,14 @@ def load_news():
 def rest_get_news(cursor=None):
     service_identity = users.get_current_session().service_identity
     return get_news(cursor, service_identity)
+
+
+@rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
+@returns(NewsItemTO)
+@arguments(news_id=(int, long))
+def rest_get_news_statistics(news_id):
+    service_identity = users.get_current_session().service_identity
+    return get_news_statistics(news_id, service_identity)
 
 
 @rest('/common/news', 'post', silent_result=True)
