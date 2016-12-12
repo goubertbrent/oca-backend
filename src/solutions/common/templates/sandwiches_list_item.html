@@ -7,8 +7,8 @@
     <td><img class="avatar" src="${sandwich.sender_avatar_url}">${sandwich.sender_name}</td>
     <td>${sandwich.type.description} {{if sandwich.type.price != 0}}(${CURRENCY}
         ${sandwich.type.price_in_euro}){{/if}}</td>
-    <td>${sandwich.topping.description} {{if sandwich.topping.price != 0}}(${CURRENCY}
-        ${sandwich.topping.price_in_euro}){{/if}}</td>
+    <td>{{if sandwich.topping}}${sandwich.topping.description} {{if sandwich.topping.price != 0}}(${CURRENCY}
+        ${sandwich.topping.price_in_euro}){{/if}}{{/if}}</td>
     <td>
         <ul>{{each(ii,option) sandwich.options}}
             <li>${option.description} {{if option.price != 0}}(${CURRENCY} ${option.price_in_euro}){{/if}}</li>

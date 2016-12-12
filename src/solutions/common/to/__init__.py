@@ -720,7 +720,8 @@ class SandwichOrderTO(object):
         to.id = model.id
         to.timestamp = model.order_time
         to.type = SandwichSettingTO.fromModel(model.sandwich_type)
-        to.topping = SandwichSettingTO.fromModel(model.sandwich_topping)
+        topping = model.sandwich_topping
+        to.topping = SandwichSettingTO.fromModel(topping) if topping else None
         to.options = list()
         for option in model.sandwich_options:
             to.options.append(SandwichSettingTO.fromModel(option))

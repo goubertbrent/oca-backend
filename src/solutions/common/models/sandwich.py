@@ -80,7 +80,7 @@ class SandwichSettings(db.Model):
             sandwich_settings.reminder_broadcast_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
                                                                             u'order-sandwich-reminder-message')
             sandwich_settings.put()
-        
+
         return sandwich_settings
 
     def can_order_sandwiches_on(self, date):
@@ -262,6 +262,8 @@ class SandwichOrder(db.Model):
 
     @property
     def sandwich_topping(self):
+        if not self.topping_id:
+            return None
         return SandwichTopping.get_by_topping_id(self.service_user, self.solution, self.topping_id)
 
     @property

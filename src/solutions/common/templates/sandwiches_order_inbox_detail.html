@@ -1,6 +1,6 @@
 {% raw %}
 ${CommonTranslations.TYPE}: ${ type.description }<br>
-${CommonTranslations.TOPPING}: ${ topping.description }<br>
+{{if topping}}${CommonTranslations.TOPPING}: ${ topping.description }<br>{{/if}}
 ${CommonTranslations.OPTIONS}:
 <ul>
 {{each(i, option) options}}

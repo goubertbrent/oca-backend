@@ -96,7 +96,7 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
 
     # Calculate price
     type_id = int(type_.split('_')[-1])
-    topping_id = int(topping.split('_')[-1])
+    topping_id = int(topping.split('_')[-1]) if topping else None
     option_ids = [int(c.split('_')[-1]) for c in customizations] if customizations else []
 
     logging.info("type: %s", type_id)
@@ -104,14 +104,14 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
     logging.info("options: %s", option_ids)
 
     sandwich_type = SandwichType.get_by_type_id(service_user, SOLUTION_FLEX, type_id)
-    sandwich_topping = SandwichTopping.get_by_topping_id(service_user, SOLUTION_FLEX, topping_id)
+    sandwich_topping = SandwichTopping.get_by_topping_id(service_user, SOLUTION_FLEX, topping_id) if topping_id else None
     sandwich_customizations = SandwichOption.get_by_option_ids(service_user, SOLUTION_FLEX, option_ids)
 
     logging.info("type: %s", sandwich_type)
     logging.info("topping: %s", sandwich_topping)
     logging.info("options: %s", sandwich_customizations)
 
-    total_price = sum([sandwich_type.price, sandwich_topping.price] + [sc.price for sc in sandwich_customizations])
+    total_price = sum([sandwich_type.price, sandwich_topping.price if sandwich_topping else 0] + [sc.price for sc in sandwich_customizations])
 
     # Save order to datastore
     now_ = now()
@@ -123,7 +123,7 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
     customizations.extend([sw.description for sw in sandwich_customizations])
     msg = common_translate(lang, SOLUTION_COMMON, 'if-sandwich-order-received',
                            sandwich_type=sandwich_type.description,
-                           topping=sandwich_topping.description,
+                           topping=sandwich_topping.description if sandwich_topping else u"",
                            customizations=u"\n - ".join(customizations),
                            remarks=remark or "")
     if takeaway_time:
