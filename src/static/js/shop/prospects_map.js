@@ -30,10 +30,11 @@ $(function() {
 
     var viewMode = ViewModeType[$('#prospects_view_mode').find('.btn.active').attr('data-view-mode').toUpperCase()];
 
-    var FilteredStatusTypes = [];
+    var filteredStatusTypes = [];
+    var fullTextSearchFilter = "";
     $.each(StatusType, function(k, v) {
         if (v != StatusType.NOT_EXISTING) {
-            FilteredStatusTypes.push(v);
+            filteredStatusTypes.push(v);
         }
     });
     var prospectExportElem = $('#prospects_export');
@@ -59,7 +60,7 @@ $(function() {
         var statusContainer = $('#filter-status', modal).empty();
         $.each(ORDERED_STATUSES, function(i, status) {
             var html = $($('#prospects_filter_checkbox_tmpl').html());
-            $('input', html).val(status).prop('checked', FilteredStatusTypes.indexOf(status) != -1);
+            $('input', html).val(status).prop('checked', filteredStatusTypes.indexOf(status) != -1);
             $('img', html).attr('src', getMarkerIcon(status));
             $('.status-string', html).text(StatusTypeStrings[status]);
             statusContainer.append(html);
@@ -68,9 +69,10 @@ $(function() {
 
     $('#prospects_filter_modal').on('hide', function() {
         var modal = $(this);
-        FilteredStatusTypes = $('#filter-status').find('input[type="checkbox"]:checked', modal).map(function () {
+        filteredStatusTypes = $('#filter-status').find('input[type="checkbox"]:checked', modal).map(function () {
             return parseInt(this.value);
         }).get();
+        fullTextSearchFilter = $('#full-textbox-filter').val().trim();
 
         filterProspects();
     });
@@ -101,7 +103,9 @@ $(function() {
 
     var isProspectVisible = function(prospect) {
         // STATUS
-        return FilteredStatusTypes.indexOf(prospect.status) !== -1;
+        if ( fullTextSearchFilter && prospect.address.indexOf(fullTextSearchFilter) === -1 )
+            return false;
+        return filteredStatusTypes.indexOf(prospect.status) !== -1;
     };
 
     var filterProspects = function() {
@@ -132,7 +136,7 @@ $(function() {
             position : coords,
             map : map,
             cursor : 'pointer',
-            visible: FilteredStatusTypes.indexOf(prospect.status) != -1,
+            visible: filteredStatusTypes.indexOf(prospect.status) != -1,
             zIndex : (prospect.status == StatusType.TODO ? 1 : -1)
         };
         var markerIcon = getMarkerIcon(prospect.status);
@@ -154,7 +158,7 @@ $(function() {
             currentCategory: currentCategory,
             MarkerStatusMapping: MarkerStatusMapping,
             htmlize: sln.htmlize,
-            FILTERED_STATUS_TYPES: FilteredStatusTypes,
+            FILTERED_STATUS_TYPES: filteredStatusTypes,
             getMarkerIcon: getMarkerIcon
         });
         if (updateOrNew === 'update') {
@@ -366,7 +370,7 @@ $(function() {
                         if (markerIcon) {
                             marker.setIcon(markerIcon);
                         }
-                        marker.setVisible(FilteredStatusTypes.indexOf(data.prospect.status) != -1);
+                        marker.setVisible(filteredStatusTypes.indexOf(data.prospect.status) != -1);
                         marker.setPosition(new google.maps.LatLng(data.prospect.lat, data.prospect.lon));
                         return false;
                     }
