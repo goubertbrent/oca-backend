@@ -100,7 +100,8 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     TimestampTO, SolutionScheduledBroadcastTO, SolutionInboxesTO, SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
-    ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO
+    ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
+    SaveSettingsReturnStatusTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -544,7 +545,7 @@ def broadcast_validate_url(url, allow_empty=False):
 
 
 @rest("/common/settings/save", "post")
-@returns(ReturnStatusTO)
+@returns(SaveSettingsReturnStatusTO)
 @arguments(name=unicode, description=unicode, opening_hours=unicode, address=unicode, phone_number=unicode,
            facebook_page=unicode, facebook_name=unicode, facebook_action=unicode, currency=unicode, search_enabled=bool,
            search_keywords=unicode, timezone=unicode, events_visible=bool, email_address=unicode,
@@ -556,12 +557,16 @@ def settings_save(name, description=None, opening_hours=None, address=None, phon
         service_user = users.get_current_user()
         session_ = users.get_current_session()
         service_identity = session_.service_identity
-        save_settings(service_user, service_identity, name, description, opening_hours, address, phone_number, facebook_page,
-                      facebook_name, facebook_action, currency, search_enabled, search_keywords, timezone,
-                      events_visible, email_address, inbox_email_reminders, iban, bic)
-        return RETURNSTATUS_TO_SUCCESS
+        address_geocoded = save_settings(service_user, service_identity, name, description, opening_hours, address,
+                                         phone_number, facebook_page, facebook_name, facebook_action, currency,
+                                         search_enabled, search_keywords, timezone, events_visible, email_address,
+                                         inbox_email_reminders, iban, bic)
+
+        r = SaveSettingsResultTO()
+        r.address_geocoded = address_geocoded
+        return SaveSettingsReturnStatusTO.create(True, None , r)
     except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
+        return SaveSettingsReturnStatusTO.create(False, e.message, None)
 
 
 @rest("/common/settings/load", "get", read_only_access=True)

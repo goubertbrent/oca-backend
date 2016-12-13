@@ -965,3 +965,16 @@ class BrandingSettingsAndMenuItemsTO(object):
         to.branding_settings = branding_settings
         to.menu_item_rows = menu_item_rows
         return to
+
+class SaveSettingsResultTO(object):
+    address_geocoded = bool_property('1')
+
+class SaveSettingsReturnStatusTO(ReturnStatusTO):
+    result = typed_property('51', SaveSettingsResultTO)
+
+    @classmethod
+    def create(cls, success=True, errormsg=None, result=None):
+        r = super(SaveSettingsReturnStatusTO, cls).create(success=success, errormsg=errormsg)
+        r.result = result
+        return r
+

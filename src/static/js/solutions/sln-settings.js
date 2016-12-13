@@ -48,9 +48,18 @@ $(function () {
     var TMPL_SET_OPENINGHOURS = '<label>' + CommonTranslations.OPENING_HOURS
         + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
         + '" rows="6"></textarea>';
-    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS + ':</label><textarea class="span6" placeholder="'
-        + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
-
+    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS + ':</label>\
+	<div id="address_geocode_error" style="display:none">\
+	    <div  class="alert alert-warning">\
+		    The address could not be converted to GPS coordinates. Please revise the format of your address to be more standard. Eg.\
+				<div style="padding:10px">\
+				<b>Antwerpsesteenweg 19<br>\
+				9080 Lochristi<br>\
+				België</b></div>\
+		</div>\
+    </div>\
+    <textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
+    
     var TMPL_SET_EMAIL = '<label>' + CommonTranslations.EMAIL_ADDRESS + ':</label><input type="text" placeholder="'
         + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
 
@@ -1344,7 +1353,14 @@ $(function () {
             success: function (data) {
                 if (!data.success) {
                     return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
+                }         
+        	    if(data.result === null){
+        	    	$("#address_geocode_error").hide();
+        	    } else if(data.result.address_geocoded){
+        	    	$("#address_geocode_error").hide();
+        	    } else{
+        	    	$("#address_geocode_error").show();
+        	    }
             },
             error: sln.showAjaxError
         });
