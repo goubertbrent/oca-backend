@@ -48,11 +48,10 @@ $(function () {
     var TMPL_SET_OPENINGHOURS = '<label>' + CommonTranslations.OPENING_HOURS
         + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
         + '" rows="6"></textarea>';
-    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS + ':</label>\
-	<div id="address_geocode_error" style="display:none">'
-    + CommonTranslations.address_geocode_error_html + 
-    '</div>\
-    <textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
+    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS 
+    	+ ':</label><div id="address_geocode_error" style="display:none">'
+    	+ CommonTranslations.address_geocode_error_html 
+    	+ '</div><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
     
     var TMPL_SET_EMAIL = '<label>' + CommonTranslations.EMAIL_ADDRESS + ':</label><input type="text" placeholder="'
         + CommonTranslations.ENTER_DOT_DOT_DOT + '">';

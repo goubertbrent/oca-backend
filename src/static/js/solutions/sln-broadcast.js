@@ -48,7 +48,7 @@ $(function () {
     var targetAudienceMinAge = 0;
     var targetAudienceMaxAge = 0;
     var targetAudienceGender = GENDER_MALE_OR_FEMALE;
-    var randomNumber;
+    var randomReachCount;
 
     var DEFAULT_TIME_EPOCH = 20 * 3600;
     var broadcastTimeEpoch = DEFAULT_TIME_EPOCH,
@@ -892,7 +892,7 @@ $(function () {
     function showEditNews(newsId) {
         newsId = parseInt(newsId);
         var newsItem;
-        randomNumber = Math.floor(Math.random() * (5001 - 1500) + 1500);
+        randomReachCount = Math.floor(Math.random() * (5001 - 1500) + 1500);
         if (newsId) {
             if (!LocalCache.newsItems || !LocalCache.newsItems.result) {
                 window.location.hash = '#/broadcast/overview';
