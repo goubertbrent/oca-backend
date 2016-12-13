@@ -57,6 +57,7 @@ input.error {
 <!-- Security measure, must be inserted after jquery before sln-utils.js -->
 <script language="javascript">
 var service_user_email = '{{service_user_email}}';
+var isDemoApp = false;
 $.ajaxSetup({
     headers: { 'X-Logged-In-As': service_user_email }
 });

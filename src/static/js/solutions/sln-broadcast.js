@@ -891,6 +891,7 @@ $(function () {
     function showEditNews(newsId) {
         newsId = parseInt(newsId);
         var newsItem;
+        var randomNumber = Math.floor(Math.random() * (5001 - 1500) + 1500);
         if (newsId) {
             if (!LocalCache.newsItems || !LocalCache.newsItems.result) {
                 window.location.hash = '#/broadcast/overview';
@@ -1296,8 +1297,12 @@ $(function () {
                 return a.app_id === app.id;
             })[0];
             if (stats) {
-                app.visible = true;
-                app.total_user_count = stats.total_user_count;
+                app.visible = true;            
+                if (isDemoApp) {
+                	app.total_user_count = randomNumber;
+                } else {
+                    app.total_user_count = stats.total_user_count;
+                }                
                 var hasOrderedApp = originalNewsItem && originalNewsItem.app_ids.indexOf(app.id) !== -1;
                 if (hasOrderedApp || isPresentInApp(app.id) && !originalNewsItem) {
                     app.checked = 'checked';
