@@ -49,15 +49,9 @@ $(function () {
         + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
         + '" rows="6"></textarea>';
     var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS + ':</label>\
-	<div id="address_geocode_error" style="display:none">\
-	    <div  class="alert alert-warning">\
-		    The address could not be converted to GPS coordinates. Please revise the format of your address to be more standard. Eg.\
-				<div style="padding:10px">\
-				<b>Antwerpsesteenweg 19<br>\
-				9080 Lochristi<br>\
-				België</b></div>\
-		</div>\
-    </div>\
+	<div id="address_geocode_error" style="display:none">'
+    + CommonTranslations.address_geocode_error_html + 
+    '</div>\
     <textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
     
     var TMPL_SET_EMAIL = '<label>' + CommonTranslations.EMAIL_ADDRESS + ':</label><input type="text" placeholder="'

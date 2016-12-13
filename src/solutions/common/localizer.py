@@ -26,6 +26,7 @@ translations = \
          u'Secret': u'Secret',
          u'<Picture>': u'<Picture>',
          u'<Video>': u'<Video>',
+         u'address_geocode_error_html': u'<div  class="alert alert-warning">The address could not be converted to GPS coordinates. Please revise the format of your address to be more standard. Eg.<div style="padding:10px"><b>Antwerpsesteenweg 19<br>9080 Lochristi<br>België</b></div></div>',
          u'About': u'About',
          u'Abuse': u'Abuse',
          u'Activate voucher': u'Activate voucher',
