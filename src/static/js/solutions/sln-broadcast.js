@@ -1300,7 +1300,7 @@ $(function () {
             if (stats) {
                 app.visible = true;            
                 if (isDemoApp) {
-                	app.total_user_count = randomNumber;
+                	app.total_user_count = randomReachCount;
                 } else {
                     app.total_user_count = stats.total_user_count;
                 }                
