@@ -1124,6 +1124,7 @@ $(function () {
             if (!response.success) {
                 sln.alert(response.error || T('error-occured-unknown-try-again'));
             } else {
+            	dis.remove();
                 $('#news_item_' + newsId).remove();
             }
         }
