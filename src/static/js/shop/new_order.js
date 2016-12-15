@@ -17,6 +17,7 @@
  */
 
 var SUBSCRIPTION_MODULES = {
+	starter : ['MSUP', 'KFUP', 'SETU'],
     silver: ['MSUP', 'BEAC', 'ILOS'],
     gold: ['MSUP', 'BEAC', 'KSUP', 'ILOS'],
     platinum: ['MSUP', 'BEAC', 'SETX', 'KSPP', 'ILOS']

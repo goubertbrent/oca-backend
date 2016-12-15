@@ -814,7 +814,9 @@ var showNewOrder = function () {
                 if (SUBSCRIPTION_MODULES[sub].indexOf(p.code) != -1) {
                     var default_count = p.default_count;
                     if (p.code == 'MSUP') {
-                        if (sub == 'gold') {
+                    	if (sub == 'starter') {
+                            default_count = 1;
+                        } else if (sub == 'gold') {
                             default_count *= 2;
                         } else if (sub == 'platinum') {
                             default_count *= 3;

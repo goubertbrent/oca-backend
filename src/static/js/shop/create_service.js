@@ -298,7 +298,7 @@ var showServiceTab = function() {
             broadcastTypes.slideUp();
         }
     }).change();
-
+    
     form.find('#form_apps #service_default_app').change(function() {
         var appId = $(this).val();
         form.find('#form_apps input[type="checkbox"]').each(function() {
@@ -574,7 +574,18 @@ function selectDefaultApps(){
         }
         elemServiceDefaultApp.val(default_app).change();
     } else{
-        elemServiceDefaultApp.val('rogerthat').change();
+    	var defaultAppId = "rogerthat";
+    	
+    	var form = $('#create_service_form');
+    	form.find('#form_apps input[type="checkbox"]').each(function() {
+            var checkbox = $(this);
+            var value = checkbox.val();
+            var text = checkbox.parents("label").text();
+        	if (text.indexOf(currentCustomer.city) >= 0) {
+        		defaultAppId = value;
+        	}
+        });
+        elemServiceDefaultApp.val(defaultAppId).change();
     }
 }
 
