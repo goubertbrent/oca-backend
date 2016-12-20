@@ -918,6 +918,18 @@ $(function () {
         });
     }
 
+    function validateLoadMoreNews() {
+        var lastNewsItem = $('.news-card').last();
+        if(sln.isOnScreen(lastNewsItem) && hasMoreNews) {
+            showNewsOverview(true);
+        }
+    }
+
+    //show more news when scolling down
+    $(window).scroll(function() {
+        validateLoadMoreNews();
+    });
+
     function renderNewsOverview(newsItems) {
         newsItems.map(function (n) {
             n.datetime = sln.format(new Date(n.timestamp * 1000));
@@ -927,16 +939,16 @@ $(function () {
             scheduledAt: scheduledAt
         });
         elemPageNews.html(html);
-        $('#load_more_news').click(loadMoreNews).toggle(hasMoreNews);
+        $('#load_more_news').click(validateLoadMoreNews).toggle(hasMoreNews);
         $('.delete_news_button').click(deleteNews);
         $('.show_more_stats_button').click(showMoreStatsClicked);
 
         function scheduledAt(datetime) {
             return T('scheduled_for_datetime', {datetime: sln.format(new Date(datetime * 1000))});
         }
-        function loadMoreNews() {
-            showNewsOverview(true);
-        }
+
+        // show more news if the last news item is visible
+        validateLoadMoreNews();
     }
 
     function addZerosToTimeData(timeData) {
@@ -972,7 +984,7 @@ $(function () {
             });
         }
     }
-    
+
     function renderStatistics(dis, container, newsId, newsItem) {
         var hide = container.css('display') === 'none';
         dis.text(hide ? T('hide_statistics') : T('show_statistics'));
