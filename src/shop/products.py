@@ -26,6 +26,7 @@ from shop.models import Product
 
 # XXX: We really need a better method to obtain these values
 MC_TELECOM_LEGAL_ENTITY_ID = 5789858167521280 if not DEBUG else 5832209105682432
+ACTIVE_S_LEGAL_ENTITY_ID = 5811373693992960 if not DEBUG else 5066549580791808
 
 
 def add_all_products(mobicage_entity=None):
@@ -74,10 +75,16 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_subx_product(mobicage_legal_entity_id))
     to_put.append(create_suby_product(mobicage_legal_entity_id))
     to_put.append(create_news_product(mobicage_legal_entity_id))
+
+    to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
+    to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
+    to_put.append(create_setu_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=7000))
+
     to_put.append(create_drc_stud_product())
     to_put.append(create_drc_sb_product())
     to_put.append(create_drc_hefl_product())
     to_put.append(create_drc_corp_product())
+
     db.put(to_put)
 
 """
@@ -88,8 +95,8 @@ each element in the array is a required product
 """
 
 
-def create_ilos_product(legal_entity_id):
-    p = Product(key_name='ILOS')
+def create_ilos_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'ILOS')
     p.price = 7500
     p.default_count = 1
     p.default = False
@@ -100,11 +107,14 @@ def create_ilos_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_xcty_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_EXTRA_CITY)
+def create_xcty_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_EXTRA_CITY)
     p.price = 500
     p.default_count = 1
     p.default = False
@@ -113,15 +123,18 @@ def create_xcty_product(legal_entity_id):
     p.is_subscription_discount = False
     p.is_subscription_extension = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP:-1|MSSU:-1|SSUP:-1|SSZP:-1|OCAP:-1']
+    p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(code_prefix=code_prefix)]
     p.picture_url = ""
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_a3ct_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_ACTION_3_EXTRA_CITIES)
+def create_a3ct_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_ACTION_3_EXTRA_CITIES)
     p.price = 1000
     p.default_count = 1
     p.default = False
@@ -130,15 +143,18 @@ def create_a3ct_product(legal_entity_id):
     p.is_subscription_discount = False
     p.is_subscription_extension = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP:-1|MSSU:-1|SSUP:-1|SSZP:-1|OCAP:-1']
+    p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(code_prefix=code_prefix)]
     p.picture_url = ""
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_beac_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_BEACON)
+def create_beac_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_BEACON)
     p.price = 3500
     p.default_count = 1
     p.default = False
@@ -150,11 +166,14 @@ def create_beac_product(legal_entity_id):
     p.visible = True
     p.picture_url = "/static/images/solutions/flex/BEACON_PRESENTATIE.jpg"
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_msub_product(legal_entity_id):
-    p = Product(key_name='MSUB')
+def create_msub_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'MSUB')
     p.price = 25000
     p.default_count = 12
     p.default = False
@@ -165,16 +184,16 @@ def create_msub_product(legal_entity_id):
     p.organization_types = []
     p.product_dependencies = []
     p.visible = True
+    p.legal_entity_id = legal_entity_id
     p.description_translation_key = 'MSUP.description'
     p.default_comment_translation_key = 'MSSU.default_comment'
-    p.legal_entity_id = legal_entity_id
     return p
 
 
-def create_msup_product(legal_entity_id):
-    p = Product(key_name='MSUP')
+def create_msup_product(legal_entity_id, code_prefix='', default_count=12):
+    p = Product(key_name=code_prefix + 'MSUP')
     p.price = 5000
-    p.default_count = 12
+    p.default_count = default_count
     p.default = True
     p.possible_counts = [1, 12, 24, 36]
     p.is_subscription = True
@@ -183,13 +202,15 @@ def create_msup_product(legal_entity_id):
     p.organization_types = []
     p.product_dependencies = []
     p.visible = True
-    p.default_comment_translation_key = 'MSSU.default_comment'
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = 'MSSU.default_comment'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_sx6m_product(legal_entity_id):
-    p = Product(key_name='SX6M')
+def create_sx6m_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SX6M')
     p.price = 0
     p.default_count = 24
     p.default = False
@@ -198,16 +219,18 @@ def create_sx6m_product(legal_entity_id):
     p.is_subscription_discount = True
     p.module_set = 'ALL'
     p.organization_types = []
-    p.product_dependencies = ['MSUP|MSSU|SSUP|SSZP']
+    p.product_dependencies = ['%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
     p.visible = False
     p.extra_subscription_months = 6
-    p.default_comment_translation_key = ''
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_sxdm_product(legal_entity_id):
-    p = Product(key_name='SXDM')
+def create_sxdm_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SXDM')
     p.price = 0
     p.default_count = 36
     p.default = False
@@ -216,17 +239,19 @@ def create_sxdm_product(legal_entity_id):
     p.is_subscription_discount = True
     p.module_set = 'ALL'
     p.organization_types = []
-    p.product_dependencies = ['MSUP|MSSU|SSUP|SSZP']
+    p.product_dependencies = ['%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
     p.visible = False
     p.extra_subscription_months = 12
-    p.default_comment_translation_key = ''
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_setu_product(legal_entity_id):
-    p = Product(key_name='SETU')
-    p.price = 7500
+def create_setu_product(legal_entity_id, code_prefix='', price=7500):
+    p = Product(key_name=code_prefix + 'SETU')
+    p.price = price
     p.default_count = 1
     p.default = True
     p.possible_counts = [1]
@@ -237,11 +262,14 @@ def create_setu_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_setx_product(legal_entity_id):  # Used for the platinum subscription
-    p = Product(key_name='SETX')
+def create_setx_product(legal_entity_id, code_prefix=''):  # Used for the platinum subscription
+    p = Product(key_name=code_prefix + 'SETX')
     p.price = 0
     p.default_count = 1
     p.default = True
@@ -253,11 +281,14 @@ def create_setx_product(legal_entity_id):  # Used for the platinum subscription
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_cred_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_ONE_TIME_CREDIT_CARD_PAYMENT_DISCOUNT)
+def create_cred_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_ONE_TIME_CREDIT_CARD_PAYMENT_DISCOUNT)
     p.price = -1000
     p.default_count = 1
     p.default = False
@@ -269,11 +300,14 @@ def create_cred_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = False
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_xtra_product(legal_entity_id):
-    p = Product(key_name='XTRA')
+def create_xtra_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'XTRA')
     p.price = 7500
     p.default_count = 1
     p.default = False
@@ -285,11 +319,14 @@ def create_xtra_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_xtrb_product(legal_entity_id):
-    p = Product(key_name='XTRB')
+def create_xtrb_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'XTRB')
     p.price = 10000
     p.default_count = 1
     p.default = False
@@ -299,15 +336,15 @@ def create_xtrb_product(legal_entity_id):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
-    p.description_translation_key = 'XTRA.description'
-    p.default_comment_translation_key = 'XTRA.default_comment'
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    p.description_translation_key = 'XTRA.description'
+    p.default_comment_translation_key = 'XTRA.default_comment'
     return p
 
 
-def create_kfup_product(legal_entity_id):
-    p = Product(key_name='KFUP')
+def create_kfup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'KFUP')
     p.price = -1500
     p.default_count = 1
     p.default = True
@@ -315,14 +352,17 @@ def create_kfup_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP']
+    p.product_dependencies = [code_prefix + 'MSUP']
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_ksup_product(legal_entity_id):
-    p = Product(key_name='KSUP')
+def create_ksup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'KSUP')
     p.price = -1500
     p.default_count = 24
     p.default = True
@@ -330,14 +370,17 @@ def create_ksup_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP']
+    p.product_dependencies = [code_prefix + 'MSUP']
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_vsdi_product(legal_entity_id):
-    p = Product(key_name='VSDI')
+def create_vsdi_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'VSDI')
     p.price = -1500
     p.default_count = 12
     p.default = True
@@ -345,14 +388,17 @@ def create_vsdi_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP:-1|LSUP:-1']
+    p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sLSUP:-1' % dict(code_prefix=code_prefix)]
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_kspp_product(legal_entity_id):
-    p = Product(key_name='KSPP')
+def create_kspp_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'KSPP')
     p.price = -1500
     p.default_count = 36
     p.default = True
@@ -360,14 +406,17 @@ def create_kspp_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP']
+    p.product_dependencies = [code_prefix + 'MSUP']
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_mssu_product(legal_entity_id):
-    p = Product(key_name='MSSU')
+def create_mssu_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'MSSU')
     p.price = 1000
     p.default_count = 12
     p.default = False
@@ -379,11 +428,14 @@ def create_mssu_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_ocap_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_FREE_PRESENCE)
+def create_ocap_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_FREE_PRESENCE)
     p.price = 0
     p.default_count = 1
     p.default = False
@@ -396,11 +448,14 @@ def create_ocap_product(legal_entity_id):
     p.visible = True
     p.default_comment_translation_key = ''
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_demo_product(legal_entity_id):
-    p = Product(key_name='DEMO')
+def create_demo_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'DEMO')
     p.price = 0
     p.default_count = 3
     p.default = False
@@ -412,11 +467,14 @@ def create_demo_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = False
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_ssup_product(legal_entity_id):
-    p = Product(key_name='SSUP')
+def create_ssup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SSUP')
     p.price = 1000
     p.default_count = 12
     p.default = False
@@ -427,13 +485,15 @@ def create_ssup_product(legal_entity_id):
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
     p.product_dependencies = []
     p.visible = False
-    p.default_comment_translation_key = 'MSSU.default_comment'
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = 'MSSU.default_comment'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_sjup_product(legal_entity_id):
-    p = Product(key_name='SJUP')
+def create_sjup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SJUP')
     p.price = 0
     p.default_count = 1
     p.default = False
@@ -445,11 +505,14 @@ def create_sjup_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_sgup_product(legal_entity_id):
-    p = Product(key_name='SGUP')
+def create_sgup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SGUP')
     p.price = 49500
     p.default_count = 1
     p.default = False
@@ -458,14 +521,17 @@ def create_sgup_product(legal_entity_id):
     p.is_subscription_discount = False
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
-    p.product_dependencies = ['CSUB:-1|MSUP:-1']
+    p.product_dependencies = ['%(code_prefix)sCSUB:-1|%(code_prefix)sMSUP:-1' % dict(code_prefix=code_prefix)]
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_sszp_product(legal_entity_id):
-    p = Product(key_name='SSZP')
+def create_sszp_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SSZP')
     p.price = 1000
     p.default_count = 12
     p.default = False
@@ -476,13 +542,15 @@ def create_sszp_product(legal_entity_id):
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_EMERGENCY]
     p.product_dependencies = []
     p.visible = True
-    p.default_comment_translation_key = 'MSSU.default_comment'
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = 'MSSU.default_comment'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_visi_product(legal_entity_id):
-    p = Product(key_name='VISI')
+def create_visi_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'VISI')
     p.price = 30
     p.default_count = 250
     p.default = False
@@ -493,11 +561,14 @@ def create_visi_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = False
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_posm_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_FLYERS)
+def create_posm_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_FLYERS)
     p.price = 6
     p.default_count = 250  # 15 euro per 250
     p.default = False
@@ -509,11 +580,14 @@ def create_posm_product(legal_entity_id):
     p.visible = False
     p.picture_url = "/static/images/solutions/flex/FLYERS_PRESENTATIE.jpg"
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_csub_product(legal_entity_id):
-    p = Product(key_name='CSUB')
+def create_csub_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'CSUB')
     p.price = 0
     p.default_count = 12
     p.default = False
@@ -522,14 +596,17 @@ def create_csub_product(legal_entity_id):
     p.is_subscription_discount = False
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
-    p.product_dependencies = ['SGUP:-1']
+    p.product_dependencies = [code_prefix + 'SGUP:-1']
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_csux_product(legal_entity_id):
-    p = Product(key_name='CSUX')
+def create_csux_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'CSUX')
     p.price = 0
     p.default_count = 12
     p.default = False
@@ -540,13 +617,15 @@ def create_csux_product(legal_entity_id):
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = []
     p.visible = True
-    p.default_comment_translation_key = 'CSUB.default_comment'
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = 'CSUB.default_comment'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_loya_product(legal_entity_id):
-    p = Product(key_name='LOYA')
+def create_loya_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'LOYA')
     p.price = 30000
     p.default_count = 1
     p.default = False
@@ -554,14 +633,17 @@ def create_loya_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = False
     p.organization_types = []
-    p.product_dependencies = ['MSUP:-1']
+    p.product_dependencies = [code_prefix + 'MSUP:-1']
     p.visible = False
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_lsup_product(legal_entity_id):
-    p = Product(key_name='LSUP')
+def create_lsup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'LSUP')
     p.price = 60000
     p.default_count = 1
     p.default = False
@@ -569,16 +651,18 @@ def create_lsup_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = True
     p.organization_types = []
-    p.product_dependencies = ['MSUP:-1']
+    p.product_dependencies = [code_prefix + 'MSUP:-1']
     p.visible = True
     p.extra_subscription_months = 12
-    p.default_comment_translation_key = 'LOYA.default_comment'
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = 'LOYA.default_comment'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_klup_product(legal_entity_id):
-    p = Product(key_name='KLUP')
+def create_klup_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'KLUP')
     p.price = -18000
     p.default_count = 1
     p.default = False
@@ -586,15 +670,17 @@ def create_klup_product(legal_entity_id):
     p.is_subscription = False
     p.is_subscription_discount = False
     p.organization_types = []
-    p.product_dependencies = ['LSUP', 'KSUP:-1']
+    p.product_dependencies = [code_prefix + 'LSUP', code_prefix + 'KSUP:-1']
     p.visible = False
-    p.default_comment_translation_key = ''
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_updi_product(legal_entity_id):
-    p = Product(key_name='UPDI')
+def create_updi_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'UPDI')
     p.price = -1000
     p.default_count = 1
     p.default = False
@@ -605,11 +691,14 @@ def create_updi_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_bnnr_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_ROLLUP_BANNER)
+def create_bnnr_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_ROLLUP_BANNER)
     p.price = 10000
     p.default_count = 1
     p.default = False
@@ -621,11 +710,14 @@ def create_bnnr_product(legal_entity_id):
     p.visible = True
     p.picture_url = "/static/images/solutions/flex/rollup_banner.jpg"
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_term_product(legal_entity_id):
-    p = Product(key_name='TERM')
+def create_term_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'TERM')
     p.price = 27400
     p.default_count = 1
     p.default = False
@@ -637,11 +729,14 @@ def create_term_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_otrm_product(legal_entity_id):
-    p = Product(key_name='OTRM')
+def create_otrm_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'OTRM')
     p.price = 19900
     p.default_count = 1
     p.default = False
@@ -653,11 +748,14 @@ def create_otrm_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_kkrt_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_CARDS)
+def create_kkrt_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_CARDS)
     p.price = 1750
     p.default_count = 2
     p.default = False
@@ -669,11 +767,14 @@ def create_kkrt_product(legal_entity_id):
     p.visible = True
     p.picture_url = "/static/images/solutions/flex/loyalty_cards.jpg"
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_subx_product(legal_entity_id):
-    p = Product(key_name='SUBX')
+def create_subx_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SUBX')
     p.price = 60000
     p.default_count = 1
     p.default = False
@@ -685,11 +786,14 @@ def create_subx_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_suby_product(legal_entity_id):
-    p = Product(key_name='SUBY')
+def create_suby_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'SUBY')
     p.price = 12000
     p.default_count = 1
     p.default = False
@@ -702,11 +806,13 @@ def create_suby_product(legal_entity_id):
     p.visible = True
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = u'SUBX.default_comment'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
-def create_news_product(legal_entity_id):
-    p = Product(key_name=Product.PRODUCT_NEWS_PROMOTION)
+def create_news_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + Product.PRODUCT_NEWS_PROMOTION)
     p.price = 1
     p.default_count = 1
     p.default = False
@@ -716,6 +822,9 @@ def create_news_product(legal_entity_id):
     p.product_dependencies = []
     p.visible = False  # Only orderable via dashboard when creating a newsfeed item
     p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
