@@ -48,11 +48,12 @@ $(function () {
     var TMPL_SET_OPENINGHOURS = '<label>' + CommonTranslations.OPENING_HOURS
         + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
         + '" rows="6"></textarea>';
-    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS 
-    	+ ':</label><div id="address_geocode_error" style="display:none">'
-    	+ CommonTranslations.address_geocode_error_html 
-    	+ '</div><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
-    
+    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS + ':</label>'
+        + '<div id="address_geocode_error" style="display:none">'
+        + '  <div class="alert alert-warning">' + CommonTranslations.address_geocode_error + '\n' + CommonTranslations.eg
+        + '     <div style="padding:10px"><b>' + sln.htmlize(CommonTranslations.sample_address) + '</b></div>'
+        + '  </div></div><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
+
     var TMPL_SET_EMAIL = '<label>' + CommonTranslations.EMAIL_ADDRESS + ':</label><input type="text" placeholder="'
         + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
 
@@ -807,11 +808,7 @@ $(function () {
     $(".sln-set-avatar #avatar_div").click(uploadAvatar);
     $(".sln-set-logo").html(TMPL_SET_LOGO);
     
-    $('.sln-set-logo #logo_div').click(function () {
-        uploadLogo();
-    });
-    
-    $(".sln-set-logo #logo_div").css('width', '320px').css('height',
+    $('.sln-set-logo #logo_div').click(uploadLogo).css('width', '320px').css('height',
         (320 * SLN_LOGO_HEIGHT / SLN_LOGO_WIDTH) + 'px');
     $(".sln-set-name").html(TMPL_SET_NAME);
     $(".sln-set-email-address").html(TMPL_SET_EMAIL);
@@ -1347,13 +1344,13 @@ $(function () {
                 if (!data.success) {
                     return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 }         
-        	    if(data.result === null){
-        	    	$("#address_geocode_error").hide();
-        	    } else if(data.result.address_geocoded){
-        	    	$("#address_geocode_error").hide();
-        	    } else{
-        	    	$("#address_geocode_error").show();
-        	    }
+                if(data.result === null){
+                    $("#address_geocode_error").hide();
+                } else if(data.result.address_geocoded){
+                    $("#address_geocode_error").hide();
+                } else{
+                    $("#address_geocode_error").show();
+                }
             },
             error: sln.showAjaxError
         });
