@@ -59,6 +59,7 @@ $(function () {
             2: T('coupon')
         };
     var hasMoreNews = false;
+    var isLoadingNews = false;
     var msgAttachments = [];
     var msgUrls = [];
 
@@ -111,7 +112,8 @@ $(function () {
     var currentStep;
     var elemBroadcastOnTwitter = $("#broadcast_message_on_twitter").find("input");
     LocalCache.news = {
-        promotedNews: {}
+        promotedNews: {},
+        statistics: {}
     };
 
     init();
@@ -856,6 +858,7 @@ $(function () {
         if (LocalCache.newsItems && !loadMore) {
             renderNewsOverview(LocalCache.newsItems.result);
         } else {
+            isLoadingNews = true;
             sln.call({
                 url: '/common/news',
                 data: {
@@ -875,9 +878,11 @@ $(function () {
                     });
                     hasMoreNews = data.result.length > 0;
                     renderNewsOverview(LocalCache.newsItems.result);
+                    isLoadingNews = false;
                 },
                 error: function () {
                     elemPageNews.html(T('error_while_loading_news_try_again_later'));
+                    isLoadingNews = false;
                 }
             });
         }
@@ -919,7 +924,7 @@ $(function () {
 
     function validateLoadMoreNews() {
         var lastNewsItem = $('.news-card').last();
-        if(sln.isOnScreen(lastNewsItem) && hasMoreNews) {
+        if(sln.isOnScreen(lastNewsItem) && hasMoreNews && !isLoadingNews) {
             showNewsOverview(true);
         }
     }
@@ -950,14 +955,19 @@ $(function () {
         validateLoadMoreNews();
     }
 
-    function addZerosToTimeData(timeData) {
+    /*
+    fill the missing time data with a default value
+
+    :param timeData: an array of time data
+    */
+    function fillMissingTimeData(timeData, defaultValue) {
         var columns = Object.keys(timeData[0]).length;
         $.each(timeData, function (i, row) {
             var rowLength = Object.keys(row).length;
             if (rowLength < columns) {
                 for (var j = 0; j < columns; j++) {
                     if (row[j] === undefined) {
-                        row[j] = 0;
+                        row[j] = defaultValue;
                     }
                 }
             }
@@ -966,42 +976,95 @@ $(function () {
 
     function showMoreStatsClicked() {
         var dis = $(this);
+        // buttons receive clicks even while they're disabled
+        if(dis.attr('disabled')) return;
+
         var newsId = parseInt(dis.attr('news_id'));
+        var property = dis.attr('property_name');
         var container = $('#show_more_stats_' + newsId);
-        if (container.html()) {
-            container.slideToggle();
+        var containerHidden = container.css('display') == 'none';
+        if (!containerHidden) {
+            container.empty();
+            container.slideUp();
+            dis.css("color", "");
+            // re-enable other buttons
+            $('.show_more_stats_button[news_id=' + newsId + '][property_name!=' + property + ']').attr('disabled', false);
         } else {
-        	sln.call({
-                url: '/common/news/statistics',
-                data: {
-                    news_id: newsId
-                },
-                type: 'GET',
-                success: function (newsItem) {
-                	renderStatistics(dis, container, newsId, newsItem);
-                }
-            });
-        }
+          // disable all other buttons
+          $('.show_more_stats_button[news_id=' + newsId + '][property_name!=' + property + ']').attr('disabled', true);
+          // color the button with green
+          dis.css("color", "#8bc53f");
+
+          var stats = LocalCache.news.statistics[newsId];
+          if(stats === undefined) {
+              sln.call({
+                    url: '/common/news/statistics',
+                    data: {
+                        news_id: newsId
+                    },
+                    type: 'GET',
+                    success: function (newsItem) {
+                        LocalCache.news.statistics[newsId] = newsItem.statistics;
+                        renderStatistics(dis, container, newsId, newsItem.statistics, property);
+                    }
+              });
+          } else {
+              renderStatistics(dis, container, newsId, stats, property);
+          }
+       }
     }
 
-    function renderStatistics(dis, container, newsId, newsItem) {
-        var hide = container.css('display') === 'none';
-        dis.text(hide ? T('hide_statistics') : T('show_statistics'));
-        google.charts.load('current', {'packages': ['corechart', 'line']});
+    /*
+    groups the time stats with day date instead of time
+
+    :param timeStats: an array of stats objects {timestamp: xxxx, amount: xxx}
+
+    :returns: a map with keys as date strings
+              and values are amounts
+    */
+    function groupTimeStatsByDay(timeStats) {
+        // map for ensuring the insertion order
+        var group = new Map();
+
+        for(var i = 0; i < timeStats.length; i++) {
+            var date = new Date(timeStats[i].timestamp * 1000);
+            date.setHours(0, 0, 0, 0);
+            if(group[date] !== undefined) {
+                group[date] += timeStats[i].amount;
+            } else {
+                group[date] = timeStats[i].amount;
+            }
+        }
+
+        return group;
+    }
+
+    function renderStatistics(dis, container, newsId, statistics, property) {
+        google.charts.load('current', {'packages': ['corechart', 'annotationchart']});
         google.charts.setOnLoadCallback(drawCharts);
         function drawCharts() {
             var lineOptions = {
-                    legend: {
-                        position: 'none'
-                    },
-                    width: 300,
-                    height: 200,
-                    curveType: 'function'
-                },
-                pieOptions = {
-                    width: 300,
-                    height: 200
-                };
+                  displayZoomButtons: false,
+                  displayRangeSelector: false,
+              },
+              barOptions = {
+                  title: T('age'),
+                  legend: {
+                      position: 'bottom'
+                  },
+                  width: 600,
+                  hAxis: {
+                      showTextEvery: 3
+                  },
+                  isStacked: true
+              },
+              pieOptions = {
+                  title: T('gender'),
+                  width: 300,
+                  legend: {
+                      position: 'bottom'
+                  }
+              };
             var ageData, genderData, timeData;
             // structure:
             // [
@@ -1009,99 +1072,101 @@ $(function () {
             //     ['0-5', 0, 42],
             //     ['5-10', 0, 420],
             // ]
-            var properties = ['followed', 'reached', 'rogered', 'action'];
-            for (var propertyCounter = 0; propertyCounter < properties.length; propertyCounter++) {
-                var property = properties[propertyCounter];
-                for (var appCounter = 0; appCounter < newsItem.statistics.length; appCounter++) {
-                    var statisticsInApp = newsItem.statistics[appCounter];
-                    var appId = statisticsInApp.app_id;
-                    var hasGenderData = false;
-                    var template = $.tmpl(templates['broadcast/news_stats_row'], {
-                        title: T(property),
-                        last: propertyCounter === properties.length - 1
-                    });
-                    var stats = statisticsInApp[property];
-                    var j, len;
-                    if (appCounter === 0) {
-                        ageData = [
-                            [T('age')]
-                        ];
-                        genderData = [
-                            [T('gender'), T(property)]
-                        ];
-                        timeData = [{
-                            0: T('Time')
-                        }];
-                        for (j = 0, len = stats.age.length; j < len; j++) {
-                            ageData.push([stats.age[j].key]);
-                        }
-                        for (j = 0, len = stats.gender.length; j < len; j++) {
-                            genderData.push([T(stats.gender[j].key), 0]);
-                        }
+            var hasGenderData = false;
+            var lastTimeDataAmount; // to fill the missing
+            for (var appCounter = 0; appCounter < statistics.length; appCounter++) {
+                var statisticsInApp = statistics[appCounter];
+                var appId = statisticsInApp.app_id;
+                var stats = statisticsInApp[property];
+                var j, len;
+                if (appCounter === 0) {
+                    ageData = [
+                        [T('age')]
+                    ];
+                    genderData = [
+                        [T('gender'), T(property)]
+                    ];
+                    timeData = [{
+                        0: {label: T('Date'), type: 'date'}
+                    }];
+                    for (j = 0, len = stats.age.length; j < len; j++) {
+                        ageData.push([stats.age[j].key]);
                     }
-                    var app = ALL_APPS.filter(function (p) {
-                        return p.id === appId;
-                    })[0];
-                    var appName = app ? app.name : appId;
-                    ageData[0].push(appName);
-                    timeData[0][appCounter + 1] = appName;
-                    for (j = 0; j < stats.age.length; j++) {
-                        ageData[j + 1].push(stats.age[j].value);
-                    }
-                    for (j = 0; j < stats.gender.length; j++) {
-                        genderData[j + 1][1] += stats.gender[j].value;
-                        hasGenderData = genderData[j + 1][1] !== 0;
-                    }
-                    for (j = 0; j < stats.time.length; j++) {
-                        if (timeData[j + 1] === undefined) {
-                            timeData[j + 1] = {
-                                0: new Date(stats.time[j].timestamp * 1000)
-                            };
-                        }
-                        timeData[j + 1][appCounter + 1] = stats.time[j].amount;
-                    }
-                    addZerosToTimeData(timeData);
-
-                    if (appCounter === newsItem.statistics.length - 1) {
-                        var ageElem = document.createElement('div');
-                        ageElem.className = 'news_stats_column';
-                        var ageTable = google.visualization.arrayToDataTable(ageData);
-                        var ageChart = new google.charts.Line(ageElem);
-                        ageChart.draw(ageTable, lineOptions);
-                        var genderElem = document.createElement('div');
-                        genderElem.className = 'news_stats_column';
-                        if (hasGenderData) {
-                            var genderTable = google.visualization.arrayToDataTable(genderData);
-                            var genderChart = new google.visualization.PieChart(genderElem);
-                            genderChart.draw(genderTable, pieOptions);
-                        } else {
-                            genderElem.innerHTML = '<i>' + T('not_enough_data') + '</i>';
-                        }
-                        var timeElem = document.createElement('div');
-                        timeElem.className = 'news_stats_column';
-                        $.each(timeData, function (i, td) {
-                            timeData[i] = $.map(td, function (value, index) {
-                                return [value];
-                            });
-
-                        });
-                        if (timeData.length > 2) {
-                            var timeTable = google.visualization.arrayToDataTable(timeData);
-                            var timeChart = new google.charts.Line(timeElem);
-                            timeChart.draw(timeTable, lineOptions);
-                        } else {
-                            timeElem.innerHTML = '<i>' + T('not_enough_data') + '</i>';
-                        }
-
-                        var div = template.filter('div');
-                        div.append(ageElem);
-                        div.append(genderElem);
-                        div.append(timeElem);
-                        container.append(template);
+                    for (j = 0, len = stats.gender.length; j < len; j++) {
+                        genderData.push([T(stats.gender[j].key), 0]);
                     }
                 }
+                var app = ALL_APPS.filter(function (p) {
+                    return p.id === appId;
+                })[0];
+                var appName = app ? app.name : appId;
+                ageData[0].push(appName);
+                timeData[0][appCounter + 1] = appName;
+                for (j = 0; j < stats.age.length; j++) {
+                    ageData[j + 1].push(stats.age[j].value);
+                }
+                for (j = 0; j < stats.gender.length; j++) {
+                    genderData[j + 1][1] += stats.gender[j].value;
+                    hasGenderData = hasGenderData || genderData[j + 1][1] !== 0;
+                }
+
+                j = 0;
+                var timeByDayDate = groupTimeStatsByDay(stats.time);
+                for(var dateStr in timeByDayDate) {
+                    if(timeData[j + 1]  === undefined) {
+                        timeData[j + 1] = {
+                            // must be date object in annotation charts
+                            0: new Date(dateStr)
+                        };
+                    }
+                    // set amount
+                    if(j > 0) {
+                        // sum with previous amount if not the first
+                        var prev = timeData[j][appCounter + 1];
+                        timeData[j + 1][appCounter + 1] = prev + timeByDayDate[dateStr];
+                    } else {
+                        timeData[j + 1][appCounter + 1] = timeByDayDate[dateStr];
+                    }
+                    lastTimeDataAmount = timeData[j + 1][appCounter + 1];
+                    j++;
+                }
+                // apps differ in recorded time amounts, also
+                // time spans (app1: 5 months, app2: 1 year)...etc
+                // this will fill the missing values
+                // because the data is accumulative, then fill by last amount
+                fillMissingTimeData(timeData, lastTimeDataAmount);
             }
+            // append and show the divs first
+            var template = $.tmpl(templates['broadcast/news_stats_row'],{
+              news_id: newsId
+            });
+            container.append(template);
             container.slideDown();
+            var ageElem = document.getElementById('stats_age_graph_' + newsId);
+            var ageTable = google.visualization.arrayToDataTable(ageData);
+            var ageChart = new google.visualization.ColumnChart(ageElem);
+            ageChart.draw(ageTable, barOptions);
+            var genderElem = document.getElementById('stats_gender_graph_' + newsId);
+            if (hasGenderData) {
+                var genderTable = google.visualization.arrayToDataTable(genderData);
+                var genderChart = new google.visualization.PieChart(genderElem);
+                genderChart.draw(genderTable, pieOptions);
+            } else {
+                genderElem.innerHTML = '<i>' + T('not_enough_data') + '</i>';
+            }
+            var timeElem = document.getElementById('stats_time_graph_' + newsId);
+            $.each(timeData, function (i, td) {
+                timeData[i] = $.map(td, function (value, index) {
+                    return [value];
+                });
+            });
+            if (timeData.length > 2) {
+                var timeTable = google.visualization.arrayToDataTable(timeData);
+                var timeChart = new google.visualization.AnnotationChart(timeElem);
+                timeChart.draw(timeTable, lineOptions);
+            } else {
+                timeElem.innerHTML = '<i>' + T('not_enough_data') + '</i>';
+            }
         }
     }
 

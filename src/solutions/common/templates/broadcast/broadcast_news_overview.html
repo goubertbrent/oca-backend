@@ -24,26 +24,23 @@
             </md-card-title>
             <md-card-content>
                 <div class="layout-row layout-align-space-between-center">
+                    {{if newsItem.published}}
                     <div class="layout-row layout-align-start-center card-stats-container">
                         <div class="statistics_chip">
-                            <span>${T('broadcast-reach')}: ${newsItem.reach}</span>
+                            <a class="md-button md-raised show_more_stats_button" news_id="${newsItem.id}" property_name="reached">${T('broadcast-reach')} <span class="badge">${newsItem.reach}</span></a>
                         </div>
                         <div class="statistics_chip">
-                            <span>${T('rogered')}: ${newsItem.users_that_rogered.length}</span>
+                            <a class="md-button md-raised show_more_stats_button" news_id="${newsItem.id}" property_name="rogered">${T('rogered')} <span class="badge">${newsItem.users_that_rogered.length}</span></a>
                         </div>
                         <div class="statistics_chip" {{if newsItem.action_count < 0}}style="display: none;"{{/if}}>
-                            <span>${T('action')}: ${newsItem.action_count}</span>
+                            <a class="md-button md-raised show_more_stats_button" news_id="${newsItem.id}" property_name="action">${T('action')} <span class="badge">${newsItem.action_count}</span></a>
                         </div>
                         <div class="statistics_chip" {{if newsItem.action_count < 0}}style="display: none;"{{/if}}>
-                            <span>${T('followed')}: ${newsItem.follow_count}</span>
+                            <a class="md-button md-raised show_more_stats_button" news_id="${newsItem.id}" property_name="followed">${T('followed')} <span class="badge">${newsItem.follow_count}</a>
                         </div>
                     </div>
+                    {{/if}}
                     <div class="layout-align-end-center">
-                        {{if newsItem.published}}
-                        <a class="md-button show_more_stats_button md-raised" news_id="${newsItem.id}">
-                            ${T('show_statistics')}
-                        </a>
-                        {{/if}}
                         <a href="#/broadcast/edit/${newsItem.id}" class="md-button md-raised">
                             <i class="fa fa-pencil-square-o"></i> ${T('EDIT')}
                         </a>
