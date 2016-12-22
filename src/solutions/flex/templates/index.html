@@ -51,6 +51,7 @@ var service_user_email = '{{service_user_email}}';
 var service_identity = '{{service_identity}}';
 var isLoyaltyTablet = {% if loyalty %}true{% else %}false{% endif %};
 var CITY_APP_ID = "{{ city_app_id }}";
+var isDemoApp = {% if is_demo_app %}true{% else %}false{% endif %};
 
 $.ajaxSetup({
     headers: { 'X-Logged-In-As': service_user_email }

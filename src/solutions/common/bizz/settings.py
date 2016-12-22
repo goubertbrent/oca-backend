@@ -44,7 +44,7 @@ SLN_AVATAR_HEIGHT = 150
 SLN_AVATAR_MAX_SIZE = 51200  # 50 kB
 
 
-@returns(NoneType)
+@returns(bool)
 @arguments(service_user=users.User, service_identity=unicode, name=unicode, description=unicode, opening_hours=unicode, address=unicode,
            phone_number=unicode, facebook_page=unicode, facebook_name=unicode, facebook_action=unicode,
            currency=unicode, search_enabled=bool, search_keywords=unicode, timezone=unicode, events_visible=bool,
@@ -53,6 +53,7 @@ def save_settings(service_user, service_identity, name, description=None, openin
                   facebook_page=None, facebook_name=None, facebook_action=None, currency=None, search_enabled=True,
                   search_keywords=None, timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None,
                   iban=None, bic=None):
+    address_geocoded = True
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     sln_i_settings.name = name
@@ -81,6 +82,7 @@ def save_settings(service_user, service_identity, name, description=None, openin
             lat, lon = _get_location(address)
             sln_i_settings.location = db.GeoPt(lat, lon)
         except:
+            address_geocoded = False
             logging.warning("Failed to resolve address: %s" % sln_i_settings.address, exc_info=1)
     if timezone is not None:
         if sln_settings.timezone != timezone:
@@ -102,6 +104,8 @@ def save_settings(service_user, service_identity, name, description=None, openin
     sln_settings.put()
 
     broadcast_updates_pending(sln_settings)
+
+    return address_geocoded
 
 
 def _temp_blob_to_bytes(tmp_blob_key, x1, y1, x2, y2, width, height, max_size, substitution_color):

@@ -18,10 +18,12 @@
 import json
 import os
 
-from babel import dates
-
 import jinja2
+import webapp2
+
+from babel import dates
 from mcfw.rpc import serialize_complex_value
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG
@@ -31,10 +33,10 @@ from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
-from solution_server_settings import get_solution_server_settings
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
+from solution_server_settings import get_solution_server_settings
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
@@ -50,7 +52,6 @@ from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
-import webapp2
 
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -257,8 +258,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
         loyalty_version = self.request.get("loyalty")
         if customer:
             city_app_id = customer.app_id
+            default_app = get_app(customer.app_id)
+            is_demo_app = default_app.demo
         else:
             city_app_id = None
+            is_demo_app = False
 
         available_apps = get_available_apps_for_customer(customer)
 
@@ -317,6 +321,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
                   'city_app_id': city_app_id,
+                  'is_demo_app': is_demo_app,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
                   'currency': sln_settings.currency,
                   'isShopUser': session_.shop if session_ else False,

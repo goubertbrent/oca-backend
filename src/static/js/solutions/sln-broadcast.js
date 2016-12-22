@@ -48,6 +48,7 @@ $(function () {
     var targetAudienceMinAge = 0;
     var targetAudienceMaxAge = 0;
     var targetAudienceGender = GENDER_MALE_OR_FEMALE;
+    var randomReachCount;
 
     var DEFAULT_TIME_EPOCH = 20 * 3600;
     var broadcastTimeEpoch = DEFAULT_TIME_EPOCH,
@@ -872,9 +873,6 @@ $(function () {
                     LocalCache.newsItems.result.map(function (item) {
                         uniqueNews[item.id] = item;
                     });
-                    LocalCache.newsItems.result = Object.values(uniqueNews).sort(function (item1, item2) {
-                        return item2.timestamp - item1.timestamp;
-                    });
                     hasMoreNews = data.result.length > 0;
                     renderNewsOverview(LocalCache.newsItems.result);
                 },
@@ -894,6 +892,7 @@ $(function () {
     function showEditNews(newsId) {
         newsId = parseInt(newsId);
         var newsItem;
+        randomReachCount = Math.floor(Math.random() * (5001 - 1500) + 1500);
         if (newsId) {
             if (!LocalCache.newsItems || !LocalCache.newsItems.result) {
                 window.location.hash = '#/broadcast/overview';
@@ -1312,8 +1311,12 @@ $(function () {
                 return a.app_id === app.id;
             })[0];
             if (stats) {
-                app.visible = true;
-                app.total_user_count = stats.total_user_count;
+                app.visible = true;            
+                if (isDemoApp) {
+                	app.total_user_count = randomReachCount;
+                } else {
+                    app.total_user_count = stats.total_user_count;
+                }                
                 var hasOrderedApp = originalNewsItem && originalNewsItem.app_ids.indexOf(app.id) !== -1;
                 if (hasOrderedApp || isPresentInApp(app.id) && !originalNewsItem) {
                     app.checked = 'checked';
@@ -1865,7 +1868,7 @@ $(function () {
                             datetime: sln.format(new Date(result.scheduled_at * 1000))
                         });
                     }
-                    sln.alert(text, gotoNewsOverview);
+                    sln.alert(text, gotoNewsOverview, CommonTranslations.SUCCESS);
                     $.each(orderItems, function (i, orderItem) {
                         if (orderItem.app_id) {
                             ACTIVE_APPS.push(orderItem.app_id);

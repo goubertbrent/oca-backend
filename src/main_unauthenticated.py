@@ -22,7 +22,6 @@ from bob.handlers import BobFetchHandler, GetAppsHandler, CreateAppHandler, SetF
     BobPutMainService, BobPutAppTrack
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
-from rogerthat.rpc.service import register_service_api_calls
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
@@ -34,11 +33,9 @@ from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, Loyal
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.restapi import yourservicehere
-import solutions.common.restapi
-import solutions.djmatic.api
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-
+import solutions.djmatic.api
 
 dummy2()
 dummy()
@@ -71,9 +68,6 @@ handlers = [
     ('/solutions/common/public/attachment/view/(.*)', ViewAttachmentHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
 ]
-
-register_service_api_calls(solutions.djmatic.api)
-register_service_api_calls(yourservicehere)
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))
 
