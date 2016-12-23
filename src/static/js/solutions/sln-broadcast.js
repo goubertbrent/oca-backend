@@ -956,18 +956,24 @@ $(function () {
     }
 
     /*
-    fill the missing time data with a default value
-
+    fill the missing time data with the previous row value
     :param timeData: an array of time data
     */
-    function fillMissingTimeData(timeData, defaultValue) {
+    function fillMissingTimeData(timeData) {
         var columns = Object.keys(timeData[0]).length;
         $.each(timeData, function (i, row) {
             var rowLength = Object.keys(row).length;
             if (rowLength < columns) {
-                for (var j = 0; j < columns; j++) {
+                // row[0] is a date
+                // timeData[i -1] is the previous row
+                var prevRow = timeData[i - 1];
+                for (var j = 1; j < columns; j++) {
                     if (row[j] === undefined) {
-                        row[j] = defaultValue;
+                        if(prevRow) {
+                            row[j] = prevRow[j];
+                        } else {
+                            row[j] = 0;
+                        }
                     }
                 }
             }
@@ -983,17 +989,23 @@ $(function () {
         var property = dis.attr('property_name');
         var container = $('#show_more_stats_' + newsId);
         var containerHidden = container.css('display') == 'none';
-        if (!containerHidden) {
-            container.empty();
+        // same button is the button with green color
+        // rgb(139, 197, 63) = #8bc53f
+        var sameButton = dis.css('color') == 'rgb(139, 197, 63)';
+
+        // empty container and set all buttons to the default color
+        $('.show_more_stats_button[news_id=' + newsId + ']').css('color', '');
+        container.empty();
+
+        // hide only if the same button clicked
+        if (!containerHidden && sameButton) {
             container.slideUp();
-            dis.css("color", "");
-            // re-enable other buttons
-            $('.show_more_stats_button[news_id=' + newsId + '][property_name!=' + property + ']').attr('disabled', false);
         } else {
-          // disable all other buttons
-          $('.show_more_stats_button[news_id=' + newsId + '][property_name!=' + property + ']').attr('disabled', true);
+          var spinner = $(TMPL_LOADING_SPINNER).css('position', 'relative');
+          container.append(spinner);
+          container.slideDown();
           // color the button with green
-          dis.css("color", "#8bc53f");
+          dis.css('color', '#8bc53f');
 
           var stats = LocalCache.news.statistics[newsId];
           if(stats === undefined) {
@@ -1005,10 +1017,12 @@ $(function () {
                     type: 'GET',
                     success: function (newsItem) {
                         LocalCache.news.statistics[newsId] = newsItem.statistics;
+                        spinner.remove();
                         renderStatistics(dis, container, newsId, newsItem.statistics, property);
                     }
               });
           } else {
+              spinner.remove();
               renderStatistics(dis, container, newsId, stats, property);
           }
        }
@@ -1073,7 +1087,6 @@ $(function () {
             //     ['5-10', 0, 420],
             // ]
             var hasGenderData = false;
-            var lastTimeDataAmount; // to fill the missing
             for (var appCounter = 0; appCounter < statistics.length; appCounter++) {
                 var statisticsInApp = statistics[appCounter];
                 var appId = statisticsInApp.app_id;
@@ -1127,21 +1140,19 @@ $(function () {
                     } else {
                         timeData[j + 1][appCounter + 1] = timeByDayDate[dateStr];
                     }
-                    lastTimeDataAmount = timeData[j + 1][appCounter + 1];
                     j++;
                 }
-                // apps differ in recorded time amounts, also
-                // time spans (app1: 5 months, app2: 1 year)...etc
-                // this will fill the missing values
-                // because the data is accumulative, then fill by last amount
-                fillMissingTimeData(timeData, lastTimeDataAmount);
             }
+            // apps differ in recorded time amounts, also
+            // time spans (app1: 5 months, app2: 1 year)...etc
+            // this will fill the missing values
+            // because the data is accumulative
+            fillMissingTimeData(timeData);
             // append and show the divs first
             var template = $.tmpl(templates['broadcast/news_stats_row'],{
               news_id: newsId
             });
             container.append(template);
-            container.slideDown();
             var ageElem = document.getElementById('stats_age_graph_' + newsId);
             var ageTable = google.visualization.arrayToDataTable(ageData);
             var ageChart = new google.visualization.ColumnChart(ageElem);
