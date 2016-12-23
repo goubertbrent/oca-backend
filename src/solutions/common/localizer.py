@@ -908,7 +908,7 @@ translations = \
          u'promotion': u'Promotion',
          u'promotion_duration': u'Promotion duration',
          u'promotions': u'Promotions',
-         u'publish': u'Publiceren',
+         u'publish': u'Publish',
          u'publish-changes': u'Publish changes',
          u'publish_news_item_later': u'Publish news item later',
          u'publishing-dot-dot-dot': u'Publishing\u2026',

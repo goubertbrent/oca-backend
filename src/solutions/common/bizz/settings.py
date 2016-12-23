@@ -160,8 +160,9 @@ def set_avatar(service_user, tmp_avatar_key, x1, y1, x2, y2):
 def set_logo(service_user, tmp_logo_key, x1, y1, x2, y2):
     logging.info("%s: Saving logo" % service_user.email())
     branding_settings = SolutionBrandingSettings.get(SolutionBrandingSettings.create_key(service_user))
+    background_color = branding_settings.background_color if branding_settings else u'000000'
     jpg_bytes = _temp_blob_to_bytes(tmp_logo_key, x1, y1, x2, y2, SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT, SLN_LOGO_MAX_SIZE,
-                                    branding_settings.background_color)
+                                    background_color)
 
     def trans():
         logo = get_solution_logo(service_user) or SolutionLogo(key=SolutionLogo.create_key(service_user))
