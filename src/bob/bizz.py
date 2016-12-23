@@ -361,14 +361,25 @@ def validate_and_put_main_service(app_id, main_service_email):
     if not service_identity:
         raise BusinessException('Cannot set main service, invalid service email.')
 
-    already_has_service = False
     for acs in app.auto_connected_services:
         if acs.service_identity_email == service_identity_user.email():
-            already_has_service = True
             break
-    if not already_has_service:
+    else:
         auto_connected_service = AutoConnectedService.create(main_service_email, False, None, None)
         add_auto_connected_services(app_id, [auto_connected_service])
+
+    if app.type == App.APP_TYPE_CITY_APP:
+        # Add admin service
+        def trans():
+            app = get_app(app_id)
+            for admin_service in app.admin_services:
+                if admin_service == main_service_email:
+                    break
+            else:
+                app.admin_services.append(main_service_email)
+                app.put()
+        db.run_in_transaction(trans)
+
     message = None
     if not app.core_branding_hash:
         service_user = get_service_user_from_service_identity_user(service_identity_user)

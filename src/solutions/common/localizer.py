@@ -4295,7 +4295,7 @@ translations = \
          u'restaurant-closed': u'Helaas. Het restaurant is gesloten op dit moment. ',
          u'restaurant-reservations-cancel-broken': u'Bent u zeker dat u de kapotte reservaties wilt annuleren die gemaakt zijn via de applicatie?',
          u'results found for': u'gevonden resultaten voor',
-         u'rogered': u'Rogered',
+         u'rogered': u'Gerogerd',
          u'rogerthat_function_unsupported_update': u'Deze functionaliteit wordt niet ondersteund in uw versie van de app. Update uw applicatie om verder te gaan.',
          u'rollup_banner': u'Roll-up banner',
          u'row': u'Rij',
