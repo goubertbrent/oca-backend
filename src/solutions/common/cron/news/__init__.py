@@ -85,7 +85,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink):
                      message=message,
                      image=image,
                      news_type=news_type,
-                     flags=NewsItem.DEFAULT_FLAGS,
+                     flags=NewsItem.DEFAULT_FLAGS | NewsItem.FLAG_SILENT,
                      broadcast_type=broadcast_type,
                      action_buttons=[action_button],
                      qr_code_content=qr_code_content,
