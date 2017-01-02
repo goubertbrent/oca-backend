@@ -253,9 +253,9 @@ class BizzAdminHandler(BizzManagerHandler):
     def get(self, *args, **kwargs):
         credentials = shopOauthDecorator.credentials  # type: Credentials
 
-        http_auth = credentials.authorize(shopOauthDecorator.http())
-        calendar_service = build('calendar', 'v3', http=http_auth)
         try:
+            http_auth = credentials.authorize(shopOauthDecorator.http())
+            calendar_service = build('calendar', 'v3', http=http_auth)
             now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
             calendar_service.events().list(calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
         except Exception, e:
