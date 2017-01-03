@@ -152,7 +152,7 @@ class SolutionInboxMessage(db.Model):
 
     @classmethod
     def get_all_unanswered_questions(cls, days):
-        return cls.all().filter('question_asked_timestamp <', now() - days * 86400)
+        return cls.all().filter('question_asked_timestamp <', now() - days * 86400).filter('question_asked_timestamp >', 0)
 
     @classmethod
     def get_all_by_service(cls, service_user, service_identity, start_date):
