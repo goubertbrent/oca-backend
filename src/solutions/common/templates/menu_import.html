@@ -1,0 +1,23 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true" id="menu_import_modal">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+		<h3>${t.import_menu}</h3>
+	</div>
+	<div class="modal-body">
+        <h5>${t.select_an_excel_file}</h5>
+        <p class="alert alert-warning">${t.import_from_excel_warning}</p>
+        <hr/>
+		<div class="control-group" id="menu_file_group">
+			<label for="menuFile">${t.file}</label>
+            <input id="menuFile" type="file" required accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+        </div>
+	</div>
+	<div class="modal-footer">
+		<button action="cancel" class="btn" data-dismiss="modal"
+				aria-hidden="true">${t.CANCEL}
+		</button>
+		<button action="submit" class="btn btn-primary">${t.import}</button>
+	</div>
+</div>
+{%- endraw %}

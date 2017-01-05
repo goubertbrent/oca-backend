@@ -644,6 +644,21 @@ def menu_save(menu):
         return ReturnStatusTO.create(False, e.message)
 
 
+@rest("/common/menu/import", "post")
+@returns(ReturnStatusTO)
+@arguments(file_contents=str)
+def menu_import(file_contents):
+    """" import menu from excel files """
+    from solutions.common.bizz.menu import import_menu_from_excel
+    try:
+        service_user = users.get_current_user()
+        import_menu_from_excel(service_user, file_contents)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException, e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+
 @rest("/common/menu/save_name", "post")
 @returns(ReturnStatusTO)
 @arguments(name=unicode)

@@ -34,6 +34,7 @@ $(function () {
     function init() {
         ROUTES['menu'] = router;
         $("#menu").find("button[name=newcat]").click(newCategory);
+        $("#import_menu").click(importMenu);
         sln.registerMsgCallback(channelUpdates);
     }
 
@@ -191,6 +192,46 @@ $(function () {
                 LocalCache.menu = data;
                 callback(LocalCache.menu);
             }
+        });
+    }
+
+    function importMenu() {
+        var html = $.tmpl(templates.menu_import, {
+            t: CommonTranslations
+        });
+
+        var modal = sln.createModal(html);
+
+        $('button[action="submit"]', modal).click(function () {
+            var fileInput = $('#menuFile', modal)[0];
+            if(fileInput.files[0] === undefined) {
+                sln.alert(CommonTranslations.please_select_excel_file, null, CommonTranslations.ERROR);
+                return;
+            }
+            var mimeType = fileInput.files[0].type;
+            if(mimeType != 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' &&
+               mimeType != 'application/vnd.ms-excel') {
+                sln.alert(CommonTranslations.invalid_file_format, null, CommonTranslations.ERROR);
+                return;
+            }
+            sln.readFileData(fileInput, function(base64Data) {
+                sln.call({
+                    showProcessing: true,
+                    url: '/common/menu/import',
+                    type: 'post',
+                    data: {
+                        file_contents: base64Data
+                    },
+                    success: function(data) {
+                        if(data.success) {
+                            modal.modal('hide');
+                            getMenu(renderMenu);
+                        } else {
+                            sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                        }
+                    },
+                });
+            });
         });
     }
 

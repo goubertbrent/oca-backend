@@ -17,10 +17,14 @@
 
 import json
 import uuid
+import base64
+from collections import OrderedDict
 from types import NoneType, FunctionType
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
+
+import xlrd
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
@@ -38,7 +42,7 @@ from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committ
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, delete_file_blob, create_file_blob
-from solutions.common.consts import UNIT_PIECE
+from solutions.common.consts import UNIT_PIECE, UNITS
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.models import RestaurantMenu, SolutionSettings, SolutionMainBranding
 from solutions.common.models.properties import MenuCategories, MenuCategory, MenuItem
@@ -104,6 +108,110 @@ def save_menu(service_user, menu):
     xg_on = db.create_transaction_options(xg=True)
     sln_settings = db.run_in_transaction_options(xg_on, trans)
     broadcast_updates_pending(sln_settings)
+
+
+@returns(NoneType)
+@arguments(service_user=users.User, file_contents=str)
+def import_menu_from_excel(service_user, file_contents):
+    sln_settings = get_solution_settings(service_user)
+
+    def translate(t, *args):
+        return common_translate(sln_settings.main_language, SOLUTION_COMMON, t, *args)
+
+    def make_category(name, index, predescription=None, postdescription=None, items=None):
+        cat = MenuCategory()
+        cat.name = name
+        cat.index = index
+        cat.predescription = predescription
+        cat.postdescription = postdescription
+
+        if items and isinstance(items, list):
+            cat.items = items
+        else:
+            cat.items = []
+
+        return cat
+
+    def guess_unit(unit):
+        for u, key in UNITS.iteritems():
+            try:
+                if translate(key) == unit:
+                    return u
+            except KeyError:
+                continue
+
+    def make_item(name, description, price, unit, visible_in=None, has_price=True, step=1):
+        item = MenuItem()
+        item.name = name
+        item.description = description
+        item.price = long(price * 100)
+        item.unit = guess_unit(unit)
+
+        if not visible_in:
+            item.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
+        else:
+            item.visible_in = visible_in
+
+        item.has_price = has_price
+        item.step = step
+        return item
+
+    try:
+        xl = xlrd.open_workbook(file_contents=base64.b64decode(file_contents), use_mmap=False)
+    except xlrd.biffh.XLRDError:
+        raise BusinessException(translate('make_sure_excel_format'))
+
+    categories = OrderedDict()
+    last_category = None
+    cat_index = 0
+    for sheet in xl.sheets():
+        if sheet.nrows < 1:
+            continue
+
+        if len(sheet.row(0)) < 5:
+            raise BusinessException(translate('please_provide_5_columns'))
+
+        # check the category name at every first row of a sheet
+        # we need at least 1 category
+        if not sheet.row(0)[0].value:
+            raise BusinessException(translate('please_provide_1_category'))
+
+        # make categories and items, every row is an item
+        # with an optional category in the first position
+        # also skip the first row (the header)
+        for r in range(1, sheet.nrows):
+            try:
+                cat_name, name, desc, unit, price = [c.value for c in sheet.row(r)]
+            except ValueError:
+                raise BusinessException('please_check_missing_product_details')
+
+            cat_name, name, unit = map(unicode.strip, [cat_name, name, unit])
+            if not cat_name:
+                category = last_category
+            else:
+                category = categories.get(cat_name)
+
+            # create a new category only if
+            # there's no last category, or even
+            # a category created with the same name before
+            if not category:
+                category = make_category(cat_name, cat_index)
+                categories[cat_name] = category
+                cat_index += 1
+                last_category = category
+
+            item = make_item(name, desc, price, unit)
+            category.items.append(item)
+
+        menu = MenuTO()
+        prev_menu = get_restaurant_menu(service_user, sln_settings.solution)
+        if prev_menu:
+            menu.predescription = prev_menu.predescription
+            menu.postdescription = prev_menu.postdescription
+
+        # replace all of the old previous menu categories
+        menu.categories = categories.values()
+        save_menu(service_user, menu)
 
 
 @returns(RestaurantMenu)

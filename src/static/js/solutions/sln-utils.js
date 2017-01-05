@@ -952,6 +952,19 @@ var createLib = function() {
                 sln.showBrowserNotSupported();
             }
         },
+        readFileData: function readFileData(input, callback) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    var base64Date = reader.result.split(';base64,').pop();
+                    callback(base64Date);
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                sln.showBrowserNotSupported();
+            }
+        },
         debounce: function debounce(func, wait, immediate) {
             var timeout;
             return function () {
