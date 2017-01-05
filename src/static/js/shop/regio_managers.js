@@ -84,7 +84,7 @@ $(function() {
         $('.edit-phone', modal).val(regioManager ? regioManager.phone : '');
         $('#show-in-stats', modal).prop('checked', regioManager ? regioManager.show_in_stats : true);
         $('#is-support', modal).prop('checked', regioManager ? regioManager.internal_support : false);
-
+        $('#is-admin', modal).prop('checked', regioManager ? regioManager.admin : false);
         
         var renderPossibleApps = function(teamId) {
             var tbody = $('#apps tbody', modal).empty();
@@ -314,6 +314,7 @@ $(function() {
         var phone = $('.edit-phone', modal).val();
         var showInStats = $('#show-in-stats', modal).prop('checked');
         var isSupport = $('#is-support', modal).prop('checked');
+        var isAdmin = $('#is-admin', modal).prop('checked');
         var teamId = $('#team', modal).val();
         
         if (!email) {
@@ -359,7 +360,8 @@ $(function() {
             app_rights : appRights,
             show_in_stats: showInStats,
             is_support: isSupport,
-            team_id: parseInt(teamId)
+            team_id: parseInt(teamId),
+            admin : isAdmin
         };
         showProcessing('Updating...');
         sln.call({

@@ -451,6 +451,7 @@ class RegioManagerBaseTO(object):
     internal_support = bool_property('5')
     phone = unicode_property('6')
     team_id = long_property('7')
+    admin = bool_property('8')
 
     @classmethod
     def from_model(cls, model):
@@ -462,6 +463,7 @@ class RegioManagerBaseTO(object):
         to.internal_support = model.internal_support
         to.phone = model.phone
         to.team_id = model.team_id
+        to.admin = model.admin
         return to
 
 

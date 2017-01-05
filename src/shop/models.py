@@ -161,7 +161,8 @@ class RegioManager(db.Model):
     internal_support = db.BooleanProperty(default=False)
     phone = db.StringProperty(indexed=False)
     credentials = CredentialsProperty(indexed=False)  # type: Credentials
-    team_id = db.IntegerProperty(indexed=False)
+    team_id = db.IntegerProperty(indexed=True)
+    admin = db.BooleanProperty(default=False, indexed=False)
 
     @property
     def user(self):
@@ -598,7 +599,7 @@ class Order(db.Model):
     next_charge_date = db.IntegerProperty()
     date_canceled = db.IntegerProperty()
     manager = db.UserProperty()
-    team_id = db.IntegerProperty(indexed=False)
+    team_id = db.IntegerProperty(indexed=True)
 
     @property
     def amount_in_euro(self):
@@ -814,7 +815,7 @@ class Charge(db.Model):
     last_notification = db.IntegerProperty(indexed=False)
     payment_reminders = db.IntegerProperty(default=0, indexed=False)
     manager = db.UserProperty()
-    team_id = db.IntegerProperty(indexed=False)
+    team_id = db.IntegerProperty(indexed=True)
     customer_po_number = db.StringProperty(indexed=False)
     invoice_number = db.StringProperty(default='', indexed=False)
 

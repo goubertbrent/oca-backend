@@ -290,7 +290,10 @@ class OrdersHandler(BizzManagerHandler):
         path = os.path.join(os.path.dirname(__file__), 'html', 'orders.html')
         user = gusers.get_current_user()
         orders = Order.all().filter("status =", 0)
-        if not is_admin(user):
+        manager = RegioManager.get(RegioManager.create_key(user.email()))
+        if manager and manager.admin:
+            orders.filter("team_id =", manager.team_id)
+        elif not is_admin(user):
             orders.filter("manager =", user)
         orders.order("-date")
         filtered_orders = list()
@@ -335,10 +338,13 @@ class ChargesHandler(BizzManagerHandler):
         user = gusers.get_current_user()
 
         charges = Charge.all().filter("status =", Charge.STATUS_PENDING)
-        if not is_admin(user):
+        manager = RegioManager.get(RegioManager.create_key(user.email()))
+        if manager and manager.admin:
+            charges.filter("team_id =", manager.team_id)
+        elif not is_admin(user):
             charges = charges.filter("manager =", user)
         charges = list(charges.order("-date"))
-        manager = RegioManager.get(RegioManager.create_key(user.email()))
+
         is_reseller = manager and not manager.team.legal_entity.is_mobicage
         if is_payment_admin(user) or is_reseller:
             invoice_qry = Invoice.all(keys_only=True) \
@@ -1024,16 +1030,24 @@ def history_tasks(date):
 def tasks_list(assignees, app_id=None, task_type=None):
     current_user = gusers.get_current_user()
     audit_log(None, u'Load tasks')
-    if not is_admin(current_user):
-        assignees = [current_user.email()]
 
-    regio_manager_emails = None
-    if assignees:
-        regio_manager_emails = list(set(assignees))
-        regio_manager_dict = {r.email: r for r in RegioManager.get_by_key_name(regio_manager_emails)}
+    regio_manager_dict = dict()
+    manager = RegioManager.get(RegioManager.create_key(current_user.email()))
+    if manager and manager.admin:
+        regio_manager_dict = {r.email: r for r in RegioManager.all().filter("team_id =", manager.team_id)}
+    elif not is_admin(current_user):
+        regio_manager_dict = {current_user.email(): manager}
     else:
-        # current_user is admin
         regio_manager_dict = {r.email: r for r in RegioManager.all()}
+
+    regio_manager_emails = None if is_admin(current_user) else regio_manager_dict.keys()
+    if assignees and regio_manager_emails:
+        # filter out tasks we do not want
+        for regio_manager_email in reversed(regio_manager_emails):
+            if regio_manager_email not in assignees:
+                regio_manager_emails.remove(regio_manager_email)
+                del regio_manager_dict[regio_manager_email]
+
     if app_id == 'all':
         app_id = None
     if task_type:
@@ -1107,12 +1121,12 @@ def regio_manager_apps():
 
 @rest('/internal/shop/rest/regio_manager/put', 'post')
 @returns(RegioManagerReturnStatusTO)
-@arguments(email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO], show_in_stats=bool, is_support=bool, team_id=(int, long))
-def regio_manager_put(email, name, phone, app_rights, show_in_stats, is_support, team_id):
+@arguments(email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO], show_in_stats=bool, is_support=bool, team_id=(int, long), admin=bool)
+def regio_manager_put(email, name, phone, app_rights, show_in_stats, is_support, team_id, admin):
     azzert(is_admin(gusers.get_current_user()))
     try:
         regio_manager = put_regio_manager(gusers.get_current_user(), email, name, phone, app_rights, show_in_stats,
-                                          is_support, team_id)
+                                          is_support, team_id, admin)
         variables = dict(locals())
         variables['app_rights'] = serialize_complex_value(app_rights, AppRightsTO, True)
         audit_log(None, u'Update RegioManager', variables=dict_str_for_audit_log(variables))

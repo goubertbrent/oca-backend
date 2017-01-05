@@ -15,9 +15,6 @@
 #
 # @@license_version:1.1@@
 
-# for each order item, check if its product is a subscription extension.
-# if so, add is_subscription_extension_order to the Order the item belongs to.
-
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import MIGRATION_QUEUE
 from google.appengine.ext import db

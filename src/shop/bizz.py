@@ -2038,8 +2038,8 @@ def put_regio_manager_team(team_id, name, legal_entity_id, app_ids):
 
 @returns(RegioManager)
 @arguments(current_user=users.User, email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO],
-           show_in_stats=bool, is_support=bool, team_id=(int, long))
-def put_regio_manager(current_user, email, name, phone, app_rights, show_in_stats, is_support, team_id):
+           show_in_stats=bool, is_support=bool, team_id=(int, long), admin=bool)
+def put_regio_manager(current_user, email, name, phone, app_rights, show_in_stats, is_support, team_id, admin):
     bizz_check(email, 'Email is required')
     bizz_check(name, 'Name is required')
     bizz_check(phone, 'Phone number is required')
@@ -2063,6 +2063,7 @@ def put_regio_manager(current_user, email, name, phone, app_rights, show_in_stat
         regio_manager.name = name
         regio_manager.phone = phone
         regio_manager.internal_support = is_support
+        regio_manager.admin = admin
 
         to_put = {regio_manager}
         if regio_manager.team_id != team_id:

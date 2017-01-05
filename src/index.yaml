@@ -35,6 +35,13 @@ indexes:
   properties:
   - name: status
   - name: date
+  
+- kind: Charge
+  properties:
+  - name: status
+  - name: team_id
+  - name: date
+    direction: desc
 
 - kind: Contact
   ancestor: yes
@@ -225,10 +232,11 @@ indexes:
   - name: date
 
 - kind: Order
-  ancestor: yes
   properties:
-  - name: status=
+  - name: status
+  - name: team_id
   - name: date
+    direction: desc
 
 - kind: OrderItem
   ancestor: yes
