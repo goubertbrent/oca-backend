@@ -52,7 +52,7 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, replace_url_with_forwarded_server
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user
 from rogerthat.utils.channel import send_message
-from rogerthat.utils.service import create_service_identity_user
+from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from shop.business.order import get_subscription_order_remaining_length
 from shop.dal import get_customer
 from shop.exceptions import InvalidEmailFormatException
@@ -1020,7 +1020,7 @@ def search_connected_users(name_or_email_term, app_id=None):
     service_identity = session_.service_identity
     if service_identity is None:
         service_identity = ServiceIdentity.DEFAULT
-    connection = create_service_identity_user(service_user, service_identity).email()
+    connection = remove_slash_default(create_service_identity_user(service_user, service_identity)).email()
     return search_users_via_friend_connection_and_name_or_email(connection, name_or_email_term, app_id, True)
 
 

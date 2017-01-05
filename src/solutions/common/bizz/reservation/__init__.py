@@ -258,7 +258,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity, message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
 
-        app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+        app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,
             'if_email':user_details[0].email
@@ -371,7 +371,7 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity, message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message_parent if message_parent else message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
 
-        app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+        app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,
             'if_email':user_details[0].email
@@ -428,7 +428,7 @@ def my_reservations_edit_people_updated(service_user, status, form_result, answe
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity, message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
 
-        app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+        app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,
             'if_email':user_details[0].email,
@@ -444,7 +444,7 @@ def _create_reservations_overview_message(service_user, service_identity, user_d
     from solutions.common.bizz.messaging import MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW
     reservations = get_planned_reservations_by_user(service_user,
                                                     service_identity,
-                                                    create_app_user(users.User(user_details[0].email), user_details[0].app_id),
+                                                    user_details[0].toAppUser(),
                                                     datetime.now())
 
     def convert_reservation_to_button(reservation):
@@ -667,7 +667,7 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
     logging.info('Reserving table on %d for %d people on name %s with comment "%s"'
                  % (date, people, name, comment))
     date = datetime.utcfromtimestamp(date)
-    rogerthat_user = create_app_user(users.User(user_details[0].email), user_details[0].app_id) if user_details else None
+    rogerthat_user = user_details[0].toAppUser() if user_details else None
 
     if user_details:
         msg = _translate_service_user(service_user, 'if-reservation-received') % {
@@ -703,7 +703,7 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
     message = db.run_in_transaction_options(xg_on, trans)
 
     if user_details:
-        app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+        app_user = user_details[0].toAppUser()
 
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
                 'if_name': user_details[0].name,

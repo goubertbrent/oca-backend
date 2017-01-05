@@ -77,6 +77,7 @@ class SolutionCityVoucherRedeemTransaction(db.Model):
     
 
 class SolutionCityVoucher(db.Model):
+    TYPE = u'city_voucher'
     
     image_uri = db.StringProperty(indexed=False)
     content_uri = db.StringProperty(indexed=False)

@@ -35,7 +35,6 @@ from rogerthat.service.api import messaging, system
 from rogerthat.to.messaging import MemberTO
 from rogerthat.to.service import UserDetailsTO, SendApiCallCallbackResultTO
 from rogerthat.utils import now, file_get_contents
-from rogerthat.utils.app import create_app_user
 from rogerthat.utils.channel import send_message
 from solutions import translate
 import solutions
@@ -169,7 +168,7 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
     if not units > 0:
         raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-required-at-least-1-unit'))
     main_branding = get_solution_main_branding(service_user)
-    app_user = create_app_user(users.User(user_detail.email), user_detail.app_id) if user_detail else None
+    app_user = user_detail.toAppUser() if user_detail else None
 
     def trans():
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)

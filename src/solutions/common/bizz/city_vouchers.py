@@ -26,8 +26,10 @@ from rogerthat.dal import parent_key_unsafe, put_in_chunks
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import qr, messaging, system
+from rogerthat.to.friends import GetUserInfoResponseTO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils import now, channel
+from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -35,6 +37,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city
 from solutions.common.models.city_vouchers import SolutionCityVoucher, SolutionCityVoucherQRCodeExport, \
     SolutionCityVoucherTransaction, SolutionCityVoucherRedeemTransaction, SolutionCityVoucherSettings
+from solutions.common.models.loyalty import CustomLoyaltyCard
 from solutions.common.utils import create_service_identity_user_wo_default
 
 
@@ -201,68 +204,99 @@ def delete_city_voucher_user(app_id, username):
     db.run_in_transaction(trans)
 
 
+def _find_voucher(url, app_ids):
+    poke_information = None
+    city_service_user = None
+    for app_id in app_ids:
+        city_service_user = get_service_user_for_city(app_id)
+        if city_service_user:
+            with users.set_user(city_service_user):
+                try:
+                    poke_information = messaging.poke_information(url)
+                    if poke_information:
+                        break
+                except InvalidURLException:
+                    break
+    else:
+        raise Exception("city_service_user not found for app_ids: %s" % app_ids)
+
+    return poke_information, city_service_user
+
+
+def _create_resolve_result(result_type,url,email, app_id):
+    return dict(type=result_type,
+                url=url,
+                content=url,
+                userDetails=dict(appId=app_id,
+                                 email=email,
+                                 name=email))
+
+
+@returns(dict)
+@arguments(service_user=users.User, service_identity=unicode, url=unicode)
+def _resolve_voucher(service_user, service_identity, url):
+    '''Lookup the provided URL. Can be a city voucher. Else it will be treated as a custom loyalty card.'''
+
+    # 1/ Check if a custom loyalty card already exists for this URL
+    custom_loyalty_card = CustomLoyaltyCard.get_by_url(url)
+    if custom_loyalty_card and custom_loyalty_card.app_user:
+        human_user, app_id = get_app_user_tuple(custom_loyalty_card.app_user)
+        return _create_resolve_result(CustomLoyaltyCard.TYPE, url, human_user.email(), app_id)
+
+    # 2/ Check if it's a city voucher
+    si = system.get_identity(service_identity)
+    poke_information, city_service_user = _find_voucher(url, si.app_ids)
+    if not poke_information or not poke_information.tag.startswith(POKE_TAG_CITY_VOUCHER_QR):
+        # 2.1/ Not a city voucher
+        logging.debug('Unknown QR code scanned: %s. Loyalty device will create custom paper loyalty card.', url)
+        user_info = GetUserInfoResponseTO()
+        user_info.app_id = user_info.email = user_info.name = user_info.qualifiedIdentifier = u'dummy'
+        return _create_resolve_result(u'unknown', url, u'dummy', u'dummy')
+
+    # 2.2/ It is a city voucher
+    data = json.loads(poke_information.tag[len(POKE_TAG_CITY_VOUCHER_QR):])
+    ancestor_key = SolutionCityVoucher.create_parent_key(data["app_id"])
+    sln_city_voucher = SolutionCityVoucher.get_by_id(data["voucher_id"], ancestor_key)
+    if not sln_city_voucher:
+        logging.debug("Could not find city voucher for data: %s", data)
+        raise Exception("Could not find city voucher")
+
+    r_dict = dict()
+    r_dict["type"] = SolutionCityVoucher.TYPE
+    r_dict["app_id"] = sln_city_voucher.app_id
+    r_dict["voucher_id"] = sln_city_voucher.key().id()
+    r_dict["uid"] = sln_city_voucher.uid
+    if sln_city_voucher.activated:
+        r_dict["status"] = 1
+        r_dict["value"] = sln_city_voucher.value
+        r_dict["redeemed_value"] = sln_city_voucher.redeemed_value
+    elif service_user == city_service_user:
+        r_dict["status"] = 2
+    else:
+        sln_settings = get_solution_settings(service_user)
+        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON , 'Voucher not activated'))
+
+    return r_dict
+
+
 @returns(SendApiCallCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_resolve(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received voucher resolve call with params: %s", params)
-    sln_settings = get_solution_settings(service_user)
     r = SendApiCallCallbackResultTO()
     r.result = None
     r.error = None
     try:
         jsondata = json.loads(params)
-        if u"qustomer" in jsondata['url'].lower():
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'qustomer-qr-codes-not-supported')
-            return r
-
-        poke_information = None
-        si = system.get_identity(service_identity)
-        for app_id in si.app_ids:
-            city_service_user = get_service_user_for_city(app_id)
-            if city_service_user:
-                users.set_user(city_service_user)
-                try:
-                    poke_information = messaging.poke_information(jsondata['url'])
-                    if poke_information:
-                        break
-                except InvalidURLException:
-                    break
-                finally:
-                    users.set_user(service_user)
-        else:
-            raise Exception("city_service_user not found for app_ids: %s" % si.app_ids)
-
-        if not (poke_information and poke_information.tag.startswith(POKE_TAG_CITY_VOUCHER_QR)):
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'Unknown QR code scanned')
-            return r
-
-        data = json.loads(poke_information.tag[len(POKE_TAG_CITY_VOUCHER_QR):])
-
-        ancestor_key = SolutionCityVoucher.create_parent_key(data["app_id"])
-        sln_city_voucher = SolutionCityVoucher.get_by_id(data["voucher_id"], ancestor_key)
-        if not sln_city_voucher:
-            raise Exception("sln_city_voucher was None")
-
-        r_dict = dict()
-        r_dict["app_id"] = sln_city_voucher.app_id
-        r_dict["voucher_id"] = sln_city_voucher.key().id()
-        r_dict["uid"] = sln_city_voucher.uid
-        if sln_city_voucher.activated:
-            r_dict["status"] = 1
-            r_dict["value"] = sln_city_voucher.value
-            r_dict["redeemed_value"] = sln_city_voucher.redeemed_value
-        elif service_user == city_service_user:
-            r_dict["status"] = 2
-        else:
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'Voucher not activated')
-            return r
-
+        r_dict = _resolve_voucher(service_user, service_identity, jsondata['url'])
         result = json.dumps(r_dict)
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
-
+    except BusinessException, be:
+        r.error = be.message
     except:
         logging.error("solutions.voucher.resolve exception occurred", exc_info=True)
+        sln_settings = get_solution_settings(service_user)
         r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
     return r
 

@@ -56,10 +56,11 @@ from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import send_mail_via_mime, file_get_contents, now, get_epoch_from_datetime, \
     replace_url_with_forwarded_server
-from rogerthat.utils.app import create_app_user
+from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.rfc3339 import rfc3339
 from rogerthat.utils.service import create_service_identity_user
+from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions import translate as common_translate
 import solutions
@@ -72,7 +73,6 @@ from solutions.common.models.agenda import Event, EventReminder, SolutionCalenda
     SolutionCalendarGoogleSync, SolutionGoogleCredentials
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO
-from solution_server_settings import get_solution_server_settings
 
 
 try:
@@ -444,7 +444,7 @@ def solution_remind_event(service_user, email, method, params, tag, service_iden
     settings = get_solution_settings(service_user)
     jsondata = json.loads(params)
 
-    app_user = create_app_user(users.User(email), user_details[0].app_id)
+    app_user = create_app_user_by_email(email, user_details[0].app_id)
     event_id = long(jsondata['eventId'])
     remind_before = int(jsondata['remindBefore'])
     if jsondata.get("eventStartEpoch", None):
@@ -560,7 +560,7 @@ def solution_event_remove(service_user, email, method, params, tag, service_iden
            user_details=[UserDetailsTO])
 def solution_event_guest_status(service_user, email, method, params, tag, service_identity, user_details):
     sln_settings = get_solution_settings(service_user)
-    app_user = create_app_user(users.User(email), user_details[0].app_id)
+    app_user = create_app_user_by_email(email, user_details[0].app_id)
 
     jsondata = json.loads(params)
     event_id = long(jsondata['eventId'])
@@ -586,7 +586,7 @@ def solution_event_guest_status(service_user, email, method, params, tag, servic
            user_details=[UserDetailsTO])
 def solution_event_guests(service_user, email, method, params, tag, service_identity, user_details):
     sln_settings = get_solution_settings(service_user)
-    app_user = create_app_user(users.User(email), user_details[0].app_id)
+    app_user = create_app_user_by_email(email, user_details[0].app_id)
 
     jsondata = json.loads(params)
     event_id = long(jsondata['eventId'])

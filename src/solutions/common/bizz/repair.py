@@ -29,7 +29,6 @@ from rogerthat.to.messaging import MemberTO, AttachmentTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, try_or_defer
-from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -73,7 +72,7 @@ def _repair_order_received(service_user, message_flow_run_id, member, steps, end
     o.timestamp = steps[1].received_timestamp
     o.status = SolutionRepairOrder.STATUS_RECEIVED
     o.picture_url = picture_url
-    o.user = create_app_user(users.User(user_details[0].email), user_details[0].app_id) if user_details else None
+    o.user = user_details[0].toAppUser() if user_details else None
 
     msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-repair-order-received',
                            remarks=remarks)
@@ -102,7 +101,7 @@ def _repair_order_received(service_user, message_flow_run_id, member, steps, end
         att.size = 0
         attachments = [att]
 
-    app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+    app_user = user_details[0].toAppUser()
 
     send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,

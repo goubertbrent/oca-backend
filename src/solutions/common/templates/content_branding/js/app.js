@@ -98,6 +98,25 @@ var onRogerthatReady = function() {
     });
 
     setLoyaltySettings();
+    
+    var userScanned = function(result, now_) {
+        console.log("scanned: " + result.userDetails.email + ":" + result.userDetails.appId);
+        if (result.userDetails.email == "dummy" && result.userDetails.appId == "dummy") {
+            hideLoading();
+            showCoupleQrCodePopupOverlay(result);
+        } else  if (LOYALTY_TYPE == LOYALTY_TYPE_REVENUE_DISCOUNT) {
+            qrCodeScannedRevenueDiscount(now_, result);
+        } else if (LOYALTY_TYPE == LOYALTY_TYPE_LOTTERY) {
+            qrCodeScannedLottery(now_, result);
+        } else if (LOYALTY_TYPE == LOYALTY_TYPE_STAMPS) {
+            qrCodeScannedStamps(now_, result);
+        } else if (LOYALTY_TYPE == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
+            qrCodeScannedCityWideLottery(now_, result);
+        } else {
+            hideLoading();
+            startScanningForQRCode();
+        }
+    };
 
     var onReceivedApiResult = function(method, result, error, tag){
         console.log("onReceivedApiResult");
@@ -216,16 +235,26 @@ var onRogerthatReady = function() {
             }
             if (tag == solutionsVoucherResolveGuid) {
                 solutionsVoucherResolveGuid = null;
-                hideLoading();
                 if (result) {
                 	var r = JSON.parse(result);
                 	currentScannedInfo = r;
-                	if (r.status == 1) {
-                		showRedeemVoucherPopupOverlay();
+                    if (r.type == 'custom_loyalty_card' || r.type == 'unknown') {
+                        userScanned(r, Math.floor(Date.now() / 1000));
+                    } else if (r.type == 'city_voucher') {
+                           hideLoading();
+	                	if (r.status == 1) {
+	                		showRedeemVoucherPopupOverlay();
+	                	} else if (r.status == 2) {
+	                		showPinActivateVoucherPopupOverlay();
+	                	} else {
+	                		showErrorPopupOverlay(Translations.ERROR_OCCURED_UNKNOWN);
+	                	}
                 	} else {
-                		showPinActivateVoucherPopupOverlay();
+                		hideLoading();
+                		showErrorPopupOverlay(Translations.ERROR_OCCURED_UNKNOWN);
                 	}
                 } else {
+                hideLoading();
                     showErrorPopupOverlay(error);
                 }
             } else {
@@ -360,67 +389,51 @@ var onRogerthatReady = function() {
 
         if (result.status == "resolving") {
             playSound('sound/scanned.mp3');
-            showLoading(Translations.LOADING_USER_INFO);
         } else if (result.status == "error") {
             hideLoading();
             showErrorPopupOverlay(result.content);
+        } else if (result.userDetails) {
+            userScanned(result, now_);
         } else {
-            if (result.userDetails) {
-                console.log("scanned: " + result.userDetails.email + ":" + result.userDetails.appId);
-                if (result.userDetails.email == "dummy" && result.userDetails.appId == "dummy") {
-                    hideLoading();
-                    showCoupleQrCodePopupOverlay(result);
-                } else  if (LOYALTY_TYPE == LOYALTY_TYPE_REVENUE_DISCOUNT) {
-                    qrCodeScannedRevenueDiscount(now_, result);
-                } else if (LOYALTY_TYPE == LOYALTY_TYPE_LOTTERY) {
-                    qrCodeScannedLottery(now_, result);
-                } else if (LOYALTY_TYPE == LOYALTY_TYPE_STAMPS) {
-                    qrCodeScannedStamps(now_, result);
-                } else if (LOYALTY_TYPE == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
-                	qrCodeScannedCityWideLottery(now_, result);
-                } else {
-                	hideLoading();
-                	startScanningForQRCode();
-                }
-            } else {
-                var contentJson;
-                try {
-                    contentJson = JSON.parse(result.content);
-                } catch (exception) {
-                    console.log('Scanned QR code does not contain valid json', exception);
-                    // content is not json
-                } finally {
-                    if (contentJson) {
-                        processQRContent(contentJson);
-                        return;
+            showLoading(Translations.LOADING_USER_INFO);
+            // Check if it's a coupon
+            var contentJson;
+            try {
+                contentJson = JSON.parse(result.content);
+            } catch (exception) {
+                console.log('Scanned QR code does not contain valid json', exception);
+                // content is not json
+            } finally {
+                if (contentJson) {
+                    if (processQRContent(contentJson)) {
+	                    return;
                     }
                 }
-                if (result.content.toLowerCase().indexOf("qustomer") > -1) {
-                    hideLoading();
-                    showErrorPopupOverlay(Translations.QUSTOMER_QR_CODES_NOT_SUPPORTED);
-                }
-                if (isBacklogConnected) {
-                    solutionsVoucherResolveGuid = rogerthat.util.uuid();
-                    var tag = solutionsVoucherResolveGuid;
-                    rogerthat.api.call("solutions.voucher.resolve",
-                    		JSON.stringify({
-                    			'timestamp': Math.floor(Date.now() / 1000),
-                    			'url' : result.content
-                    		}),
-                    		tag);
+            }
 
-                    setTimeout(function(){
-                        if (tag == solutionsVoucherResolveGuid) {
-                            console.log("solutions.voucher.resolve timeout");
-                            solutionsVoucherResolveGuid = null;
-                            hideLoading();
-                            showErrorPopupOverlay(Translations.INTERNET_SLOW_RETRY);
-                        }
-                    }, 15000);
-                } else {
-                    hideLoading();
-                    showErrorPopupOverlay(Translations.NO_INTERNET_CONNECTION);
-                }
+            // Check if it's a city voucher or an unknown QR
+            if (isBacklogConnected) {
+                showLoading(Translations.LOADING_USER_INFO);
+                solutionsVoucherResolveGuid = rogerthat.util.uuid();
+                var tag = solutionsVoucherResolveGuid;
+                rogerthat.api.call("solutions.voucher.resolve",
+                		JSON.stringify({
+                			'timestamp': Math.floor(Date.now() / 1000),
+                			'url' : result.content
+                		}),
+                		tag);
+
+                setTimeout(function(){
+                    if (tag == solutionsVoucherResolveGuid) {
+                        console.log("solutions.voucher.resolve timeout");
+                        solutionsVoucherResolveGuid = null;
+                        hideLoading();
+                        showErrorPopupOverlay(Translations.INTERNET_SLOW_RETRY);
+                    }
+                }, 15000);
+            } else {
+                hideLoading();
+                showErrorPopupOverlay(Translations.NO_INTERNET_CONNECTION);
             }
         }
     });
@@ -460,16 +473,19 @@ function checkInternetConnection() {
 function processQRContent(json) {
     'use strict';
     console.log('processing QR content', json);
-    if (json.c) {
-        if (!json.u) {
-            hideLoading();
-            showErrorPopupOverlay(Translations.UNKNOWN_QR_CODE_SCANNED);
-        } else if (checkInternetConnection()) {
-            showLoading(Translations.loading_coupon);
-            modules.coupons.resolveCoupon(json.c, json.u, function (data) {
-                hideLoading();
-                modules.coupons.processCouponResolved(json.c, json.u, data);
-            });
-        }
+    if (!json.c || !json.u) {
+        return false;
     }
+
+    if (checkInternetConnection()) {
+        showLoading(Translations.loading_coupon);
+        modules.coupons.resolveCoupon(json.c, json.u, function (data) {
+            hideLoading();
+            modules.coupons.processCouponResolved(json.c, json.u, data);
+        });
+    } else {
+        hideLoading();
+        showErrorPopupOverlay(Translations.NO_INTERNET_CONNECTION);
+    }
+    return true;
 }

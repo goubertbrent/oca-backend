@@ -69,7 +69,7 @@ from solutions.common.bizz.inbox import add_solution_inbox_message, create_solut
 from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solution_loyalty_load, solution_loyalty_put, \
     API_METHOD_SOLUTION_LOYALTY_PUT, API_METHOD_SOLUTION_LOYALTY_REDEEM, solution_loyalty_redeem, stop_loyalty_reminders, \
     solution_loyalty_scan, API_METHOD_SOLUTION_LOYALTY_SCAN, API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE, \
-    solution_loyalty_lottery_chance, solution_loyalty_lottery_couple, API_METHOD_SOLUTION_LOYALTY_COUPLE, \
+    solution_loyalty_lottery_chance, solution_loyalty_couple, API_METHOD_SOLUTION_LOYALTY_COUPLE, \
     API_METHOD_SOLUTION_VOUCHER_RESOLVE, API_METHOD_SOLUTION_VOUCHER_ACTIVATE, \
     API_METHOD_SOLUTION_VOUCHER_REDEEM, \
     API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM, API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE
@@ -161,7 +161,7 @@ API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_SCAN] = solution_loyalty_scan
 API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_PUT] = solution_loyalty_put
 API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_REDEEM] = solution_loyalty_redeem
 API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE] = solution_loyalty_lottery_chance
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_COUPLE] = solution_loyalty_lottery_couple
+API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_COUPLE] = solution_loyalty_couple
 API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_RESOLVE] = solution_voucher_resolve
 API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE] = solution_voucher_pin_activate
 API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_ACTIVATE] = solution_voucher_activate
@@ -312,7 +312,7 @@ def _question_asked(service_user, message_flow_run_id, member, steps, end_id, en
         logging.info("Saving question from %s" % user_details[0].email)
         msg = step.form_result.result.value
         message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_ASK_QUESTION, None, False, user_details, step.acknowledged_timestamp, msg, True)
-        app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+        app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
                 'if_name': user_details[0].name,
                 'if_email':user_details[0].email

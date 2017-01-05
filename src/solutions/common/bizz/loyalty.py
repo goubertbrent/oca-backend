@@ -31,7 +31,6 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 from PIL.Image import Image
 from lxml import etree, html
-import pytz
 
 from babel import Locale
 from babel.dates import format_date, format_datetime, get_timezone
@@ -39,6 +38,7 @@ from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import chunks
+import pytz
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID, DECLINE_ID
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.rtemail import generate_user_specific_link, EMAIL_REGEX
@@ -54,7 +54,7 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import MemberTO, AnswerTO
 from rogerthat.to.service import UserDetailsTO, SendApiCallCallbackResultTO
 from rogerthat.utils import now, file_get_contents, is_flag_set, send_mail_via_mime, format_price, today
-from rogerthat.utils.app import create_app_user, get_app_user_tuple_by_email, get_app_user_tuple, \
+from rogerthat.utils.app import create_app_user_by_email, get_app_user_tuple_by_email, get_app_user_tuple, \
     get_human_user_from_app_user
 from rogerthat.utils.channel import send_message
 from shop.constants import LOGO_LANGUAGES, STORE_MANAGER
@@ -75,7 +75,7 @@ from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyalt
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
     SolutionLoyaltyVisitRevenueDiscountArchive, SolutionLoyaltyVisitLotteryArchive, SolutionLoyaltyVisitStampsArchive, \
     SolutionLoyaltyExport, SolutionLoyaltyIdentitySettings, SolutionCityWideLotteryVisit, \
-    SolutionCityWideLotteryStatistics
+    SolutionCityWideLotteryStatistics, CustomLoyaltyCard
 from solutions.common.models.news import NewsCoupon
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
@@ -237,7 +237,7 @@ def _update_user_data_admin(service_user, service_identity, admin, app_id):
 @arguments(service_user=users.User, service_identity=unicode, email=unicode, app_id=unicode, loyalty_type=(int, long))
 def update_user_data_user_loyalty(service_user, service_identity, email, app_id, loyalty_type=SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT):
     user_data = {}
-    app_user = create_app_user(users.User(email), app_id)
+    app_user = create_app_user_by_email(email, app_id)
     user_data["loyalty"] = {}
     slvs_1 = get_solution_loyalty_visits_for_revenue_discount(service_user, service_identity, app_user)
     user_data["loyalty"]["visits"] = serialize_complex_value([SolutionLoyaltyVisitTO.fromModel(s) for s in slvs_1], SolutionLoyaltyVisitTO, True)
@@ -404,7 +404,7 @@ def solution_loyalty_load(service_user, email, method, params, tag, service_iden
             app_id = jsondata['app_id']
             user_email = jsondata['email']
 
-        app_user = create_app_user(users.User(user_email), app_id)
+        app_user = create_app_user_by_email(user_email, app_id)
         loyalty_type = jsondata['loyalty_type']
         slvs = []
         success = False
@@ -461,7 +461,7 @@ def get_user_details_for_js_jsondata(service_user, service_identity, jsondata):
             user_email = jsondata['email']
             user_detail = None
 
-    app_user = create_app_user(users.User(user_email), app_id)
+    app_user = create_app_user_by_email(user_email, app_id)
     if not user_detail:
         # XXX: don't use get_profile_infos
         profile_info = get_profile_infos([app_user], allow_none_in_results=True)[0]
@@ -721,7 +721,7 @@ def solution_loyalty_put(service_user, email, method, params, tag, service_ident
     logging.debug("Received loyalty put call with params: %s", params)
     r = SendApiCallCallbackResultTO()
     try:
-        admin_user = create_app_user(users.User(user_details[0].email), user_details[0].app_id)
+        admin_user = user_details[0].toAppUser()
         jsondata = json.loads(params)
 
         try:
@@ -912,7 +912,7 @@ def solution_loyalty_redeem(service_user, email, method, params, tag, service_id
     logging.debug("Received loyalty redeem call with params: %s", params)
     r = SendApiCallCallbackResultTO()
     try:
-        admin_user = create_app_user(users.User(user_details[0].email), user_details[0].app_id)
+        admin_user = user_details[0].toAppUser()
         jsondata = json.loads(params)
         if jsondata.get("user_details", None):
             app_id = jsondata["user_details"]["appId"]
@@ -921,7 +921,7 @@ def solution_loyalty_redeem(service_user, email, method, params, tag, service_id
             app_id = jsondata['app_id']
             user_email = jsondata['email']
 
-        app_user = create_app_user(users.User(user_email), app_id)
+        app_user = create_app_user_by_email(user_email, app_id)
         loyalty_type = jsondata['loyalty_type']
 
         loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
@@ -952,7 +952,7 @@ def solution_loyalty_lottery_chance(service_user, email, method, params, tag, se
     r = SendApiCallCallbackResultTO()
     try:
         jsondata = json.loads(params)
-        app_user = create_app_user(users.User(jsondata["user_details"]['email']), jsondata["user_details"]['app_id'])
+        app_user = create_app_user_by_email(jsondata["user_details"]['email'], jsondata["user_details"]['app_id'])
         total_visits, my_visits, chance = calculate_chance_for_user(service_user, service_identity, app_user)
         r.result = unicode(json.dumps(dict(total_visits=total_visits,
                                            my_visits=my_visits,
@@ -968,23 +968,31 @@ def solution_loyalty_lottery_chance(service_user, email, method, params, tag, se
 @returns(SendApiCallCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
            user_details=[UserDetailsTO])
-def solution_loyalty_lottery_couple(service_user, email, method, params, tag, service_identity, user_details):
+def solution_loyalty_couple(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received loyalty couple call with params: %s", params)
     r = SendApiCallCallbackResultTO()
     r.result = None
     r.error = None
     try:
         jsondata = json.loads(params)
-        email = jsondata['email'].strip()
+        email = jsondata['email'].lower().strip()
+        url = jsondata['url']
         if EMAIL_REGEX.match(email):
-            app.put_loyalty_user(jsondata['url'], email)
+            put_result = app.put_loyalty_user(url, email)
+            email = put_result.email
+            if put_result.url != url:
+                logging.info('Coupled custom loyalty card for QR with this content:\n%s', url)
+                db.put(CustomLoyaltyCard(key=CustomLoyaltyCard.create_key(url),
+                                         custom_qr_content=url,
+                                         loyalty_qr_content=put_result.url,
+                                         app_user=create_app_user_by_email(email, put_result.app_id)))
             r.result = unicode(json.dumps(dict()))
         else:
             sln_settings = get_solution_settings(service_user)
             r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'invalid_email_format', email=email)
 
     except:
-        logging.error("solutions.loyalty.lottery.couple exception occurred", exc_info=True)
+        logging.error("solutions.loyalty.couple exception occurred", exc_info=True)
         sln_settings = get_solution_settings(service_user)
         r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
     return r
@@ -1201,7 +1209,7 @@ def stop_loyalty_reminders(service_user, status, answer_id, received_timestamp, 
                                    acked_timestamp, parent_message_key, result_key, service_identity, user_details):
     if not answer_id:
         return  # status is STATUS_RECEIVED or user dismissed
-    app_user = create_app_user(users.User(user_details[0].email), user_details[0].app_id)
+    app_user = user_details[0].toAppUser()
     should_put = False
     suls_key = SolutionUserLoyaltySettings.createKey(app_user)
     suls = SolutionUserLoyaltySettings.get(suls_key)
@@ -1384,7 +1392,7 @@ def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, 
         return  # there is no info dict
 
     info = json.loads(info_dict_str)
-    app_user = create_app_user(users.User(user_details[0].email), user_details[0].app_id)
+    app_user = user_details[0].toAppUser()
     redeem_lottery_winner(service_user, service_identity, info['message_key'], app_user, user_details[0].name)
 
 @returns(bool)
@@ -1584,17 +1592,10 @@ def send_email_to_user_for_loyalty_update(service_user, service_identity, app_us
         return
 
     human_user, app_id = get_app_user_tuple(app_user)
-    users.set_user(service_user)
-    send_email = False
-    try:
+    with users.set_user(service_user):
         service_friend_status = friends.get_status(human_user.email(), app_id=app_id)
-        if len(service_friend_status.devices) == 0:
-            send_email = True
-    finally:
-        users.clear_user()
-
-    if not send_email:
-        return
+        if len(service_friend_status.devices) > 0:
+            return
 
     sln_settings = get_solution_settings(service_user)
     app = get_app_by_id(app_id)
@@ -1847,7 +1848,7 @@ def add_city_wide_lottery_visit(service_user, service_identity, user_detail, loy
     if not city_app_id:
         return
 
-    app_user = create_app_user(users.User(user_detail.email), user_detail.app_id)
+    app_user = user_detail.toAppUser()
     sln_cwt_visit_parent_key = SolutionCityWideLotteryVisit.create_parent_key(city_app_id, service_user, service_identity, app_user)
     def trans():
         sln_cwt_visit = SolutionCityWideLotteryVisit(parent=sln_cwt_visit_parent_key)
@@ -1887,7 +1888,7 @@ def delete_city_wide_lottery_visit(service_user, service_identity, email, app_id
         return
 
     def trans():
-        app_user = create_app_user(users.User(email), app_id)
+        app_user = create_app_user_by_email(email, app_id)
         slls = SolutionCityWideLotteryStatistics.get_by_app_id(city_app_id)
         if slls:
             if app_user in slls.app_users:

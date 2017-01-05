@@ -17,6 +17,8 @@
 
 import urllib
 
+from google.appengine.api import images
+from google.appengine.ext import db, blobstore
 from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.models import ArchivedModel
 from rogerthat.rpc import users
@@ -24,11 +26,10 @@ from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
-from google.appengine.api import images
-from google.appengine.ext import db, blobstore
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models.properties import SolutionUserProperty
 from solutions.common.utils import create_service_identity_user_wo_default
+from rogerthat.utils.crypto import sha256_hex
 
 
 class SolutionLoyaltySlide(db.Model):
@@ -609,3 +610,24 @@ class SolutionCityWideLotteryStatistics(db.Model):
     @classmethod
     def get_by_app_id(cls, app_id):
         return cls.get(cls.create_key(app_id))
+
+
+class CustomLoyaltyCard(db.Model):
+    TYPE = u'custom_loyalty_card'
+
+    # The unknown QR which is used by the enduser
+    custom_qr_content = db.TextProperty(required=True)
+
+    # The loyalty QR which is created by Rogerthat-backend when coupling the custom loyalty card
+    loyalty_qr_content = db.StringProperty(indexed=False, required=True)
+
+    # The email:app_id of the enduser
+    app_user = db.UserProperty(indexed=False, required=True)
+
+    @classmethod
+    def get_by_url(cls, url):
+        return cls.get(cls.create_key(url))
+
+    @classmethod
+    def create_key(cls, url):
+        return db.Key.from_path(cls.kind(), sha256_hex(url))

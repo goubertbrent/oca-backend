@@ -38,7 +38,6 @@ var Translations = {
     NO_INTERNET_CONNECTION : "{% translate language, 'common', 'no-internet-connection' %}",
     PRICE : "{% translate language, 'common', 'Price' %}",
     PRICE_IS_NOT_A_NUMBER : "{% translate language, 'common', 'Price is not a number' %}",
-    QUSTOMER_QR_CODES_NOT_SUPPORTED : "{% translate language, 'common', 'qustomer-qr-codes-not-supported' %}",
     REDEEM_LOYALTY_POINTS : "{% translate language, 'common', 'Redeem loyalty points' %}",
     REDEEM_POINTS_DISABLED_ADD_FIRST : "{% translate language, 'common', 'redeem-points-disabled-add-first' %}",
     REDEEM_STAMPS_DISABLED_ADD_FIRST : "{% translate language, 'common', 'redeem-stamps-disabled-add-first' %}",

@@ -32,10 +32,11 @@ from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSAL
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-from solutions.common.restapi import yourservicehere
+import solutions.common.restapi
+import solutions.djmatic.api
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-import solutions.djmatic.api
+
 
 dummy2()
 dummy()

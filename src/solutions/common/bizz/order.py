@@ -34,7 +34,6 @@ from rogerthat.to.messaging import AttachmentTO, MemberTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, try_or_defer
-from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.transactions import run_in_transaction
 from solutions import translate
@@ -151,7 +150,7 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
         o.status = SolutionOrder.STATUS_RECEIVED
         o.picture_url = picture_url
         o.takeaway_time = takeaway_time
-        o.user = create_app_user(users.User(user_details[0].email), user_details[0].app_id) if user_details else None
+        o.user = user_details[0].toAppUser() if user_details else None
 
         message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_ORDER,
                                                 None, False, user_details, steps[2].received_timestamp, msg, True,
@@ -169,7 +168,7 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                                                         SolutionInboxMessageTO, False)}]
         send_message(service_user, sm_data, service_identity=service_identity)
 
-        app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
+        app_user = user_details[0].toAppUser()
 
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg,
                                       dict(if_name=user_details[0].name, if_email=user_details[0].email),
