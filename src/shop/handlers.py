@@ -87,7 +87,7 @@ class ProspectCallbackHandler(webapp2.RequestHandler):
         if not solution_server_settings.tropo_callback_token:
             logging.error("tropo_callback_token is not set yet")
             self.abort(401)
-            
+
         if self.request.get('token') != solution_server_settings.tropo_callback_token:
             self.abort(401)
 
@@ -337,7 +337,7 @@ class GenerateQRCodesHandler(webapp2.RequestHandler):
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
-            self.abort(401)
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'generate_qr_codes.html')
         context = get_shop_context()
         self.response.out.write(template.render(path, context))
@@ -347,7 +347,7 @@ class AppBroadcastHandler(webapp2.RequestHandler):
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
-            self.abort(401)
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'app_broadcast.html')
         context = get_shop_context()
         self.response.out.write(template.render(path, context))

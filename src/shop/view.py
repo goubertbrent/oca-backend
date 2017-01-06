@@ -402,6 +402,9 @@ class InvoicePdfHandler(BizzManagerHandler):
 
 class OpenInvoicesHandler(BizzManagerHandler):
     def get(self):
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         invoices = list(Invoice.all().filter("payment_type =", Invoice.PAYMENT_MANUAL_AFTER).filter("paid =", False).order("-date"))
         charges = db.get([i.parent_key() for i in invoices])
         orders = db.get([c.parent_key() for c in charges])
@@ -445,7 +448,9 @@ class OpenInvoicesHandler(BizzManagerHandler):
 
 class QuestionsHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions.html')
         context = get_shop_context(questions=Question.all().order('-timestamp'))
         self.response.out.write(template.render(path, context))
@@ -453,7 +458,9 @@ class QuestionsHandler(BizzManagerHandler):
 
 class QuestionsDetailHandler(BizzManagerHandler):
     def get(self, question_id):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions_detail.html')
         context = get_shop_context(question=Question.get_by_id(long(question_id)))
         self.response.out.write(template.render(path, context))
@@ -461,7 +468,9 @@ class QuestionsDetailHandler(BizzManagerHandler):
 
 class RegioManagersHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'regio_managers.html')
         context = get_shop_context(js_templates=render_js_templates(['regio_manager_list',
                                                                      'regio_manager_team_apps',
@@ -491,6 +500,9 @@ class TasksHandler(BizzManagerHandler):
 
 class HistoryTasksHandler(BizzManagerHandler):
     def get(self):
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'history_tasks.html')
         context = get_shop_context(js_templates=render_js_templates(['history_tasks']))
         self.response.out.write(template.render(path, context))
@@ -521,6 +533,9 @@ class ProspectsHandler(BizzManagerHandler):
 
 class FindProspectsHandler(BizzManagerHandler):
     def get(self):
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'prospects_find.html')
         context = get_shop_context(COUNTRY_STRINGS=sorted(OFFICIALLY_SUPPORTED_COUNTRIES.iteritems(),
                                                           key=lambda (k, v): v))
@@ -624,7 +639,9 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
 
 class ExpiredSubscriptionsHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'expired_subscriptions.html')
         expired_subscriptions = list(ExpiredSubscription.list_all())
         to_get = list()
@@ -638,7 +655,8 @@ class ExpiredSubscriptionsHandler(BizzManagerHandler):
 
 class LegalEntityHandler(BizzManagerHandler):
     def get(self):
-        if not is_admin(gusers.get_current_user()):
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
             self.abort(403)
         solution_server_settings = get_solution_server_settings()
         path = os.path.join(os.path.dirname(__file__), 'html', 'legal_entities.html')
@@ -741,7 +759,9 @@ class SalesStatisticsHandler(BizzManagerHandler):
 
 class HintsHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'hints.html')
         context = get_shop_context(js_templates=render_js_templates(['hints']))
         self.response.out.write(template.render(path, context))
@@ -749,7 +769,9 @@ class HintsHandler(BizzManagerHandler):
 
 class OrderableAppsHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'apps.html')
         context = get_shop_context(shop_apps=ShopApp.all(),
                                    js_templates=render_js_templates(['apps']))
@@ -758,7 +780,9 @@ class OrderableAppsHandler(BizzManagerHandler):
 
 class NewsHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'news.html')
         context = get_shop_context(
             js_templates=render_js_templates(['news/news', 'news/news_form', 'news/news_list', 'news/news_preview']))
@@ -1868,7 +1892,9 @@ def delete_loyalty_slide_new_order(slide_id):
 
 class LoyaltySlidesHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'loyalty_slides.html')
         context = get_shop_context(slides=[LoyaltySlideTO.fromSolutionLoyaltySlideObject(c, include_apps=True)
                                            for c in get_shop_loyalty_slides()])
@@ -1877,7 +1903,9 @@ class LoyaltySlidesHandler(BizzManagerHandler):
 
 class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'loyalty_slides_new_order.html')
         context = get_shop_context(slides=[LoyaltySlideNewOrderTO.fromSlideObject(c)
                                            for c in get_shop_loyalty_slides_new_order()])
@@ -1886,7 +1914,9 @@ class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
 
 class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         slide_id = self.request.get("slide_id", "")
         slide_name = self.request.get("slide_name", "")
         try:
@@ -1952,7 +1982,9 @@ class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
 
 class UploadLoyaltySlideNewOrderHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         slide_id = self.request.get("slide_id", "")
         try:
             slide_time = long(self.request.get("slide_time", 10))
@@ -2009,7 +2041,9 @@ class UploadLoyaltySlideNewOrderHandler(blobstore_handlers.BlobstoreUploadHandle
 
 class CityVouchersHandler(BizzManagerHandler):
     def get(self):
-        azzert(is_admin(gusers.get_current_user()))
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
         path = os.path.join(os.path.dirname(__file__), 'html', 'city_vouchers.html')
         context = get_shop_context(city_voucher_settings=SolutionCityVoucherSettings.all())
         self.response.out.write(template.render(path, context))
