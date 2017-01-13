@@ -88,22 +88,20 @@ $(function() {
             },
             success : function(data) {
                 if (!data.success) {
-                    return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 } else {
-                    if (allOK) {
-                        sln.call({
-                            url : "/common/cityapp/settings/check_uitdatabank",
-                            type : "GET",
-                            success : function(data) {
-                                if (data.success) {
-                                    setUitdatabankStatus(true);
-                                } else {
-                                    setUitdatabankStatus(false, data.errormsg);
-                                }
-                            },
-                            error : sln.showAjaxError
-                        });
-                    }
+                    sln.call({
+                        url : "/common/cityapp/settings/check_uitdatabank",
+                        type : "GET",
+                        success : function(data) {
+                            if (data.success) {
+                                setUitdatabankStatus(true);
+                            } else {
+                                setUitdatabankStatus(false, data.errormsg);
+                            }
+                        },
+                        error : sln.showAjaxError
+                    });
                 }
             },
             error : sln.showAjaxError

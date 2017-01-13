@@ -56,6 +56,9 @@ def get_uitdatabank_events(city_app_profile, page, pagelength, changed_since=Non
 @returns(tuple)
 @arguments(city_app_profile=CityAppProfile, page=(int, long), pagelength=(int, long), changed_since=(int, long, NoneType))
 def _get_uitdatabank_events_old(city_app_profile, page, pagelength, changed_since=None):
+    if not (city_app_profile.uitdatabank_key or city_app_profile.uitdatabank_region):
+        return False, "Not all fields are provided"
+
     url = "http://build.uitdatabank.be/api/events/search?"
     values = {'key' : city_app_profile.uitdatabank_key,
               'format' : "json",

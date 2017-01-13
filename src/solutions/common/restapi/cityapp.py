@@ -89,7 +89,7 @@ def uitdatabank_check_cityapp_settings():
     except Exception:
         sln_settings = get_solution_settings(service_user)
         logging.debug('Failed to check uitdatabank.be settings: %s', dict(key=cap.uitdatabank_key, region=cap.uitdatabank_region), exc_info=1)
-        return ReturnStatusTO.create(False, translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
+        success, result = False, translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again')
 
     def trans():
         cap = get_cityapp_profile(service_user)
