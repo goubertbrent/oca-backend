@@ -17,11 +17,12 @@
 
 from contextlib import closing
 import datetime
+import json
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 import pytz
 
-from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, deferred
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -76,6 +77,26 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
         order_type = ORDER_TYPE_SIMPLE
 
 
+    def get_extended_details_from_tag(details):
+        if tag and tag.startswith('{') and tag.endswith('}'):
+            try:
+                new_details = u""
+                tag_dict = json.loads(tag)
+                for k, v in tag_dict.iteritems():
+                    if not k.startswith("_"):
+                        if new_details:
+                            new_details = u"%s\n%s: %s" % (new_details, k, v)
+                        else:
+                            new_details = u"%s: %s" % (k, v)
+
+                if new_details:
+                    return u"%s\n%s" % (new_details, details)
+            except:
+                pass
+
+        return details
+
+
     def trans():
         sln_settings = get_solution_settings(service_user)
         lang = sln_settings.main_language
@@ -83,7 +104,7 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
         phone = None
         takeaway_time = None
         if order_type == ORDER_TYPE_SIMPLE:
-            details = _get_value(steps[0], u'message_details')
+            details = get_extended_details_from_tag(_get_value(steps[0], u'message_details'))
             if steps[1].answer_id == u"positive":
                 picture_url = _get_value(steps[1], u'message_picture')
                 att = AttachmentTO()
@@ -124,7 +145,7 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                         order.write('\n\n')
                     c = '%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'reservation-comment'), comment)
                     order.write(c.encode('utf-8') if isinstance(c, unicode) else c)
-                details = order.getvalue().decode('utf-8')
+                details = get_extended_details_from_tag(order.getvalue().decode('utf-8'))
                 takeaway_datetime = datetime.datetime.fromtimestamp(takeaway_time, tz=get_timezone(sln_settings.timezone))
                 takeaway_time_str = format_datetime(takeaway_datetime, locale=lang, format='d/M/yyyy H:mm')
 
