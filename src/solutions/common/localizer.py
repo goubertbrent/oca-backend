@@ -2388,7 +2388,7 @@ translations = \
          u'visibility': u'Visibilidad',
          u'visible': u'Visible',
          u'visible_in': u'Visible en',
-         u'voucher_value_is': u'El saldo de tu cup\xf3n es ahora %(currency)s',
+         u'voucher_value_is': u'El saldo de tu cup\xf3n es ahora %(currency)s%(value)s',
          u'warning': u'\xa1Aviso!',
          u'web-address': u'Direcci\xf3n web',
          u'week': u'semana',
