@@ -105,9 +105,12 @@ def _create_charge(order_key, today, products):
         order_item_qry = OrderItem.all().ancestor(customer if subscription_extension_order_keys else order)
 
         total_amount = 0
+        subscription_length = 0
         for order_item in order_item_qry:
             product = products[order_item.product_code]
             if order_item.order_number == order.order_number:
+                if product.is_subscription:
+                    subscription_length = order_item.count
                 if product.is_subscription or product.is_subscription_discount or product.is_subscription_extension:
                     total_amount += order_item.price
             elif order_item.parent().key() in subscription_extension_order_keys:
@@ -118,9 +121,12 @@ def _create_charge(order_key, today, products):
         if total_amount == 0:
             raise ZeroChargeException("Calculated recurrent charge of 0 euros")
 
+        if subscription_length == 0:
+            raise Exception('subscription_length is 0')
+
         to_put = list()
 
-        if not (customer.stripe_id and customer.stripe_credit_card_id):
+        if not (customer.stripe_id and customer.stripe_credit_card_id) and subscription_length != 1:
             logging.debug('Tried to bill customer, but no credit card info was found')
             audit_log(customer.id, 'Tried to bill customer, but no credit card info was found')
             # Log the customer as expired. If this has not been done before.
