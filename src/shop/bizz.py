@@ -2512,3 +2512,74 @@ def post_app_broadcast(service, app_ids, message, tester=None):
             stats.put()
 
     run_in_transaction(trans, xg=True)
+
+
+
+def put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
+                              broadcast_types, organization_type, app_id, currency, country, team_id, product_code,
+                              customer_id=None):
+    service = CustomerServiceTO()
+    service.address = address1
+    if address2:
+        service.address += '\n' + address2
+    service.address += '\n' + zip_code + ' ' + city
+    service.apps = [app_id, App.APP_ID_ROGERTHAT]
+    service.broadcast_types = list(set(broadcast_types))
+    service.currency = currency
+    service.email = user_email
+    service.language = language
+    service.modules = modules
+    service.name = name
+    service.organization_type = organization_type
+    service.phone_number = telephone
+    service.app_infos = []
+    service.current_user_app_infos = []
+
+    def trans1():
+        email_has_changed = False
+        is_new = False
+        customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=None, name=name,
+                                             address1=address1, address2=address2, zip_code=zip_code,
+                                             country=country, language=language, city=city,
+                                             organization_type=organization_type, prospect_id=None,
+                                             force=False, team_id=team_id)
+
+        customer.put()
+        if customer_id:
+            # Check if this city has access to this association
+            if app_id != customer.app_id:
+                logging.warn('Tried to save service information for service %s (%s)', customer.name, customer.app_ids)
+                raise NoPermissionException('Create association')
+
+            # save the service.
+            if user_email != customer.service_email:
+                if user_email != customer.user_email:
+                    email_has_changed = True
+
+            update_contact(customer.id, Contact.get_one(customer.key()).id, customer.name, u'', user_email, telephone)
+        else:
+            is_new = True
+            # create a new service. Name of the customer, contact, and service will all be the same.
+
+            contact = create_contact(customer, name, u'', user_email, telephone)
+
+            # Create an order with only one order item (SJUP)
+            order_items = list()
+            item = OrderItemTO()
+            item.product = product_code
+            item.count = Product.get_by_code(product_code).default_count
+            item.comment = u''
+            order_items.append(item)
+            order = create_order(customer, contact, order_items, skip_app_check=True)
+            order.status = Order.STATUS_SIGNED
+            pdf = StringIO()
+            generate_order_or_invoice_pdf(pdf, customer, order)
+            order.pdf = db.Blob(pdf.getvalue())
+            pdf.close()
+            order.next_charge_date = Order.NEVER_CHARGE_DATE
+            order.put()
+        return customer, email_has_changed, is_new
+
+    validate_service(service)
+    customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
+    return customer, service, email_changed, is_new_association

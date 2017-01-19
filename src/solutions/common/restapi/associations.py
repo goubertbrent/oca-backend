@@ -20,27 +20,23 @@ from types import NoneType
 
 from google.appengine.ext import db
 
-from shop.jobs.migrate_user import migrate as migrate_user
-from rogerthat.models import App
+from mcfw.properties import azzert
+from mcfw.restapi import rest
+from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.transactions import run_in_xg_transaction
-from mcfw.properties import azzert
-from mcfw.restapi import rest
-from mcfw.rpc import returns, arguments
-from shop.bizz import create_or_update_customer, create_contact, create_order, \
-    put_service, generate_order_or_invoice_pdf, validate_service
+from shop.bizz import put_service, put_customer_with_service
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException
 from shop.exceptions import NotOperatingInCountryException, EmptyValueException, InvalidEmailFormatException, \
     NoPermissionException
-from shop.models import Customer, Contact, Product, Order
-from shop.to import OrderItemTO, CustomerServiceTO
-from shop.view import update_contact
+from shop.jobs.migrate_user import migrate as migrate_user
+from shop.models import Customer, Contact, Product
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.dal import get_solution_settings
@@ -50,12 +46,6 @@ from solutions.common.to.associations import ModuleAndBroadcastTypesTO, Associat
     ServiceTO
 from solutions.common.to.qanda import ModuleTO
 from solutions.flex.bizz import get_associations_statistics
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 
 
 @rest("/common/associations/get_defaults", "get", read_only_access=True)
@@ -159,74 +149,16 @@ def put_association(name, address1, address2, zip_code, city, user_email, teleph
     email_changed = False
     is_new_association = False
 
-    service = CustomerServiceTO()
-    service.address = address1
-    if address2:
-        service.address += '\n' + address2
-    service.address += '\n' + zip_code + ' ' + city
-    service.apps = [city_customer.app_id, App.APP_ID_ROGERTHAT]
-    service.broadcast_types = list(set(broadcast_types))
-    service.currency = city_sln_settings.currency
-    service.email = user_email
-    service.language = language
     mods = [m for m in SolutionModule.ASSOCIATION_MANDATORY_MODULES]
     mods.extend([m for m in modules if m in SolutionModule.ASSOCIATION_MODULES])
-    service.modules = list(set(mods))
-    service.name = name
-    service.organization_type = OrganizationType.NON_PROFIT
-    service.phone_number = telephone
-    service.app_infos = []
-    service.current_user_app_infos = []
-
-    def trans1():
-        email_has_changed = False
-        is_new = False
-        customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=None, name=name,
-                                             address1=address1, address2=address2, zip_code=zip_code,
-                                             country=city_customer.country, language=language, city=city,
-                                             organization_type=OrganizationType.NON_PROFIT, prospect_id=None,
-                                             force=False, team_id=city_customer.team_id)
-
-        customer.put()
-        if customer_id:
-            # Check if this city has access to this association
-            if city_customer.app_id != customer.app_id:
-                logging.warn('Customer %s (%s) tried to save service information for service %s (%s)',
-                             city_customer.name, city_customer.app_ids, customer.name, customer.app_ids)
-                raise NoPermissionException('Create association')
-
-            # save the service.
-            if user_email != customer.service_email:
-                if user_email != customer.user_email:
-                    email_has_changed = True
-
-            update_contact(customer.id, Contact.get_one(customer.key()).id, customer.name, u'', user_email, telephone)
-        else:
-            is_new = True
-            # create a new service. Name of the customer, contact, and service will all be the same.
-
-            contact = create_contact(customer, name, u'', user_email, telephone)
-
-            # Create an order with only one order item (SJUP)
-            order_items = list()
-            item = OrderItemTO()
-            item.product = Product.PRODUCT_SUBSCRIPTION_ASSOCIATION
-            item.count = 1
-            item.comment = u''
-            order_items.append(item)
-            order = create_order(customer, contact, order_items, skip_app_check=True)
-            order.status = Order.STATUS_SIGNED
-            pdf = StringIO()
-            generate_order_or_invoice_pdf(pdf, customer, order)
-            order.pdf = db.Blob(pdf.getvalue())
-            pdf.close()
-            order.next_charge_date = Order.NEVER_CHARGE_DATE
-            order.put()
-        return customer, email_has_changed, is_new
+    modules = list(set(mods))
 
     try:
-        validate_service(service)
-        customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
+        (customer, service, email_changed, is_new_association) \
+            = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
+                                        modules, broadcast_types, OrganizationType.NON_PROFIT, city_customer.app_id,
+                                        city_sln_settings.currency, city_customer.country, city_customer.team_id,
+                                        Product.PRODUCT_SUBSCRIPTION_ASSOCIATION, customer_id)
         customer_key = customer.key()
         success1 = True
     except EmptyValueException, ex:
