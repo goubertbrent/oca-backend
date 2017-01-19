@@ -83,7 +83,9 @@ def post_to_twitter(service_user, message, attachments):
 def get_twitter_auth_url(service_user):
     server_settings = get_server_settings()
     solution_server_settings = get_solution_server_settings()
-    client = oauth.TwitterClient(solution_server_settings.twitter_app_key, solution_server_settings.twitter_app_secret, \
+    app_key = str(solution_server_settings.twitter_app_key)
+    app_secret = str(solution_server_settings.twitter_app_secret)
+    client = oauth.TwitterClient(app_key, app_secret,
                                  CALLBACK_URL % (server_settings.baseUrl, urlencode({"s": service_user.email()})))
     auth_url = client.get_authorization_url()
     return auth_url
