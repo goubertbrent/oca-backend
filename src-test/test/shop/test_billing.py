@@ -123,7 +123,7 @@ class TestCase(mc_unittest.TestCase):
         products_to_order = [(u'MSUP', 12), (Product.PRODUCT_BEACON, 1)]
         subscription_order, customer = self._create_customer_and_subscription_order(products_to_order)
         self._create_service(customer)
-        # Turn back next_charge_date more than 12 month
+        # Turn back next_charge_date more than 12 months
         subscription_order.next_charge_date -= 367 * 86400
         subscription_order.put()
         # execute recurrent billing code

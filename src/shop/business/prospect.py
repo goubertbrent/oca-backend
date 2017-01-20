@@ -20,9 +20,11 @@ import logging
 import string
 import uuid
 
+import xlwt
 from babel.dates import format_datetime
 from google.appengine.api import search
 from google.appengine.ext import db
+
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from mcfw.utils import normalize_search_string
@@ -33,15 +35,13 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
-from rogerthat.utils.location import GeoCodeZeroResultsException, coordinates_to_address, geo_code
-from rogerthat.utils.location import address_to_coordinates
+from rogerthat.utils.location import GeoCodeZeroResultsException, coordinates_to_address, geo_code, \
+    address_to_coordinates
 from shop.bizz import broadcast_prospect_creation, create_task, broadcast_task_updates, send_email
 from shop.constants import PROSPECT_INDEX
 from shop.models import Prospect, ShopTask, ShopApp, RegioManagerTeam, Customer, Contact
-from solutions.common.bizz import OrganizationType
-import xlwt
 from solution_server_settings import get_solution_server_settings
-
+from solutions.common.bizz import OrganizationType
 
 try:
     from cStringIO import StringIO
@@ -273,6 +273,6 @@ def generate_prospect_export_excel(prospect_ids, do_send_email=True, recipients=
         attachment = excel_string
         attachment_type = 'vnd.ms-excel'
         attachment_name = 'Prospects %s %s.xls' % (app.name, current_date)
-        send_email(subject, from_email, to_emails, [], solution_server_settings.shop_no_reply_email, body_text, attachment, attachment_type,
-                   attachment_name)
+        send_email(subject, from_email, to_emails, [], solution_server_settings.shop_no_reply_email, body_text,
+                   attachment, attachment_type, attachment_name, False)
     return excel_string

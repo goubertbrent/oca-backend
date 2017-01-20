@@ -36,8 +36,7 @@ from apiclient.discovery import build
 from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
 from dateutil.relativedelta import relativedelta
-from google.appengine.api import search, images
-from google.appengine.api import users as gusers
+from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
@@ -83,8 +82,7 @@ from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Ord
 from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO
 from solution_server_settings import get_solution_server_settings
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-from solutions import SOLUTION_COMMON
-from solutions import translate as common_translate
+from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.dal import get_solution_settings
@@ -1220,7 +1218,7 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
 
 
 def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachment=None, attachment_type=None,
-               attachment_name=None):
+               attachment_name=None, send_in_deferred=True):
     """
     Args:
         attachment_type(str): Must only contain the MIME subtype (e.g. pdf, png)
@@ -1240,7 +1238,7 @@ def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, 
         msg.attach(att)
 
     settings = get_server_settings()
-    send_mail_via_mime(settings.senderEmail, to_emails, msg)
+    send_mail_via_mime(settings.senderEmail, to_emails, msg, send_in_deferred=send_in_deferred)
 
 
 def vacuum_service_modules_by_subscription(customer_id):
@@ -1565,7 +1563,7 @@ def list_prospects(app_id, category, cursor=None):
         qry.filter('categories =', category)
     qry.order("address")
     qry.with_cursor(cursor)
-    prospects = qry.fetch(200)
+    prospects = qry.fetch(500)
     if not prospects:
         return [], None
     return prospects, unicode(qry.cursor())
