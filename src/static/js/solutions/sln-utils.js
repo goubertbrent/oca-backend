@@ -113,7 +113,12 @@ var TMPL_INPUTBOX = '<div class="modal hide fade" tabindex="-1" role="dialog" ar
     + '    </div>'
     + '    <div class="modal-body">'
     + '        <p class="modal-body-body"></p>'
-    + '        <textarea class="modal-body-message" style="width: 514px" rows="5"></textarea>'
+    + '        <div class="control-group" id="input_group">'
+    + '            <textarea class="modal-body-message" style="width: 514px" rows="5" {{if required}}required{{/if}} {{if placeholder}}placeholder="${placeholder}"{{/if}}></textarea>'
+    + '            {{if checkboxLabel}}'
+    + '            <div class="checkbox"><label><input type="checkbox" name="extra-checkbox" style="display: none;"/>${checkboxLabel}</label></div>'
+    + '            {{/if}}'
+    + '        </div>'
     + '    </div>'
     + '    <div class="modal-footer">'
     + '        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>'
@@ -503,34 +508,57 @@ var createLib = function() {
                 modal.modal('hide');
             });
         },
-        inputBox : function(onSubmit, title, submitBtnCaption, subTitle, message, body, checkboxLabel) {
+        inputBox : function(onSubmit, title, submitBtnCaption, subTitle, message, body, checkboxLabel, required, placeholder) {
             var html = $.tmpl(TMPL_INPUTBOX, {
                 header : title || CommonTranslations.INPUT,
                 subHeader : subTitle || "",
                 cancelBtn : CommonTranslations.CANCEL,
                 submitBtn : submitBtnCaption || CommonTranslations.SUBMIT,
-                checkboxLabel : checkboxLabel
+                checkboxLabel : checkboxLabel,
+                required: required,
+                placeholder: placeholder
             });
             $(".modal-body-message", html).val(message || "");
             $(".modal-body-body", html).html(body || "");
+
+            var inputText, validated = false;
             var modal = sln.createModal(html, function(modal) {
-                $('textarea', modal).focus();
+                inputText = $('textarea', modal);
+                inputText.focus();
+                if(required) {
+                    function validateInput() {
+                        var control_group = $('#input_group', modal);
+                        validated = sln.validate(control_group, inputText, T('required'));
+                    }
+                    validateInput();
+                    inputText.bind('input propertychange', validateInput);
+                }
             });
-            $('button[action="submit"]', modal).click(function() {
-                var close = onSubmit($("textarea", modal).val(), 1) !== false;
-                if(close)
-                    modal.modal('hide');
-            });
+
+            var btn = 1; // 1: message, 2: no message
             if (checkboxLabel) {
-                $('input[name=extra-checkbox]', modal).change(function() {
+                var checkbox = $('input[name=extra-checkbox]', modal);
+                checkbox.show();
+                checkbox.change(function() {
                     // hide/show textbox,
                     if ($(this).prop('checked')){
                         $('.modal-body-message', modal).slideUp();
+                        btn = 2;
                     }else{
                         $('.modal-body-message', modal).slideDown();
+                        btn = 1;
                     }
                 });
             }
+
+            $('button[action="submit"]', modal).click(function() {
+                if(required && !validated)
+                    return;
+
+                var close = onSubmit(inputText.val(), btn) !== false;
+                if(close)
+                    modal.modal('hide');
+            });
         },
         input: function(onSubmit, title, submitBtnCaption, placeholder, initialValue, inputType) {
             var html = $.tmpl(TMPL_INPUT, {
@@ -707,10 +735,11 @@ var createLib = function() {
         },
         validate: function(controlGroup, field, errorMessage, valfunc) {
             function ft() {
-                field.unbind("focusout").val(field.val().trim());
+                var value = field.val().trim();
+                field.unbind("focusout").val(field.val());
                 controlGroup.find('.help-inline').remove();
                 var originalPlaceholder = field.attr('placeholder');
-                if(valfunc ? !valfunc(field.val()) : (!field.val())) {
+                if(valfunc ? !valfunc(value) : (!value)) {
                     controlGroup.addClass("error").append('<span class="help-inline">' + errorMessage + '</span>');
                     field.attr('placeholder', errorMessage);
                     field.focusout(ft);

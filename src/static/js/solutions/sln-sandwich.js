@@ -124,7 +124,7 @@ $(function () {
 		var sandwichOrdersTable = sandwichesElem.find("tbody");
 
 		var localSandwichOrders = sandwichOrders.filter(function(order) {
-			return showAllOrders ? true : order.status == STATUS_RECEIVED;
+			return showAllOrders ? true : order.status != STATUS_READY;
 		}).map(function (o) {
 			if (o.takeaway_time) {
 				o.takeaway_time_formatted = sln.formatDate(o.takeaway_time);
@@ -179,7 +179,10 @@ $(function () {
                 },
                 error : sln.showAjaxError
             });
-        }, CommonTranslations.REPLY, CommonTranslations.ORDER_CANCEL, CommonTranslations.NAME + ": " + m.sender_name, CommonTranslations.NO_MORE_SANDWICHES, orderString);
+        },
+        CommonTranslations.REPLY, CommonTranslations.REPLY,
+        CommonTranslations.NAME + ": " + m.sender_name, CommonTranslations.NO_MORE_SANDWICHES,
+        orderString, null, true);
     }
 
     function readySandwichOrderPressed(event) {
@@ -209,13 +212,24 @@ $(function () {
                     sln.setInboxActions(m.solution_inbox_message_key, undefined);
                 }
             });
-        }, CommonTranslations.READY, CommonTranslations.READY, null, CommonTranslations.REPLY_ORDER_READY, null, CommonTranslations.dont_send_message);
+        },
+        CommonTranslations.READY, CommonTranslations.READY, null,
+        CommonTranslations.REPLY_ORDER_READY, null, CommonTranslations.dont_send_message);
     }
 
     function deleteSandwichOrderPressed(event) {
         event.stopPropagation();
         var sandwichId = $(this).attr("sandwich_id");
         var m = sandwichBarOrdersDict[sandwichId];
+
+        // should reply if not already replied
+        var replyRequired, replyMessage = '', placeholder = '';
+        replyRequired = (m.status != STATUS_REPLIED);
+        if(replyRequired) {
+            replyMessage = CommonTranslations.REPLY_ORDER_CANCEL;
+        } else {
+            placeholder = CommonTranslations.optional_message;
+        }
 
         sln.inputBox(function(message, btn) {
             var msg = message;
@@ -240,7 +254,10 @@ $(function () {
                     sln.setInboxActions(m.solution_inbox_message_key, undefined);
                 }
             });
-        }, CommonTranslations.DELETE, CommonTranslations.DELETE, null, CommonTranslations.REPLY_ORDER_CANCEL, null, CommonTranslations.dont_send_message);
+        },
+        CommonTranslations.DELETE, CommonTranslations.DELETE, null,
+        replyMessage, null, null,
+        replyRequired, placeholder);
     }
 
     function fadeOutMessageAndUpdateBadge(sandwichId) {

@@ -21,7 +21,7 @@
     </td>
     <td>${CURRENCY} ${sandwich.price_in_euro}</td>
     <td>
-        {{if sandwich.status == STATUS_RECEIVED}}
+        {{if sandwich.status != STATUS_READY}}
         <button action="reply" sandwich_id="${sandwich.id}" class="btn btn-primary control">
             ${CommonTranslations.REPLY}
         </button>

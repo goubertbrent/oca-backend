@@ -196,6 +196,8 @@ translations = \
          u'Number of winners is an invalid number': u'Number of winners is an invalid number',
          u'Option': u'Option',
          u'Options': u'Options',
+         u'Optional': u'Optional',
+         u'optional_message': u'Optional message...',
          u'Order NR': u'Order NR',
          u'Order ready': u'Order ready',
          u'Overlay background color': u'Overlay background color',
