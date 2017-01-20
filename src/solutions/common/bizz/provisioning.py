@@ -1628,8 +1628,18 @@ def put_discussion_groups(sln_settings, current_coords, main_branding, default_l
 def delete_discussion_groups(sln_settings, current_coords, service_menu):
     from solutions.common.bizz.discussion_groups import delete_discussion_group
     service_user = sln_settings.service_user
-    for k in SolutionDiscussionGroup.list(service_user, keys_only=True):
-        on_trans_committed(delete_discussion_group, service_user, k.id())
+
+    # delete the menu first
+    _default_delete(sln_settings, current_coords, service_menu)
+
+    def trans():
+        for k in SolutionDiscussionGroup.list(service_user, keys_only=True):
+            delete_discussion_group(service_user, k.id())
+
+    if db.is_in_transaction():
+        on_trans_committed(trans)
+    else:
+        db.run_in_transaction(trans)
 
 
 @returns([SolutionServiceMenuItem])
