@@ -26,6 +26,7 @@ from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler
+import shop.handlers
 from solutions.common.handlers.broadcast import ViewAttachmentHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
@@ -71,5 +72,6 @@ handlers = [
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))
+handlers.extend(rest_functions(shop.handlers, authentication=NOT_AUTHENTICATED))
 
 app = RogerthatWSGIApplication(handlers, name="main_unauthenticated")

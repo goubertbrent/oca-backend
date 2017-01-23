@@ -16,6 +16,7 @@
 # @@license_version:1.1@@
 
 import base64
+import binascii
 import datetime
 import json
 import logging
@@ -24,23 +25,30 @@ import re
 
 import webapp2
 from dateutil.relativedelta import relativedelta
+
 from google.appengine.api import search
 from google.appengine.api import users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
-
-from mcfw.rpc import serialize_complex_value, arguments, returns
 from mcfw.cache import cached
+from mcfw.consts import MISSING
+from mcfw.restapi import rest
+from mcfw.rpc import serialize_complex_value, arguments, returns
 from mcfw.serialization import s_ushort
 from rogerthat.bizz.beacon import add_new_beacon
+from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
 from rogerthat.dal import parent_key
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.service import get_service_interaction_def, get_service_identity
 from rogerthat.models import Beacon, App, ProfilePointer, ServiceProfile
 from rogerthat.rpc import users
+from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request
-from rogerthat.utils import get_epoch_from_datetime
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.utils import get_epoch_from_datetime, bizz_check
+from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from shop.bizz import is_admin
 from shop.business.i18n import shop_translate
@@ -48,6 +56,7 @@ from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam,
 from shop.to import CustomerLocationTO
 from shop.view import get_shop_context
 from solution_server_settings import get_solution_server_settings
+
 
 try:
     from cStringIO import StringIO
@@ -417,3 +426,39 @@ class CustomerMapServicesHandler(webapp2.RequestHandler):
     def get(self, app_id):
         customer_locations = get_customer_locations_for_app(app_id)
         self.response.write(customer_locations)
+
+
+@rest('/unauthenticated/loyalty/scanned', 'get', read_only_access=True, authenticated=False)
+@returns(ReturnStatusTO)
+@arguments(user_email_hash=unicode, merchant_email=unicode, app_id=unicode)
+def rest_loyalty_scanned(user_email_hash, merchant_email, app_id):
+    try:
+        bizz_check(user_email_hash is not MISSING, 'user_email_hash is required')
+        bizz_check(merchant_email is not MISSING, 'merchant_email is required')
+        bizz_check(app_id is not MISSING, 'app_id is required')
+
+        user_code = user_code_by_hash(binascii.unhexlify(user_email_hash))
+        profile_pointer = ProfilePointer.get(user_code)
+        if not profile_pointer:
+            logging.debug('No ProfilePointer found with user_code %s', user_code)
+            raise BusinessException('User not found')
+        app_user=profile_pointer.user
+
+        bizz_check(get_app_by_id(app_id), 'App not found')
+        bizz_check(app_id == get_app_id_from_app_user(profile_pointer.user), 'Invalid user email hash')
+
+        merchant_found = False
+        for customer in Customer.list_by_user_email(merchant_email):
+            merchant_found = True
+            service_user = users.User(customer.service_email)
+            logging.info('Received loyalty scan of %s by %s (%s)', app_user, service_user, customer.user_email)
+            makeFriends(service_user, app_user, None, None, ORIGIN_USER_INVITE,
+                        notify_invitee=False,
+                        notify_invitor=False,
+                        allow_unsupported_apps=True)
+
+        bizz_check(merchant_found, 'Merchant not found')
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)
+    else:
+        return RETURNSTATUS_TO_SUCCESS

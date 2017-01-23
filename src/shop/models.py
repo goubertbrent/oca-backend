@@ -431,6 +431,10 @@ class Customer(db.Model):
         return cls.all().filter('service_email', service_email).get()
 
     @classmethod
+    def list_by_user_email(cls, user_email):
+        return cls.all().filter('user_email', user_email)
+
+    @classmethod
     def list_by_manager(cls, manager, is_admin):
         if is_admin:
             # Get all customers from all regional managers
