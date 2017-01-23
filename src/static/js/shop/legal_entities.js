@@ -17,20 +17,33 @@
  */
 "use strict";
 var legalEntities = [],
-    CURRENCIES_SORTED = getSortedCurrencies();
+    CURRENCIES_SORTED = getSortedCurrencies(),
+    SORTED_COUNTRIES = getSortedCountries();
+
+function getSortedCountries() {
+    var countries = [],
+        countryKeys = Object.keys(COUNTRIES);
+    for (var code of countryKeys) {
+        countries.push({
+            code: code,
+            name: COUNTRIES[code]
+        });
+    }
+    countries.sort((c1, c2) => c1.name.localeCompare(c2.name));
+    return countries;
+}
 
 function getSortedCurrencies() {
-    var keys = Object.keys(CURRENCIES).sort();
-    var sorted = [];
-    for (var i = 0; i < keys.length; i++) {
-        if (CURRENCIES.hasOwnProperty(keys[i])) {
-            sorted.push({
-                symbol: keys[i],
-                name: CURRENCIES[keys[i]]
-            });
-        }
+    var currencies = [],
+        currencyKeys = Object.keys(CURRENCIES);
+    for (var symbol of currencyKeys) {
+        currencies.push({
+            symbol: symbol,
+            name: CURRENCIES[symbol]
+        });
     }
-    return sorted;
+    currencies.sort((c1, c2) => c1.name.localeCompare(c2.name));
+    return currencies;
 }
 
 function _getLegalEntity(entityId, callback) {
@@ -89,7 +102,7 @@ function renderPutLegalEntity(entityId) {
     _getLegalEntity(entityId, function (entity) {
         var page = $.tmpl(JS_TEMPLATES.legal_entity_put, {
             entity: entity || {},
-            COUNTRIES: COUNTRIES,
+            COUNTRIES: SORTED_COUNTRIES,
             CURRENCIES: CURRENCIES_SORTED,
             TERMS_OF_USE: TERMS_OF_USE
         });

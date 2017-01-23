@@ -17,8 +17,10 @@
         <label for="entity_country_code">Country</label>
         <select id="entity_country_code" name="entity_country_code" required>
             <option value="">Select country</option>
-            {{each(code, country) COUNTRIES}}
-            <option {{if entity.country_code === code}}selected {{/if}}value="${code}">${country}</option>
+            {{each(i, country) COUNTRIES}}
+            <option {{if entity.country_code === country.code}}selected {{/if}}value="${country.name}">
+                ${country.name}
+            </option>
             {{/each}}
             </select>
         <label for="entity_phone">Phone number</label>
