@@ -15,13 +15,14 @@
 #
 # @@license_version:1.1@@
 
-from contextlib import closing
 import json
 import logging
-from types import NoneType
 import uuid
+from contextlib import closing
+from types import NoneType
 
 from google.appengine.ext import db, deferred
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
@@ -58,7 +59,6 @@ from solutions.common.models.agenda import EventReminder, SolutionCalendar
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyIdentitySettings
 from solutions.common.models.reservation import RestaurantReservation, RestaurantProfile
 from solutions.common.utils import create_service_identity_user_wo_default, is_default_service_identity
-
 
 try:
     from cStringIO import StringIO
@@ -404,7 +404,7 @@ def _3000_revoke_roles(job_key):
 
     try:
         si_user_email = job.from_service_user.email()
-        profiles = UserProfile.all().filter('role_services >=', si_user_email + '/').filter('role_services <', si_user_email + u'/\ufffd')
+        profiles = UserProfile.list_by_service_role_email(si_user_email)
         for p in profiles:
             def trans():
                 job = db.get(job_key)
@@ -419,7 +419,7 @@ def _3000_revoke_roles(job_key):
 
             xg_on = db.create_transaction_options(xg=True)
             db.run_in_transaction_options(xg_on, trans)
-    except BusinessException, e:
+    except BusinessException as e:
         logging.exception("Caught BusinessException")
         azzert(False, "Caught BusinessException: %s" % e)
 
