@@ -39,12 +39,13 @@ from rogerthat.service.api import system, qr
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import generate_random_key, now
 from rogerthat.utils.zip_utils import rename_file_in_zip_blob
+from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import create_solution_service, find_qr_template, SolutionModule, SolutionServiceMenuItem, \
     put_branding
 from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_WHEN_WHERE, POKE_TAG_MENU, POKE_TAG_EVENTS, \
-    POKE_TAG_NEW_EVENT
+    POKE_TAG_NEW_EVENT, POKE_TAG_BROADCAST_CREATE_NEWS
 from solutions.common.bizz.provisioning import get_and_store_main_branding, get_default_translations, get_and_complete_solution_settings, populate_identity, provision_all_modules, \
     _default_delete, MODULES_GET_APP_DATA_FUNCS, MODULES_PUT_FUNCS, MODULES_DELETE_FUNCS, POKE_TAGS
 from solutions.common.dal import get_solution_settings
@@ -54,7 +55,6 @@ from solutions.djmatic import JUKEBOX_SERVER_API_URL, DEFAULT_LANGUAGES, SOLUTIO
 from solutions.djmatic.dal import get_jukebox_app_branding, get_all_djmatic_profile_keys_query, get_djmatic_profile
 from solutions.djmatic.handlers import JINJA_ENVIRONMENT
 from solutions.djmatic.models import DjMaticProfile, JukeboxAppBranding
-from solution_server_settings import get_solution_server_settings
 
 
 try:
@@ -95,7 +95,10 @@ MODULE_COORDS_MAPPING = {MODULE_DJMATIC_JUKEBOX: {POKE_TAG_JUKEBOX: {"preferred_
                                                                                "priority":20}},
                          SolutionModule.BROADCAST: {ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS: {"preferred_page": 0,
                                                                                                "coords":[3, 2, 0],
-                                                                                               "priority":20}},
+                                                                                               "priority":20},
+                                                    POKE_TAG_BROADCAST_CREATE_NEWS: {"preferred_page":-1,
+                                                                                     "coords": [-1, -1, -1],
+                                                                                     "priority": 1}},
                          SolutionModule.BULK_INVITE: None,
                          SolutionModule.MENU: {POKE_TAG_MENU: {"preferred_page": 0,
                                                                "coords":[3, 1, 0],

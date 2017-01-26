@@ -41,11 +41,9 @@ from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.settings import get_server_settings
 from rogerthat.to.friends import ServiceMenuDetailTO
-from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.profile import ProfileLocationTO
 from rogerthat.to.qr import QRDetailsTO
 from rogerthat.utils import now, is_flag_set, xml_escape
-from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
 import solutions
@@ -79,7 +77,7 @@ from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
-    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionNewsPublisher
+    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
 from solutions.common.models.cityapp import CityAppProfile
@@ -728,7 +726,7 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
     all_taken_coords = [item.coords for item in service_menu.items]
     sorted_ssmis = sorted(ssmi_to_put, key=menu_sorting_key)
-    last_prefered_page = max([m['preferred_page'] for m in sorted_ssmis]) + 1
+    last_prefered_page = max([m['preferred_page'] for m in sorted_ssmis]) + 1 if sorted_ssmis else 0
     for ssmi_dict in sorted_ssmis:
         coords = ssmi_dict["coords"]
         preferred_page = ssmi_dict["preferred_page"]
