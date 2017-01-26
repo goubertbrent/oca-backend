@@ -749,7 +749,7 @@ $(function() {
                                     label : user.name + ' (' + user.email + ')',
                                     sublabel : user.app_id
                                 };
-                            })
+                            });
                             process(usersKeys);
                         },
                         error : sln.showAjaxError
@@ -1006,7 +1006,7 @@ $(function() {
                             tr.append(td_2);
                             table.append(tr);
                         }
-                        
+
                         $(".google_calendar", table).click(function(event) {
                             event.stopPropagation();
                             event.preventDefault();

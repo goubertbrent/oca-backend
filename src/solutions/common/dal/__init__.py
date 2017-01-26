@@ -21,10 +21,12 @@ from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import parent_key, generator, parent_key_unsafe
 from rogerthat.rpc import users
+from rogerthat.service.api import friends
+from rogerthat.utils.app import sanitize_app_user
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionLogo, \
     RestaurantMenu, SolutionScheduledBroadcast, SolutionInboxMessage, SolutionEmailSettings, SolutionAvatar, \
-    SolutionIdentitySettings
+    SolutionIdentitySettings, SolutionNewsPublisher
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.group_purchase import SolutionGroupPurchaseSettings
 from solutions.common.models.static_content import SolutionStaticContent
@@ -125,6 +127,22 @@ def get_restaurant_menu(service_user, solution=None):
     return db.get(RestaurantMenu.create_key(service_user, solution))
 
 
+@returns([SolutionNewsPublisher])
+@arguments(service_user=users.User, solution=unicode)
+def get_solution_news_publishers(service_user, solution):
+    parent = parent_key(service_user, solution)
+    news_publishers = SolutionNewsPublisher.all().ancestor(parent)
+    return list(news_publishers)
+
+
+@returns(SolutionNewsPublisher)
+@arguments(app_user=users.User, service_user=users.User, solution=unicode)
+def get_news_publisher_from_app_user(app_user, service_user, solution):
+    key = SolutionNewsPublisher.createKey(app_user, service_user, solution)
+    publisher = db.get(key)
+    return publisher
+
+
 @returns([SolutionCalendar])
 @arguments(service_user=users.User, solution=unicode, filter_broadcast_disabled=bool)
 def get_solution_calendars(service_user, solution, filter_broadcast_disabled=False):
@@ -138,10 +156,13 @@ def get_solution_calendars(service_user, solution, filter_broadcast_disabled=Fal
 @returns([SolutionCalendarAdmin])
 @arguments(service_user=users.User, solution=unicode)
 def get_admins_of_solution_calendars(service_user, solution):
-    deleted_calendar_keys = [c for c in SolutionCalendar.all(keys_only=True).ancestor(parent_key(service_user, solution)).filter("deleted =", True)]
+    parent = parent_key(service_user, solution)
+    deleted_calendar_keys = [c for c in SolutionCalendar.all(keys_only=True).ancestor(parent).filter("deleted =", True)]
+
+    calendar_admins = SolutionCalendarAdmin.all().ancestor(parent)
 
     admins = []
-    for admin in SolutionCalendarAdmin.all().ancestor(parent_key(service_user, solution)):
+    for admin in calendar_admins:
         if admin.calendar_key not in deleted_calendar_keys:
             admins.append(admin)
 
@@ -223,3 +244,31 @@ def get_solution_email_settings():
     if not sln_email_settings:
         sln_email_settings = SolutionEmailSettings(key_name="SolutionEmailSettings")
     return sln_email_settings
+
+
+@returns(tuple)
+@arguments(user_key=unicode, service_identity=unicode)
+def get_user_from_key(user_key, service_identity=None):
+    """
+    Gets a user from user key
+
+    :param user_key: unicode as <email>:<app_id>
+
+    :returns: a tuple with the user and if it's an existing user or not.
+              (users.User, bool)
+    """
+    try:
+        app_user = sanitize_app_user(users.User(user_key))
+
+        try:
+            email, app_id = user_key.split(':')
+        except ValueError:
+            email, app_id = user_key, None
+
+        status = friends.get_status(email, service_identity, app_id)
+        is_existing_user = status.is_friend and not status.deactivated
+    except AssertionError:
+        is_existing_user = False
+        app_user = users.User(user_key)
+
+    return app_user, is_existing_user

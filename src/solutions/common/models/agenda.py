@@ -103,11 +103,6 @@ class EventReminder(db.Model):
 
 
 class SolutionCalendarAdmin(db.Model):
-    STATUS_CREATING = 1
-    STATUS_CREATED = 2
-    STATUS_DELETING = 3
-
-    status = db.IntegerProperty(indexed=True, default=STATUS_CREATING)
     timestamp = db.IntegerProperty(indexed=False)
     app_user = db.UserProperty(indexed=True)
 

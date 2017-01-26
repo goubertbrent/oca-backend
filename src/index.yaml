@@ -35,7 +35,7 @@ indexes:
   properties:
   - name: status
   - name: date
-  
+
 - kind: Charge
   properties:
   - name: status
@@ -540,7 +540,7 @@ indexes:
   properties:
   - name: closed_time
     direction: desc
-    
+
 - kind: SolutionCityVoucherExportMerchant
   ancestor: yes
   properties:
@@ -652,7 +652,7 @@ indexes:
   - name: claimed
   - name: deleted
   - name: winner_timestamp
-  
+
 - kind: SolutionLoyaltyLottery
   ancestor: yes
   properties:

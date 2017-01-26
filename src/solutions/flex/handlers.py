@@ -71,7 +71,9 @@ DEFAULT_JS_TEMPLATES = ['inbox_messages',
                         'shop/product',
                         'news/news_item',
                         'settings/settings_branding',
-                        'settings/settings_branding_preview'
+                        'settings/settings_branding_preview',
+                        'settings/app_user_roles',
+                        'settings/app_user_add_roles'
                         ]
 
 MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',

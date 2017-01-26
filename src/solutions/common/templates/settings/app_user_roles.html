@@ -1,0 +1,67 @@
+{% raw %}
+<h3>Users
+    <sup id="app_users_count" class="badge"></sup>
+    <button id="add_user_roles" class="btn btn-success"><i class="fa fa-plus"></i></button>
+</h3>
+<table id="app_users_roles" class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>${ T('Email') }</th>
+            {{if inbox_enabled}}<th>${ T('inbox-forwarder') }</th>{{/if}}
+            {{if agenda_enabled}}<th>${ T('calendar-admin') }</th>{{/if}}
+            {{if broadcast_enabled}}<th>${ T('news-publisher') }</th>{{/if}}
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{each(i, user_roles) roles}}
+        {{if user_roles.app_id && (!app_user_email.split(':')[1])}}
+        ${ user_roles.user_key = app_user_email + ':' + user_roles.app_id, '' }
+        {{else}}
+        ${ user_roles.user_key = user_roles.app_user_email, '' }
+        {{/if}}
+        <tr user_key="${user_roles.user_key}">
+            <td><b>${ user_roles.app_user_email }</b></td>
+            {{if inbox_enabled}}
+            <td>
+                <div class="checkbox">
+                    <label>
+                        <input name="inbox" type="checkbox" {{if user_roles.inbox_forwarder}}checked{{/if}} disabled
+                        forwarder_types="${user_roles.forwarder_types}">
+                        {{each(j, forwarder_type) user_roles.forwarder_types}}
+                        {{if forwarder_type == 'mobile'}}${T('Mobile')} <i class="fa fa-mobile"></i>{{/if}}
+                        {{if forwarder_type == 'email'}}${T('Email')} <i class="icon-user"></i>{{/if}}
+                        {{if j < user_roles.forwarder_types.length - 1}}, {{/if}}
+                        {{/each}}
+                    </label>
+                </div>
+            </td>
+            {{/if}}
+            {{if agenda_enabled}}
+            <td>
+                <div class="checkbox">
+                    <label>
+                        <input name="calendar" type="checkbox" {{if user_roles.calendar_admin}}checked{{/if}} disabled
+                        calendar_ids="{{each(i, calendar) user_roles.calendars}}${calendar.id}{{if i < user_roles.calendars.length - 1}},{{/if}}{{/each}}">
+                        {{each(i, calendar) user_roles.calendars}}
+                            ${calendar.name}{{if i < user_roles.calendars.length - 1}}, {{/if}}
+                        {{/each}}
+                    </label>
+                </div>
+            </td>
+            {{/if}}
+            {{if broadcast_enabled}}
+            <td>
+                <div class="checkbox">
+                    <label>
+                        <input name="news" type="checkbox" {{if user_roles.news_publisher}}checked{{/if}} disabled>
+                    </label>
+                </div>
+            </td>
+            {{/if}}
+            <td><button class="btn btn-danger" action="delete_roles" user_key="${ user_roles.user_key }"><i class="fa fa-trash"></i></button></td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{% endraw %}

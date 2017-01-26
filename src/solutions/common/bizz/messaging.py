@@ -17,6 +17,7 @@
 
 import json
 import logging
+from base64 import b64encode
 from datetime import datetime
 from types import NoneType
 
@@ -34,6 +35,7 @@ from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message, ServiceIdentity
+from rogerthat.models.news import NewsItem
 from rogerthat.models.properties.forms import FormResult, Form
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -43,7 +45,8 @@ from rogerthat.to.messaging import AttachmentTO, BroadcastTargetAudienceTO, Memb
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
-    FormCallbackResultTypeTO, FormAcknowledgedCallbackResultTO, PokeCallbackResultTO
+    FormCallbackResultTypeTO, FormAcknowledgedCallbackResultTO, PokeCallbackResultTO, \
+    FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, try_or_defer
@@ -51,7 +54,8 @@ from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import _format_date, _format_time, timezone_offset, SolutionModule
+from solutions.common.bizz import _format_date, _format_time, timezone_offset, \
+    SolutionModule, broadcast_updates_pending, create_news_publisher, _get_value
 from solutions.common.bizz.appointment import appointment_asked
 from solutions.common.bizz.city_vouchers import solution_voucher_resolve, solution_voucher_activate, \
     solution_voucher_redeem, solution_voucher_confirm_redeem, solution_voucher_pin_activate
@@ -83,13 +87,16 @@ from solutions.common.bizz.sandwich import order_sandwich_received, \
     sandwich_order_from_broadcast_pressed
 from solutions.common.bizz.twitter import post_to_twitter
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
-    get_solution_settings_or_identity_settings
+    get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
-from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
+from solutions.common.utils import is_default_service_identity, create_service_identity_user, \
+    create_service_identity_user_wo_default
 
 POKE_TAG_APPOINTMENT = u"__sln__.appointment"
 POKE_TAG_ASK_QUESTION = u"__sln__.question"
+POKE_TAG_BROADCAST_CREATE_NEWS = u"__sln__.broadcast_create_news"
+POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT = u"broadcast_create_news_connect_via_scan"
 POKE_TAG_DISCUSSION_GROUPS = u"__sln__.discussion_groups"
 POKE_TAG_GROUP_PURCHASE = u"__sln__group_purchase"
 POKE_TAG_LOCATION = u"__sln__.location"
@@ -293,6 +300,113 @@ def poke_inbox_forwarder_connect_via_scan(service_user, email, tag, result_key, 
                  label=user_details[0].name)
 
 POKE_TAG_MAPPING[POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN] = poke_inbox_forwarder_connect_via_scan
+
+
+@returns(PokeCallbackResultTO)
+@arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def poke_broadcast_create_news_connect_via_scan(service_user, email, tag, result_key, context, service_identity, user_details):
+    sln_settings = get_solution_settings(service_user)
+    app_user = user_details[0].toAppUser()
+    news_publisher = create_news_publisher(app_user, service_user,
+                                           sln_settings.solution)
+
+    sln_settings.updates_pending = True
+    put_and_invalidate_cache(sln_settings, news_publisher)
+    broadcast_updates_pending(sln_settings)
+    send_message(service_user, u"solution.common.settings.roles.updated")
+
+
+POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT] = poke_broadcast_create_news_connect_via_scan
+
+
+@returns(FlowMemberResultCallbackResultTO)
+@arguments(service_user=users.User, message_flow_run_id=unicode, member=unicode,
+           steps=[object_factory("step_type", FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
+           parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def broadcast_create_news_item(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
+                               tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+    from solutions.common.bizz.news import put_news_item
+    logging.debug('creating a news item from the flow result...')
+
+    def result_message(message):
+        result = FlowMemberResultCallbackResultTO()
+        result.type = u'message'
+        result.value = MessageCallbackResultTypeTO()
+        result.value.message = unicode(message)
+        result.value.answers = []
+        result.value.attachments = []
+        result.value.flags = Message.FLAG_ALLOW_DISMISS
+        result.value.alert_flags = 1
+        result.value.branding = get_solution_main_branding(service_user).branding_key
+        result.value.dismiss_button_ui_flags = 0
+        result.value.step_id = u''
+        result.value.tag = POKE_TAG_BROADCAST_CREATE_NEWS
+        return result
+
+    # check if the app user is a news publisher
+    user_details = user_details[0]
+    app_user = user_details.toAppUser()
+    solution = get_solution_settings(service_user).solution
+    if not get_news_publisher_from_app_user(app_user, service_user, solution):
+        return result_message(common_translate(user_details.language,
+                                               SOLUTION_COMMON,
+                                               u'no_permission'))
+
+    news_type = NewsItem.TYPE_NORMAL
+    first_step = steps[0]
+    if first_step.step_id == u'message_news_type':
+        steps = steps[1:]
+        if first_step.answer_id.endswith(u'coupon'):
+            news_type = NewsItem.TYPE_QR_CODE
+
+    (content_title_step, content_message_step,
+     image_step, label_step, app_ids_step) = steps
+
+    title = content_title_step.form_result.result.value
+    message = content_message_step.form_result.result.value
+    image_result = image_step.form_result
+    if image_result:
+        image_url = image_result.result.value
+        # get the image content and encode it (base64)
+        # the image should be as <meta,img64data>
+        result = urlfetch.fetch(image_url, deadline=30)
+
+        if result.status_code != 200:
+            message = common_translate(user_details.language,
+                                       SOLUTION_COMMON,
+                                       u'broadcast_could_not_get_item_photo')
+            return result_message(message)
+
+        meta = ','
+        image = meta + b64encode(result.content)
+    else:
+        image = ''
+
+    broadcast_type = label_step.form_result.result.value
+    app_ids = app_ids_step.form_result.result.values
+    if is_default_service_identity(service_identity):
+        service_identity_user = create_service_identity_user(service_user)
+    else:
+        service_identity_user = create_service_identity_user(service_user,
+                                                             service_identity)
+
+    try:
+        put_news_item(service_identity_user, title, message, broadcast_type,
+                      sponsored=False, image=image, action_button=None,
+                      order_items=None, news_type=news_type, qr_code_caption=title,
+                      app_ids=app_ids, scheduled_at=0, news_id=None)
+        message = common_translate(user_details.language,
+                                   SOLUTION_COMMON, u'news_item_published')
+        result = result_message(message)
+    except BusinessException as e:
+        result = result_message(e.message)
+
+    return result
+
+
+FMR_POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS] = broadcast_create_news_item
 
 
 @returns()

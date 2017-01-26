@@ -205,6 +205,9 @@ class SolutionIdentitySettings(db.Model):
     inbox_mail_forwarders = db.StringListProperty(indexed=False)
     inbox_email_reminders_enabled = db.BooleanProperty(indexed=False)
 
+    # Broadcast create news
+    broadcast_create_news_qrcode = db.StringProperty(indexed=False)
+
     # List of epochs defining the start, end of holidays (start1, end1, start2, end2, ...)
     holidays = db.ListProperty(int)
     holiday_out_of_office_message = db.TextProperty()
@@ -564,6 +567,18 @@ class SolutionScheduledBroadcast(db.Model):
         return db.Query(cls, keys_only=True) \
             .filter('broadcast_epoch <', now()) \
             .filter('broadcast_epoch >', now() - 2592000)
+
+
+class SolutionNewsPublisher(db.Model):
+
+    timestamp = db.IntegerProperty(indexed=False)
+    app_user = db.UserProperty(indexed=True)
+
+    @staticmethod
+    def createKey(app_user, service_user, solution):
+        return db.Key.from_path(SolutionNewsPublisher.kind(),
+                                app_user.email(),
+                                parent=parent_key(service_user, solution))
 
 
 class SolutionTempBlob(db.Model):

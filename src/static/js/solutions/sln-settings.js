@@ -115,6 +115,7 @@ $(function () {
         + '{{/each}}';
 
     var mobileInboxForwardsSearch = {};
+    var appUserRolesSearch = {};
 
     var TMPL_MOBILE_INBOX_FORWARDER_INPUT = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">'
         + '    <div class="modal-header">'
@@ -142,7 +143,7 @@ $(function () {
 
     function router(urlHash) {
         var page = urlHash[1];
-        if (['general', 'branding', 'broadcast', 'app'].indexOf(page) === -1) {
+        if (['general', 'branding', 'broadcast', 'app', 'roles'].indexOf(page) === -1) {
             page = 'general';
             window.location.hash = '#/' + urlHash[0] + '/' + page;
             return;
@@ -155,6 +156,8 @@ $(function () {
             renderBroadcastSettings();
         } else if (page === 'app') {
             renderAppSettings();
+        } else if (page == 'roles') {
+            renderRolesSettings();
         }
     }
 
@@ -247,6 +250,8 @@ $(function () {
             avatarUpdated();
         } else if (data.type === 'solutions.common.settings.logo.updated') {
             logoUpdated();
+        } else if (data.type === 'solution.common.settings.roles.updated') {
+            renderRolesSettings();
         }
     };
 
@@ -799,15 +804,15 @@ $(function () {
 
     $("#addholiday").click(addHoliday);
     sln.configureDelayedInput($("#oof-message"), saveOOFMessage);
-    
-    
+
+
 
     /* END HOLIDAYS */
 
     $(".sln-set-avatar").html(TMPL_SET_AVATAR);
     $(".sln-set-avatar #avatar_div").click(uploadAvatar);
     $(".sln-set-logo").html(TMPL_SET_LOGO);
-    
+
     $('.sln-set-logo #logo_div').click(uploadLogo).css('width', '320px').css('height',
         (320 * SLN_LOGO_HEIGHT / SLN_LOGO_WIDTH) + 'px');
     $(".sln-set-name").html(TMPL_SET_NAME);
@@ -1343,7 +1348,7 @@ $(function () {
             success: function (data) {
                 if (!data.success) {
                     return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }         
+                }
                 if(data.result === null){
                     $("#address_geocode_error").hide();
                 } else if(data.result.address_geocoded){
@@ -1424,13 +1429,23 @@ $(function () {
         }
     }
 
+    function addBroadcastNewsPublisher() {
+        $('li[section=section_settings_roles]').find('a').click();
+        renderRolesSettings();
+        // show the add roles dialog with only news publisher option
+        addRoles(false, false, true);
+    }
+
+    // add broadcast news publisher
+    $('#broadcast_add_news_publisher').click(addBroadcastNewsPublisher);
+
     function renderBroadcastSettings() {
         getbroadcastOptions(function (broadcastOptions) {
             var html = $.tmpl(templates.broadcast_settings_list, {
                 broadcastTypes: broadcastOptions.editable_broadcast_types,
                 t: CommonTranslations
             });
-            $('#section_settings_broadcast').html(html);
+            $('#section_settings_broadcast > div[name=broadcast_types]').html(html);
             var listElem = $('#broadcast-types-sortable-list');
             listElem.find('button[data-action=up]').click(function () {
                 var $this = $(this);
@@ -1524,6 +1539,267 @@ $(function () {
             $('#section_app_settings').html(html);
             $('#birthday_message_enabled').change(saveAppSettings);
             sln.configureDelayedInput($('#birthday_message'), saveAppSettings);
+        }
+    }
+
+    function getAllUserRoles(callback) {
+        sln.call({
+            url: '/common/users/roles/load',
+            success: callback,
+            error: sln.showAjaxError
+        });
+    }
+
+    function addRoles(inboxEnabled, agendaEnabled, broadcastEnabled) {
+        // get the available calendars first
+        if(agendaEnabled) {
+            sln.call({
+                url: '/common/calendar/load',
+                success: showAddRolesModal,
+                error: sln.showAjaxError
+            });
+        }
+        else {
+            showAddRolesModal([]);
+        }
+
+        function showAddRolesModal(calendars) {
+            var html = $.tmpl(templates['settings/app_user_add_roles'], {
+                calendars: calendars,
+                inbox_enabled: inboxEnabled,
+                agenda_enabled: agendaEnabled,
+                broadcast_enabled: broadcastEnabled
+            });
+
+            var modal = sln.createModal(html, function (modal) {
+                $('#app_user_email_input', modal).focus();
+            });
+
+            // show inbox forwarder type if inbox forwarder
+            $('#is_inbox_forwarder', modal).change(function() {
+                if($(this).is(':checked')) {
+                    $('#forwarder_type_selection', modal).show();
+                } else {
+                    $('#forwarder_type_selection', modal).hide();
+                }
+            });
+
+            // show calendars selection if calendar admin
+            $('#is_calendar_admin', modal).change(function() {
+                if($(this).is(':checked')) {
+                    $('#calendar_selection', modal).show();
+                } else {
+                    $('#calendar_selection', modal).hide();
+                }
+            });
+
+            // search the existing users
+            // just like events add admin or add inbox forwarer
+            $('#app_user_email_input', modal).typeahead({
+                source : function(query, process) {
+                    $('button[action="submit"]', modal).attr("user_key", "");
+                    sln.call({
+                        url : "/common/users/search",
+                        type : "POST",
+                        data : {
+                            data : JSON.stringify({
+                                name_or_email_term : query
+                            })
+                        },
+                        success : function(data) {
+                            var usersKeys = [];
+                            appUserRolesSearch = {};
+                            $.each(data, function(i, user) {
+                                var userKey = user.email + ":" + user.app_id;
+                                usersKeys.push(userKey);
+
+                                appUserRolesSearch[userKey] = {
+                                    avatar_url : user.avatar_url,
+                                    label : user.name + ' (' + user.email + ')',
+                                    sublabel: user.app_id
+                                };
+                            });
+                            process(usersKeys);
+                        },
+                        error : sln.showAjaxError
+                    });
+                },
+                matcher : function() {
+                    return true;
+                },
+                highlighter : function(key) {
+                    var p = appUserRolesSearch[key];
+
+                    var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
+                    var typeahead_photo = $('<img class="typeahead_photo" src="" />').attr("src", p.avatar_url);
+                    typeahead_wrapper.append(typeahead_photo);
+                    var typeahead_labels = $('<div class="typeahead_labels"></div>');
+                    var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.label);
+                    typeahead_labels.append(typeahead_primary);
+                    var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.sublabel);
+                    typeahead_labels.append(typeahead_secondary);
+                    typeahead_wrapper.append(typeahead_labels);
+
+                    return typeahead_wrapper;
+                },
+                updater : function(key) {
+                    var p = appUserRolesSearch[key];
+                    $('button[action="submit"]', modal).attr("user_key", key);
+                    return p.label;
+                }
+            });
+
+            $('button[action="submit"]', modal).click(function() {
+                var userKey = $(this).attr('user_key');
+                var inboxForwarder, calendarAdmin, newsPublisher;
+                inboxForwarder = $('#is_inbox_forwarder').is(':checked');
+                calendarAdmin = $('#is_calendar_admin').is(':checked');
+                newsPublisher = $('#is_news_publisher').is(':checked');
+                var forwarderType = $('input[name=forwarder_type]:checked').attr('forwarder_type');
+                // user selected no roles
+                if(!(inboxForwarder || calendarAdmin || newsPublisher)) {
+                    sln.alert(CommonTranslations.roles_please_select_one_role_at_least, null, CommonTranslations.ERROR);
+                    return;
+                }
+
+                // if the user key is not set, then it's an email address
+                // this email address can be for a non-existing user
+                // so he/she cannot has any role other than email inbox forwarder
+                if(!userKey) {
+                    if((inboxForwarder && (forwarderType == 'mobile')) || calendarAdmin || newsPublisher) {
+                        // we need a valid user (not just an email) in these cases
+                        sln.alert(CommonTranslations.roles_please_provide_user, null, CommonTranslations.ERROR);
+                        return;
+                    }
+                    // this is an email inbox forwarder
+                    // so check the input email address
+                    userKey = $('#app_user_email_input').val();
+                    if(!userKey) {
+                        sln.alert(CommonTranslations.roles_please_provide_email, null, CommonTranslations.ERROR);
+                        return;
+                    }
+                }
+
+                calendars = []
+                if(calendarAdmin) {
+                    // get calendars
+                    $('#calendar_selection', modal).find('input[type=checkbox]:checked').each(function() {
+                        calendars.push({
+                            id: parseInt($(this).attr('calendar_id'))
+                        });
+                    });
+
+                    if(calendars.length < 1) {
+                        sln.alert(CommonTranslations.calendar_please_select_one_at_least, null, CommonTranslations.ERROR);
+                        return;
+                    }
+                }
+
+                // only add a forwarder type per time
+                // to disable other roles for any email that doesn't exist as a user
+                var forwarderTypes = [forwarderType];
+                sln.call({
+                    url: '/common/users/roles/add',
+                    method: 'post',
+                    showProcessing: true,
+                    data: {
+                        key: userKey,
+                        user_roles: {
+                            inbox_forwarder: inboxForwarder,
+                            calendar_admin: calendarAdmin,
+                            news_publisher: newsPublisher,
+                            forwarder_types: forwarderTypes,
+                            calendars: calendars
+                        }
+                    },
+                    success: function(data) {
+                        if(!data.success) {
+                            sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                        } else {
+                            modal.modal('hide');
+                            renderRolesSettings();
+                        }
+                    },
+                    error: sln.showAjaxError
+                });
+            });
+        }
+    }
+
+    function renderRolesSettings() {
+        // check if inbox, agenda and broadcast modules are enabled
+        // cannot figure out another way to check it from the client side!
+        var inboxEnabled = $('#section_settings_inbox').length > 0
+        var agendaEnabled = $('#section_settings_agenda').length > 0
+        var broadcastEnabled = $('#section_settings_broadcast').length > 0
+
+        var container = $('#section_settings_roles');
+        container.html(TMPL_LOADING_SPINNER);
+
+        getAllUserRoles(render);
+        function render(data) {
+            var html = $.tmpl(templates['settings/app_user_roles'], {
+                t: CommonTranslations,
+                roles: data,
+                inbox_enabled: inboxEnabled,
+                agenda_enabled: agendaEnabled,
+                broadcast_enabled: broadcastEnabled
+            });
+
+            $('#add_user_roles', html).click(function() {
+                addRoles(inboxEnabled, agendaEnabled, broadcastEnabled);
+            });
+
+            $('button[action=delete_roles]', html).click(deleteRoles);
+            function deleteRoles() {
+                var key = $(this).attr('user_key');
+                var email = key.split(':')[0];
+                var row = $('tr[user_key="' + key + '"]', html);
+                var forwarderTypes = $('input[name=inbox]', row).attr('forwarder_types');
+                var calendarIds = $('input[name=calendar]', row).attr('calendar_ids');
+
+                if(!forwarderTypes) {
+                    forwarderTypes = [];
+                } else {
+                    forwarderTypes = forwarderTypes.split(',');
+                }
+
+                if(!calendarIds) {
+                    calendarIds = []
+                } else {
+                    calendarIds = calendarIds.split(',').map(function(i) {
+                        return parseInt(i);
+                    });
+                }
+
+                var confirmMessage = CommonTranslations.roles_delete_confirmation.replace('%(email)s', email);
+                sln.confirm(confirmMessage, doDelete, null, null, null, null);
+                function doDelete() {
+                    sln.call({
+                        url: '/common/users/roles/delete',
+                        showProcessing: true,
+                        method: 'post',
+                        data: {
+                            key: key,
+                            forwarder_types: forwarderTypes,
+                            calendar_ids: calendarIds
+                        },
+                        success: function(data) {
+                            if(!data.success) {
+                                sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                            } else {
+                                renderRolesSettings();
+                            }
+                        },
+                        error: sln.showAjaxError
+                    });
+                }
+
+
+            }
+
+            $('#app_users_count', html).text(data.length);
+            container.html(html);
         }
     }
 });

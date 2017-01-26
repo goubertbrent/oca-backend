@@ -19,6 +19,7 @@ import datetime
 import logging
 import urllib
 
+from mcfw.consts import MISSING
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, long_list_property, \
     unicode_list_property
 from mcfw.rpc import parse_complex_value, serialize_complex_value
@@ -389,23 +390,18 @@ class SolutionCalendarTO(object):
     broadcast_enabled = bool_property('7')
 
     @staticmethod
-    def fromSolutionCalendar(sln_settings, obj, include_events=False, include_events_picture=False,
-                             include_admin_deleting=True):
+    def fromSolutionCalendar(sln_settings, obj, include_events=False, include_events_picture=False):
         item = SolutionCalendarTO()
         item.id = obj.calendar_id
         item.name = obj.name
         item.admins = list()
         for admin in obj.get_admins():
-            add_admin = True
-            if admin.status == SolutionCalendarAdmin.STATUS_DELETING:
-                add_admin = include_admin_deleting
-            if add_admin:
-                sif = SolutionUserKeyLabelTO()
-                sif.key = admin.app_user.email()
-                human_user = get_human_user_from_app_user(admin.app_user)
-                up = get_user_profile(admin.app_user)
-                sif.label = u"%s (%s)" % (up.name, human_user.email())
-                item.admins.append(sif)
+            sif = SolutionUserKeyLabelTO()
+            sif.key = admin.app_user.email()
+            human_user = get_human_user_from_app_user(admin.app_user)
+            up = get_user_profile(admin.app_user)
+            sif.label = u"%s (%s)" % (up.name, human_user.email())
+            item.admins.append(sif)
         item.can_delete = sln_settings.default_calendar != item.id
         item.connector_qrcode = obj.connector_qrcode
         item.events = list()
@@ -427,17 +423,13 @@ class SolutionCalendarWebTO(SolutionCalendarTO):
         item.name = obj.name
         item.admins = list()
         for admin in obj.get_admins():
-            if admin.status != SolutionCalendarAdmin.STATUS_DELETING or include_admin_deleting:
-                up = get_user_profile(admin.app_user)
-                if up:
-                    sif = SolutionUserKeyLabelTO()
-                    sif.key = admin.app_user.email()
-                    human_user = get_human_user_from_app_user(admin.app_user)
-                    sif.label = u"%s (%s)" % (up.name, human_user.email())
-                    item.admins.append(sif)
-                else:
-                    logging.warn('Calendar admin %s not found. Deleting...', admin.app_user)
-                    admin.delete()
+            up = get_user_profile(admin.app_user)
+            if up:
+                sif = SolutionUserKeyLabelTO()
+                sif.key = admin.app_user.email()
+                human_user = get_human_user_from_app_user(admin.app_user)
+                sif.label = u"%s (%s)" % (up.name, human_user.email())
+                item.admins.append(sif)
         item.can_delete = sln_settings.default_calendar != item.id
         item.connector_qrcode = obj.connector_qrcode
         item.events = list()
@@ -979,3 +971,36 @@ class SaveSettingsReturnStatusTO(ReturnStatusTO):
         r.result = result
         return r
 
+
+class AppUserRolesTO(object):
+    app_user_email = unicode_property('1')
+    app_id = unicode_property('2')
+
+    inbox_forwarder = bool_property('3')
+    calendar_admin = bool_property('4')
+    news_publisher = bool_property('5')
+
+    # forwarder types assigned to app user (mobile, email)
+    forwarder_types = unicode_list_property('6')
+
+    # in case the user is a calendar admin
+    # he may be an admin of many calendars (list)
+    calendars = typed_property('7', SolutionCalendarTO, True)
+
+    def add_forwarder_type(self, forwarder_type):
+        """Add a forwarder type if not exists."""
+        if self.forwarder_types is MISSING:
+            self.forwarder_types = []
+
+        if forwarder_type not in self.forwarder_types:
+            self.forwarder_types.append(forwarder_type)
+            self.inbox_forwarder = True
+
+    def add_calendar(self, calendar):
+        """Add a calendar if not exists."""
+        if self.calendars is MISSING:
+            self.calendars = []
+
+        if not any([calendar.id == c.id for c in self.calendars]):
+            self.calendars.append(calendar)
+            self.calendar_admin = True

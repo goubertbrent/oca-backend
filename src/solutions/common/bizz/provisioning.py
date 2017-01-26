@@ -36,7 +36,7 @@ from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DAY
 from rogerthat.dal import parent_key, put_and_invalidate_cache
-from rogerthat.models import Branding, ServiceMenuDef, ServiceRole
+from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.settings import get_server_settings
@@ -53,7 +53,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, OrganizationType, \
     put_branding
-from solutions.common.bizz.events import provision_events_branding, create_new_event_flows
+from solutions.common.bizz.events import provision_events_branding
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
 from solutions.common.bizz.menu import _put_default_menu
@@ -61,7 +61,8 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_SANDWICH_BAR, POKE_TAG_EVENTS, POKE_TAG_MENU, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
-    POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS
+    POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
+    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
@@ -69,7 +70,8 @@ from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
 from solutions.common.dal import get_solution_settings, get_event_list, get_restaurant_menu, \
     get_solution_logo, get_solution_group_purchase_settings, get_solution_calendars, get_static_content_keys, \
-    get_solution_avatar, get_solution_identity_settings, get_solution_settings_or_identity_settings
+    get_solution_avatar, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
+    get_solution_news_publishers
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.cityapp import invalidate_service_user_for_city
 from solutions.common.dal.order import get_solution_order_settings
@@ -77,7 +79,7 @@ from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
-    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu
+    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionNewsPublisher
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
 from solutions.common.models.cityapp import CityAppProfile
@@ -566,6 +568,32 @@ def get_app_data_agenda(sln_settings, service_identity):
 
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_broadcast(sln_settings, service_identity):
+    with users.set_user(sln_settings.service_user):
+        si = system.get_identity(service_identity)
+
+    def transl(key):
+        try:
+            return common_translate(sln_settings.main_language, SOLUTION_COMMON, key, suppress_warning=True)
+        except:
+            return key
+
+    broadcast_types = map(transl, sln_settings.broadcast_types)
+    broadcast_target_audience = {}
+    # get current apps of customer and set it as target audience
+    for app_id, app_name in zip(si.app_ids, si.app_names):
+        if app_id == App.APP_ID_ROGERTHAT and len(broadcast_target_audience) > 0:
+            continue  # Rogerthat is not the default app. Don't show it.
+        elif app_id == App.APP_ID_OSA_LOYALTY:
+            continue  # Don't show the OSA Terminal app
+        broadcast_target_audience[app_id] = app_name
+
+    return dict(broadcast_types=broadcast_types,
+                broadcast_target_audience=broadcast_target_audience)
+
+
+@returns(dict)
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
 def get_app_data_group_purchase(sln_settings, service_identity):
     group_purchases = [SolutionGroupPurchaseTO.fromModel(m) for m in SolutionGroupPurchase.list(sln_settings.service_user, service_identity, sln_settings.solution)]
     return dict(currency=sln_settings.currency,
@@ -686,16 +714,36 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
                                 "coords": coords,
                                 "priority": priority})
 
+    def menu_sorting_key(ssmi):
+        """ sort the menu items according to:
+            1- preferred_page: is -1 or not (>= 0 is better)
+            2- priority: higher is better
+            3- label
+         """
+        if ssmi["preferred_page"] == -1:
+            page_key = 1
+        else:
+            page_key = 0
+        return page_key, -ssmi["priority"], ssmi["ssmi"].label
+
     all_taken_coords = [item.coords for item in service_menu.items]
-    for ssmi_dict in sorted(ssmi_to_put, key=lambda ssmi: (-ssmi["priority"], ssmi["ssmi"].label)):
+    sorted_ssmis = sorted(ssmi_to_put, key=menu_sorting_key)
+    last_prefered_page = max([m['preferred_page'] for m in sorted_ssmis]) + 1
+    for ssmi_dict in sorted_ssmis:
         coords = ssmi_dict["coords"]
         preferred_page = ssmi_dict["preferred_page"]
         ssmi = ssmi_dict["ssmi"]
+        if preferred_page == -1:
+            preferred_page = last_prefered_page
 
         if coords == [-1, -1, -1] or (ssmi_dict["priority"] != 0 and (coords in all_taken_coords)):
             new_coords = get_next_free_spot_in_service_menu(all_taken_coords, preferred_page)
             logging.debug("Got next free spot %s instead of preferred spot %s for %s", new_coords, coords, ssmi.label)
             coords = new_coords
+        # after getting the new coords, check again if the original
+        # preferred page is not -1, then set it + 1 as the last preferred page
+        if coords[2] >= last_prefered_page and ssmi_dict["preferred_page"] != -1:
+            last_prefered_page = coords[2] + 1
 
         logging.debug("Putting menu item at %s: %s",
                       coords, serialize_complex_value(ssmi, SolutionServiceMenuItem, False))
@@ -737,9 +785,6 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
                                    action=SolutionModule.action_order(SolutionModule.AGENDA))
     ssmis.append(ssmi)
 
-    admins_to_put = []
-    admins_to_delete = []
-
     if not sln_settings.default_calendar:
         def trans():
             sc = SolutionCalendar(parent=parent_key(sln_settings.service_user, sln_settings.solution),
@@ -757,27 +802,6 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
             on_trans_committed(_configure_calendar_admin_qr_code, sc, main_branding.branding_key, sln_settings.main_language)
         else:
             _configure_calendar_admin_qr_code(sc, main_branding.branding_key, sln_settings.main_language)
-
-    deleted_calendar_keys = [c for c in SolutionCalendar.all(keys_only=True).ancestor(parent_key(sln_settings.service_user, sln_settings.solution)).filter("deleted =", True)]
-    for admin in SolutionCalendarAdmin.all().ancestor(parent_key(sln_settings.service_user, sln_settings.solution)):
-        if admin.calendar_key in deleted_calendar_keys or admin.status in (SolutionCalendarAdmin.STATUS_CREATING, SolutionCalendarAdmin.STATUS_DELETING):
-            human_user, app_id = get_app_user_tuple(admin.app_user)
-            member = BaseMemberTO()
-            member.member = human_user.email()
-            member.app_id = app_id
-
-            if admin.calendar_key in deleted_calendar_keys or admin.status == SolutionCalendarAdmin.STATUS_DELETING:
-                system.delete_role_member(role_id, member)
-                admins_to_delete.append(admin)
-            elif admin.status == SolutionCalendarAdmin.STATUS_CREATING:
-                system.add_role_member(role_id, member)
-                admin.status = SolutionCalendarAdmin.STATUS_CREATED
-                admins_to_put.append(admin)
-
-    db.put(admins_to_put)
-    db.delete(admins_to_delete)
-
-    create_new_event_flows(sln_settings)
 
     if sln_settings.events_visible:
         provision_events_branding(sln_settings, main_branding, default_lang)
@@ -844,6 +868,37 @@ def delete_agenda(sln_settings, current_coords, service_menu):
             break
     if role_id:
         on_trans_committed(system.delete_role, role_id, True)
+
+
+@returns(NoneType)
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
+def delete_broadcast(sln_settings, current_coords, service_menu):
+    """like delete_agenda but for broadcast"""
+    _default_delete(sln_settings, current_coords, service_menu)
+    # create news menu
+    create_news_coords = get_coords_of_service_menu_item(service_menu,
+                                                         POKE_TAG_BROADCAST_CREATE_NEWS)
+    _default_delete(sln_settings, create_news_coords, service_menu)
+
+    news_publishers = get_solution_news_publishers(sln_settings.service_user,
+                                                   sln_settings.solution)
+
+    role_id = None
+    roles = filter(lambda r: r.name == POKE_TAG_BROADCAST_CREATE_NEWS,
+                   system.list_roles())
+
+    if roles:
+        role_id = roles[0].id
+
+    def trans():
+        db.delete(news_publishers)
+        if role_id:
+            system.delete_role(role_id, cleanup_members=True)
+
+    if db.is_in_transaction():
+        on_trans_committed(trans)
+    else:
+        db.run_in_transaction(trans)
 
 
 @returns([SolutionServiceMenuItem])
@@ -1009,8 +1064,74 @@ def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag
                                    is_broadcast_settings=True,
                                    broadcast_branding=main_branding.branding_key,
                                    action=SolutionModule.action_order(SolutionModule.BROADCAST))
-    return [ssmi]
 
+    create_news_ssmi = _configure_broadcast_create_news(sln_settings, main_branding,
+                                                        default_lang, POKE_TAG_BROADCAST_CREATE_NEWS)
+
+    return [ssmi, create_news_ssmi]
+
+
+@returns()
+@arguments(sln_settings=SolutionSettings, flow_identifier=unicode)
+def _configure_create_news_qr_code(sln_settings, flow_identifier):
+    """ the same as _configure_connect_qr_code """
+    identities = [None]
+    if sln_settings.identities:
+        identities.extend(sln_settings.identities)
+    for service_identity in identities:
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings,
+                                                                    service_identity)
+        if sln_i_settings:
+            create_news_qr_uri = sln_i_settings.broadcast_create_news_qrcode
+
+            if not create_news_qr_uri:
+                description = common_translate(sln_settings.main_language,
+                                               SOLUTION_COMMON,
+                                               'create-news-from-mobile')
+                qr_code = qr.create(description, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT,
+                                    None, service_identity, flow_identifier)
+                sln_i_settings.broadcast_create_news_qrcode = qr_code.image_uri
+                sln_i_settings.put()
+
+
+@returns(SolutionServiceMenuItem)
+@arguments(sln_settings=SolutionSettings, main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, tag):
+    logging.info('Creating broadcast publish/create news flow')
+    loyalty_enabled = SolutionModule.LOYALTY in sln_settings.modules
+    flow_params = dict(branding_key=main_branding.branding_key,
+                       language=default_lang,
+                       loyalty_enabled=loyalty_enabled)
+    create_news_flow_template = JINJA_ENVIRONMENT.get_template('flows/publish_news.xml').render(flow_params)
+    create_news_flow = system.put_flow(create_news_flow_template.encode('utf-8'))
+
+    qr_connect_template = JINJA_ENVIRONMENT.get_template('flows/news_publisher_connect_via_scan.xml').render(flow_params)
+    qr_connect_flow = system.put_flow(qr_connect_template.encode('utf-8'))
+    roles = filter(lambda r: r.name == POKE_TAG_BROADCAST_CREATE_NEWS,
+                  system.list_roles())
+    if roles:
+        role_id = roles[0].id
+    else:
+        role_id = system.put_role(POKE_TAG_BROADCAST_CREATE_NEWS,
+                                  ServiceRole.TYPE_MANAGED)
+
+    ssmi = SolutionServiceMenuItem(u'fa-newspaper-o',
+                                   sln_settings.menu_item_color,
+                                   common_translate(default_lang, SOLUTION_COMMON, 'create_news'),
+                                   tag=tag,
+                                   roles=[role_id],
+                                   static_flow=create_news_flow.identifier,
+                                   action=SolutionModule.action_order(SolutionModule.BROADCAST))
+
+    # add qr code to identities
+    # wait until transactions are done first
+    if db.is_in_transaction():
+        on_trans_committed(_configure_create_news_qr_code, sln_settings, qr_connect_flow.identifier)
+    else:
+        _configure_create_news_qr_code(sln_settings, qr_connect_flow.identifier)
+
+    return ssmi
 
 @returns([SolutionServiceMenuItem])
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
@@ -1687,6 +1808,7 @@ def _default_delete(sln_settings, current_coords, service_menu=None):
 
 
 MODULES_GET_APP_DATA_FUNCS = {SolutionModule.AGENDA: get_app_data_agenda,
+                              SolutionModule.BROADCAST: get_app_data_broadcast,
                               SolutionModule.CITY_VOUCHERS: get_app_data_city_vouchers,
                               SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
                               SolutionModule.LOYALTY: get_app_data_loyalty,
@@ -1720,7 +1842,7 @@ MODULES_DELETE_FUNCS = {SolutionModule.AGENDA: delete_agenda,
                         SolutionModule.APPOINTMENT: _default_delete,
                         SolutionModule.ASK_QUESTION: _default_delete,
                         SolutionModule.BILLING: _default_delete,
-                        SolutionModule.BROADCAST: _default_delete,
+                        SolutionModule.BROADCAST: delete_broadcast,
                         SolutionModule.BULK_INVITE: _default_delete,
                         SolutionModule.CITY_APP: _default_delete,
                         SolutionModule.CITY_VOUCHERS: _default_delete,

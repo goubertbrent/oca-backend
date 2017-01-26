@@ -19,6 +19,7 @@ import base64
 import datetime
 import logging
 from types import NoneType
+from collections import defaultdict
 
 from babel.dates import format_date
 from babel.numbers import format_currency
@@ -50,7 +51,8 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, replace_url_with_forwarded_server
-from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user
+from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
+    get_app_id_from_app_user
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from shop.business.order import get_subscription_order_remaining_length
@@ -63,10 +65,11 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
-    OrganizationType
+    OrganizationType, create_news_publisher, delete_news_publisher
 from solutions.common.bizz import twitter as bizz_twitter
 from solutions.common.bizz.branding_settings import save_branding_settings
-from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars
+from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
+    create_calendar_admin, delete_calendar_admin
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
 from solutions.common.bizz.inbox import send_statistics_export_email
@@ -80,11 +83,13 @@ from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
-    get_solution_inbox_messages, get_solution_identity_settings, get_solution_settings_or_identity_settings
+    get_solution_inbox_messages, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
+    get_admins_of_solution_calendars, get_solution_news_publishers, get_user_from_key, \
+    get_news_publisher_from_app_user
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, SolutionSettings, \
-    SolutionInboxMessage
+    SolutionInboxMessage, SolutionNewsPublisher
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
@@ -101,7 +106,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
-    SaveSettingsReturnStatusTO
+    SaveSettingsReturnStatusTO, AppUserRolesTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -780,21 +785,18 @@ def load_calendar_more(calendar_id, cursor=None):
 @arguments(calendar_id=(int, long), key=unicode)
 def calendar_add_admin(calendar_id, key):
     service_user = users.get_current_user()
+    session_ = users.get_current_session()
+    service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
     try:
         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
         if not sc:
             raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
-        app_user = sanitize_app_user(users.User(key))
-        get_user_profile(app_user)
-        sca = db.get(SolutionCalendarAdmin.createKey(app_user, sc.key()))
-        if not sca:
-            sca = SolutionCalendarAdmin(key=SolutionCalendarAdmin.createKey(app_user, sc.key()))
-            sca.app_user = app_user
-        sca.status = SolutionCalendarAdmin.STATUS_CREATING
-        sca.timestamp = now()
+
+        app_user, is_existing_user = get_user_from_key(key, service_identity)
+        create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
         sln_settings.updates_pending = True
-        put_and_invalidate_cache(sca, sln_settings)
+        put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
@@ -806,19 +808,19 @@ def calendar_add_admin(calendar_id, key):
 @arguments(calendar_id=(int, long), key=unicode)
 def calendar_remove_admin(calendar_id, key):
     service_user = users.get_current_user()
+    session_ = users.get_current_session()
+    service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
     try:
         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
         if not sc:
             raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
-        app_user = users.User(key)
-        get_user_profile(app_user)
-        sca = db.get(SolutionCalendarAdmin.createKey(app_user, sc.key()))
-        if sca:
-            sca.status = SolutionCalendarAdmin.STATUS_DELETING
-            sln_settings.updates_pending = True
-            put_and_invalidate_cache(sca, sln_settings)
-            broadcast_updates_pending(sln_settings)
+
+        app_user, is_existing_user = get_user_from_key(key, service_identity)
+        delete_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
+        sln_settings.updates_pending = True
+        put_and_invalidate_cache(sln_settings)
+        broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
@@ -919,6 +921,7 @@ def put_uit_actor_id(uit_id):
     settings.uitdatabank_actor_id = uit_id
     settings.put()
     return RETURNSTATUS_TO_SUCCESS
+
 
 @rest("/common/settings/getTimezoneOffset", "get", read_only_access=True)
 @returns(long)
@@ -1022,6 +1025,193 @@ def search_connected_users(name_or_email_term, app_id=None):
         service_identity = ServiceIdentity.DEFAULT
     connection = remove_slash_default(create_service_identity_user(service_user, service_identity)).email()
     return search_users_via_friend_connection_and_name_or_email(connection, name_or_email_term, app_id, True)
+
+
+@rest("/common/users/roles/load", "get")
+@returns([AppUserRolesTO])
+@arguments()
+def users_load_roles():
+    """
+        Gather inbox forwarders, calendar admins and news publishers
+        from different places/models
+    """
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+
+    # get inbox forwarders, calendar admins and news publishers
+    inbox_forwarders = inbox_load_forwarders()
+    calendar_admins = get_admins_of_solution_calendars(service_user, sln_settings.solution)
+    news_publishers = get_solution_news_publishers(service_user, sln_settings.solution)
+
+    def get_calendar_of_admin(admin):
+        """returns: SolutionCalendarTO."""
+        calendar_key = admin.calendar_key
+        calendar = db.get(calendar_key)
+        if calendar:
+            calendar_to = SolutionCalendarTO.fromSolutionCalendar(sln_settings,
+                                                                  calendar)
+            return calendar_to
+
+    # create AppUserRolesTO for every role type
+    # with different additional information for every type
+    all_user_roles = defaultdict(AppUserRolesTO)
+
+    TYPE_MOBILE = SolutionSettings.INBOX_FORWARDER_TYPE_MOBILE
+    TYPE_EMAIL = SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL
+    mobile_inbox_forwarders = filter(lambda f: f.type == TYPE_MOBILE,
+                                     inbox_forwarders)
+    email_inbox_forwarders = filter(lambda f: f.type == TYPE_EMAIL,
+                                    inbox_forwarders)
+
+    # mobile forwarders may have an app id
+    for forwarder in mobile_inbox_forwarders:
+        email = forwarder.key
+        try:
+            app_id = email.split(':')[1]
+        except IndexError:
+            app_id = None
+        user_roles = all_user_roles[email]
+        user_roles.app_user_email = email
+        user_roles.app_id = app_id
+        # additional info: forwarder type
+        user_roles.add_forwarder_type(TYPE_MOBILE)
+
+    for admin in calendar_admins:
+        email = admin.app_user.email()
+        user_roles = all_user_roles[email]
+        user_roles.app_user_email = email
+        user_roles.app_id = get_app_id_from_app_user(admin.app_user)
+        # additional info: calendars
+        calendar = get_calendar_of_admin(admin)
+        if calendar:
+            user_roles.add_calendar(calendar)
+
+    for publisher in news_publishers:
+        email = publisher.app_user.email()
+        user_roles = all_user_roles[email]
+        user_roles.app_user_email = email
+        user_roles.app_id = get_app_id_from_app_user(publisher.app_user)
+        user_roles.news_publisher = True
+
+    # because email forwarders are stored only by email, without an app id
+    # after gathering all roles, check if a user with this email
+    # is a mobile forwarder, then just append the type
+    for forwarder in email_inbox_forwarders:
+        email = forwarder.key  # email only
+        has_roles = False  # check if any roles have this email
+        for user_email, user_roles in all_user_roles.iteritems():
+            # user_email may contain an app id, so check if it contains
+            # email, then append the email forwarder type
+            if email in user_email:
+                user_roles.add_forwarder_type(TYPE_EMAIL)
+                has_roles = True
+
+        # no user roles for this email, then create it
+        if not has_roles:
+            user_roles = all_user_roles[email]
+            user_roles.app_user_email = email
+            user_roles.add_forwarder_type(TYPE_EMAIL)
+
+    return all_user_roles.values()
+
+
+@rest("/common/users/roles/add", "post")
+@returns(ReturnStatusTO)
+@arguments(key=unicode, user_roles=AppUserRolesTO)
+def users_add_user_roles(key, user_roles):
+    """ set different app roles for a user """
+    try:
+        service_user = users.get_current_user()
+        session_ = users.get_current_session()
+        service_identity = session_.service_identity
+        sln_settings = get_solution_settings(service_user)
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings,
+                                                                    service_identity)
+
+        # try first to get the user from user key
+        app_user, is_existing_user = get_user_from_key(key, service_identity)
+
+        # add inbox forwarder
+        if user_roles.inbox_forwarder:
+            forwarder_types = user_roles.forwarder_types
+            for forwarder_type in forwarder_types:
+                if forwarder_type:
+                    if forwarder_type == SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL:
+                        # only email without an app id
+                        key = get_human_user_from_app_user(app_user).email()
+                    else:
+                        key = app_user.email()
+
+                    if not EMAIL_REGEX.match(key):
+                        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                                                             'Please provide a valid e-mail address'))
+                    forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
+                    if key not in forwarders:
+                        forwarders.append(key)
+
+        if is_existing_user:
+            # add as a calendar admin
+            if user_roles.calendar_admin:
+                calendars = user_roles.calendars
+                for calendar in calendars:
+                    calendar_id = calendar.id
+                    create_calendar_admin(calendar_id, app_user, service_user,
+                                          sln_settings.solution)
+
+            # add as news publisher
+            if user_roles.news_publisher:
+                create_news_publisher(app_user, service_user, sln_settings.solution)
+
+        sln_settings.updates_pending = True
+        put_and_invalidate_cache(sln_i_settings)
+        broadcast_updates_pending(sln_settings)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException, e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/users/roles/delete", "post")
+@returns(ReturnStatusTO)
+@arguments(key=unicode, forwarder_types=[unicode], calendar_ids=[int])
+def users_delete_user_roles(key, forwarder_types, calendar_ids):
+    """ remove all the user app roles """
+    try:
+        service_user = users.get_current_user()
+        session_ = users.get_current_session()
+        service_identity = session_.service_identity
+        sln_settings = get_solution_settings(service_user)
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings,
+                                                                    service_identity)
+
+        # try first to get the user profile from user key
+        app_user, is_existing_user = get_user_from_key(key, service_identity)
+
+        # inbox
+        if forwarder_types:
+            key = app_user.email()
+            for forwarder_type in forwarder_types:
+                if forwarder_type == SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL:
+                    key = get_human_user_from_app_user(app_user).email()
+
+                forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
+                if key in forwarders:
+                    forwarders.remove(key)
+
+        # calendars
+        if calendar_ids:
+            for calendar_id in calendar_ids:
+                delete_calendar_admin(calendar_id, app_user, service_user,
+                                      sln_settings.solution)
+
+        # news
+        delete_news_publisher(app_user, service_user, sln_settings.solution)
+
+        sln_settings.updates_pending = True
+        put_and_invalidate_cache(sln_i_settings)
+        broadcast_updates_pending(sln_settings)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException, e:
+        return ReturnStatusTO.create(False, e.message)
 
 
 @rest("/common/inbox/forwarders/load", "get", read_only_access=True)

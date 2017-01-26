@@ -65,7 +65,8 @@ from solutions import translate
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision, put_branding
+from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision, put_branding, \
+    assign_app_user_role, revoke_app_user_role
 from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
     get_solution_main_branding, get_solution_calendars_for_user, get_admins_of_solution_calendars
 from solutions.common.handlers import JINJA_ENVIRONMENT
@@ -94,7 +95,7 @@ def _get_client_flow():
     else:
         redirect_uri = "https://%s.appspot.com/common/events/google/oauth2callback" % APPENGINE_APP_ID
         redirect_uri = replace_url_with_forwarded_server(redirect_uri)
-        
+
     solution_server_setting = get_solution_server_settings()
     flow = client.OAuth2WebServerFlow(client_id=solution_server_setting.solution_sync_calendar_events_client_id,
                                       client_secret=solution_server_setting.solution_sync_calendar_events_client_secret,
@@ -644,6 +645,44 @@ def solution_calendar_broadcast(service_user, email, method, params, tag, servic
     return r
 
 
+@returns(SolutionCalendarAdmin)
+@arguments(calendar_id=long, app_user=users.User, service_user=users.User, solution=unicode)
+def create_calendar_admin(calendar_id, app_user, service_user, solution):
+    """Create calendar admin and assign create events role."""
+    from solutions.common.bizz.messaging import POKE_TAG_NEW_EVENT
+    sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, solution))
+    if sc:
+        key = SolutionCalendarAdmin.createKey(app_user, sc.key())
+        sca = db.get(key)
+        if not sca:
+            sca = SolutionCalendarAdmin(key=key)
+        sca.app_user = app_user
+        db.put(sca)
+        assign_app_user_role(app_user, POKE_TAG_NEW_EVENT)
+        return sca
+
+
+@returns()
+@arguments(calendar_id=long, app_user=users.User, service_user=users.User, solution=unicode)
+def delete_calendar_admin(calendar_id, app_user, service_user, solution):
+    """Delete a calendar admin and revoke create events role."""
+    from solutions.common.bizz.messaging import POKE_TAG_NEW_EVENT
+    sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, solution))
+    if sc:
+        key = SolutionCalendarAdmin.createKey(app_user, sc.key())
+        sca = db.get(key)
+        if sca:
+            db.delete(sca)
+
+    # check if the user is an admin of any other calendar
+    # if not, just revoke the role
+    other_calendars = get_solution_calendar_ids_for_user(service_user, solution,
+                                                         app_user)
+
+    if not other_calendars:
+        revoke_app_user_role(app_user, POKE_TAG_NEW_EVENT)
+
+
 @returns(PokeCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
@@ -656,20 +695,12 @@ def solution_add_admin_to_calendar(service_user, email, tag, result_key, context
 
     sln_settings = get_solution_settings(service_user)
     app_user = user_details[0].toAppUser()
-    sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
-    if sc:
-        sca = db.get(SolutionCalendarAdmin.createKey(app_user, sc.key()))
-        if sca:
-            return
-        sca = SolutionCalendarAdmin(key=SolutionCalendarAdmin.createKey(app_user, sc.key()))
-        sca.status = SolutionCalendarAdmin.STATUS_CREATING
-        sca.timestamp = now()
-        sca.app_user = app_user
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sca, sln_settings)
+    sca = create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
+    sln_settings.updates_pending = True
+    put_and_invalidate_cache(sca, sln_settings)
 
-        broadcast_updates_pending(sln_settings)
-        send_message(service_user, u"solutions.common.calendar.update")
+    broadcast_updates_pending(sln_settings)
+    send_message(service_user, u"solutions.common.calendar.update")
 
 
 @returns(PokeCallbackResultTO)
@@ -678,10 +709,13 @@ def solution_add_admin_to_calendar(service_user, email, tag, result_key, context
 def poke_new_event(service_user, email, tag, result_key, context, service_identity, user_details):
     from solutions.common.bizz.messaging import POKE_TAG_NEW_EVENT
 
+    sln_settings = get_solution_settings(service_user)
+    app_user = user_details[0].toAppUser()
+
     result = PokeCallbackResultTO()
     result.type = TYPE_FLOW
     result.value = FlowCallbackResultTypeTO()
-    result.value.flow = get_create_event_flow_name(user_details[0].toAppUser())
+    result.value.flow = get_create_event_flow_xml_for_user(sln_settings, app_user)
     result.value.force_language = None
     result.value.tag = POKE_TAG_NEW_EVENT
     return result
@@ -879,15 +913,7 @@ div.backgoundDark{background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
 def get_create_event_flow_name(app_user):
     return u'agenda.new_event %s' % app_user.email()
 
-def create_new_event_flows(sln_settings):
-    admins = set()
-    for admin in get_admins_of_solution_calendars(sln_settings.service_user, sln_settings.solution):
-        admins.add(admin.app_user.email())
-
-    for app_user_email in admins:
-        create_new_event_flow_user(sln_settings, users.User(app_user_email))
-
-def create_new_event_flow_user(sln_settings, app_user):
+def get_create_event_flow_xml_for_user(sln_settings, app_user):
     flow_name = get_create_event_flow_name(app_user)
 
     main_branding = get_solution_main_branding(sln_settings.service_user)
@@ -897,4 +923,4 @@ def create_new_event_flow_user(sln_settings, app_user):
 
     flow_params = dict(flow_name=flow_name, branding_key=main_branding.branding_key, language=sln_settings.main_language or DEFAULT_LANGUAGE, name=sln_settings.name, calendar_count=calendar_count, calendars=calendars_admin)
     flow = JINJA_ENVIRONMENT.get_template('flows/events_create.xml').render(flow_params)
-    system.put_flow(flow.encode('utf-8'), multilanguage=False)
+    return flow

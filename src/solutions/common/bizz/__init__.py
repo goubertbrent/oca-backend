@@ -41,9 +41,9 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding, TYPE_BRANDING
-from rogerthat.bizz.rtemail import generate_auto_login_url
+from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
-    InvalidBroadcastTypeException
+    InvalidBroadcastTypeException, RoleNotFoundException
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
@@ -54,13 +54,16 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
 from rogerthat.service.api import qr, app
+from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member
 from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO
+from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, send_mail_via_mime
+from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import run_in_transaction
 from solution_server_settings import get_solution_server_settings
@@ -70,8 +73,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import OUR_CITY_APP_COLOUR
 from solutions.common.dal import get_solution_settings
 from solutions.common.exceptions import TranslatedException
-from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionBrandingSettings, SolutionLogo, \
-     FileBlob
+from solutions.common.models import SolutionSettings, SolutionIdentitySettings, SolutionMainBranding, \
+    SolutionBrandingSettings, SolutionLogo, FileBlob, SolutionNewsPublisher
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
 from xhtml2pdf import pisa
@@ -697,12 +700,9 @@ def get_next_free_spots_in_service_menu(all_taken_coords, count=1, preferred_pag
     spots_to_get = count
     start_x = 0
 
-    z = 0
     if preferred_page == -1:
-        for coords in all_taken_coords:
-            if coords[2] > z:
-                z = coords[2]
-        z = z + 1
+        # try with the first page at first
+        z = 0
     else:
         z = preferred_page
 
@@ -841,3 +841,68 @@ def put_branding(description, content):
 def put_pdf_branding(description, content):
     from rogerthat.service.api import system
     return system.store_pdf_branding(description, content)
+
+
+@returns(int)
+@arguments(role_name=unicode)
+def get_role_id(role_name):
+    roles = list_roles()
+    for role in roles:
+        if role.name == role_name:
+            return role.id
+
+    raise RoleNotFoundException
+
+
+@returns(BaseMemberTO)
+@arguments(app_user=users.User)
+def make_member_from_app_user(app_user):
+    human_user, app_id = get_app_user_tuple(app_user)
+    member = BaseMemberTO()
+    member.member = human_user.email()
+    member.app_id = app_id
+    return member
+
+
+@returns()
+@arguments(app_user=users.User, role_name=unicode)
+def assign_app_user_role(app_user, role_name):
+    role_id = get_role_id(role_name)
+    member = make_member_from_app_user(app_user)
+    add_role_member(role_id, member)
+
+
+@returns()
+@arguments(app_user=users.User, role_name=unicode)
+def revoke_app_user_role(app_user, role_name):
+    role_id = get_role_id(role_name)
+    member = make_member_from_app_user(app_user)
+    delete_role_member(role_id, member)
+
+
+@returns(SolutionNewsPublisher)
+@arguments(app_user=users.User, service_user=users.User, solution=unicode)
+def create_news_publisher(app_user, service_user, solution):
+    """Create a news publisher and assign create news role."""
+    from solutions.common.bizz.messaging import POKE_TAG_BROADCAST_CREATE_NEWS
+    key = SolutionNewsPublisher.createKey(app_user, service_user, solution)
+    publisher = db.get(key)
+    if not publisher:
+        publisher = SolutionNewsPublisher(key=key)
+    publisher.app_user = app_user
+    db.put(publisher)
+
+    assign_app_user_role(app_user, POKE_TAG_BROADCAST_CREATE_NEWS)
+    return publisher
+
+
+@returns()
+@arguments(app_user=users.User, service_user=users.User, solution=unicode)
+def delete_news_publisher(app_user, service_user, solution):
+    """Delete a news publisher and revoke create news role."""
+    from solutions.common.bizz.messaging import POKE_TAG_BROADCAST_CREATE_NEWS
+    key = SolutionNewsPublisher.createKey(app_user, service_user, solution)
+    publisher = db.get(key)
+    if publisher:
+        db.delete(publisher)
+        revoke_app_user_role(app_user, POKE_TAG_BROADCAST_CREATE_NEWS)

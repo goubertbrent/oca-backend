@@ -30,7 +30,7 @@ from solutions.common.bizz import create_or_update_solution_service, SolutionMod
 from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMENT, POKE_TAG_ASK_QUESTION, \
     POKE_TAG_GROUP_PURCHASE, POKE_TAG_MENU, POKE_TAG_REPAIR, POKE_TAG_SANDWICH_BAR, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_NEW_EVENT, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, POKE_TAG_PHARMACY_ORDER, \
-    POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS
+    POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language, put_avatar_if_needed
 from solutions.common.dal import get_solution_settings
@@ -56,7 +56,10 @@ DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_pa
                   SolutionModule.BILLING:       None,
                   SolutionModule.BROADCAST:     {ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS: {"preferred_page": 0,
                                                                                             "coords":[3, 2, 0],
-                                                                                            "priority":20}},
+                                                                                            "priority":20},
+                                                 POKE_TAG_BROADCAST_CREATE_NEWS: {"preferred_page": -1,
+                                                                                  "coords": [-1, -1, -1],
+                                                                                  "priority": 1}},
                   SolutionModule.BULK_INVITE:   None,
                   SolutionModule.CITY_APP:      None,
                   SolutionModule.CITY_VOUCHERS: None,
@@ -117,7 +120,7 @@ def provision(service_user, transactional=True):
                                           main_branding, default_lang)
         else:
             provision_all_modules(sln_settings, DEFAULT_COORDS, main_branding, default_lang)
-            
+
         # old_branding_key is added by get_and_store_main_branding
         populate_identity(sln_settings, main_branding.branding_key, main_branding.old_branding_key)
 

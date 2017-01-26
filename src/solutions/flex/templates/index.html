@@ -368,6 +368,9 @@ var modules = {};
                             {% if SolutionModule.BULK_INVITE in sln_settings.modules %}
                                 <li section="section_bulk_invite"><a href="#" help="ovlJ45CPNTI">{% translate language, "common", "settings-bulk-invite" %}</a></li>
                             {% endif %}
+                            {% if sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules %}
+                                <li section="section_settings_roles"><a href="#/settings/roles">{% translate language, "common", "settings-app-users-and-roles" %}</a></li>
+                            {% endif %}
                         </ul>
 
                         <section id="section_general">
@@ -467,6 +470,9 @@ var modules = {};
         {% if SolutionModule.BULK_INVITE in sln_settings.modules %}
 						    {%- include 'bulk_invite.tmpl' %}
 						{% endif %}
+        {% if sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules %}
+                        {%- include 'roles_settings.tmpl' %}
+        {% endif %}
                     </div>
  {% endif %}
             </div>

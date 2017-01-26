@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition
+        name="news_publisher_connect_via_scan"
+        language="{{ language }}"
+        startReference="message_ok">
+        <end
+            id="end_end"
+            waitForFollowUpMessage="false" />
+        <message
+            id="message_ok"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="true"
+            vibrate="false"
+            dismissReference="end_end"
+            autoLock="true"
+            brandingKey="{{ branding_key }}">
+            <content>{% translate language, 'common', 'create-news-from-mobile-confirm' %}</content>
+        </message>
+    </definition>
+</messageFlowDefinitionSet>
