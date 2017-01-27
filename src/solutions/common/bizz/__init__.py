@@ -27,10 +27,8 @@ import time
 from types import NoneType
 
 from PIL.Image import Image
-import pytz
 
 from babel.dates import format_date, format_time
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
@@ -40,6 +38,7 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
     azzert, long_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
+import pytz
 from rogerthat.bizz.branding import is_branding, TYPE_BRANDING
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
@@ -49,12 +48,12 @@ from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.branding import BrandingValidationException
-from rogerthat.models import App
+from rogerthat.models import App, ServiceRole
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
 from rogerthat.service.api import qr, app
-from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member
+from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role
 from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
@@ -851,7 +850,7 @@ def get_role_id(role_name):
         if role.name == role_name:
             return role.id
 
-    raise RoleNotFoundException
+    raise RoleNotFoundException(role_name)
 
 
 @returns(BaseMemberTO)
@@ -867,7 +866,11 @@ def make_member_from_app_user(app_user):
 @returns()
 @arguments(app_user=users.User, role_name=unicode)
 def assign_app_user_role(app_user, role_name):
-    role_id = get_role_id(role_name)
+    try:
+        role_id = get_role_id(role_name)
+    except RoleNotFoundException:
+        logging.debug('Creating role "%s"', role_name)
+        role_id = put_role(role_name, ServiceRole.TYPE_MANAGED)
     member = make_member_from_app_user(app_user)
     add_role_member(role_id, member)
 
