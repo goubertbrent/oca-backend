@@ -795,9 +795,6 @@ def calendar_add_admin(calendar_id, key):
 
         app_user, is_existing_user = get_user_from_key(key, service_identity)
         create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_settings)
-        broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
@@ -818,9 +815,6 @@ def calendar_remove_admin(calendar_id, key):
 
         app_user, is_existing_user = get_user_from_key(key, service_identity)
         delete_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_settings)
-        broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
@@ -1148,6 +1142,7 @@ def users_add_user_roles(key, user_roles):
                     forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
                     if key not in forwarders:
                         forwarders.append(key)
+            sln_i_settings.put()
 
         if is_existing_user:
             # add as a calendar admin
@@ -1162,9 +1157,6 @@ def users_add_user_roles(key, user_roles):
             if user_roles.news_publisher:
                 create_news_publisher(app_user, service_user, sln_settings.solution)
 
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_i_settings)
-        broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
@@ -1196,6 +1188,7 @@ def users_delete_user_roles(key, forwarder_types, calendar_ids):
                 forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
                 if key in forwarders:
                     forwarders.remove(key)
+            sln_i_settings.put()
 
         # calendars
         if calendar_ids:
@@ -1206,9 +1199,6 @@ def users_delete_user_roles(key, forwarder_types, calendar_ids):
         # news
         delete_news_publisher(app_user, service_user, sln_settings.solution)
 
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_i_settings)
-        broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)

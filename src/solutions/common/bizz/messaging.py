@@ -308,12 +308,8 @@ POKE_TAG_MAPPING[POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN] = poke_inbox_forward
 def poke_broadcast_create_news_connect_via_scan(service_user, email, tag, result_key, context, service_identity, user_details):
     sln_settings = get_solution_settings(service_user)
     app_user = user_details[0].toAppUser()
-    news_publisher = create_news_publisher(app_user, service_user,
-                                           sln_settings.solution)
-
-    sln_settings.updates_pending = True
-    put_and_invalidate_cache(sln_settings, news_publisher)
-    broadcast_updates_pending(sln_settings)
+    create_news_publisher(app_user, service_user,
+                          sln_settings.solution)
     send_message(service_user, u"solution.common.settings.roles.updated")
 
 

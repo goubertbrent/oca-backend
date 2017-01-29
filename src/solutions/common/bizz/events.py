@@ -695,11 +695,7 @@ def solution_add_admin_to_calendar(service_user, email, tag, result_key, context
 
     sln_settings = get_solution_settings(service_user)
     app_user = user_details[0].toAppUser()
-    sca = create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
-    sln_settings.updates_pending = True
-    put_and_invalidate_cache(sca, sln_settings)
-
-    broadcast_updates_pending(sln_settings)
+    create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
     send_message(service_user, u"solutions.common.calendar.update")
 
 
