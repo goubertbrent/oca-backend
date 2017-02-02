@@ -1387,12 +1387,12 @@ $(function () {
                 return a.app_id === app.id;
             })[0];
             if (stats) {
-                app.visible = true;            
+                app.visible = true;
                 if (isDemoApp) {
                 	app.total_user_count = randomReachCount;
                 } else {
                     app.total_user_count = stats.total_user_count;
-                }                
+                }
                 var hasOrderedApp = originalNewsItem && originalNewsItem.app_ids.indexOf(app.id) !== -1;
                 if (hasOrderedApp || isPresentInApp(app.id) && !originalNewsItem) {
                     app.checked = 'checked';
@@ -2011,7 +2011,7 @@ $(function () {
         }
 
         function removeImage() {
-            elemImagePreview.removeAttr('src');
+            elemImagePreview.cropper('destroy');
             elemInputImage.val('');
             elemImageEditorContainer.hide();
             elemInputUseCoverPhoto.show();
