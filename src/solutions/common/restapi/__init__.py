@@ -1164,7 +1164,7 @@ def users_add_user_roles(key, user_roles):
 
 @rest("/common/users/roles/delete", "post")
 @returns(ReturnStatusTO)
-@arguments(key=unicode, forwarder_types=[unicode], calendar_ids=[int])
+@arguments(key=unicode, forwarder_types=[unicode], calendar_ids=[(int, long)])
 def users_delete_user_roles(key, forwarder_types, calendar_ids):
     """ remove all the user app roles """
     try:
