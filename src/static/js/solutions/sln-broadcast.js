@@ -1213,6 +1213,11 @@ $(function () {
             } else {
             	dis.remove();
                 $('#news_item_' + newsId).remove();
+                // remove the news item from cache
+                var newsItemIndex = $.inArray(newsItem, LocalCache.newsItems.result);
+                if( newsItemIndex > -1) {
+                    LocalCache.newsItems.result.splice(newsItemIndex, 1);
+                }
             }
         }
     }
