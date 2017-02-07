@@ -911,6 +911,7 @@ translations = \
          u'please_provide_5_columns': u'Please provide at least 5 columns with category and items details',
          u'please_select_a_sandwich_type': u'Please select a sandwich type.',
          u'please_select_a_topping': u'Please select a topping.',
+         u'please_add_attachment': u'Please add an attachment',
          u'please_select_attachment': u'Please select an attachment',
          u'please_select_excel_file': u'Please select an Excel file',
          u'postdiscription': u'This is the outroduction of',

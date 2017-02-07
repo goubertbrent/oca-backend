@@ -135,7 +135,12 @@
                     {{each(i, action) allowedButtonActions}}
                     <div class="control-group news_action" id="news_action_${action.value}"
                          {{if actionButton.id !== action.value}}style="display: none;"{{/if}}>
-                        <label class="control-label" for="news_action_${action.value}_caption">${T('Label')}</label>
+                        <label class="control-label" for="news_action_${action.value}_caption">${T('Label')}
+                            {{if action.value === 'attachment'}}
+                            <button type="button" class="btn btn-mini btn-success" id="news_action_add_attachment"><i class="fa fa-plus"></i></button>
+                            <button type="button" class="btn btn-mini btn-danger" id="news_action_remove_attachment" style="display: none"><i class="fa fa-trash"></i></button>
+                            {{/if}}
+                        </label>
                         <div class="controls">
                             <input type="text"
                                    news_action_render_preview="true"
@@ -144,9 +149,11 @@
                                    name="news_action_${action.value}_caption"
                                    value="${actionButton.id === action.value ? actionButton.label : action.defaultLabel}">
                         </div>
+                        {{if action.value !== 'attachment'}}
                         <label class="control-label" for="news_action_${action.value}_field">${action.translation}</label>
+                        {{/if}}
                         <div class="controls">
-                            <input type="${action.type}"
+                            <input type="${action.value === 'attachment' ? 'hidden' : action.type}"
                                    id="news_action_${action.value}_value"
                                    name="news_action_${action.value}_value"
                                    value="${actionButton.id === action.value ? actionButton.value: ''}"
