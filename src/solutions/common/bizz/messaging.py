@@ -88,7 +88,8 @@ from solutions.common.bizz.sandwich import order_sandwich_received, \
 from solutions.common.bizz.twitter import post_to_twitter
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
-from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage
+from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
+    SolutionLogo
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user, \
     create_service_identity_user_wo_default
@@ -357,28 +358,40 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
         if first_step.answer_id.endswith(u'coupon'):
             news_type = NewsItem.TYPE_QR_CODE
 
-    (content_title_step, content_message_step,
-     image_step, label_step, app_ids_step) = steps
+    if len(steps) == 6:
+        # upload a photo is included
+        (content_title_step, content_message_step,
+         cover_photo_step, image_step, label_step, app_ids_step) = steps
+    else:
+        image_step = None
+        (content_title_step, content_message_step,
+         cover_photo_step, label_step, app_ids_step) = steps
 
     title = content_title_step.form_result.result.value
     message = content_message_step.form_result.result.value
-    image_result = image_step.form_result
-    if image_result:
-        image_url = image_result.result.value
-        # get the image content and encode it (base64)
-        # the image should be as <meta,img64data>
-        result = urlfetch.fetch(image_url, deadline=30)
 
-        if result.status_code != 200:
-            message = common_translate(user_details.language,
-                                       SOLUTION_COMMON,
-                                       u'broadcast_could_not_get_item_photo')
-            return result_message(message)
+    image = ''
+    # use cover photo
+    if cover_photo_step.answer_id.endswith(u'use_cover_photo'):
+        logo = db.get(SolutionLogo.create_key(service_user))
+        if logo and logo.picture:
+            image = image = ',' + b64encode(logo.picture)
 
-        meta = ','
-        image = meta + b64encode(result.content)
-    else:
-        image = ''
+    # use an uploaded photo
+    if image_step and image_step.form_result:
+        image_url = image_step.form_result.result.value
+        if image_url:
+            # get the image content and encode it (base64)
+            # the image should be as <meta,img64data>
+            result = urlfetch.fetch(image_url, deadline=30)
+
+            if result.status_code != 200:
+                message = common_translate(user_details.language,
+                                           SOLUTION_COMMON,
+                                           u'broadcast_could_not_get_item_photo')
+                return result_message(message)
+
+            image = ',' + b64encode(result.content)
 
     broadcast_type = label_step.form_result.result.value
     app_ids = app_ids_step.form_result.result.values

@@ -167,6 +167,11 @@ $(function () {
         });
 
         $('button[action="submit"]', modal).click(function () {
+            var fileInput = $('#attachment-files', modal)[0];
+            if(fileInput.files[0] === undefined) {
+                sln.alert(T('please_select_attachment'), null, CommonTranslations.ERROR);
+                return;
+            }
             sln.showProcessing(CommonTranslations.UPLOADING_TAKE_A_FEW_SECONDS);
             getAttachmentUploadUrl(function (uploadUrl) {
                 var formElement = document.querySelector('#attachment-form');
@@ -180,11 +185,23 @@ $(function () {
     function attachmentUploaded(url, name) {
         // Hide the modal, add attachment
         $('#addAttachmentModal').modal('hide');
-        msgAttachments.push({
-            download_url: url,
-            name: name
-        });
-        displayAttachments();
+        if(modules.news && modules.news.enabled) {
+            // set the attachment name and trigger a keyup
+            // to re-render the preview
+            $('#news_action_attachment_caption').val(name);
+            $('#news_action_attachment_caption').keyup();
+            // set the attachment value/url
+            $('#news_action_attachment_value').val(url);
+            // hide the add button and show remove button
+            $('#news_action_remove_attachment').show();
+            $('#news_action_add_attachment').hide();
+        } else {
+            msgAttachments.push({
+                download_url: url,
+                name: name
+            });
+            displayAttachments();
+        }
     }
 
     function attachmentUploadFailed(error) {
@@ -815,6 +832,10 @@ $(function () {
     function router(urlHash) {
         var page = urlHash[1];
         getBroadcastOptions(function (broadcastOptions) {
+            if(!modules.news) {
+                modules.news = {};
+            }
+            modules.news.enabled = broadcastOptions.news_enabled;
             // determine what to show depending if news is enabled or not
             if (!broadcastOptions.news_enabled) {
                 elemPageNews.hide();
@@ -1213,6 +1234,11 @@ $(function () {
             } else {
             	dis.remove();
                 $('#news_item_' + newsId).remove();
+                // remove the news item from cache
+                var newsItemIndex = $.inArray(newsItem, LocalCache.newsItems.result);
+                if( newsItemIndex > -1) {
+                    LocalCache.newsItems.result.splice(newsItemIndex, 1);
+                }
             }
         }
     }
@@ -1300,7 +1326,13 @@ $(function () {
                 type: 'email',
                 translation: T('email_address'),
                 defaultLabel: T('send_email')
-            }];
+            }, {
+                value: 'attachment',
+                type: 'url',
+                translation: T('Attachment'),
+                defaultLabel:T('Attachment')
+            }
+            ];
             actionButton = {
                 id: actionButtonId,
                 value: actionButtonValue,
@@ -1387,12 +1419,12 @@ $(function () {
                 return a.app_id === app.id;
             })[0];
             if (stats) {
-                app.visible = true;            
+                app.visible = true;
                 if (isDemoApp) {
                 	app.total_user_count = randomReachCount;
                 } else {
                     app.total_user_count = stats.total_user_count;
-                }                
+                }
                 var hasOrderedApp = originalNewsItem && originalNewsItem.app_ids.indexOf(app.id) !== -1;
                 if (hasOrderedApp || isPresentInApp(app.id) && !originalNewsItem) {
                     app.checked = 'checked';
@@ -1432,6 +1464,10 @@ $(function () {
             elemStepDescription = $('#step_content_explanation'),
             elemNewsPreview = $('#news_preview'),
             elemNewsActionOrder = $('#news_action_order'),
+            elemNewsActionAddAttachment = $('#news_action_add_attachment'),
+            elemNewsActionRemoveAttachment = $('#news_action_remove_attachment'),
+            elemNewsActionAttachmentCaption = $('#news_action_attachment_caption'),
+            elemNewsActionAttachmentValue = $('#news_action_attachment_value'),
             elemCheckboxesApps = elemForm.find('input[name=news_checkbox_apps]'),
             elemNewsActionRestaurantDatepicker = $('#news_action_restaurant_reservation_datepicker'),
             elemNewsActionRestaurantTimepicker = $('#news_action_restaurant_reservation_timepicker'),
@@ -1472,6 +1508,9 @@ $(function () {
         elemActionButtonInputs.on('input paste keyup', renderPreview);
 
         elemInputActionButtonUrl.keyup(actionButtonUrlChanged);
+
+        elemNewsActionAddAttachment.click(addAttachment);
+        elemNewsActionRemoveAttachment.click(removeAttachment);
 
         restaurantReservationDate = new Date(parseInt(elemNewsActionRestaurantDatepicker.attr('data-date')) * 1000);
         elemNewsActionRestaurantDatepicker.datepicker({
@@ -1521,7 +1560,7 @@ $(function () {
         function actionButtonChanged() {
             var selectedAction = (elemSelectButton.val() || '').split('.');
             $('.news_action').hide();
-            var defaultActions = ['url', 'email', 'phone'];
+            var defaultActions = ['url', 'email', 'phone', 'attachment'];
             var isDefaultAction = defaultActions.includes(selectedAction[0]);
             if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
                 var showElem = true;
@@ -1544,6 +1583,19 @@ $(function () {
             if (url && !url.startsWith('http://')) {
                 elemInputActionButtonUrl.val('http://' + url);
             }
+        }
+
+        function removeAttachment() {
+            // reset action button to none and
+            elemSelectButton.find('option:eq(0)').prop('selected', 'true');
+            // reset the previous values
+            elemNewsActionAttachmentValue.val('');
+            elemNewsActionAttachmentCaption.val(T('Attachment'));
+            // show add button
+            elemNewsActionAddAttachment.show();
+            elemNewsActionRemoveAttachment.hide();
+            // then trigger change event to re-render the preview
+            actionButtonChanged();
         }
 
         function shouldPay(callback) {
@@ -1623,9 +1675,12 @@ $(function () {
                     actionValue = selectedActionButtonId,
                     actionCaption = elemSelectButton.find(':selected').text().trim();
                 switch (selectedActionButtonId) {
+                    case 'attachment':
                     case 'url':
-                        actionValue = $('#news_action_url_value').val();
-                        actionCaption = $('#news_action_url_caption').val();
+                        var url_or_attachment = selectedActionButtonId === 'url' ? 'url' : 'attachment';
+                        var elemValue = $('#news_action_' + url_or_attachment + '_value');
+                        actionValue = elemValue.val();
+                        actionCaption = $('#news_action_' + url_or_attachment + '_caption').val();
                         try {
                             var splitAction = actionValue.match(/https?:\/\/(.*)/);
                             var isHttps = splitAction.length ? splitAction[0].indexOf('https') === 0 : false;
@@ -1633,7 +1688,7 @@ $(function () {
                             actionValue = splitAction[1];
                         } catch (e) {
                             console.warn(e);
-                            actionValue = $('#news_action_url_value').val();
+                            actionValue = elemValue.val();
                             actionPrefix = 'http';
                         }
                         break;
@@ -1727,7 +1782,7 @@ $(function () {
                     newAppIds.push(this.value);
                 }
             });
-            if (!originalNewsItem && elemCheckboxSchedule.prop('checked')) {
+            if (elemCheckboxSchedule.prop('checked')) {
                 var scheduledDate = new Date(elemInputScheduleDate.data('datepicker').date.getTime());
                 var time = elemInputScheduleTime.data('timepicker');
                 scheduledDate.setHours(time.hour);
@@ -2011,7 +2066,7 @@ $(function () {
         }
 
         function removeImage() {
-            elemImagePreview.removeAttr('src');
+            elemImagePreview.cropper('destroy');
             elemInputImage.val('');
             elemImageEditorContainer.hide();
             elemInputUseCoverPhoto.show();
@@ -2137,6 +2192,18 @@ $(function () {
             if (currentStep === 2) {
                 resizeImage();
             }
+
+            // check if the attachment is provided
+            // the attachment url is hidden
+            if(currentStep === 4) {
+                if(data.action_button && data.action_button.id === 'attachment') {
+                    var attachmentUrl = $('#news_action_attachment_value').val().trim();
+                    if(attachmentUrl === '') {
+                        sln.alert(T('please_add_attachment'), null, CommonTranslations.ERROR);
+                        return;
+                    }
+                }
+            }
             if (currentStep === 5) {
                 // schedule step
                 var valid = validateScheduledAt(data);
@@ -2186,6 +2253,10 @@ $(function () {
             elemButtonSubmit.text(geSubmitButtonText(data));
             renderPreview();
             LocalCache.temporaryNewsItem = data;
+
+            if(currentStep === 1) {
+                elemInputTitle.focus();
+            }
         }
 
         function geSubmitButtonText(data) {
