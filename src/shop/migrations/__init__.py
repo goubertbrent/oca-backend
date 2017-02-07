@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2016 Mobicage NV
+# Copyright 2017 Mobicage NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.1@@
+# @@license_version:1.2@@
 
 from rogerthat.bizz.job import run_job
 from shop.bizz import re_index_customer
@@ -25,4 +25,3 @@ def _all_customers(keys_only=True):
 
 def re_index_all_customers():
     run_job(_all_customers, [True], re_index_customer, [])
-
