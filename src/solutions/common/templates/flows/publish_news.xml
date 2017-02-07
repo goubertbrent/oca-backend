@@ -73,7 +73,7 @@
                      alertType="SILENT"
                      vibrate="false"
                      autoLock="true"
-                     positiveReference="message_image"
+                     positiveReference="message_use_cover_photo"
                      negativeReference="end_cancel">
             <content>{% translate language, 'common', 'Content' %}
 {% translate language, 'common', 'news_content_message_explanation' %}</content>
@@ -93,6 +93,24 @@
                 </javascriptValidation>
             </form>
         </formMessage>
+        <message id="message_use_cover_photo"
+                 brandingKey="{{ branding_key }}"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 allowDismiss="false"
+                 vibrate="false"
+                 autoLock="true">
+                 <content>{% translate language, 'common', 'image_optional' %}
+     {% translate language, 'common', 'news_image_explanation' %}</content>
+            <answer action=""
+                    caption="{% translate language, 'common', 'use_cover_photo' %}"
+                    id="button_use_cover_photo"
+                    reference="set_broadcast_types"/>
+            <answer action=""
+                caption="{% translate language, 'common', 'upload-photo' %}"
+                id="button_upload_photo"
+                reference="message_image"/>
+        </message>
         <formMessage id="message_image"
                      brandingKey="{{ branding_key }}"
                      alertIntervalType="NONE"
