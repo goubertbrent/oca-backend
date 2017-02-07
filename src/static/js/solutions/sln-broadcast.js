@@ -1782,7 +1782,7 @@ $(function () {
                     newAppIds.push(this.value);
                 }
             });
-            if (!originalNewsItem && elemCheckboxSchedule.prop('checked')) {
+            if (elemCheckboxSchedule.prop('checked')) {
                 var scheduledDate = new Date(elemInputScheduleDate.data('datepicker').date.getTime());
                 var time = elemInputScheduleTime.data('timepicker');
                 scheduledDate.setHours(time.hour);
