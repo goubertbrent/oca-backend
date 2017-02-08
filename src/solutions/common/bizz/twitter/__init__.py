@@ -39,9 +39,18 @@ except ImportError:
     from urllib import urlencode
 CALLBACK_URL = '%s/unauthenticated/osa/callback/twitter?%s'
 
+
 @returns(bool)
-@arguments(service_user=users.User, message=unicode, attachments=[AttachmentTO])
-def post_to_twitter(service_user, message, attachments):
+@arguments(service_user=users.User, message=unicode, media_contents=[str])
+def update_twitter_status(service_user, message, media_contents):
+    """
+    Update twitter status.
+
+    Args:
+        service_user (users.User): users.User
+        message (str)
+        media_contents (list of str): every file/media content
+    """
     sln_settings = get_solution_settings(service_user)
     if not sln_settings.twitter_oauth_token:
         return False
@@ -51,24 +60,16 @@ def post_to_twitter(service_user, message, attachments):
                      solution_server_settings.twitter_app_key, solution_server_settings.twitter_app_secret)
         t = Twitter(auth=auth)
         media_ids = []
-        if attachments:
+        if media_contents:
             t_up = Twitter(domain='upload.twitter.com', auth=auth)
-            for attachment in attachments:
+            for content in media_contents:
                 try:
-                    try:
-                        result = urlfetch.fetch(attachment.download_url, deadline=15)
-                    except urlfetch.DownloadError:
-                        continue
-
-                    if result.status_code != 200:
-                        continue
-
-                    img_str = result.content
-                    img_id = t_up.media.upload(media=img_str)["media_id_string"]
-                    media_ids.append(img_id)
+                    media_id = t_up.media.upload(media=content)["media_id_string"]
+                    media_ids.append(media_id)
                 except:
                     logging.warn('upload media twitter failed', exc_info=True)
 
+        message = message[:140]
         if media_ids:
             t.statuses.update(status=message, media_ids=",".join(media_ids))
         else:
@@ -77,6 +78,27 @@ def post_to_twitter(service_user, message, attachments):
     except:
         logging.error('Update twitter status failed', exc_info=True)
         return False
+
+
+@returns(bool)
+@arguments(service_user=users.User, message=unicode, attachments=[AttachmentTO])
+def post_to_twitter(service_user, message, attachments):
+    media_contents = []
+
+    if attachments:
+        for attachment in attachments:
+            try:
+                result = urlfetch.fetch(attachment.download_url, deadline=15)
+            except urlfetch.DownloadError:
+                continue
+
+            if result.status_code != 200:
+                continue
+
+            media_contents.append(result.content)
+
+    return update_twitter_status(service_user, message, media_contents)
+
 
 @returns(unicode)
 @arguments(service_user=users.User)

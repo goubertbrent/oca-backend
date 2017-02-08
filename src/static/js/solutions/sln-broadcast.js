@@ -353,7 +353,7 @@ $(function () {
         var twitterEnabled = elemBroadcastOnTwitter.prop('checked');
         if (twitterEnabled) {
             var twitterUsername = elemBroadcastOnTwitter.val();
-            if (twitterUsername == "") {
+            if (twitterUsername === "") {
                 sln.alert(CommonTranslations.TWITTER_PAGE_REQUIRED);
                 return;
             }
@@ -1480,6 +1480,9 @@ $(function () {
             elemInputScheduleTime = $('#news_scheduled_at_time'),
             elemScheduledAtError = $('#news_scheduled_at_error'),
             elemInputActionButtonUrl = $('#news_action_url_value'),
+            elemCheckPostToFacebook = $('#post_to_facebook'),
+            elemCheckPostToTwitter = $('#post_to_twitter'),
+            elemFacebookPage = $('#facebook_page'),
             hasSignedOrder = broadcastOptions.subscription_info.has_signed,
             restaurantReservationDate;
 
@@ -1537,6 +1540,104 @@ $(function () {
                 elemInputScheduleDate.datepicker('show');
             }
         });
+
+        elemCheckPostToFacebook.change(checkForFacebookLogin);
+        elemCheckPostToTwitter.change(checkForTwitterLogin);
+
+        function checkFacebookPermissions(permissionsList, showErrors) {
+            var errors = [];
+
+            if(permissionsList.indexOf('manage_pages') == -1) {
+                errors.push(T('facebook-manage-pages-required'));
+            }
+            if(permissionsList.indexOf('publish_actions') == -1) {
+                errors.push(T('facebook-publish-actions-required'));
+            }
+
+            if(errors.length > 0) {
+                if(showErrors) {
+                    sln.alert(errors.join('<br/>'));
+                }
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        function loginToFacebook() {
+            FB.login(function (response) {
+                if(response && response.authResponse) {
+                    if(checkFacebookPermissions(response.authResponse.grantedScopes, true)) {
+                        loadFacebookPages(response.authResponse.accessToken);
+                    } else {
+                        elemCheckPostToFacebook.attr('checked', false);
+                    }
+                } else {
+                    elemCheckPostToFacebook.attr('checked', false);
+                }
+                sln.hideProcessing();
+            },
+            {
+                scope: 'manage_pages,publish_actions',
+                return_scopes: true
+            });
+        }
+
+        function checkForFacebookLogin() {
+            if(elemCheckPostToFacebook.is(':checked')) {
+                sln.showProcessing(CommonTranslations.LOADING_DOT_DOT_DOT);
+                FB.getLoginStatus(function(response) {
+                    if(response && response.status === 'connected') {
+                        FB.api('/me/permissions', function(permResp) {
+                            var list = $.map(permResp.data, function(perm, i) {
+                                if(perm.status === 'granted') {
+                                    return perm.permission;
+                                }
+                            });
+                            if(!checkFacebookPermissions(list, false)) {
+                                loginToFacebook();
+                            } else {
+                                loadFacebookPages(response.authResponse.accessToken);
+                            }
+                        });
+                    } else {
+                        loginToFacebook();
+                    }
+                }, true);
+            } else {
+                elemFacebookPage.hide();
+            }
+        }
+
+        function checkForTwitterLogin() {
+            if(elemCheckPostToTwitter.is(':checked')) {
+                var userName = elemBroadcastOnTwitter.val();
+                if(!userName) {
+                    sln.alert(CommonTranslations.TWITTER_PAGE_REQUIRED);
+                    elemCheckPostToTwitter.attr('checked', false);
+                }
+            }
+        }
+
+        function loadFacebookPages(userAccessToken) {
+            elemFacebookPage.html('');
+            var param = '/me/accounts?access_token=' + userAccessToken;
+            FB.api(param, function(response) {
+                if(!response || response.error) {
+                    elemCheckPostToFacebook.attr('checked', false);
+                    return;
+                }
+                $.each(response.data, function(i, page) {
+                    if($.inArray('CREATE_CONTENT', page.perms) > -1) {
+                        elemFacebookPage.append($('<option>', {text: page.name, value: page.access_token}));
+                    }
+                });
+                elemFacebookPage.append($('<option>', {text: T('my-timeline'), value: userAccessToken}));
+                elemFacebookPage.show();
+                sln.hideProcessing();
+            });
+        }
+
         elemInputScheduleTime.timepicker({
             showMeridian: false
         }).timepicker('setTime', scheduleDate.getHours() + ':' + scheduleDate.getMinutes());
@@ -1575,12 +1676,14 @@ $(function () {
             } else if (selectedAction[0] === 'reserve1') {
                 $('#news_action_restaurant_reservation').show();
             }
+
+
             renderPreview();
         }
 
         function actionButtonUrlChanged() {
             var url = elemInputActionButtonUrl.val();
-            if (url && !url.startsWith('http://')) {
+            if (url && !url.startsWith('http://') && !url.startsWith('https://') && url.length > 8) {
                 elemInputActionButtonUrl.val('http://' + url);
             }
         }
@@ -1790,6 +1893,20 @@ $(function () {
                 data.scheduled_at = parseInt(scheduledDate.getTime() / 1000);
             }
             data.app_ids = newAppIds;
+
+            if(elemCheckPostToFacebook.is(':checked')) {
+                data.broadcast_on_facebook = true;
+                data.facebook_access_token = elemFacebookPage.val();
+            } else {
+                data.broadcast_on_facebook = false;
+            }
+
+            if(elemCheckPostToTwitter.is(':checked')) {
+                data.broadcast_on_twitter = true;
+            } else {
+                data.broadcast_on_twitter = false;
+            }
+
             return data;
         }
 
@@ -1980,11 +2097,18 @@ $(function () {
             data.order_items = orderItems;
             data.news_id = originalNewsItem ? originalNewsItem.id : undefined;
             elemButtonSubmit.attr('disabled', true);
+
+            if (data.scheduled_at > 0) {
+                sln.showProcessing(CommonTranslations.LOADING_DOT_DOT_DOT);
+            } else {
+                sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
+            }
             sln.call({
                 url: '/common/news',
                 method: 'post',
                 data: data,
                 success: function (result) {
+                    sln.hideProcessing();
                     LocalCache.news.promotedNews = {};
                     elemButtonSubmit.attr('disabled', false);
                     var text;
@@ -2021,6 +2145,7 @@ $(function () {
                     }
                 },
                 error: function () {
+                    sln.hideProcessing();
                     elemButtonSubmit.attr('disabled', false);
                     var btn = $('#checkout');
                     btn.find('.normal').hide();
@@ -2186,6 +2311,15 @@ $(function () {
                     var title = T('ERROR');
                     sln.confirm(message, requestLoyaltyDevice, null, positiveCaption, negativeCaption, title);
                     return;
+                }
+                // do not show post to social media if news type is coupon
+                var elemPostToSocialMedia = $('#post_to_social_media');
+                if(data.type === NEWS_TYPE_QR) {
+                    elemCheckPostToFacebook.attr('checked', false);
+                    elemCheckPostToTwitter.attr('checked', false);
+                    elemPostToSocialMedia.hide();
+                } else {
+                    elemPostToSocialMedia.show();
                 }
             }
             // Image step

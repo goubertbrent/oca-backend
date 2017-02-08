@@ -538,12 +538,17 @@ class SolutionScheduledBroadcast(db.Model):
     json_urls = db.TextProperty()
 
     broadcast_on_twitter = db.BooleanProperty(indexed=False)
+    broadcast_on_facebook = db.BooleanProperty(indexed=False)
+    facebook_access_token = db.StringProperty(indexed=False)
     service_identity = db.StringProperty(indexed=False)  # Service who created the broadcast
     broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
     statistics_keys = db.StringListProperty(indexed=False)  # Link to BroadcastStatistic
     identities = db.StringListProperty(indexed=False)
 
     deleted = db.BooleanProperty(default=False)
+
+    news_id = db.IntegerProperty(indexed=False)
+    scheduled_task_name = db.StringProperty(indexed=False)
 
     @property
     def key_str(self):
@@ -567,6 +572,11 @@ class SolutionScheduledBroadcast(db.Model):
         return db.Query(cls, keys_only=True) \
             .filter('broadcast_epoch <', now()) \
             .filter('broadcast_epoch >', now() - 2592000)
+
+    @classmethod
+    def create_key(cls, news_id, service_user, solution):
+        parent = parent_key(service_user, solution)
+        return db.Key.from_path(cls.kind(), news_id, parent=parent)
 
 
 class SolutionNewsPublisher(db.Model):

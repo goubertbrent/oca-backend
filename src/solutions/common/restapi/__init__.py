@@ -1826,3 +1826,11 @@ def change_broadcast_types_order(broadcast_types):
 @arguments()
 def rest_get_menu():
     return system.get_menu()
+
+
+@rest('/common/settings/facebook/app/id', 'get')
+@returns(str)
+@arguments()
+def get_facebook_app_id():
+    server_settings = get_solution_server_settings()
+    return server_settings.facebook_app_id

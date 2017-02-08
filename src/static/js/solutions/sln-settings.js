@@ -257,12 +257,20 @@ $(function () {
 
     window.fbAsyncInit = function () {
         // init the FB JS SDK
-        FB.init({
-            appId: '188033791211994', // App ID from the app dashboard
-            status: true, // Check Facebook Login status
-            cookie: true, // enable cookies to allow the server to access the
-            // session
-            xfbml: true
+        sln.call({
+            url: '/common/settings/facebook/app/id',
+            method: 'get',
+            success: function(app_id) {
+                FB.init({
+                    appId: app_id, // App ID
+                    status: true, // Check Facebook Login status
+                    cookie: true, // enable cookies to allow the server to access the session
+                    xfbml: true
+                });
+            },
+            error: function() {
+                console.error('Cannot get facebook app id');
+            }
         });
     };
 
@@ -281,11 +289,24 @@ $(function () {
     var loginFacebookPages = function () {
         FB.login(function (response) {
             if (response.authResponse) {
+                if(response.authResponse.grantedScopes.indexOf('manage_pages') == -1) {
+                    sln.alert(T('facebook-manage-pages-required'));
+                    return;
+                }
+
+                if(response.authResponse.grantedScopes.indexOf('publish_actions') == -1) {
+                    sln.alert(T('facebook-publish-actions-required'))
+                    return;
+                }
                 fbAccessToken = response.authResponse.accessToken;
                 $("#facebookPlaceStep1").css('visibility', 'hidden');
                 $("#facebookPlaceStep2").css('visibility', 'visible');
                 loadFacebookPages();
             }
+        },
+        {
+            scope: 'manage_pages,publish_actions',
+            return_scopes: true
         });
     };
 

@@ -128,12 +128,21 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                   doc="The app_secret for twitter",
                                   order=1202)
 
+
+    facebook_app_id = add_meta(db.StringProperty(indexed=False),
+                               doc="The app_id for facebook",
+                               order=1301)
+    facebook_app_secret = add_meta(db.StringProperty(indexed=False),
+                                  doc="The app_secret for facebook",
+                                  order=1302)
+
+
     stripe_public_key = add_meta(db.StringProperty(indexed=False),
                                       doc="Stripe public key",
-                                      order=1301)
+                                      order=1401)
     stripe_secret_key = add_meta(db.StringProperty(indexed=False),
                                       doc="Stripe secret key",
-                                      order=1302)
+                                      order=1402)
 
 
     def invalidateCache(self):

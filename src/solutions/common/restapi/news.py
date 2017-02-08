@@ -24,13 +24,13 @@ from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.to import ReturnStatusTO
-from rogerthat.to.news import NewsItemListResultTO, NewsItemTO, NewsActionButtonTO
+from rogerthat.to.news import NewsActionButtonTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.to import NewsTO, OrderItemTO
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
     get_news_statistics
 from solutions.common.dal import get_solution_settings
-from solutions.common.to.news import SponsoredNewsItemCount
+from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO
 from solutions.common.utils import is_default_service_identity
 from solutions.flex.bizz import get_all_news
 
@@ -45,7 +45,7 @@ def load_news():
 
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)
-@returns(NewsItemListResultTO)
+@returns(NewsBroadcastItemListTO)
 @arguments(cursor=unicode)
 def rest_get_news(cursor=None):
     service_identity = users.get_current_session().service_identity
@@ -53,7 +53,7 @@ def rest_get_news(cursor=None):
 
 
 @rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
-@returns(NewsItemTO)
+@returns(NewsBroadcastItemTO)
 @arguments(news_id=(int, long))
 def rest_get_news_statistics(news_id):
     service_identity = users.get_current_session().service_identity
@@ -61,13 +61,15 @@ def rest_get_news_statistics(news_id):
 
 
 @rest('/common/news', 'post', silent_result=True)
-@returns(NewsItemTO)
+@returns(NewsBroadcastItemTO)
 @arguments(title=unicode, message=unicode, broadcast_type=unicode, image=(unicode, type(MISSING)), sponsored=bool,
            action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
            type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)), app_ids=[unicode],
-           scheduled_at=(int, long), news_id=(int, long, NoneType))
+           scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
+           broadcast_on_twitter=bool, facebook_access_token=unicode)
 def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
-                       type=MISSING, qr_code_caption=MISSING, app_ids=MISSING, scheduled_at=MISSING, news_id=None):  # @ReservedAssignment
+                       type=MISSING, qr_code_caption=MISSING, app_ids=MISSING, scheduled_at=MISSING, news_id=None,
+                       broadcast_on_facebook=False, broadcast_on_twitter=False, facebook_access_token=None):  # @ReservedAssignment
     """
     Args:
         title (unicode)
@@ -82,6 +84,9 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         app_ids (list of unicode)
         scheduled_at (long)
         news_id (long): id of the news to update. When not specified a new item is created
+        broadcast_on_facebook (bool)
+        broadcast_on_twitter (bool)
+        facebook_access_token (unicode): user or page access token
     """
     service_user = users.get_current_user()
     session_ = users.get_current_session()
@@ -92,7 +97,8 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         service_identity_user = create_service_identity_user(service_user, service_identity)
 
     return put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
-                         order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, accept_missing=True)
+                         order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
+                         broadcast_on_twitter, facebook_access_token, accept_missing=True)
 
 
 @rest('/common/news/delete', 'post')

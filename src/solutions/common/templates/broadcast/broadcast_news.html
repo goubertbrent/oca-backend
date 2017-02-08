@@ -8,7 +8,7 @@
             <h2>${T(newsItem.id ? 'update_news': 'create_news')}</h2>
             <h3 id="step_title"></h3>
             <p id="step_content_explanation"></p>
-            <div class="tab-content">
+            <div class="tab-content" style="height: auto;">
                 <div class="tab-pane active" id="tab0">
                     <div class="control-group">
                         <div class="controls">
@@ -283,6 +283,25 @@
                     <div>
                         <p>${T('broadcast-reach')}: <b><span id="news_total_reach">${totalReach}</span></b></p>
                     </div>
+                    {{if !newsItem.published}}
+                    <div id="post_to_social_media" class="form-inline">
+                        <hr />
+                        <div class="checkbox">
+                            <label>
+                                <input id="post_to_facebook" type="checkbox"
+                                       {{if newsItem.broadcast_on_facebook}}checked{{/if}}
+                                       {{if (newsItem.broadcast_on_facebook || newsItem.broadcast_on_twitter) && newsItem.scheduled_at}}disabled{{/if}}/>${T('put-on-facebook')}
+                                <select id="facebook_page" class="selectpicker form-control" style="display: none; width: auto;"></select>
+                            </label>
+                        </div>
+                        <div class="clearfix"/>
+                        <div class="checkbox">
+                            <label><input id="post_to_twitter" type="checkbox"
+                                          {{if newsItem.broadcast_on_twitter}}checked{{/if}}
+                                          {{if (newsItem.broadcast_on_facebook || newsItem.broadcast_on_twitter) && newsItem.scheduled_at}}disabled{{/if}}/>${T('put-on-twitter')}</label>
+                        </div>
+                    </div>
+                    {{/if}}
                 </div>
                 <div class="tab-pane" id="tab7"></div>
             </div>

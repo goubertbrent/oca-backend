@@ -20,6 +20,7 @@ import json
 import logging
 from types import NoneType
 
+from google.appengine.api import taskqueue
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 
@@ -28,15 +29,15 @@ from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.service import re_index
-from rogerthat.consts import MC_DASHBOARD
+from rogerthat.consts import MC_DASHBOARD, SCHEDULED_QUEUE
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
 from rogerthat.models import App
-from rogerthat.models.news import NewsItem
+from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import news
 from rogerthat.settings import get_server_settings
-from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsItemListResultTO
+from rogerthat.to.news import NewsActionButtonTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -47,26 +48,46 @@ from shop.dal import get_customer
 from shop.exceptions import NoCreditCardException, AppNotFoundException
 from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
 from shop.to import OrderItemTO
-from solutions.common.bizz import SolutionModule
+from solutions.common.bizz import SolutionModule, facebook, twitter
 from solutions.common.dal import get_solution_settings
+from solutions.common.models import SolutionScheduledBroadcast
 from solutions.common.models.news import NewsCoupon
 from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
-from solutions.common.to.news import SponsoredNewsItemCount
+from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO
+from solutions.flex import SOLUTION_FLEX
 
 FREE_SPONSORED_ITEMS_PER_APP = 5
 SPONSOR_DAYS = 7
 
 
-@returns(NewsItemListResultTO)
+@returns(NewsBroadcastItemListTO)
 @arguments(cursor=unicode, service_identity=unicode)
 def get_news(cursor=None, service_identity=None):
-    return news.list_news(cursor, 5, service_identity)
+    news_list = news.list_news(cursor, 5, service_identity)
+    result = NewsBroadcastItemListTO()
+    result.result = []
+    result.cursor = news_list.cursor
+
+    for news_item in news_list.result:
+        scheduled_item = get_scheduled_broadcast(news_item.id)
+        if scheduled_item:
+            on_facebook = scheduled_item.broadcast_on_facebook
+            on_twitter = scheduled_item.broadcast_on_twitter
+        else:
+            on_facebook = False
+            on_twitter = False
+
+        result_item = NewsBroadcastItemTO.from_news_item_to(news_item, on_facebook, on_twitter)
+        result.result.append(result_item)
+
+    return result
 
 
-@returns(NewsItemTO)
+@returns(NewsBroadcastItemTO)
 @arguments(news_id=(int, long), service_identity=unicode)
 def get_news_statistics(news_id, service_identity=None):
-    return news.get(news_id, service_identity, True)
+    news_item = news.get(news_id, service_identity, True)
+    return NewsBroadcastItemTO.from_news_item_to(news_item)
 
 
 def _save_coupon_news_id(news_item_id, coupon):
@@ -79,16 +100,19 @@ def _save_coupon_news_id(news_item_id, coupon):
     coupon.put()
 
 
-@returns(NewsItemTO)
+@returns(NewsBroadcastItemTO)
 @arguments(service_identity_user=users.User, title=unicode, message=unicode, broadcast_type=unicode, sponsored=bool,
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
-           news_id=(NoneType, int, long))
+           news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
+           facebook_access_token=unicode)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
-                  news_type, qr_code_caption, app_ids, scheduled_at, news_id=None):
+                  news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
+                  broadcast_on_twitter=False, facebook_access_token=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
+
     Args:
         service_identity_user (users.User)
         title (unicode)
@@ -103,9 +127,12 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         app_ids (list of unicode)
         scheduled_at (long)
         news_id (long): id of the news item to update. When not provided a new news item will be created.
+        broadcast_on_facebook (bool)
+        broadcast_on_twitter (bool)
+        facebook_access_token (unicode): user or page access token
 
     Returns:
-        news_item (NewsItem)
+        news_item (NewsBroadcastItemTO)
     """
     if not order_items or order_items is MISSING:
         order_items = []
@@ -186,6 +213,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     for key, value in kwargs.items():
         if value is MISSING:
             del kwargs[key]
+
     with users.set_user(service_user):
         try:
             def trans():
@@ -204,11 +232,120 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                     create_and_pay_news_order(service_user, news_item.id, order_items)
                 return news_item
 
-            return run_in_xg_transaction(trans)
+            news_item = run_in_xg_transaction(trans)
+            if broadcast_on_facebook or broadcast_on_twitter:
+                if scheduled_at is not MISSING and scheduled_at > 0:
+                    schedule_post_to_social_media(service_user, broadcast_on_facebook,
+                                                  broadcast_on_twitter, facebook_access_token,
+                                                  news_item.id, scheduled_at)
+                else:
+                    post_to_social_media(service_user, broadcast_on_facebook,
+                                         broadcast_on_twitter, facebook_access_token,
+                                         news_item.id)
+
+            return NewsBroadcastItemTO.from_news_item_to(news_item, broadcast_on_facebook, broadcast_on_twitter)
         except:
             if should_save_coupon:
                 db.delete_async(coupon)
             raise
+
+
+@returns()
+@arguments(service_user=users.User, on_facebook=bool, on_twitter=bool,
+           facebook_access_token=unicode, news_id=(int, long))
+def post_to_social_media(service_user, on_facebook, on_twitter,
+                         facebook_access_token, news_id):
+    news_item = NewsItem.get_by_id(news_id)
+    if not news_item:
+        logging.warn('Cannot post to social media, news item does not exist')
+        return
+
+    if news_item.type == NewsItem.TYPE_QR_CODE:
+        logging.warn('Cannot post to social media for a coupon news type')
+        return
+
+    message = news_item.title + '\n' + news_item.message
+    image_content = None
+    if news_item.image_id:
+        news_item_image = NewsItemImage.get_by_id(news_item.image_id)
+        if news_item_image:
+            image_content = news_item_image.image
+
+    if on_facebook and facebook_access_token:
+        facebook.post_to_facebook(facebook_access_token, message, image_content)
+
+    if on_twitter:
+        media = []
+        if image_content:
+            media.append(image_content)
+        twitter.update_twitter_status(service_user, message, media)
+
+
+def post_to_social_media_scheduled(str_key):
+    scheduled_broadcast = SolutionScheduledBroadcast.get(str_key)
+    if not scheduled_broadcast or scheduled_broadcast.deleted:
+        return
+
+    news_id = scheduled_broadcast.news_id
+    on_facebook = scheduled_broadcast.broadcast_on_facebook
+    on_twitter = scheduled_broadcast.broadcast_on_twitter
+    facebook_access_token = scheduled_broadcast.facebook_access_token
+
+    service_user = scheduled_broadcast.service_user
+    with users.set_user(service_user):
+        post_to_social_media(service_user, on_facebook, on_twitter,
+                             facebook_access_token, news_id)
+        scheduled_broadcast.delete()
+
+
+def get_scheduled_broadcast(news_item_id, service_user=None, create=False):
+    if service_user is None:
+        service_user = users.get_current_user()
+
+    key = SolutionScheduledBroadcast.create_key(news_item_id,
+                                                service_user,
+                                                SOLUTION_FLEX)
+    scheduled_broadcast = db.get(key)
+    if not scheduled_broadcast and create:
+        scheduled_broadcast = SolutionScheduledBroadcast(key=key)
+
+    return scheduled_broadcast
+
+
+def schedule_post_to_social_media(service_user, on_facebook, on_twitter,
+                                  facebook_access_token, news_id, scheduled_at):
+    if scheduled_at < 1:
+        return
+
+    # try to extend facebook access token first
+    try:
+        facebook_access_token = facebook.extend_access_token(facebook_access_token)
+    except:
+        logging.error('Cannot get an extended facebook access token', exc_info=True)
+
+    scheduled_broadcast = get_scheduled_broadcast(news_id, service_user, create=True)
+    if scheduled_broadcast.timestamp == scheduled_at:
+        return
+
+    if scheduled_broadcast.scheduled_task_name:
+        # remove the old scheduled task
+        task_name = str(scheduled_broadcast.scheduled_task_name)
+        taskqueue.Queue(SCHEDULED_QUEUE).delete_tasks_by_name(task_name)
+
+    scheduled_broadcast.timestamp = scheduled_at
+    scheduled_broadcast.broadcast_on_facebook = on_facebook
+    scheduled_broadcast.broadcast_on_twitter = on_twitter
+    scheduled_broadcast.facebook_access_token = facebook_access_token
+    scheduled_broadcast.news_id = news_id
+
+    task = deferred.defer(post_to_social_media_scheduled,
+                          scheduled_broadcast.key_str,
+                          _countdown=scheduled_at - now(),
+                          _queue=SCHEDULED_QUEUE,
+                          _transactional=db.is_in_transaction())
+
+    scheduled_broadcast.scheduled_task_name = task.name
+    scheduled_broadcast.put()
 
 
 @returns()
