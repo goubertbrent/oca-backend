@@ -71,7 +71,8 @@ from shop.bizz import search_customer, create_or_update_customer, \
     get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, put_surrounding_apps, \
     get_all_news, put_news, remove_news, create_contact, create_order, export_customers_csv, put_service, update_contact, \
     put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
-    finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator
+    finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
+    regio_manager_has_permissions_to_team
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -337,29 +338,33 @@ class ChargesHandler(BizzManagerHandler):
 
         user = gusers.get_current_user()
 
-        charges = Charge.all().filter("status =", Charge.STATUS_PENDING)
+        charges_qry = Charge.all(keys_only=True).filter("status =", Charge.STATUS_PENDING)
         manager = RegioManager.get(RegioManager.create_key(user.email()))
         if manager and manager.admin:
-            charges.filter("team_id =", manager.team_id)
+            charges_qry.filter("team_id =", manager.team_id)
         elif not is_admin(user):
-            charges = charges.filter("manager =", user)
-        charges = list(charges.order("-date"))
+            charges_qry = charges_qry.filter("manager =", user)
+        charge_keys = list(charges_qry)
 
         is_reseller = manager and not manager.team.legal_entity.is_mobicage
         if is_payment_admin(user) or is_reseller:
             invoice_qry = Invoice.all(keys_only=True) \
-                .filter("payment_type =", Invoice.PAYMENT_MANUAL_AFTER) \
-                .filter("paid =", False)
-            if manager and is_reseller:
+                .filter('paid', False)
+            if is_reseller:
                 invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
-            invoice_qry = invoice_qry.order("-date")
-            charge_keys = [ik.parent() for ik in invoice_qry]
-            charges.extend(db.get(charge_keys))
-        to_get = list()
+            charge_keys.extend([invoice_key.parent() for invoice_key in invoice_qry if invoice_key not in charge_keys])
+        customer_keys = []
+        for charge_key in charge_keys:
+            customer_key = charge_key.parent().parent()
+            if customer_key not in customer_keys:
+                customer_keys.append(customer_key)
+        results = db.get(customer_keys + charge_keys)
+        customers = {customer.id: customer for customer in results[:len(customer_keys)]}
+        charges = sorted(results[len(customer_keys):], key=lambda charge: charge.date, reverse=True)
+        mapped_customers = []
         for charge in charges:
-            to_get.append(charge.customer_key)
-        customers = db.get(to_get)
-        context = get_shop_context(charges=zip(charges, customers), is_reseller=is_reseller)
+            mapped_customers.append(customers[charge.customer_id])
+        context = get_shop_context(charges=zip(charges, mapped_customers), is_reseller=is_reseller)
         self.response.out.write(template.render(path, context))
 
 
@@ -1209,12 +1214,18 @@ def rest_get_subscription_order(customer_id):
 @arguments(customer_id=(int, long), next_charge_date=(int, long))
 def rest_set_next_charge_date(customer_id, next_charge_date):
     audit_log(customer_id, u'Set next charge date')
+    manager = RegioManager.get(RegioManager.create_key(gusers.get_current_user().email()))
+    is_reseller = manager and not manager.team.legal_entity.is_mobicage
     try:
-        if not is_payment_admin(gusers.get_current_user()):
+        if is_reseller:
+            customer = Customer.get_by_id(customer_id)
+            if not regio_manager_has_permissions_to_team(manager, customer.team_id):
+                raise NoPermissionException('Set next charge date of customer \'{}\''.format(customer.name))
+        elif not is_admin(gusers.get_current_user()):
             raise NoPermissionException('Set next charge date')
         set_next_charge_date(customer_id, next_charge_date)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
+    except BusinessException as exception:
         return ReturnStatusTO.create(False, exception.message)
 
 
@@ -1517,11 +1528,19 @@ def rest_get_subscription_order_length(customer_id):
 @arguments(customer_id=(int, long), cancel_reason=unicode)
 def rest_cancel_subscription(customer_id, cancel_reason):
     audit_log(customer_id, u'Cancel subscription')
-    azzert(is_admin(gusers.get_current_user()))
+    manager = RegioManager.get(RegioManager.create_key(gusers.get_current_user().email()))
+    is_reseller = manager and not manager.team.legal_entity.is_mobicage
     try:
+        if is_reseller:
+            customer = Customer.get_by_id(customer_id)
+            if not regio_manager_has_permissions_to_team(manager, customer.team_id):
+                raise NoPermissionException('cancel the subscription of customer \'{}\''.format(customer.name))
+        elif not is_admin(gusers.get_current_user()):
+            raise NoPermissionException('cancel a subscription')
+
         cancel_subscription(customer_id, cancel_reason)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, exception:
+    except BusinessException as exception:
         return ReturnStatusTO.create(False, exception.message)
 
 

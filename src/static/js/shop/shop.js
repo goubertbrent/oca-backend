@@ -1508,13 +1508,13 @@ var showOrders = function (refresh) {
 
     $('#customer_form').find('a[data-target="#tab-orders"]').tab('show');
     showRelevantButtons(TABTYPES.ORDERS);
-    $('#button_cancel_subscription').toggle(currentCustomer.subscription !== -1 && currentCustomer.is_admin && currentCustomer.service_disabled_at == 0);
+    $('#button_cancel_subscription').toggle(currentCustomer.subscription !== -1 && (currentCustomer.is_admin || currentCustomer.can_edit) && currentCustomer.service_disabled_at === 0);
     if (!refresh && currentCustomer.ordersLoaded) {
         renderBilling();
     } else {
         loadOrdersAndInvoices();
     }
-    $('#button_set_next_charge_date').toggle(currentCustomer.is_admin).unbind('click').click(showSetNextChargeDate);
+    $('#button_set_next_charge_date').toggle(currentCustomer.is_admin || currentCustomer.can_edit).unbind('click').click(showSetNextChargeDate);
 };
 
 var renderBilling = function () {
