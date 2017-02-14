@@ -101,7 +101,7 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
         logging.debug("Added/updated %s/%s events", updated_events_count, result_count)
         if to_put:
             put_and_invalidate_cache(*to_put)
-            
+
         if result_count != 0:
             deferred.defer(_process_cityapp_uitdatabank_events, cap_key, page + 1)
         else:
@@ -114,10 +114,12 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
 
             if should_update_service:
                 for service_user in cap.services_to_update:
-                    sln_main_branding = get_solution_main_branding(service_user)
-                    deferred.defer(populate_identity_and_publish,
-                                   sln_settings if service_user == sln_settings.service_user else get_solution_settings(service_user),
-                                   sln_main_branding.branding_key)
+                    if service_user != sln_settings.service_user:
+                        settings_to_put = get_solution_settings(service_user)
+                    else:
+                        settings_to_put = sln_settings
+                    settings_to_put.publish_pending = True
+                    settings_to_put.put()
     except Exception, e:
         logging.exception(str(e), _suppress=False)
 
@@ -190,7 +192,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     event_title = r_event_detail["title"]
     event_description = r_event_detail.get("shortdescription", r_event_detail.get("longdescription", u""))
-    
+
     if "physical" in detail_result["location"]["address"]:
         location = detail_result["location"]["address"]["physical"]
         if location.get("street", None):

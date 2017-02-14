@@ -194,5 +194,5 @@ def _process_events(service_user, page):
     if events:
         deferred.defer(_process_events, service_user, page + 1)
     else:
-        sln_main_branding = get_solution_main_branding(service_user)
-        deferred.defer(populate_identity_and_publish, sln_settings, sln_main_branding.branding_key)
+        sln_settings.publish_pending = True
+        sln_settings.put()
