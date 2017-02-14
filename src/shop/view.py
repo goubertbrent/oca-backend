@@ -360,7 +360,11 @@ class ChargesHandler(BizzManagerHandler):
                 customer_keys.append(customer_key)
         results = db.get(customer_keys + charge_keys)
         customers = {customer.id: customer for customer in results[:len(customer_keys)]}
-        charges = sorted(results[len(customer_keys):], key=lambda charge: charge.date, reverse=True)
+
+        def sort_charges(charge):
+            return charge.status != Charge.STATUS_EXECUTED, charge.date
+
+        charges = sorted(results[len(customer_keys):], key=sort_charges, reverse=True)
         mapped_customers = []
         for charge in charges:
             mapped_customers.append(customers[charge.customer_id])
