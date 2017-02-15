@@ -18,7 +18,7 @@
         <select id="entity_country_code" name="entity_country_code" required>
             <option value="">Select country</option>
             {{each(i, country) COUNTRIES}}
-            <option {{if entity.country_code === country.code}}selected {{/if}}value="${country.name}">
+            <option {{if entity.country_code === country.code}}selected {{/if}}value="${country.code}">
                 ${country.name}
             </option>
             {{/each}}
