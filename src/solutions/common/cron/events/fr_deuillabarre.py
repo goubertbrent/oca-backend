@@ -27,8 +27,7 @@ from google.appengine.ext import deferred, db
 from rogerthat.dal import parent_key
 from rogerthat.utils import get_epoch_from_datetime
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.provisioning import populate_identity_and_publish
-from solutions.common.dal import get_solution_settings, get_solution_main_branding
+from solutions.common.dal import get_solution_settings
 from solutions.common.models.agenda import Event
 
 
@@ -138,8 +137,11 @@ def _filter_chars(txt):
 
 def _process_events(service_user, page):
     sln_settings = get_solution_settings(service_user)
+    if not sln_settings:
+        logging.error("check_for_events_in_fr_deuillabarre failed: sln_settings found for %s", service_user)
+        return
     if SolutionModule.AGENDA not in sln_settings.modules:
-        logging.error("check_for_events_in_fr_deuillabarre failed: module found")
+        logging.error("check_for_events_in_fr_deuillabarre failed: module found for %s", service_user)
         return
 
     url = u"http://www.mairie-deuillabarre.fr/agenda?page=%s" % page
@@ -194,5 +196,5 @@ def _process_events(service_user, page):
     if events:
         deferred.defer(_process_events, service_user, page + 1)
     else:
-        sln_main_branding = get_solution_main_branding(service_user)
-        deferred.defer(populate_identity_and_publish, sln_settings, sln_main_branding.branding_key)
+        sln_settings.put_identity_pending = True
+        sln_settings.put()

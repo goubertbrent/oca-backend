@@ -30,7 +30,8 @@ from solutions.common.cron.broadcast import CleanUpSolutionTempBlobs
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler
 from solutions.common.cron.events import SolutionEventsScraper
 from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
-    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, CityAppSolutionGatherEvents
+    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, CityAppSolutionGatherEvents, \
+    SolutionEventsDataPublisher
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
@@ -42,7 +43,7 @@ from solutions.djmatic.handlers.admin import djmatic
 from solutions.djmatic.handlers.admin.djmatic import DjmaticOverviewLogsHandler, DjmaticExportHandler
 
 
-dummy() 
+dummy()
 dummy2()
 register_solution_callback_api_handlers()
 
@@ -51,6 +52,7 @@ handlers = [
     ('/admin/cron/rpc/reminder_solution_events', ReminderSolutionEvents),
     ('/admin/cron/rpc/update_first_start_solution_events', UpdateSolutionEventStartDate),
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
+    ('/admin/cron/rpc/solution_events_publish_data', SolutionEventsDataPublisher),
     ('/admin/cron/rpc/solution_cityapp_gather_events', CityAppSolutionGatherEvents),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/check_djmatic_trial_mode', CheckDjmaticTrialMode),

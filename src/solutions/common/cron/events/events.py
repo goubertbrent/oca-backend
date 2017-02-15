@@ -35,8 +35,10 @@ from rogerthat.utils.models import delete_all
 from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
 from shop.models import Customer
 from solutions.common.bizz import timezone_offset, OrganizationType, SolutionModule
+from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.bizz.events import update_events_from_google
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
+from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar, SolutionCalendarGoogleSync
 from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.to import EventItemTO
@@ -154,6 +156,8 @@ def _gather_events(cap_key):
     def trans():
         si_key = ServiceIdentity.keyFromService(users.User(cap_key.parent().name()), ServiceIdentity.DEFAULT)
         cap, si = db.get([cap_key, si_key])
+        if cap is None or si is None:
+            return
         if cap.gather_events:
             cap.gather_events.clear()
         else:
@@ -210,6 +214,8 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
             cap.put()
 
         db.run_in_transaction(trans)
+        sln_settings.put_identity_pending = True
+        sln_settings.put()
 
 
 class SolutionSyncGoogleCalendarEvents(webapp2.RequestHandler):
@@ -234,3 +240,26 @@ def _process_solution_calendar_sync_google_events(sc_key):
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
+
+
+def _get_solution_settings_query():
+    return db.GqlQuery("SELECT __key__ from SolutionSettings WHERE put_identity_pending = TRUE")
+
+
+def _publish_app_data(sln_settings):
+    logging.debug('publishing app data for %s' % sln_settings.service_user)
+    sln_settings.put_identity_pending = False
+    sln_settings.put()
+    main_branding = get_solution_main_branding(sln_settings.service_user)
+    populate_identity_and_publish(sln_settings, main_branding.branding_key)
+
+
+def _publish_events_app_data(sln_settings_key):
+    sln_settings = SolutionSettings.get(sln_settings_key)
+    _publish_app_data(sln_settings)
+
+
+class SolutionEventsDataPublisher(webapp2.RequestHandler):
+
+    def get(self):
+        run_job(_get_solution_settings_query, [], _publish_events_app_data, [])
