@@ -248,15 +248,15 @@ def _get_solution_settings_query():
 
 def _publish_app_data(sln_settings):
     logging.debug('publishing app data for %s' % sln_settings.service_user)
-    main_branding = get_solution_main_branding(sln_settings.service_user)
-    populate_identity_and_publish(sln_settings, main_branding.branding_key)
     sln_settings.publish_pending = False
     sln_settings.put()
+    main_branding = get_solution_main_branding(sln_settings.service_user)
+    populate_identity_and_publish(sln_settings, main_branding.branding_key)
 
 
 def _publish_events_app_data(sln_settings_key):
     sln_settings = SolutionSettings.get(sln_settings_key)
-    deferred.defer(_publish_app_data, sln_settings)
+    _publish_app_data(sln_settings)
 
 
 class SolutionEventsDataPublisher(webapp2.RequestHandler):
