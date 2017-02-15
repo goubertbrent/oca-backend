@@ -214,7 +214,7 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
             cap.put()
 
         db.run_in_transaction(trans)
-        sln_settings.publish_pending = True
+        sln_settings.put_identity_pending = True
         sln_settings.put()
 
 
@@ -243,12 +243,12 @@ def _process_solution_calendar_sync_google_events(sc_key):
 
 
 def _get_solution_settings_query():
-    return db.GqlQuery("SELECT __key__ from SolutionSettings WHERE publish_pending = TRUE")
+    return db.GqlQuery("SELECT __key__ from SolutionSettings WHERE put_identity_pending = TRUE")
 
 
 def _publish_app_data(sln_settings):
     logging.debug('publishing app data for %s' % sln_settings.service_user)
-    sln_settings.publish_pending = False
+    sln_settings.put_identity_pending = False
     sln_settings.put()
     main_branding = get_solution_main_branding(sln_settings.service_user)
     populate_identity_and_publish(sln_settings, main_branding.branding_key)

@@ -36,8 +36,7 @@ from rogerthat.dal import put_and_invalidate_cache, parent_key
 from rogerthat.utils import now, get_epoch_from_datetime
 from shop.constants import MAPS_QUEUE
 from solutions.common.bizz.cityapp import get_uitdatabank_events
-from solutions.common.bizz.provisioning import populate_identity_and_publish
-from solutions.common.dal import get_solution_settings, get_solution_main_branding
+from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import  Event
 from solutions.common.models.cityapp import CityAppProfile
@@ -118,7 +117,7 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
                         settings_to_put = get_solution_settings(service_user)
                     else:
                         settings_to_put = sln_settings
-                    settings_to_put.publish_pending = True
+                    settings_to_put.put_identity_pending = True
                     settings_to_put.put()
     except Exception, e:
         logging.exception(str(e), _suppress=False)
