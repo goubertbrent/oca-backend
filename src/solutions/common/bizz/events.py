@@ -28,10 +28,12 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
 from lxml import etree, html
+import pytz
 
 from apiclient.discovery import build
 from google.appengine.api import images, urlfetch
 from google.appengine.ext import db, deferred
+from googleapiclient.errors import HttpError
 import httplib2
 from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
 from mcfw.consts import MISSING
@@ -39,7 +41,6 @@ from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from oauth2client import client
 from oauth2client.client import HttpAccessTokenRefreshError
-import pytz
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.dal.app import get_app_by_id
@@ -211,7 +212,7 @@ def update_events_from_google(service_user, calendar_id):
                     events = calendar_service.events().list(calendarId=google_calendar_id, maxResults=200,
                                                             pageToken=page_token, singleEvents=True, timeMin=time_min,
                                                             timeMax=time_max, showDeleted=True).execute(http=http_auth)
-                except HttpAccessTokenRefreshError as e:
+                except (HttpError, HttpAccessTokenRefreshError) as e:
                     logging.warning(u'Could not update google calendars for calendar_id %s and service_user %s: %s', google_calendar_id, service_user, e.message)
                     def trans_reset_credentials():
                         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
