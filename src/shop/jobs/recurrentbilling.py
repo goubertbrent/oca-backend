@@ -102,6 +102,7 @@ def _create_charge(order_key, today, products):
         charge.subscription_extension_length = 1
         charge.subscription_extension_order_item_keys = list()
         charge.currency_code = customer.team.legal_entity.currency_code
+        charge.team_id = customer.team_id
         order_item_qry = OrderItem.all().ancestor(customer if subscription_extension_order_keys else order)
 
         total_amount = 0

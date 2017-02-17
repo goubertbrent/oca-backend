@@ -349,10 +349,13 @@ class ChargesHandler(BizzManagerHandler):
         is_reseller = manager and not manager.team.legal_entity.is_mobicage
         if is_payment_admin(user) or is_reseller:
             invoice_qry = Invoice.all(keys_only=True) \
+                .filter('payment_type', Invoice.PAYMENT_MANUAL_AFTER) \
                 .filter('paid', False)
             if is_reseller:
                 invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
-            charge_keys.extend([invoice_key.parent() for invoice_key in invoice_qry if invoice_key not in charge_keys])
+            for invoice_key in invoice_qry:
+                if invoice_key.parent() not in charge_keys:
+                    charge_keys.append(invoice_key.parent())
         customer_keys = []
         for charge_key in charge_keys:
             customer_key = charge_key.parent().parent()
