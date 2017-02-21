@@ -190,7 +190,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     broadcast_types = [b for b in broadcast_types if b in get_allowed_broadcast_types(city_customer)]
 
     try:
-        if customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
+        if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
             product_code = Product.PRODUCT_SUBSCRIPTION_ASSOCIATION
         else:
             product_code = Product.PRODUCT_FREE_SUBSCRIPTION
