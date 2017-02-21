@@ -4,17 +4,18 @@
         <div class="sln-set-gather-events" style="float:left; margin-left: 20px;"></div>
     </div>
     <br>
+    {% if customer and customer.country  == 'BE' and customer.language == 'nl' %}
     <div class="sln-set-events-status span12"></div>
     <div class="sln-set-events-secret"></div>
     <div class="sln-set-events-key"></div>
     <div class="sln-set-events-region"></div>
-   
+
     <div class="sln-set-events-uit-actor" style="display: none;">
         <label>UiTiD (uitdatabank.be):</label>
         <p></p>
         <input type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}" class="span4">
     </div>
-   
+    {% endif %}
     <legend>{% translate language, "common", "Calendars" %}</legend>
     <button type="button" class="btn btn-primary add-calendar" item-kind="types">{% translate language, "common", "create-new-calendar" %}</button><br><br>
     <table class="table table-striped table-bordered">

@@ -34,8 +34,8 @@ from solutions.common.models.cityapp import CityAppProfile
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, uitdatabank_secret=unicode, uitdatabank_key=unicode, uitdatabank_region=unicode, gather_events=bool)
-def save_cityapp_settings(service_user, uitdatabank_secret, uitdatabank_key, uitdatabank_region, gather_events):
+@arguments(service_user=users.User, gather_events=bool, uitdatabank_secret=unicode, uitdatabank_key=unicode, uitdatabank_region=unicode)
+def save_cityapp_settings(service_user, gather_events, uitdatabank_secret, uitdatabank_key, uitdatabank_region):
     def trans():
         cap = get_cityapp_profile(service_user)
         cap.uitdatabank_secret = uitdatabank_secret

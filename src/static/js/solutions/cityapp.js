@@ -23,7 +23,7 @@ $(function() {
     var TMPL_SET_EVENTS_STATUS = '<div id="uitdatabankStatus" class="alert alert-success">'
         + '    <h4>Uitdatabank.be</h4> <div id="uitdatabankStatusText" >' + CommonTranslations.STATUS_ENABLED + '</div>'
         + '</div>';
-    
+
     var TMPL_SET_EVENTS_SECRET= '<label>' + CommonTranslations.SECRET + ' (uitdatabank.be v2):</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" class="span4">';
     var TMPL_SET_EVENTS_KEY = '<label>' + CommonTranslations.KEY + ' (uitdatabank.be):</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" class="span4">';
     var TMPL_SET_EVENTS_REGION = '<label>' + CommonTranslations.REGION + ':</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" class="span4">';
@@ -113,10 +113,16 @@ $(function() {
             url : "/common/cityapp/settings/load",
             type : "GET",
             success : function(data) {
-                $('.sln-set-events-secret input').data('updateVal')(data.uitdatabank_secret);
-                $('.sln-set-events-key input').data('updateVal')(data.uitdatabank_key);
-                $('.sln-set-events-region input').data('updateVal')(data.uitdatabank_region);
-                setUitdatabankStatus(data.uitdatabank_enabled);
+                // check uitdatabank settings
+                var secretElem = $('.sln-set-events-secret input');
+                var keyElem = $('.sln-set-events-key input');
+                var regionElem = $('.sln-set-events-region input');
+                if(secretElem.length && keyElem.length && regionElem.length) {
+                    secretElem.data('updateVal')(data.uitdatabank_secret);
+                    keyElem.data('updateVal')(data.uitdatabank_key);
+                    regionElem.data('updateVal')(data.uitdatabank_region);
+                    setUitdatabankStatus(data.uitdatabank_enabled);
+                }
                 setGatherEvents(data.gather_events);
             },
             error : sln.showAjaxError
@@ -144,7 +150,7 @@ $(function() {
     $('#uitdatabankStatusDisabled').click( function() {
         setUitdatabankStatus(!uitdatabankStatusEnabled);
     });
-    
+
     sln.configureDelayedInput($('.sln-set-events-secret input'), saveCityAppSettings);
     sln.configureDelayedInput($('.sln-set-events-key input'), saveCityAppSettings);
     sln.configureDelayedInput($('.sln-set-events-region input'), saveCityAppSettings);
