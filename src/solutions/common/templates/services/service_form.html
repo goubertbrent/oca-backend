@@ -1,0 +1,127 @@
+{% raw %}
+<form class="form-horizontal row" id="service-form">
+
+    <fieldset class="span6">
+
+        <legend><a href="#/services" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${T('back')}</a>
+            {{if edit}}${T('update_service')}{{else}}${T('create_service')}{{/if}}
+        </legend>
+
+        <div class="control-group">
+            <label for="service-name" class="control-label">${T('service_name')}</label>
+
+            <div class="controls">
+                <input type="text" id="service-name" name="service-name" value="${service.name}">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-organization_type" class="control-label">${T('sector')}</label>
+
+            <div class="controls">
+                <select type="text" id="organization_type" name="organization_type" value="${service.organization_type}"
+                        required>
+                    {{each(i, type) organizationTypes}}
+                    <option value="${type.key}" {{if service.organization_type == type.key }}selected{{/if}}>
+                        ${type.value}
+                    </option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-address1" class="control-label">${T('ADDRESS')}</label>
+
+            <div class="controls">
+                <input type="text" id="service-address1" name="service-address1"
+                       value="${service.address1}">
+                <input type="text" id="service-address2" name="service-address2"
+                       value="${service.address2}" style="margin-top:10px;">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-city" class="control-label">${T('city')}</label>
+
+            <div class="controls">
+                <input type="text" id="service-zip" name="service-zip" value="${ service.zip }"
+                       maxlength="5" style="width:100px;" placeholder="${T('zip_code')}">
+                <input type="text" id="service-city" name="service-city" value="${ service.city }"
+                       style="width:214px" placeholder="${T('city')}">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-vat" class="control-label">${T('vat')}</label>
+
+            <div class="controls">
+                <input type="text" id="service-vat" name="service-vat" value="${service.vat}">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-email" class="control-label">${T('EMAIL')}</label>
+
+            <div class="controls">
+                <input type="email" id="service-email" name="service-email" value="${ service.user_email }">
+                {{if edit}}
+                <small><i class="fa fa-warning"></i> ${T('edit_association_email_warning')}
+                </small>
+                {{else}}
+                <small>${T('association_email_info')}</small>
+                {{/if}}
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-phone" class="control-label">${T('PHONE_NUMBER')}</label>
+
+            <div class="controls">
+                <input type="tel" id="service-phone" name="service-phone" value="${ service.telephone }">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-language" class="control-label">${T('LANGUAGE')}</label>
+
+            <div class="controls">
+                <select id="service-language" name="service-language">
+                    {{each(i, lang) languages}}
+                    <option value="${lang.code}" {{if (!service && lang.default== lang.code) || service.language==lang.code}} selected{{/if}}>${lang.name}</option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-modules" class="control-label">${T('modules')}</label>
+
+            <div class="controls" id="service-modules-container">
+                {{each(i, m) modules}}
+                <label class="checkbox">
+                    <input type="checkbox" name="service-modules" value="${m.key}"
+{{if edit}}
+    {{if service.modules.indexOf(m.key)!==-1}}checked{{/if}}
+{{/if}}>${m.label}</label>
+                {{/each}}
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-broadcast-types" class="control-label">${T('broadcast_types')}</label>
+
+            <div class="controls" id="service-broadcast-types-container">
+                {{if edit}}
+                {{each(i, b) service.broadcast_types}}
+                <label class="checkbox"><input type="checkbox" name="service-broadcast-types" value="${b}"
+                                               checked>${b}</label>
+                {{/each}}
+                {{else}}
+                {{each(i, b) broadcastTypes}}
+                <label class="checkbox"><input type="checkbox" name="service-broadcast-types" value="${b}"
+                                               checked>${b}</label>
+                {{/each}}
+                {{/if}}
+                <input type="text" id="service-extra-broadcast-type" placeholder="${T('add_custom_broadcast_type')}"
+                       style="width: 292px;">
+                <button type="button" id="service-extra-broadcast-type-add" class="btn btn-default">
+                    <i class="fa fa-plus"></i></button>
+                <button type="button" id="service-submit" class="btn btn-success pull-right"
+                        style="margin-top: 10px;">{{if edit}}${T('SAVE')}{{else}}${T('create_service')}{{/if}}
+            </div>
+        </div>
+    </fieldset>
+</form>
+{% endraw %}

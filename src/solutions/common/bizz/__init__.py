@@ -81,8 +81,10 @@ from xhtml2pdf import pisa
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
-MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Emergency', u'Events', u'Info sessions', u'News', u'Trafic']
-ASSOCIATION_BROADCAST_TYPES = [u'News', u'Events']
+CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
+MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Events', u'Info sessions',
+                            u'News'] + CITY_APP_BROADCAST_TYPES
+DEFAULT_BROADCAST_TYPES = [item for item in MERCHANT_BROADCAST_TYPES if item not in CITY_APP_BROADCAST_TYPES]
 
 try:
     from cStringIO import StringIO
@@ -116,10 +118,20 @@ class SolutionModule(Enum):
 
     MODULES_TRANSLATION_KEYS = {
         AGENDA: 'agenda',
+        APPOINTMENT: 'appointment',
         ASK_QUESTION: 'ask-question',
         BILLING: 'Billing',
         BROADCAST: 'Broadcast',
         BULK_INVITE: 'settings-bulk-invite',
+        DISCUSSION_GROUPS: 'discussion_groups',
+        GROUP_PURCHASE: 'group-purchase',
+        LOYALTY: 'loyalty',
+        MENU: 'menu',
+        ORDER: 'order',
+        PHARMACY_ORDER: 'pharmacy_order',
+        SANDWICH_BAR: 'sandwich_bar',
+        REPAIR: 'module_repair',
+        RESTAURANT_RESERVATION: 'restaurant_reservation',
         STATIC_CONTENT: 'static-content',
         QR_CODES: 'settings-qr-codes',
         WHEN_WHERE: 'when-where'
@@ -132,8 +144,11 @@ class SolutionModule(Enum):
 
     # Modules allowed for static content subscriptions
     STATIC_MODULES = {WHEN_WHERE, BILLING, LOYALTY}
-    ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
-    ASSOCIATION_MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
+    # These are the modules that the customer or cityapp service of the customer can choose themselves
+    POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
+                        LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
+                        STATIC_CONTENT}
+    MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
     SERVICE_ACTION_ORDER = {

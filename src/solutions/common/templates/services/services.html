@@ -1,14 +1,14 @@
 {% raw %}
-<a class="btn btn-success pull-right" id="create-association" href="#/associations/add"><i class="fa fa-plus"></i>
-    ${t.create_association}</a>
+<a class="btn btn-success pull-right" id="create-service" href="#/services/add"><i class="fa fa-plus"></i>
+    ${t.create_service}</a>
     {{if generatedOn}}
     <p class="pull-right"><small>${t.data_generated_on.replace('%(generated_on_date)s', generatedOn)}</small></p>
     {{/if}}
-{{each(i, a ) associations}}
-<div class="association pull-left">
-    <a href="#/associations/edit/${a.service_email}">${a.name}</a>
+{{each(i, a ) services}}
+<div class="service pull-left">
+    <a href="#/services/edit/${a.service_email}">${a.name}</a>
 
-    <div class="association-icons">
+    <div class="service-icons">
         <div data-placement="top" data-original-title="${t.planned_events}" {{if !a.hasAgenda}}disabled="true" {{/if}}
         style="color:{{if a.statistics.future_events_count === 0 }}#da4f49{{else}}{{if a.statistics.future_events_count < 5}}#faa732{{else}}#5bb75b{{/if}}{{/if}};">
         {{if a.statistics.future_events_count >9 }}9+{{else}}${a.statistics.future_events_count}{{/if}} <i class="fa fa-calendar"></i></div>
@@ -24,15 +24,15 @@
 	
         <div data-placement="top" data-original-title="${t.static_content_items}" {{if !a.hasStaticContent}}disabled="true"{{/if}} 
         style="color:{{if a.statistics.static_content_count === 0 }}#da4f49{{else}}#5bb75b{{/if}};"> ${a.statistics.static_content_count} <i class="fa fa-file-text-o"></i></div>
-        <a class="btn btn-small btn-default" href="#/associations/edit/${a.service_email}"><i
+        <a class="btn btn-small btn-default" href="#/services/edit/${a.service_email}"><i
                 class="fa fa-edit"></i></a>
-        <button class="btn btn-small btn-danger delete-association" service_email="${a.service_email}"
+        <button class="btn btn-small btn-danger delete-service" service_email="${a.service_email}"
                 service_name="${a.name}"><i class="fa fa-times"></i></button>
     </div>
 </div>
 {{/each}}
-{{if !associations.length}}
-<p>${t.no_associations_create_here}: <a class="btn btn-success" href="#/associations/add"><i class="fa fa-plus"></i> ${t.create_association}</a>
+{{if !services.length}}
+<p>${t.no_services_create_here}: <a class="btn btn-success" href="#/services/add"><i class="fa fa-plus"></i> ${t.create_service}</a>
 </p>
 {{/if}}
 {% endraw %}

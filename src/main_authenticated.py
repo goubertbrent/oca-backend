@@ -30,7 +30,7 @@ from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandl
 from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
 from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
     LoyaltySlideOverlayHandler, ExportLoyaltyHandler
-import solutions.common.restapi.associations
+import solutions.common.restapi.services
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -83,7 +83,7 @@ handlers = [
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi))
-handlers.extend(rest_functions(solutions.common.restapi.associations))
+handlers.extend(rest_functions(solutions.common.restapi.services))
 handlers.extend(rest_functions(solutions.common.restapi.billing))
 handlers.extend(rest_functions(solutions.common.restapi.cityapp))
 handlers.extend(rest_functions(solutions.common.restapi.city_vouchers))

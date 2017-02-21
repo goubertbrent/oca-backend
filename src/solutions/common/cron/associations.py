@@ -38,7 +38,7 @@ def update_statistic():
     # Completely rebuilds statistics on run.
 
     current_date = now()
-    broadcast_count_dict = dict()
+    broadcast_count_dict = {}
     for broadcast_key in SolutionScheduledBroadcast.get_keys_last_month():
         service_email = broadcast_key.parent().name()
         if service_email not in broadcast_count_dict:
@@ -46,25 +46,25 @@ def update_statistic():
         else:
             broadcast_count_dict[service_email] += 1
 
-    future_event_count_dict = dict()
+    future_event_count_dict = {}
 
     for future_event_key in Event.get_future_event_keys(current_date):
         service_email = future_event_key.parent().name()
-        if not service_email in future_event_count_dict:
+        if service_email not in future_event_count_dict:
             future_event_count_dict[service_email] = 1
         else:
             future_event_count_dict[service_email] += 1
 
-    static_content_count_dict = dict()
+    static_content_count_dict = {}
 
     for static_content_key in SolutionStaticContent.get_all_keys():
         service_email = static_content_key.parent().name()
-        if not service_email in static_content_count_dict:
+        if service_email not in static_content_count_dict:
             static_content_count_dict[service_email] = 1
         else:
             static_content_count_dict[service_email] += 1
 
-    unanswered_question_count_dict = dict()
+    unanswered_question_count_dict = {}
 
     # find the oldest, unanswered question per customer and add it to the statistics
     for unanswered_question in SolutionInboxMessage.get_all_unanswered_questions(5):
@@ -76,8 +76,8 @@ def update_statistic():
                 unanswered_question_count_dict[service_email] = unanswered_question.question_asked_timestamp
 
     # dict with as keys the app id from the city, value the statistics of this city.
-    statistics = dict()
-    for customer in Customer.get_all_non_profit():
+    statistics = {}
+    for customer in Customer.all():
         if len(customer.app_ids) != 0:
             service_email = customer.service_email
             if customer.app_id not in statistics:
@@ -110,7 +110,6 @@ def update_statistic():
                 stats.last_unanswered_questions_timestamps.append(unanswered_question_count_dict[service_email])
             else:
                 stats.last_unanswered_questions_timestamps.append(0)
-
 
     for chunk in chunks(statistics.values(), 200):
         db.put(chunk)

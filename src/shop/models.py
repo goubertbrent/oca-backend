@@ -226,6 +226,7 @@ class Product(db.Model):
     PRODUCT_ONE_TIME_CREDIT_CARD_PAYMENT_DISCOUNT = u'CRED'
     PRODUCT_CARDS = u'KKRT'
     PRODUCT_NEWS_PROMOTION = u'NEWS'
+    PRODUCT_FREE_SUBSCRIPTION = u'FREE'
     price = db.IntegerProperty()  # In euro cents
     default_count = db.IntegerProperty()
     default = db.BooleanProperty()
@@ -446,12 +447,8 @@ class Customer(db.Model):
             return db.get({order_key.parent() for order_key in order_keys})
 
     @classmethod
-    def get_all_non_profit(cls):
-        return cls.all().filter('organization_type =', OrganizationType.NON_PROFIT)
-
-    @classmethod
-    def get_all_associations_in_app(cls, app_id):
-        return cls.get_all_non_profit().filter('app_ids =', app_id).filter('service_disabled_at =', 0)
+    def list_enabled_by_app(cls, app_id):
+        return cls.all().filter('app_ids', app_id).filter('service_disabled_at', 0)
 
     @property
     def disabled_reason_str(self):

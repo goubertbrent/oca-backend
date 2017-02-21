@@ -332,7 +332,7 @@ class SolutionSettings(SolutionIdentitySettings):
         from solutions.common.bizz import SolutionModule
         return any((m in self.modules for m in SolutionModule.TWITTER_MODULES))
 
-    def uses_associations(self, country):
+    def can_edit_services(self, country):
         from solutions.common.bizz import SolutionModule
         if SolutionModule.CITY_APP not in self.modules:
             return False

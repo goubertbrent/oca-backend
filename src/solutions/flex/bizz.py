@@ -159,5 +159,5 @@ def get_all_news(language):
 
 @returns(AssociationStatistic)
 @arguments(app_id=unicode)
-def get_associations_statistics(app_id):
+def get_services_statistics(app_id):
     return AssociationStatistic.get(AssociationStatistic.create_key(app_id))

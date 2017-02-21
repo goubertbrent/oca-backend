@@ -2515,7 +2515,7 @@ def post_app_broadcast(service, app_ids, message, tester=None):
 
 def put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
                               broadcast_types, organization_type, app_id, currency, country, team_id, product_code,
-                              customer_id=None):
+                              customer_id=None, vat=None):
     service = CustomerServiceTO()
     service.address = address1
     if address2:
@@ -2536,7 +2536,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
     def trans1():
         email_has_changed = False
         is_new = False
-        customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=None, name=name,
+        customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=vat, name=name,
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
                                              organization_type=organization_type, prospect_id=None,
@@ -2561,7 +2561,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
 
             contact = create_contact(customer, name, u'', user_email, telephone)
 
-            # Create an order with only one order item (SJUP)
+            # Create an order with only one order item
             order_items = list()
             item = OrderItemTO()
             item.product = product_code

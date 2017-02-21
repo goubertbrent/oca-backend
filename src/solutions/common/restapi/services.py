@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
-#
+# -*- coding: utf-8 -*-  # Copyright 2017 Mobicage NV  #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -23,13 +21,15 @@ from google.appengine.ext import db
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.to.messaging import KeyValueTO
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import put_service, put_customer_with_service
+from shop.bizz import put_service, put_customer_with_service, audit_log, dict_str_for_audit_log
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException
@@ -38,57 +38,66 @@ from shop.exceptions import NotOperatingInCountryException, EmptyValueException,
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.models import Customer, Contact, Product
 from solutions import translate, SOLUTION_COMMON
-from solutions.common.bizz import OrganizationType, SolutionModule, ASSOCIATION_BROADCAST_TYPES
+from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
-from solutions.common.to import AssociationTO
-from solutions.common.to.associations import ModuleAndBroadcastTypesTO, AssociationStatisticTO, AssociationsTO, \
-    ServiceTO
+from solutions.common.to import ServiceTO
+from solutions.common.to.services import ModuleAndBroadcastTypesTO, ServiceStatisticTO, ServicesTO, \
+    ServiceListTO
 from solutions.common.to.qanda import ModuleTO
-from solutions.flex.bizz import get_associations_statistics
+from solutions.flex.bizz import get_services_statistics
 
 
-@rest("/common/associations/get_defaults", "get", read_only_access=True)
+@rest("/common/services/get_defaults", "get", read_only_access=True)
 @returns(ModuleAndBroadcastTypesTO)
 @arguments()
 def get_modules_and_broadcast_types():
     service_user = users.get_current_user()
     lang = get_solution_settings(service_user).main_language
     modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
-               SolutionModule.ASSOCIATION_MODULES]
-    broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in ASSOCIATION_BROADCAST_TYPES]
-    return ModuleAndBroadcastTypesTO.create(modules, broadcast_types)
+               SolutionModule.POSSIBLE_MODULES]
+    broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in DEFAULT_BROADCAST_TYPES]
+    organization_types = [
+        KeyValueTO(unicode(ServiceProfile.ORGANIZATION_TYPE_PROFIT),
+                   ServiceProfile.localized_singular_organization_type(ServiceProfile.ORGANIZATION_TYPE_PROFIT, lang)),
+        KeyValueTO(unicode(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT),
+                   ServiceProfile.localized_singular_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT,
+                                                                       lang)),
+        KeyValueTO(unicode(ServiceProfile.ORGANIZATION_TYPE_EMERGENCY),
+                   ServiceProfile.localized_singular_organization_type(ServiceProfile.ORGANIZATION_TYPE_EMERGENCY,
+                                                                       lang))
+    ]
+    return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
 
 
-@rest("/common/associations/get_all", "get", read_only_access=True)
-@returns(AssociationsTO)
+@rest("/common/services/get_all", "get", read_only_access=True)
+@returns(ServicesTO)
 @arguments()
-def get_associations():
+def get_services():
     si = system.get_identity()
-    # get all the associations in this city
+    # get all the services in this city
     app_id = si.app_ids[0]
-    association_customers = list(Customer.get_all_associations_in_app(app_id))
-    associations = list()
-    statistics = get_associations_statistics(app_id)
+    service_customers = list(Customer.list_enabled_by_app(app_id))
+    services = []
+    statistics = get_services_statistics(app_id)
     sln_settings_keys = [SolutionSettings.create_key(users.get_current_user())]
-    for asso in association_customers:
-        if not asso.service_email:
-            logging.error('Association %s has app_ids, but has no service!', asso.name)
-        elif asso.app_id == app_id:
-            sln_settings_keys.append(
-                SolutionSettings.create_key(users.User(asso.service_email))
-            )
+    for customer in service_customers:
+        if not customer.service_email:
+            logging.error('Customer %s has app_ids, but has no service!', customer.name)
+        elif customer.app_id == app_id:
+            sln_settings_keys.append(SolutionSettings.create_key(users.User(customer.service_email)))
     sln_settings_list = db.get(sln_settings_keys)
-    sln_settings = sln_settings_list.pop(0)
+    sln_settings = sln_settings_list.pop(0)  # type: SolutionSettings
     azzert(SolutionModule.CITY_APP in sln_settings.modules)
-    for asso in association_customers:
-        if asso.app_id == app_id:
-            service_email = asso.service_email
+    for customer in service_customers:
+        service_email = customer.service_email
+        # Exclude the city app's own service
+        if customer.app_id == app_id and service_email != sln_settings.service_user.email():
             future_events_count = 0
             broadcasts_last_month = 0
             static_content_count = 0
             last_unanswered_question_timestamp = 0
-            modules = list()
+            modules = []
             for sln_settings in sln_settings_list:
                 if sln_settings.key().name() == service_email:
                     modules = sln_settings.modules
@@ -101,39 +110,39 @@ def get_associations():
                         static_content_count = statistics.static_content_count[index]
                         last_unanswered_question_timestamp = statistics.last_unanswered_questions_timestamps[index]
 
-            statistic = AssociationStatisticTO.create(future_events_count, broadcasts_last_month, static_content_count,
-                                                      last_unanswered_question_timestamp)
-            associations.append(ServiceTO.create(service_email, asso.name, statistic, modules))
+            statistic = ServiceStatisticTO.create(future_events_count, broadcasts_last_month, static_content_count,
+                                                  last_unanswered_question_timestamp)
+            services.append(ServiceListTO(service_email, customer.name, statistic, modules))
     generated_on = statistics.generated_on if statistics else None
-    return AssociationsTO.create(sorted(associations, key=lambda x: x.name.lower()), generated_on)
+    return ServicesTO(sorted(services, key=lambda x: x.name.lower()), generated_on)
 
 
-@rest("/common/associations/get", "get", read_only_access=True)
-@returns(AssociationTO)
+@rest("/common/services/get", "get", read_only_access=True)
+@returns(ServiceTO)
 @arguments(service_email=unicode)
-def get_association(service_email):
+def get_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     if not city_customer.organization_type == OrganizationType.CITY:
         logging.warn(u'Customer %s tried to get service information for service' % service_email)
         return
-    association = Customer.get_by_service_email(service_email)
-    contact = Contact.get_one(association.key())
+    customer = Customer.get_by_service_email(service_email)
+    contact = Contact.get_one(customer.key())
     service_user = users.User(email=service_email)
     solution_settings = get_solution_settings(service_user)
-    return AssociationTO.create(association.id, association.name, association.address1, association.address2,
-                                association.zip_code, association.city, association.user_email, contact.phone_number,
-                                solution_settings.main_language, solution_settings.modules,
-                                solution_settings.broadcast_types)
+    return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
+                     customer.user_email, contact.phone_number, solution_settings.main_language,
+                     solution_settings.modules, solution_settings.broadcast_types, customer.organization_type,
+                     customer.vat)
 
 
-@rest("/common/associations/put", "post", read_only_access=False)
+@rest("/common/services/put", "post", read_only_access=False)
 @returns(ReturnStatusTO)
-@arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode,
-           city=unicode, user_email=unicode, telephone=unicode, language=unicode, modules=[unicode],
-           broadcast_types=[unicode], customer_id=(int, long, NoneType))
-def put_association(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
-                    broadcast_types, customer_id=None):
+@arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
+           telephone=unicode, language=unicode, modules=[unicode], broadcast_types=[unicode],
+           customer_id=(int, long, NoneType), organization_type=(int, long), vat=unicode)
+def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
+                     broadcast_types, customer_id=None, organization_type=OrganizationType.PROFIT, vat=None):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
@@ -147,37 +156,37 @@ def put_association(name, address1, address2, zip_code, city, user_email, teleph
     success1 = False
     error_msg = None
     email_changed = False
-    is_new_association = False
+    is_new_service = False
 
-    mods = [m for m in SolutionModule.ASSOCIATION_MANDATORY_MODULES]
-    mods.extend([m for m in modules if m in SolutionModule.ASSOCIATION_MODULES])
+    mods = [m for m in SolutionModule.MANDATORY_MODULES]
+    mods.extend([m for m in modules if m in SolutionModule.POSSIBLE_MODULES])
     modules = list(set(mods))
 
     try:
-        (customer, service, email_changed, is_new_association) \
+        (customer, service, email_changed, is_new_service) \
             = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
-                                        modules, broadcast_types, OrganizationType.NON_PROFIT, city_customer.app_id,
+                                        modules, broadcast_types, organization_type, city_customer.app_id,
                                         city_sln_settings.currency, city_customer.country, city_customer.team_id,
-                                        Product.PRODUCT_SUBSCRIPTION_ASSOCIATION, customer_id)
+                                        Product.PRODUCT_FREE_SUBSCRIPTION, customer_id, vat)
         customer_key = customer.key()
         success1 = True
-    except EmptyValueException, ex:
+    except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
         error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
-    except DuplicateCustomerNameException, ex:
+    except DuplicateCustomerNameException as ex:
         error_msg = translate(lang, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
     except NoPermissionException:
         error_msg = translate(lang, SOLUTION_COMMON, 'no_permission')
-    except InvalidEmailFormatException, ex:
+    except InvalidEmailFormatException as ex:
         error_msg = translate(lang, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
-    except NotOperatingInCountryException, ex:
+    except NotOperatingInCountryException as ex:
         error_msg = translate(lang, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
     except BusinessException:
-        logging.exception('Failed to create association, unexpected BusinessException')
-        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_association')
+        logging.exception('Failed to create service, unexpected BusinessException')
+        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
     except:
-        logging.exception('Failed to create association')
-        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_association')
+        logging.exception('Failed to create service')
+        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
     finally:
         if not success1:
             return ReturnStatusTO.create(False, error_msg)
@@ -190,16 +199,16 @@ def put_association(name, address1, address2, zip_code, city, user_email, teleph
     try:
         run_in_xg_transaction(trans2)
         success2 = True
-    except EmptyValueException, ex:
+    except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
         error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
     except:
-        logging.exception('Could not save association service information')
-        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_association')
+        logging.exception('Could not save service service information')
+        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
     finally:
         if not success2:
-            if is_new_association:
-                logging.warn('Failed to save new association service information, reverting changes...')
+            if is_new_service:
+                logging.warn('Failed to save new service service information, reverting changes...')
                 db.delete(db.GqlQuery("SELECT __key__ WHERE ANCESTOR IS KEY('%s')" % customer_key).fetch(None))
             return ReturnStatusTO.create(False, error_msg)
         else:
@@ -208,15 +217,20 @@ def put_association(name, address1, address2, zip_code, city, user_email, teleph
                              customer.service_email)
                 customer.user_email = user_email
                 customer.put()
+            variables = dict_str_for_audit_log({
+                'user_email': user_email,
+                'modules': modules,
+            })
+            audit_log(customer_id, 'put_service', variables, city_service_user)
             return RETURNSTATUS_TO_SUCCESS
 
 
-@rest('/common/associations/delete', 'post', read_only_access=False)
+@rest('/common/services/delete', 'post', read_only_access=False)
 @returns(ReturnStatusTO)
 @arguments(service_email=unicode)
-def rest_delete_association(service_email):
+def rest_delete_service(service_email):
     customer = Customer.get_by_service_email(service_email)
     cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_ASSOCIATION_BY_CITY], True)
     send_message(users.get_current_user(),
-                 [{u"type": u"solutions.common.associations.deleted", u'service_email': service_email}])
+                 [{u"type": u"solutions.common.services.deleted", u'service_email': service_email}])
     return RETURNSTATUS_TO_SUCCESS

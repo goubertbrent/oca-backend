@@ -1,0 +1,54 @@
+<div class="page" id="services" style="display:none">
+    <style>
+    .service {
+        height: 40px;
+        width: 100%;
+        margin-top: 10px;
+        float: left;
+        position: relative;
+    }
+
+    .service a {
+        text-transform: capitalize;
+    }
+
+    #service-form input:not([type=checkbox]), #service-form textarea {
+        width: 333px;
+    }
+
+    #service-form select {
+        width: 347px;
+    }
+
+    #service-form .form-horizontal .control-label {
+        width: 110px;
+    }
+
+    #service-form .form-horizontal .controls {
+        margin-left: 130px;
+    }
+
+    #create-service {
+        margin-top: -40px;
+    }
+
+    .service-icons {
+        display: inline-block;
+        position: absolute;
+        right: 0;
+    }
+
+    .service-icons > div {
+        min-width: 40px;
+        display: inline-block;
+    }
+
+    .service-icons > div[disabled], .service-icons > div[disabled] i {
+        color: #cccccc !important;
+    }
+</style>
+<h2> {% translate language, "common", "services" %}</h2>
+
+<div id="services-content"></div>
+<script src="/static/js/solutions/sln-services.js"></script>
+</div>

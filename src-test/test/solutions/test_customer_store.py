@@ -90,7 +90,7 @@ class CustomerStoreTestCase(mc_unittest.TestCase):
         service.currency = u'euro'
         service.email = u'test@example.com'
         service.language = u'en'
-        mods = [m for m in SolutionModule.ASSOCIATION_MANDATORY_MODULES]
+        mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
         service.name = customer.name
         service.organization_type = OrganizationType.PROFIT

@@ -21,7 +21,7 @@ from rogerthat.rpc import users
 from shop.bizz import create_or_update_customer, create_contact
 from shop.models import RegioManagerTeam
 from solutions.common.bizz import OrganizationType, SolutionModule
-from solutions.common.restapi.associations import put_association
+from solutions.common.restapi.services import rest_put_service
 from solutions.flex.bizz import create_flex_service
 from test import set_current_user
 
@@ -82,7 +82,7 @@ class AssociationsTestCase(mc_unittest.TestCase):
         modules = [u'agenda', u'bulk_invite', u'static_content', u'ask_question', u'broadcast']
         broadcast_types = [u'Evenementen', u'Nieuws']
         set_current_user(users.User(r.login), set_google_user=False)
-        output = put_association(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
+        output = rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
                                  broadcast_types)
         self.assertTrue(output.success, output.errormsg)
         self.assertFalse(output.errormsg)

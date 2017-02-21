@@ -16,22 +16,22 @@
 # @@license_version:1.2@@
 
 from mcfw.properties import typed_property, unicode_list_property, long_property, unicode_property
+from rogerthat.to.messaging import KeyValueTO
 from solutions.common.to.qanda import ModuleTO
 
 
 class ModuleAndBroadcastTypesTO(object):
     modules = typed_property('1', ModuleTO, True)
     broadcast_types = unicode_list_property('2')
+    organization_types = typed_property('3', KeyValueTO, True)
 
-    @classmethod
-    def create(cls, modules, broadcast_types):
-        to = cls()
-        to.modules = sorted(modules, key=lambda m: m.label.lower())
-        to.broadcast_types = sorted(broadcast_types)
-        return to
+    def __init__(self, modules=None, broadcast_types=None, organization_types=None):
+        self.modules = sorted(modules, key=lambda m: m.label.lower())
+        self.broadcast_types = sorted(broadcast_types)
+        self.organization_types = organization_types
 
 
-class AssociationStatisticTO(object):
+class ServiceStatisticTO(object):
     future_events_count = long_property('1')
     broadcasts_last_month = long_property('2')
     static_content_count = long_property('3')
@@ -48,29 +48,23 @@ class AssociationStatisticTO(object):
         return to
 
 
-class ServiceTO(object):
+class ServiceListTO(object):
     service_email = unicode_property('0')
     name = unicode_property('1')
-    statistics = typed_property('2', AssociationStatisticTO)
+    statistics = typed_property('2', ServiceStatisticTO)
     modules = unicode_list_property('3')
 
-    @staticmethod
-    def create(service_email, name, statistics, modules):
-        service = ServiceTO()
-        service.service_email = service_email
-        service.name = name
-        service.statistics = statistics
-        service.modules = modules
-        return service
+    def __init__(self, service_email=None, name=None, statistics=None, modules=None):
+        self.service_email = service_email
+        self.name = name
+        self.statistics = statistics
+        self.modules = modules
 
 
-class AssociationsTO(object):
-    associations = typed_property('1', ServiceTO, True)
+class ServicesTO(object):
+    services = typed_property('1', ServiceListTO, True)
     generated_on = long_property('2')
 
-    @classmethod
-    def create(cls, associations, generated_on):
-        obj = cls()
-        obj.associations = associations
-        obj.generated_on = generated_on
-        return obj
+    def __init__(self, services=None, generated_on=None):
+        self.services = services
+        self.generated_on = generated_on

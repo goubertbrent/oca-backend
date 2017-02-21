@@ -859,7 +859,7 @@ class SolutionEmailSettingsTO(object):
         return to
 
 
-class AssociationTO(object):
+class ServiceTO(object):
     customer_id = long_property('1')
     name = unicode_property('2')
     address1 = unicode_property('3')
@@ -871,30 +871,32 @@ class AssociationTO(object):
     language = unicode_property('9')
     modules = unicode_list_property('10')
     broadcast_types = unicode_list_property('11')
+    organization_type = long_property('12')
+    vat = unicode_property('13')
 
-    @staticmethod
-    def create(customer_id, name, address1, address2, zip_code, city, user_email, telephone, language, modules,
-               broadcast_types):
-        a = AssociationTO()
-        a.customer_id = customer_id
-        a.name = name
-        a.address1 = address1
-        a.address2 = address2
-        a.zip = zip_code
-        a.city = city
-        a.user_email = user_email
-        a.telephone = telephone
-        a.language = language
-        a.modules = modules
-        a.broadcast_types = broadcast_types
-        return a
+    def __init__(self, customer_id=None, name=None, address1=None, address2=None, zip_code=None, city=None,
+                 user_email=None, telephone=None, language=None, modules=None, broadcast_types=None,
+                 organization_type=None, vat=None):
+        self.customer_id = customer_id
+        self.name = name
+        self.address1 = address1
+        self.address2 = address2
+        self.zip = zip_code
+        self.city = city
+        self.user_email = user_email
+        self.telephone = telephone
+        self.language = language
+        self.modules = modules
+        self.broadcast_types = broadcast_types
+        self.organization_type = organization_type
+        self.vat = vat
 
 
 class ImageReturnStatusTO(ReturnStatusTO):
     image_id = long_property('51')
 
     @classmethod
-    def create(cls, success, errormsg, image_id):
+    def create(cls, success=True, errormsg=None, image_id=None):
         r = super(ImageReturnStatusTO, cls).create(success=success, errormsg=errormsg)
         r.image_id = image_id
         return r
