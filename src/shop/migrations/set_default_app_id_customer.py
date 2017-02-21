@@ -30,7 +30,7 @@ def _get_customer_keys():
 
 def _task_set_default_app_id(customer_key):
     def trans():
-        si = db.get(customer_key)
-        si.default_app_id = si.app_id
-        si.put()
+        customer = db.get(customer_key)
+        customer.default_app_id = customer.app_id
+        customer.put()
     db.run_in_transaction(trans)

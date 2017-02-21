@@ -320,7 +320,7 @@ class Customer(db.Model):
     organization_type = db.IntegerProperty(default=ServiceProfile.ORGANIZATION_TYPE_PROFIT)
     migration_job = db.StringProperty(indexed=False)
     prospect_id = db.StringProperty()
-    default_app_id = db.StringProperty(indexed=False)
+    default_app_id = db.StringProperty()
     app_ids = db.StringListProperty()
     extra_apps_count = db.IntegerProperty(indexed=False)
     subscription_type = db.IntegerProperty(indexed=False, default=-1)
@@ -448,7 +448,15 @@ class Customer(db.Model):
 
     @classmethod
     def list_enabled_by_app(cls, app_id):
-        return cls.all().filter('app_ids', app_id).filter('service_disabled_at', 0)
+        return cls.all().filter('default_app_id', app_id) \
+            .filter('service_disabled_at', 0) \
+            .filter('organization_type >', 0)
+
+    @classmethod
+    def list_enabled_by_organization_type_in_app(cls, app_id, organization_type):
+        return cls.all().filter('default_app_id', app_id) \
+            .filter('service_disabled_at', 0) \
+            .filter('organization_type', organization_type)
 
     @property
     def disabled_reason_str(self):
@@ -499,6 +507,20 @@ class Customer(db.Model):
         return Customer.all()\
             .filter('app_ids', app_id)
 
+    @property
+    def editable_organization_types(self):
+        """
+            The organization types of the services that this service can create/edit via the dashboard
+        Returns:
+
+        """
+        org_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
+        if self.country == 'BE':
+            org_types.extend([ServiceProfile.ORGANIZATION_TYPE_PROFIT, ServiceProfile.ORGANIZATION_TYPE_EMERGENCY])
+        return org_types
+
+    def can_only_edit_organization_type(self, organization_type):
+        return len(self.editable_organization_types) == 1 and self.editable_organization_types[0] == organization_type
 
 class Contact(db.Model):
     first_name = db.StringProperty()

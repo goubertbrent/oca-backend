@@ -18,6 +18,7 @@
 from google.appengine.ext import db
 
 
+# This is not limited to associations anymore, can contain any service
 class AssociationStatistic(db.Model):
     customer_emails = db.StringListProperty(indexed=False)  # association service emails
     future_events_count = db.ListProperty(int, indexed=False)

@@ -17,8 +17,10 @@
  */
 (function () {
     'use strict';
-    var services = [], generatedOn, isWaitingForProvisionUpdate = false;
-    LocalCache.services = {};
+    var generatedOn, isWaitingForProvisionUpdate = false;
+    LocalCache.services = {
+        services: []
+    };
 
     init();
 
@@ -105,7 +107,7 @@
     }
 
     function serviceDeleted(serviceEmail) {
-        services = services.filter(function (a) {
+        LocalCache.services.services = LocalCache.services.services.filter(function (a) {
             return a.service_email !== serviceEmail;
         });
         renderServicesList();
@@ -206,24 +208,25 @@
     }
 
     function getServices(callback) {
-        if (services.length) {
-            callback(services);
+        if (LocalCache.services.services.length) {
+            callback(LocalCache.services.services);
             return;
         }
         $('#services-content').html(TMPL_LOADING_SPINNER);
         sln.call({
             url: '/common/services/get_all',
             success: function (data) {
-                services = data.services;
+                LocalCache.services.services = data.services;
                 generatedOn = data.generated_on;
-                for (var i = 0; i < services.length; i++) {
-                    services[i].statistics.lastQuestionAnsweredDate = sln.format(new Date(services[i].statistics.last_unanswered_question_timestamp * 1000));
-                    services[i].hasAgenda = services[i].modules.indexOf('agenda') !== -1;
-                    services[i].hasQA = services[i].modules.indexOf('ask_question') !== -1;
-                    services[i].hasBroadcast = services[i].modules.indexOf('broadcast') !== -1;
-                    services[i].hasStaticContent = services[i].modules.indexOf('static_content') !== -1;
+                for (var i = 0; i < LocalCache.services.services.length; i++) {
+                    var service = LocalCache.services.services[i];
+                    service.statistics.lastQuestionAnsweredDate = sln.format(new Date(service.statistics.last_unanswered_question_timestamp * 1000));
+                    service.hasAgenda = service.modules.indexOf('agenda') !== -1;
+                    service.hasQA = service.modules.indexOf('ask_question') !== -1;
+                    service.hasBroadcast = service.modules.indexOf('broadcast') !== -1;
+                    service.hasStaticContent = service.modules.indexOf('static_content') !== -1;
                 }
-                callback(services);
+                callback(LocalCache.services.services);
             }
         });
     }
@@ -272,7 +275,7 @@
     }
 
     function reloadServiceList() {
-        services = [];
+        LocalCache.services.services = [];
         window.location.hash = '#/services';
     }
 

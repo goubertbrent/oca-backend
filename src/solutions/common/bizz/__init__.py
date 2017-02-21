@@ -82,8 +82,9 @@ from xhtml2pdf import pisa
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
 CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
-MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Events', u'Info sessions',
-                            u'News'] + CITY_APP_BROADCAST_TYPES
+ASSOCIATION_BROADCAST_TYPES = [u'News', u'Events']
+MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Info sessions'] + CITY_APP_BROADCAST_TYPES \
+                           + ASSOCIATION_BROADCAST_TYPES
 DEFAULT_BROADCAST_TYPES = [item for item in MERCHANT_BROADCAST_TYPES if item not in CITY_APP_BROADCAST_TYPES]
 
 try:
@@ -145,6 +146,7 @@ class SolutionModule(Enum):
     # Modules allowed for static content subscriptions
     STATIC_MODULES = {WHEN_WHERE, BILLING, LOYALTY}
     # These are the modules that the customer or cityapp service of the customer can choose themselves
+    ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
                         STATIC_CONTENT}

@@ -38,7 +38,7 @@ from shop.exceptions import NotOperatingInCountryException, EmptyValueException,
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.models import Customer, Contact, Product
 from solutions import translate, SOLUTION_COMMON
-from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES
+from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
@@ -48,25 +48,40 @@ from solutions.common.to.qanda import ModuleTO
 from solutions.flex.bizz import get_services_statistics
 
 
+def get_allowed_broadcast_types(city_customer):
+    """
+    Args:
+        city_customer (Customer)
+    """
+    if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
+        return ASSOCIATION_BROADCAST_TYPES
+    else:
+        return DEFAULT_BROADCAST_TYPES
+
+
+def get_allowed_modules(city_customer):
+    """
+    Args:
+        city_customer (Customer)
+    """
+    if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
+        return SolutionModule.ASSOCIATION_MODULES
+    else:
+        return SolutionModule.POSSIBLE_MODULES
+
+
 @rest("/common/services/get_defaults", "get", read_only_access=True)
 @returns(ModuleAndBroadcastTypesTO)
 @arguments()
 def get_modules_and_broadcast_types():
-    service_user = users.get_current_user()
-    lang = get_solution_settings(service_user).main_language
+    city_service_user = users.get_current_user()
+    city_customer = get_customer(city_service_user)
+    lang = get_solution_settings(city_service_user).main_language
     modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
-               SolutionModule.POSSIBLE_MODULES]
-    broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in DEFAULT_BROADCAST_TYPES]
-    organization_types = [
-        KeyValueTO(unicode(ServiceProfile.ORGANIZATION_TYPE_PROFIT),
-                   ServiceProfile.localized_singular_organization_type(ServiceProfile.ORGANIZATION_TYPE_PROFIT, lang)),
-        KeyValueTO(unicode(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT),
-                   ServiceProfile.localized_singular_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT,
-                                                                       lang)),
-        KeyValueTO(unicode(ServiceProfile.ORGANIZATION_TYPE_EMERGENCY),
-                   ServiceProfile.localized_singular_organization_type(ServiceProfile.ORGANIZATION_TYPE_EMERGENCY,
-                                                                       lang))
-    ]
+               get_allowed_modules(city_customer)]
+    broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in get_allowed_broadcast_types(city_customer)]
+    organization_types = [KeyValueTO(unicode(t), ServiceProfile.localized_singular_organization_type(t, lang))
+                          for t in city_customer.editable_organization_types]
     return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
 
 
@@ -74,16 +89,22 @@ def get_modules_and_broadcast_types():
 @returns(ServicesTO)
 @arguments()
 def get_services():
+    city_service_user = users.get_current_user()
     si = system.get_identity()
     # get all the services in this city
     app_id = si.app_ids[0]
-    service_customers = list(Customer.list_enabled_by_app(app_id))
+    city_customer = get_customer(city_service_user)
+    if len(city_customer.editable_organization_types) == 1:
+        organization_type = city_customer.editable_organization_types[0]
+        service_customers = list(Customer.list_enabled_by_organization_type_in_app(app_id, organization_type))
+    else:
+        service_customers = list(Customer.list_enabled_by_app(app_id))
     services = []
     statistics = get_services_statistics(app_id)
-    sln_settings_keys = [SolutionSettings.create_key(users.get_current_user())]
+    sln_settings_keys = [SolutionSettings.create_key(city_service_user)]
     for customer in service_customers:
         if not customer.service_email:
-            logging.error('Customer %s has app_ids, but has no service!', customer.name)
+            logging.error('Customer %d (%s) has default_app_id, but has no service!', customer.id, customer.name)
         elif customer.app_id == app_id:
             sln_settings_keys.append(SolutionSettings.create_key(users.User(customer.service_email)))
     sln_settings_list = db.get(sln_settings_keys)
@@ -123,12 +144,14 @@ def get_services():
 def get_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
-    if not city_customer.organization_type == OrganizationType.CITY:
-        logging.warn(u'Customer %s tried to get service information for service' % service_email)
-        return
-    customer = Customer.get_by_service_email(service_email)
-    contact = Contact.get_one(customer.key())
     service_user = users.User(email=service_email)
+    customer = Customer.get_by_service_email(service_email)
+    if city_customer.organization_type != OrganizationType.CITY or (
+                customer and customer.organization_type not in city_customer.editable_organization_types):
+        logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
+        lang = get_solution_settings(city_service_user).main_language
+        return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
+    contact = Contact.get_one(customer.key())
     solution_settings = get_solution_settings(service_user)
     return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
                      customer.user_email, contact.phone_number, solution_settings.main_language,
@@ -148,26 +171,34 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     city_sln_settings = get_solution_settings(city_service_user)
     lang = city_sln_settings.main_language
     customer_key = None
-    customer = None
+    customer = Customer.get_by_id(customer_id) if customer_id else None
     # check if the current user is in fact a city app
-    if not city_customer.organization_type == OrganizationType.CITY:
-        logging.warn(u'Customer %s tried to save service information for service' % customer_id)
+    if city_customer.organization_type != OrganizationType.CITY or (
+                customer and customer.organization_type not in city_customer.editable_organization_types):
+        logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
+    if not customer and organization_type not in city_customer.editable_organization_types:
+        organization_type = city_customer.editable_organization_types[0]
     success1 = False
     error_msg = None
     email_changed = False
     is_new_service = False
 
     mods = [m for m in SolutionModule.MANDATORY_MODULES]
-    mods.extend([m for m in modules if m in SolutionModule.POSSIBLE_MODULES])
+    mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
     modules = list(set(mods))
+    broadcast_types = [b for b in broadcast_types if b in get_allowed_broadcast_types(city_customer)]
 
     try:
+        if customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
+            product_code = Product.PRODUCT_SUBSCRIPTION_ASSOCIATION
+        else:
+            product_code = Product.PRODUCT_FREE_SUBSCRIPTION
         (customer, service, email_changed, is_new_service) \
             = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                                         modules, broadcast_types, organization_type, city_customer.app_id,
                                         city_sln_settings.currency, city_customer.country, city_customer.team_id,
-                                        Product.PRODUCT_FREE_SUBSCRIPTION, customer_id, vat)
+                                        product_code, customer_id, vat)
         customer_key = customer.key()
         success1 = True
     except EmptyValueException as ex:
@@ -229,7 +260,13 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
 @returns(ReturnStatusTO)
 @arguments(service_email=unicode)
 def rest_delete_service(service_email):
+    city_service_user = users.get_current_user()
+    city_customer = get_customer(city_service_user)
     customer = Customer.get_by_service_email(service_email)
+    if city_customer.organization_type != OrganizationType.CITY \
+            or customer.organization_type not in city_customer.editable_organization_types:
+        logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
+        return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_ASSOCIATION_BY_CITY], True)
     send_message(users.get_current_user(),
                  [{u"type": u"solutions.common.services.deleted", u'service_email': service_email}])

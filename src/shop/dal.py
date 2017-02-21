@@ -31,6 +31,12 @@ from shop.models import Customer, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, Le
 @returns(Customer)
 @arguments(service_user=users.User)
 def get_customer(service_user):
+    """
+    Args:
+        service_user (users.User): service user
+    Returns:
+        customer(Customer)
+    """
     return Customer.get_by_service_email(service_user.email())
 
 

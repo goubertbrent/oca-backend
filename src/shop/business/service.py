@@ -19,10 +19,12 @@ from google.appengine.ext import db
 
 from rogerthat.bizz.profile import set_service_disabled as rogerthat_set_service_disabled, \
     set_service_enabled as rogerthat_re_enable_service
+from rogerthat.dal.service import get_service_identity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.utils import now
 from mcfw.rpc import arguments, returns
+from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import NoSubscriptionException
 from shop.models import Customer
 from solutions.common.dal import get_solution_settings
@@ -54,7 +56,8 @@ def set_service_disabled(customer_or_id, disabled_reason_int):
 
     service_user = users.User(customer.service_email)
     sln_settings = get_solution_settings(service_user)
-
+    customer.default_app_id = None
+    customer.app_ids = []
     customer.service_disabled_at = now()
     customer.disabled_reason_int = disabled_reason_int
     customer.subscription_cancel_pending_date = 0
@@ -73,12 +76,17 @@ def set_service_enabled(customer_id):
         raise NoSubscriptionException(customer)
 
     service_user = users.User(customer.service_email)
+    service_identity_user = create_service_identity_user(service_user)
+    si = get_service_identity(service_identity_user)
     sln_settings = get_solution_settings(service_user)
     sln_settings.service_disabled = False
     customer.service_disabled_at = 0
     customer.disabled_reason = u''
     customer.disabled_reason_int = 0
     customer.subscription_cancel_pending_date = 0
+    # restore app ids
+    customer.app_ids = si.app_ids
+    customer.default_app_id = si.app_id
     db.put([customer, sln_settings])
 
     rogerthat_re_enable_service(service_user)

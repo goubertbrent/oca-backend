@@ -848,3 +848,9 @@ indexes:
   - name: deleted
   - name: pending
   - name: end_timestamp
+
+- kind: Customer
+  properties:
+  - name: default_app_id
+  - name: service_disabled_at
+  - name: organization_type
