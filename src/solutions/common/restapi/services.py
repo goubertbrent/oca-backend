@@ -188,6 +188,8 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
     modules = list(set(mods))
     broadcast_types = [b for b in broadcast_types if b in get_allowed_broadcast_types(city_customer)]
+    if SolutionModule.BROADCAST in modules and not broadcast_types:
+        modules.remove(SolutionModule.BROADCAST)
 
     try:
         if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
@@ -195,7 +197,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
         else:
             product_code = Product.PRODUCT_FREE_SUBSCRIPTION
         (customer, service, email_changed, is_new_service) \
-            = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
+ = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                                         modules, broadcast_types, organization_type, city_customer.app_id,
                                         city_sln_settings.currency, city_customer.country, city_customer.team_id,
                                         product_code, customer_id, vat)
