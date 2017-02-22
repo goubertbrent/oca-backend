@@ -598,7 +598,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None):
             if must_send_updates_to_flex:
                 channel.send_message(cur_user, 'common.provision.failed',
                                      errormsg=common_translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                               'failed_to_create_association'))
+                                                               'failed_to_create_service'))
             if broadcast_to_users:
                 channel.send_message(broadcast_to_users, 'shop.provision.failed')
             raise

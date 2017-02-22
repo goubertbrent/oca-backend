@@ -48,7 +48,6 @@ from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import APPENGINE_APP_ID
 from rogerthat.rpc.service import BusinessException
-from rogerthat.service.api import system
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, FlowMemberResultCallbackResultTO, \
@@ -69,7 +68,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision, put_branding, \
     assign_app_user_role, revoke_app_user_role
 from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
-    get_solution_main_branding, get_solution_calendars_for_user, get_admins_of_solution_calendars
+    get_solution_main_branding, get_solution_calendars_for_user
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, EventGuest, SolutionCalendarAdmin, \
     SolutionCalendarGoogleSync, SolutionGoogleCredentials
