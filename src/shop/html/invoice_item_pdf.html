@@ -88,7 +88,7 @@
         </tr>
         {% for i in order_items %}
         <tr>
-            <td>{{ i.product_code }}</td>
+            <td>{{ i.clean_product_code }}</td>
             <td><p>{{ i.product_description }} </p> <i>{{ i.product_comment }}</i></td>
             <td>{{ i.price_in_euro }} {{ customer.legal_entity.currency_code }}</td>
             <td>{% if i.price == 0 %}&nbsp;{% else %}{% if recurrent %}{{ charge.subscription_extension_length }}

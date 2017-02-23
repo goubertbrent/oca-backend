@@ -174,7 +174,7 @@
             {% for order_item in items_per_customer[customer_id] %}
                 <tr>
                     <td>{{ customers[customer_id].name }}</td>
-                    <td>{{ order_item.product_code }}</td>
+                    <td>{{ order_item.clean_product_code }}</td>
                     <td>
                         {{ order_item.format_price(legal_entity.currency_code, mobicage_legal_entity.country_code, SUBSCRIPTION_RESELLER_RATIO) }}</td>
                     <td>{{ order_item.count }}</td>

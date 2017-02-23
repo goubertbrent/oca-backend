@@ -17,7 +17,6 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db
-
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -36,15 +35,15 @@ from shop.exceptions import DuplicateCustomerNameException
 from shop.exceptions import NotOperatingInCountryException, EmptyValueException, InvalidEmailFormatException, \
     NoPermissionException
 from shop.jobs.migrate_user import migrate as migrate_user
-from shop.models import Customer, Contact, Product
+from shop.models import Customer, Contact, Product, RegioManagerTeam
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
+from solutions.common.to.qanda import ModuleTO
 from solutions.common.to.services import ModuleAndBroadcastTypesTO, ServiceStatisticTO, ServicesTO, \
     ServiceListTO
-from solutions.common.to.qanda import ModuleTO
 from solutions.flex.bizz import get_services_statistics
 
 
@@ -196,6 +195,20 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
             product_code = Product.PRODUCT_SUBSCRIPTION_ASSOCIATION
         else:
             product_code = Product.PRODUCT_FREE_SUBSCRIPTION
+
+        team = RegioManagerTeam.get_by_id(city_customer.team_id)
+        if not team.legal_entity.is_mobicage:
+            if product_code == Product.PRODUCT_SUBSCRIPTION_ASSOCIATION:
+                from shop.products import create_sjup_product
+                p = create_sjup_product(team.legal_entity_id, "%s." % team.legal_entity_id)
+                p.put()
+                product_code = p.code
+            else:
+                from shop.products import create_free_product
+                p = create_free_product(team.legal_entity_id, "%s." % team.legal_entity_id)
+                p.put()
+                product_code = p.code
+
         (customer, service, email_changed, is_new_service) \
  = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                                         modules, broadcast_types, organization_type, city_customer.app_id,
@@ -267,6 +280,7 @@ def rest_delete_service(service_email):
     customer = Customer.get_by_service_email(service_email)
     if city_customer.organization_type != OrganizationType.CITY \
             or customer.organization_type not in city_customer.editable_organization_types:
+        lang = get_solution_settings(city_service_user).main_language
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_ASSOCIATION_BY_CITY], True)

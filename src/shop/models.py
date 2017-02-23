@@ -744,6 +744,12 @@ class OrderItem(db.Expando):
         return Order.get(self.order_key)
 
     @property
+    def clean_product_code(self):
+        if "." not in self.product_code:
+            return self.product_code
+        return self.product_code.split(".", 1)[1]
+
+    @property
     @db.non_transactional
     def product(self):
         return Product.get_by_key_name(self.product_code)
