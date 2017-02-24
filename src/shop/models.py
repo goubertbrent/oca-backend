@@ -51,7 +51,7 @@ def _normalize_vat_be(vat):
     vat = vat[2:]
     vat = "".join((c for c in vat if c in "1234567890"))
     vat = country_code + vat
-    bizz_check(len(vat) == 12, "This vat number could not be validated for Belgium.")
+    bizz_check(len(vat) == 12, "This vat number could not be validated for Belgium (BE 0123 456 789).")
     return vat
 
 def _normalize_vat_nl(vat):
@@ -64,7 +64,7 @@ def _normalize_vat_nl(vat):
     vat = "".join((c for c in vat if c in "1234567890B"))
     logging.info("vat: " + vat)
     vat = country_code + vat
-    bizz_check(re.match("NL[1234567890]{9,9}B[1234567890]{2,2}", vat), "This vat number could not be validated for the Netherlands.")
+    bizz_check(re.match("NL[1234567890]{9,9}B[1234567890]{2,2}", vat), "This vat number could not be validated for the Netherlands (NL999999999B99).")
     return vat
 
 def _normalize_vat_fr(vat):
@@ -74,7 +74,7 @@ def _normalize_vat_fr(vat):
     vat = vat[2:]
     vat = "".join((c for c in vat if c in "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
     vat = country_code + vat
-    bizz_check(len(vat) == 13, "This vat number could not be validated for France.")
+    bizz_check(len(vat) == 13, "This vat number could not be validated for France (FR99 999999999).")
     return vat
 
 def _normalize_vat_es(vat):
@@ -84,7 +84,7 @@ def _normalize_vat_es(vat):
     vat = vat[2:]
     vat = "".join((c for c in vat if c in "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
     vat = country_code + vat
-    bizz_check(len(vat) == 11, "This vat number could not be validated for Spain.")
+    bizz_check(len(vat) == 11, "This vat number could not be validated for Spain (ES99 999999999).")
     return vat
 
 _vat_validators = dict(BE=_normalize_vat_be,
