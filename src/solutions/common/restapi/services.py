@@ -227,9 +227,9 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
         error_msg = translate(lang, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
     except NotOperatingInCountryException as ex:
         error_msg = translate(lang, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
-    except BusinessException:
-        logging.exception('Failed to create service, unexpected BusinessException')
-        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
+    except BusinessException as ex:
+        logging.debug('Failed to create service, BusinessException', exc_info=True)
+        error_msg = ex.message
     except:
         logging.exception('Failed to create service')
         error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
