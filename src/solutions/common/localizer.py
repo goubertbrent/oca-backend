@@ -919,6 +919,7 @@ translations = \
          u'please_select_a_topping': u'Please select a topping.',
          u'please_select_attachment': u'Please select an attachment',
          u'please_select_excel_file': u'Please select an Excel file',
+         u'please_supply_1_broadcast_type': 'Please supply at least 1 broadcast type',
          u'postdiscription': u'This is the outroduction of',
          u'prediscription': u'This is the introduction of',
          u'previous_news_items': u'Previous news items',

@@ -248,6 +248,10 @@
     function putService() {
         var formValues = getServiceFormValues();
         currentService = formValues;
+        if(currentService.modules.indexOf('broadcast') !== -1 && !currentService.broadcast_types.length) {
+            sln.alert(T('please_supply_1_broadcast_type'), null, CommonTranslations.ERROR);
+            return;
+        }
         if (currentService.mode === 'edit') {
             formValues.service_email = currentService.service_email;
         }
