@@ -174,7 +174,8 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     # check if the current user is in fact a city app
     if city_customer.organization_type != OrganizationType.CITY or (
                 customer and customer.organization_type not in city_customer.editable_organization_types):
-        logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
+        if customer:
+            logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     if not customer and organization_type not in city_customer.editable_organization_types:
         organization_type = city_customer.editable_organization_types[0]
