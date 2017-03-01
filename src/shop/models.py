@@ -50,6 +50,8 @@ def _normalize_vat_be(vat):
     bizz_check(country_code == "BE", "This is not a Belgian VAT number (BE 0123 456 789).")
     vat = vat[2:]
     vat = "".join((c for c in vat if c in "1234567890"))
+    if len(vat) == 9:
+        vat = '0' + vat
     vat = country_code + vat
     bizz_check(len(vat) == 12, "This vat number could not be validated for Belgium (BE 0123 456 789).")
     return vat
