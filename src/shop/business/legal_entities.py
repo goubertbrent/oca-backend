@@ -24,15 +24,13 @@ from shop.business.i18n import CURRENCIES
 from shop.exceptions import EmptyValueException
 from shop.models import LegalEntity, Customer, RegioManagerTeam
 
-# A 500$ reseller order will make us 250$
-SUBSCRIPTION_RESELLER_RATIO = 0.5
 
 @returns(LegalEntity)
 @arguments(entity_id=(int, long, NoneType), name=unicode, address=unicode, postal_code=unicode, city=unicode,
            country_code=unicode, phone=unicode, email=unicode, vat_percent=(int, long), vat_number=unicode,
-           currency_code=unicode, iban=unicode, bic=unicode, terms_of_use=unicode)
+           currency_code=unicode, iban=unicode, bic=unicode, terms_of_use=unicode, revenue_percentage=(int, long))
 def put_legal_entity(entity_id, name, address, postal_code, city, country_code, phone, email, vat_percent, vat_number,
-                     currency_code, iban, bic, terms_of_use):
+                     currency_code, iban, bic, terms_of_use, revenue_percentage):
     fx_arguments = locals()
     for k, v in fx_arguments.items():
         if not v and k and k != 'entity_id':

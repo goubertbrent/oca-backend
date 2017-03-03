@@ -34,7 +34,6 @@ from mcfw.rpc import arguments, returns
 from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
 from shop.bizz import send_email
 from shop.business.i18n import SHOP_DEFAULT_LANGUAGE
-from shop.business.legal_entities import SUBSCRIPTION_RESELLER_RATIO
 from shop.dal import get_mobicage_legal_entity
 from shop.models import Invoice, Customer, OrderItem, Product, LegalEntity, Order, Charge, OrderNumber, ChargeNumber, \
     RegioManagerTeam, InvoiceNumber
@@ -47,19 +46,27 @@ except ImportError:
     from StringIO import StringIO
 
 
-
-
 def export_reseller_invoices(start_date, end_date, do_send_email):
     run_job(qry, [], create_reseller_invoice_for_legal_entity, [start_date, end_date, do_send_email])
 
 
 def qry():
-    return LegalEntity.all().filter('is_mobicage', False)
+    return LegalEntity.list_billable()
 
 
 @returns()
 @arguments(legal_entity=LegalEntity, start_date=(int, long), end_date=(int, long), do_send_email=bool)
 def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date, do_send_email=True):
+    """
+    Args:
+        legal_entity (LegalEntity) 
+        start_date (long)
+        end_date (long)
+        do_send_email (bool)
+    """
+    if legal_entity.is_mobicage:
+        # To avoid a composite index we don't filter on is_mobicage
+        return
     solution_server_settings = get_solution_server_settings()
     from_email = solution_server_settings.shop_no_reply_email
     to_emails = solution_server_settings.shop_payment_admin_emails
@@ -81,7 +88,7 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
         if do_send_email:
             send_email(message, from_email, to_emails, [], reply_to, message)
         return
-    items_per_customer = dict()
+    items_per_customer = {}
     customers_to_get = set()
     products = {p.code: p for p in Product.list_by_legal_entity(legal_entity.id)}
     for invoice in invoices:
@@ -92,7 +99,7 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
             # We're only interested in subscription items
             if product.is_subscription or product.is_subscription_extension or product.is_subscription_discount:
                 if invoice.customer_id not in items_per_customer:
-                    items_per_customer[invoice.customer_id] = list()
+                    items_per_customer[invoice.customer_id] = []
                     customers_to_get.add(Customer.create_key(invoice.customer_id))
                 items_per_customer[invoice.customer_id].append(item)
             else:
@@ -105,12 +112,13 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
             send_email(message, from_email, to_emails, [], reply_to, message)
         return
     customers = {c.id: c for c in db.get(customers_to_get)}
-    product_totals = dict()
+    product_totals = {}
     for customer_id in items_per_customer:
         items = items_per_customer[customer_id]
         for item in items:
             if item.product_code not in product_totals:
-                product_totals[item.product_code] = dict(count=0, price=int(item.price * SUBSCRIPTION_RESELLER_RATIO))
+                product_totals[item.product_code] = {'count': 0,
+                                                     'price': int(item.price * legal_entity.revenue_percent)}
             product_totals[item.product_code]['count'] += item.count
     total_amount = 0
     for product in product_totals:
@@ -141,7 +149,7 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
         'language': SHOP_DEFAULT_LANGUAGE,
         'from_date': from_date,
         'until_date': until_date,
-        'SUBSCRIPTION_RESELLER_RATIO': SUBSCRIPTION_RESELLER_RATIO,
+        'revenue_percent': legal_entity.revenue_percent,
         'vat_amount_formatted': vat_amount_formatted,
         'total_amount_formatted': total_amount_formatted,
         'logo_path': '../html/img/osa_white_en_250.jpg',

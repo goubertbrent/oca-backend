@@ -1492,6 +1492,7 @@ class LegalEntity(CachedModelMixIn, db.Model):
     currency_code = db.StringProperty(indexed=False, default=u'EUR')
     customer_id = db.IntegerProperty(indexed=False)
     contact_id = db.IntegerProperty(indexed=False)
+    revenue_percentage = db.IntegerProperty(default=50)  # Their cut in %
 
     @property
     def is_reseller(self):
@@ -1501,9 +1502,13 @@ class LegalEntity(CachedModelMixIn, db.Model):
     def id(self):
         return self.key().id()
 
-    @classmethod
-    def create_key(cls, legal_entity_id):
-        return db.Key.from_path(cls.kind(), legal_entity_id)
+    @property
+    def currency(self):
+        return get_currency_symbol(self.currency_code, SHOP_DEFAULT_LANGUAGE)
+
+    @property
+    def revenue_percent(self):
+        return self.revenue_percentage / 100.
 
     def country(self, language):
         return Locale(language).territories[self.country_code]
@@ -1512,6 +1517,10 @@ class LegalEntity(CachedModelMixIn, db.Model):
         if self.is_mobicage:
             from shop.dal import get_mobicage_legal_entity
             invalidate_cache(get_mobicage_legal_entity)
+
+    @classmethod
+    def create_key(cls, legal_entity_id):
+        return db.Key.from_path(cls.kind(), legal_entity_id)
 
     @classmethod
     def list_all(cls):
@@ -1526,9 +1535,6 @@ class LegalEntity(CachedModelMixIn, db.Model):
         from shop.dal import get_mobicage_legal_entity
         return get_mobicage_legal_entity()  # this method is cached
 
-    @property
-    def currency(self):
-        return get_currency_symbol(self.currency_code, SHOP_DEFAULT_LANGUAGE)
 
     def get_or_create_customer(self):
         if self.customer_id:
@@ -1555,6 +1561,9 @@ class LegalEntity(CachedModelMixIn, db.Model):
             self.put()
             return customer
 
+    @classmethod
+    def list_billable(cls):
+        return cls.all().filter('revenue_percentage <', 100)
 
 
 @deserializer

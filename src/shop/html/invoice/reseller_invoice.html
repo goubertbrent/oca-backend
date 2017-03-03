@@ -132,7 +132,7 @@
                 <td><p>{{ products[product_code].description('en') }} </p> <i>
                     {{ products[product_code].default_comment('en') }}</i></td>
                 <td>
-                    {{ products[product_code].format_price(legal_entity.currency_code, mobicage_legal_entity.country_code, SUBSCRIPTION_RESELLER_RATIO) }}</td>
+                    {{ products[product_code].format_price(legal_entity.currency_code, mobicage_legal_entity.country_code, revenue_percent) }}</td>
                 <td>{{ totals['count']}}</td>
                 <td>{{ totals['total_price'] }}</td>
             </tr>
@@ -176,10 +176,10 @@
                     <td>{{ customers[customer_id].name }}</td>
                     <td>{{ order_item.clean_product_code }}</td>
                     <td>
-                        {{ order_item.format_price(legal_entity.currency_code, mobicage_legal_entity.country_code, SUBSCRIPTION_RESELLER_RATIO) }}</td>
+                        {{ order_item.format_price(legal_entity.currency_code, mobicage_legal_entity.country_code, revenue_percent) }}</td>
                     <td>{{ order_item.count }}</td>
                     <td>
-                        {{ order_item.format_total_price(legal_entity.currency_code, mobicage_legal_entity.country_code, SUBSCRIPTION_RESELLER_RATIO) }}</td>
+                        {{ order_item.format_total_price(legal_entity.currency_code, mobicage_legal_entity.country_code, revenue_percent) }}</td>
                 </tr>
             {% endfor %}
         {% endfor %}

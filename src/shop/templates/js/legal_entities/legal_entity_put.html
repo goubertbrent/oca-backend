@@ -22,7 +22,7 @@
                 ${country.name}
             </option>
             {{/each}}
-            </select>
+        </select>
         <label for="entity_phone">Phone number</label>
         <input type="text" id="entity_phone" name="entity_phone" required value="${entity.phone}">
         <label for="entity_email">Email</label>
@@ -30,13 +30,18 @@
         <label for="entity_vat_percent">VAT percent</label>
         <input type="number" id="entity_vat_percent" name="entity_vat_percent" min="0" max="100" required
                value="${entity.vat_percent}">
+        <label for="entity_revenue_percentage">Revenue percentage</label>
+        <input type="number" id="entity_revenue_percentage" name="entity_revenue_percentage" min="0" max="100" required
+               value="${entity.revenue_percentage}">
+        <span class="help-block">100% means that they get 100% of the revenue</span>
         <label for="entity_vat_number">VAT</label>
         <input type="text" id="entity_vat_number" name="entity_vat_number" required value="${entity.vat_number}">
         <label for="entity_currency_code">Currency</label>
         <select id="entity_currency_code" name="entity_currency_code" required>
             {{each(i, currency) CURRENCIES}}
             <option value="${currency.symbol}" {{if currency.symbol === entity.currency_code}}selected{{/if}}>
-                ${currency.name}</option>
+                ${currency.name}
+            </option>
             {{/each}}
         </select>
         <label for="entity_iban">IBAN</label>

@@ -189,7 +189,6 @@ def export_invoices(year, month):
                     item.count = 1
                 i['order_items'] += map(model_to_dict, extension_order_items)
 
-
         i['order_key'] = order_key
         i['currency'] = invoice_model.currency_code
         order_keys.add(order_key)

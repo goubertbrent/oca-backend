@@ -114,6 +114,7 @@ function renderPutLegalEntity(entityId) {
                 values[inputField.name.replace('entity_', '')] = inputField.value;
             });
             values.vat_percent = parseInt(values.vat_percent);
+            values.revenue_percentage = parseInt(values.revenue_percentage);
             if (entity) {
                 values.id = entity.id;
             }

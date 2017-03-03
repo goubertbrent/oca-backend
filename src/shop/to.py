@@ -177,8 +177,8 @@ class ContactReturnStatusTO(ReturnStatusTO):
         r.contact = contact
         return r
 
-class SerializableTO(object):
 
+class SerializableTO(object):
     def __unicode__(self):
         return unicode(serialize_complex_value(self, self.__class__, False))
 
@@ -491,6 +491,7 @@ class AppRightsTO(SerializableTO):
     app_id = unicode_property('1')
     access = unicode_property('2')  # One of RegioManager.ACCESS_*
 
+
 class RegioManagerTeamTO(object):
     id = long_property('1')
     name = unicode_property('2')
@@ -507,6 +508,7 @@ class RegioManagerTeamTO(object):
         to.app_ids = regio_manager_team.app_ids
         to.regio_managers = map(RegioManagerTO.from_model, regio_managers)
         return to
+
 
 class RegioManagerTeamsTO(object):
     unassigned_regio_managers = typed_property('1', RegioManagerTO, True)
@@ -856,6 +858,7 @@ class LegalEntityTO(object):
     is_mobicage = bool_property('14')
     currency = unicode_property('15')
     currency_code = unicode_property('16')
+    revenue_percentage = long_property('17')
 
     @classmethod
     def from_model(cls, model):
@@ -876,6 +879,7 @@ class LegalEntityTO(object):
         to.is_mobicage = model.is_mobicage
         to.currency = model.currency
         to.currency_code = model.currency_code
+        to.revenue_percentage = model.revenue_percentage
         return to
 
 

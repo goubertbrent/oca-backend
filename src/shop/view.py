@@ -702,9 +702,9 @@ def rest_put_legal_entity(entity):
         entity = put_legal_entity(entity.id if entity.id is not MISSING else None, entity.name, entity.address,
                                   entity.postal_code, entity.city, entity.country_code, entity.phone,
                                   entity.email, entity.vat_percent, entity.vat_number, entity.currency_code, entity.iban,
-                                  entity.bic, entity.terms_of_use)
+                                  entity.bic, entity.terms_of_use, entity.revenue_percentage)
         return LegalEntityReturnStatusTO.create(True, None, entity)
-    except BusinessException, exception:
+    except BusinessException as exception:
         return LegalEntityReturnStatusTO.create(False, exception)
 
 
