@@ -1913,6 +1913,13 @@ $(function () {
         function newsFormSubmitted(e) {
             e.preventDefault();
             var data = getNewsFormData();
+            // validate the scheduled date/time again
+            // as the user may publish after the scheduled date/time has passed
+            if(!validateScheduledAt(data)) {
+                sln.alert(T('date_must_be_in_future'), null, CommonTranslations.ERROR);
+                previousStep();
+                return;
+            }
             submitNews(data);
         }
 
