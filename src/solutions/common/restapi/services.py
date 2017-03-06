@@ -186,7 +186,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     mods = [m for m in SolutionModule.MANDATORY_MODULES]
     mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
     modules = list(set(mods))
-    broadcast_types = [b for b in broadcast_types if b in get_allowed_broadcast_types(city_customer)]
+
     if SolutionModule.BROADCAST in modules and not broadcast_types:
         modules.remove(SolutionModule.BROADCAST)
 

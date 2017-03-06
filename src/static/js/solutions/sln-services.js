@@ -116,10 +116,7 @@
     function addBroadcastType() {
         var $this = $('#service-extra-broadcast-type');
         if ($this.val().length > 0) {
-            $('#service-broadcast-types-container')
-                .find('input[type=checkbox]:last')
-                .parent()
-                .after(
+            $('#service-extra-broadcast-type').before(
                     ' <label class="checkbox"><input type="checkbox" name="service-broadcast-types" value="'
                     + $this.val() + '" checked>' + $this.val() + '</label>'
                 );
