@@ -33,7 +33,7 @@ from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException
 from shop.exceptions import NotOperatingInCountryException, EmptyValueException, InvalidEmailFormatException, \
-    NoPermissionException
+    NoPermissionException, ServiceNameTooBigException
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.models import Customer, Contact, Product, RegioManagerTeam
 from solutions import translate, SOLUTION_COMMON
@@ -219,6 +219,8 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
         error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+    except ServiceNameTooBigException:
+        error_msg = translate(lang, SOLUTION_COMMON, 'name_cannot_be_bigger_than_n_characters', n=50)
     except DuplicateCustomerNameException as ex:
         error_msg = translate(lang, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
     except NoPermissionException:

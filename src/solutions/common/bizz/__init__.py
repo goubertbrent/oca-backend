@@ -130,7 +130,7 @@ class SolutionModule(Enum):
         MENU: 'menu',
         ORDER: 'order',
         PHARMACY_ORDER: 'pharmacy_order',
-        SANDWICH_BAR: 'sandwich_bar',
+        SANDWICH_BAR: 'order-sandwich',
         REPAIR: 'module_repair',
         RESTAURANT_RESERVATION: 'restaurant_reservation',
         STATIC_CONTENT: 'static-content',

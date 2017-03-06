@@ -181,6 +181,11 @@ class EmptyValueException(BusinessException):
         BusinessException.__init__(self, "The value \"%s\" is not filled in." % replace_underscores(value_name))
 
 
+class ServiceNameTooBigException(BusinessException):
+    def __init__(self):
+        BusinessException.__init__(self, "Invalid service name (length > 50 characters)")
+
+
 class InvalidLanguageException(BusinessException):
     def __init__(self, lang):
         self.lang = lang

@@ -75,7 +75,7 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
     InvalidAppCountException, InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
     InvalidProductQuantityException, MissingProductDependencyException, DuplicateCustomerNameException, \
     NotOperatingInCountryException, ContactHasOrdersException, ContactHasCreditCardException, \
-    OrderAlreadyCanceledException, NoSupportManagerException, NoPermissionException
+    OrderAlreadyCanceledException, NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity
@@ -568,6 +568,8 @@ def validate_service(service):
         raise EmptyValueException('language')
     if not service.name:
         raise EmptyValueException('first_name')
+    if len(service.name) > 50:
+        raise ServiceNameTooBigException()
     if not service.organization_type:
         raise EmptyValueException('organization_type')
     if not service.phone_number:
