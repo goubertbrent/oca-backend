@@ -1774,6 +1774,7 @@ def get_service(customer_id):
     regio_manager_team = RegioManagerTeam.get_by_id(customer.team_id)
     current_user_apps = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
     svc.current_user_app_infos = [AppInfoTO.fromModel(app) for app in current_user_apps]
+    svc.managed_organization_types = customer.managed_organization_types if customer.managed_organization_types else []
     return svc
 
 

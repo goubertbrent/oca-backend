@@ -633,7 +633,8 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     has_loyalty = True if SolutionModule.LOYALTY in service.modules else False
     if customer.has_loyalty != has_loyalty:
         customer.has_loyalty = has_loyalty
-        customer.put()
+    customer.managed_organization_types = service.managed_organization_types
+    customer.put()
     redeploy = bool(customer.service_email)
     user_existed = False
 
