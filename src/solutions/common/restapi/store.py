@@ -384,7 +384,11 @@ def pay_order():
         channel.send_message(map(users.User, send_to), 'shop.monitoring.signed_order',
                              info=channel_data)
         if should_create_shoptask:
-            deferred.defer(create_task_for_order, customer.team_id, customer.prospect_id, new_order.order_number,
+            prospect_id = customer.prospect_id
+            if prospect_id is None:
+                prospect = create_prospect_from_customer(customer)
+                prospect_id = prospect.id
+            deferred.defer(create_task_for_order, customer.team_id, prospect_id, new_order.order_number,
                            _transactional=True)
         return BoolReturnStatusTO.create(True, None)
 

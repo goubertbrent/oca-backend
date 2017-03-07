@@ -2101,6 +2101,7 @@ def put_regio_manager(current_user, email, name, phone, app_rights, show_in_stat
     return regio_manager
 
 
+@returns(RegioManagerStatistic)
 @arguments(email=unicode)
 def create_stats_for_new_manager(email):
     month_list = list()
@@ -2126,6 +2127,7 @@ def create_stats_for_new_manager(email):
         st.month_revenue.append(int(date.strftime('%Y%m')))
         st.month_revenue.append(month_amount)
     st.put()
+    return st
 
 
 @returns()
@@ -2215,7 +2217,11 @@ def get_regiomanager_statistics():
 def update_regiomanager_statistic(gained_value, manager):
     if not manager:
         return
-    statistic = RegioManagerStatistic.get(RegioManagerStatistic.create_key(manager.email()))
+
+    statistic = db.get(RegioManagerStatistic.create_key(manager.email()))
+    if not statistic:
+        statistic = create_stats_for_new_manager(manager.email())
+
     month_date = int(datetime.datetime.now().strftime('%Y%m'))
     try:
         index = statistic.month_revenue.index(month_date)  # throws error when it doesn't exist yet

@@ -20,15 +20,14 @@ import logging
 import string
 import uuid
 
-import xlwt
 from babel.dates import format_datetime
 from google.appengine.api import search
 from google.appengine.ext import db
-
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from mcfw.utils import normalize_search_string
 from rogerthat.consts import OFFICIALLY_SUPPORTED_COUNTRIES
+from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.rpc import users
@@ -42,6 +41,8 @@ from shop.constants import PROSPECT_INDEX
 from shop.models import Prospect, ShopTask, ShopApp, RegioManagerTeam, Customer, Contact
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import OrganizationType
+import xlwt
+
 
 try:
     from cStringIO import StringIO
@@ -203,7 +204,7 @@ def create_prospect_from_customer(customer):
     prospect.customer_id = customer.id
 
     logging.info('Creating prospect: %s', db.to_dict(prospect, dict(prospect_id=prospect.id)))
-    db.put([customer, prospect])
+    put_and_invalidate_cache(customer, prospect)
     return prospect
 
 
