@@ -20,10 +20,10 @@
 	            </tbody>
 	        </table>
         </div>
-       
+
        <legend>{% translate language, "common", "Settings" %}</legend>
-       
-       <select id="loyalty-type" style="{% if not isShopUser or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}display: none;{% endif %}">
+
+       <select id="loyalty-type" style="{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}display: none;{% endif %}">
             <option value="1">{% translate language, "common", "Revenue discount" %}</option>
             <option value="2">{% translate language, "common", "Lottery" %}</option>
             <option value="3">{% translate language, "common", "Stamp card" %}</option>
@@ -34,7 +34,7 @@
            <h5>{% translate language, "common", "Revenue discount" %}</h5>
            <label>{% translate language, "common", "Visits" %}</label>
            <input class="span4" id="revenue-discount-visits" type="number" step="1">
-                        
+
            <label>{% translate language, "common", "Discount" %} %</label>
            <input class="span4" id="revenue-discount-discount" type="number" step="1">
            <br>
@@ -60,26 +60,26 @@
            </label>
            <span class="help-block">{% translate language, 'common', 'loyalty-stamps-auto-redeem-help' %}</span>
        </div>
-       
+
         <h5>{% translate language, "common", "Website" %} ({% translate language, "common", "for_example" %} <a href="http://www.onzestadapp.be">http://www.onzestadapp.be</a>)</h5>
         <div class="control-group">
             <div class="controls">
-               <input class="span4" type="text" id="loyalty-website" placeholder="http://www.onzestadapp.be" /> 
+               <input class="span4" type="text" id="loyalty-website" placeholder="http://www.onzestadapp.be" />
                 <div id="loyalty-website-validating" class="alert alert-info" style="display: none;">
                     <h4>{% translate language, "common", "Validating" %}</h4>
-    
+
                     <div style="margin-bottom: 0;" class="progress progress-striped active margin-top">
                         <div class="bar" style="width: 100%;"></div>
                 </div>
                 </div>
                 <div id="loyalty-website-error" class="alert alert-warning" style="display: none;">
                     <h4>{% translate language, "common", "warning" %}</h4>
-    
+
                     <p id="loyalty-website-error-msg"></p>
                 </div>
             </div>
         </div>
-        
+
         <button id="saveLoyaltySettings" action="save" class="btn btn-success">{% translate language, "common", "Save" %}</button>
         <br><br><br><br>
         <legend>{% translate language, "common", "Slides" %}</legend>
