@@ -190,9 +190,22 @@ class EventGuest(db.Model):
     STATUS_MAYBE = 2
     STATUS_NOT_GOING = 3
 
+    # as in translation keys
+    STATUS_KEYS = {
+        STATUS_GOING: u'Going',
+        STATUS_MAYBE: u'Maybe',
+        STATUS_NOT_GOING: u'Not going'
+    }
+
     guest = SolutionUserProperty(indexed=False)
     timestamp = db.IntegerProperty(indexed=False)
     status = db.IntegerProperty(indexed=True)
+
+    chat_key = db.StringProperty(indexed=False)
+
+    @property
+    def status_str(self):
+        return EventGuest.STATUS_KEYS.get(self.status)
 
     @property
     def app_user(self):

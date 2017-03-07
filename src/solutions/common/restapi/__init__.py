@@ -636,6 +636,19 @@ def update_avatar(tmp_avatar_key, x1, y1, x2, y2):
     return _update_image(set_avatar, tmp_avatar_key, x1, y1, x2, y2)
 
 
+@rest("/common/settings/events/notifications/save", "post")
+@returns(ReturnStatusTO)
+@arguments(notifications_enabled=bool)
+def agenda_set_event_notifications(notifications_enabled):
+    try:
+        sln_settings = get_solution_settings(users.get_current_user())
+        logging.debug(notifications_enabled)
+        sln_settings.event_notifications_enabled = notifications_enabled
+        sln_settings.put()
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException, e:
+        return ReturnStatusTO.create(False, e.message)
+
 @rest("/common/menu/save", "post")
 @returns(ReturnStatusTO)
 @arguments(menu=MenuTO)
@@ -793,7 +806,7 @@ def calendar_add_admin(calendar_id, key):
         if not sc:
             raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
 
-        app_user, is_existing_user = get_user_from_key(key, service_identity)
+        app_user, _ = get_user_from_key(key, service_identity)
         create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
@@ -813,7 +826,7 @@ def calendar_remove_admin(calendar_id, key):
         if not sc:
             raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
 
-        app_user, is_existing_user = get_user_from_key(key, service_identity)
+        app_user, _ = get_user_from_key(key, service_identity)
         delete_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
@@ -1176,7 +1189,7 @@ def users_delete_user_roles(key, forwarder_types, calendar_ids):
                                                                     service_identity)
 
         # try first to get the user profile from user key
-        app_user, is_existing_user = get_user_from_key(key, service_identity)
+        app_user, _ = get_user_from_key(key, service_identity)
 
         # inbox
         if forwarder_types:

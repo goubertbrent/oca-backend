@@ -52,6 +52,7 @@ class SolutionInboxMessage(db.Model):
     CATEGORY_REPAIR = 'repair'
     CATEGORY_RESTAURANT_RESERVATION = 'restaurant_reservation'
     CATEGORY_SANDWICH_BAR = 'sandwich_bar'
+    CATEGORY_AGENDA = 'agenda'
 
     ICON_NAMES = {CATEGORY_APPOINTMENT: u'fa-calendar-plus-o',
                   CATEGORY_ASK_QUESTION: u'fa-comments-o',
@@ -62,7 +63,8 @@ class SolutionInboxMessage(db.Model):
                   CATEGORY_PHARMACY_ORDER: u'fa-medkit',
                   CATEGORY_REPAIR: u'fa-wrench',
                   CATEGORY_RESTAURANT_RESERVATION: u'fa-cutlery',
-                  CATEGORY_SANDWICH_BAR: u'hamburger'}
+                  CATEGORY_SANDWICH_BAR: u'hamburger',
+                  CATEGORY_AGENDA: u'fa-book'}
 
     TOPICS = {CATEGORY_APPOINTMENT: u'appointment',
               CATEGORY_ASK_QUESTION: u'ask-question',
@@ -73,7 +75,8 @@ class SolutionInboxMessage(db.Model):
               CATEGORY_PHARMACY_ORDER: u'order',
               CATEGORY_REPAIR: u'repair',
               CATEGORY_RESTAURANT_RESERVATION: u'reserve',
-              CATEGORY_SANDWICH_BAR: u'order-sandwich'}
+              CATEGORY_SANDWICH_BAR: u'order-sandwich',
+              CATEGORY_AGENDA: u'agenda'}
 
     category = db.StringProperty(indexed=False)  # only filled in on parent message
     category_key = db.StringProperty(indexed=False)  # only filled in on parent message
@@ -106,8 +109,10 @@ class SolutionInboxMessage(db.Model):
 
     @property
     def icon(self):
-        if self.category:
+        if self.category and self.category in SolutionInboxMessage.ICON_NAMES:
             return SolutionInboxMessage.ICON_NAMES[self.category]
+        elif self.category:
+            logging.error("SolutionInboxMessage icon not found for category '%s' key '%s'", self.category, self.key())
         return None
 
     def icon_color(self, solution):
@@ -118,8 +123,10 @@ class SolutionInboxMessage(db.Model):
 
     @property
     def chat_topic_key(self):
-        if self.category:
+        if self.category and self.category in SolutionInboxMessage.TOPICS:
             return SolutionInboxMessage.TOPICS[self.category]
+        elif self.category:
+            logging.error("SolutionInboxMessage chat_topic_key not found for category '%s' key '%s'", self.category, self.key())
         return None
 
     @property
@@ -279,6 +286,7 @@ class SolutionSettings(SolutionIdentitySettings):
 
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)
+    event_notifications_enabled = db.BooleanProperty(indexed=False, default=False)
     default_calendar = db.IntegerProperty(indexed=False)
     uitdatabank_actor_id = db.StringProperty(indexed=True)
 

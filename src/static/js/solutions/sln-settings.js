@@ -23,6 +23,7 @@ $(function () {
     var LOGO_URL = '/common/settings/my_logo';
     var searchEnabled = true;
     var eventsEnabled = true;
+    var eventNotificationsEnabled = false;
     var inboxEmailRemindersEnabled = true;
     var fbAccessToken;
     var TMPL_SET_AVATAR = '<label>' + CommonTranslations.AVATAR + ': ' + CommonTranslations.CLICK_TO_CHANGE
@@ -96,6 +97,11 @@ $(function () {
     var TMPL_SET_EVENTS_VISIBLE = '<div class="btn-group">'
         + '      <button class="btn btn-success" id="eventsVisible">' + CommonTranslations.VISIBLE + '</button>'
         + '      <button class="btn" id="eventsInvisible">&nbsp;</button>' + '</div>';
+
+    var TMPL_EVENT_NOTIFICATIONS = '<div class="btn-group">'
+        + '      <button class="btn" id="disableEventsNotifications">&nbsp;</button>'
+        + '      <button class="btn btn-danger" id="enableEventsNotifications">' + CommonTranslations.enable_notifications + '</button>'
+        + '</div>';
 
     var TMPL_SET_INBOX_EMAIL_REMINDERS_ENABLED = '<div class="btn-group">' //
         + '    <button class="btn btn-success" id="inboxEmailRemindersEnabled">' //
@@ -217,6 +223,7 @@ $(function () {
                 setServiceVisible(searchEnabled);
                 eventsEnabled = data.events_visible;
                 setEventsVisible(eventsEnabled);
+                setEventNotifications(data.event_notifications_enabled);
                 inboxEmailRemindersEnabled = data.inbox_email_reminders;
                 setInboxEmailRemindersStatus(inboxEmailRemindersEnabled);
                 setupTwitter(data.twitter_username);
@@ -501,6 +508,39 @@ $(function () {
             $("#topmenu li[menu|='events']").css('display', 'none');
         }
         sln.resize_header();
+    }
+
+    function setEventNotifications(enabled) {
+        eventNotificationsEnabled = enabled;
+        if (enabled) {
+            $('#disableEventsNotifications').addClass("btn-success").text(CommonTranslations.disable_notifications);
+            $('#enableEventsNotifications').removeClass("btn-danger").html('&nbsp;');
+        } else {
+            $('#disableEventsNotifications').removeClass("btn-success").html('&nbsp;');
+            $('#enableEventsNotifications').addClass("btn-danger").text(CommonTranslations.enable_notifications);
+        }
+    }
+
+    function enableEventsNotifications() {
+        setEventNotifications(!eventNotificationsEnabled);
+        saveEventNotificationsSettings();
+    }
+
+    function disableEventsNotifications() {
+        setEventNotifications(!eventNotificationsEnabled);
+        saveEventNotificationsSettings();
+    }
+
+    function saveEventNotificationsSettings() {
+        sln.call({
+            url: '/common/settings/events/notifications/save',
+            type: 'POST',
+            data: {
+                notifications_enabled: eventNotificationsEnabled
+            },
+            success: function(data) {},
+            error: sln.showAjaxError
+        });
     }
 
     function inboxLoadForwarders() {
@@ -858,10 +898,13 @@ $(function () {
     $(".sln-set-search-keywords").html(TMPL_SET_SEARCH_KEYWORDS);
     $('.sln-set-search-keywords a[data-toggle="tooltip"]').tooltip();
     $(".sln-set-events-visibility").html(TMPL_SET_EVENTS_VISIBLE);
+    $(".sln-set-events-notifications").html(TMPL_EVENT_NOTIFICATIONS);
     $('#section_general').find('#serviceVisible').click(serviceVisible);
     $('#section_general').find('#serviceInvisible').click(serviceInvisible);
     $('#eventsVisible').click(eventsVisible);
     $('#eventsInvisible').click(eventsInvisible);
+    $('#enableEventsNotifications').click(enableEventsNotifications);
+    $('#disableEventsNotifications').click(disableEventsNotifications);
 
     sln.configureDelayedInput($('.sln-set-name input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-phone-number input'), saveSettings);
@@ -1356,6 +1399,7 @@ $(function () {
             email_address: $('.sln-set-email-address input').val(),
             timezone: $('.sln-set-timezone select').val(),
             events_visible: eventsEnabled,
+            event_notifications_enabled: eventNotificationsEnabled,
             inbox_email_reminders: inboxEmailRemindersEnabled,
             iban: $('.sln-set-iban input').val(),
             bic: $('.sln-set-bic input').val()

@@ -283,7 +283,7 @@
         $.each(upcommingEvents, function (ui, upcomming_event) {
             var eventDate = new Date(upcomming_event.start.year, upcomming_event.start.month - 1, upcomming_event.start.day, upcomming_event.start.hour, upcomming_event.start.minute);
             var eventStart = eventDate.getTime() / 1000;
-            var a = $('<a href="#" class="dateselectOptionsSelector ui-btn ui-btn-b ui-corner-all" onclick=""></a>');
+            var a = $('<a href="#" class="dateSelectOptionsSelector ui-btn ui-btn-b ui-corner-all" onclick=""></a>');
             a.text(parseDateToEventDateTime(eventDate));
             a.attr("eventStartEpoch", eventStart);
             $("#dateselect-popup-options").append(a);
@@ -403,6 +403,7 @@
                 $("#detail #event-detail-read").hide();
             }
 
+            $("#event-detail-calendar").hide();
             $("#detail .event-detail-guests-loading").show();
             $("#detail .event-detail-guests").hide();
 
@@ -725,6 +726,13 @@
         $('input[name="radio-choice-guests"][value="3"]').prop('checked', false).checkboxradio("refresh");
         if (r.your_status) {
             $('input[name="radio-choice-guests"][value="' + r.your_status + '"]').prop('checked', true).checkboxradio("refresh");
+            if(r.your_status == 1) {
+                $('#event-detail-calendar').show();
+            } else {
+                $('#event-detail-calendar').hide();
+            }
+        } else {
+            $('#event-detail-calendar').hide();
         }
         $("#event-detail-guests-count-going").text(r.guests_count_going);
         $("#event-detail-guests-count-maybe").text(r.guests_count_maybe);

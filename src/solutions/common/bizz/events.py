@@ -67,13 +67,16 @@ import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision, put_branding, \
     assign_app_user_role, revoke_app_user_role
+from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
-    get_solution_main_branding, get_solution_calendars_for_user
+    get_solution_main_branding, get_solution_calendars_for_user, get_solution_settings_or_identity_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
+from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, EventGuest, SolutionCalendarAdmin, \
     SolutionCalendarGoogleSync, SolutionGoogleCredentials
 from solutions.common.models.properties import SolutionUser
-from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO
+from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
+    SolutionInboxMessageTO
 
 
 try:
@@ -556,6 +559,43 @@ def solution_event_remove(service_user, email, method, params, tag, service_iden
     return r
 
 
+def _send_event_notification(sln_settings, service_user, service_identity, user_details, event, event_guest):
+    from solutions.common.bizz.messaging import send_inbox_forwarders_message
+
+    status = translate(sln_settings.main_language, SOLUTION_COMMON, event_guest.status_str)
+    status_message = translate(sln_settings.main_language, SOLUTION_COMMON, u'events_status_notification', status=status, event=event.title)
+
+    create_chat = True
+    if event_guest.chat_key:
+        create_chat = SolutionInboxMessage.get(event_guest.chat_key) is None
+
+    if create_chat:
+        event_key = unicode(event.key())
+        message = create_solution_inbox_message(service_user, service_identity,
+                                                SolutionInboxMessage.CATEGORY_AGENDA,
+                                                event_key, False, user_details, now(), status_message, True)
+        event_guest.chat_key = message.solution_inbox_message_key
+        event_guest.put()
+
+        app_user = user_details[0].toAppUser()
+    else:
+        message, _ = add_solution_inbox_message(service_user, event_guest.chat_key, False,
+                                                    user_details, now(), status_message)
+        app_user = None
+
+    send_inbox_forwarders_message(service_user, service_identity, app_user, status_message, {
+            'if_name': user_details[0].name,
+            'if_email':user_details[0].email
+        }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled, send_reminder=False)
+
+    # show as last message
+    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
+    send_message(service_user, u'solutions.common.messaging.update',
+                 service_identity=service_identity,
+                 message=serialize_complex_value(message_to, SolutionInboxMessageTO, False))
+
+
 @returns(SendApiCallCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
            user_details=[UserDetailsTO])
@@ -570,12 +610,19 @@ def solution_event_guest_status(service_user, email, method, params, tag, servic
     event = get_event_by_id(service_user, sln_settings.solution, event_id)
     r = SendApiCallCallbackResultTO()
     if event:
-        eg = EventGuest(key=EventGuest.createKey(app_user, event.key()))
+        eg_key = EventGuest.createKey(app_user, event.key())
+        eg = EventGuest.get(eg_key)
+        if not eg:
+            eg = EventGuest(key=eg_key)
         eg.guest = SolutionUser.fromTO(user_details[0])
         eg.status = status
         eg.timestamp = now()
         eg.put()
         r.result = u"Succesfully update event status"
+
+        if sln_settings.event_notifications_enabled and (eg.status == EventGuest.STATUS_GOING or eg.chat_key):
+            _send_event_notification(sln_settings, service_user, service_identity, user_details,
+                                     event=event, event_guest=eg)
     else:
         r.result = u"Event not found. Update status failed."
     r.error = None

@@ -156,14 +156,15 @@ class SolutionSettingsTO(object):
     search_enabled = bool_property('11')
     timezone = unicode_property('12')
     events_visible = bool_property('13')
-    search_keywords = unicode_property('14')
-    email_address = unicode_property('15')
-    inbox_email_reminders = bool_property('16')
-    twitter_username = unicode_property('17')
-    holidays = long_list_property('18')
-    holiday_out_of_office_message = unicode_property('19')
-    iban = unicode_property('20')
-    bic = unicode_property('21')
+    event_notifications_enabled = bool_property('14')
+    search_keywords = unicode_property('15')
+    email_address = unicode_property('16')
+    inbox_email_reminders = bool_property('17')
+    twitter_username = unicode_property('18')
+    holidays = long_list_property('19')
+    holiday_out_of_office_message = unicode_property('20')
+    iban = unicode_property('21')
+    bic = unicode_property('22')
 
     @staticmethod
     def fromModel(sln_settings, sln_i_settings):
@@ -181,6 +182,7 @@ class SolutionSettingsTO(object):
         to.search_enabled = sln_settings.search_enabled
         to.timezone = sln_settings.timezone
         to.events_visible = sln_settings.events_visible
+        to.event_notifications_enabled = sln_settings.event_notifications_enabled
         to.search_keywords = sln_i_settings.search_keywords
         to.email_address = sln_i_settings.qualified_identifier or sln_settings.service_user.email()
         to.inbox_email_reminders = sln_i_settings.inbox_email_reminders_enabled if sln_i_settings.inbox_email_reminders_enabled else False
