@@ -2541,6 +2541,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
     service.phone_number = telephone
     service.app_infos = []
     service.current_user_app_infos = []
+    service.managed_organization_types = []
 
     def trans1():
         email_has_changed = False
