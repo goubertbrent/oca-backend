@@ -223,6 +223,7 @@ class CustomerServiceTO(SerializableTO):
     organization_type = long_property('10')
     app_infos = typed_property('11', AppInfoTO, True)
     current_user_app_infos = typed_property('12', AppInfoTO, True)
+    managed_organization_types = long_list_property('13')
 
 
 class ModulesReturnStatusTO(ReturnStatusTO):

@@ -114,6 +114,7 @@ class TestCase(mc_unittest.TestCase):
         service.phone_number = u'00248498498494'
         service.app_infos = []
         service.current_user_app_infos = []
+        service.managed_organization_types = []
         provision_response = put_service(customer, service)
         # deferred functions seem to get ignored in unit tests..
         _after_service_saved(customer.key(), service.email, provision_response, True, service.apps, [])

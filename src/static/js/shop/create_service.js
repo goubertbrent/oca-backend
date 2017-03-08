@@ -154,6 +154,15 @@ var submitModules = function() {
             return;
         }
     }
+    
+    if (newService.modules.indexOf('city_app') == -1) {
+    	newService.managed_organization_types = [];
+    } else {
+    	newService.managed_organization_types = $('#create_service_form #form_managed_organization_types input[type="checkbox"]:checked')
+        .map(function() {
+            return parseInt(this.value);
+        }).get();
+    }
 
     showNextTab();
 };
@@ -241,6 +250,7 @@ var showServiceTab = function() {
 
     if (currentCustomer.isStatic) {
         $('#form_broadcast_types').hide();
+        $('#form_managed_organization_types').hide();
         $('#static_service_info').show();
     }
 
@@ -296,6 +306,15 @@ var showServiceTab = function() {
             broadcastTypes.slideDown();
         } else {
             broadcastTypes.slideUp();
+        }
+    }).change();
+    
+    form.find('#form_modules input[type="checkbox"][value="city_app"]').change(function() {
+        var managedOrganizationTypes = form.find('#form_managed_organization_types');
+        if ($(this).is(':checked')) {
+        	managedOrganizationTypes.slideDown();
+        } else {
+        	managedOrganizationTypes.slideUp();
         }
     }).change();
     
@@ -437,9 +456,13 @@ var customerSelected = function(customer) {
                             $('#service_' + attr, createServiceForm).val(service[attr]);
                         });
                 // set checkBoxes
-                $.each([ 'modules', 'broadcast_types', 'apps' ], function(i, attr) {
+                $.each([ 'modules', 'broadcast_types', 'apps', 'managed_organization_types'], function(i, attr) {
                     $('#form_' + attr + ' input[type="checkbox"]', createServiceForm).each(function() {
-                        $(this).prop('checked', service[attr].indexOf(this.value) != -1);
+                    	var v = this.value;
+                    	if (attr === 'managed_organization_types') {
+                    		v = parseInt(v);
+                    	}
+                        $(this).prop('checked', service[attr].indexOf(v) != -1).change();
                     });
                 });
                 newService.apps = service.apps;
@@ -461,6 +484,10 @@ var customerSelected = function(customer) {
                         }
                     });
                     $('#service_other_broadcast_types', createServiceForm).val(otherBroadcastTypes);
+                }
+                
+                if (service.modules.indexOf('city_app') == -1) {
+                    $('#form_managed_organization_types', createServiceForm).hide();
                 }
                 selectDefaultApps();
                 $('#tab-service').find('.loading').html('');

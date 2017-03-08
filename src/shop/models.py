@@ -320,6 +320,7 @@ class Customer(db.Model):
     manager = db.UserProperty(indexed=False)
     subscription_order_number = db.StringProperty()
     organization_type = db.IntegerProperty(default=ServiceProfile.ORGANIZATION_TYPE_PROFIT)
+    managed_organization_types = db.ListProperty(int, indexed=False)
     migration_job = db.StringProperty(indexed=False)
     prospect_id = db.StringProperty()
     default_app_id = db.StringProperty()
@@ -398,8 +399,6 @@ class Customer(db.Model):
             self.app_ids.remove(default_app_id)
             self.app_ids.insert(0, default_app_id)
         return self.app_ids
-
-
 
     @classmethod
     def list_by_name(cls, name, limit=20):
@@ -516,6 +515,9 @@ class Customer(db.Model):
         Returns:
 
         """
+        if self.managed_organization_types:
+            return self.managed_organization_types
+
         org_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
         if self.country == 'BE':
             org_types.extend([ServiceProfile.ORGANIZATION_TYPE_PROFIT, ServiceProfile.ORGANIZATION_TYPE_EMERGENCY])

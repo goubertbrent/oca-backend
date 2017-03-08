@@ -116,7 +116,7 @@
 {% endfor %}
                         </fieldset>
                     </form>
-                    <form id="form_broadcast_types" class="form-horizontal">
+                    <form id="form_broadcast_types" class="form-horizontal span8">
                         <fieldset>
                             <legend>Broadcast types</legend>
 
@@ -134,11 +134,32 @@
     {% endif %}
 {% endfor %}
                             </div>
-                            <div class="span4">
+                            <div class="span3">
                             <label class="control-label" for="service_other_broadcast_types"
                                     style="width: 250px;">Other (Optional)</label>
                                 <textarea id="service_other_broadcast_types" rows="3"
                                           placeholder="1 broadcast type per line"></textarea>
+                            </div>
+                        </fieldset>
+                    </form>
+                    <form id="form_managed_organization_types" class="form-horizontal span3">
+                        <fieldset>
+                            <legend>Organization types</legend>
+                            <div>
+                                <div class="span2">
+	                                <label class="checkbox">
+	                                    <input type="checkbox" value="1"/> Association
+	                                </label>
+	                                <label class="checkbox">
+                                        <input type="checkbox" value="2"/> Merchant
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" value="3"/> Community service
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" value="4"/> Care
+                                    </label>
+                                </div>
                             </div>
                         </fieldset>
                     </form>
