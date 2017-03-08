@@ -18,7 +18,7 @@ body, iframe {
 }
 </style>
 
-{%if DEBUG %}
+{%if DEBUG or APPSCALE %}
 <script src='/_ah/channel/jsapi'></script>
 {%else%}
 <script src='https://talkgadget.google.com/talkgadget/channel.js'></script>

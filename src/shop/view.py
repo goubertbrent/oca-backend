@@ -31,7 +31,7 @@ from PIL.Image import Image  # @UnresolvedImport
 from babel.dates import format_date
 
 from PyPDF2.merger import PdfFileMerger
-from add_1_monkey_patches import DEBUG
+from add_1_monkey_patches import DEBUG, APPSCALE
 from google.appengine.api import urlfetch
 from google.appengine.api import users as gusers
 from google.appengine.ext import db, deferred, blobstore
@@ -221,7 +221,8 @@ def get_shop_context(**kwargs):
                PROSPECT_CATEGORIES=PROSPECT_CATEGORY_KEYS,
                CURRENCIES=json.dumps(CURRENCIES),
                prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
-               DEBUG=DEBUG
+               DEBUG=DEBUG,
+               APPSCALE=APPSCALE,
                )
     ctx.update(kwargs)
     return ctx
@@ -274,7 +275,8 @@ class BizzAdminHandler(BizzManagerHandler):
             # loads admin.html in an iframe
             path = os.path.join(os.path.dirname(__file__), 'html', 'index.html')
             context = dict(CHANNEL_API_TOKEN=create_channel_for_current_session(),
-                           DEBUG=DEBUG
+                           DEBUG=DEBUG,
+                           APPSCALE=APPSCALE,
                            )
         else:
             path = os.path.join(os.path.dirname(__file__), 'html', 'admin.html')
