@@ -685,6 +685,8 @@ var showDetails = function () {
         $('#user-email').text(currentCustomer.user_email ? currentCustomer.user_email : 'none');
         $('#service-email').text(currentCustomer.service_email)
             .parent().toggle(!!currentCustomer.service_email);
+        $('#customer-website').text(currentCustomer.website || '-');
+        $('#customer-facebook').text(currentCustomer.facebook_page || '-');
         $('#subscription-type').text(currentCustomer.subscription_str);
         $('#customer-creation-time').text(sln.format(new Date(currentCustomer.creation_time * 1000)));
         $('#has-loyalty-status').find('i').css('color', currentCustomer.has_loyalty ? '#51a351' : '#ff0000');

@@ -275,9 +275,11 @@ def re_index_customer(customer_key):
 @returns(Customer)
 @arguments(current_user=users.User, customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
            address2=unicode, zip_code=unicode, city=unicode, country=unicode, language=unicode,
-           organization_type=(int, long), prospect_id=unicode, force=bool, team_id=(int, long, NoneType))
+           organization_type=(int, long), prospect_id=unicode, force=bool, team_id=(int, long, NoneType),
+           website=unicode, facebook_page=unicode)
 def create_or_update_customer(current_user, customer_id, vat, name, address1, address2, zip_code, city, country,
-                              language, organization_type, prospect_id, force=False, team_id=None):
+                              language, organization_type, prospect_id, force=False, team_id=None,
+                              website=None, facebook_page=None):
     is_in_transaction = db.is_in_transaction()
     name = name.strip()
     if not name:
@@ -344,6 +346,8 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
     customer.country = country
     customer.language = language
     customer.organization_type = organization_type
+    customer.website = website
+    customer.facebook_page = facebook_page
     if prospect_id is not None:
         customer.prospect_id = prospect_id
     customer.put()
@@ -2524,7 +2528,7 @@ def post_app_broadcast(service, app_ids, message, tester=None):
 
 def put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
                               broadcast_types, organization_type, app_id, currency, country, team_id, product_code,
-                              customer_id=None, vat=None):
+                              customer_id=None, vat=None, website=None, facebook_page=None):
     service = CustomerServiceTO()
     service.address = address1
     if address2:
@@ -2550,7 +2554,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
                                              organization_type=organization_type, prospect_id=None,
-                                             force=False, team_id=team_id)
+                                             force=False, team_id=team_id, website=website, facebook_page=facebook_page)
 
         customer.put()
         if customer_id:

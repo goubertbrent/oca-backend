@@ -69,6 +69,34 @@
             </div>
         </div>
         <div class="control-group">
+            <label for="service-website" class="control-label">${T('Website')}</label>
+
+            <div class="controls">
+                <input type="url" id="service-website" name="service-website" value="${ service.website }"
+                       {{if edit && !service.website}}disabled{{else}}required{{/if}}>
+                <div class="checkbox">
+                    <label>
+                        <input id="check-no-website" type="checkbox" {{if edit && !service.website}}checked{{/if}}/>
+                        <small>${T('no-website')}</small>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="service-facebook-page" class="control-label">${T('Facebook page')}</label>
+
+            <div class="controls">
+                <input type="url" id="service-facebook-page" name="service-facebook-page" value="${ service.facebook_page }"
+                       {{if edit && !service.facebook_page}}disabled{{else}}required{{/if}}>
+                <div class="checkbox">
+                    <label>
+                        <input id="check-no-facebook-page" type="checkbox" {{if edit && !service.facebook_page}}checked{{/if}}/>
+                        <small>${T('no-facebook-page')}</small>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="control-group">
             <label for="service-phone" class="control-label">${T('PHONE_NUMBER')}</label>
 
             <div class="controls">

@@ -148,6 +148,24 @@
                     addBroadcastType();
                 }
             });
+
+            var checkNoWebsite = $('#check-no-website'),
+                checkNoFacebookPage = $('#check-no-facebook-page');
+
+            checkNoWebsite.change(function() {
+                if(checkNoWebsite.is(':checked')) {
+                    $('#service-website').attr('disabled', true);
+                } else {
+                    $('#service-website').attr('disabled', false);
+                }
+            });
+            checkNoFacebookPage.change(function() {
+                if(checkNoFacebookPage.is(':checked')) {
+                    $('#service-facebook-page').attr('disabled', true);
+                } else {
+                    $('#service-facebook-page').attr('disabled', false);
+                }
+            });
             $('#service-submit').click(putService);
         });
     }
@@ -182,7 +200,9 @@
             modules: serviceModules,
             broadcast_types: serviceBroadcastTypes,
             organization_type: parseInt($('#organization_type').val()),
-            vat: $('#service-vat').val()
+            vat: $('#service-vat').val(),
+            website: $('#service-website').val(),
+            facebook_page: $('#service-facebook-page').val()
         };
     }
 
@@ -252,6 +272,23 @@
         if (currentService.mode === 'edit') {
             formValues.service_email = currentService.service_email;
         }
+
+        var requireWebsite, requireFacebook;
+        requireWebsite = !($('#check-no-website').is(':checked'));
+        requireFacebook  = !($('#check-no-facebook-page').is(':checked'));
+        if(!requireWebsite) {
+            currentService.website = null;
+        } else if(requireWebsite && currentService.website.trim() === '') {
+            sln.alert(T('website-required'), null, CommonTranslations.ERROR);
+            return;
+        }
+        if(!requireFacebook) {
+            currentService.facebook_page = null;
+        } else if(requireFacebook && currentService.facebook_page.trim() === '') {
+            sln.alert(T('Facebook-page-required'), null, CommonTranslations.ERROR);
+            return;
+        }
+
         sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
         // Not registered on page load to prevent updates when multiple people are logged in on the same dashboard
         isWaitingForProvisionUpdate = true;

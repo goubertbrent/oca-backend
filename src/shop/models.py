@@ -329,6 +329,8 @@ class Customer(db.Model):
     subscription_type = db.IntegerProperty(indexed=False, default=-1)
     has_loyalty = db.BooleanProperty(indexed=False, default=False)
     team_id = db.IntegerProperty(indexed=False)
+    website = db.StringProperty()
+    facebook_page = db.StringProperty()
     # when set to anything lower than the current date that isn't 0, the service of the customer will be disabled over night.
     subscription_cancel_pending_date = db.IntegerProperty(default=0)
     service_disabled_at = db.IntegerProperty(default=0)  # 0 = not disabled

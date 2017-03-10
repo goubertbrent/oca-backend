@@ -69,6 +69,8 @@ class CustomerTO(CompanyTO):
     service_disabled_reason_int = long_property('70')
     subscription_cancel_pending_date = long_property('71')
     cancelling_on_date = long_property('72')  # Customer his subscription will be disabled on this date
+    website = unicode_property('73')
+    facebook_page = unicode_property('74')
 
     @staticmethod
     def fromCustomerModel(customer, can_edit, is_admin):
@@ -107,6 +109,8 @@ class CustomerTO(CompanyTO):
         c.service_disabled_reason = customer.disabled_reason or customer.disabled_reason_str
         c.service_disabled_reason_int = customer.disabled_reason_int
         c.subscription_cancel_pending_date = customer.subscription_cancel_pending_date
+        c.website = customer.website
+        c.facebook_page = customer.facebook_page
         return c
 
 

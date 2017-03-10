@@ -138,7 +138,7 @@ def get_services():
 
 
 @rest("/common/services/get", "get", read_only_access=True)
-@returns(ServiceTO)
+@returns((ServiceTO, ReturnStatusTO))
 @arguments(service_email=unicode)
 def get_service(service_email):
     city_service_user = users.get_current_user()
@@ -155,16 +155,17 @@ def get_service(service_email):
     return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
                      customer.user_email, contact.phone_number, solution_settings.main_language,
                      solution_settings.modules, solution_settings.broadcast_types, customer.organization_type,
-                     customer.vat)
+                     customer.vat, customer.website, customer.facebook_page)
 
 
 @rest("/common/services/put", "post", read_only_access=False)
 @returns(ReturnStatusTO)
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
            telephone=unicode, language=unicode, modules=[unicode], broadcast_types=[unicode],
-           customer_id=(int, long, NoneType), organization_type=(int, long), vat=unicode)
+           customer_id=(int, long, NoneType), organization_type=(int, long), vat=unicode, website=unicode, facebook_page=unicode)
 def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
-                     broadcast_types, customer_id=None, organization_type=OrganizationType.PROFIT, vat=None):
+                     broadcast_types, customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
+                     website=None, facebook_page=None):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
@@ -213,7 +214,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
  = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                                         modules, broadcast_types, organization_type, city_customer.app_id,
                                         city_sln_settings.currency, city_customer.country, city_customer.team_id,
-                                        product_code, customer_id, vat)
+                                        product_code, customer_id, vat, website, facebook_page)
         customer_key = customer.key()
         success1 = True
     except EmptyValueException as ex:
