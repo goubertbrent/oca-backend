@@ -327,7 +327,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'is_demo_app': is_demo_app,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
                   'currency': sln_settings.currency,
-                  'isShopUser': session_.shop if session_ else False,
+                  'is_layout_user': session_.layout_only if session_ else False,
                   'SLN_LOGO_WIDTH' : SLN_LOGO_WIDTH,
                   'SLN_LOGO_HEIGHT' : SLN_LOGO_HEIGHT,
                   'active_apps': json.dumps(customer.sorted_app_ids if customer else list()),

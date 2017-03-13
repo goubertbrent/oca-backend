@@ -25,11 +25,16 @@ $(document).ready(function () {
 
     var hash = window.location.hash.replace('#/', '').split('/');
     if (SOLUTION != 'djmatic') {
+        var defaultLocation = '#/news';
+        if (!$('li[menu=broadcast]').length) {
+            defaultLocation = '#/menu';
+        }
+
         if (!hash) {
-            window.location.hash = '#/news';
+            window.location.hash = defaultLocation;
             return;
         } else if (hash[0] === '') {
-            window.location.hash = '#/news';
+            window.location.hash = defaultLocation;
             return;
         }
     }

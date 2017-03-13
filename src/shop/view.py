@@ -560,6 +560,7 @@ class LoginAsCustomerHandler(BizzManagerHandler):
     def get(self):
         google_user = gusers.get_current_user()
         customer_id = int(self.request.get("customer_id"))
+        layout_only = bool(self.request.get("layout_only"))
 
         if is_admin(google_user):
             access = RegioManager.ACCESS_FULL
@@ -592,7 +593,8 @@ class LoginAsCustomerHandler(BizzManagerHandler):
                     return self.redirect('/service_expired')
                 server_settings = get_server_settings()
                 set_cookie(self.response, server_settings.cookieSessionName, secret)
-            switch_to_service_identity(session, service_identity_user, access == RegioManager.ACCESS_READ_ONLY, True)
+            switch_to_service_identity(session, service_identity_user, access == RegioManager.ACCESS_READ_ONLY,
+                                       shop=True, layout_only=layout_only)
             self.redirect("/")
 
 

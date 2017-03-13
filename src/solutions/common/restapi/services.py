@@ -134,7 +134,7 @@ def get_services():
 
             statistic = ServiceStatisticTO.create(future_events_count, broadcasts_last_month, static_content_count,
                                                   last_unanswered_question_timestamp)
-            services.append(ServiceListTO(service_email, customer.name, statistic, modules))
+            services.append(ServiceListTO(service_email, customer.name, statistic, modules, customer.id))
     generated_on = statistics.generated_on if statistics else None
     return ServicesTO(sorted(services, key=lambda x: x.name.lower()), generated_on)
 

@@ -257,7 +257,7 @@ $(function () {
                 setupTwitter(data.twitter_username);
                 toggleUpdatesPending(data.updates_pending);
 
-                if (MODULES.indexOf('billing') !== -1) {
+                if (MODULES.indexOf('billing') !== -1 && $('.sln-set-iban input').length) {
                     $('.sln-set-iban input').data('updateVal')(data.iban);
                     $('.sln-set-bic input').data('updateVal')(data.bic);
                 }

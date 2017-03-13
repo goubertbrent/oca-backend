@@ -53,12 +53,14 @@ class ServiceListTO(object):
     name = unicode_property('1')
     statistics = typed_property('2', ServiceStatisticTO)
     modules = unicode_list_property('3')
+    customer_id = long_property('4')
 
-    def __init__(self, service_email=None, name=None, statistics=None, modules=None):
+    def __init__(self, service_email=None, name=None, statistics=None, modules=None, customer_id=None):
         self.service_email = service_email
         self.name = name
         self.statistics = statistics
         self.modules = modules
+        self.customer_id = customer_id
 
 
 class ServicesTO(object):

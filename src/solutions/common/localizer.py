@@ -96,6 +96,7 @@ translations = \
          u'Date': u'Date',
          u'Day': u'Day',
          u'Day of birth': u'Day of birth',
+         u'dashboard': u'Dashboard',
          u'Delete all': u'Delete all',
          u'Delete table': u'Delete table',
          u'Description is required': u'Description is required',

@@ -30,6 +30,7 @@ from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandl
 from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
 from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
     LoyaltySlideOverlayHandler, ExportLoyaltyHandler
+from solutions.common.handlers.service import LoginAsServiceHandler
 import solutions.common.restapi.services
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
@@ -59,6 +60,7 @@ handlers = [
     ('/djmatic/', DJMaticHomeHandler),
     ('/flex/', FlexHomeHandler),
     ('/flex/logout', FlexLogoutHandler),
+    ('/common/login_as', LoginAsServiceHandler),
     ('/common/broadcast/attachment/upload', UploadAttachmentHandler),
     ('/common/settings/my_logo', GetSolutionLogoHandler),
     ('/common/settings/tmp_blob', GetTmpSolutionImageHandler),
