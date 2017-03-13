@@ -255,7 +255,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane" id="tab6">
+                <div class="tab-pane" id="tab6" style="margin-bottom: 50px;">
                     <div class="control-group" {{if !canPromote }}style="display:none"{{/if}}>
                         <div class="controls">
                             <label for="checkbox_promote" class="checkbox">
@@ -302,6 +302,37 @@
                         </div>
                     </div>
                     {{/if}}
+                    <hr />
+                    <div class="checkbox">
+                        <label>
+                            <input id="configure_target_audience" type="checkbox" {{if newsItem.target_audience}}checked{{/if}}
+                            {{if newsItem.published}}disabled{{/if}}/> ${T('configure-target-audience')}
+                        </label>
+                    </div>
+                    <div id="target_audience" class="col-xs-6" {{if !newsItem.target_audience}}style="display: none;"{{/if}}>
+                        <h5>${T('age-min')}</h5>
+                        <div class="input-append">
+                            <input class="input-mini" id="age_min" type="number" min="0" max="130"
+                                   {{if newsItem.target_audience}}value="${newsItem.target_audience.min_age}"{{else}}value="0"{{/if}}
+                                   {{if newsItem.published}}disabled{{/if}}/>
+                            <button id="age_min_plus" class="btn btn-success" type="button" {{if newsItem.published}}disabled{{/if}}>+</button>
+                            <button id="age_min_min" class="btn btn-warning" type="button" {{if newsItem.published}}disabled{{/if}}>-</button>
+                        </div>
+                        <h5>${T('age-max')}</h5>
+                        <div class="input-append">
+                            <input class="input-mini" id="age_max" type="number"  min="0" max="130"
+                                   {{if newsItem.target_audience}}value="${newsItem.target_audience.max_age}"{{else}}value="100"{{/if}}
+                                   {{if newsItem.published}}disabled{{/if}}/>
+                            <button id="age_max_plus" class="btn btn-success" type="button" {{if newsItem.published}}disabled{{/if}}>+</button>
+                            <button id="age_max_min" class="btn btn-warning" type="button" {{if newsItem.published}}disabled{{/if}}>-</button>
+                        </div>
+                        <h5>${T('gender')}</h5>
+                        <select id="gender" style="width: auto;" {{if newsItem.published}}disabled{{/if}}>
+                            <option value="0" {{if newsItem.target_audience && newsItem.target_audience.gender === 0}}selected{{/if}}>${T('gender-male-female')}</option>
+                            <option value="1" {{if newsItem.target_audience && newsItem.target_audience.gender === 1}}selected{{/if}}>${T('gender-male')}</option>
+                            <option value="2" {{if newsItem.target_audience && newsItem.target_audience.gender === 2}}selected{{/if}}>${T('gender-female')}</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="tab-pane" id="tab7"></div>
             </div>

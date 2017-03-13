@@ -1483,6 +1483,7 @@ $(function () {
             elemCheckPostToFacebook = $('#post_to_facebook'),
             elemCheckPostToTwitter = $('#post_to_twitter'),
             elemFacebookPage = $('#facebook_page'),
+            elemConfigureTargetAudience = $('#configure_target_audience'),
             hasSignedOrder = broadcastOptions.subscription_info.has_signed,
             restaurantReservationDate;
 
@@ -1543,6 +1544,20 @@ $(function () {
 
         elemCheckPostToFacebook.change(checkForFacebookLogin);
         elemCheckPostToTwitter.change(checkForTwitterLogin);
+
+        $("#age_max_plus").click(plusClick($("#age_max")));
+        $("#age_min_plus").click(plusClick($("#age_min")));
+        $("#age_max_min").click(minClick($("#age_max")));
+        $("#age_min_min").click(minClick($("#age_min")));
+
+        elemConfigureTargetAudience.change(configureTargetAudience);
+        function configureTargetAudience() {
+            if(elemConfigureTargetAudience.is(':checked')) {
+                $('#target_audience').show();
+            } else {
+                $('#target_audience').hide();
+            }
+        }
 
         function checkFacebookPermissions(permissionsList, showErrors) {
             var errors = [];
@@ -1907,6 +1922,13 @@ $(function () {
                 data.broadcast_on_twitter = false;
             }
 
+            if(elemConfigureTargetAudience.is(':checked')) {
+                data.target_audience = {
+                    min_age: parseInt($('#age_min').val()),
+                    max_age: parseInt($('#age_max').val()),
+                    gender: parseInt($('#gender').val())
+                };
+            }
             return data;
         }
 

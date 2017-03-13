@@ -37,7 +37,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import news
 from rogerthat.settings import get_server_settings
-from rogerthat.to.news import NewsActionButtonTO
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -105,10 +105,10 @@ def _save_coupon_news_id(news_item_id, coupon):
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
-           facebook_access_token=unicode)
+           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
-                  broadcast_on_twitter=False, facebook_access_token=None):
+                  broadcast_on_twitter=False, facebook_access_token=None, target_audience=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -130,6 +130,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         broadcast_on_facebook (bool)
         broadcast_on_twitter (bool)
         facebook_access_token (unicode): user or page access token
+        target_audience (NewsTargetAudienceTO)
 
     Returns:
         news_item (NewsBroadcastItemTO)
@@ -186,7 +187,8 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         'news_id': news_id,
         'app_ids': app_ids,
         'image': image,
-        'scheduled_at': scheduled_at
+        'scheduled_at': scheduled_at,
+        'target_audience': target_audience
     }
     if not news_id:
         kwargs['news_type'] = news_type
