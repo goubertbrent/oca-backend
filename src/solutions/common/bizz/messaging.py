@@ -15,26 +15,25 @@
 #
 # @@license_version:1.2@@
 
-import json
-import logging
 from base64 import b64encode
 from datetime import datetime
+import json
+import logging
 from types import NoneType
 
-import pytz
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from google.appengine.ext.blobstore import BlobInfo
 from google.appengine.ext.deferred import PermanentTaskFailure
-
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
+import pytz
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
-from rogerthat.models import Message, ServiceIdentity
+from rogerthat.models import Message, ServiceIdentity, ServiceInteractionDef
 from rogerthat.models.news import NewsItem
 from rogerthat.models.properties.forms import FormResult, Form
 from rogerthat.rpc import users
@@ -46,7 +45,7 @@ from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
     FormCallbackResultTypeTO, FormAcknowledgedCallbackResultTO, PokeCallbackResultTO, \
-    FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO
+    FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO, FlowCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, try_or_defer
@@ -55,7 +54,7 @@ from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _format_date, _format_time, timezone_offset, \
-    SolutionModule, broadcast_updates_pending, create_news_publisher, _get_value
+    SolutionModule, create_news_publisher
 from solutions.common.bizz.appointment import appointment_asked
 from solutions.common.bizz.city_vouchers import solution_voucher_resolve, solution_voucher_activate, \
     solution_voucher_redeem, solution_voucher_confirm_redeem, solution_voucher_pin_activate
@@ -89,10 +88,11 @@ from solutions.common.bizz.twitter import post_to_twitter
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
-    SolutionLogo
+    SolutionLogo, SolutionSettings, SolutionMainBranding
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user, \
     create_service_identity_user_wo_default
+
 
 POKE_TAG_APPOINTMENT = u"__sln__.appointment"
 POKE_TAG_ASK_QUESTION = u"__sln__.question"
@@ -279,6 +279,31 @@ def broadcast_send(service_user, service_identity, broadcast_type, message, broa
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@returns(PokeCallbackResultTO)
+@arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def poke_invite(service_user, email, tag, result_key, context, service_identity, user_details):
+    from solutions.common.handlers import JINJA_ENVIRONMENT
+
+    sln_settings, main_branding = db.get([SolutionSettings.create_key(service_user),
+                                          SolutionMainBranding.create_key(service_user)])
+    flow_params = dict(branding_key=main_branding.branding_key, language=sln_settings.main_language)
+    flow = JINJA_ENVIRONMENT.get_template('flows/welcome.xml').render(flow_params)
+
+    poke_result = PokeCallbackResultTO()
+    poke_result.type = u'flow'
+    result = FlowCallbackResultTypeTO()
+    result.tag = tag
+    result.flow = flow.decode('utf-8')
+    result.force_language = None
+    poke_result.value = result
+    return poke_result
+
+
+POKE_TAG_MAPPING[ServiceInteractionDef.TAG_INVITE] = poke_invite
+
 
 @returns(PokeCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
