@@ -115,7 +115,7 @@ def merge_yaml(first_file, second_file, output_file):
                         else:
                             raise Exception('Unknown type %s %s' % (key, type(second[key])))
                 with open(output_file, 'w') as output_file_contents:
-                    output_file_contents.write(yaml.safe_dump(first))
+                    output_file_contents.write(yaml.safe_dump(first, default_flow_style=False))
 
 
 # noinspection Restricted_Python_calls
