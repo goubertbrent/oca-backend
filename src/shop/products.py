@@ -76,6 +76,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_suby_product(mobicage_legal_entity_id))
     to_put.append(create_news_product(mobicage_legal_entity_id))
     to_put.append(create_free_product(mobicage_legal_entity_id))
+    to_put.append(create_fcty_product(mobicage_legal_entity_id))
 
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
@@ -841,6 +842,25 @@ def create_free_product(legal_entity_id, code_prefix=''):
     p.visible = True
     p.legal_entity_id = legal_entity_id
     p.module_set = 'ALL'
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_fcty_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'FCTY')
+    p.price = 0
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = True
+    p.is_subscription_discount = False
+    p.module_set = 'ALL'
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
