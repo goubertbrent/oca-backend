@@ -98,6 +98,7 @@ def get_services():
         service_customers = list(Customer.list_enabled_by_organization_type_in_app(app_id, organization_type))
     else:
         service_customers = list(Customer.list_enabled_by_app(app_id))
+    service_customers = filter(city_customer.can_edit_service, service_customers)
     services = []
     statistics = get_services_statistics(app_id)
     sln_settings_keys = [SolutionSettings.create_key(city_service_user)]
@@ -107,12 +108,13 @@ def get_services():
         elif customer.app_id == app_id:
             sln_settings_keys.append(SolutionSettings.create_key(users.User(customer.service_email)))
     sln_settings_list = db.get(sln_settings_keys)
-    sln_settings = sln_settings_list.pop(0)  # type: SolutionSettings
-    azzert(SolutionModule.CITY_APP in sln_settings.modules)
+    city_sln_settings = sln_settings_list.pop(0)  # type: SolutionSettings
+    azzert(city_sln_settings.can_edit_services(city_customer))
+    city_service_email = city_sln_settings.service_user.email()
     for customer in service_customers:
         service_email = customer.service_email
         # Exclude the city app's own service
-        if customer.app_id == app_id and service_email != sln_settings.service_user.email():
+        if customer.app_id == app_id and service_email != city_service_email:
             future_events_count = 0
             broadcasts_last_month = 0
             static_content_count = 0
@@ -145,8 +147,7 @@ def get_service(service_email):
     city_customer = get_customer(city_service_user)
     service_user = users.User(email=service_email)
     customer = Customer.get_by_service_email(service_email)
-    if city_customer.organization_type != OrganizationType.CITY or (
-                customer and customer.organization_type not in city_customer.editable_organization_types):
+    if not city_customer.can_edit_service(customer):
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         lang = get_solution_settings(city_service_user).main_language
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
@@ -173,8 +174,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     customer_key = None
     customer = Customer.get_by_id(customer_id) if customer_id else None
     # check if the current user is in fact a city app
-    if city_customer.organization_type != OrganizationType.CITY or (
-                customer and customer.organization_type not in city_customer.editable_organization_types):
+    if customer and not city_customer.can_edit_service(customer):
         logging.warn(u'Service {} tried to save service information for customer {}'.format(city_service_user, customer_id))
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     if not customer and organization_type not in city_customer.editable_organization_types:
@@ -281,8 +281,7 @@ def rest_delete_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     customer = Customer.get_by_service_email(service_email)
-    if city_customer.organization_type != OrganizationType.CITY \
-            or customer.organization_type not in city_customer.editable_organization_types:
+    if not city_customer.can_edit_service(customer):
         lang = get_solution_settings(city_service_user).main_language
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))

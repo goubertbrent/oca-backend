@@ -193,7 +193,7 @@ var modules = {};
                         <li menu="statistics" class="disabled"><a class="help_menu_item" href="#">{% translate language, "common", "statistics" %}</a></li>
                         <li menu="qanda"><a class="help_menu_item" href="#">{% translate language, "common", "qanda" %}</a></li>
 {% endif %}
-                        {% if customer and sln_settings.can_edit_services(customer.country) and not loyalty %}
+                        {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
                         <li menu="services"><a href="#/services">{% translate language, "common", "services" %}</a></li>
                         {% endif %}
 
@@ -308,7 +308,7 @@ var modules = {};
 {% if not loyalty %}
 	{%- include 'statistics.tmpl' %}
 	{%- include 'qanda.tmpl' %}
-    {% if customer and sln_settings.can_edit_services(customer.country) and not loyalty %}
+    {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
     {%- include 'services/services.tmpl' %}
     {% endif %}
     {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY %}

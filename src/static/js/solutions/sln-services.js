@@ -101,6 +101,8 @@
             success: function (data) {
                 if (data.success) {
                     serviceDeleted(serviceEmail);
+                } else {
+                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 }
             }
         });
@@ -254,10 +256,15 @@
             url: '/common/services/get',
             data: {service_email: serviceEmail},
             success: function (data) {
+                if(data.hasOwnProperty('success') && !data.success) {
+                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                    router(['services']);
+                    return;
+                }
                 currentService = data;
                 currentService.service_email = serviceEmail;
                 callback('edit');
-            }
+            },
         });
     }
 

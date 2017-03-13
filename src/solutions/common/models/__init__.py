@@ -340,11 +340,11 @@ class SolutionSettings(SolutionIdentitySettings):
         from solutions.common.bizz import SolutionModule
         return any((m in self.modules for m in SolutionModule.TWITTER_MODULES))
 
-    def can_edit_services(self, country):
-        from solutions.common.bizz import SolutionModule
+    def can_edit_services(self, customer):
+        from solutions.common.bizz import SolutionModule, OrganizationType
         if SolutionModule.CITY_APP not in self.modules:
             return False
-        if country == u"FR":
+        if customer.country == u"FR" or customer.organization_type != OrganizationType.CITY:
             return False
         return True
 
