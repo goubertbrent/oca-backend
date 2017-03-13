@@ -526,7 +526,8 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
         bs = _get_default_branding_settings(new_service_user)
         with open(os.path.join(os.path.dirname(__file__), '..', 'templates', 'main_branding', 'logo.jpg'), 'r') as f:
             sl = SolutionLogo(key=SolutionLogo.create_key(new_service_user),
-                              picture=db.Blob(f.read()))
+                              picture=db.Blob(f.read()),
+                              is_default=True)
         to_be_put.extend([bs, sl])
 
     put_and_invalidate_cache(*to_be_put)

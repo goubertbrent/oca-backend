@@ -88,8 +88,8 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
     get_news_publisher_from_app_user
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
-from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, SolutionSettings, \
-    SolutionInboxMessage, SolutionNewsPublisher
+from solutions.common.models import RestaurantMenu, SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
+    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher, SolutionLogo, SolutionAvatar
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
@@ -585,6 +585,32 @@ def settings_load():
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     to = SolutionSettingsTO.fromModel(sln_settings, sln_i_settings)
     return to
+
+
+@rest("/common/settings/defaults/all", "get")
+@returns([unicode])
+@arguments()
+def get_all_defaults():
+    """Get all settings that are set to the default. (e.g. menu, logo...etc)"""
+    from solutions.common.dal import get_restaurant_menu, get_solution_logo, get_solution_avatar
+
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    defaults = []
+
+    logo = get_solution_logo(service_user)
+    if not logo or logo.is_default:
+        defaults.append(u'logo')
+    avatar = get_solution_avatar(service_user)
+    if not avatar or avatar.is_default:
+        defaults.append(u'avatar')
+
+    if SolutionModule.MENU in sln_settings.modules:
+        menu = get_restaurant_menu(service_user)
+        if not menu or menu.is_default:
+            defaults.append(u'menu')
+
+    return defaults
 
 
 @rest("/common/settings/publish_changes", "get")

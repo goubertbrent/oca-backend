@@ -141,6 +141,7 @@ def set_avatar(service_user, tmp_avatar_key, x1, y1, x2, y2):
         avatar = avatar or SolutionAvatar(key=avatar_key)
         avatar.picture = db.Blob(jpg_bytes)
         avatar.published = False
+        avatar.is_default = False
 
         sln_settings.updates_pending = True
         branding_settings.modification_time = now()
@@ -167,6 +168,7 @@ def set_logo(service_user, tmp_logo_key, x1, y1, x2, y2):
     def trans():
         logo = get_solution_logo(service_user) or SolutionLogo(key=SolutionLogo.create_key(service_user))
         logo.picture = db.Blob(jpg_bytes)
+        logo.is_default = False
 
         settings = get_solution_settings(service_user)
         settings.updates_pending = True

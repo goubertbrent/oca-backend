@@ -167,23 +167,51 @@ $(function () {
         }
     }
 
-    var publishChanges = function () {
-        sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
+    var validateDefaultSettings = function(callback) {
         sln.call({
-            url: "/common/settings/publish_changes",
-            type: "GET",
-            success: function (data) {
-                sln.hideProcessing();
-                if (data.success) {
-                    toggleUpdatesPending(false);
+            url: '/common/settings/defaults/all',
+            method: 'get',
+            success: function(defaults) {
+                if(defaults.length) {
+                    showDefaultSettingsWarning(defaults);
                 } else {
-                    sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
+                    callback();
                 }
             },
-            error: function (XMLHttpRequest, textStatus, errorThrown) {
-                sln.hideProcessing();
-                sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
+            error: sln.showAjaxError
+        });
+    };
+
+    var showDefaultSettingsWarning = function(defaults) {
+        if(defaults.length) {
+            var warning = CommonTranslations.default_settings_warning + '<br/><br/>';
+            for(var i=0; i < defaults.length; i++) {
+                warning += CommonTranslations['default_settings_warning_' + defaults[i]];
+                warning += '<br/><br/>'
             }
+            sln.alert(warning, null, CommonTranslations.ERROR);
+        }
+    };
+
+    var publishChanges = function () {
+        validateDefaultSettings(function() {
+            sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
+            sln.call({
+                url: "/common/settings/publish_changes",
+                type: "GET",
+                success: function (data) {
+                    sln.hideProcessing();
+                    if (data.success) {
+                        toggleUpdatesPending(false);
+                    } else {
+                        sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    sln.hideProcessing();
+                    sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
+                }
+            });
         });
     };
 

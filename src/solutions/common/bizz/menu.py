@@ -82,6 +82,7 @@ def save_menu(service_user, menu):
         m = get_restaurant_menu(service_user, sln_settings.solution)
         if not m:
             m = RestaurantMenu(key=RestaurantMenu.create_key(service_user, sln_settings.solution))
+        m.is_default = False
         m.predescription = menu.predescription
         m.postdescription = menu.postdescription
         m.categories = MenuCategories()
@@ -226,6 +227,7 @@ def _put_default_menu(service_user, translate=None, solution=None):
         solution = get_solution_settings(service_user).solution
 
     menu = RestaurantMenu(key=RestaurantMenu.create_key(service_user, solution))
+    menu.is_default = True
     menu.predescription = translate('prediscription') + " " + translate('your-menu')
     menu.postdescription = translate('postdiscription') + " " + translate('your-menu')
     menu.categories = MenuCategories()

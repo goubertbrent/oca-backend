@@ -440,6 +440,7 @@ class SolutionMainBranding(db.Model):
 
 class BaseSolutionImage(db.Model):
     picture = db.BlobProperty()
+    is_default = db.BooleanProperty(indexed=False, default=False)
 
     @property
     def service_user(self):
@@ -464,6 +465,7 @@ class RestaurantMenu(db.Model):
     predescription = db.TextProperty()
     postdescription = db.TextProperty()
     name = db.StringProperty(indexed=False)
+    is_default = db.BooleanProperty(indexed=False, default=False)
 
     @property
     def service_user(self):
