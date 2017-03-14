@@ -23,6 +23,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceMenuDef
 from rogerthat.rpc import users
 from rogerthat.service.api import system
+from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.utils.transactions import allow_transaction_propagation, run_in_xg_transaction
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
@@ -104,8 +105,8 @@ DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_pa
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, transactional=bool)
-def provision(service_user, transactional=True):
+@arguments(service_user=users.User, friends=[BaseMemberTO], transactional=bool)
+def provision(service_user, friends=None, transactional=True):
     with users.set_user(service_user):
         default_lang = get_default_language()
         sln_settings = get_and_complete_solution_settings(service_user, SOLUTION_FLEX)
@@ -124,7 +125,7 @@ def provision(service_user, transactional=True):
         # old_branding_key is added by get_and_store_main_branding
         populate_identity(sln_settings, main_branding.branding_key, main_branding.old_branding_key)
 
-        system.publish_changes()
+        system.publish_changes(friends)
         logging.info('Service populated!')
 
 

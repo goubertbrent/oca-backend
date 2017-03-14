@@ -582,6 +582,63 @@ var createLib = function() {
                     modal.modal('hide');
             });
         },
+        userSearch: function(input, searchDict, userSelectedCallback, typingCallback) {
+            input.typeahead({
+                source : function(query, process) {
+                    if(typingCallback) {
+                        typingCallback(query);
+                    }
+                    sln.call({
+                        url : "/common/users/search",
+                        type : "POST",
+                        data : {
+                            data : JSON.stringify({
+                                name_or_email_term : query
+                            })
+                        },
+                        success : function(data) {
+                            var usersKeys = [];
+                            searchDict = {};
+                            $.each(data, function(i, user) {
+                                var userKey = user.email + ":" + user.app_id;
+                                usersKeys.push(userKey);
+
+                                searchDict[userKey] = {
+                                    avatar_url : user.avatar_url,
+                                    label : user.name + ' (' + user.email + ')',
+                                    sublabel: user.app_id
+                                };
+                            });
+                            process(usersKeys);
+                        },
+                        error : sln.showAjaxError
+                    });
+                },
+                matcher : function() {
+                    return true;
+                },
+                highlighter : function(key) {
+                    var p = searchDict[key];
+
+                    var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
+                    var typeahead_photo = $('<img class="typeahead_photo" src="" />').attr("src", p.avatar_url);
+                    typeahead_wrapper.append(typeahead_photo);
+                    var typeahead_labels = $('<div class="typeahead_labels"></div>');
+                    var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.label);
+                    typeahead_labels.append(typeahead_primary);
+                    var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.sublabel);
+                    typeahead_labels.append(typeahead_secondary);
+                    typeahead_wrapper.append(typeahead_labels);
+
+                    return typeahead_wrapper;
+                },
+                updater : function(key) {
+                    var p = searchDict[key];
+                    userSelectedCallback(key);
+                    return p.label;
+                }
+            });
+        },
         alert: function(message, onClose, title, timeout) {
             var html = $.tmpl(TMPL_ALERT, {
                 header: title || CommonTranslations.ALERT,

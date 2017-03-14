@@ -1,0 +1,22 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="tryPublishModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 id="tryPublishModalLabel">${T('publish-changes')}</h3>
+    </div>
+    <div class="modal-body" style="overflow-y: visible; max-height: 100%">
+        <p>
+            <b>${T('publish-to-selected-users')}</b>
+        </p>
+        <input id="app_user_email" type="text" style="width: 514px" placeholder="${T('ENTER_DOT_DOT_DOT')}" />
+        <table id="selected_users" class="table table-striped">
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${T('CANCEL')}</button>
+        <button id="try_publish" action="submit" class="btn btn-primary">${T('publish')}</button>
+    </div>
+</div>
+{%- endraw %}

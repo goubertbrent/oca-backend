@@ -280,6 +280,7 @@ class SolutionSettings(SolutionIdentitySettings):
     main_language = db.StringProperty(indexed=False)
 
     updates_pending = db.BooleanProperty(indexed=False, default=False)
+    publish_changes_users = db.StringListProperty(indexed=False)
     put_identity_pending = db.BooleanProperty(indexed=True, default=False)
     provisioned_modules = db.StringListProperty()
     modules = db.StringListProperty()

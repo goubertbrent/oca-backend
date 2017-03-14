@@ -36,6 +36,7 @@ from rogerthat.exceptions.branding import BrandingValidationException
 from rogerthat.models import ServiceTranslation, ServiceMenuDef
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
+from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import generate_random_key, now
 from rogerthat.utils.zip_utils import rename_file_in_zip_blob
@@ -175,8 +176,8 @@ def get_app_data_jukebox(settings, service_identity=None):
 
 
 @returns(NoneType)
-@arguments(service_user=users.User)
-def provision(service_user):
+@arguments(service_user=users.User, friends=[BaseMemberTO])
+def provision(service_user, friends=None):
     logging.debug("Provisioning %s" % service_user)
     users.set_user(service_user)
     try:
@@ -213,7 +214,7 @@ def provision(service_user):
         provision_all_modules(sln_settings, MODULE_COORDS_MAPPING, main_branding, default_lang)
 
         system.put_callback(u"system.api_call", True)
-        system.publish_changes()
+        system.publish_changes(friends)
         logging.info('Service populated!')
     finally:
         users.clear_user()

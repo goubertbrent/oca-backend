@@ -46,7 +46,7 @@ from rogerthat.service.api.friends import get_broadcast_reach
 from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
-from rogerthat.to.messaging import AttachmentTO, BroadcastTargetAudienceTO
+from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -88,8 +88,8 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
     get_news_publisher_from_app_user
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
-from solutions.common.models import RestaurantMenu, SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
-    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher, SolutionLogo, SolutionAvatar
+from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
+    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
@@ -612,13 +612,14 @@ def get_all_defaults():
     return defaults
 
 
-@rest("/common/settings/publish_changes", "get")
+
+@rest("/common/settings/publish_changes", "post")
 @returns(ReturnStatusTO)
-@arguments()
-def settings_publish_changes():
+@arguments(friends=[BaseMemberTO])
+def settings_publish_changes(friends=None):
     service_user = users.get_current_user()
     try:
-        common_provision(service_user)
+        common_provision(service_user, friends=friends)
         return RETURNSTATUS_TO_SUCCESS
     except InvalidValueException as e:
         reason = e.fields.get('reason')
@@ -627,6 +628,16 @@ def settings_publish_changes():
         return ReturnStatusTO.create(False, reason or e.message)
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/settings/publish_changes/users", "post")
+@returns()
+@arguments(user_keys=[unicode])
+def settings_save_publish_changes_users(user_keys):
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    sln_settings.publish_changes_users = user_keys
+    sln_settings.put()
 
 
 def _update_image(bizz_func, tmp_avatar_key, x1, y1, x2, y2):
