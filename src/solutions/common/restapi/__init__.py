@@ -16,14 +16,13 @@
 # @@license_version:1.2@@
 
 import base64
+from collections import defaultdict
 import datetime
 import logging
 from types import NoneType
-from collections import defaultdict
 
 from babel.dates import format_date
 from babel.numbers import format_currency
-
 from google.appengine.api.blobstore import blobstore
 from google.appengine.ext import db, deferred
 from mcfw.consts import MISSING
@@ -89,7 +88,7 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
-    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher
+    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher, SolutionLogo, SolutionAvatar, RestaurantMenu
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
