@@ -307,8 +307,8 @@ indexes:
 
 - kind: Question
   properties:
-  - name: visible
   - name: language
+  - name: visible
   - name: timestamp
     direction: desc
 

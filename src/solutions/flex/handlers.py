@@ -26,7 +26,7 @@ from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.session import set_service_identity
-from rogerthat.consts import DEBUG
+from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.models import ServiceIdentity
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
@@ -170,6 +170,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_location_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
+                       'appscale': APPSCALE,
                        'currency': sln_settings.currency,
                        'service_user_email': sln_settings.service_user}
         templates = dict()
@@ -184,6 +185,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
                        'currency': sln_settings.currency,
+                       'appscale': APPSCALE,
                        'service_user_email': sln_settings.service_user}
         templates = dict()
         templates_to_get = set()
@@ -235,6 +237,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 params = {'token': token,
                           'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                           'debug': DEBUG,
+                          'appscale': APPSCALE,
                           'templates': self._get_location_templates(sln_settings),
                           'service_name': sln_settings.name,
                           'service_display_email': sln_settings.qualified_identifier or service_user.email().encode("utf-8"),
@@ -307,6 +310,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
                   'debug': DEBUG,
+                  'appscale': APPSCALE,
                   'token': token,
                   'templates': self._get_templates(sln_settings),
                   'service_name': sln_i_settings.name,

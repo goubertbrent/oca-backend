@@ -218,7 +218,6 @@ def find_places(google_maps_key, app_id, postal_codes, radius, coords, city_name
         raise Exception("Find places for coords %s failed with status: %s" % (coords, response['status']))
 
     place_ids = [result['place_id'] for result in response['results']]
-
     def trans():
         if place_ids:
             deferred.defer(run_places, google_maps_key, app_id, postal_codes, place_ids, city_name, check_phone_number,
