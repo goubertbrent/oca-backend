@@ -186,7 +186,8 @@ $(function () {
         if(defaults.length) {
             var warning = CommonTranslations.default_settings_warning + '<br/><br/>';
             for(var i=0; i < defaults.length; i++) {
-                warning += CommonTranslations['default_settings_warning_' + defaults[i]];
+                warning += '<b>' + CommonTranslations[defaults[i]] + '</b><br/>';
+                warning += CommonTranslations[('default_settings_warning_' + defaults[i]).toLowerCase()];
                 warning += '<br/><br/>'
             }
             sln.alert(warning, null, CommonTranslations.ERROR);

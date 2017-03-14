@@ -592,21 +592,20 @@ def settings_load():
 @arguments()
 def get_all_defaults():
     """Get all settings that are set to the default. (e.g. menu, logo...etc)"""
-    from solutions.common.dal import get_restaurant_menu, get_solution_logo, get_solution_avatar
-
     service_user = users.get_current_user()
-    sln_settings = get_solution_settings(service_user)
+    sln_settings, logo, avatar = db.get([SolutionSettings.create_key(service_user),
+                                         SolutionLogo.create_key(service_user),
+                                         SolutionAvatar.create_key(service_user)])
     defaults = []
 
-    logo = get_solution_logo(service_user)
     if not logo or logo.is_default:
-        defaults.append(u'logo')
-    avatar = get_solution_avatar(service_user)
+        defaults.append(u'Logo')
+
     if not avatar or avatar.is_default:
-        defaults.append(u'avatar')
+        defaults.append(u'Avatar')
 
     if SolutionModule.MENU in sln_settings.modules:
-        menu = get_restaurant_menu(service_user)
+        menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
         if not menu or menu.is_default:
             defaults.append(u'menu')
 
