@@ -697,7 +697,7 @@ def menu_save(menu):
         return ReturnStatusTO.create(False, e.message)
 
 
-@rest("/common/menu/import", "post")
+@rest("/common/menu/import", "post", silent=True)
 @returns(ReturnStatusTO)
 @arguments(file_contents=str)
 def menu_import(file_contents):
