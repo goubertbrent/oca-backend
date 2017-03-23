@@ -37,7 +37,7 @@ import solutions.common.restapi
 import solutions.djmatic.api
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-
+from version.handler import VersionsHandler
 
 dummy2()
 dummy()
@@ -69,6 +69,7 @@ handlers = [
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
     ('/solutions/common/public/attachment/view/(.*)', ViewAttachmentHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
+    ('/version', VersionsHandler)
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))

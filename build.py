@@ -19,7 +19,7 @@ import logging
 import os
 import shutil
 import time
-
+import subprocess
 import yaml
 
 CURRENT_DIRECTORY = os.path.realpath(os.path.dirname(__file__))
@@ -171,6 +171,21 @@ def merge_source_files(open_source_dir, closed_source_dir, result_source_dir, op
                 f.truncate()
 
 
+def get_git_revision_short_hash(working_dir):
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=working_dir).strip()
+
+
+def create_versions(open_source_dir, closed_source_dir):
+    output = '''VERSIONS = {}
+VERSIONS["rogerthat_backend"] = "%(rogerthat_backend_version)s"
+VERSIONS["oca_backend"] = "%(oca_backend_version)s"''' % dict(rogerthat_backend_version=get_git_revision_short_hash(open_source_dir),
+                                                              oca_backend_version=get_git_revision_short_hash(closed_source_dir))
+
+    path = os.path.join(closed_source_dir, "version")
+    with open(os.path.join(path, "__init__.py"), 'w+') as f:
+        f.write(output.encode('utf-8'))
+
+
 if __name__ == '__main__':
     open_source_name = 'rogerthat-backend'
     closed_source_name = 'appengine'
@@ -178,5 +193,6 @@ if __name__ == '__main__':
     closed_source_dir = os.path.join(CURRENT_DIRECTORY, 'src')
     result_source_dir = os.path.join(CURRENT_DIRECTORY, 'build')
     t = time.time()
+    create_versions(open_source_dir, closed_source_dir)
     merge_source_files(open_source_dir, closed_source_dir, result_source_dir, open_source_name, closed_source_name)
     logging.info('Build in %d ms', (time.time() - t) * 1000)
