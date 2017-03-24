@@ -2398,9 +2398,10 @@ def export_customers_csv(google_user):
 
     qry = get_all_customers()
     while True:
-        customers = qry.fetch(200)
+        customers = qry.fetch(100)
         if not customers:
             break
+        logging.debug('Fetched %s customers', len(customers))
         qry.with_cursor(qry.cursor())
         si_stats_keys = list()
 
@@ -2412,10 +2413,11 @@ def export_customers_csv(google_user):
             else:
                 si_stats_keys.append(None)
 
-        si_stats = db.get(filter(None, si_stats_keys))
-        for i, si_stat in enumerate(si_stats_keys):
-            if not si_stat:
-                si_stats.insert(i, None)
+        total_users = [si_stat.number_of_users if si_stat else 0
+                       for si_stat in db.get(filter(None, si_stats_keys))]
+        for i, key in enumerate(si_stats_keys):
+            if not key:
+                total_users.insert(i, 0)
 
         i = 0
         for customer in customers:
@@ -2428,11 +2430,7 @@ def export_customers_csv(google_user):
                 d[p] = getattr(customer, p)
             d['Subscription type'] = Customer.SUBSCRIPTION_TYPES[customer.subscription_type]
             d['Has terminal'] = u'Yes' if customer.has_loyalty else u'No'
-            si_stat = si_stats[i]
-            if si_stat:
-                d['Total users'] = si_stat.number_of_users
-            else:
-                d['Total users'] = 0
+            d['Total users'] = total_users[i]
             contact = Contact.get_one(customer)
             d['Telephone'] = contact.phone_number if contact else u''
             result.append(d)
@@ -2446,6 +2444,7 @@ def export_customers_csv(google_user):
                     d[p] = v.encode('utf-8')
             i += 1
 
+    logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
                   'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App']
     csv_string = StringIO()
@@ -2458,7 +2457,7 @@ def export_customers_csv(google_user):
     solution_server_settings = get_solution_server_settings()
     send_email('Customers export %s' % current_date, solution_server_settings.shop_export_email, [google_user.email()], [],
                solution_server_settings.shop_no_reply_email,
-               u'The exported customer list from %s can be found in the attachment of this email.' % current_date,
+               u'The exported customer list of %s can be found in the attachment of this email.' % current_date,
                csv_string.getvalue(), 'csv', 'Customers export %s.csv' % current_date)
 
 
