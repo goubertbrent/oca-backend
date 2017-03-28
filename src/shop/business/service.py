@@ -85,7 +85,7 @@ def set_service_enabled(customer_id):
     customer.disabled_reason_int = 0
     customer.subscription_cancel_pending_date = 0
     # restore app ids
-    customer.app_ids = si.app_ids
+    customer.app_ids = si.sorted_app_ids
     customer.default_app_id = si.app_id
     db.put([customer, sln_settings])
 
