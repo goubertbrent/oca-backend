@@ -513,14 +513,14 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 def get_app_data_agenda(sln_settings, service_identity):
     events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution), key=lambda e: e.get_first_event_date())
     event_items = []
-    for event in events:
-        event_items.append(EventItemTO.fromEventItemObject(event))
-
-        events_json = json.dumps(serialize_complex_value(event_items, EventItemTO, True))
-        if len(events_json) > 600 * 1024:
+    size = 0
+    for i in xrange(len(events)):
+        event_items.append(EventItemTO.fromEventItemObject(events[i]))
+        size += len(json.dumps(serialize_complex_value(event_items[-1], EventItemTO, False)))
+        if size > 600 * 1024:
             del event_items[len(event_items) - 1]
             break
-    logging.debug("reducing events from agenda %s/%s" % (len(event_items), len(events)))
+    logging.debug("reducing events from agenda %s/%s = %s" % (len(event_items), len(events), size))
     calendar_items = [SolutionCalendarTO.fromSolutionCalendar(sln_settings, c)
                       for c in get_solution_calendars(sln_settings.service_user, sln_settings.solution)]
 
