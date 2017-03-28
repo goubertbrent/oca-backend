@@ -2394,7 +2394,7 @@ translations = \
          u'users': u'Usuarios',
          u'users-total': u'N\xfamero total de usuarios',
          u'users_count': u'%(amount)s usuarios',
-         u'vat': u'NIF/CIF',
+         u'vat': u'IVA',
          u'visibility': u'Visibilidad',
          u'visible': u'Visible',
          u'visible_in': u'Visible en',

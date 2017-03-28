@@ -328,7 +328,7 @@ shop_translations = \
          u'total_incl_vat': u'Total incluyendo IVA',
          u'use_form_to_pay': u'Por favor, realizar el pago mediante el siguiente formulario de transferencia.',
          u'use_manage_cc_function': u'Utilice la funci\xf3n "Manejo de la tarjeta de cr\xe9dito".',
-         u'vat': u'NIF/CIF',
+         u'vat': u'IVA',
          u'with_regards': u'Saludos cordiales',
          u'your_service_created': u'Su servicio Our City App se ha creado correctamente.'},
  u'fr': {u'A3CT.default_comment': u'Votre application est ainsi visible dans 4 autres villes.',
