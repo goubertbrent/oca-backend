@@ -33,6 +33,7 @@ shop_translations = \
          u'DEMO.default_comment': u'Demo account for 3 months.',
          u'DEMO.description': u'Demo account.',
          u'FCTY.description': u'Free OUR CITY APP subscription for local governments',
+         u'FCTY.default_comment': u'',
          u'FREE.description': u'Free OUR CITY APP subscription',
          u'FREE.default_comment': u'OUR CITY APP subscription',
          u'ILOS.default_comment': u'Configuration and installation of the OUR CITY APP terminal in your company.',
