@@ -238,6 +238,7 @@ shop_translations = \
          u'VISI.description': u'Our City App tarjetas de visita',
          u'VSDI.default_comment': u'El descuento sigue siendo v\xe1lido tras el per\xedodo inicial de la suscripci\xf3n.',
          u'VSDI.description': u'Descuento por comienzo temprano',
+         u'XCTD.description': u'Descuento por compra rápida de expansi\xf3n para una ciudad adicional',
          u'XCTY.default_comment': u'Esto hace que su aplicaci\xf3n sea visible en otra ciudad.',
          u'XCTY.description': u'Expansi\xf3n de la suscripci\xf3n mensual para una ciudad adicional',
          u'XTRA.default_comment': u'Proporcione a sus clientes con algo a la medida de su empresa.\nLo construimos para usted en \u20ac 75,-/hora .',

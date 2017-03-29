@@ -430,28 +430,33 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
         if product.product_dependencies:
             for dependency in product.product_dependencies:
                 dependency_found = False
+                dependencies_product_codes = []
                 for dependency in dependency.split('|'):
                     dependency_count = item.count
                     if ':' in dependency:
                         dependency, dependency_count = dependency.split(":")
                         dependency_count = int(dependency_count)
+                    dependencies_product_codes.append(dependency)
 
                     for oi in items:
-                        if oi.product == dependency and (
-                                    (dependency_count > 0 and oi.count == item.count) or dependency_count <= 0):
+                        if oi.product == dependency and (dependency_count <= 0 or oi.count == item.count):
                             dependency_found = True
                             break
                     else:
                         # Dependency not found in this order
                         if dependency_count < 0:
                             for oi in get_order_items_signed_orders():
-                                if oi.product_code == dependency and (
-                                            (
-                                                    dependency_count > 0 and oi.number == item.count) or dependency_count <= 0):
+                                if oi.product_code == dependency and (dependency_count <= 0 or oi.number == item.count):
                                     dependency_found = True
                                     break
 
                 if not dependency_found:
+                    # for legal entities it is possible that not all possible dependencies exist. so here I take
+                    # the first existing dependency to make sure the next lines don't raise a KeyError
+                    # it is intentional that it raises a KeyError if none of the dependency products exist
+                    for dependency in dependencies_product_codes:
+                        if dependency in all_products:
+                            break
                     if dependency_count > 0:
                         raise InvalidProductQuantityException(product.description(DEFAULT_LANGUAGE),
                                                               all_products[dependency].description(DEFAULT_LANGUAGE))
