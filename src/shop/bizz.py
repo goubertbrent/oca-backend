@@ -902,7 +902,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
                 next_charge_datetime = datetime.datetime.utcfromtimestamp(now()) + relativedelta(months=months)
                 order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
             else:
-                order.next_charge_date = Order.NEVER_CHARGE_DATE
+                order.next_charge_date = Order.default_next_charge_date()
 
             # reconnect all previous connected friends if the service was disabled in the past
             if customer.service_disabled_at != 0:
@@ -2587,7 +2587,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
             generate_order_or_invoice_pdf(pdf, customer, order)
             order.pdf = db.Blob(pdf.getvalue())
             pdf.close()
-            order.next_charge_date = Order.NEVER_CHARGE_DATE
+            order.next_charge_date = Order.default_next_charge_date()
             order.put()
         return customer, email_has_changed, is_new
 

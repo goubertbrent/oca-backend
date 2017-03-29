@@ -49,16 +49,17 @@ def _job():
 
 
 def job2():
-    run_job(_qry2, [], _worker2, [])
+    default_next_charge_date = Order.default_next_charge_date()
+    run_job(_qry2, [], _worker2, [default_next_charge_date])
 
 
 def _qry2():
     return Order.all(keys_only=True).filter('next_charge_date', None)
 
 
-def _worker2(order_key):
+def _worker2(order_key, next_charge_date):
     def t():
         order = db.get(order_key)
-        order.next_charge_date = Order.NEVER_CHARGE_DATE
+        order.next_charge_date = next_charge_date
         order.put()
     db.run_in_transaction(t)

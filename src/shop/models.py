@@ -26,6 +26,7 @@ import urllib
 from babel import Locale
 from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import users as gusers, images
 from google.appengine.ext import db, blobstore
 
@@ -36,7 +37,7 @@ from mcfw.utils import chunks
 from oauth2client.appengine import CredentialsProperty
 from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
-from rogerthat.utils import bizz_check, now
+from rogerthat.utils import bizz_check, get_epoch_from_datetime, now
 from shop.business.i18n import SHOP_DEFAULT_LANGUAGE, shop_translate
 from shop.constants import PROSPECT_CATEGORIES
 from shop.exceptions import CustomerNotFoundException, NoSupportManagerException
@@ -626,8 +627,6 @@ class Order(db.Model):
 
     CUSTOMER_STORE_ORDER_NUMBER = '-1'
 
-    NEVER_CHARGE_DATE = 253402300799  # 31 Dec 9999 23:59:59 GMT
-
     date = db.IntegerProperty()
     amount = db.IntegerProperty()  # In euro cents
     vat_pct = db.IntegerProperty()
@@ -726,6 +725,12 @@ class Order(db.Model):
     @classmethod
     def list_by_contact_id(cls, contact_id):
         return cls.all().filter('contact_id', contact_id)
+
+    @staticmethod
+    def default_next_charge_date():
+        """Get the default next charge date (today + 1 month)."""
+        next_month = datetime.datetime.utcfromtimestamp(now()) + relativedelta(months=1)
+        return get_epoch_from_datetime(next_month)
 
 
 class OrderItem(db.Expando):

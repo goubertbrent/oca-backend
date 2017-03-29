@@ -60,7 +60,7 @@ def cancel_charge(customer_id, order_number, charge_id):
             next_charge_datetime = datetime.datetime.utcfromtimestamp(now()) - relativedelta(months=months)
             order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
         else:
-            order.next_charge_date = Order.NEVER_CHARGE_DATE
+            order.next_charge_date = Order.default_next_charge_date()
     else:
         extra_months = 0
         for item in order_items:
