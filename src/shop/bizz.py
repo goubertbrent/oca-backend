@@ -247,6 +247,7 @@ def re_index_customer(customer_key):
     bizz_check(customer)
 
     fields = [search.AtomField(name='customer_key', value=str(customer_key)),
+              search.TextField(name='customer_id', value=str(customer_key.id())),
               search.TextField(name='customer_name', value=customer.name),
               search.TextField(name='customer_address', value=" ".join([customer.address1 or '', customer.address2 or ''])),
               search.TextField(name='customer_zip_code', value=customer.zip_code),

@@ -73,11 +73,15 @@ def get_subscription_order_remaining_length(customer_id, subscription_order_numb
     subscription_order = Order.get(Order.create_key(customer_id, subscription_order_number))
     if subscription_order.next_charge_date:
         next_charge_date = subscription_order.next_charge_date + DAY * 14
-        next_charge_datetime = datetime.datetime.utcfromtimestamp(next_charge_date)
-        timedelta = dateutil.relativedelta.relativedelta(next_charge_datetime, datetime.datetime.now())
-        months_till_charge = timedelta.years * 12 + timedelta.months
-        if months_till_charge < 1:
+        try:
+            next_charge_datetime = datetime.datetime.utcfromtimestamp(next_charge_date)
+        except ValueError:  # Eg. year out of range
             months_till_charge = 1
+        else:
+            timedelta = dateutil.relativedelta.relativedelta(next_charge_datetime, datetime.datetime.now())
+            months_till_charge = timedelta.years * 12 + timedelta.months
+            if months_till_charge < 1:
+                months_till_charge = 1
     else:
         months_till_charge = 1
     return months_till_charge, subscription_order

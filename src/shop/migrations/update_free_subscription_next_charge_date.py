@@ -15,16 +15,11 @@
 #
 # @@license_version:1.2@@
 
-import logging
-
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-
 from rogerthat.bizz.job import run_job
-from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.consts import MIGRATION_QUEUE
-
+from rogerthat.dal import put_and_invalidate_cache
 from shop.models import Order, Product
+
 
 # was in shop.models.Order
 NEVER_CHARGE_DATE = 253402300799  # 31 Dec 9999 23:59:59 GMT
@@ -32,24 +27,26 @@ NEVER_CHARGE_DATE = 253402300799  # 31 Dec 9999 23:59:59 GMT
 
 def job():
     default_next_charge_date = Order.default_next_charge_date()
-    run_job(_all_subscription_orders, [], _update_next_charge_date, [default_next_charge_date],
+    all_products = {p.code: p for p in Product.all()}
+    run_job(_all_subscription_orders, [], _update_next_charge_date, [default_next_charge_date, all_products],
             worker_queue=MIGRATION_QUEUE)
 
 
 def _all_subscription_orders():
-    return Order.all(keys_only=True)\
-        .filter('is_subscription_order =', True)\
+    return Order.all(keys_only=True) \
+        .filter('is_subscription_order =', True) \
         .filter('next_charge_date =', NEVER_CHARGE_DATE)
 
 
-def _update_next_charge_date(order_key, default_next_charge_date):
+def _update_next_charge_date(order_key, default_next_charge_date, all_products):
     """Set next charge date to next month."""
     order = Order.get(order_key)
 
     def is_free_subscription(order_item):
-        return order_item.product_code == Product.PRODUCT_FREE_SUBSCRIPTION
+        product = all_products[order_item.product_code]
+        return product.is_subscription and product.price == 0
 
     order_items = order.list_items()
-    if any([is_free_subscription(item) for item in order_items]):
+    if any((is_free_subscription(item) for item in order_items)):
         order.next_charge_date = default_next_charge_date
         put_and_invalidate_cache(order)
