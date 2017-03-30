@@ -592,22 +592,6 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
     }
 
     var detailsTab = $('#tab-details');
-    var validateBtn = detailsTab.find('#button_validate_vat');
-    detailsTab.find('#vat').unbind('keyup').bind('keyup', function() {
-        var vat = $(this).val().toUpperCase();
-
-        // Auto-select country and language based on the entered VAT
-        if (vat.indexOf('BE') == 0) {
-            detailsTab.find('#country').val('BE');
-            detailsTab.find('#language').val('nl');
-        } else if (vat.indexOf('ES') == 0) {
-            detailsTab.find('#country').val('ES');
-            detailsTab.find('#language').val('es');
-        }
-
-        // Enabling the VALIDATE button when the entered VAT starts with "BE" or a number.
-        validateBtn.prop('disabled', !/^([0-9]|BE)/.test(vat));
-    });
 
     detailsTab.find('input, textarea, select').not('.customer_select').prop('disabled', readonly);
 
@@ -1881,8 +1865,8 @@ $(function () {
                 vat: vat
             },
             success: function (data) {
-                if (!data) {
-                    $('#new_customer_error span').text('VAT number could not be validated!');
+                if (data.errormsg) {
+                    $('#new_customer_error span').text(data.errormsg);
                     $('#new_customer_error').show();
                     return;
                 }

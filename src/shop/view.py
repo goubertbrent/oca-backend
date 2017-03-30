@@ -1621,39 +1621,33 @@ def rest_cancel_charge(customer_id, order_number, charge_id):
 
 
 @rest("/internal/shop/rest/company/info", "get")
-@returns(CompanyTO)
+@returns((ReturnStatusTO, CompanyTO))
 @arguments(vat=unicode)
 def get_company_info(vat):
     audit_log(-1, u"Get company info")
-    solution_server_settings = get_solution_server_settings()
-    url = 'https://api.data.be/1.0/vies/vat/%s/validity?api_id=%s&api_key=%s' % \
-        (urllib.quote(vat),
-         solution_server_settings.data_be_app_id,
-         solution_server_settings.data_be_app_key)
+    vat = vat.strip().upper().replace(' ', '')
+    url = 'http://euvat.ga/api/info/%s' % urllib.quote(vat)
     logging.info(url)
-    response = urlfetch.fetch(url, deadline=10)
+    response = urlfetch.fetch(url, deadline=10, validate_certificate=False)
     if response.status_code != 200:
-        return None
+        return ReturnStatusTO.create(False, u'VAT number could not be validated!')
     logging.info(response.content)
     data = json.loads(response.content)
-    if not data['success']:
-        return None
-    if not data['data']['valid']:
-        return None
-    customer = CompanyTO()
-    customer.name = data['data']['name']
-    address1, address2, zip_code, city = parseDataDotBeAddressEU(data['data']['address'])
-    customer.address1 = address1
-    customer.address2 = address2
-    customer.zip_code = zip_code
-    customer.city = city
-    customer.country = data['data']['countryCode']
-    customer.vat = data['data']['countryCode'] + data['data']['vatNumber']
-    customer.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
-    return customer
+    if not data['valid']:
+        return ReturnStatusTO.create(False, data.get(u'message', u'VAT number could not be validated!'))
+
+    comp = CompanyTO()
+    comp.name = data.get('traderName')
+    address = data.get('traderAddress')
+    if address:
+        comp.address1, comp.address2, comp.zip_code, comp.city = parse_euvat_address_eu(address)
+    comp.country = data['countryCode']
+    comp.vat = comp.country + data['vatNumber']
+    comp.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
+    return comp
 
 
-def parseDataDotBeAddressEU(address):
+def parse_euvat_address_eu(address):
     address = address.strip().splitlines()
     zc_ci = address.pop()
     zip_code, city = zc_ci.split(' ', 1)
