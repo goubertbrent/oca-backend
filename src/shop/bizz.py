@@ -509,6 +509,10 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             order.team_id = customer.team_id
             order.manager = customer.manager
 
+        def has_product(order_item, product_code):
+            # legal entities have their product code prefixed
+            return order_item.product == product_code or order_item.product.endswith('_' + product_code)
+
         number = 0
         extra_apps_count = 0
         for item in items:
@@ -520,15 +524,16 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             order_item.count = item.count
             order_item.price = item.price
             order_item.put()
-            if item.product == Product.PRODUCT_EXTRA_CITY:
+
+            if has_product(item, Product.PRODUCT_EXTRA_CITY):
                 extra_apps_count += 1
-            elif item.product == Product.PRODUCT_ACTION_3_EXTRA_CITIES:
+            elif has_product(item, Product.PRODUCT_ACTION_3_EXTRA_CITIES):
                 extra_apps_count += 3
-            if item.product in ['MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE]:
+            elif any(has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
-            elif item.product in ['MSUP', 'SUBX']:
+            elif any(has_product(item, product_code) for product_code in ('MSUP', 'SUBX')):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
-            elif item.product == 'LOYA' or item.product == 'LSUP':
+            elif any(has_product(item, product_code) for product_code in ('LOYA', 'LSUP')):
                 customer.has_loyalty = True
 
         if is_subscription:
