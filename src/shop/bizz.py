@@ -44,7 +44,7 @@ from xhtml2pdf import pisa
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import normalize_search_string
+from mcfw.utils import normalize_search_string, chunks
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
@@ -2408,7 +2408,7 @@ def export_customers_csv(google_user):
 
     qry = get_all_customers()
     while True:
-        customers = qry.fetch(100)
+        customers = qry.fetch(300)
         if not customers:
             break
         logging.debug('Fetched %s customers', len(customers))
@@ -2423,8 +2423,11 @@ def export_customers_csv(google_user):
             else:
                 si_stats_keys.append(None)
 
-        total_users = [si_stat.number_of_users if si_stat else 0
-                       for si_stat in db.get(filter(None, si_stats_keys))]
+        total_users = []
+        # get the ServiceIdentityStatistics in chunks of 50 because these objects can be big
+        for chunk in chunks(si_stats_keys, 50):
+            total_users += [si_stat.number_of_users if si_stat else 0
+                            for si_stat in db.get(filter(None, chunk))]
         for i, key in enumerate(si_stats_keys):
             if not key:
                 total_users.insert(i, 0)
