@@ -591,11 +591,27 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
         prepareShowTab(tabFunction, customerId);
     }
 
-    //$('#other-customer-info').addClass('hide');
+    var detailsTab = $('#tab-details');
+    var validateBtn = detailsTab.find('#button_validate_vat');
+    detailsTab.find('#vat').unbind('keyup').bind('keyup', function() {
+        var vat = $(this).val().toUpperCase();
 
-    $('#tab-details').find('input, textarea, select').not('.customer_select').prop('disabled', readonly);
+        // Auto-select country and language based on the entered VAT
+        if (vat.indexOf('BE') == 0) {
+            detailsTab.find('#country').val('BE');
+            detailsTab.find('#language').val('nl');
+        } else if (vat.indexOf('ES') == 0) {
+            detailsTab.find('#country').val('ES');
+            detailsTab.find('#language').val('es');
+        }
 
-    $('#tab-details input').val('');
+        // Enabling the VALIDATE button when the entered VAT starts with "BE" or a number.
+        validateBtn.prop('disabled', !/^([0-9]|BE)/.test(vat));
+    });
+
+    detailsTab.find('input, textarea, select').not('.customer_select').prop('disabled', readonly);
+
+    detailsTab.find('input').val('');
     var modal = $('#customer_form').data('mode', mode).modal('show');
 
     // Show the tabs when clicking on them
