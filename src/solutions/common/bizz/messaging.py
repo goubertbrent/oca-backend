@@ -296,7 +296,7 @@ def poke_invite(service_user, email, tag, result_key, context, service_identity,
     poke_result.type = u'flow'
     result = FlowCallbackResultTypeTO()
     result.tag = tag
-    result.flow = flow.decode('utf-8')
+    result.flow = flow if isinstance(flow, unicode) else flow.decode("utf8")
     result.force_language = None
     poke_result.value = result
     return poke_result
