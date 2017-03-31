@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @@license_version:1.2@@
+ * @@license_version:1.3@@
  */
 
 var TMPL_ADDRESS = "${customer.address1}{{if customer.address2}}\n${customer.address2}{{/if}}\n${customer.zip_code} ${customer.city}";

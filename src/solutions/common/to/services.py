@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from mcfw.properties import typed_property, unicode_list_property, long_property, unicode_property
 from rogerthat.to.messaging import KeyValueTO

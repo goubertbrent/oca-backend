@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from rogerthat.bizz.job import run_job
 from rogerthat.dal.profile import get_avatar_by_id, get_service_profile

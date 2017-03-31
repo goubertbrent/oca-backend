@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from google.appengine.ext.webapp import blobstore_handlers
 from solutions.common.models import FileBlob

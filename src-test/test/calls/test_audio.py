@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from rogerthat.rpc.rpc import expose
 from mcfw.properties import unicode_property, long_property, unicode_list_property, typed_property
