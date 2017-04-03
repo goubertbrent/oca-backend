@@ -125,7 +125,9 @@ def create_xcty_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = False
     p.is_subscription_extension = True
     p.organization_types = []
-    p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(code_prefix=code_prefix)]
+    p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1'
+                              '|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1|%(code_prefix)sCSUB:-1' % {
+                                  'code_prefix': code_prefix}]
     p.picture_url = ""
     p.visible = True
     p.legal_entity_id = legal_entity_id
