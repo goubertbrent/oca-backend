@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from google.appengine.ext import db
 
@@ -26,7 +26,7 @@ from shop.models import Product
 
 # XXX: We really need a better method to obtain these values
 MC_TELECOM_LEGAL_ENTITY_ID = 5789858167521280 if not DEBUG else 5832209105682432
-ACTIVE_S_LEGAL_ENTITY_ID = 5811373693992960 if not DEBUG else 5066549580791808
+ACTIVE_S_LEGAL_ENTITY_ID = 5811373693992960 if not DEBUG else 6513025846607872
 
 
 def add_all_products(mobicage_entity=None):
@@ -81,6 +81,8 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
     to_put.append(create_setu_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=7000))
+    to_put.append(create_xcty_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
+    to_put.append(create_xctd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
 
     to_put.append(create_drc_stud_product())
     to_put.append(create_drc_sb_product())
@@ -134,6 +136,26 @@ def create_xcty_product(legal_entity_id, code_prefix=''):
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_xctd_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'XCTD')
+    p.price = -500
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 37)
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.is_subscription_extension = True
+    p.organization_types = []
+    p.product_dependencies = ['%(code_prefix)sXCTY:-1' % dict(code_prefix=code_prefix)]
+    p.picture_url = ""
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
@@ -863,9 +885,9 @@ def create_fcty_product(legal_entity_id, code_prefix=''):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
-        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 

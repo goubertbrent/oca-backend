@@ -2,7 +2,7 @@
 <html>
 <head>
 {%- include 'translations.tmpl' %}
-<title>{% translate language, "flex", "title" %}</title>
+<title>{% translate language, "flex", "dashboard" %}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="google" value="notranslate" />
 <!-- Bootstrap -->
@@ -18,7 +18,7 @@
     <link rel="stylesheet" type="text/css" href="/static/js/slick/slick-theme.css"/>
     <link rel="stylesheet" type="text/css" href="/static/js/bower_components/cropper/dist/cropper.min.css"/>
     <link href="/static/css/solutions/flex/news.css" rel="stylesheet">
-{%if debug%}
+{%if debug or appscale %}
 <script src='/_ah/channel/jsapi'></script>
 {%else%}
 <script src='https://talkgadget.google.com/talkgadget/channel.js'></script>
@@ -95,7 +95,7 @@ var modules = {};
             <div class="navbar navbar-fixed-top">
                 <div class="navbar-inner" {% if debug %}style="background: #e5ffe5;"{% endif %}>
                     <a class="brand" {% if not loyalty %}href="#/news"{% else %}href="#"{% endif %}>
-                        {% translate language, "flex", "title" %}{% if debug %} - dev{% endif %}</a>
+                        {% translate language, "flex", "dashboard" %}{% if debug %} - dev{% endif %}</a>
                     <ul id="topmenu" class="nav">
 
 {% if not is_layout_user %}

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import base64
 from contextlib import closing
@@ -29,6 +29,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition
 from babel.dates import format_time
+
 from google.appengine.ext import db
 import jinja2
 from mcfw.properties import azzert
@@ -510,7 +511,16 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode)
 def get_app_data_agenda(sln_settings, service_identity):
-    event_items = map(EventItemTO.fromEventItemObject, get_event_list(sln_settings.service_user, sln_settings.solution))
+    events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution), key=lambda e: e.get_first_event_date())
+    event_items = []
+    size = 0
+    for i in xrange(len(events)):
+        event_items.append(EventItemTO.fromEventItemObject(events[i]))
+        size += len(json.dumps(serialize_complex_value(event_items[-1], EventItemTO, False)))
+        if size > 600 * 1024:
+            del event_items[len(event_items) - 1]
+            break
+    logging.debug("reducing events from agenda %s/%s = %s" % (len(event_items), len(events), size))
     calendar_items = [SolutionCalendarTO.fromSolutionCalendar(sln_settings, c)
                       for c in get_solution_calendars(sln_settings.service_user, sln_settings.solution)]
 

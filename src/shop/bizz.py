@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import base64
 import csv
@@ -44,7 +44,7 @@ from xhtml2pdf import pisa
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import normalize_search_string
+from mcfw.utils import normalize_search_string, chunks
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
@@ -247,6 +247,7 @@ def re_index_customer(customer_key):
     bizz_check(customer)
 
     fields = [search.AtomField(name='customer_key', value=str(customer_key)),
+              search.TextField(name='customer_id', value=str(customer_key.id())),
               search.TextField(name='customer_name', value=customer.name),
               search.TextField(name='customer_address', value=" ".join([customer.address1 or '', customer.address2 or ''])),
               search.TextField(name='customer_zip_code', value=customer.zip_code),
@@ -430,28 +431,33 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
         if product.product_dependencies:
             for dependency in product.product_dependencies:
                 dependency_found = False
+                dependencies_product_codes = []
                 for dependency in dependency.split('|'):
                     dependency_count = item.count
                     if ':' in dependency:
                         dependency, dependency_count = dependency.split(":")
                         dependency_count = int(dependency_count)
+                    dependencies_product_codes.append(dependency)
 
                     for oi in items:
-                        if oi.product == dependency and (
-                                    (dependency_count > 0 and oi.count == item.count) or dependency_count <= 0):
+                        if oi.product == dependency and (dependency_count <= 0 or oi.count == item.count):
                             dependency_found = True
                             break
                     else:
                         # Dependency not found in this order
                         if dependency_count < 0:
                             for oi in get_order_items_signed_orders():
-                                if oi.product_code == dependency and (
-                                            (
-                                                    dependency_count > 0 and oi.number == item.count) or dependency_count <= 0):
+                                if oi.product_code == dependency and (dependency_count <= 0 or oi.number == item.count):
                                     dependency_found = True
                                     break
 
                 if not dependency_found:
+                    # for legal entities it is possible that not all possible dependencies exist. so here I take
+                    # the first existing dependency to make sure the next lines don't raise a KeyError
+                    # it is intentional that it raises a KeyError if none of the dependency products exist
+                    for dependency in dependencies_product_codes:
+                        if dependency in all_products:
+                            break
                     if dependency_count > 0:
                         raise InvalidProductQuantityException(product.description(DEFAULT_LANGUAGE),
                                                               all_products[dependency].description(DEFAULT_LANGUAGE))
@@ -504,6 +510,10 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             order.team_id = customer.team_id
             order.manager = customer.manager
 
+        def has_product(order_item, product_code):
+            # legal entities have their product code prefixed
+            return order_item.product == product_code or order_item.product.endswith('_' + product_code)
+
         number = 0
         extra_apps_count = 0
         for item in items:
@@ -515,15 +525,16 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             order_item.count = item.count
             order_item.price = item.price
             order_item.put()
-            if item.product == Product.PRODUCT_EXTRA_CITY:
+
+            if has_product(item, Product.PRODUCT_EXTRA_CITY):
                 extra_apps_count += 1
-            elif item.product == Product.PRODUCT_ACTION_3_EXTRA_CITIES:
+            elif has_product(item, Product.PRODUCT_ACTION_3_EXTRA_CITIES):
                 extra_apps_count += 3
-            if item.product in ['MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE]:
+            elif any(has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
-            elif item.product in ['MSUP', 'SUBX']:
+            elif any(has_product(item, product_code) for product_code in ('MSUP', 'SUBX')):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
-            elif item.product == 'LOYA' or item.product == 'LSUP':
+            elif any(has_product(item, product_code) for product_code in ('LOYA', 'LSUP')):
                 customer.has_loyalty = True
 
         if is_subscription:
@@ -902,7 +913,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
                 next_charge_datetime = datetime.datetime.utcfromtimestamp(now()) + relativedelta(months=months)
                 order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
             else:
-                order.next_charge_date = Order.NEVER_CHARGE_DATE
+                order.next_charge_date = Order.default_next_charge_date()
 
             # reconnect all previous connected friends if the service was disabled in the past
             if customer.service_disabled_at != 0:
@@ -2398,9 +2409,10 @@ def export_customers_csv(google_user):
 
     qry = get_all_customers()
     while True:
-        customers = qry.fetch(200)
+        customers = qry.fetch(300)
         if not customers:
             break
+        logging.debug('Fetched %s customers', len(customers))
         qry.with_cursor(qry.cursor())
         si_stats_keys = list()
 
@@ -2412,10 +2424,14 @@ def export_customers_csv(google_user):
             else:
                 si_stats_keys.append(None)
 
-        si_stats = db.get(filter(None, si_stats_keys))
-        for i, si_stat in enumerate(si_stats_keys):
-            if not si_stat:
-                si_stats.insert(i, None)
+        total_users = []
+        # get the ServiceIdentityStatistics in chunks of 50 because these objects can be big
+        for chunk in chunks(si_stats_keys, 50):
+            total_users += [si_stat.number_of_users if si_stat else 0
+                            for si_stat in db.get(filter(None, chunk))]
+        for i, key in enumerate(si_stats_keys):
+            if not key:
+                total_users.insert(i, 0)
 
         i = 0
         for customer in customers:
@@ -2428,11 +2444,7 @@ def export_customers_csv(google_user):
                 d[p] = getattr(customer, p)
             d['Subscription type'] = Customer.SUBSCRIPTION_TYPES[customer.subscription_type]
             d['Has terminal'] = u'Yes' if customer.has_loyalty else u'No'
-            si_stat = si_stats[i]
-            if si_stat:
-                d['Total users'] = si_stat.number_of_users
-            else:
-                d['Total users'] = 0
+            d['Total users'] = total_users[i]
             contact = Contact.get_one(customer)
             d['Telephone'] = contact.phone_number if contact else u''
             result.append(d)
@@ -2446,6 +2458,7 @@ def export_customers_csv(google_user):
                     d[p] = v.encode('utf-8')
             i += 1
 
+    logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
                   'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App']
     csv_string = StringIO()
@@ -2458,7 +2471,7 @@ def export_customers_csv(google_user):
     solution_server_settings = get_solution_server_settings()
     send_email('Customers export %s' % current_date, solution_server_settings.shop_export_email, [google_user.email()], [],
                solution_server_settings.shop_no_reply_email,
-               u'The exported customer list from %s can be found in the attachment of this email.' % current_date,
+               u'The exported customer list of %s can be found in the attachment of this email.' % current_date,
                csv_string.getvalue(), 'csv', 'Customers export %s.csv' % current_date)
 
 
@@ -2588,7 +2601,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
             generate_order_or_invoice_pdf(pdf, customer, order)
             order.pdf = db.Blob(pdf.getvalue())
             pdf.close()
-            order.next_charge_date = Order.NEVER_CHARGE_DATE
+            order.next_charge_date = Order.default_next_charge_date()
             order.put()
         return customer, email_has_changed, is_new
 

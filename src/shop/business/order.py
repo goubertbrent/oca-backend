@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import datetime
 import logging
@@ -72,15 +72,16 @@ def set_next_charge_date(customer_id, next_charge_date):
 def get_subscription_order_remaining_length(customer_id, subscription_order_number):
     subscription_order = Order.get(Order.create_key(customer_id, subscription_order_number))
     if subscription_order.next_charge_date:
-        if subscription_order.next_charge_date == Order.NEVER_CHARGE_DATE:
-            next_charge_date = subscription_order.next_charge_date
-        else:
-            next_charge_date = subscription_order.next_charge_date + DAY * 14
-        next_charge_datetime = datetime.datetime.utcfromtimestamp(next_charge_date)
-        timedelta = dateutil.relativedelta.relativedelta(next_charge_datetime, datetime.datetime.now())
-        months_till_charge = timedelta.years * 12 + timedelta.months
-        if months_till_charge < 1:
+        next_charge_date = subscription_order.next_charge_date + DAY * 14
+        try:
+            next_charge_datetime = datetime.datetime.utcfromtimestamp(next_charge_date)
+        except ValueError:  # Eg. year out of range
             months_till_charge = 1
+        else:
+            timedelta = dateutil.relativedelta.relativedelta(next_charge_datetime, datetime.datetime.now())
+            months_till_charge = timedelta.years * 12 + timedelta.months
+            if months_till_charge < 1:
+                months_till_charge = 1
     else:
         months_till_charge = 1
     return months_till_charge, subscription_order

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import MIGRATION_QUEUE
@@ -49,16 +49,17 @@ def _job():
 
 
 def job2():
-    run_job(_qry2, [], _worker2, [])
+    default_next_charge_date = Order.default_next_charge_date()
+    run_job(_qry2, [], _worker2, [default_next_charge_date])
 
 
 def _qry2():
     return Order.all(keys_only=True).filter('next_charge_date', None)
 
 
-def _worker2(order_key):
+def _worker2(order_key, next_charge_date):
     def t():
         order = db.get(order_key)
-        order.next_charge_date = Order.NEVER_CHARGE_DATE
+        order.next_charge_date = next_charge_date
         order.put()
     db.run_in_transaction(t)

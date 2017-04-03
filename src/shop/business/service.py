@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from google.appengine.ext import db
 
@@ -85,7 +85,7 @@ def set_service_enabled(customer_id):
     customer.disabled_reason_int = 0
     customer.subscription_cancel_pending_date = 0
     # restore app ids
-    customer.app_ids = si.app_ids
+    customer.app_ids = si.sorted_app_ids
     customer.default_app_id = si.app_id
     db.put([customer, sln_settings])
 

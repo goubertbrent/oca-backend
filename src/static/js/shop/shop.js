@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Mobicage NV
+ * Copyright 2017 GIG Technology NV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @@license_version:1.2@@
+ * @@license_version:1.3@@
  */
 'use strict';
 var TMPL_PROCESSING = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">'
@@ -591,11 +591,11 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
         prepareShowTab(tabFunction, customerId);
     }
 
-    //$('#other-customer-info').addClass('hide');
+    var detailsTab = $('#tab-details');
 
-    $('#tab-details').find('input, textarea, select').not('.customer_select').prop('disabled', readonly);
+    detailsTab.find('input, textarea, select').not('.customer_select').prop('disabled', readonly);
 
-    $('#tab-details input').val('');
+    detailsTab.find('input').val('');
     var modal = $('#customer_form').data('mode', mode).modal('show');
 
     // Show the tabs when clicking on them
@@ -1865,8 +1865,8 @@ $(function () {
                 vat: vat
             },
             success: function (data) {
-                if (!data) {
-                    $('#new_customer_error span').text('VAT number could not be validated!');
+                if (data.errormsg) {
+                    $('#new_customer_error span').text(data.errormsg);
                     $('#new_customer_error').show();
                     return;
                 }

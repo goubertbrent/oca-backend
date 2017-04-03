@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import datetime
 
@@ -60,7 +60,7 @@ def cancel_charge(customer_id, order_number, charge_id):
             next_charge_datetime = datetime.datetime.utcfromtimestamp(now()) - relativedelta(months=months)
             order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
         else:
-            order.next_charge_date = Order.NEVER_CHARGE_DATE
+            order.next_charge_date = Order.default_next_charge_date()
     else:
         extra_months = 0
         for item in order_items:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Mobicage NV
+ * Copyright 2017 GIG Technology NV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @@license_version:1.2@@
+ * @@license_version:1.3@@
  */
 
 // Settings module
@@ -62,8 +62,16 @@ $(function () {
         + '    <button id="publish_changes" type="button" class="btn btn-warning pull-right">'
         + CommonTranslations.PUBLISH_CHANGES //
         + '    </button>' //
+        + '    <button id="try_publish_changes" type="button" class="btn btn-warning pull-right" style="margin-right: 5px;">'
+        + CommonTranslations.TRY //
+        + '    </button>' //
         + '    <h4>' + CommonTranslations.WARNING + '</h4>' + CommonTranslations.UNPERSISTED_CHANGES //
         + '</div>';
+
+    var TMPL_USER_ROW = '<tr user_key=${user_key}>'
+        + '<td style="width: 75%;"">${email}</td>'
+        + '<td><button class="btn btn-danger pull-right" action="delete_user"><i class="fa fa-trash"></i></button></td>'
+        + '</tr>';
 
     var TMPL_REQUIRED_PENDING = '<div class="alert alert-danger">' //
         + '    <h4>' //
@@ -122,6 +130,7 @@ $(function () {
 
     var mobileInboxForwardsSearch = {};
     var appUserRolesSearch = {};
+    var tryPublishChangesUserSearch = {};
 
     var TMPL_MOBILE_INBOX_FORWARDER_INPUT = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">'
         + '    <div class="modal-header">'
@@ -167,6 +176,93 @@ $(function () {
         }
     }
 
+    var publishChanges = function() {
+        // publish changes to all users
+        publishChangesToUsers(null);
+    }
+
+    var tryPublishChanges = function() {
+        var html = $.tmpl(templates['settings/try_publish_changes'], {
+        });
+
+        var modal = sln.createModal(html, function (modal) {
+            $('#app_user_email_input', modal).focus();
+        });
+
+        function getUserKeys() {
+            var keys = [];
+            $('#selected_users > tbody > tr', modal).each(function(i, el) {
+                keys.push($(el).attr('user_key'));
+            });
+            return keys;
+        }
+
+        function addUser(userKey) {
+            var email = userKey.split(':')[0];
+            var userRow = $.tmpl(TMPL_USER_ROW, {
+                email: email,
+                user_key: userKey
+            });
+
+            $('button[action=delete_user]', userRow).click(function() {
+                $(this).parent().closest('tr').remove();
+            });
+
+            $('#selected_users > tbody', modal).append(userRow);
+        }
+
+        // prefill last selected users
+        var lastSelectedUserKeys = []
+        if(LocalCache.settings.try_publish_user_keys) {
+            $.each(LocalCache.settings.try_publish_user_keys, function(i, userKey) {
+                addUser(userKey);
+            });
+        }
+
+        var publishButton = $('#try_publish', modal);
+        var searchInput = $('#app_user_email', modal);
+        sln.userSearch(searchInput, tryPublishChangesUserSearch, function(userKey) {
+            var addedKeys = getUserKeys();
+            if(addedKeys.indexOf(userKey) === -1) {
+                addUser(userKey);
+                searchInput.val('');
+            }
+        });
+
+        publishButton.click(function() {
+            var userKeys = getUserKeys(),
+                members = [];
+
+            $.each(userKeys, function(i, key) {
+                var userKey = key.split(':');
+                members.push({
+                    member: userKey[0], /* email */
+                    app_id: userKey[1]  /* app_id */
+                });
+            });
+            if(!members.length) {
+                sln.alert(CommonTranslations.select_1_user_at_least, null, CommonTranslations.ERROR);
+                return;
+            }
+
+            saveTryPublishUsers(userKeys);
+            publishChangesToUsers(members);
+            modal.modal('hide');
+        });
+    };
+
+    var showDefaultSettingsWarning = function(defaults) {
+        if(defaults.length) {
+            var warning = CommonTranslations.default_settings_warning + '<br/><br/>';
+            for(var i=0; i < defaults.length; i++) {
+                warning += '<b>' + CommonTranslations[defaults[i]] + '</b><br/>';
+                warning += CommonTranslations[('default_settings_warning_' + defaults[i]).toLowerCase()];
+                warning += '<br/><br/>'
+            }
+            sln.alert(warning, null, CommonTranslations.ERROR);
+        }
+    };
+
     var validateDefaultSettings = function(callback) {
         sln.call({
             url: '/common/settings/defaults/all',
@@ -180,30 +276,24 @@ $(function () {
             },
             error: sln.showAjaxError
         });
-    };
+    }
 
-    var showDefaultSettingsWarning = function(defaults) {
-        if(defaults.length) {
-            var warning = CommonTranslations.default_settings_warning + '<br/><br/>';
-            for(var i=0; i < defaults.length; i++) {
-                warning += CommonTranslations['default_settings_warning_' + defaults[i]];
-                warning += '<br/><br/>'
-            }
-            sln.alert(warning, null, CommonTranslations.ERROR);
-        }
-    };
-
-    var publishChanges = function () {
+    var publishChangesToUsers = function (friends) {
         validateDefaultSettings(function() {
+            var args = {};
+            if(friends && friends.length) {
+                args.friends = friends;
+            }
             sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
             sln.call({
                 url: "/common/settings/publish_changes",
-                type: "GET",
+                type: "POST",
+                data: args,
                 success: function (data) {
                     sln.hideProcessing();
-                    if (data.success) {
+                    if (data.success && !args.friends) {
                         toggleUpdatesPending(false);
-                    } else {
+                    } else if(!data.success){
                         sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
                     }
                 },
@@ -214,6 +304,22 @@ $(function () {
             });
         });
     };
+
+    var saveTryPublishUsers = function(userKeys) {
+        if(userKeys.length) {
+            LocalCache.settings.try_publish_user_keys = userKeys;
+
+            sln.call({
+                url: '/common/settings/publish_changes/users',
+                type: 'POST',
+                data: {
+                    user_keys: userKeys
+                },
+                success: function() {},
+                error: sln.showAjaxError
+            });
+        }
+    }
 
     var toggleUpdatesPending = function (updatesPending) {
         if (updatesPending) {
@@ -262,6 +368,9 @@ $(function () {
                     $('.sln-set-bic input').data('updateVal')(data.bic);
                 }
 
+                if(data.publish_changes_users) {
+                    LocalCache.settings.try_publish_user_keys = data.publish_changes_users;
+                }
                 renderHolidays(data);
             },
             error: sln.showAjaxError
@@ -679,59 +788,10 @@ $(function () {
 
         $('button[action="submit"]', modal).hide();
 
-        $('#mobile_inbox_forwarder', html).typeahead({
-            source: function (query, process) {
-                $('button[action="submit"]', modal).hide();
-                sln.call({
-                    url: "/common/users/search",
-                    type: "POST",
-                    data: {
-                        data: JSON.stringify({
-                            name_or_email_term: query
-                        })
-                    },
-                    success: function (data) {
-                        var usersKeys = [];
-                        mobileInboxForwardsSearch = {};
-                        $.each(data, function (i, user) {
-                            var userKey = user.email + ":" + user.app_id;
-                            usersKeys.push(userKey);
-
-                            mobileInboxForwardsSearch[userKey] = {
-                                avatar_url: user.avatar_url,
-                                label: user.name + ' (' + user.email + ')',
-                                sublabel: user.app_id
-                            };
-                        });
-                        process(usersKeys);
-                    },
-                    error: sln.showAjaxError
-                });
-            },
-            matcher: function () {
-                return true;
-            },
-            highlighter: function (key) {
-                var p = mobileInboxForwardsSearch[key];
-
-                var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
-                var typeahead_photo = $('<img class="typeahead_photo" src="" />').attr("src", p.avatar_url);
-                typeahead_wrapper.append(typeahead_photo);
-                var typeahead_labels = $('<div class="typeahead_labels"></div>');
-                var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.label);
-                typeahead_labels.append(typeahead_primary);
-                var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.sublabel);
-                typeahead_labels.append(typeahead_secondary);
-                typeahead_wrapper.append(typeahead_labels);
-
-                return typeahead_wrapper;
-            },
-            updater: function (key) {
-                var p = mobileInboxForwardsSearch[key];
-                $('button[action="submit"]', modal).attr("user_key", key);
-                $('button[action="submit"]', modal).show();
-                return p.label;
-            }
+        var searchInput = $('#mobile_inbox_forwarder', html);
+        sln.userSearch(searchInput, mobileInboxForwardsSearch, function(user_key) {
+            $('button[action="submit"]', modal).attr("user_key", user_key);
+            $('button[action="submit"]', modal).show();
         });
     });
 
@@ -918,6 +978,7 @@ $(function () {
     $('.sln-set-currency').html(TMPL_SET_CURRENY);
     $(".sln-updates-pending-warning").html(TMPL_UPDATES_PENDING).hide();
     $(".sln-updates-pending-warning #publish_changes").click(publishChanges);
+    $(".sln-updates-pending-warning #try_publish_changes").click(tryPublishChanges);
 
     $(".sln-required-warning").html(TMPL_REQUIRED_PENDING).hide();
 
@@ -1688,58 +1749,13 @@ $(function () {
 
             // search the existing users
             // just like events add admin or add inbox forwarer
-            $('#app_user_email_input', modal).typeahead({
-                source : function(query, process) {
-                    $('button[action="submit"]', modal).attr("user_key", "");
-                    sln.call({
-                        url : "/common/users/search",
-                        type : "POST",
-                        data : {
-                            data : JSON.stringify({
-                                name_or_email_term : query
-                            })
-                        },
-                        success : function(data) {
-                            var usersKeys = [];
-                            appUserRolesSearch = {};
-                            $.each(data, function(i, user) {
-                                var userKey = user.email + ":" + user.app_id;
-                                usersKeys.push(userKey);
-
-                                appUserRolesSearch[userKey] = {
-                                    avatar_url : user.avatar_url,
-                                    label : user.name + ' (' + user.email + ')',
-                                    sublabel: user.app_id
-                                };
-                            });
-                            process(usersKeys);
-                        },
-                        error : sln.showAjaxError
-                    });
-                },
-                matcher : function() {
-                    return true;
-                },
-                highlighter : function(key) {
-                    var p = appUserRolesSearch[key];
-
-                    var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
-                    var typeahead_photo = $('<img class="typeahead_photo" src="" />').attr("src", p.avatar_url);
-                    typeahead_wrapper.append(typeahead_photo);
-                    var typeahead_labels = $('<div class="typeahead_labels"></div>');
-                    var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.label);
-                    typeahead_labels.append(typeahead_primary);
-                    var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.sublabel);
-                    typeahead_labels.append(typeahead_secondary);
-                    typeahead_wrapper.append(typeahead_labels);
-
-                    return typeahead_wrapper;
-                },
-                updater : function(key) {
-                    var p = appUserRolesSearch[key];
-                    $('button[action="submit"]', modal).attr("user_key", key);
-                    return p.label;
-                }
+            var searchInput = $('#app_user_email_input', modal);
+            sln.userSearch(searchInput, appUserRolesSearch,
+            function(user_key) {
+                $('button[action="submit"]', modal).attr("user_key", user_key);
+            },
+            function(query) {
+                $('button[action="submit"]', modal).attr("user_key", "");
             });
 
             $('button[action="submit"]', modal).click(function() {

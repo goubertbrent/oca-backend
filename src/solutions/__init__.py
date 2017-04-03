@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import logging
 
@@ -207,6 +207,7 @@ COMMON_JS_KEYS = {'SELECT_ICON': 'select-icon',
                   'LABEL_IS_REQUIRED': 'Label is required',
                   'CREATE_NEW_CALENDAR': 'create-new-calendar',
                   'PUBLISH_CHANGES': 'publish-changes',
+                  'TRY': 'Try',
                   'TIME': 'Time',
                   'UNIT_PRICE_IS_AN_INVALID_NUMBER': 'Unit price is an invalid number',
                   'FACEBOOK_ADMIN_REQUIRED': 'facebook-admin-required',
@@ -287,7 +288,7 @@ COMMON_JS_KEYS = {'SELECT_ICON': 'select-icon',
                   'SETTINGS_END': 'settings-end',
                   'VISITS_IS_AN_INVALID_NUMBER': 'Visits is an invalid number',
                   'PLEASE_ENTER_A_MESSAGE': 'please-enter-a-message',
-                  'UNPERSISTED_CHANGES': 'unpersisted-changes', 
+                  'UNPERSISTED_CHANGES': 'unpersisted-changes',
                   'BY': 'By',
                   'NUMBER_OF_STAMPS_IS_AN_INVALID_NUMBER': 'Number of stamps is an invalid number',
                   'WARNING': 'warning',

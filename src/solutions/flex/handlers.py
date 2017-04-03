@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import json
 import os
@@ -26,7 +26,7 @@ from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.session import set_service_identity
-from rogerthat.consts import DEBUG
+from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.models import ServiceIdentity
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
@@ -73,7 +73,8 @@ DEFAULT_JS_TEMPLATES = ['inbox_messages',
                         'settings/settings_branding',
                         'settings/settings_branding_preview',
                         'settings/app_user_roles',
-                        'settings/app_user_add_roles'
+                        'settings/app_user_add_roles',
+                        'settings/try_publish_changes'
                         ]
 
 MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
@@ -169,6 +170,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_location_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
+                       'appscale': APPSCALE,
                        'currency': sln_settings.currency,
                        'service_user_email': sln_settings.service_user}
         templates = dict()
@@ -183,6 +185,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
                        'currency': sln_settings.currency,
+                       'appscale': APPSCALE,
                        'service_user_email': sln_settings.service_user}
         templates = dict()
         templates_to_get = set()
@@ -234,6 +237,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 params = {'token': token,
                           'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                           'debug': DEBUG,
+                          'appscale': APPSCALE,
                           'templates': self._get_location_templates(sln_settings),
                           'service_name': sln_settings.name,
                           'service_display_email': sln_settings.qualified_identifier or service_user.email().encode("utf-8"),
@@ -306,6 +310,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
                   'debug': DEBUG,
+                  'appscale': APPSCALE,
                   'token': token,
                   'templates': self._get_templates(sln_settings),
                   'service_name': sln_i_settings.name,

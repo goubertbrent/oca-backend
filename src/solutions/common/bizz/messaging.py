@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from base64 import b64encode
 from datetime import datetime
@@ -296,7 +296,7 @@ def poke_invite(service_user, email, tag, result_key, context, service_identity,
     poke_result.type = u'flow'
     result = FlowCallbackResultTypeTO()
     result.tag = tag
-    result.flow = flow.decode('utf-8')
+    result.flow = flow if isinstance(flow, unicode) else flow.decode("utf8")
     result.force_language = None
     poke_result.value = result
     return poke_result

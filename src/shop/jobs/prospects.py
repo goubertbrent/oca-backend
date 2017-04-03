@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from collections import namedtuple
 import json
@@ -218,7 +218,6 @@ def find_places(google_maps_key, app_id, postal_codes, radius, coords, city_name
         raise Exception("Find places for coords %s failed with status: %s" % (coords, response['status']))
 
     place_ids = [result['place_id'] for result in response['results']]
-
     def trans():
         if place_ids:
             deferred.defer(run_places, google_maps_key, app_id, postal_codes, place_ids, city_name, check_phone_number,

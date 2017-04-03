@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import datetime
 import logging
@@ -165,6 +165,7 @@ class SolutionSettingsTO(object):
     holiday_out_of_office_message = unicode_property('20')
     iban = unicode_property('21')
     bic = unicode_property('22')
+    publish_changes_users = unicode_list_property('23', default=[])
 
     @staticmethod
     def fromModel(sln_settings, sln_i_settings):
@@ -191,6 +192,7 @@ class SolutionSettingsTO(object):
         to.holiday_out_of_office_message = sln_i_settings.holiday_out_of_office_message
         to.iban = sln_settings.iban
         to.bic = sln_settings.bic
+        to.publish_changes_users = sln_settings.publish_changes_users
         return to
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import datetime
 import logging
@@ -23,7 +23,7 @@ from google.appengine.ext import db, deferred
 
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.utils import now
+from rogerthat.utils import get_epoch_from_datetime, now
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import cancel_order, create_task, audit_log
 from shop.business.prospect import create_prospect_from_customer
@@ -120,6 +120,7 @@ def _create_charge(order_key, today, products):
                     charge.subscription_extension_order_item_keys.append(order_item.key())
 
         if total_amount == 0:
+            order.next_charge_date = Order.default_next_charge_date()
             raise ZeroChargeException("Calculated recurrent charge of 0 euros")
 
         if subscription_length == 0:

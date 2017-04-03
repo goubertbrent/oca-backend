@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import base64
+from collections import defaultdict
 import datetime
 import logging
 from types import NoneType
-from collections import defaultdict
 
 from babel.dates import format_date
 from babel.numbers import format_currency
-
 from google.appengine.api.blobstore import blobstore
 from google.appengine.ext import db, deferred
 from mcfw.consts import MISSING
@@ -46,7 +45,7 @@ from rogerthat.service.api.friends import get_broadcast_reach
 from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
-from rogerthat.to.messaging import AttachmentTO, BroadcastTargetAudienceTO
+from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -88,8 +87,8 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
     get_news_publisher_from_app_user
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
-from solutions.common.models import RestaurantMenu, SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
-    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher, SolutionLogo, SolutionAvatar
+from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
+    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher, SolutionLogo, SolutionAvatar, RestaurantMenu
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
@@ -592,34 +591,34 @@ def settings_load():
 @arguments()
 def get_all_defaults():
     """Get all settings that are set to the default. (e.g. menu, logo...etc)"""
-    from solutions.common.dal import get_restaurant_menu, get_solution_logo, get_solution_avatar
-
     service_user = users.get_current_user()
-    sln_settings = get_solution_settings(service_user)
+    sln_settings, logo, avatar = db.get([SolutionSettings.create_key(service_user),
+                                         SolutionLogo.create_key(service_user),
+                                         SolutionAvatar.create_key(service_user)])
     defaults = []
 
-    logo = get_solution_logo(service_user)
     if not logo or logo.is_default:
-        defaults.append(u'logo')
-    avatar = get_solution_avatar(service_user)
+        defaults.append(u'Logo')
+
     if not avatar or avatar.is_default:
-        defaults.append(u'avatar')
+        defaults.append(u'Avatar')
 
     if SolutionModule.MENU in sln_settings.modules:
-        menu = get_restaurant_menu(service_user)
+        menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
         if not menu or menu.is_default:
             defaults.append(u'menu')
 
     return defaults
 
 
-@rest("/common/settings/publish_changes", "get")
+
+@rest("/common/settings/publish_changes", "post")
 @returns(ReturnStatusTO)
-@arguments()
-def settings_publish_changes():
+@arguments(friends=[BaseMemberTO])
+def settings_publish_changes(friends=None):
     service_user = users.get_current_user()
     try:
-        common_provision(service_user)
+        common_provision(service_user, friends=friends)
         return RETURNSTATUS_TO_SUCCESS
     except InvalidValueException as e:
         reason = e.fields.get('reason')
@@ -628,6 +627,16 @@ def settings_publish_changes():
         return ReturnStatusTO.create(False, reason or e.message)
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/settings/publish_changes/users", "post")
+@returns()
+@arguments(user_keys=[unicode])
+def settings_save_publish_changes_users(user_keys):
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    sln_settings.publish_changes_users = user_keys
+    sln_settings.put()
 
 
 def _update_image(bizz_func, tmp_avatar_key, x1, y1, x2, y2):
@@ -688,7 +697,7 @@ def menu_save(menu):
         return ReturnStatusTO.create(False, e.message)
 
 
-@rest("/common/menu/import", "post")
+@rest("/common/menu/import", "post", silent=True)
 @returns(ReturnStatusTO)
 @arguments(file_contents=str)
 def menu_import(file_contents):

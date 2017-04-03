@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import json
 import logging
@@ -280,6 +280,7 @@ class SolutionSettings(SolutionIdentitySettings):
     main_language = db.StringProperty(indexed=False)
 
     updates_pending = db.BooleanProperty(indexed=False, default=False)
+    publish_changes_users = db.StringListProperty(indexed=False)
     put_identity_pending = db.BooleanProperty(indexed=True, default=False)
     provisioned_modules = db.StringListProperty()
     modules = db.StringListProperty()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2017 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 from collections import defaultdict
 from datetime import datetime
@@ -52,7 +52,7 @@ from rogerthat.models import App, ServiceRole
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
-from rogerthat.service.api import qr, app
+from rogerthat.service.api import app, qr, system
 from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role
 from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
@@ -579,8 +579,8 @@ def broadcast_updates_pending(sln_settings):
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User])
-def common_provision(service_user, sln_settings=None, broadcast_to_users=None):
+@arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User], friends=[BaseMemberTO])
+def common_provision(service_user, sln_settings=None, broadcast_to_users=None, friends=None):
     try:
         start = time.time()
         settings_was_none = not bool(sln_settings)
@@ -592,7 +592,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None):
             else:
                 azzert(db.is_in_transaction())
             bizz = importlib.import_module("solutions.%s.bizz" % sln_settings.solution)
-            bizz.provision(service_user)
+            bizz.provision(service_user, friends)
             if must_send_updates_to_flex:
                 channel.send_message(cur_user, 'common.provision.success')
         except:
@@ -614,11 +614,14 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None):
             settings.put()
             return settings
 
-        if db.is_in_transaction():
-            sln_settings = trans()
-        else:
-            sln_settings = db.run_in_transaction(trans)
-        broadcast_updates_pending(sln_settings)
+        if not friends:
+            # set update pending to false
+            if db.is_in_transaction():
+                sln_settings = trans()
+            else:
+                sln_settings = db.run_in_transaction(trans)
+            broadcast_updates_pending(sln_settings)
+
         logging.debug('Provisioning took %s seconds', time.time() - start)
     except TranslatedException:
         raise
