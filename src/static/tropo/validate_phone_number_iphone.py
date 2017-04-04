@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.3@@
+# @@license_version:1.2@@
 
 call(phone_number, {"network":"SMS"}) #@UndefinedVariable
 say("Rogerthat.\nClick the following link to complete the phone number validation.\nrogerthat://r/" + code) #@UndefinedVariable

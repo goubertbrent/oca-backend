@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.3@@
+# @@license_version:1.2@@
 
 from rogerthat.bizz.friends import makeFriends
 from rogerthat.bizz.i18n import sync_service_translations, get_editable_translation_set, get_all_translations, \

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.3@@
+# @@license_version:1.2@@
 
 from rogerthat.rpc import users
 from rogerthat.utils.service import get_identity_from_service_identity_user, \

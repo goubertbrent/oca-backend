@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.3@@
+# @@license_version:1.2@@
 
 from mcfw.properties import unicode_property, typed_property, long_list_property, long_property, unicode_list_property, \
     bool_property

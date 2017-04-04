@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.3@@
+# @@license_version:1.2@@
 
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.job.update_friends import schedule_update_all_friends_of_service_user
