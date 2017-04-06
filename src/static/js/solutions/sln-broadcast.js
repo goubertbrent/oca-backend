@@ -1562,10 +1562,11 @@ $(function () {
         function checkFacebookPermissions(permissionsList, showErrors) {
             var errors = [];
 
-            if(permissionsList.indexOf('manage_pages') == -1) {
+            if(permissionsList.indexOf('manage_pages') === -1 ||
+               permissionsList.indexOf('publish_pages') === -1) {
                 errors.push(T('facebook-manage-pages-required'));
             }
-            if(permissionsList.indexOf('publish_actions') == -1) {
+            if(permissionsList.indexOf('publish_actions') === -1) {
                 errors.push(T('facebook-publish-actions-required'));
             }
 
@@ -1593,7 +1594,7 @@ $(function () {
                 sln.hideProcessing();
             },
             {
-                scope: 'manage_pages,publish_actions',
+                scope: 'manage_pages,publish_pages,publish_actions',
                 return_scopes: true
             });
         }
