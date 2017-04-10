@@ -80,7 +80,9 @@ def add_all_products(mobicage_entity=None):
 
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
+    to_put.append(create_msud_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
     to_put.append(create_setu_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=7000))
+    to_put.append(create_setd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=-7000))
     to_put.append(create_xcty_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_xctd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
 
@@ -235,6 +237,25 @@ def create_msup_product(legal_entity_id, code_prefix='', default_count=12):
     return p
 
 
+def create_msud_product(legal_entity_id, code_prefix='', default_count=12):
+    p = Product(key_name=code_prefix + 'MSUD')
+    p.price = -5000
+    p.default_count = default_count
+    p.default = True
+    p.possible_counts = [1, 12, 24, 36]
+    p.is_subscription = True
+    p.is_subscription_discount = False
+    p.module_set = 'ALL'
+    p.organization_types = []
+    p.product_dependencies = [code_prefix + 'MSUP']
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+    return p
+
+
 def create_sx6m_product(legal_entity_id, code_prefix=''):
     p = Product(key_name=code_prefix + 'SX6M')
     p.price = 0
@@ -286,6 +307,25 @@ def create_setu_product(legal_entity_id, code_prefix='', price=7500):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_setd_product(legal_entity_id, code_prefix='', price=-7500):
+    p = Product(key_name=code_prefix + 'SETD')
+    p.price = price
+    p.default_count = 1
+    p.default = True
+    p.possible_counts = [1]
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.module_set = 'ALL'
+    p.organization_types = []
+    p.product_dependencies = [code_prefix + 'SETU']
     p.visible = True
     p.legal_entity_id = legal_entity_id
     if code_prefix:
