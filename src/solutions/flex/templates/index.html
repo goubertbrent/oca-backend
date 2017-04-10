@@ -358,11 +358,11 @@ var modules = {};
                                     <a href="#/settings/app">{% translate language, 'common', 'app' %}</a>
                                 </li>
                             {% endif %}
-                            {% if SolutionModule.BILLING in sln_settings.modules and not is_layout_user %}
+                            {% if not is_layout_user and SolutionModule.BILLING in sln_settings.modules %}
                                 <li section="section_billing"><a href="#" help="e76_LF0Haw8">{% translate language, "common", "Billing" %}</a></li>
                             {% endif %}
                             <li section="section_branding"><a href="#/settings/branding" help="TtuJpcLEaYA">{% translate language, "common", "Branding" %}</a></li>
-                            {% if sln_settings.uses_inbox() %}
+                            {% if not is_layout_user and sln_settings.uses_inbox() %}
                                 <li class="" section="section_settings_inbox"><a href="#" help="kZqDPlPAtQY">{% translate language, "common", "Inbox" %}</a></li>
                             {% endif %}
                             {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
@@ -402,7 +402,7 @@ var modules = {};
                             {% if SolutionModule.BULK_INVITE in sln_settings.modules and not is_layout_user %}
                                 <li section="section_bulk_invite"><a href="#" help="ovlJ45CPNTI">{% translate language, "common", "settings-bulk-invite" %}</a></li>
                             {% endif %}
-                            {% if sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules %}
+                            {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
                                 <li section="section_settings_roles"><a href="#/settings/roles">{% translate language, "common", "settings-app-users-and-roles" %}</a></li>
                             {% endif %}
                         </ul>
