@@ -552,6 +552,19 @@ var loadCustomer = function (customerId, callback) {
     });
 };
 
+var setCountryByVat = function(vat) {
+    // Auto-select country and language based on the entered VAT #278
+    vat = vat.toUpperCase();
+    var detailsTab = $('#tab-details');
+    if (vat.indexOf('BE') == 0) {
+        detailsTab.find('#country').val('BE');
+        detailsTab.find('#language').val('nl');
+    } else if (vat.indexOf('ES') == 0) {
+        detailsTab.find('#country').val('ES');
+        detailsTab.find('#language').val('es');
+    }
+};
+
 var showCustomerForm = function (mode, tabFunction, customerId) {
     currentMode = mode;
     currentCustomer = {};
@@ -592,6 +605,9 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
     }
 
     var detailsTab = $('#tab-details');
+    detailsTab.find('#vat').unbind('keyup').bind('keyup', function() {
+        setCountryByVat($(this).val().toUpperCase());
+    });
 
     detailsTab.find('input, textarea, select').not('.customer_select').prop('disabled', readonly);
 
@@ -1868,6 +1884,7 @@ $(function () {
                 if (data.errormsg) {
                     $('#new_customer_error span').text(data.errormsg);
                     $('#new_customer_error').show();
+                    setCountryByVat(vat);
                     return;
                 }
                 $('#new_customer_error').hide();
