@@ -171,7 +171,7 @@
             </tr>
         {% endif %}
         <tr class="text-bold">
-            <td colspan="4" align="right">{% shop_translate language, "vat" %} ({{ order.vat_pct }}%)</td>
+            <td colspan="4" align="right">{% shop_translate language, "vat_percent" %} ({{ order.vat_pct }}%)</td>
             {% if customer.should_pay_vat %}
                 <td>{{ order.vat_in_euro }} {{ customer.legal_entity.currency_code }}</td>
             {% else %}
