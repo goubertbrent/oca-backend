@@ -8,9 +8,7 @@
     <meta property="rt:style:show-header" content="false"/>
     <meta property="rt:style:color-scheme" content="{{ color_scheme }}"/>
     <meta property="rt:style:display-type" content="native"/>
-    {%- if show_identity_name %}
-    <meta property="rt:style:show-name" content="true"/>
-    {%- endif %}
+    <meta property="rt:style:show-name" content="{%- if show_identity_name %}true{% else %}false{% endif %}"/>
     <style type="text/css">
         body {
             padding: 0;
