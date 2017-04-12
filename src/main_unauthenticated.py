@@ -19,7 +19,7 @@ from add_1_monkey_patches import dummy2
 from add_2_zip_imports import dummy
 from add_3_solution_handlers import register_solution_callback_api_handlers
 from bob.handlers import BobFetchHandler, GetAppsHandler, CreateAppHandler, SetFacebookAppDomain, BobTranslationsHandler, \
-    BobPutMainService, BobPutAppTrack
+    BobPutMainService, BobPutAppTrack, SetIosAppId
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
@@ -39,6 +39,7 @@ from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 
+
 dummy2()
 dummy()
 register_solution_callback_api_handlers()
@@ -56,6 +57,7 @@ handlers = [
     ('/bob/api/apps', GetAppsHandler),
     ('/bob/api/apps/create', CreateAppHandler),
     ('/bob/api/apps/set_domain', SetFacebookAppDomain),
+    ('/bob/api/apps/set_ios_app_id', SetIosAppId),
     ('/bob/api/apps/put_main_service', BobPutMainService),
     ('/bob/api/apps/put_track', BobPutAppTrack),
     ('/bob/api/translations', BobTranslationsHandler),

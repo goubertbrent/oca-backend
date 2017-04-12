@@ -20,6 +20,8 @@ import logging
 
 from bob.bizz import set_facebook_app_domain, create_app_from_bob, validate_and_put_main_service, put_app_track
 from google.appengine.api import urlfetch
+from google.appengine.ext import webapp, db
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import AutoConnectedService
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to.app import CreateAppRequestTO, FacebookAppDomainTO
@@ -37,6 +39,7 @@ def validate_request(handler):
         handler.abort(401)
     if secret != solution_server_settings.bob_api_secret:
         handler.abort(401)
+
 
 class BobFetchHandler(webapp2.RequestHandler):
 
@@ -86,6 +89,25 @@ class SetFacebookAppDomain(webapp2.RequestHandler):
             self.response.write(json.dumps(dict(success=True, errormsg=None)))
         except BusinessException, ex:
             self.response.write(json.dumps(dict(success=False, errormsg=ex.message)))
+
+
+class SetIosAppId(webapp.RequestHandler):
+    def post(self):
+        validate_request(self)
+        data = json.loads(self.request.body)
+        app_id = data['app_id']
+        ios_app_id = data['ios_app_id']
+
+        def trans():
+            app = get_app_by_id(app_id)
+            if not app:
+                self.response.write('App with id "%s" not found!' % app_id)
+                self.abort(400)
+
+            app.ios_app_id = ios_app_id
+            app.put()
+
+        db.run_in_transaction(trans)
 
 
 class CreateAppHandler(webapp2.RequestHandler):
