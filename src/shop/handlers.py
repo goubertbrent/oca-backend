@@ -370,7 +370,8 @@ class CustomerMapHandler(webapp2.RequestHandler):
             'merchants': shop_translate(lang, 'merchants'),
             'merchants_with_terminal': shop_translate(lang, 'merchants_with_terminal'),
             'community_services': shop_translate(lang, 'community_services'),
-            'associations': shop_translate(lang, 'associations')
+            'care': shop_translate(lang, 'care'),
+            'associations': shop_translate(lang, 'associations'),
         }
         params = {
             'maps_key': settings.googleMapsKey,
@@ -380,7 +381,7 @@ class CustomerMapHandler(webapp2.RequestHandler):
         self.response.out.write(template.render(path, params))
 
 
-@cached(1, 21600)
+@cached(2, 21600)
 @returns(unicode)
 @arguments(app_id=unicode)
 def get_customer_locations_for_app(app_id):
@@ -402,7 +403,15 @@ def get_customer_locations_for_app(app_id):
                     customer_location.address = customer.address1
                     customer_location.type = customer.organization_type
                     if customer.address2:
-                        customer_location.address += '/n%s' % customer.address2
+                        customer_location.address += '\n%s' % customer.address2
+                    if customer.zip_code or customer.city:
+                        customer_location.address += '\n'
+                        if customer.zip_code:
+                            customer_location.address += customer.zip_code
+                        if customer.zip_code and customer.city:
+                            customer_location.address += ' '
+                        if customer.city:
+                            customer_location.address += customer.city
                 else:
                     customer_location.type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
                 continue

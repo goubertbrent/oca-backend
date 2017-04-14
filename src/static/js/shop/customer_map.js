@@ -31,6 +31,9 @@
     }, {
         icon: getIconUrl('orange'),
         description: TRANSLATIONS.associations
+    }, {
+        icon: getIconUrl('blue'),
+        description: TRANSLATIONS.care
     }];
     var TYPE_UNSPECIFIED = -1,
         TYPE_NON_PROFIT = 1,
@@ -64,6 +67,9 @@
             zoom: zoom,
             center: center
         });
+        var oms = new OverlappingMarkerSpiderfier(map, {
+            keepSpiderfied: true
+        });
         $.each(services, function (i, service) {
             service.hash = service.lat + "" + service.lon;
             var marker = markers[service.hash];
@@ -73,27 +79,29 @@
                     position: new google.maps.LatLng(service.lat, service.lon),
                     map: map,
                     icon: icon,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    service: service
                 });
+                oms.addMarker(marker);
                 markers[service.hash] = marker;
             }
-            google.maps.event.addListener(marker, 'click', function () {
-                var markerContent = $('#marker_content').html();
-                if (infoWindow) {
-                    infoWindow.close();
-                }
-                markerContent = markerContent
-                    .replace('serviceName', service.name || '')
-                    .replace('serviceDescription', service.description || '')
-                    .replace('address', service.address ? service.address.replace('/n', '<br />') : '');
-                infoWindow = new google.maps.InfoWindow({
-                    content: markerContent
-                });
-                google.maps.event.addListener(map, 'closeclick', function () {
-                    infoWindow = null;
-                });
-                infoWindow.open(map, marker);
+        });
+        oms.addListener('click', function (marker) {
+            var markerContent = $('#marker_content').html();
+            if (infoWindow) {
+                infoWindow.close();
+            }
+            markerContent = markerContent
+                .replace('serviceName', marker.service.name || '')
+                .replace('serviceDescription', marker.service.description || '')
+                .replace('address', marker.service.address ? marker.service.address.replace('\n', '<br />') : '');
+            infoWindow = new google.maps.InfoWindow({
+                content: markerContent
             });
+            google.maps.event.addListener(map, 'closeclick', function () {
+                infoWindow = null;
+            });
+            infoWindow.open(map, marker);
         });
 
         var legend = $('#legend').get(0);
@@ -109,9 +117,6 @@
     }
 
     function getMarkerIcon(service) {
-        if ([TYPE_CITY, TYPE_NON_PROFIT, TYPE_PROFIT].indexOf(service.type) === -1) {
-            service.type = 3;
-        }
         var color;
         switch (service.type) {
             case TYPE_PROFIT:
@@ -120,7 +125,11 @@
             case TYPE_NON_PROFIT:
                 color = 'orange';
                 break;
+            case TYPE_EMERGENCY:
+                color = 'blue';
+                break;
             case TYPE_CITY:
+            default:
                 color = 'white';
                 break;
         }
