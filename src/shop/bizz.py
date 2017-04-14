@@ -16,40 +16,38 @@
 # @@license_version:1.2@@
 
 import base64
-import csv
-import datetime
-import logging
-import os
-import sys
 from collections import OrderedDict
 from contextlib import closing
+import csv
+import datetime
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import logging
+import os
+import sys
 from types import NoneType
 
-import httplib2
-import stripe
 from PIL.Image import Image
+from dateutil.relativedelta import relativedelta
+
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
-from xhtml2pdf import pisa
-
+import httplib2
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
-    OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD
+    OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings
 from rogerthat.dal.profile import get_service_or_user_profile
@@ -92,6 +90,9 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
+import stripe
+from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -2452,27 +2453,31 @@ def export_customers_csv(google_user):
                 d['App'] = customer.app_id
             else:
                 d['App'] = ''
+            d['Language'] = customer.language
 
             for p, v in d.items():
                 if v and isinstance(v, unicode):
                     d[p] = v.encode('utf-8')
             i += 1
 
+    result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App']
-    csv_string = StringIO()
-    writer = csv.DictWriter(csv_string, dialect='excel', fieldnames=fieldnames)
-    writer.writeheader()
-    for row in result:
-        writer.writerow(row)
-    current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
+                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language']
+    with closing(StringIO()) as csv_string:
+        writer = csv.DictWriter(csv_string, dialect='excel', fieldnames=fieldnames)
+        writer.writeheader()
+        for row in result:
+            writer.writerow(row)
+        current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
 
-    solution_server_settings = get_solution_server_settings()
-    send_email('Customers export %s' % current_date, solution_server_settings.shop_export_email, [google_user.email()], [],
-               solution_server_settings.shop_no_reply_email,
-               u'The exported customer list of %s can be found in the attachment of this email.' % current_date,
-               csv_string.getvalue(), 'csv', 'Customers export %s.csv' % current_date)
+        solution_server_settings = get_solution_server_settings()
+        send_email('Customers export %s' % current_date, solution_server_settings.shop_export_email,
+                   [google_user.email()], [], solution_server_settings.shop_no_reply_email,
+                   u'The exported customer list of %s can be found in the attachment of this email.' % current_date,
+                   csv_string.getvalue(), 'csv', 'Customers export %s.csv' % current_date)
+        if DEBUG:
+            logging.info(csv_string.getvalue())
 
 
 @returns(db.Query)
