@@ -12,10 +12,10 @@
             </div>
             {{if loyalty_type == 1}}
 	            <div class="pull-left" style="margin-left: 10px; line-height: 40px; width: 150px;">
-	                ${CommonTranslations.SPENT}: {% endraw %}{{ currency }}{% raw %} ${visit.value_number / 100}
+	                ${CommonTranslations.SPENT}: {% endraw %}{{ currency }}{% raw %}${(visit.value_number / 100).toFixed(2)}
 	            </div>
 	            <div class="pull-left" style="margin-left: 10px; line-height: 40px; width: 150px;">
-	                ${CommonTranslations.DISCOUNT}: {% endraw %}{{ currency }}{% raw %} ${visit.discount / 100}
+	                ${CommonTranslations.DISCOUNT}: {% endraw %}{{ currency }}{% raw %}${(visit.discount / 100).toFixed(2)}
 	            </div>
             {{/if}}
             {{if loyalty_type == 3}}

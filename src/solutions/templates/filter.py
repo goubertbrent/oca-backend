@@ -25,7 +25,7 @@ def translate(language, lib, key):
 
 
 def price(price_long):
-    return round(price_long / 100.0, 2)
+    return '%.2f' % (price_long / 100.0)
 
 
 register.simple_tag(translate)
