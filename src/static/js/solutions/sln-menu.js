@@ -429,7 +429,7 @@ $(function () {
         };
         item.name = $("#itemName").val();
         item.price = Math.round(parseFloat($("#itemPrice").val()) * 100);
-        item.has_price = $('#itemShowPrice').prop('checked');
+        item.has_price = item.price != 0 && $('#itemShowPrice').prop('checked');
         item.description = $("#itemdescription").val();
         item.visible_in = 0;
         item.unit = parseInt($('#itemUnit').val());
