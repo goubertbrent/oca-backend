@@ -16,6 +16,10 @@
 # @@license_version:1.2@@
 
 import base64
+import csv
+import datetime
+import logging
+import sys
 from collections import OrderedDict
 from contextlib import closing
 import csv
@@ -29,6 +33,9 @@ import os
 import sys
 from types import NoneType
 
+import httplib2
+import os
+import stripe
 from PIL.Image import Image
 from dateutil.relativedelta import relativedelta
 
@@ -38,6 +45,14 @@ from babel.dates import format_datetime, get_timezone, format_date
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 import httplib2
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
+from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
+from solution_server_settings import get_solution_server_settings
+from solutions import SOLUTION_COMMON, translate as common_translate
+from types import NoneType
+from xhtml2pdf import pisa
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
@@ -62,11 +77,10 @@ from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZe
     address_to_coordinates, GeoCodeException
 from rogerthat.utils.service import create_service_identity_user, add_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction
-from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
 from shop.business.i18n import shop_translate
 from shop.business.legal_entities import get_vat_pct
 from shop.business.service import set_service_enabled
-from shop.constants import PROSPECT_CATEGORIES, OFFICIALLY_SUPPORTED_LANGUAGES, LOGO_LANGUAGES, STORE_MANAGER
+from shop.constants import PROSPECT_CATEGORIES, OFFICIALLY_SUPPORTED_LANGUAGES, LOGO_LANGUAGES
 from shop.exceptions import BusinessException, CustomerNotFoundException, ContactNotFoundException, \
     NoProductsSelectedException, ProductNotFoundException, InvalidProductAmountException, ProductNotAllowedException, \
     ReplaceBusinessException, TooManyAppsException, InvalidEmailFormatException, EmptyValueException, NoOrderException, \
@@ -78,9 +92,7 @@ from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Ord
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity
 from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO
-from solution_server_settings import get_solution_server_settings
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.dal import get_solution_settings
@@ -2145,37 +2157,6 @@ def create_stats_for_new_manager(email):
         st.month_revenue.append(month_amount)
     st.put()
     return st
-
-
-@returns()
-@arguments(email=unicode)
-def delete_regio_manager(email):
-    bizz_check(email != STORE_MANAGER, u'Deleting the <Customer shop> regional manager is not allowed.')
-
-    prospect_count = Prospect.find_by_assignee(email).count()
-    bizz_check(prospect_count == 0,
-               u"There are still prospects (%s) assigned to this RegioManager" % prospect_count)
-
-    task_list = ShopTask.group_by_assignees([email])
-    task_count = len(task_list[email])
-    bizz_check(task_count == 0,
-               u"There are still tasks (%s) assigned to this RegioManager" % task_count)
-
-    def trans():
-        regio_manager = db.get(RegioManager.create_key(email))
-        if regio_manager:
-            if regio_manager.team_id:
-                rmt = RegioManagerTeam.get_by_id(regio_manager.team_id)
-                rmt.regio_managers.remove(email)
-                if rmt.support_manager == email:
-                    raise BusinessException(
-                        u'You cannot delete the support manager of a team. Assign this role to a different regio manager first.')
-                rmt.put()
-
-            regio_manager.delete()
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
 
 
 @returns()

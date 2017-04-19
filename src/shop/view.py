@@ -16,27 +16,30 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import namedtuple
 import csv
-from datetime import date, timedelta
 import datetime
 import json
 import logging
-import os
 import re
-from types import NoneType
 import urllib
+from collections import namedtuple
+from datetime import date, timedelta
 
+import os
+import webapp2
 from PIL.Image import Image  # @UnresolvedImport
-from babel.dates import format_date
-
 from PyPDF2.merger import PdfFileMerger
-from add_1_monkey_patches import DEBUG, APPSCALE
-from google.appengine.api import urlfetch
-from google.appengine.api import users as gusers
+from babel.dates import format_date
+from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred, blobstore
 from google.appengine.ext.webapp import template, blobstore_handlers
 from googleapiclient.discovery import build
+from shop import SHOP_JINJA_ENVIRONMENT
+from solution_server_settings import get_solution_server_settings
+from types import NoneType
+from xhtml2pdf import pisa
+
+from add_1_monkey_patches import DEBUG, APPSCALE
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -62,14 +65,14 @@ from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed, allow_transaction_propagation
-from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import search_customer, create_or_update_customer, \
     audit_log, generate_order_or_invoice_pdf, generate_transfer_document_image, TROPO_SESSIONS_URL, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
-    put_prospect, put_regio_manager, is_admin, is_payment_admin, delete_regio_manager, \
-    dict_str_for_audit_log, link_prospect_to_customer, list_history_tasks, put_hint, delete_hint, \
+    put_prospect, put_regio_manager, is_admin, is_payment_admin, dict_str_for_audit_log, link_prospect_to_customer, \
+    list_history_tasks, put_hint, delete_hint, \
     get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, put_surrounding_apps, \
-    get_all_news, put_news, remove_news, create_contact, create_order, export_customers_csv, put_service, update_contact, \
+    get_all_news, put_news, remove_news, create_contact, create_order, export_customers_csv, put_service, \
+    update_contact, \
     put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
     regio_manager_has_permissions_to_team
@@ -91,6 +94,7 @@ from shop.exceptions import DuplicateCustomerNameException, ReplaceBusinessExcep
 from shop.jobs.migrate_service import migrate_and_create_user_profile
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.jobs.prospects import find_prospects, get_grid
+from shop.jobs.remove_regio_manager import remove_regio_manager
 from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge, RegioManager, Prospect, \
     ProspectInteractions, ShopLoyaltySlide, ShopApp, \
     ProspectRejectionReason, ShopTask, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
@@ -102,7 +106,6 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, NewsTO, NewsReturnStatusTO, TaskTO, ProductTO, \
     RegioManagerTeamTO, ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, \
     LegalEntityTO, LegalEntityReturnStatusTO
-from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
@@ -116,8 +119,6 @@ from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
-import webapp2
-from xhtml2pdf import pisa
 
 try:
     from cStringIO import StringIO
@@ -1183,10 +1184,10 @@ def regio_manager_delete(email):
     google_user = gusers.get_current_user()
     azzert(is_admin(google_user))
     try:
-        delete_regio_manager(email)
+        remove_regio_manager(email)
         audit_log(None, u'Delete RegioManager')
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, be:
+    except BusinessException as be:
         return ReturnStatusTO.create(False, be.message)
 
 
