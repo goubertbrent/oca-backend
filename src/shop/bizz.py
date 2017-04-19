@@ -22,29 +22,21 @@ import logging
 import sys
 from collections import OrderedDict
 from contextlib import closing
-import csv
-import datetime
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import logging
-import os
-import sys
-from types import NoneType
 
 import httplib2
 import os
 import stripe
 from PIL.Image import Image
-from dateutil.relativedelta import relativedelta
-
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
-import httplib2
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
 from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
@@ -56,8 +48,6 @@ from xhtml2pdf import pisa
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
@@ -91,10 +81,8 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity
-from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO, CustomerChargeTO, \
-    CustomerChargesTO
-from solution_server_settings import get_solution_server_settings
-from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO
+from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
+    CustomerServiceTO, OrderItemTO
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.jobs import delete_solution
@@ -2598,7 +2586,7 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
 @returns(CustomerChargesTO)
 @arguments(user=users.User, status=int, limit=int, cursor=unicode)
 def get_customer_charges(user, status=Charge.STATUS_PENDING, limit=50, cursor=None):
-    charges_qry = Charge.all(keys_only=True).with_cursor(cursor).filter("status =", status)
+    charges_qry = Charge.all(keys_only=True).with_cursor(cursor).filter("status =", status).order('-date')
     manager = RegioManager.get(RegioManager.create_key(user.email()))
     user_is_admin = is_admin(user)
     if manager and manager.admin:
@@ -2627,10 +2615,7 @@ def get_customer_charges(user, status=Charge.STATUS_PENDING, limit=50, cursor=No
     results = db.get(customer_keys + charge_keys)
     customers = {customer.id: customer for customer in results[:len(customer_keys)]}
 
-    def sort_charges(charge):
-        return charge.date
-
-    charges = sorted(results[len(customer_keys):], key=sort_charges, reverse=True)
+    charges = results[len(customer_keys):]
     mapped_customers = []
     for charge in charges:
         mapped_customers.append(customers[charge.customer_id])
