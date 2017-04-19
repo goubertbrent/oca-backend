@@ -95,7 +95,15 @@ var CommonTranslations = {
                     </ul>
                 </li>
                 <li><a href="/internal/shop/orders">Orders</a></li>
-                <li><a href="/internal/shop/charges">Outstanding charges</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                        Charges<b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/internal/shop/charges"><i class="icon-book"></i> Outstanding charges</a></li>
+                        <li><a href="/internal/shop/charges?paid"><i class="icon-check"></i> Paid charges</a></li>
+                    </ul>
+                </li>
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         Prospects<b class="caret"></b>

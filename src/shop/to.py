@@ -15,12 +15,12 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.models import App
-from rogerthat.to import ReturnStatusTO
-from rogerthat.to.app import AppInfoTO
 from mcfw.properties import unicode_property, long_property, bool_property, unicode_list_property, typed_property, \
     float_property, long_list_property
 from mcfw.rpc import serialize_complex_value
+from rogerthat.models import App
+from rogerthat.to import ReturnStatusTO
+from rogerthat.to.app import AppInfoTO
 from shop.model_properties import ProspectComment
 from shop.models import Order
 
@@ -131,21 +131,71 @@ class ChargeTO(object):
     reference = unicode_property('1')
     amount = long_property('2')  # in euro cents
     order_number = unicode_property('3')
+    full_date_str = unicode_property('4')
+    last_notification_date_str = unicode_property('5')
+    structured_info = unicode_property('6')
+    is_recurrent = bool_property('7')
+    currency = unicode_property('8')
+    total_amount_formatted = unicode_property('9')
+    amount_paid_in_advance = long_property('10')
+    amount_paid_in_advance_formatted = unicode_property('11')
+    status = long_property('12')
+    customer_id = long_property('13')
+    manager = unicode_property('14')
+    customer_po_number = unicode_property('15')
+    invoice_number = unicode_property('16')
 
     @classmethod
     def from_model(cls, model):
+        """
+        Args:
+            model (shop.models.Charge): charge db model 
+        """
         to = cls()
         to.id = model.key().id()
         to.reference = model.reference
         to.amount = model.total_amount
         to.order_number = model.order_number
+        to.full_date_str = unicode(model.full_date_str)
+        to.last_notification_date_str = unicode(model.last_notification_date_str)
+        to.structured_info = model.structured_info
+        to.is_recurrent = model.is_recurrent
+        to.currency = model.currency
+        to.total_amount_formatted = unicode(model.total_amount_formatted)
+        to.amount_paid_in_advance = model.amount_paid_in_advance
+        to.amount_paid_in_advance_formatted = unicode(model.amount_paid_in_advance_formatted)
+        to.status = model.status
+        to.customer_id = model.customer_id
+        to.manager = model.manager and model.manager.email()
+        to.customer_po_number = model.customer_po_number
+        to.invoice_number = model.invoice_number
         return to
 
 
-class SignOrderReturnStatusTO(ReturnStatusTO):
+class CustomerChargeTO(object):
+    # was a part of SignOrderReturnStatusTO with 51/52
     charge = typed_property('51', ChargeTO, False)
     customer = typed_property('52', CustomerTO, False)
 
+    @classmethod
+    def from_model(cls, charge, customer, can_edit=False, is_admin=False):
+        to = cls()
+        to.charge = ChargeTO.from_model(charge)
+        to.customer = CustomerTO.fromCustomerModel(customer, can_edit, is_admin)
+        return to
+
+
+class CustomerChargesTO(object):
+    customer_charges = typed_property('1', CustomerChargeTO, True)
+    # related to manager/user
+    is_admin = bool_property('2')
+    is_reseller = bool_property('3')
+    is_payment_admin = bool_property('4')
+
+    cursor = unicode_property('5')
+
+
+class SignOrderReturnStatusTO(ReturnStatusTO, CustomerChargeTO):
     @classmethod
     def create(cls, success=True, errormsg=None, customer=None, charge=None, has_admin_permissions=False):
         r = super(SignOrderReturnStatusTO, cls).create(success, errormsg)

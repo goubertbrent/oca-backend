@@ -21,7 +21,7 @@
     </div>
 	<div class="modal-body" style="background-color: #f5f5f5;">
         <label>Sign in the box:</label>
-		<canvas id="signature_canvas" width="800" height="300" style="background-color: white;width: 800px;height: 300px;"></canvas>    
+		<canvas id="signature_canvas" width="800" height="300" style="background-color: white;width: 800px;height: 300px;"></canvas>
     </div>
     <div class="modal-footer">
         <a href="#" class="btn btn-info" id="button_clear_signature">Clear</a>
@@ -36,7 +36,8 @@ $(function () {
     getLegalEntity(function (entity) {
         legalEntity = entity;
     });
-    $('a.view-order').unbind('click').click(function() {
+    $('a.view-order').unbind('click');
+    $(document).on('click', 'a.view-order', function() {
         var a = $(this);
         var customer_id = parseInt(a.attr('customer_id'));
         var invoiceNumber = a.attr('invoice_number');
@@ -55,7 +56,8 @@ $(function () {
             });
         });
     });
-	$('a.cancel-order').unbind('click').click(function() {
+    $('a.cancel-order').unbind('click');
+    $(document).on('click', 'a.cancel-order', function() {
 		var a = $(this);
 		var customer_id = parseInt(a.attr('customer_id'));
 		var order_number = a.attr('order_number');
@@ -168,9 +170,9 @@ $(function () {
 	$("#button_change_contact").unbind('click').click(function () {
         $('#change_contact_form').modal('show');
         var post_data = $('#view_order_form').data('order');
-        
+
         var currentContact = null;
-        
+
         sln.call({
             url: '/internal/shop/rest/order/contact',
             data: {
@@ -193,7 +195,7 @@ $(function () {
                 showAlert("An unknown error occurred, please report this to the administrators.");
             }
         });
-        
+
         sln.call({
             url: '/internal/shop/rest/contact/find',
             data: {
@@ -205,13 +207,13 @@ $(function () {
                 $.each(data, function (i, c) {
                     select.append($('<option></option>').attr('value', c.id).text(c.first_name + ' ' + c.last_name));
                 });
-                
+
                 if (currentContact != null) {
                     $("#new_order_contact").val(currentContact);
                 }
             }
         });
-        
+
         $("#button_save_contact").unbind('click').click(function() {
             sln.call({
                 url: '/internal/shop/rest/order/contact',
@@ -235,7 +237,7 @@ $(function () {
                     showAlert("An unknown error occurred, please report this to the administrators.");
                 }
             });
-            
+
         });
     });
 });

@@ -75,7 +75,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
     update_contact, \
     put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
-    regio_manager_has_permissions_to_team
+    regio_manager_has_permissions_to_team, get_customer_charges
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -105,7 +105,7 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, OrderAndInvoiceTO, \
     RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, NewsTO, NewsReturnStatusTO, TaskTO, ProductTO, \
     RegioManagerTeamTO, ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, \
-    LegalEntityTO, LegalEntityReturnStatusTO
+    LegalEntityTO, LegalEntityReturnStatusTO, CustomerChargesTO
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
@@ -338,43 +338,7 @@ class OrderPdfHandler(BizzManagerHandler):
 class ChargesHandler(BizzManagerHandler):
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'charges.html')
-
-        user = gusers.get_current_user()
-
-        charges_qry = Charge.all(keys_only=True).filter("status =", Charge.STATUS_PENDING)
-        manager = RegioManager.get(RegioManager.create_key(user.email()))
-        if manager and manager.admin:
-            charges_qry.filter("team_id =", manager.team_id)
-        elif not is_admin(user):
-            charges_qry = charges_qry.filter("manager =", user)
-        charge_keys = list(charges_qry)
-
-        is_reseller = manager and not manager.team.legal_entity.is_mobicage
-        if is_payment_admin(user) or is_reseller:
-            invoice_qry = Invoice.all(keys_only=True) \
-                .filter('payment_type', Invoice.PAYMENT_MANUAL_AFTER) \
-                .filter('paid', False)
-            if is_reseller:
-                invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
-            for invoice_key in invoice_qry:
-                if invoice_key.parent() not in charge_keys:
-                    charge_keys.append(invoice_key.parent())
-        customer_keys = []
-        for charge_key in charge_keys:
-            customer_key = charge_key.parent().parent()
-            if customer_key not in customer_keys:
-                customer_keys.append(customer_key)
-        results = db.get(customer_keys + charge_keys)
-        customers = {customer.id: customer for customer in results[:len(customer_keys)]}
-
-        def sort_charges(charge):
-            return charge.status != Charge.STATUS_EXECUTED, charge.date
-
-        charges = sorted(results[len(customer_keys):], key=sort_charges, reverse=True)
-        mapped_customers = []
-        for charge in charges:
-            mapped_customers.append(customers[charge.customer_id])
-        context = get_shop_context(charges=zip(charges, mapped_customers), is_reseller=is_reseller)
+        context = get_shop_context(js_templates=render_js_templates(['charge']))
         self.response.out.write(template.render(path, context))
 
 
@@ -2225,3 +2189,15 @@ def app_broadcast(service, app_ids, message):
 @arguments(service=unicode, app_ids=[unicode], message=unicode, tester=unicode)
 def test_app_broadcast(service, app_ids, message, tester):
     return wrap_with_result_status(post_app_broadcast, service, app_ids, message, tester)
+
+
+@rest("/internal/shop/customer/charges", "get")
+@returns(CustomerChargesTO)
+@arguments(paid=bool, cursor=unicode)
+def rest_get_customer_charges(paid=False, cursor=None):
+    user = gusers.get_current_user()
+    status = Charge.STATUS_PENDING
+    if paid:
+        status = Charge.STATUS_EXECUTED
+
+    return get_customer_charges(user, status, cursor=cursor)

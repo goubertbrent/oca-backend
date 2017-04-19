@@ -91,6 +91,9 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity
+from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO, CustomerChargeTO, \
+    CustomerChargesTO
+from solution_server_settings import get_solution_server_settings
 from shop.to import BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, CustomerServiceTO, OrderItemTO
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions.common.bizz import SolutionModule, common_provision
@@ -102,9 +105,6 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-import stripe
-from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -2594,3 +2594,55 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
     validate_service(service)
     customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
     return customer, service, email_changed, is_new_association
+
+@returns(CustomerChargesTO)
+@arguments(user=users.User, status=int, limit=int, cursor=unicode)
+def get_customer_charges(user, status=Charge.STATUS_PENDING, limit=50, cursor=None):
+    charges_qry = Charge.all(keys_only=True).with_cursor(cursor).filter("status =", status)
+    manager = RegioManager.get(RegioManager.create_key(user.email()))
+    user_is_admin = is_admin(user)
+    if manager and manager.admin:
+        charges_qry.filter("team_id =", manager.team_id)
+    elif not user_is_admin:
+        charges_qry = charges_qry.filter("manager =", user)
+    charge_keys = charges_qry.fetch(limit)
+    cursor = charges_qry.cursor()
+
+    is_reseller = manager and not manager.team.legal_entity.is_mobicage
+    payment_admin = is_payment_admin(user)
+    if payment_admin or is_reseller:
+        invoice_qry = Invoice.all(keys_only=True) \
+            .filter('payment_type', Invoice.PAYMENT_MANUAL_AFTER) \
+            .filter('paid', status == Charge.STATUS_EXECUTED)
+        if is_reseller:
+            invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
+        for invoice_key in invoice_qry:
+            if invoice_key.parent() not in charge_keys:
+                charge_keys.append(invoice_key.parent())
+    customer_keys = []
+    for charge_key in charge_keys:
+        customer_key = charge_key.parent().parent()
+        if customer_key not in customer_keys:
+            customer_keys.append(customer_key)
+    results = db.get(customer_keys + charge_keys)
+    customers = {customer.id: customer for customer in results[:len(customer_keys)]}
+
+    def sort_charges(charge):
+        return charge.date
+
+    charges = sorted(results[len(customer_keys):], key=sort_charges, reverse=True)
+    mapped_customers = []
+    for charge in charges:
+        mapped_customers.append(customers[charge.customer_id])
+
+    customer_charges = []
+    for charge, customer in zip(charges, mapped_customers):
+        customer_charges.append(CustomerChargeTO.from_model(charge, customer))
+
+    result = CustomerChargesTO()
+    result.is_admin = user_is_admin
+    result.is_reseller = is_reseller
+    result.is_payment_admin = payment_admin
+    result.customer_charges = customer_charges
+    result.cursor = unicode(cursor)
+    return result
