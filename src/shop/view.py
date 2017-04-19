@@ -508,6 +508,7 @@ class TasksHandler(BizzManagerHandler):
         context = get_shop_context(js_templates=render_js_templates(['task_list']),
                                    current_user=gusers.get_current_user(),
                                    prospect_reasons_json=json.dumps(prospect_reasons),
+                                   task_types=ShopTask.TYPE_STRINGS.items(),
                                    apps=app_ids)
         self.response.out.write(template.render(path, context))
 
@@ -1368,10 +1369,9 @@ def find_customer(search_string, find_all=False):
 
     customers = []
     for c in search_customer(search_string, None if find_all else app_ids, None if find_all else team_id):
-        can_edit = True
-        if team_id and team_id != c.team_id:
-            can_edit = False
-        customers.append(CustomerTO.fromCustomerModel(c, can_edit, has_admin_permissions))
+        can_edit = team_id is None or team_id == c.team_id
+        admin = has_admin_permissions or (team_id == c.team_id and regio_manager.admin)
+        customers.append(CustomerTO.fromCustomerModel(c, can_edit, admin))
     return sorted(customers, key=lambda c: c.name.lower())
 
 @rest("/internal/shop/rest/customer", "get")
