@@ -523,7 +523,9 @@ class Customer(db.Model):
 
         org_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
         if self.country == 'BE':
-            org_types.extend([ServiceProfile.ORGANIZATION_TYPE_PROFIT, ServiceProfile.ORGANIZATION_TYPE_EMERGENCY])
+            org_types.extend([ServiceProfile.ORGANIZATION_TYPE_PROFIT,
+                              ServiceProfile.ORGANIZATION_TYPE_CITY,
+                              ServiceProfile.ORGANIZATION_TYPE_EMERGENCY])
         return org_types
 
     def can_only_edit_organization_type(self, organization_type):
