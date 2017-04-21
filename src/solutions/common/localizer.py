@@ -3935,7 +3935,7 @@ translations = \
          u'birthday_message': u'Verjaardagswensen',
          u'birthday_message_default_text': u'Gelukkige verjaardag!',
          u'birthday_message_enabled': u'Verstuur verjaardagswensen',
-         u'birthday_message_explanation': u'Wanneer deze instelling is ingeschakeld, zullen gebruikers een bericht ontvangen wanneer het hun verjaardag. U kunt dit bericht hier aanpassen.',
+         u'birthday_message_explanation': u'Wanneer deze instelling is ingeschakeld, zullen gebruikers een bericht ontvangen wanneer het hun verjaardag is. U kunt dit bericht hier aanpassen.',
          u'bread_type': u'Soort brood',
          u'broadcast-disabled': u'Broadcast uitgeschakeld',
          u'broadcast-enabled': u'Broadcast ingeschakeld',
