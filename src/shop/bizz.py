@@ -141,6 +141,13 @@ def is_payment_admin(user):
 
 
 @returns(bool)
+@arguments(user=users.User)
+def is_team_admin(user):
+    manager = RegioManager.get(RegioManager.create_key(user.email()))
+    return manager is not None and manager.admin
+
+
+@returns(bool)
 @arguments(user=users.User, team_id=(int, long))
 def user_has_permissions_to_team(user, team_id):
 

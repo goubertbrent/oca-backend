@@ -16,30 +16,26 @@
 # @@license_version:1.2@@
 
 import base64
+from collections import namedtuple
 import csv
+from datetime import date, timedelta
 import datetime
 import json
 import logging
-import re
-import urllib
-from collections import namedtuple
-from datetime import date, timedelta
-
 import os
-import webapp2
+import re
+from types import NoneType
+import urllib
+
 from PIL.Image import Image  # @UnresolvedImport
+
 from PyPDF2.merger import PdfFileMerger
+from add_1_monkey_patches import DEBUG, APPSCALE
 from babel.dates import format_date
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred, blobstore
 from google.appengine.ext.webapp import template, blobstore_handlers
 from googleapiclient.discovery import build
-from shop import SHOP_JINJA_ENVIRONMENT
-from solution_server_settings import get_solution_server_settings
-from types import NoneType
-from xhtml2pdf import pisa
-
-from add_1_monkey_patches import DEBUG, APPSCALE
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -65,6 +61,7 @@ from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed, allow_transaction_propagation
+from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import search_customer, create_or_update_customer, \
     audit_log, generate_order_or_invoice_pdf, generate_transfer_document_image, TROPO_SESSIONS_URL, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
@@ -75,7 +72,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
     update_contact, \
     put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
-    regio_manager_has_permissions_to_team, get_customer_charges
+    regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -106,6 +103,7 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, NewsTO, NewsReturnStatusTO, TaskTO, ProductTO, \
     RegioManagerTeamTO, ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, \
     LegalEntityTO, LegalEntityReturnStatusTO, CustomerChargesTO
+from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
@@ -119,6 +117,9 @@ from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
+import webapp2
+from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -1773,10 +1774,11 @@ def change_service_email(customer_id, email):
 @returns(ReturnStatusTO)
 @arguments(customer_id=(long, int), name=unicode)
 def add_location(customer_id, name):
-    azzert(is_admin(gusers.get_current_user()))
+    current_user = gusers.get_current_user()
+    azzert(is_admin(current_user) or is_team_admin(current_user))
     audit_log(customer_id, u"Add location")
     customer = Customer.get_by_id(customer_id)
-    azzert(user_has_permissions_to_team(gusers.get_current_user(), customer.team_id))
+    azzert(user_has_permissions_to_team(current_user, customer.team_id))
     create_new_location(customer.service_user, name, broadcast_to_users=[gusers.get_current_user()])
     return ReturnStatusTO.create()
 
