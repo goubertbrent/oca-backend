@@ -321,6 +321,8 @@ def schedule_post_to_social_media(service_user, on_facebook, on_twitter,
 
     # try to extend facebook access token first
     try:
+        if not facebook_access_token:
+            raise ValueError('facebook access token is not provided, %s, news id: %d' % (service_user, news_id))
         facebook_access_token = facebook.extend_access_token(facebook_access_token)
     except:
         logging.error('Cannot get an extended facebook access token', exc_info=True)

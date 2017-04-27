@@ -1943,6 +1943,11 @@ $(function () {
                 previousStep();
                 return;
             }
+            // check for facebook access token even if the post on facebook is checked
+            if(data.broadcast_on_facebook && !data.facebook_access_token) {
+                sln.alert(T('Login with facebook first'), null, CommonTranslations.ERROR);
+                return;
+            }
             submitNews(data);
         }
 
