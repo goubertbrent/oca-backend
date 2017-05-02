@@ -15,15 +15,17 @@
 #
 # @@license_version:1.2@@
 
-from datetime import datetime
 import json
 import logging
-from types import NoneType
+from datetime import datetime
 
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db
+from types import NoneType
+from xhtml2pdf import pisa
+
 from mcfw.consts import MISSING
-from mcfw.exceptions import NotFoundException
+from mcfw.exceptions import HttpNotFoundException
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.models import Message
@@ -45,8 +47,6 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionSettings, SolutionMainBranding
 from solutions.common.models.discussion_groups import SolutionDiscussionGroup
-from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -65,7 +65,7 @@ def get_discussion_group(service_user, discussion_group_id):
 def get_discussion_group_pdf(service_user, discussion_group_id):
     discussion_group = get_discussion_group(service_user, discussion_group_id)
     if not discussion_group:
-        raise NotFoundException()
+        raise HttpNotFoundException()
 
     sln_settings = get_solution_settings(service_user)
     fetch_messages = True
@@ -137,7 +137,7 @@ def put_discussion_group(service_user, topic, description, discussion_group_id=N
         else:
             discussion_group = SolutionDiscussionGroup.get(key)
             if not discussion_group:
-                raise NotFoundException()
+                raise HttpNotFoundException()
 
         discussion_group.topic = topic
         discussion_group.description = description
@@ -153,7 +153,7 @@ def delete_discussion_group(service_user, discussion_group_id):
     key = SolutionDiscussionGroup.create_key(service_user, discussion_group_id)
     discussion_group = SolutionDiscussionGroup.get(key)
     if not discussion_group:
-        raise NotFoundException()
+        raise HttpNotFoundException()
 
     if discussion_group.message_key:
         sln_settings = get_solution_settings(service_user)

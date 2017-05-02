@@ -14,24 +14,18 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
-
+import httplib
 import json
 import logging
 
-from bob.bizz import set_facebook_app_domain, create_app_from_bob, validate_and_put_main_service, put_app_track
-from google.appengine.api import urlfetch
-from google.appengine.ext import webapp, db
-from rogerthat.dal.app import get_app_by_id
-from rogerthat.models import AutoConnectedService
-from rogerthat.rpc.service import BusinessException
-from rogerthat.to.app import CreateAppRequestTO, FacebookAppDomainTO
-from rogerthat.to.beacon import BeaconRegionTO
-from rogerthat.translations import localize
-from solution_server_settings import get_solution_server_settings
 import webapp2
+from solution_server_settings import get_solution_server_settings
+
+from bob.bizz import set_ios_app_id
+from rogerthat.bizz.app import AppDoesNotExistException
 
 
-def validate_request(handler):
+def _validate_request(handler):
     solution_server_settings = get_solution_server_settings()
     secret = handler.request.headers.get("X-BOB-SECRET")
     if not solution_server_settings.bob_api_secret:
@@ -41,142 +35,13 @@ def validate_request(handler):
         handler.abort(401)
 
 
-class BobFetchHandler(webapp2.RequestHandler):
-
-    def get(self):
-        path = self.request.get('path')
-        if not path:
-            self.abort(404)
-
-        url = 'https://bob.rogerthat.net%s' % path
-        logging.info('Streaming %s', url)
-        result = urlfetch.fetch(url, follow_redirects=False, validate_certificate=False, deadline=30)
-        if result.status_code == 302:
-            logging.info('Redirecting to %s', result.headers['Location'])
-            self.response.status = result.status_code
-            self.redirect(result.headers['Location'], code=result.status_code)
-        elif result.status_code != 200:
-            logging.warn('%s %s', url, result.status_code)
-            self.abort(404)
-        else:
-            for k, v in result.headers.iteritems():
-                self.response.headers.add_header(k, v)
-            self.response.out.write(result.content)
-
-
-class GetAppsHandler(webapp2.RequestHandler):
-    def get(self):
-        from shop.models import ShopApp
-        validate_request(self)
-        self.response.headers['Content-Type'] = 'application/json'
-        apps = list()
-        for app in ShopApp.all():
-            apps.append(dict(name=app.name, id=app.app_id))
-        self.response.out.write(json.dumps(apps))
-
-
-class SetFacebookAppDomain(webapp2.RequestHandler):
+class SetIosAppIdHandler(webapp2.RequestHandler):
     def post(self):
-        validate_request(self)
-        data = json.loads(self.request.body)
-        self.response.headers['Content-Type'] = 'application/json'
-        try:
-            set_facebook_app_domain(
-                data['facebook_app_id'],
-                data['facebook_secret'],
-                FacebookAppDomainTO.create_for_bob()
-            )
-            self.response.write(json.dumps(dict(success=True, errormsg=None)))
-        except BusinessException, ex:
-            self.response.write(json.dumps(dict(success=False, errormsg=ex.message)))
-
-
-class SetIosAppId(webapp.RequestHandler):
-    def post(self):
-        validate_request(self)
+        _validate_request(self)
         data = json.loads(self.request.body)
         app_id = data['app_id']
         ios_app_id = data['ios_app_id']
-
-        def trans():
-            app = get_app_by_id(app_id)
-            if not app:
-                self.response.write('App with id "%s" not found!' % app_id)
-                self.abort(400)
-
-            app.ios_app_id = ios_app_id
-            app.put()
-
-        db.run_in_transaction(trans)
-
-
-class CreateAppHandler(webapp2.RequestHandler):
-    def post(self):
-        validate_request(self)
-        app = json.loads(self.request.body)
-        self.response.headers['Content-Type'] = 'application/json'
         try:
-            app_request = CreateAppRequestTO.create(
-                app_id=app['app_id'],
-                app_name=app['app_name'],
-                app_type=app['app_type'],
-                facebook_registration_enabled=app['facebook_registration_enabled'],
-                facebook_app_id=app['facebook_app_id'],
-                facebook_secret=app['facebook_secret'],
-                facebook_user_access_token=app['facebook_user_access_token'],
-                dashboard_email_address=app['dashboard_email_address'],
-                core_branding=app['core_branding'],
-                qr_template_type=app['qr_template'],
-                custom_qr_template=app['custom_qr_template'],
-                custom_qr_template_color=app['custom_qr_template_color'],
-                auto_connected_services=[AutoConnectedService.create(acs['email'], acs['removable'], [], [])
-                                         for acs in app['auto_connected_services']],
-                orderable_apps=app['orderable_apps'],
-                beacon_regions_to=[BeaconRegionTO.create(b_region['uuid'], b_region['major'], b_region['minor']) for
-                                   b_region in app['beacon_regions']]
-            )
-            create_app_from_bob(app_request)
-            self.response.write(json.dumps(dict(success=True, errormsg=None)))
-        except BusinessException, ex:
-            self.response.write(json.dumps(dict(success=False, errormsg=ex.message)))
-
-
-class BobTranslationsHandler(webapp2.RequestHandler):
-    def post(self):
-        validate_request(self)
-        data = json.loads(self.request.body)
-        lang = data['language']
-        self.response.headers['Content-Type'] = 'application/json'
-        translations = dict()
-        for trans in data['translations']:
-            key = trans['key']
-            translations[key] = localize(lang, key, **trans['args'])
-        self.response.write(json.dumps(dict(success=True, errormsg=None, translations=translations)))
-
-
-class BobPutMainService(webapp2.RequestHandler):
-    def post(self):
-        validate_request(self)
-        data = json.loads(self.request.body)
-        app_id = data['app_id']
-        main_service_email = data['main_service_email']
-        self.response.headers['Content-Type'] = 'application/json'
-        try:
-            warning = validate_and_put_main_service(app_id, main_service_email)
-            self.response.write(json.dumps(dict(success=True, errormsg=None, warning=warning)))
-        except BusinessException, exception:
-            self.response.write(json.dumps(dict(success=False, errormsg=exception.message)))
-
-
-class BobPutAppTrack(webapp2.RequestHandler):
-    def post(self):
-        validate_request(self)
-        data = json.loads(self.request.body)
-        app_id = data['app_id']
-        playstore_track = data['playstore_track']
-        self.response.headers['Content-Type'] = 'application/json'
-        try:
-            put_app_track(app_id, playstore_track)
-            self.response.write(json.dumps(dict(success=True, errormsg=None)))
-        except BusinessException, exception:
-            self.response.write(json.dumps(dict(success=False, errormsg=exception.message)))
+            set_ios_app_id(app_id, ios_app_id)
+        except AppDoesNotExistException:
+            self.abort(httplib.NOT_FOUND)

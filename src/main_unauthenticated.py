@@ -15,30 +15,29 @@
 #
 # @@license_version:1.2@@
 
+from rogerthat.wsgi import RogerthatWSGIApplication
+
+import shop.handlers
+import solutions.common.restapi
+import solutions.djmatic.api
 from add_1_monkey_patches import dummy2
 from add_2_zip_imports import dummy
 from add_3_solution_handlers import register_solution_callback_api_handlers
-from bob.handlers import BobFetchHandler, GetAppsHandler, CreateAppHandler, SetFacebookAppDomain, BobTranslationsHandler, \
-    BobPutMainService, BobPutAppTrack, SetIosAppId
+from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
-from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler
-import shop.handlers
 from solutions.common.handlers.broadcast import ViewAttachmentHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-import solutions.common.restapi
-import solutions.djmatic.api
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
-
 
 dummy2()
 dummy()
@@ -53,14 +52,7 @@ handlers = [
     ('/unauthenticated/osa/launcher/apps', GetOSALaucherAppsHandler),
     ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
     ('/unauthenticated/osa/callback/twitter', SolutionsCallbackTwitterHandler),
-    ('/bob/fetch', BobFetchHandler),
-    ('/bob/api/apps', GetAppsHandler),
-    ('/bob/api/apps/create', CreateAppHandler),
-    ('/bob/api/apps/set_domain', SetFacebookAppDomain),
-    ('/bob/api/apps/set_ios_app_id', SetIosAppId),
-    ('/bob/api/apps/put_main_service', BobPutMainService),
-    ('/bob/api/apps/put_track', BobPutAppTrack),
-    ('/bob/api/translations', BobTranslationsHandler),
+    ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/solutions/djmatic/api/1', solutions.djmatic.api.DJMaticApiHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),
     ('/shop/products/export', ExportProductsHandler),
