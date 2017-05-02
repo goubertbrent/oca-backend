@@ -18,9 +18,9 @@
 import random
 from test import set_current_user
 
+import mc_unittest
 from rogerthat.models import App
 from rogerthat.rpc import users
-import mc_unittest
 from solutions.common.bizz import SolutionModule, OrganizationType, common_provision
 from solutions.common.bizz.menu import _put_default_menu
 from solutions.common.dal import get_solution_settings
