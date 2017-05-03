@@ -15,23 +15,8 @@
 #
 # @@license_version:1.2@@
 
-from add_1_monkey_patches import dummy2
-from add_2_zip_imports import dummy
-from add_3_solution_handlers import register_solution_callback_api_handlers
-from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
-from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
-    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetTmpSolutionImageHandler, \
-    UploadSolutionLogoHandler, UploadSolutionAvatarHandler, GetSolutionAvatarHandler, FlowStatisticsExportHandler
-from solutions.common.handlers.broadcast import UploadAttachmentHandler
-from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
-    ExportVoucherHandler
-from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
-from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
-from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
-    LoyaltySlideOverlayHandler, ExportLoyaltyHandler
-from solutions.common.handlers.service import LoginAsServiceHandler
-import solutions.common.restapi.services
+
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -45,16 +30,24 @@ import solutions.common.restapi.order
 import solutions.common.restapi.pharmacy.order
 import solutions.common.restapi.qanda
 import solutions.common.restapi.reservation
-import solutions.common.restapi.store
+import solutions.common.restapi.services
 import solutions.common.restapi.statistics
-from solutions.djmatic.handlers import DJMaticHomeHandler
+import solutions.common.restapi.store
 import solutions.djmatic.restapi
+from mcfw.restapi import rest_functions
+from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
+    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetTmpSolutionImageHandler, \
+    UploadSolutionLogoHandler, UploadSolutionAvatarHandler, GetSolutionAvatarHandler, FlowStatisticsExportHandler
+from solutions.common.handlers.broadcast import UploadAttachmentHandler
+from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
+    ExportVoucherHandler
+from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
+from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
+from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
+    LoyaltySlideOverlayHandler, ExportLoyaltyHandler
+from solutions.common.handlers.service import LoginAsServiceHandler
+from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler
-
-
-dummy()
-dummy2()
-register_solution_callback_api_handlers()
 
 handlers = [
     ('/djmatic/', DJMaticHomeHandler),

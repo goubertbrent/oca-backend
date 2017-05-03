@@ -15,11 +15,9 @@
 #
 # @@license_version:1.2@@
 
-from add_1_monkey_patches import dummy2
-from add_2_zip_imports import dummy
-from add_3_solution_handlers import register_solution_callback_api_handlers
-from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
+
+from mcfw.restapi import rest_functions
 from shop.admin import restapi as restapi_admin
 from shop.admin.handlers import AdminHandler
 from shop.cron import RecurrentBilling, ReportOnSitePaymentsHandler, NotifyExtentionNeededHandler, \
@@ -41,11 +39,6 @@ from solutions.common.handlers.admin.services import ServiceTools, NewJukeboxApp
 from solutions.djmatic.cron import CheckDjmaticTrialMode
 from solutions.djmatic.handlers.admin import djmatic
 from solutions.djmatic.handlers.admin.djmatic import DjmaticOverviewLogsHandler, DjmaticExportHandler
-
-
-dummy()
-dummy2()
-register_solution_callback_api_handlers()
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),

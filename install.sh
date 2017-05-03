@@ -3,6 +3,7 @@ VERSION=`cat BACKEND_VERSION`
 echo 'using rogerthat-backend version' $VERSION;
 pushd ../rogerthat-backend
 git checkout $VERSION
+pip install -r requirements.txt -t src/lib
 popd
 build_type=$1
 if [ -z ${build_type} ]; then

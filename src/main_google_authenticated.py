@@ -15,11 +15,9 @@
 #
 # @@license_version:1.2@@
 
-from add_1_monkey_patches import dummy2
-from add_2_zip_imports import dummy
-from add_3_solution_handlers import register_solution_callback_api_handlers
-from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
+
+from mcfw.restapi import rest_functions
 from shop import view
 from shop.handlers import StaticFileHandler, GenerateQRCodesHandler, AppBroadcastHandler
 from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesHandler, QuestionsHandler, \
@@ -31,11 +29,6 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler
 from solutions.djmatic import restapi_overview
 from solutions.djmatic.handlers import DJMaticOverviewHandler
-
-
-dummy()
-dummy2()
-register_solution_callback_api_handlers()
 
 handlers = [
     ('/djmatic_overview', DJMaticOverviewHandler),

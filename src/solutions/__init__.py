@@ -18,15 +18,15 @@
 import logging
 
 from google.appengine.ext import webapp
-from rogerthat.translations import DEFAULT_LANGUAGE
 from solutions.common import SOLUTION_COMMON
+from solutions.djmatic import SOLUTION_DJMATIC
+from solutions.flex import SOLUTION_FLEX
+
+from rogerthat.translations import DEFAULT_LANGUAGE
 from solutions.common.consts import UNIT_SYMBOLS
 from solutions.common.localizer import translations as common_translations
-from solutions.djmatic import SOLUTION_DJMATIC
 from solutions.djmatic.localizer import translations as djmatic_translations
-from solutions.flex import SOLUTION_FLEX
 from solutions.flex.localizer import translations as flex_translations
-
 
 SOLUTIONS = [SOLUTION_DJMATIC, SOLUTION_FLEX]
 
@@ -35,7 +35,6 @@ translations[SOLUTION_DJMATIC] = djmatic_translations
 translations[SOLUTION_COMMON] = common_translations
 translations[SOLUTION_FLEX] = flex_translations
 
-webapp.template.register_template_library('rogerthat.templates.filter')
 webapp.template.register_template_library('solutions.templates.filter')
 
 
