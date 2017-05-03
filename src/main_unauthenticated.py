@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+
 from rogerthat.wsgi import RogerthatWSGIApplication
 
 import shop.handlers

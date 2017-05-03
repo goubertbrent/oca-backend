@@ -24,8 +24,8 @@ os.environ['SERVER_NAME'] = 'localhost'
 os.environ['SERVER_PORT'] = '8080'
 os.environ['SERVER_SOFTWARE'] = 'Development Server'
 os.environ["DEFAULT_VERSION_HOSTNAME"] = 'mobicagecloudhr.appspot.com'
+os.environ['APPENGINE_RUNTIME'] = 'python27'  # Needed to make webapp.template load ._internal.django
 
-from add_1_monkey_patches import dummy2
 from google.appengine.api import datastore_file_stub, apiproxy_stub_map, user_service_stub, mail_stub, urlfetch_stub
 from google.appengine.api.blobstore import blobstore_stub, file_blob_storage
 from google.appengine.api.images import images_stub
@@ -38,10 +38,6 @@ import logging
 import uuid
 
 logging.getLogger().setLevel(logging.ERROR)
-
-dummy2()
-
-current_dir = os.path.dirname(__file__)
 
 def register_tst_mobile(email):
     from rogerthat.rpc.models import Mobile
@@ -96,9 +92,6 @@ def set_current_mobile(mobile):
     users.get_current_mobile = lambda: mobile
     set_current_user(mobile.user)
 
-def reInitEnv():
-    from add_2_zip_imports import dummy
-    dummy()
 
 def init_env():
     try:
@@ -114,19 +107,9 @@ def init_env():
             apiproxy_stub_map.apiproxy.RegisterStub('urlfetch', urlfetch_stub.URLFetchServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('taskqueue', taskqueue_stub.TaskQueueServiceStub())
 
-        reInitEnv()
-
-        os.environ['APPENGINE_RUNTIME'] = 'python27'  # Needed to make webapp.template load ._internal.django
-        from google.appengine.ext.webapp import template
-        template.register_template_library('rogerthat.templates.filter')
-        template.register_template_library('solutions.templates.filter')
-
-    except Exception, e:
+    except Exception as e:
         print e
         raise
-
-    from add_2_zip_imports import dummy
-    dummy()
 
     from rogerthat.settings import get_server_settings
 
