@@ -1013,12 +1013,12 @@ def prospects_get_shop_app(app_id):
 
 @rest('/internal/shop/rest/history/tasks', 'get')
 @returns([TaskListTO])
-@arguments(date=int)
-def history_tasks(date):
+@arguments(date_from=int, date_to=int)
+def history_tasks(date_from, date_to):
     azzert(is_admin(gusers.get_current_user()))
     audit_log(None, u'Load tasks history')
     regio_manager_dict = {r.email: r for r in RegioManager.all()}
-    tasks_dict = list_history_tasks(date)
+    tasks_dict = list_history_tasks(date_from, date_to)
     task_lists = list()
     to_get = set()
     for email, tasks in tasks_dict.iteritems():

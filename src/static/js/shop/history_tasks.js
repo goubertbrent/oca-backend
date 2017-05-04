@@ -51,13 +51,21 @@ $(function() {
     }
 
     function loadTasks(date) {
+        var dateFrom, dateTo;
         var curDate = parseInt(new Date().getTime()) / 1000;
         showProcessing('Loading ');
+
+        if(!date) {
+            date = now;
+        }
+        dateFrom = getFirstDayOfMonth(date);
+        dateTo = getLastDayOfMonth(dateFrom);
         sln.call({
             url : '/internal/shop/rest/history/tasks',
             data : {
-                date : date ? date : now.getTime() / 1000
-            // use current date if no date was provided
+                // use current date if no date was provided
+                date_from: dateFrom.getTime() / 1000,
+                date_to: dateTo.getTime() / 1000
             },
             type : 'GET',
             success : function(data) {
@@ -105,41 +113,52 @@ $(function() {
         var nowTemp = new Date();
         now = new Date(nowTemp.getFullYear(), nowTemp.getMonth(), nowTemp.getDate(), 0, 0, 0, 0);
         datepicker = $('#history-date').datepicker({
+            format: 'mm-yyyy',
+            viewMode: 'months',
+            minViewMode: 'months',
             onRender : function(date) {
                 return date.valueOf() > now.valueOf() ? 'disabled' : '';
             }
         }).on('changeDate', function(ev) {
             // fetch tasks for the selected date
             datepicker.hide();
-            var selectedDate = parseInt(datepicker.date.getTime() / 1000);
-            loadTasks(selectedDate);
+            // selected date with months mode is the first day of the month
+            loadTasks(datepicker.date);
         }).data('datepicker');
         datepicker.setValue(now);
         // initialize buttons
         $('#date-prev').click(function() {
             changeDate(-1);
-        })
+        });
         $('#date-next').click(function() {
             changeDate(1);
-        })
+        });
         $('#date-reset').click(function() {
             changeDate(true);
-        })
+        });
     }
 
     /*
-     * Changes the date in the datepicker and fetches new results for that day
-     * 
+     * Changes the date in the datepicker and fetches new results for that month
+     *
      */
-    function changeDate(days) {
-        if (days === true) {
+    function changeDate(months) {
+        if (months === true) {
             datepicker.setValue(now);
         } else {
             var tempDate = datepicker.date;
-            tempDate.setDate(tempDate.getDate() + days);
+            tempDate.setMonth(tempDate.getMonth() + months);
             datepicker.setValue(tempDate);
         }
-        loadTasks(parseInt(datepicker.date.getTime() / 1000));
+        loadTasks(datepicker.date);
+    }
+
+    function getFirstDayOfMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    function getLastDayOfMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
     }
 
     initialize();

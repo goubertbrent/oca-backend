@@ -1596,10 +1596,8 @@ def list_prospects(app_id, category, cursor=None):
 
 
 @returns(dict)
-@arguments(date_from=int)
-def list_history_tasks(date_from):
-    # Display tasks for this particular day
-    date_to = date_from + 86400
+@arguments(date_from=int, date_to=int)
+def list_history_tasks(date_from, date_to):
     return ShopTask.history(date_from, date_to)
 
 

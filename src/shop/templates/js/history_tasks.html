@@ -1,8 +1,8 @@
 {{if !task_lists.length}}
-    <div class="no-tasks">No tasks were finished on this day.</div>
+    <div class="no-tasks">No tasks were finished in this month.</div>
 {{/if}}
 {{each(i, task_list) task_lists}}
-    <table 
+    <table
         id="task-table"
         class="table table-striped table-hover table-condensed table-bordered"
         data-assignee="${task_list.assignee}">
@@ -22,11 +22,11 @@
         </thead>
         <tbody>
     {{each(j, task) task_list.tasks}}
-            <tr 
+            <tr
                 style="cursor: pointer;"
                 data-task-id="${task.id}"
                 data-prospect-id="${task.prospect_id}">
-                
+
                 <td>${task.closed_time}</td>
                 <td>${task.execution_time_str}</td>
                 <td>
