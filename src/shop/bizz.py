@@ -2588,9 +2588,31 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
     customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
     return customer, service, email_changed, is_new_association
 
+
+def _get_charges_with_sent_invoice(is_reseller, manager):
+    """Will fetch the charges with STATUS_EXECUTED that have a sent invoice"""
+    charge_keys = []
+
+    invoice_qry = Invoice.all(keys_only=True) \
+        .filter('payment_type', Invoice.PAYMENT_MANUAL_AFTER) \
+        .filter('paid', False)
+    if is_reseller:
+        invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
+    for invoice_key in invoice_qry:
+        if invoice_key.parent() not in charge_keys:
+            charge_keys.append(invoice_key.parent())
+
+    return charge_keys
+
+
 @returns(CustomerChargesTO)
-@arguments(user=users.User, status=int, limit=int, cursor=unicode)
-def get_customer_charges(user, status=Charge.STATUS_PENDING, limit=50, cursor=None):
+@arguments(user=users.User, paid=bool, limit=int, cursor=unicode)
+def get_customer_charges(user, paid, limit=50, cursor=None):
+    if paid:
+        status = Charge.STATUS_EXECUTED
+    else:
+        status = Charge.STATUS_PENDING
+
     charges_qry = Charge.all(keys_only=True).with_cursor(cursor).filter("status =", status).order('-date')
     manager = RegioManager.get(RegioManager.create_key(user.email()))
     user_is_admin = is_admin(user)
@@ -2598,35 +2620,57 @@ def get_customer_charges(user, status=Charge.STATUS_PENDING, limit=50, cursor=No
         charges_qry.filter("team_id =", manager.team_id)
     elif not user_is_admin:
         charges_qry = charges_qry.filter("manager =", user)
-    charge_keys = charges_qry.fetch(limit)
-    cursor = charges_qry.cursor()
 
+    charge_keys = []
     is_reseller = manager and not manager.team.legal_entity.is_mobicage
     payment_admin = is_payment_admin(user)
-    if payment_admin or is_reseller:
-        invoice_qry = Invoice.all(keys_only=True) \
-            .filter('payment_type', Invoice.PAYMENT_MANUAL_AFTER) \
-            .filter('paid', status == Charge.STATUS_EXECUTED)
-        if is_reseller:
-            invoice_qry = invoice_qry.filter('legal_entity_id', manager.team.legal_entity_id)
-        for invoice_key in invoice_qry:
-            if invoice_key.parent() not in charge_keys:
-                charge_keys.append(invoice_key.parent())
+    if not paid and not cursor:
+        # fetch all the charges with sent invoices once (if cursor is not provided)
+        if payment_admin or is_reseller:
+            charge_keys.extend(_get_charges_with_sent_invoice(is_reseller, manager))
+
+    charge_keys.extend(charges_qry.fetch(limit))
+    cursor = charges_qry.cursor()
+
     customer_keys = []
     for charge_key in charge_keys:
         customer_key = charge_key.parent().parent()
         if customer_key not in customer_keys:
             customer_keys.append(customer_key)
+
     results = db.get(customer_keys + charge_keys)
     customers = {customer.id: customer for customer in results[:len(customer_keys)]}
 
-    charges = results[len(customer_keys):]
-    mapped_customers = []
+    def sort_charges(charge):
+        return charge.status != Charge.STATUS_EXECUTED, -charge.date
+
+    if not paid:
+        # sort it this way for unpaid charges only
+        charges = sorted(results[len(customer_keys):], key=sort_charges)
+    else:
+        charges = results[len(customer_keys):]
+
+    # to filter the charges as paid/unpaid, we get the invoices first
+    # then set the charge to paid if the invoice is paid
+    invoice_keys = []
     for charge in charges:
-        mapped_customers.append(customers[charge.customer_id])
+        if charge.invoice_number:
+            invoice_key = Invoice.create_key(charge.customer_id, charge.order_number, charge.id, charge.invoice_number)
+            invoice_keys.append(invoice_key)
+
+    invoices = {invoice.charge_id: invoice for invoice in db.get(invoice_keys)}
+    mapped_customers = []
+    filtered_charges = []
+    for charge in charges:
+        invoice = invoices.get(charge.id)
+        invoice_is_paid = invoice.paid if invoice else False
+        if invoice_is_paid == paid:
+            charge.paid = invoice_is_paid
+            filtered_charges.append(charge)
+            mapped_customers.append(customers[charge.customer_id])
 
     customer_charges = []
-    for charge, customer in zip(charges, mapped_customers):
+    for charge, customer in zip(filtered_charges, mapped_customers):
         customer_charges.append(CustomerChargeTO.from_model(charge, customer))
 
     result = CustomerChargesTO()

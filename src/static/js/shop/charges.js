@@ -21,6 +21,7 @@ $(function() {
 
     loadCustomerCharges();
     var cursor, isLoading = false, hasMore = true;
+    var loadedCharges = [];
 
     function showLoadinSpinner() {
         $('#loading_indicator').html(TMPL_LOADING_SPINNER);
@@ -65,27 +66,31 @@ $(function() {
         is_reseller = data.is_reseller;
 
         $.each(data.customer_charges, function(i, customer_charge) {
-            var chargeRow = $.tmpl(JS_TEMPLATES.charge, {
-                customer: customer_charge.customer,
-                charge: customer_charge.charge,
-                admin: admin,
-                payment_admin: payment_admin,
-                is_reseller: is_reseller
-            });
-            chargesTable.append(chargeRow);
+            var charge = customer_charge.charge;
+            if(loadedCharges.indexOf(charge.id) === -1) {
+                var chargeRow = $.tmpl(JS_TEMPLATES.charge, {
+                    customer: customer_charge.customer,
+                    charge: charge,
+                    admin: admin,
+                    payment_admin: payment_admin,
+                    is_reseller: is_reseller
+                });
+                chargesTable.append(chargeRow);
+                loadedCharges.push(charge.id);
+            }
         });
+
+        validateLoadMoreCharges();
     }
 
     function validateLoadMoreCharges() {
-        var lastChargeRow = $('tr').last();
+        var lastChargeRow = $('.charge-row').last();
         if(sln.isOnScreen(lastChargeRow) && hasMore && !isLoading) {
             loadCustomerCharges();
         }
     }
 
-    $(window).scroll(function() {
-        validateLoadMoreCharges();
-    });
+    $(window).scroll(validateLoadMoreCharges);
 
     $(document).on('click', 'a.charge-credit-card', function() {
         var a = $(this);

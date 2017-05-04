@@ -144,12 +144,13 @@ class ChargeTO(object):
     manager = unicode_property('14')
     customer_po_number = unicode_property('15')
     invoice_number = unicode_property('16')
+    paid = bool_property('17')
 
     @classmethod
     def from_model(cls, model):
         """
         Args:
-            model (shop.models.Charge): charge db model 
+            model (shop.models.Charge): charge db model
         """
         to = cls()
         to.id = model.key().id()
@@ -169,6 +170,7 @@ class ChargeTO(object):
         to.manager = model.manager and model.manager.email()
         to.customer_po_number = model.customer_po_number
         to.invoice_number = model.invoice_number
+        to.paid = model.paid
         return to
 
 

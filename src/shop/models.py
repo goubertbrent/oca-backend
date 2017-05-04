@@ -863,6 +863,7 @@ class Charge(db.Model):
     total_amount = db.IntegerProperty(indexed=False)  # In euro cents
     amount_paid_in_advance = db.IntegerProperty(indexed=False, default=0)  # In euro cents
     currency_code = db.StringProperty(indexed=False, default=u'EUR')
+    paid = db.BooleanProperty(indexed=False, default=False)
 
     status = db.IntegerProperty(default=0)
 

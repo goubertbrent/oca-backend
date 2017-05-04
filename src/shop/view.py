@@ -2198,8 +2198,4 @@ def test_app_broadcast(service, app_ids, message, tester):
 @arguments(paid=bool, cursor=unicode)
 def rest_get_customer_charges(paid=False, cursor=None):
     user = gusers.get_current_user()
-    status = Charge.STATUS_PENDING
-    if paid:
-        status = Charge.STATUS_EXECUTED
-
-    return get_customer_charges(user, status, cursor=cursor)
+    return get_customer_charges(user, paid, cursor=cursor)
