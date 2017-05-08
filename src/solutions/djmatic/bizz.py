@@ -26,14 +26,14 @@ from google.appengine.api import urlfetch, urlfetch_errors
 from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.branding import is_branding, TYPE_APP
+from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import BrandingNotFoundException
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import QR_TEMPLATE_BLACK_HAND
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.exceptions.branding import BrandingValidationException
-from rogerthat.models import ServiceTranslation, ServiceMenuDef
+from rogerthat.models import ServiceTranslation, ServiceMenuDef, Branding
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.to.messaging import BaseMemberTO
@@ -314,7 +314,7 @@ def add_new_jukebox_app_branding(branding_url):
     # rename branding.html to app.html
     zip_content = rename_file_in_zip_blob(resp.content, "branding.html", "app.html")
 
-    if not is_branding(zip_content, TYPE_APP):
+    if not is_branding(zip_content, Branding.TYPE_APP):
         raise BrandingValidationException("Content of branding download could not be identified as a branding")
 
     jb_branding = JukeboxAppBranding(key=JukeboxAppBranding.create_key())

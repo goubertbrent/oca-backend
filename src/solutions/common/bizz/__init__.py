@@ -27,8 +27,9 @@ import time
 from types import NoneType
 
 from PIL.Image import Image
-
 from babel.dates import format_date, format_time
+import pytz
+
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
@@ -38,8 +39,7 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
     azzert, long_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
-import pytz
-from rogerthat.bizz.branding import is_branding, TYPE_BRANDING
+from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
     InvalidBroadcastTypeException, RoleNotFoundException
@@ -48,12 +48,13 @@ from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.branding import BrandingValidationException
-from rogerthat.models import App, ServiceRole
+from rogerthat.models import App, ServiceRole, Branding
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
-from rogerthat.service.api import app, qr, system
-from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role
+from rogerthat.service.api import app, qr
+from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role, store_branding, \
+    store_pdf_branding
 from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
@@ -349,7 +350,7 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
         if resp.status_code != 200:
             raise BrandingNotFoundException()
 
-        if not is_branding(resp.content, TYPE_BRANDING):
+        if not is_branding(resp.content, Branding.TYPE_NORMAL):
             raise BrandingValidationException("Content of branding download could not be identified as a branding")
 
     def trans():
@@ -476,7 +477,7 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
         if resp.status_code != 200:
             raise BrandingNotFoundException()
 
-        if not is_branding(resp.content, TYPE_BRANDING):
+        if not is_branding(resp.content, Branding.TYPE_NORMAL):
             raise BrandingValidationException("Content of branding download could not be identified as a branding")
 
     # Raises if service already existed
@@ -851,16 +852,14 @@ def save_broadcast_types_order(service_user, broadcast_types):
 @returns(BrandingTO)
 @arguments(description=unicode, content=unicode)
 def put_branding(description, content):
-    from rogerthat.service.api import system
-    return system.store_branding(description, content)
+    return store_branding(description, content)
 
 
 @db.non_transactional
 @returns(BrandingTO)
 @arguments(description=unicode, content=unicode)
 def put_pdf_branding(description, content):
-    from rogerthat.service.api import system
-    return system.store_pdf_branding(description, content)
+    return store_pdf_branding(description, content)
 
 
 @returns(int)
