@@ -53,9 +53,6 @@ def _qry(today):
 
 def _create_charge(order_key, today, products):
 
-    class ZeroChargeException(Exception):
-        pass
-
     def cleanup_expired_subscription(customer):
         expired_subscription = ExpiredSubscription.get_by_customer_id(customer.id)
         if expired_subscription:
@@ -121,7 +118,10 @@ def _create_charge(order_key, today, products):
 
         if total_amount == 0:
             order.next_charge_date = Order.default_next_charge_date()
-            raise ZeroChargeException("Calculated recurrent charge of 0 euros")
+            order.put()
+            logging.info("Skipping, cannot calculate recurrent charge of 0 euros for order %s (%s: %s)",
+                         order.order_number, customer_id, customer.name)
+            return
 
         if subscription_length == 0:
             raise Exception('subscription_length is 0')
@@ -183,5 +183,5 @@ def _create_charge(order_key, today, products):
 
     try:
         run_in_xg_transaction(trans)
-    except ZeroChargeException, e:
+    except Exception as e:
         logging.exception("Failed to create new charge: %s" % e.message, _suppress=False)
