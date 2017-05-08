@@ -106,7 +106,8 @@ def init_env():
             apiproxy_stub_map.apiproxy.RegisterStub('images', images_stub.ImagesServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('urlfetch', urlfetch_stub.URLFetchServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('taskqueue', taskqueue_stub.TaskQueueServiceStub())
-
+            apiproxy_stub_map.apiproxy.RegisterStub('app_identity_service', app_identity_stub.AppIdentityServiceStub())
+ 
     except Exception as e:
         print e
         raise
