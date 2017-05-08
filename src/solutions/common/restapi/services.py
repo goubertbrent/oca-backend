@@ -28,7 +28,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.messaging import KeyValueTO
-from rogerthat.utils.channel import send_message
+from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import put_service, put_customer_with_service, audit_log, dict_str_for_audit_log
 from shop.business.order import cancel_subscription
@@ -288,6 +288,9 @@ def rest_delete_service(service_email):
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_ASSOCIATION_BY_CITY], True)
-    send_message(users.get_current_user(),
-                 [{u"type": u"solutions.common.services.deleted", u'service_email': service_email}])
+    session = users.get_current_session()
+    service_identity = session.service_identity
+    send_message_to_session(city_service_user, session,
+                            [{u"type": u"solutions.common.services.deleted", u'service_email': service_email}],
+                            si=service_identity)
     return RETURNSTATUS_TO_SUCCESS
