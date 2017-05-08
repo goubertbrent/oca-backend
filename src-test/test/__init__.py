@@ -27,6 +27,7 @@ os.environ["DEFAULT_VERSION_HOSTNAME"] = 'mobicagecloudhr.appspot.com'
 os.environ['APPENGINE_RUNTIME'] = 'python27'  # Needed to make webapp.template load ._internal.django
 
 from google.appengine.api import datastore_file_stub, apiproxy_stub_map, user_service_stub, mail_stub, urlfetch_stub
+from google.appengine.api.app_identity import app_identity_stub
 from google.appengine.api.blobstore import blobstore_stub, file_blob_storage
 from google.appengine.api.images import images_stub
 from google.appengine.api.memcache import memcache_stub
