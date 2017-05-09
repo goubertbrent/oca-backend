@@ -23,7 +23,7 @@ from google.appengine.ext import db, deferred
 
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.utils import get_epoch_from_datetime, now
+from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import cancel_order, create_task, audit_log
 from shop.business.prospect import create_prospect_from_customer
