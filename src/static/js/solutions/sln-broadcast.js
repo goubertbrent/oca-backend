@@ -1196,8 +1196,6 @@ $(function () {
                 var timeTable = google.visualization.arrayToDataTable(timeData);
                 var timeChart = new google.visualization.AnnotationChart(timeElem);
                 timeChart.draw(timeTable, lineOptions);
-            } else {
-                timeElem.innerHTML = '<i>' + T('not_enough_data') + '</i>';
             }
         }
     }
