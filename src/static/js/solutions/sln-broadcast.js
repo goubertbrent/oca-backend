@@ -1487,6 +1487,8 @@ $(function () {
             hasSignedOrder = broadcastOptions.subscription_info.has_signed,
             restaurantReservationDate;
 
+        var itemIsPublished = originalNewsItem && originalNewsItem.published;
+
         elemButtonSaveImage.hide();
         elemButtonRemoveImage.toggle(!(!originalNewsItem || !originalNewsItem.image_url));
         elemButtonSubmit.hide();
@@ -1901,7 +1903,7 @@ $(function () {
                     newAppIds.push(this.value);
                 }
             });
-            if (elemCheckboxSchedule.prop('checked')) {
+            if (elemCheckboxSchedule.prop('checked') && !itemIsPublished) {
                 var scheduledDate = new Date(elemInputScheduleDate.data('datepicker').date.getTime());
                 var time = elemInputScheduleTime.data('timepicker');
                 scheduledDate.setHours(time.hour);
@@ -2314,7 +2316,7 @@ $(function () {
 
         function validateScheduledAt(data) {
             var error = '';
-            if (data.scheduled_at) {
+            if (data.scheduled_at && !itemIsPublished) {
                 var now = new Date();
                 if (data.scheduled_at <= (now.getTime() / 1000)) {
                     error = T('date_must_be_in_future');
@@ -2327,7 +2329,6 @@ $(function () {
             }
             elemScheduledAtError.html(error);
             return !error;
-
         }
 
         function requestLoyaltyDevice() {
