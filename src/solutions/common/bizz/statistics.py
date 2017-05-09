@@ -14,14 +14,14 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
+from rogerthat.models import ServiceIdentity
+from rogerthat.rpc import users
+from rogerthat.service.api import app
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.app import get_app
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import ServiceIdentity
-from rogerthat.rpc import users
-from rogerthat.service.api import app
 from rogerthat.to.statistics import AppServiceStatisticsTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.dal import get_customer, get_available_apps_for_customer
@@ -37,8 +37,8 @@ def get_app_statistics(service_identity):
     si = get_service_identity(service_identity_user)
     default_app = get_app(si.defaultAppId)
     customer = get_customer(service_user)
-    app_ids = []
-    available_apps = get_available_apps_for_customer(customer, default_app.demo)
-    for available_app in available_apps:
-        app_ids.append(available_app.app_id)
-    return app.get_app_statistics(app_ids)
+    available_apps = [a.app_id for a in get_available_apps_for_customer(customer, default_app.demo)]
+    if not available_apps:
+        # Customer does not exist or has no app ids
+        available_apps = sorted(si.appIds)
+    return app.get_app_statistics(available_apps)
