@@ -72,7 +72,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
     update_contact, \
     put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
-    regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin
+    regio_manager_has_permissions_to_team, user_has_permissions_to_question, get_customer_charges, is_team_admin
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -178,22 +178,25 @@ def authorize_manager():
 
 
 @cached(1, request=True, memcache=False)
-@returns(int)
+@returns(RegioManager)
 @arguments(user=users.User)
-def get_team_id(user):
+def get_regional_manager(user):
     user = user or gusers.get_current_user()
     regio_manager = RegioManager.get(RegioManager.create_key(user.email()))
-    return regio_manager.team_id
+    return regio_manager
 
 
 def get_shop_context(**kwargs):
     user = gusers.get_current_user()
     solution_server_settings = get_solution_server_settings()
 
+    team_admin = False
     if is_admin(user):
         current_user_apps = _get_apps()
     else:
-        regio_manager_team = RegioManagerTeam.get_by_id(get_team_id(user))
+        manager = get_regional_manager(user)
+        team_admin = manager and manager.admin
+        regio_manager_team = manager.team
         current_user_apps_unfiltered = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
         current_user_apps = sorted([app for app in current_user_apps_unfiltered if app.visible], key=lambda app: app.name)
 
@@ -207,6 +210,7 @@ def get_shop_context(**kwargs):
                static_modules=SolutionModule.STATIC_MODULES,
                current_user_apps=current_user_apps,
                admin=is_admin(user),
+               team_admin=team_admin,
                payment_admin=is_payment_admin(user),
                organization_types=_get_organization_types(),
                broadcast_types=get_all_existing_broadcast_types(),
@@ -429,20 +433,47 @@ class OpenInvoicesHandler(BizzManagerHandler):
 class QuestionsHandler(BizzManagerHandler):
     def get(self):
         current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
+        manager = RegioManager.get(RegioManager.create_key(current_user.email()))
+        admin = is_admin(current_user)
+        if not admin:
+            if not (manager and manager.admin):
+                return self.abort(403)
+
+        team_id = self.request.get('team')
+        team_id = long(team_id) if team_id else None
+        questions_qry = Question.all().order('-timestamp')
+        if not admin:
+            # show only the team questions to the manager
+            questions_qry.filter('team_id =', manager.team.id)
+        else:
+            # filter if team id is provided for admin
+            if team_id:
+                questions_qry.filter('team_id =', int(team_id))
+
+        questions = []
+        teams = {team.id: team for team in RegioManagerTeam.all()}
+        for question in questions_qry:  # type: Question
+            question.team = teams[question.team_id]
+            questions.append(question)
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions.html')
-        context = get_shop_context(questions=Question.all().order('-timestamp'))
+        show_team_switcher = admin or manager.team.is_mobicage
+        context = get_shop_context(questions=questions,
+                                   show_team_switcher=show_team_switcher,
+                                   teams=teams,
+                                   selected_team=team_id,
+                                   js_templates=render_js_templates(['teams_select_modal']))
         self.response.out.write(template.render(path, context))
 
 
 class QuestionsDetailHandler(BizzManagerHandler):
     def get(self, question_id):
         current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
+        question = Question.get_by_id(long(question_id))
+        if not user_has_permissions_to_question(current_user, question):
+            return self.abort(403)
+
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions_detail.html')
-        context = get_shop_context(question=Question.get_by_id(long(question_id)))
+        context = get_shop_context(question=question)
         self.response.out.write(template.render(path, context))
 
 
@@ -1211,37 +1242,40 @@ def rest_set_next_charge_date(customer_id, next_charge_date):
 @returns()
 @arguments(question_id=(int, long), title=unicode)
 def set_question_title(question_id, title):
-    azzert(is_admin(gusers.get_current_user()))
-    def trans():
-        q = Question.get_by_id(question_id)
+    question = Question.get_by_id(question_id)
+    user = gusers.get_current_user()
+    azzert(user_has_permissions_to_question(user, question))
+    def trans(q):
         q.title = title
         q.put()
         deferred.defer(re_index_question, q.key(), _transactional=True)
 
-    db.run_in_transaction(trans)
+    db.run_in_transaction(trans, question)
 
 
 @rest("/internal/shop/rest/question/modules", "post")
 @returns()
 @arguments(question_id=(int, long), modules=[unicode])
 def set_question_modules(question_id, modules):
-    azzert(is_admin(gusers.get_current_user()))
-    def trans():
-        q = Question.get_by_id(question_id)
+    question = Question.get_by_id(question_id)
+    user = gusers.get_current_user()
+    azzert(user_has_permissions_to_question(user, question))
+    def trans(q):
         q.modules = modules
         q.put()
         deferred.defer(re_index_question, q.key(), _transactional=True)
 
-    db.run_in_transaction(trans)
+    db.run_in_transaction(trans, question)
 
 
 @rest("/internal/shop/rest/question/visible", "post")
 @returns()
 @arguments(question_id=(int, long), question_reply_id=(int, long, NoneType), visible=bool)
 def set_question_visible(question_id, question_reply_id, visible):
-    azzert(is_admin(gusers.get_current_user()))
-    def trans():
-        q = Question.get_by_id(question_id)
+    question = Question.get_by_id(question_id)
+    user = gusers.get_current_user()
+    azzert(user_has_permissions_to_question(user, question))
+    def trans(q):
         if not question_reply_id:
             q.visible = visible
             q.put()
@@ -1251,22 +1285,24 @@ def set_question_visible(question_id, question_reply_id, visible):
             qr.put()
         deferred.defer(re_index_question, q.key(), _transactional=True)
 
-    db.run_in_transaction(trans)
+    db.run_in_transaction(trans, question)
 
 
 @rest("/internal/shop/rest/question/reply", "post")
 @returns()
 @arguments(question_id=(int, long), description=unicode, author_name=unicode)
 def send_reply(question_id, description, author_name):
-    azzert(is_admin(gusers.get_current_user()))
+    question = Question.get_by_id(question_id)
+    user = gusers.get_current_user()
+    azzert(user_has_permissions_to_question(user, question))
+
     @db.non_transactional
     def get_customer(q):
         return Customer.get_by_service_email(q.author.email())
 
     settings = get_server_settings()
 
-    def trans():
-        q = Question.get_by_id(question_id)
+    def trans(q):
         q.answered = True
 
         qr = QuestionReply(parent=q)
@@ -1295,7 +1331,42 @@ Kind regards,
 
 The Rogerthat team.""" % (sln_settings.login.email() if sln_settings.login else q.author.email(), q.title), transactional=True)
     xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
+    db.run_in_transaction_options(xg_on, trans, question)
+
+
+@rest("/internal/shop/rest/question/assign", "post")
+@returns(ReturnStatusTO)
+@arguments(question_id=int, team_id=int)
+def assign_team_to_question(question_id, team_id):
+    question = Question.get_by_id(question_id)
+    user = gusers.get_current_user()
+    azzert(user_has_permissions_to_question(user, question))
+    team = RegioManagerTeam.get_by_id(team_id)
+
+    settings = get_server_settings()
+    def trans(q, t):
+        q.team_id = t.id
+        q.put()
+
+        support_manager = t.get_support()
+        if support_manager:
+            support_email = support_manager.user.email()
+            name = q.get_author_name()
+            send_mail(settings.senderEmail, support_email, q.title, """Please reply to %s (%s) with the following link:
+    %s/internal/shop/questions
+
+    Title:
+    %s
+
+    Description:
+    %s""" % (name, q.author, settings.baseUrl, q.title, q.description), transactional=True)
+
+    try:
+        xg_on = db.create_transaction_options(xg=True)
+        db.run_in_transaction_options(xg_on, trans, question, team)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)
 
 
 @rest("/internal/shop/rest/customer/put", "post")

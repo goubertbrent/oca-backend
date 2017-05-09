@@ -91,6 +91,7 @@ from solutions.common.dal.hints import get_solution_hints
 from solutions.common.models import News
 from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
+from solutions.common.models.qanda import Question
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
 
@@ -168,6 +169,21 @@ def user_has_permissions_to_team(user, team_id):
 @arguments(regio_manager=RegioManager, team_id=(int, long))
 def regio_manager_has_permissions_to_team(regio_manager, team_id):
     return regio_manager.team_id == team_id if regio_manager else False
+
+
+@returns(bool)
+@arguments(user=users.User, question=Question)
+def user_has_permissions_to_question(user, question):
+    if is_admin(user):
+        return True
+
+    key = RegioManager.create_key(user.email())
+    manager = RegioManager.get(key)
+    if manager:
+        if manager.admin and manager.team_id == question.team_id:
+            return True
+
+    return False
 
 
 def dict_str_for_audit_log(variables_dict):

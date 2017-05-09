@@ -22,6 +22,7 @@ from rogerthat.utils import now, send_mail
 from google.appengine.ext import db
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns
+from shop.models import RegioManagerTeam
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz.qanda import search_question as bizz_search_question
@@ -44,6 +45,7 @@ def search_question(search_string, count, cursor=None):
 @arguments(title=unicode, description=unicode, modules=[unicode])
 def ask_question(title, description, modules):
     solution_server_settings = get_solution_server_settings()
+    default_team_id = RegioManagerTeam.get_mobicage().id
     def trans():
         sln_settings = get_solution_settings(users.get_current_user())
 
@@ -52,7 +54,8 @@ def ask_question(title, description, modules):
                  title=title,
                  description=description,
                  modules=modules,
-                 language=sln_settings.main_language).put()
+                 language=sln_settings.main_language,
+                 team_id=default_team_id).put()
 
         send_mail(get_server_settings().senderEmail, solution_server_settings.solution_qanda_info_receivers, title,
                   """Please reply to %s (%s) with the following link:

@@ -18,6 +18,7 @@
 import time
 
 from google.appengine.ext import db
+
 from solutions.common.dal import get_solution_settings
 
 
@@ -30,6 +31,7 @@ class Question(db.Model):
     visible = db.BooleanProperty(default=False)
     answered = db.BooleanProperty(default=False)
     language = db.StringProperty()
+    team_id = db.IntegerProperty(indexed=True)
 
     @property
     def id(self):

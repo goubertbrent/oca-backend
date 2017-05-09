@@ -312,6 +312,12 @@ indexes:
   - name: timestamp
     direction: desc
 
+- kind: Question
+  properties:
+  - name: team_id
+  - name: timestamp
+    direction: desc
+
 - kind: QuestionReply
   ancestor: yes
   properties:
