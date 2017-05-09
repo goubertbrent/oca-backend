@@ -32,7 +32,7 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.rtemail import EMAIL_REGEX
-from rogerthat.bizz.service import InvalidValueException
+from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
@@ -625,6 +625,11 @@ def settings_publish_changes(friends=None):
         property_ = e.fields.get('property')
         logging.warning("Invalid value for property %s: %s", property_, reason, exc_info=1)
         return ReturnStatusTO.create(False, reason or e.message)
+    except AvatarImageNotSquareException:
+        sln_settings = get_solution_settings(service_user)
+        message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                   'please_select_valid_avatar_image')
+        return ReturnStatusTO.create(False, message)
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 

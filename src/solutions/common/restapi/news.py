@@ -27,6 +27,8 @@ from rogerthat.to import ReturnStatusTO
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.to import NewsTO, OrderItemTO
+from shop.exceptions import BusinessException
+from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
     get_news_statistics
 from solutions.common.dal import get_solution_settings
@@ -61,7 +63,7 @@ def rest_get_news_statistics(news_id):
 
 
 @rest('/common/news', 'post', silent_result=True)
-@returns(NewsBroadcastItemTO)
+@returns((NewsBroadcastItemTO, ReturnStatusTO))
 @arguments(title=unicode, message=unicode, broadcast_type=unicode, image=(unicode, type(MISSING)), sponsored=bool,
            action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
            type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)), app_ids=[unicode],
@@ -98,10 +100,15 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
     else:
         service_identity_user = create_service_identity_user(service_user, service_identity)
 
-    return put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
-                         order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
-                         broadcast_on_twitter, facebook_access_token, target_audience=target_audience,
-                         accept_missing=True)
+    try:
+        return put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
+                             order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
+                             broadcast_on_twitter, facebook_access_token, target_audience=target_audience,
+                             accept_missing=True)
+    except BusinessException as e:
+        sln_settings = get_solution_settings(service_user)
+        message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)
+        return ReturnStatusTO.create(False, message)
 
 
 @rest('/common/news/delete', 'post')

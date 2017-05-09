@@ -2144,6 +2144,12 @@ $(function () {
                 data: data,
                 success: function (result) {
                     sln.hideProcessing();
+                    if(result.errormsg && !result.success) {
+                        sln.alert(result.errormsg);
+                        // re-enable the submit button
+                        elemButtonSubmit.attr('disabled', false);
+                        return;
+                    }
                     LocalCache.news.promotedNews = {};
                     elemButtonSubmit.attr('disabled', false);
                     var text;

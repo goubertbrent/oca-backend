@@ -42,7 +42,7 @@ from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
-    InvalidBroadcastTypeException, RoleNotFoundException
+    InvalidBroadcastTypeException, RoleNotFoundException, AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
@@ -624,7 +624,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             broadcast_updates_pending(sln_settings)
 
         logging.debug('Provisioning took %s seconds', time.time() - start)
-    except TranslatedException:
+    except (AvatarImageNotSquareException, TranslatedException):
         raise
     except Exception:
         logging.exception('Failure in common_provision', _suppress=False)
