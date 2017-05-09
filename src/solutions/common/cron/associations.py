@@ -21,9 +21,12 @@ from google.appengine.ext import webapp, db
 from google.appengine.ext.deferred import deferred
 
 from mcfw.utils import chunks
+from rogerthat.models.news import NewsItem
 from rogerthat.utils import now
+from rogerthat.utils.service import get_service_user_from_service_identity_user
+
 from shop.models import Customer
-from solutions.common.models import SolutionInboxMessage, SolutionScheduledBroadcast
+from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.agenda import Event
 from solutions.common.models.associations import AssociationStatistic
 from solutions.common.models.static_content import SolutionStaticContent
@@ -34,13 +37,19 @@ class CreateNonProfitStatistics(webapp.RequestHandler):
         deferred.defer(update_statistic)
 
 
+def get_news_of_last_month(published=True):
+    return NewsItem.all().filter('timestamp <', now()) \
+        .filter('timestamp >', now() - 2592000) \
+        .filter('published', published)
+
+
 def update_statistic():
     # Completely rebuilds statistics on run.
 
     current_date = now()
     broadcast_count_dict = {}
-    for broadcast_key in SolutionScheduledBroadcast.get_keys_last_month():
-        service_email = broadcast_key.parent().name()
+    for news_item in get_news_of_last_month():
+        service_email = get_service_user_from_service_identity_user(news_item.sender).email()
         if service_email not in broadcast_count_dict:
             broadcast_count_dict[service_email] = 1
         else:
