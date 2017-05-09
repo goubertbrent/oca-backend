@@ -499,10 +499,19 @@ def solution_add_to_calender_event(service_user, email, method, params, tag, ser
     event.add('description', jsondata['eventDescription'])
     event.add('location', jsondata['eventPlace'])
     startDate = datetime.utcfromtimestamp(int(jsondata['eventStart']))
+
+    try:
+        endDate = datetime.utcfromtimestamp(int(jsondata['eventEnd']))
+    except TypeError:
+        endDate = None
+
     nowDate = datetime.utcfromtimestamp(time.time())
     dtstart = datetime(startDate.year, startDate.month, startDate.day, startDate.hour, startDate.minute , startDate.second, tzinfo=pytz.utc)
     dtstamp = datetime(nowDate.year, nowDate.month, nowDate.day, nowDate.hour, nowDate.minute , nowDate.second, tzinfo=pytz.utc)
     event.add('dtstart', dtstart)
+    if endDate:
+        dtend = datetime(endDate.year, endDate.month, endDate.day, endDate.hour, endDate.minute , endDate.second, tzinfo=pytz.utc)
+        event.add('dtend', dtend)
     event.add('dtstamp', dtstamp)
 
     event.add('uid', "%s %s" % (app.dashboard_email_address, jsondata['eventId']))

@@ -562,6 +562,7 @@ translations = \
          u'events-reminder': u'Remind me',
          u'events-title': u'Title',
          u'events_status_notification': u"Status updated to '%(status)s' for event named %(event)s",
+         u'events_invitation_sent': u"An email will be sent with the event invitation.",
          u'export': u'Export',
          u'export_detailed_statistics': u'Export detailed statistics',
          u'export_detailed_statistics_explanation': u'Export all inbox messages and detailed usage statistics.',

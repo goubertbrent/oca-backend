@@ -165,6 +165,11 @@
         && a.getFullYear() == b.getFullYear());
     }
 
+    function toDateObject(startOrEndDate) {
+        // get a Date object from start/end objects
+        return new Date(startOrEndDate.year, startOrEndDate.month - 1, startOrEndDate.day, startOrEndDate.hour, startOrEndDate.minute);
+    }
+
     function getNextStartAndEndTime(event, now, full_end_date) {
         var checkdate = now - DAY;
         for (var i in event.start_dates) {
@@ -278,14 +283,16 @@
         $("#detail").data("option_type", option_type);
 
         var now = (new Date().getTime()) / 1000;
-        var upcommingEvents = getUpcommingStartAndEndDates(event, now, false);
+        var upcommingEvents = getUpcommingStartAndEndDates(event, now, true);
 
         $.each(upcommingEvents, function (ui, upcomming_event) {
-            var eventDate = new Date(upcomming_event.start.year, upcomming_event.start.month - 1, upcomming_event.start.day, upcomming_event.start.hour, upcomming_event.start.minute);
+            var eventDate = toDateObject(upcomming_event.start);
             var eventStart = eventDate.getTime() / 1000;
+            var eventEnd = toDateObject(upcomming_event.end).getTime() / 1000;
             var a = $('<a href="#" class="dateSelectOptionsSelector ui-btn ui-btn-b ui-corner-all" onclick=""></a>');
             a.text(parseDateToEventDateTime(eventDate));
             a.attr("eventStartEpoch", eventStart);
+            a.attr("eventEndEpoch", eventEnd);
             $("#dateselect-popup-options").append(a);
         });
 
@@ -293,9 +300,18 @@
         $('#detail').trigger('create');
     }
 
+    function showEventInvitationSent() {
+        $('#event-invitation-sent-popup').popup("open", {positionTo: 'window'});
+    }
+
     function hideEventRemovePopupOverlay() {
         var elem = $('#event-remove-popup');
         elem.popup('close');  // needs to be double for first close
+        elem.popup('close');
+    }
+
+    function hideEventInvitationSent() {
+        var elem = $('#event-invitation-sent-popup');
         elem.popup('close');
     }
 
@@ -317,20 +333,24 @@
         loadEvents();
 
         function addToCalender(event, eventStartEnd) {
-            var eventDate = new Date(eventStartEnd.start.year, eventStartEnd.start.month - 1, eventStartEnd.start.day, eventStartEnd.start.hour, eventStartEnd.start.minute);
+            var eventDate = toDateObject(eventStartEnd.start);
+            var eventEndDate = toDateObject(eventStartEnd.end);
             var eventStart = eventDate.getTime() / 1000;
+            var eventEnd = eventEndDate.getTime() / 1000;
 
             var addToCalenderParams = {
                 'eventId': event.id,
                 'eventTitle': event.title,
                 'eventDescription': event.description,
                 'eventStart': eventStart,
-                'eventEnd': eventStartEnd.end,
+                'eventEnd': eventEnd,
                 'eventPlace': event.place,
                 'eventDate': parseDateToEventDateTime(eventDate),
             };
             var paramsss = JSON.stringify(addToCalenderParams);
             rogerthat.api.call("solutions.events.addtocalender", paramsss, "");
+
+            setTimeout(showEventInvitationSent, 100);
         }
 
         var now = (new Date().getTime()) / 1000;
@@ -425,7 +445,7 @@
             var event = $("#detail").data("event");
 
             var now = (new Date().getTime()) / 1000;
-            var upcommingEvents = getUpcommingStartAndEndDates(event, now, false, false);
+            var upcommingEvents = getUpcommingStartAndEndDates(event, now, true, false);
 
             if (upcommingEvents.length == 1) {
                 addToCalender(event, upcommingEvents[0]);
@@ -453,15 +473,18 @@
             var event = $("#detail").data("event");
             var option_type = $("#detail").data("option_type");
             var eventStartEpoch = parseInt($(this).attr("eventStartEpoch"));
+            var eventEndEpoch = parseInt($(this).attr("eventEndEpoch"));
 
             hideDateselectPopupOverlay();
 
             var selectedEvent = {"start": event.start_dates[0], "end": event.end_dates[0]};
             for (var i in event.start_dates) {
                 var startDate = event.start_dates[i];
-                var startDateEpoch = new Date(startDate.year, startDate.month - 1, startDate.day, startDate.hour, startDate.minute).getTime() / 1000;
-                if (eventStartEpoch === startDateEpoch) {
-                    selectedEvent = {"start": startDate, "end": event.end_dates[i]};
+                var endDate = event.end_dates_timestamps[i]; // this will contain an object not a timestamp
+                var startDateEpoch = toDateObject(startDate).getTime() / 1000;
+                var endDateEpoch = toDateObject(endDate).getTime() / 1000;
+                if (eventStartEpoch === startDateEpoch && eventEndEpoch === endDateEpoch) {
+                    selectedEvent = {"start": startDate, "end": endDate};
                     break;
                 }
             }
@@ -560,6 +583,10 @@
 
         $(document).on("click", ".closeEventRemovePopup", function () {
             hideEventRemovePopupOverlay();
+        });
+
+        $(document).on("click", ".closeEventInvitationSent", function() {
+            hideEventInvitationSent();
         });
 
         $(document).on("click", ".gotoCalendar", function () {
