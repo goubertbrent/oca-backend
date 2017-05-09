@@ -115,7 +115,8 @@ def cancel_subscription(customer_id, cancel_reason, immediately=False):
     if not customer.subscription_order_number:
         raise NoSubscriptionException(customer)
 
-    if immediately:
+    order = Order.get_by_order_number(customer_id, customer.subscription_order_number)
+    if immediately or order.status != Order.STATUS_SIGNED:
         def trans():
             try:
                 cancel_order(customer, customer.subscription_order_number)
