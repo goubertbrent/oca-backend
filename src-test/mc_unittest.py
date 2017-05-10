@@ -63,6 +63,8 @@ class TestCase(unittest.TestCase):
         from google.appengine.ext import testbed
         from rogerthat_tests import register_tst_mobile
 
+        os.environ['HTTP_HOST'] = 'rt.dev:8080'
+
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.datastore_hr_policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(probability=datastore_hr_probability)
@@ -71,6 +73,7 @@ class TestCase(unittest.TestCase):
         self.task_queue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         self.testbed.init_channel_stub()
         self.testbed.init_search_stub()
+        self.testbed.init_blobstore_stub()
 
         ss = get_server_settings()
         ss.baseUrl = "http://localhost:8080"  # not used
