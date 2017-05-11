@@ -48,7 +48,7 @@ from xhtml2pdf import pisa
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
-from rogerthat.bizz.app import get_app
+from rogerthat.bizz.app import add_auto_connected_services, get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
@@ -58,6 +58,7 @@ from rogerthat.dal.app import get_app_settings
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import App, ServiceIdentityStatistic, UserProfile
+from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
@@ -84,7 +85,7 @@ from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Ord
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
     CustomerServiceTO, OrderItemTO
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-from solutions.common.bizz import SolutionModule, common_provision
+from solutions.common.bizz import SolutionModule, common_provision, OrganizationType
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
@@ -722,6 +723,16 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     return r
 
 
+def auto_connect_city_service(service_email, app_ids):
+    for app_id in app_ids:
+        service_user = users.User(service_email)
+        service_identity_email = create_service_identity_user(service_user).email()
+        connected_services = App.get_by_key_name(app_id).auto_connected_services
+        if not connected_services.get(service_identity_email):
+            auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
+            add_auto_connected_services(app_id, [auto_connected_service])
+
+
 @arguments(customer_key=db.Key, user_email=unicode, r=ProvisionResponseTO, is_redeploy=bool, app_ids=[unicode],
            broadcast_to_users=[users.User])
 def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users):
@@ -802,8 +813,11 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             send_mail_via_mime(settings.dashboardEmail, [user_email], msg, transactional=True)
         if to_put:
             db.put(to_put)
+        return customer
 
-    run_in_xg_transaction(trans)
+    customer = run_in_xg_transaction(trans)
+    if customer.organization_type == OrganizationType.CITY:
+        auto_connect_city_service(customer.service_email, customer.app_ids)
 
 
 @returns([Invoice])
