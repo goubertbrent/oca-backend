@@ -16,47 +16,50 @@
 # @@license_version:1.2@@
 
 import json
-import os
+import logging
 
 import jinja2
+import os
 import webapp2
-
 from babel import dates
+from rogerthat.models import ServiceIdentity, App
+from rogerthat.rpc import users
+from rogerthat.service.api import system
+from solution_server_settings import get_solution_server_settings
+from solutions import translate, translations, COMMON_JS_KEYS
+from solutions.common import SOLUTION_COMMON
+from solutions.common.bizz import SolutionModule
+from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
+    get_solution_settings_or_identity_settings
+from solutions.common.models import SolutionQR
+from solutions.common.to import SolutionEmailSettingsTO
+from solutions.flex import SOLUTION_FLEX
+
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
-from rogerthat.models import ServiceIdentity
+from rogerthat.dal.service import get_service_identity
 from rogerthat.pages.login import SessionHandler
-from rogerthat.rpc import users
-from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
+from rogerthat.utils.service import create_service_identity_user
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
-from solution_server_settings import get_solution_server_settings
-from solutions import translate, translations, COMMON_JS_KEYS
-from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
-from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
-    get_solution_settings_or_identity_settings
 from solutions.common.dal.order import get_solution_order_settings
-from solutions.common.models import SolutionQR
 from solutions.common.models.properties import MenuItem
-from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
-from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
 
-
-JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
-                                                                       os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
-                                       extensions=[TranslateExtension])
+JINJA_ENVIRONMENT = jinja2.Environment(
+    loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
+                                    os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
+    extensions=[TranslateExtension])
 
 DEFAULT_JS_TEMPLATES = ['inbox_messages',
                         'inbox_detail_messages',
@@ -166,7 +169,6 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
 
 
 class FlexHomeHandler(webapp2.RequestHandler):
-
     def _get_location_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
@@ -267,11 +269,14 @@ class FlexHomeHandler(webapp2.RequestHandler):
             city_app_id = customer.app_id
             default_app = get_app(customer.app_id)
             is_demo_app = default_app.demo
+            available_apps = get_available_apps_for_customer(customer)
         else:
             city_app_id = None
             is_demo_app = False
-
-        available_apps = get_available_apps_for_customer(customer)
+            logging.info('Getting app ids from service identity since no customer exists for user %s', service_user)
+            service_identity_user = create_service_identity_user(service_user, service_identity)
+            app_ids = get_service_identity(service_identity_user).appIds
+            available_apps = App.get([App.create_key(app_id) for app_id in app_ids])
 
         if SolutionModule.ORDER or SolutionModule.MENU in sln_settings.modules:
             order_settings = get_solution_order_settings(sln_settings)
@@ -325,7 +330,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'day_flags': day_flags,
                   'months': months,
                   'months_short': months_short,
-                  'week_days' : week_days,
+                  'week_days': week_days,
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
                   'city_app_id': city_app_id,
@@ -333,8 +338,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
                   'currency': sln_settings.currency,
                   'is_layout_user': session_.layout_only if session_ else False,
-                  'SLN_LOGO_WIDTH' : SLN_LOGO_WIDTH,
-                  'SLN_LOGO_HEIGHT' : SLN_LOGO_HEIGHT,
+                  'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
+                  'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
                   'active_apps': json.dumps(customer.sorted_app_ids if customer else list()),
                   'all_apps': json.dumps([dict(id=a.app_id, name=a.name) for a in available_apps]),
                   'UNITS': json.dumps(UNITS),
@@ -343,9 +348,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'CONSTS_JSON': json.dumps(consts),
                   'order_settings': order_settings,
                   'order_settings_json': json.dumps(
-                          serialize_complex_value(
-                                  SolutionOrderSettingsTO.fromModel(order_settings, sln_settings.main_language),
-                                  SolutionOrderSettingsTO, False)),
+                      serialize_complex_value(
+                          SolutionOrderSettingsTO.fromModel(order_settings, sln_settings.main_language),
+                          SolutionOrderSettingsTO, False)),
                   'modules': json.dumps(sln_settings.modules),
                   'hide_menu_tab': SolutionModule.MENU not in sln_settings.modules
                                    and SolutionModule.ORDER in sln_settings.modules
@@ -367,8 +372,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
         self.response.out.write(jinja_template.render(params))
 
-class FlexLogoutHandler(SessionHandler):
 
+class FlexLogoutHandler(SessionHandler):
     def get(self):
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
