@@ -270,6 +270,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             default_app = get_app(customer.app_id)
             is_demo_app = default_app.demo
             available_apps = get_available_apps_for_customer(customer)
+            active_app_ids = customer.sorted_app_ids
         else:
             city_app_id = None
             is_demo_app = False
@@ -277,6 +278,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             service_identity_user = create_service_identity_user(service_user, service_identity)
             app_ids = get_service_identity(service_identity_user).appIds
             available_apps = App.get([App.create_key(app_id) for app_id in app_ids])
+            active_app_ids = app_ids
 
         if SolutionModule.ORDER or SolutionModule.MENU in sln_settings.modules:
             order_settings = get_solution_order_settings(sln_settings)
@@ -340,7 +342,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'is_layout_user': session_.layout_only if session_ else False,
                   'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
                   'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
-                  'active_apps': json.dumps(customer.sorted_app_ids if customer else list()),
+                  'active_apps': json.dumps(active_app_ids),
                   'all_apps': json.dumps([dict(id=a.app_id, name=a.name) for a in available_apps]),
                   'UNITS': json.dumps(UNITS),
                   'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
