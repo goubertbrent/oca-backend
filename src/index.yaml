@@ -558,6 +558,12 @@ indexes:
   properties:
   - name: action
   - name: created
+  
+- kind: SolutionCityVoucherTransaction
+  ancestor: yes
+  properties:
+  - name: created
+    direction: desc
 
 - kind: SolutionDiscussionGroup
   ancestor: yes
