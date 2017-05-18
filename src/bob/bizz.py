@@ -22,7 +22,7 @@ from rogerthat.bizz.app import AppDoesNotExistException
 from rogerthat.dal.app import get_app_by_id
 
 
-@arguments(app_id=unicode, ios_app_id=(int, long))
+@arguments(app_id=unicode, ios_app_id=unicode)
 def set_ios_app_id(app_id, ios_app_id):
     def trans():
         app = get_app_by_id(app_id)
