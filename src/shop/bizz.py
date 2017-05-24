@@ -723,17 +723,16 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     return r
 
 
-def auto_connect_city_service(service_email, app_ids):
-    for app_id in app_ids:
-        service_user = users.User(service_email)
-        service_identity_email = create_service_identity_user(service_user).email()
-        app = App.get_by_key_name(app_id)
-        if app.type != App.APP_TYPE_CITY_APP:
-            continue
-        connected_services = app.auto_connected_services
-        if not connected_services.get(service_identity_email):
-            auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
-            add_auto_connected_services(app_id, [auto_connected_service])
+def auto_connect_city_service(service_email, app_id):
+    service_user = users.User(service_email)
+    service_identity_email = create_service_identity_user(service_user).email()
+    app = App.get_by_key_name(app_id)
+    if app.type != App.APP_TYPE_CITY_APP:
+        continue
+    connected_services = app.auto_connected_services
+    if not connected_services.get(service_identity_email):
+        auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
+        add_auto_connected_services(app_id, [auto_connected_service])
 
 
 @arguments(customer_key=db.Key, user_email=unicode, r=ProvisionResponseTO, is_redeploy=bool, app_ids=[unicode],
@@ -820,7 +819,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
 
     customer = run_in_xg_transaction(trans)
     if customer.organization_type == OrganizationType.CITY:
-        auto_connect_city_service(customer.service_email, customer.app_ids)
+        auto_connect_city_service(customer.service_email, customer.app_id)
 
 
 @returns([Invoice])
