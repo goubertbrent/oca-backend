@@ -728,7 +728,7 @@ def auto_connect_city_service(service_email, app_id):
     service_identity_email = create_service_identity_user(service_user).email()
     app = App.get_by_key_name(app_id)
     if app.type != App.APP_TYPE_CITY_APP:
-        continue
+        return
     connected_services = app.auto_connected_services
     if not connected_services.get(service_identity_email):
         auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
