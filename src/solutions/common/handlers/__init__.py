@@ -338,11 +338,16 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
             def trans():
                 if static_content_id:
                     sc = SolutionStaticContent.get(SolutionStaticContent.create_key(service_user, static_content_id))
+                    if not sc:
+                        logging.error(u"Failed to update static content with id '%s' for user %s", static_content_id, service_user)
+                        return sln_settings
+
                     if sc.old_coords != coords and sc.provisioned:
                         sc.old_coords = sc.coords
                 else:
                     sc = SolutionStaticContent(parent=parent_key(sln_settings.service_user, SOLUTION_COMMON))
                     sc.old_coords = coords
+
                 sc.icon_label = icon_label
                 sc.icon_name = icon_name
                 sc.text_color = None
