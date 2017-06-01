@@ -85,14 +85,21 @@ $(document).ready(function () {
         var field = $('#qr-code-amount');
         var mode = $('#qr-code-mode').val();
         var controlGroup = $('#qr-code-amount-group');
-        var errorMessage = 'Should be higher or equal to 500';
+        var errorMessage;
 
-        if (mode !== 'excel') {
-            return true;
+        if(mode === 'svg') {
+            errorMessage = 'Should be less than or equal to 500';
+        } else {
+            errorMessage = 'Should be higher or equal to 500';
         }
 
         function validate () {
-            return parseInt(field.val()) >= 500;
+            var amount = parseInt(field.val());
+            if(mode === 'svg') {
+                return amount <= 500;
+            } else {
+                return amount >= 500;
+            }
         }
 
         return sln.validate(controlGroup, field, errorMessage, validate);

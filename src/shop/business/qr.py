@@ -26,6 +26,7 @@ from google.appengine.ext.deferred import deferred
 
 from add_1_monkey_patches import DEBUG
 from mcfw.imaging import generate_qr_code
+from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.profile import generate_unassigned_short_urls
 from rogerthat.dal.app import get_app_by_id
@@ -49,6 +50,7 @@ def generate_unassigned_qr_codes_zip_for_app(app_id, amount, mode):
     if not get_app_by_id(app_id):
         raise AppNotFoundException(app_id)
     if mode == 'svg':
+        azzert(amount <= 500)  # for db entity put() limit is about 700
         f = _generate_unassigned_qr_codes_svgs_for_app
     else:
         f = _generate_unassigned_qr_codes_excel_for_app
@@ -59,7 +61,7 @@ def generate_unassigned_qr_codes_zip_for_app(app_id, amount, mode):
 def _generate_unassigned_qr_codes_excel_for_app(app_id, amount, user_email):
     logging.info('Generating %d qr code urls and saving to excel sheet' % amount)
     qr_codes = generate_unassigned_short_urls(app_id, amount)
-    
+
     solution_server_settings = get_solution_server_settings()
 
     book = xlwt.Workbook(encoding="utf-8")
