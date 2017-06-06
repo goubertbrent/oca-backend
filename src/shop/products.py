@@ -27,6 +27,7 @@ from shop.models import Product
 # XXX: We really need a better method to obtain these values
 MC_TELECOM_LEGAL_ENTITY_ID = 5789858167521280 if not DEBUG else 5832209105682432
 ACTIVE_S_LEGAL_ENTITY_ID = 5811373693992960 if not DEBUG else 6513025846607872
+VEDA_LEGAL_ENTITY_ID = 6446256017113088
 
 
 def add_all_products(mobicage_entity=None):
@@ -85,6 +86,9 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_setd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=-7000))
     to_put.append(create_xcty_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_xctd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
+
+    to_put.append(create_fcty_product(VEDA_LEGAL_ENTITY_ID, 'VEDA_'))
+    to_put.append(create_free_product(VEDA_LEGAL_ENTITY_ID, 'VEDA_'))
 
     to_put.append(create_drc_stud_product())
     to_put.append(create_drc_sb_product())
