@@ -30,7 +30,7 @@ from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.messaging import KeyValueTO
 from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import put_service, put_customer_with_service, audit_log, dict_str_for_audit_log
+from shop.bizz import put_service, put_customer_with_service, audit_log, dict_str_for_audit_log, search_customer
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException
@@ -38,6 +38,7 @@ from shop.exceptions import NotOperatingInCountryException, EmptyValueException,
     NoPermissionException, ServiceNameTooBigException
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.models import Customer, Contact, Product, RegioManagerTeam
+from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.dal import get_solution_settings
@@ -86,21 +87,43 @@ def get_modules_and_broadcast_types():
     return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
 
 
+@rest("/common/services/search", "post")
+@returns([CustomerTO])
+@arguments(search_string=unicode)
+def search_services(search_string):
+    city_service_user = users.get_current_user()
+    city_sln_settings = get_solution_settings(city_service_user)
+    si = system.get_identity()
+    app_id = si.app_ids[0]
+    city_customer = get_customer(city_service_user)
+    azzert(city_sln_settings.can_edit_services(city_customer))
+
+    customers = []
+    # if app id is set, the customer should have a service
+    for c in search_customer(search_string, [app_id], None):
+        # exclude own service
+        if c.service_email == city_service_user.email():
+            continue
+        customers.append(CustomerTO.fromCustomerModel(c, False, False))
+
+    return sorted(customers, key=lambda c: c.name.lower())
+
+
 @rest("/common/services/get_all", "get", read_only_access=True)
 @returns(ServicesTO)
-@arguments()
-def get_services():
+@arguments(organization_type=int, cursor=unicode, limit=int)
+def get_services(organization_type, cursor=None, limit=50):
     city_service_user = users.get_current_user()
     si = system.get_identity()
     # get all the services in this city
     app_id = si.app_ids[0]
     city_customer = get_customer(city_service_user)
-    if len(city_customer.editable_organization_types) == 1:
-        organization_type = city_customer.editable_organization_types[0]
-        service_customers = list(Customer.list_enabled_by_organization_type_in_app(app_id, organization_type))
-    else:
-        service_customers = list(Customer.list_enabled_by_app(app_id))
-    service_customers = filter(city_customer.can_edit_service, service_customers)
+    azzert(organization_type in city_customer.editable_organization_types)
+    service_customers_qry = Customer.list_enabled_by_organization_type_in_app(app_id, organization_type)
+    service_customers_qry.with_cursor(cursor)
+    service_customers = service_customers_qry.fetch(limit)
+    new_cursor = unicode(service_customers_qry.cursor())
+
     services = []
     statistics = get_services_statistics(app_id)
     sln_settings_keys = [SolutionSettings.create_key(city_service_user)]
@@ -138,7 +161,7 @@ def get_services():
                                                   last_unanswered_question_timestamp)
             services.append(ServiceListTO(service_email, customer.name, statistic, modules, customer.id))
     generated_on = statistics.generated_on if statistics else None
-    return ServicesTO(sorted(services, key=lambda x: x.name.lower()), generated_on)
+    return ServicesTO(sorted(services, key=lambda x: x.name.lower()), generated_on, new_cursor)
 
 
 @rest("/common/services/get", "get", read_only_access=True)
@@ -291,6 +314,8 @@ def rest_delete_service(service_email):
     session = users.get_current_session()
     service_identity = session.service_identity
     send_message_to_session(city_service_user, session,
-                            [{u"type": u"solutions.common.services.deleted", u'service_email': service_email}],
+                            [{u"type": u"solutions.common.services.deleted",
+                              u'service_email': service_email,
+                              u'service_organization_type': customer.organization_type}],
                             si=service_identity)
     return RETURNSTATUS_TO_SUCCESS

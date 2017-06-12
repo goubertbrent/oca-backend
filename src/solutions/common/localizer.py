@@ -825,7 +825,7 @@ translations = \
          u'no_discussion_groups_yet': u'There are no discussion groups yet.',
          u'no_permission': u'You do not have permission to use this function.',
          u'no_previous_news_items': u"You haven't created any news items yet.",
-         u'no_services_create_here': u'There are no services yet in this city app. You can create one here',
+         u'no_services_create_here': u'There are no services yet in this category. You can create one here',
          u'no_unanswered_questions': u'No unanswered questions',
          u'no_unsigned_order': u"You haven't signed your subscription order yet. Sign it first in order to continue.",
          u'no_upcoming_events': u'No upcoming events',

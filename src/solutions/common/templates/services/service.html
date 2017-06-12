@@ -1,0 +1,30 @@
+{% raw %}
+<div class="service pull-left" service_email="${service.service_email}">
+    <a href="#/services/edit/${service.service_email}">${service.name}</a>
+
+    <div class="service-icons">
+        <div data-placement="top" data-original-title="${t.planned_events}" {{if !service.hasAgenda}}disabled="true" {{/if}}
+        style="color:{{if service.statistics.future_events_count === 0 }}#da4f49{{else}}{{if service.statistics.future_events_count < 5}}#faa732{{else}}#5bb75b{{/if}}{{/if}};">
+        {{if service.statistics.future_events_count >9 }}9+{{else}}${service.statistics.future_events_count}{{/if}} <i class="fa fa-calendar"></i></div>
+
+	    <div data-placement="top" {{if !service.hasQA}}disabled="true" {{/if}}
+	    data-original-title="{{if service.statistics.last_unanswered_question_timestamp === 0}}${t.no_unanswered_questions}{{else}}${t.min_one_question_unanswered} ${service.statistics.lastQuestionAnsweredDate}{{/if}}"
+	    style="color:{{if service.statistics.last_unanswered_question_timestamp === 0 }}#5bb75b{{else}}#da4f49{{/if}};">
+	    <i class="fa fa-question-circle" style="margin-left: 6px;"></i></div>
+
+		<div data-placement="top" data-original-title="${t.broadcasts_last_30}" {{if !service.hasBroadcast}}disabled="true" {{/if}}
+		style="color:{{if service.statistics.broadcasts_last_month === 0 }}#da4f49{{else}}{{if service.statistics.broadcasts_last_month < 2}}#faa732{{else}}#5bb75b{{/if}}{{/if}};">
+		{{if service.statistics.broadcasts_last_month >9}}9+{{else}}${service.statistics.broadcasts_last_month}{{/if}} <i class="fa fa-bullhorn"></i></div>
+
+        <div data-placement="top" data-original-title="${t.static_content_items}" {{if !service.hasStaticContent}}disabled="true"{{/if}}
+        style="color:{{if service.statistics.static_content_count === 0 }}#da4f49{{else}}#5bb75b{{/if}};"> ${service.statistics.static_content_count} <i class="fa fa-file-text-o"></i></div>
+        <a class="btn btn-small btn-default" href="/common/login_as?customer_id=${service.customer_id}" title="${T('dashboard')}">
+            <i class="fa fa-dashboard"></i>
+        </a>
+        <a class="btn btn-small btn-default" href="#/services/edit/${service.service_email}"><i
+                class="fa fa-edit"></i></a>
+        <button class="btn btn-small btn-danger delete-service" service_email="${service.service_email}"
+                service_name="${service.name}"><i class="fa fa-times"></i></button>
+    </div>
+</div>
+{% endraw %}

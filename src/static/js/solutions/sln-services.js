@@ -17,15 +17,20 @@
  */
 (function () {
     'use strict';
-    var generatedOn, isWaitingForProvisionUpdate = false;
+    var isWaitingForProvisionUpdate = false;
+    var servicesLists = {};
+    var searchDict = {};
+
     LocalCache.services = {
-        services: []
+        services: {}
     };
 
     init();
 
     function init() {
-        ROUTES['services'] = router;
+        initServicesList();
+        $('.search-services').click(searchServices);
+        ROUTES.services = router;
     }
 
     function router(urlHash) {
@@ -43,10 +48,11 @@
                 renderServicesForm(urlHash[1], urlHash[2]);
                 break;
             default:
-                renderServicesList();
+                loadServices();
         }
     }
 
+    // only one service can be created/updated at a time
     var currentService = {};
     var supportedLanguages = [
         {code: 'nl', name: 'Dutch', default: true},
@@ -58,62 +64,52 @@
         {code: 'ru', name: 'Russian'}
     ];
 
-    /*
-     Render methods
-     */
-
-    function renderServicesList() {
-        getServiceConfiguration(function (config) {
-            getServices(function (services) {
-                var html = $.tmpl(templates['services/services'], {
-                    services: services,
-                    t: CommonTranslations,
-                    modules: config.modules,
-                    generatedOn: generatedOn ? sln.format(new Date(generatedOn * 1000)) : false
-                });
-                $('#services-content').html(html);
-                $('button.delete-service').click(function () {
-                    var $this = $(this);
-                    var serviceEmail = $this.attr('service_email');
-                    var serviceName = $this.attr('service_name');
-                    var message = T('confirm_delete_service', {service_name: serviceName});
-                    sln.confirm(message, function () {
-                        deleteService(serviceEmail);
-                    });
-                });
-                $('.service-icons>div').each(function () {
-                    var $this = $(this);
-                    if ($this.attr('disabled')) {
-                        $this.attr('data-original-title', '(' + CommonTranslations.module_disabled + ') ' + $this.attr('data-original-title'));
-                    }
-                }).tooltip();
-            });
+    function initServicesList() {
+        $('.services-list').each(function(i, container) {
+            var organizationType = parseInt($(this).attr('organization_type'));
+            servicesLists[organizationType] = new ServicesList(organizationType, $(container));
         });
     }
 
-    function deleteService(serviceEmail) {
-        sln.call({
-            url: '/common/services/delete',
-            method: 'post',
-            data: {
-                service_email: serviceEmail
-            },
-            success: function (data) {
-                if (data.success) {
-                    serviceDeleted(serviceEmail);
-                } else {
-                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
-            }
-        });
+    function getSelectedOrganizationType() {
+        var activeCategory = $('#services_tab li[class=active]');
+        return parseInt(activeCategory.attr('organization_type'));
     }
 
-    function serviceDeleted(serviceEmail) {
-        LocalCache.services.services = LocalCache.services.services.filter(function (a) {
-            return a.service_email !== serviceEmail;
-        });
-        renderServicesList();
+    function getCurrentServicesList() {
+        var organizationType = getSelectedOrganizationType();
+        var currentServicesList = servicesLists[organizationType];
+        return currentServicesList;
     }
+
+    function getCurrentServicesContainer() {
+        return getCurrentServicesList().servicesContainer;
+    }
+
+    function loadServices() {
+        $('#service-form-container').hide();
+        $('#services-list-container').show();
+        var servicesList = getCurrentServicesList();
+        if(servicesList) {
+            servicesList.servicesContainer.show();
+            servicesList.reloadServices();
+        }
+    }
+
+    function reloadAllServices() {
+        $.each(servicesLists, function(organizationType, servicesList) {
+            servicesList.reset(); // to reload later
+        });
+        // reload
+        window.location.hash = '#/services';
+    }
+
+
+    $('#services_tab a[data-toggle="tab"]').on('shown', function() {
+        // load the services of the selected tab when clicked
+        // via the router
+        window.location.hash = '#/services';
+    });
 
     function addBroadcastType() {
         var $this = $('#service-extra-broadcast-type');
@@ -127,6 +123,17 @@
     }
 
     function renderServicesFormInternal(mode) {
+        $('#services-list-container').hide();
+        $('#service-form-container').show();
+
+        var organizationType;
+        if(currentService && currentService.organization_type) {
+            // pre-selected organization type
+            organizationType = currentService.organization_type;
+        } else {
+            organizationType = getSelectedOrganizationType();
+        }
+
         getServiceConfiguration(function (config) {
             var broadcastTypes = config.broadcast_types,
                 organizationTypes = config.organization_types;
@@ -137,12 +144,14 @@
                 service: currentService,
                 edit: mode === 'edit',
                 modules: config.modules,
+                organizationType: organizationType,
                 organizationTypes: organizationTypes,
                 broadcastTypes: broadcastTypes,
                 languages: supportedLanguages,
                 t: CommonTranslations
             });
-            $('#services-content').html(html);
+            $('#service-form-container').html(html);
+
             $('#service-form').find('input').not('[type=checkbox], [type=select]').first().focus();
             $('#service-extra-broadcast-type-add').click(addBroadcastType);
             $('#service-extra-broadcast-type').keypress(function (e) {
@@ -226,39 +235,15 @@
         }
     }
 
-    function getServices(callback) {
-        if (LocalCache.services.services.length) {
-            callback(LocalCache.services.services);
-            return;
-        }
-        $('#services-content').html(TMPL_LOADING_SPINNER);
-        sln.call({
-            url: '/common/services/get_all',
-            success: function (data) {
-                LocalCache.services.services = data.services;
-                generatedOn = data.generated_on;
-                for (var i = 0; i < LocalCache.services.services.length; i++) {
-                    var service = LocalCache.services.services[i];
-                    service.statistics.lastQuestionAnsweredDate = sln.format(new Date(service.statistics.last_unanswered_question_timestamp * 1000));
-                    service.hasAgenda = service.modules.indexOf('agenda') !== -1;
-                    service.hasQA = service.modules.indexOf('ask_question') !== -1;
-                    service.hasBroadcast = service.modules.indexOf('broadcast') !== -1;
-                    service.hasStaticContent = service.modules.indexOf('static_content') !== -1;
-                }
-                callback(LocalCache.services.services);
-            }
-        });
-    }
 
     function getService(serviceEmail, callback) {
-        $('#services-content').html(TMPL_LOADING_SPINNER);
+        getCurrentServicesContainer().html(TMPL_LOADING_SPINNER);
         sln.call({
             url: '/common/services/get',
             data: {service_email: serviceEmail},
             success: function (data) {
                 if(data.hasOwnProperty('success') && !data.success) {
                     sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                    router(['services']);
                     return;
                 }
                 currentService = data;
@@ -319,9 +304,100 @@
         });
     }
 
-    function reloadServiceList() {
-        LocalCache.services.services = [];
-        window.location.hash = '#/services';
+    function searchServices() {
+        getServiceConfiguration(showSearchModal);
+    }
+
+    function showSearchModal(config) {
+        var html = $.tmpl(templates['services/service_search']);
+        var modal = sln.createModal(html, function(modal) {
+            $('#service_name_input', modal).focus();
+        });
+        var input = $('#service_name_input', modal);
+
+        function serviceSelected(service_email) {
+            input.val('');
+            modal.modal('hide');
+            window.location.hash = '#/services/edit/' + service_email;
+        }
+
+        function getLabel(customer) {
+            var label = customer.name;
+
+            if(customer.address1) {
+                label += ', ' + customer.address1;
+            }
+            if(customer.address2) {
+                label += ', ' + customer.address2;
+            }
+            if(customer.zip_code) {
+                label += ', ' + customer.zip_code;
+            }
+
+            return label;
+        }
+
+        var timeout;
+        input.typeahead({
+            source : function(query, process) {
+                if(timeout) {
+                    clearTimeout(timeout);
+                }
+
+                timeout = setTimeout(function() {
+                    sln.call({
+                        url : "/common/services/search",
+                        type : "POST",
+                        data : {
+                            data : JSON.stringify({
+                                search_string : query
+                            })
+                        },
+                        success : function(data) {
+                            var serviceKeys = [];
+                            searchDict = {};
+                            $.each(data, function(i, customer) {
+                                var serviceKey = customer.service_email;
+                                var organizationType = config.organization_types.filter(function(t) {
+                                    return customer.organization_type === parseInt(t.key);
+                                })[0].value;
+
+                                serviceKeys.push(serviceKey);
+
+                                searchDict[serviceKey] = {
+                                    label: getLabel(customer),
+                                    sublabel: organizationType
+                                };
+                            });
+                            process(serviceKeys);
+                        },
+                        error : sln.showAjaxError
+                    });
+                },
+                500);
+            },
+            matcher : function() {
+                return true;
+            },
+            highlighter : function(key) {
+                var p = searchDict[key];
+
+                var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
+                var typeahead_labels = $('<div class="typeahead_labels"></div>');
+                var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.label);
+                typeahead_labels.append(typeahead_primary);
+                var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.sublabel);
+                typeahead_labels.append(typeahead_secondary);
+                typeahead_wrapper.append(typeahead_labels);
+
+                return typeahead_wrapper;
+            },
+            updater : function(key) {
+                var p = searchDict[key];
+                serviceSelected(key);
+                return p.label;
+            }
+        });
     }
 
     function servicesChannelUpdates(data) {
@@ -333,7 +409,7 @@
                 isWaitingForProvisionUpdate = false;
                 sln.hideProcessing();
                 var msg = T(currentService.customer_id ? 'service_updated' : 'service_created');
-                sln.alert(msg, reloadServiceList, CommonTranslations.SUCCESS);
+                sln.alert(msg, reloadAllServices, CommonTranslations.SUCCESS);
                 break;
             case 'common.provision.failed':
                 isWaitingForProvisionUpdate = false;
@@ -341,7 +417,10 @@
                 sln.alert(CommonTranslations.ERROR, null, data.errormsg);
                 break;
             case 'solutions.common.services.deleted':
-                serviceDeleted(data.service_email);
+                var organizationType = data.service_organization_type;
+                if(servicesLists[organizationType]) {
+                    servicesLists[organizationType].serviceDeleted(data.service_email);
+                }
                 break;
         }
     }

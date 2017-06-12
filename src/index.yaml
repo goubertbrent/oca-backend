@@ -866,3 +866,4 @@ indexes:
   - name: default_app_id
   - name: service_disabled_at
   - name: organization_type
+  - name: name

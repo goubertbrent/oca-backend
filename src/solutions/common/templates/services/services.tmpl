@@ -28,7 +28,7 @@
         margin-left: 130px;
     }
 
-    #create-service {
+    .create-service {
         margin-top: -40px;
     }
 
@@ -46,9 +46,54 @@
     .service-icons > div[disabled], .service-icons > div[disabled] i {
         color: #cccccc !important;
     }
-</style>
-<h2> {% translate language, "common", "services" %}</h2>
 
-<div id="services-content"></div>
+    .center {
+         float: none;
+         margin-left: auto;
+         margin-right: auto;
+    }
+</style>
+
+<div id="services-list-container">
+    <h2> {% translate language, "common", "services" %}</h2>
+
+    <div class="span12">
+        <div class="pull-right create-service">
+            <a class="btn search-services"><i class="fa fa-search"></i>
+                {% translate language, "common", "Search" %}
+            </a>
+            <a class="btn btn-success" href="#/services/add"><i class="fa fa-plus"></i>
+                {% translate language, "common", "create_service" %}
+            </a>
+        </div>
+    </div>
+
+    <p class="pull-right"><small id="generated_on"></small></p>
+
+    <ul id="services_tab" class="nav nav-tabs">
+        {% for org_type, label in organization_types %}
+        <li {% if loop.index == 1 %}class="active"{% endif %} organization_type="{{ org_type }}">
+          <a href="#services-content-{{org_type}}" data-toggle="tab">{{ label }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="tab-content">
+        {% for org_type, label in organization_types %}
+        <div id="services-content-{{org_type}}"
+             class="services-list tab-pane {% if loop.index == 1%}active{% endif %}"
+             organization_type="{{ org_type }}">
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="services_loading_indicator" style="display: block"></div>
+</div>
+
+<div id="service-form-container" class="span8 center">
+
+</div>
+
+<script src="/static/js/solutions/sln-services-list.js"></script>
 <script src="/static/js/solutions/sln-services.js"></script>
 </div>

@@ -18,10 +18,10 @@
             <label for="service-organization_type" class="control-label">${T('sector')}</label>
 
             <div class="controls">
-                <select type="text" id="organization_type" name="organization_type" value="${service.organization_type}"
+                <select type="text" id="organization_type" name="organization_type" value="${organizationType}"
                         required>
                     {{each(i, type) organizationTypes}}
-                    <option value="${type.key}" {{if service.organization_type == type.key }}selected{{/if}}>
+                    <option value="${type.key}" {{if organizationType == type.key }}selected{{/if}}>
                         ${type.value}
                     </option>
                     {{/each}}

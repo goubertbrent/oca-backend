@@ -460,7 +460,7 @@ class Customer(db.Model):
     def list_enabled_by_organization_type_in_app(cls, app_id, organization_type):
         return cls.all().filter('default_app_id', app_id) \
             .filter('service_disabled_at', 0) \
-            .filter('organization_type', organization_type)
+            .filter('organization_type', organization_type).order('name')
 
     @property
     def disabled_reason_str(self):

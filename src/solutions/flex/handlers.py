@@ -22,7 +22,7 @@ import jinja2
 import os
 import webapp2
 from babel import dates
-from rogerthat.models import ServiceIdentity, App
+from rogerthat.models import ServiceIdentity, App, ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from solution_server_settings import get_solution_server_settings
@@ -104,8 +104,9 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                                  'broadcast/broadcast_news_overview',
                                                                  'broadcast/broadcast_news_preview',
                                                                  'broadcast/news_stats_row'],
-                               SolutionModule.CITY_APP: ['services/services',
+                               SolutionModule.CITY_APP: ['services/service',
                                                          'services/service_form',
+                                                         'services/service_search',
                                                          'settings/app_settings'],
                                SolutionModule.CITY_VOUCHERS : ['city_vouchers/city_vouchers_list',
                                                                'city_vouchers/city_vouchers_transactions',
@@ -215,6 +216,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
     def _get_week_days(self, sln_settings):
         return [self._get_day_str(sln_settings, day) for day in [6, 0, 1, 2, 3, 4, 5]]
+
+    def _get_organization_types(self, customer, lang):
+        return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, lang))
+                for org_type in customer.editable_organization_types]
 
     def get(self):
         service_user = users.get_current_user()
@@ -361,7 +366,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'VAT_PCT': vat_pct,
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
-                  'translations': json.dumps(all_translations)
+                  'translations': json.dumps(all_translations),
+                  'organization_types': self._get_organization_types(customer, sln_settings.main_language)
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

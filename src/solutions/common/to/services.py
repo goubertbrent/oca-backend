@@ -66,7 +66,9 @@ class ServiceListTO(object):
 class ServicesTO(object):
     services = typed_property('1', ServiceListTO, True)
     generated_on = long_property('2')
+    cursor = unicode_property('3')
 
-    def __init__(self, services=None, generated_on=None):
+    def __init__(self, services=None, generated_on=None, cursor=None):
         self.services = services
         self.generated_on = generated_on
+        self.cursor = cursor
