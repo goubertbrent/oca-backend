@@ -15,70 +15,52 @@
 #
 # @@license_version:1.2@@
 
+import datetime
 import logging
+from cgi import FieldStorage
 
-from google.appengine.ext import blobstore
-from google.appengine.ext.webapp import blobstore_handlers
+import webapp2
 
-from rogerthat.rpc import users
+from rogerthat.bizz.gcs import upload_to_gcs, get_serving_url
+from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.rpc.service import BusinessException
-from rogerthat.settings import get_server_settings
+from rogerthat.rpc.users import get_current_user
 from rogerthat.to.messaging import AttachmentTO
-from rogerthat.utils import bizz_check, now, channel
+from rogerthat.utils import channel
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.dal import get_solution_settings
-from solutions.common.models import SolutionTempBlob
 
 
-class UploadAttachmentHandler(blobstore_handlers.BlobstoreUploadHandler):
+class UploadAttachmentHandler(webapp2.RequestHandler):
     def post(self):
         max_upload_size_mb = 5
         max_upload_size = max_upload_size_mb * 1048576  # 1 MB
-        service_user_email = self.request.get("service_user_email")
-        service_user = users.User(service_user_email)
+        service_user = get_current_user()
         sln_settings = get_solution_settings(service_user)
         name = unicode(self.request.get("name"))
         logging.info('%s uploads an attachment for broadcasting', service_user.email())
-        upload_files = self.get_uploads("attachment-files")
-        logging.debug('amount of uploaded files: %d', len(upload_files))
+        uploaded_file = self.request.POST.get('attachment-files')  # type: FieldStorage
         try:
-            bizz_check(len(upload_files) != 0, translate(sln_settings.main_language,
-                                                         SOLUTION_COMMON, 'please_select_attachment'))
-            bizz_check(len(upload_files) == 1,
-                       translate(sln_settings.main_language, SOLUTION_COMMON,
-                                 'only_one_attachment_allowed'))
-
-            blob_key = None
-            for blob in upload_files:
-                if not blob.content_type in AttachmentTO.CONTENT_TYPES:
-                    blob.delete()
-                    raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                      'attachment_must_be_of_type'))
-                elif blob.size > max_upload_size:
-                    blob.delete()
-                    raise BusinessException(
-                        translate(sln_settings.main_language, SOLUTION_COMMON, 'attachment_too_big',
-                                  max_size=max_upload_size_mb))
-                else:
-                    blob_key = unicode(blob.key())
+            if not isinstance(uploaded_file, FieldStorage):
+                raise BusinessException(
+                    translate(sln_settings.main_language, SOLUTION_COMMON, 'please_select_attachment'))
+            file_content = uploaded_file.value
+            if len(file_content) > max_upload_size:
+                raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON, 'attachment_too_big',
+                                                  max_size=max_upload_size_mb))
+            content_type = uploaded_file.type
+            if content_type not in AttachmentTO.CONTENT_TYPES:
+                raise BusinessException(
+                    translate(sln_settings.main_language, SOLUTION_COMMON, 'attachment_must_be_of_type'))
+            date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+            filename = '%s/news/%s/%s_%s' % (
+                ROGERTHAT_ATTACHMENTS_BUCKET, service_user.email(), date, uploaded_file.filename)
+            blob_key = upload_to_gcs(file_content, content_type, filename)
             logging.debug('blob key: %s', blob_key)
-            temp_blob = SolutionTempBlob()
-            temp_blob.timeout = now() + 86400 * 180  # Store this blob for 6 months
-            temp_blob.blob_key = blob_key
-            temp_blob.put()
-            logging.debug('temp blob created, sending channel message..')
             channel.send_message(service_user, 'solutions.common.broadcast.attachment.upload.success',
-                                 url=get_server_settings().baseUrl + '/solutions/common/public/attachment/view/' + blob_key,
+                                 url=get_serving_url(filename),
                                  name=name)
 
-        except BusinessException, ex:
+        except BusinessException as ex:
             channel.send_message(service_user, 'solutions.common.broadcast.attachment.upload.failed',
                                  message=ex.message)
-
-
-class ViewAttachmentHandler(blobstore_handlers.BlobstoreDownloadHandler):
-    def get(self, key):
-        if not blobstore.get(key):
-            self.error(404)
-        else:
-            self.send_blob(key)

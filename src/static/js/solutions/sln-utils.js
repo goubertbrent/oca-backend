@@ -982,32 +982,6 @@ var createLib = function() {
             }
             return s.replace(/\t/g, '&nbsp;&nbsp;').replace(/\n/g, '<br />');
         },
-        uploadFile: function (uploadUrl, data, onSuccess, onError) {
-            sln.call({
-                url: '/common/get_upload_url',
-                data: {
-                    url: uploadUrl
-                },
-                success: function (blobstoreUploadUrl) {
-                    var formData = new FormData();
-                    for (var key in data) {
-                        if (data.hasOwnProperty(key)) {
-                            formData.append(key, data[key]);
-                        }
-                    }
-                    sln.call({
-                        url: blobstoreUploadUrl,
-                        data: formData,
-                        cache: false,
-                        contentType: false,
-                        processData: false,
-                        type: 'POST',
-                        success: onSuccess
-                    });
-                },
-                error: onError ? onError : sln.showAjaxError
-            });
-        },
         showBrowserNotSupported: function () {
             sln.alert(CommonTranslations.browser_does_not_support_function
                 .replace('%(url)s', '<a href="http://browsehappy.com/" target="_blank">http://browsehappy.com/</a>'));

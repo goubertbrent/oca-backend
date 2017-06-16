@@ -19,10 +19,13 @@ import json
 import logging
 
 from google.appengine.ext import db, deferred
+
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import InvalidURLException
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import parent_key_unsafe, put_in_chunks
+from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import qr, messaging, system
@@ -40,19 +43,21 @@ from solutions.common.models.city_vouchers import SolutionCityVoucher, SolutionC
 from solutions.common.models.loyalty import CustomLoyaltyCard
 from solutions.common.utils import create_service_identity_user_wo_default
 
-
 POKE_TAG_CITY_VOUCHER_QR = u"city_voucher_qr"
+
 
 @returns()
 @arguments(service_user=users.User, app_id=unicode)
 def create_city_voucher_qr_codes(service_user, app_id):
     ancestor_key = SolutionCityVoucherQRCodeExport.create_parent_key(app_id)
+
     def trans():
         sln_qr_export = SolutionCityVoucherQRCodeExport(parent=ancestor_key)
         sln_qr_export.created = now()
         sln_qr_export.ready = False
         sln_qr_export.put()
         deferred.defer(_generate_vouchers, service_user, app_id, sln_qr_export.key(), _transactional=True)
+
     db.run_in_transaction(trans)
 
 
@@ -75,7 +80,9 @@ def _generate_vouchers(service_user, app_id, sln_qr_export_key):
         sln_qr_export = db.get(sln_qr_export_key)
         sln_qr_export.voucher_ids = voucher_ids
         sln_qr_export.put()
-        deferred.defer(_generate_vouchers_qr_codes, service_user, app_id, sln_qr_export.key(), voucher_ids, _transactional=True)
+        deferred.defer(_generate_vouchers_qr_codes, service_user, app_id, sln_qr_export.key(), voucher_ids,
+                       _transactional=True)
+
     db.run_in_transaction(trans)
 
 
@@ -116,6 +123,7 @@ def _generate_vouchers_qr_codes(service_user, app_id, sln_qr_export_key, voucher
         to_put.append(sln_qr_export)
         put_in_chunks(to_put)
         channel.send_message(service_user, 'solutions.common.city.vouchers.qrcode_export.updated')
+
     run_in_xg_transaction(trans)
 
 
@@ -129,6 +137,7 @@ def _set_search_fields(voucher):
 
     voucher.search_fields = [term.lower() for term in search_fields if term]
 
+
 @returns()
 @arguments(voucher_key=db.Key)
 def re_index_voucher(voucher_key):
@@ -136,14 +145,21 @@ def re_index_voucher(voucher_key):
     _set_search_fields(voucher)
     voucher.put()
 
+
 def _all_vouchers(app_id=unicode):
     ancestor_key = SolutionCityVoucher.create_parent_key(app_id)
     return SolutionCityVoucher.all(keys_only=True).ancestor(ancestor_key)
 
+
 @returns()
-@arguments(app_id=unicode)
-def _re_index_all_vouchers(app_id):
-    run_job(_all_vouchers, [app_id], re_index_voucher, [])
+@arguments(app_id=unicode, queue=unicode)
+def _re_index_all_vouchers(app_id, queue=HIGH_LOAD_WORKER_QUEUE):
+    run_job(_all_vouchers, [app_id], re_index_voucher, [], worker_queue=queue)
+
+
+def re_index_all_vouchers_all_apps(queue=HIGH_LOAD_WORKER_QUEUE):
+    for app_key in App.all(keys_only=True):
+        _re_index_all_vouchers(app_key.name(), queue)
 
 
 @returns()
@@ -156,6 +172,7 @@ def put_city_voucher_settings(app_id):
             raise BusinessException("Unable to put city voucher settings, already existing")
         sln_city_voucher_settings = SolutionCityVoucherSettings(key=sln_city_voucher_settings_key)
         sln_city_voucher_settings.put()
+
     db.run_in_transaction(trans)
 
 
@@ -223,7 +240,7 @@ def _find_voucher(url, app_ids):
     return poke_information, city_service_user
 
 
-def _create_resolve_result(result_type,url,email, app_id):
+def _create_resolve_result(result_type, url, email, app_id):
     return dict(type=result_type,
                 url=url,
                 content=url,
@@ -274,13 +291,14 @@ def _resolve_voucher(service_user, service_identity, url):
         r_dict["status"] = 2
     else:
         sln_settings = get_solution_settings(service_user)
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON , 'Voucher not activated'))
+        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Voucher not activated'))
 
     return r_dict
 
 
 @returns(SendApiCallCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_resolve(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received voucher resolve call with params: %s", params)
@@ -297,12 +315,13 @@ def solution_voucher_resolve(service_user, email, method, params, tag, service_i
     except:
         logging.error("solutions.voucher.resolve exception occurred", exc_info=True)
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
     return r
 
 
 @returns(SendApiCallCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_pin_activate(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received voucher pin activate call with params: %s", params)
@@ -334,7 +353,7 @@ def solution_voucher_pin_activate(service_user, email, method, params, tag, serv
             raise Exception(u"sln_city_voucher_settings was None")
 
         if jsondata["pin"] not in sln_city_voucher_settings.pincodes:
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'Pincode invalid')
+            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Pincode invalid')
             return r
 
         index = sln_city_voucher_settings.pincodes.index(jsondata["pin"])
@@ -344,11 +363,13 @@ def solution_voucher_pin_activate(service_user, email, method, params, tag, serv
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:
         logging.error("solutions.voucher.activate.pin exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
     return r
 
+
 @returns(SendApiCallCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_activate(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received voucher activate call with params: %s", params)
@@ -407,12 +428,13 @@ def solution_voucher_activate(service_user, email, method, params, tag, service_
 
     except:
         logging.error("solutions.voucher.activate exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
     return r
 
 
 @returns(SendApiCallCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_redeem(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received voucher redeem call with params: %s", params)
@@ -433,7 +455,8 @@ def solution_voucher_redeem(service_user, email, method, params, tag, service_id
             raise Exception(u"insufficient funds")
 
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-        sln_city_voucher_rt = SolutionCityVoucherRedeemTransaction(parent=parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
+        sln_city_voucher_rt = SolutionCityVoucherRedeemTransaction(
+            parent=parent_key_unsafe(service_identity_user, SOLUTION_COMMON))
         sln_city_voucher_rt.created = now()
         sln_city_voucher_rt.confirmed = False
         sln_city_voucher_rt.value = value
@@ -450,12 +473,13 @@ def solution_voucher_redeem(service_user, email, method, params, tag, service_id
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:
         logging.error("solutions.voucher.redeem exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
     return r
 
 
 @returns(SendApiCallCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_voucher_confirm_redeem(service_user, email, method, params, tag, service_identity, user_details):
     logging.debug("Received voucher confirm redeem call with params: %s", params)
@@ -515,11 +539,12 @@ def solution_voucher_confirm_redeem(service_user, email, method, params, tag, se
         value_left = db.run_in_transaction_options(xg_on, trans)
 
         r_dict = dict()
-        r_dict["title"] = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'Transaction successful')
-        r_dict["content"] = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'voucher_value_is', currency=sln_settings.currency, value=round(value_left / 100.0, 2))
+        r_dict["title"] = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Transaction successful')
+        r_dict["content"] = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'voucher_value_is',
+                                             currency=sln_settings.currency, value=round(value_left / 100.0, 2))
         result = json.dumps(r_dict)
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:
         logging.error("solutions.voucher.redeem.confirm exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON , 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
     return r

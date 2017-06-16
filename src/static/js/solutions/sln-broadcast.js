@@ -149,13 +149,6 @@ $(function () {
         };
     };
 
-    function getAttachmentUploadUrl(callback) {
-        sln.call({
-            url: "/flex/attachment/upload_url",
-            success: callback
-        });
-    }
-
     function addAttachment() {
         var html = $.tmpl(templates.addattachment, {
             t: CommonTranslations,
@@ -173,12 +166,10 @@ $(function () {
                 return;
             }
             sln.showProcessing(CommonTranslations.UPLOADING_TAKE_A_FEW_SECONDS);
-            getAttachmentUploadUrl(function (uploadUrl) {
-                var formElement = document.querySelector('#attachment-form');
-                var request = new XMLHttpRequest();
-                request.open("POST", uploadUrl);
-                request.send(new FormData(formElement));
-            });
+            var formElement = document.querySelector('#attachment-form');
+            var request = new XMLHttpRequest();
+            request.open('POST', '/common/broadcast/attachment/upload');
+            request.send(new FormData(formElement));
         });
     }
 

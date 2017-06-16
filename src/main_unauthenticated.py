@@ -16,18 +16,17 @@
 # @@license_version:1.2@@
 
 
-from rogerthat.wsgi import RogerthatWSGIApplication
-
 import shop.handlers
 import solutions.common.restapi
 import solutions.djmatic.api
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
+from rogerthat.handlers.blobstore import CloudStorageBlobstoreHandler
+from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler
-from solutions.common.handlers.broadcast import ViewAttachmentHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
@@ -55,7 +54,7 @@ handlers = [
     ('/shop/beacons/app/validate_url', BeaconsAppValidateUrlHandler),
     ('/customers/map/([a-z-_]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
-    ('/solutions/common/public/attachment/view/(.*)', ViewAttachmentHandler),
+    ('/solutions/common/public/attachment/view/(.*)', CloudStorageBlobstoreHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
     ('/version', VersionsHandler)
 ]
@@ -64,4 +63,3 @@ handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTH
 handlers.extend(rest_functions(shop.handlers, authentication=NOT_AUTHENTICATED))
 
 app = RogerthatWSGIApplication(handlers, name="main_unauthenticated")
-

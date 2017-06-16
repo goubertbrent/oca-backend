@@ -27,14 +27,15 @@ from babel import Locale
 from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from dateutil.relativedelta import relativedelta
+
 from google.appengine.api import users as gusers, images
 from google.appengine.ext import db, blobstore
-
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from mcfw.utils import chunks
 from oauth2client.appengine import CredentialsProperty
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.utils import bizz_check, get_epoch_from_datetime, now
@@ -1442,7 +1443,8 @@ class ShopLoyaltySlide(db.Model):
     timestamp = db.IntegerProperty()
     name = db.StringProperty(indexed=False)
     time = db.IntegerProperty(indexed=False)
-    item = blobstore.BlobReferenceProperty()
+    item = blobstore.BlobReferenceProperty()  # deprecated
+    gcs_filename = db.StringProperty(indexed=False)
     content_type = db.StringProperty(indexed=False)
     has_apps = db.BooleanProperty(default=True)
     apps = db.StringListProperty(indexed=True)
@@ -1459,17 +1461,24 @@ class ShopLoyaltySlide(db.Model):
         return r
 
     def item_url(self):
-        return unicode(images.get_serving_url(self.item, secure_url=True))
+        if self.gcs_filename:
+            k = blobstore.create_gs_key('/gs' + self.gcs_filename)
+        else:
+            k = self.item
+        return unicode(images.get_serving_url(k, secure_url=True))
 
     def slide_url(self):
         from rogerthat.settings import get_server_settings
         server_settings = get_server_settings()
+        if self.gcs_filename:
+            return get_serving_url(self.gcs_filename)
         return unicode("%s/unauthenticated/loyalty/slide?%s" % (server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
 
 class ShopLoyaltySlideNewOrder(db.Model):
     timestamp = db.IntegerProperty(indexed=False)
     time = db.IntegerProperty(indexed=False)
-    item = blobstore.BlobReferenceProperty()
+    item = blobstore.BlobReferenceProperty()  # deprecated
+    gcs_filename = db.StringProperty(indexed=False)
     content_type = db.StringProperty(indexed=False)
 
     @property
@@ -1477,11 +1486,17 @@ class ShopLoyaltySlideNewOrder(db.Model):
         return self.key().name()
 
     def item_url(self):
-        return unicode(images.get_serving_url(self.item, secure_url=True))
+        if self.gcs_filename:
+            k = blobstore.create_gs_key('/gs' + self.gcs_filename)
+        else:
+            k = self.item
+        return unicode(images.get_serving_url(k, secure_url=True))
 
     def slide_url(self):
         from rogerthat.settings import get_server_settings
         server_settings = get_server_settings()
+        if self.gcs_filename:
+            return get_serving_url(self.gcs_filename)
         return unicode("%s/unauthenticated/loyalty/slide?%s" % (server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
 
     @classmethod

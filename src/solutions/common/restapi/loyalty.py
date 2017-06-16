@@ -18,7 +18,7 @@
 import logging
 from types import NoneType
 
-from google.appengine.ext import blobstore, db
+from google.appengine.ext import db
 
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory
@@ -30,7 +30,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import now, replace_url_with_forwarded_server
+from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
@@ -53,14 +53,6 @@ from solutions.common.to.loyalty import LoyaltySettingsTO, LoyaltySlideTO, Exten
     LoyaltyStampsSettingsTO, SolutionLoyaltyExportTO, SolutionLoyaltyExportListTO, BaseLoyaltyCustomersTO, \
     CityWideLotteryInfoTO, LoyaltyCityWideLotterySettingsTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
-
-
-@rest("/common/loyalty/slides/get_upload_url", "get", read_only_access=True)
-@returns(unicode)
-@arguments()
-def get_upload_url_item():
-    upload_url = blobstore.create_upload_url('/common/loyalty/slide/upload')
-    return replace_url_with_forwarded_server(upload_url)
 
 @rest("/common/loyalty/slides/load", "get", read_only_access=True)
 @returns([LoyaltySlideTO])

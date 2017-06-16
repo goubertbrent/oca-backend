@@ -16,6 +16,7 @@
 # @@license_version:1.2@@
 
 from rogerthat.bizz.job import run_job
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from shop.bizz import re_index_customer
 from shop.models import Customer
 
@@ -23,5 +24,6 @@ from shop.models import Customer
 def _all_customers(keys_only=True):
     return Customer.all(keys_only=keys_only)
 
-def re_index_all_customers():
-    run_job(_all_customers, [True], re_index_customer, [])
+
+def re_index_all_customers(queue=HIGH_LOAD_WORKER_QUEUE):
+    run_job(_all_customers, [True], re_index_customer, [], worker_queue=queue)

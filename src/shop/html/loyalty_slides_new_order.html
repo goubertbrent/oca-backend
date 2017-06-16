@@ -95,43 +95,32 @@ $(function () {
             slide["id"] = slideId;
             slide["time"] = $("#"+ slideId).attr("slide_time");
         }
-        sln.showProcessing("Loading...");
-        sln.call({
-            url : '/internal/shop/loyalty/slides/new_order/get_upload_url',
-            success : function(upload_url) {
-                sln.hideProcessing();
-                var html = $('#loyalty_slide').modal('show');
-                html.attr('mode', 'new');
-                $("#myModalLabel", html).text(slide != null ? "Update slide" : "Add slide");
-                
-                $("#slide_form", html).attr("action", upload_url);
-                if (slide == null) {
-                    $("#slide_id", html).val("");
-                    $("#slide_time", html).val(10);     
-                    $("#select_app", html).show();
-                } else {
-                    $("#slide_id", html).val(slide.id);
-                    $("#slide_time", html).val(slide.time);
-                    $('select', html).val(slide.id);
-                    $("#select_app", html).hide();
-                }
-                
-                loyaltySlideAddModal = html;
-                $('button[action="submit"]', html).click(function() {
-                    var slideFile = document.getElementById('slide_file', html);
-                    if (slideFile.files.length > 0 || slide != null) {
-                        sln.showProcessing("Uploading, this may take a few seconds...");
-                        $("#slide_app", html).val($('select', html).val());
-                        $("#slide_form", html).submit();
-                    } else {
-                        sln.alert("Please select a picture", null, "Error");
-                    }
-                });
-                
-            },
-            error : function() {
-                sln.hideProcessing();
-                sln.alert("Could not create new slide", null, "Error");
+        var upload_url = '/internal/shop/loyalty/slide/new_order/upload';
+        var html = $('#loyalty_slide').modal('show');
+        html.attr('mode', 'new');
+        $("#myModalLabel", html).text(slide != null ? "Update slide" : "Add slide");
+        
+        $("#slide_form", html).attr("action", upload_url);
+        if (slide == null) {
+            $("#slide_id", html).val("");
+            $("#slide_time", html).val(10);     
+            $("#select_app", html).show();
+        } else {
+            $("#slide_id", html).val(slide.id);
+            $("#slide_time", html).val(slide.time);
+            $('select', html).val(slide.id);
+            $("#select_app", html).hide();
+        }
+        
+        loyaltySlideAddModal = html;
+        $('button[action="submit"]', html).click(function() {
+            var slideFile = document.getElementById('slide_file', html);
+            if (slideFile.files.length > 0 || slide != null) {
+                sln.showProcessing("Uploading, this may take a few seconds...");
+                $("#slide_app", html).val($('select', html).val());
+                $("#slide_form", html).submit();
+            } else {
+                sln.alert("Please select a picture", null, "Error");
             }
         });
     };

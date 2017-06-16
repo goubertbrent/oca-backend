@@ -19,17 +19,18 @@ import urllib
 
 from google.appengine.api import images
 from google.appengine.ext import db, blobstore
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.models import ArchivedModel
 from rogerthat.rpc import users
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
+from rogerthat.utils.crypto import sha256_hex
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models.properties import SolutionUserProperty
 from solutions.common.utils import create_service_identity_user_wo_default
-from rogerthat.utils.crypto import sha256_hex
 
 
 class SolutionLoyaltySlide(db.Model):
@@ -37,6 +38,7 @@ class SolutionLoyaltySlide(db.Model):
     name = db.StringProperty(indexed=False)
     time = db.IntegerProperty(indexed=False)
     item = blobstore.BlobReferenceProperty()
+    gcs_filename = db.StringProperty(indexed=False)
     content_type = db.StringProperty(indexed=False)
     deleted = db.BooleanProperty(default=False)
 
@@ -49,11 +51,17 @@ class SolutionLoyaltySlide(db.Model):
         return 0
 
     def item_url(self):
-        return unicode(images.get_serving_url(self.item, secure_url=True))
+        if self.gcs_filename:
+            k = blobstore.create_gs_key('/gs' + self.gcs_filename)
+        else:
+            k = self.item
+        return unicode(images.get_serving_url(k, secure_url=True))
 
     def slide_url(self):
         from rogerthat.settings import get_server_settings
         server_settings = get_server_settings()
+        if self.gcs_filename:
+            return get_serving_url(self.gcs_filename)
         return unicode("%s/unauthenticated/loyalty/slide?%s" % (server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
 
     @property

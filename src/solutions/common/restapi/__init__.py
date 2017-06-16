@@ -16,27 +16,24 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import defaultdict
 import datetime
 import logging
+from collections import defaultdict
 from types import NoneType
+
+from google.appengine.ext import db, deferred
 
 from babel.dates import format_date
 from babel.numbers import format_currency
-from google.appengine.api.blobstore import blobstore
-from google.appengine.ext import db, deferred
 from mcfw.consts import MISSING
-from mcfw.properties import azzert
-from mcfw.properties import get_members
+from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
-from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
-from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -49,7 +46,6 @@ from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAu
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import now, replace_url_with_forwarded_server
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
     get_app_id_from_app_user
 from rogerthat.utils.channel import send_message
@@ -64,8 +60,7 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
-    OrganizationType, create_news_publisher, delete_news_publisher
-from solutions.common.bizz import twitter as bizz_twitter
+    OrganizationType, create_news_publisher, delete_news_publisher, twitter as bizz_twitter
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
@@ -83,13 +78,12 @@ from solutions.common.bizz.static_content import put_static_content as bizz_put_
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
     get_solution_inbox_messages, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
-    get_admins_of_solution_calendars, get_solution_news_publishers, get_user_from_key, \
-    get_news_publisher_from_app_user
+    get_admins_of_solution_calendars, get_solution_news_publishers, get_user_from_key
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
-    SolutionSettings, SolutionInboxMessage, SolutionNewsPublisher, SolutionLogo, SolutionAvatar, RestaurantMenu
-from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
+    SolutionSettings, SolutionInboxMessage, SolutionLogo, SolutionAvatar, RestaurantMenu
+from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.repair import SolutionRepairSettings
@@ -181,7 +175,6 @@ def public_event_picture(service_user_email, event_id, picture_version=0):
     return PictureReturnStatusTO.create(picture=unicode(event.picture))
 
 
-
 @rest("/solutions/common/public/group_purchase/picture", "get", authenticated=False, silent_result=True)
 @returns(PictureReturnStatusTO)
 @arguments(service_user_email=unicode, group_purchase_id=long, picture_version=long, service_identity=unicode)
@@ -189,7 +182,8 @@ def public_group_purchase_picture(service_user_email, group_purchase_id, picture
     service_user = users.User(service_user_email)
     settings = get_solution_settings(service_user)
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    sgp = SolutionGroupPurchase.get_by_id(group_purchase_id, parent_key_unsafe(service_identity_user, settings.solution))
+    sgp = SolutionGroupPurchase.get_by_id(group_purchase_id,
+                                          parent_key_unsafe(service_identity_user, settings.solution))
     if not sgp or not sgp.picture:
         return PictureReturnStatusTO.create(False, None)
 
@@ -349,8 +343,9 @@ def inbox_message_update_starred(key, starred):
         sim.put()
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
-                                                     SolutionInboxMessageTO, False))
+                     message=serialize_complex_value(
+                         SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
+                         SolutionInboxMessageTO, False))
         deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
@@ -372,8 +367,9 @@ def inbox_message_update_read(key, read):
         sim.put()
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
-                                                     SolutionInboxMessageTO, False))
+                     message=serialize_complex_value(
+                         SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
+                         SolutionInboxMessageTO, False))
         deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
@@ -397,8 +393,9 @@ def inbox_message_update_trashed(key, trashed):
         sim.put()
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
-                                                     SolutionInboxMessageTO, False))
+                     message=serialize_complex_value(
+                         SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
+                         SolutionInboxMessageTO, False))
         if not sim.deleted:
             deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
@@ -484,7 +481,7 @@ def rest_get_broadcast_options():
     subscription_order_charge_date = None
     if has_signed_order:
         subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
-                                                 locale=sln_settings.main_language)
+                                                     locale=sln_settings.main_language)
     subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
                               extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps)
@@ -556,7 +553,8 @@ def broadcast_validate_url(url, allow_empty=False):
            inbox_email_reminders=bool, iban=unicode, bic=unicode)
 def settings_save(name, description=None, opening_hours=None, address=None, phone_number=None, facebook_page=None,
                   facebook_name=None, facebook_action=None, currency=None, search_enabled=True, search_keywords=None,
-                  timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None, iban=None, bic=None):
+                  timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None, iban=None,
+                  bic=None):
     try:
         service_user = users.get_current_user()
         session_ = users.get_current_session()
@@ -568,7 +566,7 @@ def settings_save(name, description=None, opening_hours=None, address=None, phon
 
         r = SaveSettingsResultTO()
         r.address_geocoded = address_geocoded
-        return SaveSettingsReturnStatusTO.create(True, None , r)
+        return SaveSettingsReturnStatusTO.create(True, None, r)
     except BusinessException, e:
         return SaveSettingsReturnStatusTO.create(False, e.message, None)
 
@@ -609,7 +607,6 @@ def get_all_defaults():
             defaults.append(u'menu')
 
     return defaults
-
 
 
 @rest("/common/settings/publish_changes", "post")
@@ -689,6 +686,7 @@ def agenda_set_event_notifications(notifications_enabled):
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
 
+
 @rest("/common/menu/save", "post")
 @returns(ReturnStatusTO)
 @arguments(menu=MenuTO)
@@ -714,7 +712,6 @@ def menu_import(file_contents):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
-
 
 
 @rest("/common/menu/save_name", "post")
@@ -824,6 +821,7 @@ def load_calendar():
     return [SolutionCalendarWebTO.fromSolutionCalendar(sln_settings, c, True, True, False)
             for c in get_solution_calendars(service_user, sln_settings.solution)]
 
+
 @rest("/common/calendar/load/more", "get", silent_result=True, read_only_access=True)
 @returns(SolutionCalendarWebTO)
 @arguments(calendar_id=(int, long), cursor=unicode)
@@ -832,6 +830,7 @@ def load_calendar_more(calendar_id, cursor=None):
     sln_settings = get_solution_settings(service_user)
     c = SolutionCalendar.get_by_id(calendar_id, parent=parent_key(service_user, sln_settings.solution))
     return SolutionCalendarWebTO.fromSolutionCalendar(sln_settings, c, True, True, False, cursor)
+
 
 @rest("/common/calendar/admin/add", "post")
 @returns(ReturnStatusTO)
@@ -872,11 +871,13 @@ def calendar_remove_admin(calendar_id, key):
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
 
+
 @rest("/common/calendar/google/authenticate/url", "get", read_only_access=True)
 @returns(unicode)
 @arguments(calendar_id=(int, long))
 def calendar_google_authenticate_url(calendar_id):
     return get_google_authenticate_url(calendar_id)
+
 
 @rest("/common/calendar/google/load", "get", read_only_access=True)
 @returns(SolutionGoogleCalendarStatusTO)
@@ -884,6 +885,7 @@ def calendar_google_authenticate_url(calendar_id):
 def calendar_google_load(calendar_id):
     service_user = users.get_current_user()
     return get_google_calendars(service_user, calendar_id)
+
 
 @rest("/common/calendar/import/google/put", "post")
 @returns(ReturnStatusTO)
@@ -895,7 +897,8 @@ def calendar_put_google_import(calendar_id, google_calendars):
         def trans():
             sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
             if not sc:
-                raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
+                raise BusinessException(
+                    common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
 
             deferred.defer(update_events_from_google, service_user, calendar_id, _transactional=True)
 
@@ -906,11 +909,13 @@ def calendar_put_google_import(calendar_id, google_calendars):
                 sc.google_calendar_names.append(google_calendar.label)
             sc.google_sync_events = bool(sc.google_calendar_ids)
             sc.put()
+
         db.run_in_transaction(trans)
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
+
 
 @rest("/common/events/put", "post")
 @returns(ReturnStatusTO)
@@ -951,6 +956,7 @@ def guests_event(event_id):
             guests.append(EventGuestTO.fromEventGuest(guest))
     return guests
 
+
 @rest("/common/events/uit/actor/load", "get", read_only_access=True)
 @returns(unicode)
 @arguments()
@@ -958,6 +964,7 @@ def load_uit_actor_id():
     service_user = users.get_current_user()
     settings = get_solution_settings(service_user)
     return settings.uitdatabank_actor_id
+
 
 @rest("/common/events/uit/actor/put", "post")
 @returns(ReturnStatusTO)
@@ -1031,7 +1038,8 @@ def rest_get_app_broadcast_statistics():
 
 @rest("/common/broadcast/subscribed", "get")
 @returns(SubscribedBroadcastReachTO)
-@arguments(broadcast_type=unicode, min_age=(int, long, NoneType), max_age=(int, long, NoneType), gender=unicode, broadcast_to_all_locations=bool)
+@arguments(broadcast_type=unicode, min_age=(int, long, NoneType), max_age=(int, long, NoneType), gender=unicode,
+           broadcast_to_all_locations=bool)
 def broadcast_subscribed(broadcast_type, min_age, max_age, gender, broadcast_to_all_locations):
     flrto = SubscribedBroadcastReachTO()
     flrto.total_users = 0
@@ -1190,8 +1198,9 @@ def users_add_user_roles(key, user_roles):
                         key = app_user.email()
 
                     if not EMAIL_REGEX.match(key):
-                        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                                             'Please provide a valid e-mail address'))
+                        return ReturnStatusTO.create(False,
+                                                     common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                                                      'Please provide a valid e-mail address'))
                     forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
                     if key not in forwarders:
                         forwarders.append(key)
@@ -1269,7 +1278,8 @@ def inbox_load_forwarders():
     else:
         sln_i_settings = get_solution_identity_settings(service_user, service_identity)
     forwarder_profiles = dict(zip(sln_i_settings.inbox_forwarders,
-                                  db.get([get_profile_key(u) for u in map(users.User, sln_i_settings.inbox_forwarders)])))
+                                  db.get(
+                                      [get_profile_key(u) for u in map(users.User, sln_i_settings.inbox_forwarders)])))
 
     forwarders_to_be_removed = list()
     sifs = []
@@ -1292,6 +1302,7 @@ def inbox_load_forwarders():
 
     if forwarders_to_be_removed:
         logging.info('Inbox forwarders %s do not exist anymore', forwarders_to_be_removed)
+
         def trans():
             if is_default_service_identity(service_identity):
                 sln_i_settings = get_solution_settings(service_user)
@@ -1543,7 +1554,8 @@ def repair_orders_load():
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    return map(SolutionRepairOrderTO.fromModel, get_solution_repair_orders(service_user, service_identity, sln_settings.solution))
+    return map(SolutionRepairOrderTO.fromModel,
+               get_solution_repair_orders(service_user, service_identity, sln_settings.solution))
 
 
 @rest("/common/repair_order/sendmessage", "post")
@@ -1656,7 +1668,8 @@ def load_sandwich_orders():
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    return [SandwichOrderTO.fromModel(m) for m in SandwichOrder.list(service_user, service_identity, sln_settings.solution)]
+    return [SandwichOrderTO.fromModel(m) for m in
+            SandwichOrder.list(service_user, service_identity, sln_settings.solution)]
 
 
 @rest("/common/sandwich/orders/reply", "post")
@@ -1774,7 +1787,7 @@ def group_purchase_settings_load():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     return SolutionGroupPurchaseSettingsTO.fromModel(
-            get_solution_group_purchase_settings(service_user, sln_settings.solution))
+        get_solution_group_purchase_settings(service_user, sln_settings.solution))
 
 
 @rest("/common/group_purchase/settings/save", "post")
@@ -1817,21 +1830,6 @@ def twitter_logout():
     return bizz_twitter.twitter_logout(service_user)
 
 
-@rest("/flex/attachment/upload_url", "get", read_only_access=True)
-@returns(unicode)
-@arguments()
-def get_attachment_upload_url():
-    return replace_url_with_forwarded_server(blobstore.create_upload_url('/common/broadcast/attachment/upload'))
-
-
-@rest('/common/get_upload_url', 'get', read_only_access=True)
-@returns(unicode)
-@arguments(url=unicode)
-def get_upload_url_for_url(url):
-    azzert(url, 'No url was provided as success path')
-    return replace_url_with_forwarded_server(blobstore.create_upload_url(url))
-
-
 @rest('/common/menu/item/image/upload', 'post', read_only_access=False, silent_result=True)
 @returns(ImageReturnStatusTO)
 @arguments(image=unicode, image_id_to_delete=(int, long, NoneType))
@@ -1871,7 +1869,6 @@ def remove_file_blob(image_id):
 def change_broadcast_types_order(broadcast_types):
     save_broadcast_types_order(users.get_current_user(), broadcast_types)
     return RETURNSTATUS_TO_SUCCESS
-
 
 
 @rest('/common/get_menu', 'get', read_only_access=True)

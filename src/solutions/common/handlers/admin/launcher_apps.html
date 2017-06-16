@@ -34,7 +34,7 @@ body {
 <body>
     <div>
        <h2>OSA Launcher apps</h2>
-	   <a href="/mobiadmin/osa/launcher/apps?new_app=1" class="btn btn-success">Create new app</a>
+	   <a href="/admin/osa/launcher/apps?new_app=1" class="btn btn-success">Create new app</a>
 	    <br><br>
        <table id="apps" class="table table-striped table-bordered">
             <thead>
@@ -50,7 +50,7 @@ body {
                     <td>{{app.app_id}}</td>
                     <td>{{app.version_code}}</td>
                     <td>
-                        <a href="/mobiadmin/osa/launcher/apps?id={{app.app_id}}" class="btn btn-warning">Update</a>
+                        <a href="/admin/osa/launcher/apps?id={{app.app_id}}" class="btn btn-warning">Update</a>
                         <a href="/unauthenticated/osa/launcher/app/download?app_id={{app.app_id}}" class="btn btn-primary">Download</a>
                     </td>
                 </tr>

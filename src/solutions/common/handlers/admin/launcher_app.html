@@ -50,9 +50,9 @@ body {
 </head>
 <body>
     <div>
-       <h2><a href="/mobiadmin/osa/launcher/apps">Apps</a> - {% if app %} {{ app.app_id }}{% else %}New App{% endif %}</h2>
+       <h2><a href="/admin/osa/launcher/apps">Apps</a> - {% if app %} {{ app.app_id }}{% else %}New App{% endif %}</h2>
     </div>
-	<form id="update_upload" method="post" enctype="multipart/form-data" action="{{ upload_url }}">
+	<form id="update_upload" method="post" enctype="multipart/form-data" action="/admin/osa/launcher/app/post">
 		<b>ID</b><br>
 		<input type="hidden" name="app_id_hidden" id="update_app_id_hidden" class="span4" >
 		<input type="text" name="app_id" value="{% if app %}{{ app.app_id }}{% endif %}" id="update_app_id" class="span4" {% if app %}disabled{% endif %}><br>

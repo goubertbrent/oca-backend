@@ -15,23 +15,24 @@
 #
 # @@license_version:1.2@@
 
-from base64 import b64encode
-from datetime import datetime
 import json
 import logging
+from base64 import b64encode
+from datetime import datetime
 from types import NoneType
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
-from google.appengine.ext.blobstore import BlobInfo
 from google.appengine.ext.deferred import PermanentTaskFailure
+
+import cloudstorage
+import pytz
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
-import pytz
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
-from rogerthat.consts import SCHEDULED_QUEUE
+from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message, ServiceIdentity, ServiceInteractionDef
 from rogerthat.models.news import NewsItem
@@ -70,7 +71,8 @@ from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCH
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
 from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solution_loyalty_load, solution_loyalty_put, \
-    API_METHOD_SOLUTION_LOYALTY_PUT, API_METHOD_SOLUTION_LOYALTY_REDEEM, solution_loyalty_redeem, stop_loyalty_reminders, \
+    API_METHOD_SOLUTION_LOYALTY_PUT, API_METHOD_SOLUTION_LOYALTY_REDEEM, solution_loyalty_redeem, \
+    stop_loyalty_reminders, \
     solution_loyalty_scan, API_METHOD_SOLUTION_LOYALTY_SCAN, API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE, \
     solution_loyalty_lottery_chance, solution_loyalty_couple, API_METHOD_SOLUTION_LOYALTY_COUPLE, \
     API_METHOD_SOLUTION_VOUCHER_RESOLVE, API_METHOD_SOLUTION_VOUCHER_ACTIVATE, \
@@ -92,7 +94,6 @@ from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast,
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user, \
     create_service_identity_user_wo_default
-
 
 POKE_TAG_APPOINTMENT = u"__sln__.appointment"
 POKE_TAG_ASK_QUESTION = u"__sln__.question"
@@ -125,7 +126,6 @@ POKE_TAG_RESERVE_PART2 = u'reserve2'
 MESSAGE_TAG_RESERVE_FAIL = u'reserve_fail'
 MESSAGE_TAG_RESERVE_SUCCESS = u'reserve_success'
 POKE_TAG_MY_RESERVATIONS = u'my_reservations'
-
 
 MESSAGE_TAG_SANDWICH_ORDER_NOW = u'sandwich.order.now'
 
@@ -178,7 +178,6 @@ API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM] = solution_vouche
 API_METHOD_MAPPING[API_METHOD_SOLUTION_COUPON_REDEEM] = solution_coupon_redeem
 API_METHOD_MAPPING[API_METHOD_SOLUTION_COUPON_RESOLVE] = solution_coupon_resolve
 
-
 FLOW_STATISTICS_MAPPING = {
     POKE_TAG_ORDER: SolutionModule.ORDER,
     POKE_TAG_SANDWICH_BAR: SolutionModule.SANDWICH_BAR,
@@ -191,24 +190,26 @@ FLOW_STATISTICS_MAPPING = {
 
 
 def _get_step_with_id(steps, step_id):
-
     for step in reversed(steps):
         if step.step_id == step_id:
             return step
     return None
 
+
 @returns(NoneType)
 @arguments(url=unicode, language=unicode)
 def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
     if url is None or not (url.startswith("http://") or url.startswith("https://")):
-        logging.debug("Invalid url (%(url)s). It must be reachable over http or https." % {'url':url})
-        raise BusinessException(common_translate(language, SOLUTION_COMMON, "Invalid url (%(url)s). It must be reachable over http or https.", url=url))
+        logging.debug("Invalid url (%(url)s). It must be reachable over http or https." % {'url': url})
+        raise BusinessException(common_translate(language, SOLUTION_COMMON,
+                                                 "Invalid url (%(url)s). It must be reachable over http or https.",
+                                                 url=url))
 
     logging.info('validating url: %s', url)
     try:
         result = urlfetch.fetch(url, method="HEAD", deadline=10)
     except:
-        logging.debug("Could not validate url (%(url)s)" % {'url':url}, exc_info=True)
+        logging.debug("Could not validate url (%(url)s)" % {'url': url}, exc_info=True)
         raise BusinessException(common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
 
     if result.status_code != 200:
@@ -216,15 +217,18 @@ def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
         try:
             result = urlfetch.fetch(url, method="GET", deadline=10)
         except:
-            raise BusinessException(common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
+            raise BusinessException(
+                common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
 
         if result.status_code != 200:
             logging.debug("Could not validate url via GET. Response status code: %s", result.status_code)
-            raise BusinessException(common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
+            raise BusinessException(
+                common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
 
 
 @returns(ReturnStatusTO)
-@arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode, broadcast_on_facebook=bool,
+@arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode,
+           broadcast_on_facebook=bool,
            broadcast_on_twitter=bool, target_audience_enabled=bool, target_audience_min_age=int,
            target_audience_max_age=int, target_audience_gender=unicode, msg_attachments=[AttachmentTO],
            msg_urls=[UrlTO], broadcast_date=TimestampTO, broadcast_to_all_locations=bool)
@@ -242,11 +246,11 @@ def broadcast_send(service_user, service_identity, broadcast_type, message, broa
                 at = AttachmentTO()
                 at.download_url = ma.download_url
                 at.name = ma.name
-                # extract the blob key from the url and determine content type and size
-                blob_key = ma.download_url.split("/view/")[1]
-                blob_info = BlobInfo.get(blob_key)
-                at.size = blob_info.size
-                at.content_type = blob_info.content_type
+                # extract the cloudstorage file path from the url and determine content type and size
+                filename = ma.download_url.split(ROGERTHAT_ATTACHMENTS_BUCKET)[1]
+                stat = cloudstorage.stat(ROGERTHAT_ATTACHMENTS_BUCKET + filename)
+                at.size = stat.st_size
+                at.content_type = stat.content_type.decode('utf-8')
                 attachments.append(at)
 
         if msg_urls:
@@ -255,7 +259,7 @@ def broadcast_send(service_user, service_identity, broadcast_type, message, broa
                 try:
                     if not mu.url.startswith("mailto:"):
                         validate_broadcast_url(mu.url, sln_settings.main_language)
-                except BusinessException, e:
+                except BusinessException as e:
                     error_msgs.append(e.message)
 
         if broadcast_date:
@@ -263,7 +267,8 @@ def broadcast_send(service_user, service_identity, broadcast_type, message, broa
             broadcast_epoch = broadcast_date.toEpoch()
             countdown = (broadcast_epoch + timezone_offset(sln_settings.timezone)) - now_
             if countdown >= 60 * 60 * 24 * 30:
-                error_msgs.append(common_translate(sln_settings.main_language, SOLUTION_COMMON, u'broadcast-schedule-too-far-in-future'))
+                error_msgs.append(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                                   u'broadcast-schedule-too-far-in-future'))
 
         if error_msgs:
             logging.info(error_msgs)
@@ -308,8 +313,8 @@ POKE_TAG_MAPPING[ServiceInteractionDef.TAG_INVITE] = poke_invite
 @returns(PokeCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
-def poke_inbox_forwarder_connect_via_scan(service_user, email, tag, result_key, context, service_identity, user_details):
-
+def poke_inbox_forwarder_connect_via_scan(service_user, email, tag, result_key, context, service_identity,
+                                          user_details):
     app_user = user_details[0].toAppUser()
     app_user_email = app_user.email()
     if is_default_service_identity(service_identity):
@@ -325,13 +330,15 @@ def poke_inbox_forwarder_connect_via_scan(service_user, email, tag, result_key, 
                  key=app_user_email,
                  label=user_details[0].name)
 
+
 POKE_TAG_MAPPING[POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN] = poke_inbox_forwarder_connect_via_scan
 
 
 @returns(PokeCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
-def poke_broadcast_create_news_connect_via_scan(service_user, email, tag, result_key, context, service_identity, user_details):
+def poke_broadcast_create_news_connect_via_scan(service_user, email, tag, result_key, context, service_identity,
+                                                user_details):
     sln_settings = get_solution_settings(service_user)
     app_user = user_details[0].toAppUser()
     create_news_publisher(app_user, service_user,
@@ -347,7 +354,8 @@ POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT] = poke_broadcast_create
            steps=[object_factory("step_type", FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
            parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
-def broadcast_create_news_item(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
+def broadcast_create_news_item(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id,
+                               parent_message_key,
                                tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
     from solutions.common.bizz.news import put_news_item
     logging.debug('creating a news item from the flow result...')
@@ -450,26 +458,30 @@ FMR_POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS] = broadcast_create_news_ite
            service_identity=unicode, user_details=[UserDetailsTO])
 def _question_asked(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
                     tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
-
     logging.info("_flow_member_result_ask_question: \n %s" % steps)
-    step = _get_step_with_id(steps, 'message_question') or _get_step_with_id(steps, 'message_1')  # message_1 for backwards compatibility
+    step = _get_step_with_id(steps, 'message_question') or _get_step_with_id(steps,
+                                                                             'message_1')  # message_1 for backwards compatibility
     azzert(step,
            "Did not find step with id 'message_question'. Can not process message_flow_member_result with tag %s" % tag)
 
     if step.answer_id == 'positive' and step.form_result and step.form_result.result:
         logging.info("Saving question from %s" % user_details[0].email)
         msg = step.form_result.result.value
-        message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_ASK_QUESTION, None, False, user_details, step.acknowledged_timestamp, msg, True)
+        message = create_solution_inbox_message(service_user, service_identity,
+                                                SolutionInboxMessage.CATEGORY_ASK_QUESTION, None, False, user_details,
+                                                step.acknowledged_timestamp, msg, True)
         app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
-                'if_name': user_details[0].name,
-                'if_email':user_details[0].email
-            }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
+            'if_name': user_details[0].name,
+            'if_email': user_details[0].email
+        }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
         sln_settings = get_solution_settings(service_user)
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+                     message=serialize_complex_value(
+                         SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True),
+                         SolutionInboxMessageTO, False))
 
 
 @returns()
@@ -519,13 +531,14 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
     result.value.form.widget.auto_complete()
 
     result.value.message = common_translate(user_details[0].language, SOLUTION_COMMON, u'inbox-forwarding-reply-to') % {
-                    'if_name': user_details[0].name,
-                    'if_email': human_user_email
-                }
+        'if_name': user_details[0].name,
+        'if_email': human_user_email
+    }
     result.value.tag = POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX + answer_id
     result.value.attachments = []
     result.value.step_id = None
     return result
+
 
 # deprecated since we used chats
 @returns(FormAcknowledgedCallbackResultTO)
@@ -533,8 +546,8 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
            message_key=unicode, tag=unicode, received_timestamp=int, acked_timestamp=int, parent_message_key=unicode,
            result_key=unicode, service_identity=unicode, user_details=[UserDetailsTO])
 def reply_on_inbox_forwarding(service_user, status, form_result, answer_id, member, message_key, tag,
-                                         received_timestamp, acked_timestamp, parent_message_key, result_key,
-                                         service_identity, user_details):
+                              received_timestamp, acked_timestamp, parent_message_key, result_key,
+                              service_identity, user_details):
     if answer_id != Form.POSITIVE:
         return None
 
@@ -553,46 +566,55 @@ def reply_on_inbox_forwarding(service_user, status, form_result, answer_id, memb
             memberTO.app_id = app_id
             memberTO.alert_flags = Message.ALERT_FLAG_VIBRATE
             messaging.send(parent_key=None,
-                   parent_message_key=None,
-                   message=msg,
-                   answers=[],
-                   flags=Message.FLAG_ALLOW_DISMISS,
-                   members=[memberTO],
-                   branding=get_solution_main_branding(service_user).branding_key,
-                   tag=None,
-                   service_identity=service_identity)
+                           parent_message_key=None,
+                           message=msg,
+                           answers=[],
+                           flags=Message.FLAG_ALLOW_DISMISS,
+                           members=[memberTO],
+                           branding=get_solution_main_branding(service_user).branding_key,
+                           tag=None,
+                           service_identity=service_identity)
             m.deleted = True
             m.reply = form_result.result.value or ''
             m.put()
-            sim_parent, _ = add_solution_inbox_message(service_user, m.solution_inbox_message_key, True, user_details, now_, msg)
+            sim_parent, _ = add_solution_inbox_message(service_user, m.solution_inbox_message_key, True, user_details,
+                                                       now_, msg)
             sln_settings = get_solution_settings(service_user)
             sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
             send_message(service_user, u"solutions.common.messaging.update",
                          service_identity=service_identity,
-                         message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+                         message=serialize_complex_value(
+                             SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True),
+                             SolutionInboxMessageTO, False))
     return None
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, sim_key=unicode, message=unicode)
 def send_reply(service_user, sim_key, message):
     now_ = now()
-    sim_parent, _ = add_solution_inbox_message(service_user, sim_key, True, None, now_, message, mark_as_unread=False, mark_as_read=True)
+    sim_parent, _ = add_solution_inbox_message(service_user, sim_key, True, None, now_, message, mark_as_unread=False,
+                                               mark_as_read=True)
 
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sim_parent.service_identity)
     send_message(service_user, u"solutions.common.messaging.update",
                  service_identity=sim_parent.service_identity,
-                 message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+                 message=serialize_complex_value(
+                     SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True),
+                     SolutionInboxMessageTO, False))
 
     send_inbox_forwarders_message(service_user, sim_parent.service_identity, None, message, {
         'if_name': sim_parent.sender.name,
-        'if_email':sim_parent.sender.email
+        'if_email': sim_parent.sender.email
     }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode)
 def delete_all_trash(service_user, service_identity):
     deferred.defer(_delete_all_trash, service_user, service_identity)
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode)
@@ -615,11 +637,13 @@ def _delete_all_trash(service_user, service_identity):
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode, target_audience_enabled=bool,
+@arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode,
+           target_audience_enabled=bool,
            target_audience_min_age=int, target_audience_max_age=int, target_audience_gender=unicode,
            attachments=[AttachmentTO], urls=[UrlTO], broadcast_date=TimestampTO, broadcast_on_twitter=bool,
            broadcast_to_all_locations=bool)
-def send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled, target_audience_min_age,
+def send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled,
+                   target_audience_min_age,
                    target_audience_max_age, target_audience_gender, attachments, urls, broadcast_date,
                    broadcast_on_twitter=False, broadcast_to_all_locations=False):
     sln_main_branding = get_solution_main_branding(service_user)
@@ -702,7 +726,8 @@ def send_broadcast(service_user, service_identity, broadcast_type, message, targ
             ssb.identities.append(service_identity)
 
     if not ssb.statistics_keys:
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, "Broadcast failed, no connected users"))
+        raise BusinessException(
+            common_translate(sln_settings.main_language, SOLUTION_COMMON, "Broadcast failed, no connected users"))
     ssb.put()
 
     if broadcast_on_twitter and sln_settings.twitter_username:
@@ -712,6 +737,7 @@ def send_broadcast(service_user, service_identity, broadcast_type, message, targ
         sln_settings.broadcast_on_twitter = False
     sln_settings.broadcast_to_all_locations = broadcast_to_all_locations
     put_and_invalidate_cache(sln_settings)
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, str_key=unicode)
@@ -723,7 +749,8 @@ def _send_scheduled_broadcast(service_user, str_key):
     if not ssb.deleted:
         users.set_user(service_user)
         try:
-            send_broadcast(service_user, ssb.service_identity, ssb.broadcast_type, ssb.message, ssb.target_audience_enabled,
+            send_broadcast(service_user, ssb.service_identity, ssb.broadcast_type, ssb.message,
+                           ssb.target_audience_enabled,
                            ssb.target_audience_min_age, ssb.target_audience_max_age, ssb.target_audience_gender,
                            ssb.attachments, ssb.urls, None, ssb.broadcast_on_twitter, ssb.broadcast_to_all_locations)
         finally:
@@ -743,8 +770,10 @@ def delete_scheduled_broadcast(service_user, key):
         ssb.delete()
     send_message(service_user, u"solutions.common.broadcast.scheduled.updated")
 
+
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict, solution=unicode,
+@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict,
+           solution=unicode,
            message_key=unicode, attachments=[AttachmentTO], reply_enabled=bool, send_reminder=bool, answers=[AnswerTO],
            store_tag=unicode, flags=(int, long))
 def send_inbox_forwarders_message(service_user, service_identity, app_user, body, msg_params, solution=SOLUTION_COMMON,
@@ -756,23 +785,28 @@ def send_inbox_forwarders_message(service_user, service_identity, app_user, body
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict, solution=unicode,
+@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict,
+           solution=unicode,
            message_key=unicode, attachments=[AttachmentTO], reply_enabled=bool, send_reminder=bool, answers=[AnswerTO],
            store_tag=unicode, flags=(int, long))
 def _send_inbox_forwarders_message(service_user, service_identity, app_user, body, msg_params, solution=SOLUTION_COMMON,
                                    message_key=None, attachments=None, reply_enabled=False, send_reminder=True,
                                    answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
-    try_or_defer(_send_inbox_forwarders_message_by_email, service_user, service_identity, app_user, body, msg_params, solution,
+    try_or_defer(_send_inbox_forwarders_message_by_email, service_user, service_identity, app_user, body, msg_params,
+                 solution,
                  message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags)
-    try_or_defer(_send_inbox_forwarders_message_by_app, service_user, service_identity, app_user, body, msg_params, solution, message_key,
+    try_or_defer(_send_inbox_forwarders_message_by_app, service_user, service_identity, app_user, body, msg_params,
+                 solution, message_key,
                  attachments, reply_enabled, send_reminder, answers, store_tag, flags)
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict, solution=unicode,
+@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict,
+           solution=unicode,
            message_key=unicode, attachments=[AttachmentTO], reply_enabled=bool, send_reminder=bool, answers=[AnswerTO],
            store_tag=unicode, flags=(int, long))
-def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_user, body, msg_params, solution=SOLUTION_COMMON,
+def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_user, body, msg_params,
+                                            solution=SOLUTION_COMMON,
                                             message_key=None, attachments=None, reply_enabled=False, send_reminder=True,
                                             answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
     if not (send_reminder and app_user and message_key):
@@ -795,10 +829,12 @@ def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict, solution=unicode,
+@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict,
+           solution=unicode,
            message_key=unicode, attachments=[AttachmentTO], reply_enabled=bool, send_reminder=bool, answers=[AnswerTO],
            store_tag=unicode, flags=(int, long))
-def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_user, body, msg_params, solution=SOLUTION_COMMON,
+def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_user, body, msg_params,
+                                          solution=SOLUTION_COMMON,
                                           message_key=None, attachments=None, reply_enabled=False, send_reminder=True,
                                           answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
     if answers is None:
@@ -835,7 +871,8 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                         break
                 else:
                     raise PermanentTaskFailure('Non-friend not found in members. Should never happen.')
-                sln_i_settings.inbox_forwarders.remove(create_app_user_by_email(e.fields['member'], e.fields['app_id']).email())
+                sln_i_settings.inbox_forwarders.remove(
+                    create_app_user_by_email(e.fields['member'], e.fields['app_id']).email())
             except InvalidAppIdException as e:
                 logging.warn(e)
                 app_id = e.fields['app_id']
@@ -852,7 +889,7 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
         message = SolutionInboxMessage.get(message_key)
         users.set_user(service_user)
         try:
-            tag = POKE_TAG_INBOX_FORWARDING_REPLY + json.dumps({'message_key':message_key})
+            tag = POKE_TAG_INBOX_FORWARDING_REPLY + json.dumps({'message_key': message_key})
 
             if app_user and app_user.email() not in sln_i_settings.inbox_forwarders:
                 sender_member = MemberTO.from_user(app_user)
@@ -862,7 +899,8 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
             if not message.message_key:
                 from rogerthat.service.api.messaging import ChatFlags
                 if not sender_member:
-                    members.append(MemberTO.from_user(create_app_user_by_email(message.sender.email, message.sender.app_id)))
+                    members.append(
+                        MemberTO.from_user(create_app_user_by_email(message.sender.email, message.sender.app_id)))
                 flags = ChatFlags.ALLOW_ANSWER_BUTTONS | ChatFlags.ALLOW_PICTURE | ChatFlags.ALLOW_VIDEO
                 metadata = []
                 metadata.append(KeyValueTO.create(common_translate(sln_settings.main_language, SOLUTION_COMMON, "Date"),
@@ -870,8 +908,11 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                 avatar = system.get_avatar()
                 try:
                     message.message_key = messaging.start_chat(list(set(members)),
-                                                               common_translate(sln_settings.main_language, SOLUTION_COMMON, message.chat_topic_key),
-                                                               "%s <%s>" % (msg_params['if_name'], msg_params['if_email']),
+                                                               common_translate(sln_settings.main_language,
+                                                                                SOLUTION_COMMON,
+                                                                                message.chat_topic_key),
+                                                               "%s <%s>" % (
+                                                                   msg_params['if_name'], msg_params['if_email']),
                                                                service_identity=service_identity,
                                                                tag=tag,
                                                                flags=flags,
@@ -898,10 +939,12 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                 if sender_member:
                     members.append(sender_member)
                 elif app_user is None:
-                    members.append(MemberTO.from_user(create_app_user_by_email(message.sender.email, message.sender.app_id)))
+                    members.append(
+                        MemberTO.from_user(create_app_user_by_email(message.sender.email, message.sender.app_id)))
                 messaging.add_chat_members(message.message_key, list(set(members)))
 
-            chat_message_key = messaging.send_chat_message(message.message_key, body, answers, attachments, sender_member, None, True, tag=tag)
+            chat_message_key = messaging.send_chat_message(message.message_key, body, answers, attachments,
+                                                           sender_member, None, True, tag=tag)
             if store_tag:
                 message_key_by_tag = dict()
                 if message.message_key_by_tag:
@@ -915,6 +958,7 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
             raise
         finally:
             users.clear_user()
+
 
 FMR_POKE_TAG_MAPPING[POKE_TAG_ASK_QUESTION] = question_asked
 MESSAGE_TAG_MAPPING[POKE_TAG_INBOX_FORWARDING_REPLY] = inbox_forwarding_reply_pressed

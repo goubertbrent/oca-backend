@@ -15,13 +15,17 @@
 #
 # @@license_version:1.2@@
 
+from cgi import FieldStorage
 import os
 
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp import template
+from rogerthat.bizz.gcs import upload_to_gcs
+from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.rpc import users
 from rogerthat.utils import now
-from google.appengine.ext import webapp, blobstore
-from google.appengine.ext.webapp import template, blobstore_handlers
 from solutions.common.models.launcher import OSALauncherApp
+import webapp2
 
 
 class OSAAppsPage(webapp.RequestHandler):
@@ -35,7 +39,7 @@ class OSAAppsPage(webapp.RequestHandler):
 
         if app or new_app:
             path = os.path.join(os.path.dirname(__file__), 'launcher_app.html')
-            d = {'upload_url':blobstore.create_upload_url('/admin/osa/launcher/app/post')}
+            d = {}
             if app:
                 d['app'] = app
             else:
@@ -46,7 +50,7 @@ class OSAAppsPage(webapp.RequestHandler):
             self.response.out.write(template.render(path, {
                 'apps':(a for a in OSALauncherApp.all().order("-timestamp"))}))
 
-class PostOSAAppHandler(blobstore_handlers.BlobstoreUploadHandler):
+class PostOSAAppHandler(webapp2.RequestHandler):
 
     def post(self):
         user = users.get_current_user()
@@ -54,16 +58,27 @@ class PostOSAAppHandler(blobstore_handlers.BlobstoreUploadHandler):
         if not app_id:
             app_id = self.request.POST.get("app_id_hidden", None)
 
-        if app_id:
-            version_code = long(self.request.get("version_code"))
-            app = OSALauncherApp.get_by_app_id(app_id)
-            if not app:
-                app = OSALauncherApp(key=OSALauncherApp.create_key(app_id))
-            app.user = user
-            app.timestamp = now()
-            app.app_id = app_id
-            app.version_code = version_code
-            app.package = self.get_uploads("package")[0]
-            app.put()
+        if not app_id:
+            self.redirect('/admin/osa/launcher/apps')
+            return
+
+        uploaded_file = self.request.POST.get('package')  # type: FieldStorage
+        if not isinstance(uploaded_file, FieldStorage):
+            self.redirect('/admin/osa/launcher/apps')
+            return
+
+        filename = '%s/oca/launcher/apps/%s.apk' % (ROGERTHAT_ATTACHMENTS_BUCKET, app_id)
+        upload_to_gcs(uploaded_file.value, uploaded_file.type, filename)
+
+        version_code = long(self.request.get("version_code"))
+        app = OSALauncherApp.get_by_app_id(app_id)
+        if not app:
+            app = OSALauncherApp(key=OSALauncherApp.create_key(app_id))
+        app.user = user
+        app.timestamp = now()
+        app.app_id = app_id
+        app.version_code = version_code
+        app.package = None
+        app.put()
 
         self.redirect('/admin/osa/launcher/apps')

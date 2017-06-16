@@ -15,16 +15,18 @@
 #
 # @@license_version:1.2@@
 
-from collections import namedtuple
 import json
 import logging
 import urllib
+from collections import namedtuple
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
+from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.settings import get_server_settings
@@ -34,9 +36,9 @@ from shop.business.prospect import re_index_prospect
 from shop.constants import MAPS_CONTROLLER_QUEUE, MAPS_QUEUE
 from shop.models import Prospect, ShopApp, ShopAppGridPoints
 
-
 Point = namedtuple('Point', 'x y')
 Size = namedtuple('Size', 'w h')
+
 
 @returns()
 @arguments(app_id=unicode, postal_codes=[unicode], sw_lat=float, sw_lon=float, ne_lat=float, ne_lon=float,
@@ -218,6 +220,7 @@ def find_places(google_maps_key, app_id, postal_codes, radius, coords, city_name
         raise Exception("Find places for coords %s failed with status: %s" % (coords, response['status']))
 
     place_ids = [result['place_id'] for result in response['results']]
+
     def trans():
         if place_ids:
             deferred.defer(run_places, google_maps_key, app_id, postal_codes, place_ids, city_name, check_phone_number,
@@ -290,3 +293,11 @@ def get_place_details(google_maps_key, app_id, postal_codes, place_id, city_name
         deferred.defer(broadcast_prospect_creation, None, prospect, _transactional=True)
 
     db.run_in_transaction(trans)
+
+
+def _get_all_prospects():
+    return Prospect.all()
+
+
+def re_index_all_prospects(queue=HIGH_LOAD_WORKER_QUEUE):
+    run_job(_get_all_prospects, [], re_index_prospect, [], worker_queue=queue)

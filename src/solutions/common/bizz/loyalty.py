@@ -253,8 +253,8 @@ def update_user_data_user_loyalty(service_user, service_identity, email, app_id,
         users.clear_user()
 
 @returns()
-@arguments(service_user=users.User, service_identity=unicode, slide_id=(int, long, NoneType), slide_name=unicode, slide_time=(int, long), slide_key=(db.BlobKey, NoneType), content_type=unicode)
-def put_loyalty_slide(service_user, service_identity, slide_id, slide_name, slide_time, slide_key, content_type):
+@arguments(service_user=users.User, service_identity=unicode, slide_id=(int, long, NoneType), slide_name=unicode, slide_time=(int, long), gcs_filename=unicode, content_type=unicode)
+def put_loyalty_slide(service_user, service_identity, slide_id, slide_name, slide_time, gcs_filename, content_type):
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     def trans():
         p = parent_key_unsafe(service_identity_user, SOLUTION_COMMON)
@@ -267,8 +267,8 @@ def put_loyalty_slide(service_user, service_identity, slide_id, slide_name, slid
         sli.deleted = False
         sli.name = slide_name
         sli.time = slide_time
-        if slide_key:
-            sli.item = slide_key
+        if gcs_filename:
+            sli.gcs_filename = gcs_filename
         if content_type:
             sli.content_type = content_type
         sli.put()

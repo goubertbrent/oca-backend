@@ -16,6 +16,7 @@
 # @@license_version:1.2@@
 
 import base64
+from cgi import FieldStorage
 from collections import namedtuple
 import csv
 from datetime import date, timedelta
@@ -28,13 +29,13 @@ from types import NoneType
 import urllib
 
 from PIL.Image import Image  # @UnresolvedImport
+from babel.dates import format_date
 
 from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
-from babel.dates import format_date
 from google.appengine.api import urlfetch, users as gusers
-from google.appengine.ext import db, deferred, blobstore
-from google.appengine.ext.webapp import template, blobstore_handlers
+from google.appengine.ext import db, deferred
+from google.appengine.ext.webapp import template
 from googleapiclient.discovery import build
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -42,9 +43,10 @@ from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.channel import create_channel_for_current_session
+from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
-from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES
+from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_apps
 from rogerthat.dal.profile import get_service_profile, get_profile_info
@@ -56,7 +58,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.app import AppInfoTO
-from rogerthat.utils import now, send_mail, replace_url_with_forwarded_server
+from rogerthat.utils import now, send_mail
 from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.service import create_service_identity_user
@@ -1898,15 +1900,6 @@ def invite_prospect(prospect_key):
     return ReturnStatusTO.create()
 
 
-@rest("/internal/shop/loyalty/slides/get_upload_url", "get")
-@returns(unicode)
-@arguments()
-def get_upload_url_item():
-    azzert(is_admin(gusers.get_current_user()))
-    upload_url = blobstore.create_upload_url('/internal/shop/loyalty/slide/upload')
-    return replace_url_with_forwarded_server(upload_url)
-
-
 @rest("/internal/shop/rest/loyalty/slides/delete", "post")
 @returns(ReturnStatusTO)
 @arguments(slide_id=(int, long))
@@ -1925,15 +1918,6 @@ def delete_loyalty_slide(slide_id):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
-
-
-@rest("/internal/shop/loyalty/slides/new_order/get_upload_url", "get")
-@returns(unicode)
-@arguments()
-def get_upload_url_item_new_order():
-    azzert(is_admin(gusers.get_current_user()))
-    upload_url = blobstore.create_upload_url('/internal/shop/loyalty/slide/new_order/upload')
-    return replace_url_with_forwarded_server(upload_url)
 
 
 @rest("/internal/shop/rest/loyalty/slides/new_order/delete", "post")
@@ -1975,7 +1959,7 @@ class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
         self.response.out.write(template.render(path, context))
 
 
-class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
+class UploadLoyaltySlideHandler(BizzManagerHandler):
     def post(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -1998,22 +1982,24 @@ class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
 
         apps = json.loads(slide_apps)
 
-        upload_files = self.get_uploads('slide_file')
-        if len(upload_files) == 0 and not slide_id:
+        uploaded_file = self.request.POST.get('slide_file')  # type: FieldStorage
+        if not slide_id and not isinstance(uploaded_file, FieldStorage):
             self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
                                                                     error=u"Please select a picture!"))
             return
 
-        blob_info_key = None
+        gcs_filename = None
         content_type = None
-        if len(upload_files) != 0:
-            blob_info = upload_files[0]
-            content_type = blob_info.content_type
+        if isinstance(uploaded_file, FieldStorage):
+            content_type = uploaded_file.type
             if not content_type.startswith("image/"):
                 self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
                                                                         error=u"The uploaded file is not an image!"))
                 return
-            blob_info_key = blob_info.key()
+
+            date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+            gcs_filename = '%s/oca/shop/loyalty/slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, uploaded_file.filename)
+            upload_to_gcs(uploaded_file.value, content_type, gcs_filename)
 
         def trans():
             if slide_id:
@@ -2025,8 +2011,8 @@ class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
             sli.deleted = False
             sli.name = slide_name
             sli.time = slide_time
-            if blob_info_key:
-                sli.item = blob_info_key
+            if gcs_filename:
+                sli.gcs_filename = gcs_filename
             if content_type:
                 sli.content_type = content_type
             if apps:
@@ -2043,7 +2029,7 @@ class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
         self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result"))
 
 
-class UploadLoyaltySlideNewOrderHandler(blobstore_handlers.BlobstoreUploadHandler):
+class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
     def post(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -2062,22 +2048,24 @@ class UploadLoyaltySlideNewOrderHandler(blobstore_handlers.BlobstoreUploadHandle
         if slide_id == "":
             slide_id = None
 
-        upload_files = self.get_uploads('slide_file')
-        if len(upload_files) == 0 and not slide_id:
+        uploaded_file = self.request.POST.get('slide_file')  # type: FieldStorage
+        if not slide_id and not isinstance(uploaded_file, FieldStorage):
             self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.new_order.post_result",
                                                                     error=u"Please select a picture!"))
             return
 
-        blob_info_key = None
+        gcs_filename = None
         content_type = None
-        if len(upload_files) != 0:
-            blob_info = upload_files[0]
-            content_type = blob_info.content_type
+        if isinstance(uploaded_file, FieldStorage):
+            content_type = uploaded_file.type
             if not content_type.startswith("image/"):
-                self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.new_order.post_result",
+                self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
                                                                         error=u"The uploaded file is not an image!"))
                 return
-            blob_info_key = blob_info.key()
+
+            date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+            gcs_filename = '%s/oca/shop/loyalty/new_order_slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, uploaded_file.filename)
+            upload_to_gcs(uploaded_file.value, content_type, gcs_filename)
 
         def trans():
             if slide_id:
@@ -2091,8 +2079,8 @@ class UploadLoyaltySlideNewOrderHandler(blobstore_handlers.BlobstoreUploadHandle
                 sli.timestamp = now()
 
             sli.time = slide_time
-            if blob_info_key:
-                sli.item = blob_info_key
+            if gcs_filename:
+                sli.gcs_filename = gcs_filename
             if content_type:
                 sli.content_type = content_type
             sli.put()

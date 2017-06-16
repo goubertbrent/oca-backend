@@ -15,24 +15,15 @@
 #
 # @@license_version:1.2@@
 
-from google.appengine.api import blobstore
-
-from google.appengine.ext import webapp, db
-
 from rogerthat.bizz.job import run_job
-from rogerthat.utils import now
-from solutions.common.models import SolutionTempBlob
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
+from solutions.common.bizz.qanda import re_index_question
+from solutions.common.models.qanda import Question
 
 
-class CleanUpSolutionTempBlobs(webapp.RequestHandler):
-    def get(self):
-        run_job(blobs_to_delete, [], cleanup_tmp_blob, [])
+def _all_questions():
+    return Question.all(keys_only=True)
 
 
-def blobs_to_delete():
-    return SolutionTempBlob.all().filter('timeout <', now())
-
-
-def cleanup_tmp_blob(blob_info):
-    blobstore.delete(blob_info.blob_key)
-    db.delete(blob_info)
+def re_index_all_questions(queue=HIGH_LOAD_WORKER_QUEUE):
+    run_job(_all_questions, [], re_index_question, [], worker_queue=queue)

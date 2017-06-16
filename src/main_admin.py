@@ -15,16 +15,14 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.wsgi import RogerthatWSGIApplication
-
 from mcfw.restapi import rest_functions
+from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.admin import restapi as restapi_admin
 from shop.admin.handlers import AdminHandler
 from shop.cron import RecurrentBilling, ReportOnSitePaymentsHandler, NotifyExtentionNeededHandler, \
     ExportResellerInvoicesHandler
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.cron.associations import CreateNonProfitStatistics
-from solutions.common.cron.broadcast import CleanUpSolutionTempBlobs
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler
 from solutions.common.cron.events import SolutionEventsScraper
 from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
@@ -55,14 +53,13 @@ handlers = [
     ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),
     ('/admin/cron/rpc/solution_loyalty_lottery_loot', LootLotteryCronHandler),
     ('/admin/cron/rpc/solution_loyalty_export', SolutionLoyaltyExportHandler),
-    ('/admin/cron/rpc/cleanup_solutions_tmp_blobs', CleanUpSolutionTempBlobs),
     ('/admin/cron/rpc/city_association_statistics', CreateNonProfitStatistics),
     ('/admin/cron/rpc/solution_events_scraper', SolutionEventsScraper),
     ('/admin/cron/rpc/solution_news_scraper', SolutionNewsScraper),
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
-    ('/admin/services' , ServiceTools),
-    ('/admin/new_jukebox_app_branding' , NewJukeboxAppBranding),
+    ('/admin/services', ServiceTools),
+    ('/admin/new_jukebox_app_branding', NewJukeboxAppBranding),
     ('/admin/djmatic_overview_logs', DjmaticOverviewLogsHandler),
     ('/admin/djmatic_export', DjmaticExportHandler),
     ('/admin/osa/launcher/apps', OSAAppsPage),

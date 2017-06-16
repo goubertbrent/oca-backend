@@ -14,12 +14,12 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
+import webapp2
 
-from google.appengine.ext.webapp import blobstore_handlers
 from solutions.common.models import FileBlob
 
 
-class ViewMenuItemImageHandler(blobstore_handlers.BlobstoreDownloadHandler):
+class ViewMenuItemImageHandler(webapp2.RequestHandler):
     def get(self, image_id):
         image_id = long(image_id)
         image = FileBlob.get_by_id(image_id)

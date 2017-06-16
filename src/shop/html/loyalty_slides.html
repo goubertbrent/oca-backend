@@ -133,72 +133,64 @@ $(function () {
             }
             console.log(slide);
         }
-        sln.call({
-            url : '/internal/shop/loyalty/slides/get_upload_url',
-            success : function(upload_url) {
-                var html = $('#loyalty_slide').modal('show');
-                html.attr('mode', 'new');
-                $("#myModalLabel", html).text(slide != null ? "Update slide" : "Add slide");
-                
-                $("#slide_form", html).attr("action", upload_url);
-                $('#loyalty_slide .function-dependencies input[type="checkbox"]').each(function() {
-                    var checkbox = $(this);
-                    checkbox.prop('checked', false);
-                });
-                $('#loyalty_slide .show-in-apps input[type="checkbox"]').each(function() {
-                    var checkbox = $(this);
-                    checkbox.prop('checked', false);
-                });
-                
-                if (slide == null) {
-                    $("#slide_id", html).val("");
-                    $("#slide_name", html).val("");
-                    $("#slide_time", html).val(10);
-                    
-                } else {
-                    $("#slide_id", html).val(slide.id);
-                    $("#slide_name", html).val(slide.name);
-                    $("#slide_time", html).val(slide.time);
-                    
-                    $('#loyalty_slide .function-dependencies input[type="checkbox"]').each(function() {
-                        var checkbox = $(this);
-                        if (isFlagSet(checkbox.val(), slide["function_dependencies"])) {
-                            checkbox.prop('checked', true);
-                        }
-                    });
-                    
-                    $('#loyalty_slide .show-in-apps input[type="checkbox"]').each(function() {
-                        var checkbox = $(this);
-                        if (slide["apps"].indexOf(checkbox.val()) > -1 )
-                            checkbox.prop('checked', true);
-                    });
+        var upload_url = '/internal/shop/loyalty/slide/upload';
+        var html = $('#loyalty_slide').modal('show');
+        html.attr('mode', 'new');
+        $("#myModalLabel", html).text(slide != null ? "Update slide" : "Add slide");
+        
+        $("#slide_form", html).attr("action", upload_url);
+        $('#loyalty_slide .function-dependencies input[type="checkbox"]').each(function() {
+            var checkbox = $(this);
+            checkbox.prop('checked', false);
+        });
+        $('#loyalty_slide .show-in-apps input[type="checkbox"]').each(function() {
+            var checkbox = $(this);
+            checkbox.prop('checked', false);
+        });
+        
+        if (slide == null) {
+            $("#slide_id", html).val("");
+            $("#slide_name", html).val("");
+            $("#slide_time", html).val(10);
+            
+        } else {
+            $("#slide_id", html).val(slide.id);
+            $("#slide_name", html).val(slide.name);
+            $("#slide_time", html).val(slide.time);
+            
+            $('#loyalty_slide .function-dependencies input[type="checkbox"]').each(function() {
+                var checkbox = $(this);
+                if (isFlagSet(checkbox.val(), slide["function_dependencies"])) {
+                    checkbox.prop('checked', true);
                 }
-                
-                loyaltySlideAddModal = html;
-                $('button[action="submit"]', html).click(function() {
-                    var slideFile = document.getElementById('slide_file', html);
-                    if (slideFile.files.length > 0 || slide != null) {
-                        var function_dependencies = 0;
-                        $('#loyalty_slide .function-dependencies input[type="checkbox"]:checked').map(function() {
-                            function_dependencies = setFlag(parseInt(this.value), function_dependencies)
-                        });
-                        $("#slide_function_dependencies").val(function_dependencies);
-                        var supported_apps = [];
-                        $('#loyalty_slide .show-in-apps input[type="checkbox"]:checked').map(function() {
-                            supported_apps.push(this.value);
-                        });
-                        $("#slide_apps").val(JSON.stringify(supported_apps));
-                        
-                        sln.showProcessing("Uploading, this may take a few seconds...");
-                        $("#slide_form", html).submit();
-                    } else {
-                        sln.alert("Please select a picture", null, "Error");
-                    }
+            });
+            
+            $('#loyalty_slide .show-in-apps input[type="checkbox"]').each(function() {
+                var checkbox = $(this);
+                if (slide["apps"].indexOf(checkbox.val()) > -1 )
+                    checkbox.prop('checked', true);
+            });
+        }
+        
+        loyaltySlideAddModal = html;
+        $('button[action="submit"]', html).click(function() {
+            var slideFile = document.getElementById('slide_file', html);
+            if (slideFile.files.length > 0 || slide != null) {
+                var function_dependencies = 0;
+                $('#loyalty_slide .function-dependencies input[type="checkbox"]:checked').map(function() {
+                    function_dependencies = setFlag(parseInt(this.value), function_dependencies)
                 });
+                $("#slide_function_dependencies").val(function_dependencies);
+                var supported_apps = [];
+                $('#loyalty_slide .show-in-apps input[type="checkbox"]:checked').map(function() {
+                    supported_apps.push(this.value);
+                });
+                $("#slide_apps").val(JSON.stringify(supported_apps));
                 
-            },
-            error : function() {
-                sln.alert("Could not create new slide", null, "Error");
+                sln.showProcessing("Uploading, this may take a few seconds...");
+                $("#slide_form", html).submit();
+            } else {
+                sln.alert("Please select a picture", null, "Error");
             }
         });
     };

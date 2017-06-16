@@ -502,50 +502,42 @@ $(function() {
         if (slideId != null) {
             slide = $("#" + slideId).data("slide");
         }
-        sln.call({
-            url : '/common/loyalty/slides/get_upload_url',
-            success : function(upload_url) {
+        var upload_url = '/common/loyalty/slide/upload';
 
-                var html = $.tmpl(templates.loyalty_slide_add, {
-                    header : slide != null ? CommonTranslations.UPDATE : CommonTranslations.ADD,
-                    cancelBtn : CommonTranslations.CANCEL,
-                    submitBtn : CommonTranslations.SAVE,
-                    CommonTranslations : CommonTranslations
-                });
+        var html = $.tmpl(templates.loyalty_slide_add, {
+            header : slide != null ? CommonTranslations.UPDATE : CommonTranslations.ADD,
+            cancelBtn : CommonTranslations.CANCEL,
+            submitBtn : CommonTranslations.SAVE,
+            CommonTranslations : CommonTranslations
+        });
 
-                $("#slide_form", html).attr("action", upload_url);
-                if (slide == null) {
-                    $("#slide_id", html).val("");
-                    $("#slide_name", html).val("");
-                    $("#slide_time", html).val(10);
-                } else {
-                    $("#slide_id", html).val(slide.id);
-                    $("#slide_name", html).val(slide.name);
-                    $("#slide_time", html).val(slide.time);
-                }
+        $("#slide_form", html).attr("action", upload_url);
+        if (slide == null) {
+            $("#slide_id", html).val("");
+            $("#slide_name", html).val("");
+            $("#slide_time", html).val(10);
+        } else {
+            $("#slide_id", html).val(slide.id);
+            $("#slide_name", html).val(slide.name);
+            $("#slide_time", html).val(slide.time);
+        }
 
-                loyaltySlideAddModal = sln.createModal(html);
+        loyaltySlideAddModal = sln.createModal(html);
 
-                $('button[action="submit"]', loyaltySlideAddModal).click(function() {
-                    var slideFile = document.getElementById('slide_file', html);
-                    if (slideFile.files.length > 0 || slide != null) {
-                    	if (slideFile.files.length > 0) {
-                    		if (slideFile.files[0].size > (20 * 1024 * 1024)) {
-                    			sln.alert(CommonTranslations.PICTURE_SIZE_TOO_LARGE_20MB, null, CommonTranslations.ERROR);
-                    			return;
-                    		}
-                    	}
+        $('button[action="submit"]', loyaltySlideAddModal).click(function() {
+            var slideFile = document.getElementById('slide_file', html);
+            if (slideFile.files.length > 0 || slide != null) {
+            	if (slideFile.files.length > 0) {
+            		if (slideFile.files[0].size > (20 * 1024 * 1024)) {
+            			sln.alert(CommonTranslations.PICTURE_SIZE_TOO_LARGE_20MB, null, CommonTranslations.ERROR);
+            			return;
+            		}
+            	}
 
-                        sln.showProcessing(CommonTranslations.UPLOADING_TAKE_A_FEW_SECONDS);
-                        $("#slide_form", html).submit();
-                    } else {
-                        sln.alert(CommonTranslations.PLEASE_SELECT_A_PICTURE, null, CommonTranslations.ERROR);
-                    }
-                });
-
-            },
-            error : function() {
-                sln.alert(CommonTranslations.ERROR_OCCURED_UNKNOWN, null, CommonTranslations.ERROR);
+                sln.showProcessing(CommonTranslations.UPLOADING_TAKE_A_FEW_SECONDS);
+                $("#slide_form", html).submit();
+            } else {
+                sln.alert(CommonTranslations.PLEASE_SELECT_A_PICTURE, null, CommonTranslations.ERROR);
             }
         });
     };

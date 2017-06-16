@@ -16,13 +16,18 @@
 # @@license_version:1.2@@
 
 import base64
+from cgi import FieldStorage
+import datetime
 import json
 import logging
 
+import cloudstorage
 from google.appengine.ext import blobstore, db, webapp
 from google.appengine.ext.webapp import blobstore_handlers
 from mcfw.properties import azzert
+from rogerthat.bizz.gcs import get_blobstore_cloudstorage_path, upload_to_gcs
 from rogerthat.bizz.user import calculate_secure_url_digest
+from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.models import UserProfile
 from rogerthat.rpc import users
@@ -42,7 +47,7 @@ from solutions.common.utils import is_default_service_identity, create_service_i
 import webapp2
 
 
-class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
+class UploadLoyaltySlideHandler(webapp2.RequestHandler):
 
     def post(self):
         service_user = users.get_current_user()
@@ -62,8 +67,8 @@ class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
                                                                     error=u"Please fill in valid time!"))
             return
 
-        upload_files = self.get_uploads('slide_file')
-        if len(upload_files) == 0 and not slide_id:
+        uploaded_file = self.request.POST.get('slide_file')  # type: FieldStorage
+        if not slide_id and not isinstance(uploaded_file, FieldStorage):
             self.response.out.write(broadcast_via_iframe_result(u"solutions.common.loyalty.slide.post_result",
                                                                     error=u"Please select a picture!"))
             return
@@ -79,31 +84,45 @@ class UploadLoyaltySlideHandler(blobstore_handlers.BlobstoreUploadHandler):
                                                                     error=u"A city can only have 1 active slide at a time!"))
                     return
 
-        blob_info_key = None
+        gcs_filename = None
         content_type = None
-        if len(upload_files) != 0:
-            blob_info = upload_files[0]
-            content_type = blob_info.content_type
+        if isinstance(uploaded_file, FieldStorage):
+            content_type = uploaded_file.type
             if not content_type.startswith("image/"):
                 self.response.out.write(broadcast_via_iframe_result(u"solutions.common.loyalty.slide.post_result",
                                                                         error=u"The uploaded file is not an image!"))
                 return
-            blob_info_key = blob_info.key()
 
-        put_loyalty_slide(service_user, service_identity, slide_id, slide_name, slide_time, blob_info_key, content_type)
+            date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+            gcs_filename = '%s/oca/loyalty_slides/%s/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, service_user.email(), date, uploaded_file.filename)
+            upload_to_gcs(uploaded_file.value, content_type, gcs_filename)
+
+        put_loyalty_slide(service_user, service_identity, slide_id, slide_name, slide_time, gcs_filename, content_type)
 
         self.response.out.write(broadcast_via_iframe_result(u"solutions.common.loyalty.slide.post_result"))
 
 
 
-class LoyaltySlideDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
+class LoyaltySlideDownloadHandler(webapp2.RequestHandler):
     def get(self):
-        slide_key = self.request.get("slide_key", None)
-        if not blobstore.get(slide_key):
-            self.error(404)
-        else:
-            self.response.headers['Cache-Control'] = "public, max-age=31536000"  # Cache forever (1 year)
-            self.send_blob(slide_key)
+        key = self.request.get("slide_key", None)
+        filename = get_blobstore_cloudstorage_path(key)
+
+        try:
+            gcs_stats = cloudstorage.stat(filename)
+            self.response.headers['Content-Type'] = gcs_stats.content_type
+            self.response.headers['Cache-Control'] = 'public, max-age=31536000'  # Cache forever (1 year)
+            self.response.headers['Content-Disposition'] = 'inline; filename=%s' % key
+            with cloudstorage.open(filename, 'r') as gcs_file:
+                self.response.write(gcs_file.read())
+
+        except cloudstorage.errors.NotFoundError:
+            logging.warn('%s NOT found in gcs', filename)
+            if blobstore.get(key):
+                self.send_blob(key)
+            else:
+                self.error(404)
+
 
 class LoyaltySlidePreviewHandler(webapp2.RequestHandler):
 

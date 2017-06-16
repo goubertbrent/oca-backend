@@ -17,43 +17,43 @@
 
 import json
 import logging
+import os
 
 import jinja2
-import os
 import webapp2
-from babel import dates
-from rogerthat.models import ServiceIdentity, App, ServiceProfile
-from rogerthat.rpc import users
-from rogerthat.service.api import system
-from solution_server_settings import get_solution_server_settings
-from solutions import translate, translations, COMMON_JS_KEYS
-from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import SolutionModule
-from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
-    get_solution_settings_or_identity_settings
-from solutions.common.models import SolutionQR
-from solutions.common.to import SolutionEmailSettingsTO
-from solutions.flex import SOLUTION_FLEX
 
+from babel import dates
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.channel import create_channel_for_current_session
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.service import get_service_identity
+from rogerthat.models import ServiceIdentity, App, ServiceProfile
 from rogerthat.pages.login import SessionHandler
+from rogerthat.rpc import users
+from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.service import create_service_identity_user
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
+from solution_server_settings import get_solution_server_settings
+from solutions import translate, translations, COMMON_JS_KEYS
+from solutions.common import SOLUTION_COMMON
+from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
+from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
+    get_solution_settings_or_identity_settings
 from solutions.common.dal.order import get_solution_order_settings
+from solutions.common.models import SolutionQR
 from solutions.common.models.properties import MenuItem
+from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
+from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
 
 JINJA_ENVIRONMENT = jinja2.Environment(
@@ -218,6 +218,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
         return [self._get_day_str(sln_settings, day) for day in [6, 0, 1, 2, 3, 4, 5]]
 
     def _get_organization_types(self, customer, lang):
+        if not customer:
+            return []
         return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, lang))
                 for org_type in customer.editable_organization_types]
 
@@ -264,7 +266,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         jinja_template = JINJA_ENVIRONMENT.get_template('index.html')
 
         days = self._get_days(sln_settings)
-        day_flags = [(pow(2, day_num), day_name) for day_num, day_name in days ]
+        day_flags = [(pow(2, day_num), day_name) for day_num, day_name in days]
         months = self._get_months(sln_settings, 'wide')
         months_short = self._get_months(sln_settings, 'abbreviated')
         week_days = self._get_week_days(sln_settings)
