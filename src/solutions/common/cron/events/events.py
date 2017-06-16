@@ -70,6 +70,7 @@ def _update_first_start_date(event_key):
             return
         new_first_start_date = event.get_first_event_date()
         if event.first_start_date != new_first_start_date:
+            event.first_start_date = new_first_start_date
             event.put()
     db.run_in_transaction(trans)
 
