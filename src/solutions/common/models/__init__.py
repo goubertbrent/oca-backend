@@ -549,8 +549,8 @@ class SolutionScheduledBroadcast(db.Model):
     json_attachments = db.TextProperty()
     json_urls = db.TextProperty()
 
-    broadcast_on_twitter = db.BooleanProperty(indexed=False)
-    broadcast_on_facebook = db.BooleanProperty(indexed=False)
+    broadcast_on_twitter = db.BooleanProperty(indexed=False, default=False)
+    broadcast_on_facebook = db.BooleanProperty(indexed=False, default=False)
     facebook_access_token = db.StringProperty(indexed=False)
     service_identity = db.StringProperty(indexed=False)  # Service who created the broadcast
     broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
