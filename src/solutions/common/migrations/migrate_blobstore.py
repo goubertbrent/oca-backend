@@ -140,13 +140,13 @@ def _move_loyalty_slides_to_cloudstorage(ls_key):
     def trans():
         ls = db.get(ls_key)
         if ls.gcs_filename:
-            return
+            cloudstorage.delete(ls.gcs_filename)
 
         blob_key = ls.item.key()
         blob_info = BlobInfo.get(blob_key)
 
         date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        filename = '%s/oca/loyalty_slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, blob_key)
+        filename = '%s/oca/loyalty_slides/%s/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, ls.service_user.email(), date, blob_key)
         with cloudstorage.open(filename, 'w', blob_info.content_type) as f:
             blob_reader = blob_info.open()
             f.write(blob_reader.read())
