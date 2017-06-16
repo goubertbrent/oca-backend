@@ -4,11 +4,6 @@ echo 'using rogerthat-backend version' $VERSION;
 pushd ../rogerthat-backend
 git checkout $VERSION
 pip install -r requirements.txt -t src/lib
-pushd src/lib
-zip -r lib.zip . -x "babel/*" -x "pytz/*" -x "ply/*"
-shopt -s extglob # enable extended globbing to use !() with rm
-rm -r -- !(lib.zip|babel|pytz|ply)
-popd
 popd
 build_type=$1
 if [ -z ${build_type} ]; then
