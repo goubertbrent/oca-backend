@@ -101,8 +101,8 @@ def search_services(search_string):
     customers = []
     # if app id is set, the customer should have a service
     for c in search_customer(search_string, [app_id], None):
-        # exclude own service
-        if c.service_email == city_service_user.email():
+        # exclude own service and disabled services
+        if c.service_email == city_service_user.email() or c.service_disabled_at:
             continue
         customers.append(CustomerTO.fromCustomerModel(c, False, False))
 
