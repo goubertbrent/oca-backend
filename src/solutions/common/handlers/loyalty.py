@@ -112,7 +112,7 @@ class LoyaltySlideDownloadHandler(webapp2.RequestHandler):
             gcs_stats = cloudstorage.stat(filename)
             self.response.headers['Content-Type'] = gcs_stats.content_type
             self.response.headers['Cache-Control'] = 'public, max-age=31536000'  # Cache forever (1 year)
-            self.response.headers['Content-Disposition'] = 'inline; filename=%s' % key
+            self.response.headers['Content-Disposition'] = 'inline; filename=%s' % str(key)
             with cloudstorage.open(filename, 'r') as gcs_file:
                 self.response.write(gcs_file.read())
 
