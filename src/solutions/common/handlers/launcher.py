@@ -58,16 +58,18 @@ class GetOSALaucherAppHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
         app = OSALauncherApp.get_by_app_id(app_id)
         if app:
+            filename = "%s-%s.apk" % (app.app_id, app.version_code)
             try:
-                filename = '%s/oca/launcher/apps/%s.apk' % (ROGERTHAT_ATTACHMENTS_BUCKET, app_id)
-                cloudstorage.open(filename, 'r')
-                blobstore_filename = '/gs' + filename
-                blobstore_key = blobstore.create_gs_key(blobstore_filename)
+                gae_filename = '%s/oca/launcher/apps/%s.apk' % (ROGERTHAT_ATTACHMENTS_BUCKET, app_id)
+                self.response.headers['Content-Type'] = "application/vnd.android.package-archive"
+                self.response.headers['Content-Disposition'] = 'attachment; filename=%s' % filename
+                with cloudstorage.open(gae_filename, 'r') as gcs_file:
+                    self.response.write(gcs_file.read())
+
             except cloudstorage.errors.NotFoundError:
                 logging.warn("GetOSALaucherAppHandler NOT found in gcs")
                 blobstore_key = app.package.key()
-
-            self.send_blob(blobstore_key, content_type="application/vnd.android.package-archive",
-                           save_as="%s-%s.apk" % (app.app_id, app.version_code))
+                self.send_blob(blobstore_key, content_type="application/vnd.android.package-archive",
+                               save_as=filename)
         else:
             self.error(500)
