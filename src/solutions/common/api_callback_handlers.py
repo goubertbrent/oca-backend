@@ -19,6 +19,9 @@ import json
 import logging
 from types import NoneType
 
+from google.appengine.ext import db
+from mcfw.properties import object_factory
+from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.friends import ACCEPT_ID
 from rogerthat.models.properties.forms import FormResult
 from rogerthat.rpc import users
@@ -30,8 +33,7 @@ from rogerthat.to.messaging.service_callback_results import FlowMemberResultCall
 from rogerthat.to.service import UserDetailsTO, SendApiCallCallbackResultTO
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
-from mcfw.properties import object_factory
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from rogerthat.utils.models import correct_key
 from solutions.common.bizz.bulk_invite import bulk_invite_result
 from solutions.common.bizz.discussion_groups import discussion_group_deleted
 from solutions.common.bizz.events import solution_add_admin_to_calendar
@@ -201,7 +203,7 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
     if tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):
         info = json.loads(tag[len(POKE_TAG_INBOX_FORWARDING_REPLY):])
         message_key = info['message_key']
-        sim_parent = SolutionInboxMessage.get(message_key)
+        sim_parent = SolutionInboxMessage.get(correct_key(db.Key(message_key)))
 
         if sim_parent.awaiting_first_message:
             sim_parent.awaiting_first_message = False
