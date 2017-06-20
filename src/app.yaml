@@ -1,6 +1,6 @@
 application: rogerthat-server
 runtime: python27
-version: 1
+version: 4
 api_version: 1
 
 threadsafe: true
@@ -9,8 +9,8 @@ automatic_scaling:
   min_idle_instances: 1
   max_idle_instances: 2
   max_concurrent_requests: 20
-  max_pending_latency: 500
-  min_pending_latency: 250
+  max_pending_latency: 500ms
+  min_pending_latency: 250ms
 
 handlers:
 - url: /internal/.*

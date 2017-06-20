@@ -27,9 +27,10 @@ import time
 from types import NoneType
 
 from babel.dates import format_datetime
+from google.appengine.ext import deferred, db
 import jinja2
-import xlwt
-
+from mcfw.properties import long_property
+from mcfw.rpc import returns, arguments
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import SCHEDULED_QUEUE, DAY, MC_DASHBOARD
 from rogerthat.dal import parent_key_unsafe
@@ -42,10 +43,8 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import send_mail_via_mime, now
+from rogerthat.utils.models import reconstruct_key
 from rogerthat.utils.transactions import run_in_transaction
-from google.appengine.ext import deferred
-from mcfw.properties import long_property
-from mcfw.rpc import returns, arguments
 from shop.constants import LOGO_LANGUAGES
 from shop.exceptions import InvalidEmailFormatException
 from solutions import translate as common_translate
@@ -59,6 +58,7 @@ from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.properties import SolutionUser
 from solutions.common.utils import create_service_identity_user_wo_default
 from solutions.jinja_extensions import TranslateExtension
+import xlwt
 
 
 JINJA_ENVIRONMENT = jinja2.Environment(
@@ -255,7 +255,7 @@ def create_solution_inbox_message(service_user, service_identity, category, cate
 def add_solution_inbox_message(service_user, key, sent_by_service, user_details, timestamp, message, picture_urls=None, video_urls=None, mark_as_unread=True, mark_as_read=False, mark_as_trashed=False):
     def trans(message, picture_urls, video_urls):
         sln_settings = get_solution_settings(service_user)
-        sim_parent = SolutionInboxMessage.get(key)
+        sim_parent = SolutionInboxMessage.get(reconstruct_key(db.Key(key)))
         sim_reply = SolutionInboxMessage(parent=sim_parent)
         sim_reply.sent_by_service = sent_by_service
         sim_reply.sender = SolutionUser.fromTO(user_details[0]) if user_details else None
