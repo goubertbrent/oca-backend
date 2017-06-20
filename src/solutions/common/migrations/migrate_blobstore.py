@@ -15,7 +15,6 @@
 #
 # @@license_version:1.2@@
 
-import datetime
 import logging
 
 import cloudstorage
@@ -27,6 +26,7 @@ from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET, DEBUG
 from shop.models import ShopLoyaltySlide, ShopLoyaltySlideNewOrder
 from solutions.common.models.launcher import OSALauncherApp
 from solutions.common.models.loyalty import SolutionLoyaltySlide
+from solutions.common.utils import get_extension_for_content_type
 
 
 def migrate_blobstore():
@@ -95,20 +95,7 @@ def _move_shop_loyalty_app_to_cloudstorage(la_key):
 def _move_shop_loyalty_slides_to_cloudstorage(ls_key):
     def trans():
         ls = db.get(ls_key)
-        if ls.gcs_filename:
-            return
-
-        blob_key = ls.item.key()
-        blob_info = BlobInfo.get(blob_key)
-
-        date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        filename = '%s/oca/shop/loyalty/slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, blob_key)
-        with cloudstorage.open(filename, 'w', blob_info.content_type) as f:
-            blob_reader = blob_info.open()
-            f.write(blob_reader.read())
-
-        ls.gcs_filename = filename
-        ls.put()
+        _copy_gcs_file(ls)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
@@ -117,20 +104,7 @@ def _move_shop_loyalty_slides_to_cloudstorage(ls_key):
 def _move_shop_loyalty_new_order_slides_to_cloudstorage(ls_key):
     def trans():
         ls = db.get(ls_key)
-        if ls.gcs_filename:
-            return
-
-        blob_key = ls.item.key()
-        blob_info = BlobInfo.get(blob_key)
-
-        date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        filename = '%s/oca/shop/loyalty/new_order_slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, blob_key)
-        with cloudstorage.open(filename, 'w', blob_info.content_type) as f:
-            blob_reader = blob_info.open()
-            f.write(blob_reader.read())
-
-        ls.gcs_filename = filename
-        ls.put()
+        _copy_gcs_file(ls)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
@@ -139,20 +113,26 @@ def _move_shop_loyalty_new_order_slides_to_cloudstorage(ls_key):
 def _move_loyalty_slides_to_cloudstorage(ls_key):
     def trans():
         ls = db.get(ls_key)
-        if ls.gcs_filename:
-            cloudstorage.delete(ls.gcs_filename)
-
-        blob_key = ls.item.key()
-        blob_info = BlobInfo.get(blob_key)
-
-        date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        filename = '%s/oca/loyalty_slides/%s/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, ls.service_user.email(), date, blob_key)
-        with cloudstorage.open(filename, 'w', blob_info.content_type) as f:
-            blob_reader = blob_info.open()
-            f.write(blob_reader.read())
-
-        ls.gcs_filename = filename
-        ls.put()
+        _copy_gcs_file(ls)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
+
+
+def _copy_gcs_file(m):
+    if not m.gcs_filename:
+        return
+    if m.gcs_filename.endswith(".jpeg") or m.gcs_filename.endswith(".png") or m.gcs_filename.endswith(".gif"):
+        return
+
+    old_gcs_filename = m.gcs_filename
+    old_gcs_stats = cloudstorage.stat(old_gcs_filename)
+    content_type = old_gcs_stats.content_type
+
+    filename = '%s.%s' % (old_gcs_filename, get_extension_for_content_type(content_type))
+    with cloudstorage.open(old_gcs_filename, 'r') as gcs_file:
+        with cloudstorage.open(filename, 'w', content_type) as f:
+            f.write(gcs_file.read())
+
+    m.gcs_filename = filename
+    m.put()

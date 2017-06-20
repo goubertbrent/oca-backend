@@ -43,7 +43,8 @@ from solutions.common.bizz.loyalty import put_loyalty_slide, get_loyalty_slide_f
 from solutions.common.dal import get_solution_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyaltyExport, SolutionUserLoyaltySettings
-from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
+from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default, \
+    get_extension_for_content_type
 import webapp2
 
 
@@ -94,7 +95,11 @@ class UploadLoyaltySlideHandler(webapp2.RequestHandler):
                 return
 
             date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-            gcs_filename = '%s/oca/loyalty_slides/%s/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, service_user.email(), date, uploaded_file.filename)
+            gcs_filename = '%s/oca/loyalty_slides/%s/%s_%s.%s' % (ROGERTHAT_ATTACHMENTS_BUCKET,
+                                                               service_user.email(),
+                                                               date,
+                                                               uploaded_file.filename,
+                                                               get_extension_for_content_type(content_type))
             upload_to_gcs(uploaded_file.value, content_type, gcs_filename)
 
         put_loyalty_slide(service_user, service_identity, slide_id, slide_name, slide_time, gcs_filename, content_type)

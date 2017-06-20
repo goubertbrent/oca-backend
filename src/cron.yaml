@@ -31,10 +31,6 @@ cron:
   url: /admin/cron/shop/recurrent_billing
   schedule: every day 00:00
 
-- description: Cleanup solutions TempBlobs
-  url: /admin/cron/rpc/cleanup_solutions_tmp_blobs
-  schedule: every day 00:05
-
 - description: CityApp Solution uitdatabank.be events
   url: /admin/cron/rpc/solution_cityapp_events_uitdatabank
   schedule: every day 00:30
