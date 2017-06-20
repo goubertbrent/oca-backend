@@ -119,6 +119,7 @@ from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
+from solutions.common.utils import get_extension_for_content_type
 import webapp2
 from xhtml2pdf import pisa
 
@@ -1998,7 +1999,10 @@ class UploadLoyaltySlideHandler(BizzManagerHandler):
                 return
 
             date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-            gcs_filename = '%s/oca/shop/loyalty/slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, uploaded_file.filename)
+            gcs_filename = '%s/oca/shop/loyalty/slides/%s_%s.%s' % (ROGERTHAT_ATTACHMENTS_BUCKET,
+                                                                    date,
+                                                                    uploaded_file.filename,
+                                                                    get_extension_for_content_type(content_type))
             upload_to_gcs(uploaded_file.value, content_type, gcs_filename)
 
         def trans():
@@ -2064,7 +2068,10 @@ class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
                 return
 
             date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-            gcs_filename = '%s/oca/shop/loyalty/new_order_slides/%s_%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, date, uploaded_file.filename)
+            gcs_filename = '%s/oca/shop/loyalty/new_order_slides/%s_%s.%s' % (ROGERTHAT_ATTACHMENTS_BUCKET,
+                                                                              date,
+                                                                              uploaded_file.filename,
+                                                                              get_extension_for_content_type(content_type))
             upload_to_gcs(uploaded_file.value, content_type, gcs_filename)
 
         def trans():

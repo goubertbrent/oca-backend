@@ -51,3 +51,6 @@ def limit_string(string, limit):
         string = string[:limit - 3]
         string = string.rsplit(' ', 1)[0] + '...'
     return string
+
+def get_extension_for_content_type(content_type):
+    return content_type.split("/")[1]
