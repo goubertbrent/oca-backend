@@ -107,7 +107,6 @@ class UploadLoyaltySlideHandler(webapp2.RequestHandler):
         self.response.out.write(broadcast_via_iframe_result(u"solutions.common.loyalty.slide.post_result"))
 
 
-
 class LoyaltySlideDownloadHandler(webapp2.RequestHandler):
     def get(self):
         key = self.request.get("slide_key", None)
@@ -123,10 +122,7 @@ class LoyaltySlideDownloadHandler(webapp2.RequestHandler):
 
         except cloudstorage.errors.NotFoundError:
             logging.warn('%s NOT found in gcs', filename)
-            if blobstore.get(key):
-                self.send_blob(key)
-            else:
-                self.error(404)
+            self.error(404)
 
 
 class LoyaltySlidePreviewHandler(webapp2.RequestHandler):
