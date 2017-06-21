@@ -18,8 +18,7 @@
 import json
 import logging
 
-from google.appengine.ext import webapp, blobstore
-from google.appengine.ext.webapp import blobstore_handlers
+from google.appengine.ext import webapp
 
 import cloudstorage
 from mcfw.properties import azzert
@@ -50,7 +49,7 @@ class GetOSALaucherAppsHandler(webapp.RequestHandler):
         self.response.out.write(r)
 
 
-class GetOSALaucherAppHandler(blobstore_handlers.BlobstoreDownloadHandler):
+class GetOSALaucherAppHandler(webapp.RequestHandler):
     def get(self):
         app_id = self.request.get("app_id", None)
         azzert(app_id is not None, "app_id is not found")
@@ -68,8 +67,6 @@ class GetOSALaucherAppHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
             except cloudstorage.errors.NotFoundError:
                 logging.warn("GetOSALaucherAppHandler NOT found in gcs")
-                blobstore_key = app.package.key()
-                self.send_blob(blobstore_key, content_type="application/vnd.android.package-archive",
-                               save_as=filename)
+                self.error(500)
         else:
             self.error(500)
