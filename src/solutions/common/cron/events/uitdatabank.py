@@ -239,9 +239,9 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
             dt_without_tz = datetime.datetime(dt_with_tz.year, dt_with_tz.month, dt_with_tz.day, dt_with_tz.hour, dt_with_tz.minute)
             time_epoch = get_epoch_from_datetime(dt_without_tz)
             time_diff = _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz)
-            event_start_dates.append(time_epoch - time_diff)
+            event_start_dates.append(time_epoch - time_diff - 3600)
             if r_timestamp.get("timeend", None):
-                event_end_dates = [int(r_timestamp["timeend"] / 1000) - time_diff]
+                event_end_dates = [int(r_timestamp["timeend"] / 1000) - time_diff - 3600]
             else:
                 event_end_dates = [0]
         else:
@@ -264,9 +264,9 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
                     dt_without_tz = datetime.datetime(dt_with_tz.year, dt_with_tz.month, dt_with_tz.day, dt_with_tz.hour, dt_with_tz.minute)
                     time_epoch = get_epoch_from_datetime(dt_without_tz)
                     time_diff = _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz)
-                    event_start_dates.append(time_epoch - time_diff)
+                    event_start_dates.append(time_epoch - time_diff - 3600)
                     if r_ts.get("timeend", None):
-                        event_end_dates.append(int(r_ts["timeend"] / 1000) - time_diff)
+                        event_end_dates.append(int(r_ts["timeend"] / 1000) - time_diff - 3600)
                     else:
                         event_end_dates.append(0)
                 else:
