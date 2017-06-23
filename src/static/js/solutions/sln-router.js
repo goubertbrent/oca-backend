@@ -25,10 +25,7 @@ $(document).ready(function () {
 
     var hash = window.location.hash.replace('#/', '').split('/');
     if (SOLUTION != 'djmatic') {
-        var defaultLocation = '#/news';
-        if (!$('li[menu=broadcast]').length) {
-            defaultLocation = '#/menu';
-        }
+        var defaultLocation = '#/functionalities';
 
         if (!hash) {
             window.location.hash = defaultLocation;

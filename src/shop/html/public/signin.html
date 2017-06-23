@@ -1,0 +1,57 @@
+{% extends 'public/base.html' %}
+
+{% block title %}{% translate language, "common", "sign-in" %}{% endblock%}
+
+{% block js %}
+    <script>
+
+    var SigninTranslations = {
+        LOGIN_FAIL: '{% translate language, "common", "invalid-email-password-combination" %}',
+        TOO_MANY_ATTEMPTS: '{% translate language, "common", "too-many-failed-attempts" %}',
+        DEACTIVATED_ACCOUNT: '{% translate language, "common", "deactivated-account" %}',
+        DEACTIVATED_SERVICE: '{% translate language, "common", "deactivated-service" %}',
+        RESET_INSTRUCTIONS_SENT: '{% translate language, "common", "reset-password-instructions-sent" %}',
+        RESET_PASSWORD_FAILED: '{% translate language, "common", "reset-password-failed" %}',
+        RESET_PASSWORD: '{% translate language, "common", "reset-password" %}',
+    };
+
+    </script>
+{% endblock %}
+
+{% block content %}
+            <div id="signin_box" class="span6 box-small-width" style="float: none; margin: 0 auto;">
+                <h1 class="white-text">{% translate language, "common", "sign-in" %}</h2>
+                <p id="singin_note" class="white-text" style="word-wrap: break-word;" align="justify">
+                    {% translate language, "common", "signin_note" %}
+                </p>
+
+                <form id="signin_form" class="white-box">
+                    <input id="email" type="email" class="input-block-level"
+                           placeholder="{% translate language, "common", "email_address" %}" required>
+                    <div>
+                        <input id="password" type="password" class="input-block-level"
+                               placeholder="{% translate language, "common", "password" %}" minlength="5" required>
+                        <button id="signin_button" class="btn btn-wizard pull-right" type="button">
+                            {% translate language, "common", "sign-in" %}
+                        </button>
+                    </div>
+                    <p id="errors" class="text-error" style="display: none;"></p>
+                    <label class="checkbox">
+                        <input type="checkbox">
+                            {% translate language, "common", "remember-me" %} |
+                            <a id="forgot_password" href="#">
+                                {% translate language, "common", "forgot-password" %}
+                            </a>
+                    </label>
+                </form>
+
+                <p class="white-text">
+                    {% translate language, "common", "do-not-have-account" %}
+                    <a href="/customers/signup">
+                        {% translate language, "common", "you-can-signup" %}
+                    </a>
+                </p>
+
+                <script src="/static/js/public/signin.js"></script>
+            </div>
+{% endblock %}

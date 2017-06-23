@@ -1,4 +1,4 @@
-application: rogerthat-server
+application: mobicagecloudhr
 runtime: python27
 version: 4
 api_version: 1
@@ -21,6 +21,10 @@ handlers:
 - url: /admin/.*
   script: main_admin.app
   login: admin
+  secure: always
+
+- url: /ourcityapp
+  script: main_unauthenticated.app
   secure: always
 
 - url: /(djmatic|common|flex)/

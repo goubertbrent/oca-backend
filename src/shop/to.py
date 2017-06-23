@@ -71,6 +71,7 @@ class CustomerTO(CompanyTO):
     cancelling_on_date = long_property('72')  # Customer his subscription will be disabled on this date
     website = unicode_property('73')
     facebook_page = unicode_property('74')
+    telephone = unicode_property('75')
 
     @staticmethod
     def fromCustomerModel(customer, can_edit, is_admin):
@@ -849,43 +850,6 @@ class SimpleAppTO(object):
         app.name = model.name
         app.orderable_app_ids = model.orderable_app_ids
         return app
-
-
-class NewsTO(object):
-    news_id = long_property('0')
-    title = unicode_property('1')
-    datetime = long_property('2')
-    content = unicode_property('3')
-    youtube_id = unicode_property('4')
-    image_url = unicode_property('5')
-    news_type = long_property('6')
-    language = unicode_property('7')
-
-    @staticmethod
-    def create(model):
-        n = NewsTO()
-        n.news_id = model.key().id()
-        n.title = model.title
-        n.datetime = model.datetime
-        n.content = model.content
-        n.youtube_id = model.youtube_id
-        n.image_url = model.image_url
-        n.news_type = model.type
-        n.language = model.language
-        return n
-
-
-class NewsReturnStatusTO(ReturnStatusTO):
-    news = typed_property('5', NewsTO)
-
-    @classmethod
-    def create(cls, success=True, errormsg=None, news=None):
-        r = super(NewsReturnStatusTO, cls).create(success, errormsg)
-        if news:
-            r.news = NewsTO.create(news)
-        else:
-            r.news = None
-        return r
 
 
 class SubscriptionLengthReturnStatusTO(ReturnStatusTO):

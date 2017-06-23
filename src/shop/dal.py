@@ -23,9 +23,10 @@ from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import generator
+from rogerthat.dal.app import get_apps
 from rogerthat.models import App
 from rogerthat.rpc import users
-from shop.models import Customer, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity
+from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity
 
 
 @returns(Customer)
@@ -88,3 +89,25 @@ def get_available_apps_for_customer(customer, demo_only=False):
         available_apps = filter(lambda x: x.demo, available_apps)
     available_apps.sort(key=lambda app: app.name.upper())
     return available_apps
+
+
+@returns([CustomerSignup])
+@arguments(city_customer=Customer, done=bool)
+def get_customer_signups(city_customer, done=False):
+    return list(CustomerSignup.all().ancestor(city_customer.key()).filter('done =', done))
+
+
+@returns([Customer])
+@arguments()
+def get_all_city_customers():
+    city_apps = filter(lambda app: app.app_id.startswith('be-'), get_apps([App.APP_TYPE_CITY_APP]))
+    customers = {}
+
+    for app in city_apps:
+        if not app.main_service:
+            continue
+        customer = Customer.get_by_service_email(app.main_service)
+        if customer and customer.id not in customers:
+            customers[customer.id] = customer
+
+    return sorted(customers.values(), key=lambda c: c.name)

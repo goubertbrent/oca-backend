@@ -180,6 +180,7 @@ $(function () {
         // publish changes to all users
         publishChangesToUsers(null);
     }
+    modules.settings.publishChanges = publishChanges;
 
     var tryPublishChanges = function() {
         var html = $.tmpl(templates['settings/try_publish_changes'], {
@@ -1592,6 +1593,20 @@ $(function () {
 
     // add broadcast news publisher
     $('#broadcast_add_news_publisher').click(addBroadcastNewsPublisher);
+    // add broadcast type
+    $('#settings_add_extra_broadcast_type').click(addBroadcastType);
+    $('#settings_extra_broadcast_type').on('input', function() {
+        // check for broadcast type if exists or empty
+        var broadcastOptions = LocalCache.broadcastOptions;
+        var value = $(this).val().trim();
+        var alreadyExists = broadcastOptions && broadcastOptions.editable_broadcast_types.indexOf(value) !== -1;
+
+        if(value.length < 3 || !broadcastOptions || alreadyExists) {
+            $('#settings_add_extra_broadcast_type').attr('disabled', true);
+        } else {
+            $('#settings_add_extra_broadcast_type').attr('disabled', false);
+        }
+    });
 
     function renderBroadcastSettings() {
         getbroadcastOptions(function (broadcastOptions) {
@@ -1617,6 +1632,30 @@ $(function () {
             });
             $('#btn-save-broadcast-settings').click(saveBroadcastSettings);
         });
+    }
+
+    function addBroadcastType() {
+        var broadcastTypeInput = $('#settings_extra_broadcast_type');
+        var broadcastType = broadcastTypeInput.val().trim();
+
+        if(broadcastType) {
+            sln.call({
+                url: '/common/settings/broadcast/add_type',
+                type: 'POST',
+                data: {
+                    broadcast_type: broadcastType
+                },
+                success: function(data) {
+                    if(data.success) {
+                        broadcastTypeInput.val('');
+                        $('#settings_add_extra_broadcast_type').attr('disabled', true);
+                        LocalCache.broadcastOptions = null;
+                        renderBroadcastSettings();
+                    }
+                },
+                error: sln.showAjaxError
+            });
+        }
     }
 
     function saveBroadcastSettings() {

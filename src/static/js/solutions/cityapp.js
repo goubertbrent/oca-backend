@@ -155,7 +155,6 @@ $(function() {
     sln.configureDelayedInput($('.sln-set-events-key input'), saveCityAppSettings);
     sln.configureDelayedInput($('.sln-set-events-region input'), saveCityAppSettings);
 
-    $("#inbox").show();
     loadCityAppSettings();
 
     function menuPress() {

@@ -26,7 +26,7 @@ from rogerthat.rpc.service import ServiceApiException
 from rogerthat.to import ReturnStatusTO
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO
 from rogerthat.utils.service import create_service_identity_user
-from shop.to import NewsTO, OrderItemTO
+from shop.to import OrderItemTO
 from shop.exceptions import BusinessException
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
@@ -34,16 +34,6 @@ from solutions.common.bizz.news import get_news, put_news_item, delete_news, get
 from solutions.common.dal import get_solution_settings
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO
 from solutions.common.utils import is_default_service_identity
-from solutions.flex.bizz import get_all_news
-
-
-@rest("/common/news/all", "get", read_only_access=True, silent_result=True)
-@returns([NewsTO])
-@arguments()
-def load_news():
-    service_user = users.get_current_user()
-    settings = get_solution_settings(service_user)
-    return [NewsTO.create(n) for n in get_all_news(settings.main_language)]
 
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)

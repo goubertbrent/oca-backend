@@ -41,7 +41,9 @@ from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.service import get_service_interaction_def, get_service_identity
+from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import Beacon, App, ProfilePointer, ServiceProfile
+from rogerthat.pages.login import SetPasswordHandler
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
@@ -50,13 +52,15 @@ from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.utils import get_epoch_from_datetime, bizz_check
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
-from shop.bizz import is_admin
+from shop import SHOP_JINJA_ENVIRONMENT
+from shop.bizz import create_customer_signup, is_admin
+from shop.dal import get_all_city_customers
 from shop.business.i18n import shop_translate
+from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer
-from shop.to import CustomerLocationTO
-from shop.view import get_shop_context
+from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
+from shop.view import _get_organization_types, get_shop_context
 from solution_server_settings import get_solution_server_settings
-
 
 try:
     from cStringIO import StringIO
@@ -470,3 +474,99 @@ def rest_loyalty_scanned(user_email_hash, merchant_email, app_id):
         return ReturnStatusTO.create(False, e.message)
     else:
         return RETURNSTATUS_TO_SUCCESS
+
+
+class CustomerSigninHandler(webapp2.RequestHandler):
+
+    def get(self):
+        if users.get_current_user():
+            return self.redirect('/')
+
+        lang = get_languages_from_request(self.request)[0]
+        params = {
+            'language': lang
+        }
+        self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signin.html').render(params))
+
+
+class CustomerSignupHandler(webapp2.RequestHandler):
+
+    def get(self):
+        if users.get_current_user():
+            return self.redirect('/')
+
+        all_customers = get_all_city_customers()
+        lang = get_languages_from_request(self.request)[0]
+        solution_server_settings = get_solution_server_settings()
+        params = {
+            'language': lang,
+            'all_customers': all_customers,
+            'recaptcha_site_key': solution_server_settings.recaptcha_site_key
+        }
+        self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
+
+
+class CustomerSetPasswordHandler(SetPasswordHandler):
+
+    def return_error(self, message, **kwargs):
+        error_template = SHOP_JINJA_ENVIRONMENT.get_template('public/error.html')
+        language = get_languages_from_request(self.request)[0]
+        translated_message = shop_translate(language, message, **kwargs)
+        params = {
+            'language': language,
+            'message': translated_message
+        }
+        self.response.out.write(error_template.render(params))
+
+    def get(self):
+        email = self.request.get('email')
+        data = self.request.get('data')
+
+        try:
+            parsed_data = self.parse_and_validate_data(email, data)
+        except ExpiredUrlException as e:
+            return self.return_error("link_expired", action=e.action)
+        except AlreadyUsedUrlException as e:
+            return self.return_error("link_is_already_used", action=e.action)
+        except InvalidUrlException:
+            return self.return_error('invalid_url')
+
+        params = {
+            'name': parsed_data['n'],
+            'email': email,
+            'action': parsed_data['a'],
+            'data': data
+        }
+        set_password_template = SHOP_JINJA_ENVIRONMENT.get_template('public/set_password.html')
+        self.response.out.write(set_password_template.render(params))
+
+
+@rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)
+@returns(ReturnStatusTO)
+@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
+def customer_signup(city_customer_id, company, customer, recaptcha_token):
+    try:
+        create_customer_signup(city_customer_id, company, customer, recaptcha_token, accept_missing=True)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+@rest('/unauthenticated/osa/customer/org/types', 'get', read_only_access=True, authenticated=False)
+@returns(dict)
+@arguments(customer_id=int, language=unicode)
+def customer_get_editable_organization_types(customer_id, language):
+    try:
+        customer = Customer.get_by_id(customer_id)
+        organization_types = {}
+
+        if not language:
+            language = customer.language
+
+        for _type, label, _ in _get_organization_types():
+            if _type in customer.editable_organization_types:
+                organization_types[_type] = shop_translate(language, label.lower())
+
+        return organization_types
+    except CustomerNotFoundException:
+        return {}

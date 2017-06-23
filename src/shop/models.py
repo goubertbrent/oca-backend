@@ -43,7 +43,7 @@ from shop.business.i18n import SHOP_DEFAULT_LANGUAGE, shop_translate
 from shop.constants import PROSPECT_CATEGORIES
 from shop.exceptions import CustomerNotFoundException, NoSupportManagerException
 from shop.model_properties import ProspectCommentsProperty, ProspectComments, ProspectComment
-from solutions.common.bizz import OrganizationType
+from solutions.common.bizz import OrganizationType, SolutionModule
 
 
 def _normalize_vat_be(vat):
@@ -545,6 +545,45 @@ class Customer(db.Model):
         if is_city and service_customer:
             return service_customer.organization_type in self.editable_organization_types
         return False
+
+
+class CustomerSignup(db.Model):
+    DEFAULT_MODULES = [SolutionModule.BROADCAST, SolutionModule.BULK_INVITE,
+                       SolutionModule.QR_CODES, SolutionModule.STATIC_CONTENT,
+                       SolutionModule.WHEN_WHERE]
+
+    company_name = db.StringProperty()
+    company_organization_type = db.IntegerProperty()
+    company_address1 = db.StringProperty()
+    company_zip_code = db.StringProperty()
+    company_city = db.StringProperty()
+    company_vat = db.StringProperty()
+
+    customer_name = db.StringProperty()
+    customer_address1 = db.StringProperty()
+    customer_zip_code = db.StringProperty()
+    customer_city = db.StringProperty()
+    customer_email = db.StringProperty()
+    customer_telephone = db.StringProperty()
+    customer_website = db.StringProperty()
+    customer_facebook_page = db.StringProperty()
+
+    modules = db.StringListProperty(default=DEFAULT_MODULES)
+    timestamp = db.IntegerProperty()
+    done = db.BooleanProperty(indexed=True, default=False)
+    inbox_message_key = db.StringProperty(indexed=False)
+
+    @classmethod
+    def create_key(cls, main_service_customer, user_email):
+        return db.Key.from_path(cls.kind(), user_email, parent=main_service_customer.key())
+
+    @property
+    def city_customer(self):
+        return Customer(self.parent_key())
+
+    @property
+    def city(self):
+        return self.city_customer.city
 
 
 class Contact(db.Model):

@@ -70,11 +70,10 @@ from shop.bizz import search_customer, create_or_update_customer, \
     put_prospect, put_regio_manager, is_admin, is_payment_admin, dict_str_for_audit_log, link_prospect_to_customer, \
     list_history_tasks, put_hint, delete_hint, \
     get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, put_surrounding_apps, \
-    get_all_news, put_news, remove_news, create_contact, create_order, export_customers_csv, put_service, \
-    update_contact, \
-    put_regio_manager_team, user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
+    create_contact, create_order, export_customers_csv, put_service, update_contact, put_regio_manager_team, \
+    user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
-    regio_manager_has_permissions_to_team, user_has_permissions_to_question, get_customer_charges, is_team_admin
+    regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin, user_has_permissions_to_question
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -102,9 +101,9 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     ContactReturnStatusTO, CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
     CityBoundsReturnStatusTO, ShopAppTO, PointTO, ProspectsMapTO, TaskListTO, ProspectDetailsTO, ProspectReturnStatusTO, \
     RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, OrderAndInvoiceTO, \
-    RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, NewsTO, NewsReturnStatusTO, TaskTO, ProductTO, \
-    RegioManagerTeamTO, ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, \
-    LegalEntityTO, LegalEntityReturnStatusTO, CustomerChargesTO
+    RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, TaskTO, ProductTO, RegioManagerTeamTO, \
+    ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
+    LegalEntityReturnStatusTO, CustomerChargesTO
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
@@ -792,17 +791,6 @@ class OrderableAppsHandler(BizzManagerHandler):
         path = os.path.join(os.path.dirname(__file__), 'html', 'apps.html')
         context = get_shop_context(shop_apps=ShopApp.all(),
                                    js_templates=render_js_templates(['apps']))
-        self.response.out.write(template.render(path, context))
-
-
-class NewsHandler(BizzManagerHandler):
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'news.html')
-        context = get_shop_context(
-            js_templates=render_js_templates(['news/news', 'news/news_form', 'news/news_list', 'news/news_preview']))
         self.response.out.write(template.render(path, context))
 
 
@@ -2196,38 +2184,6 @@ def set_surrounding_apps(app):
     azzert(is_admin(gusers.get_current_user()))
     put_surrounding_apps(app)
     return RETURNSTATUS_TO_SUCCESS
-
-
-@rest("/internal/shop/rest/news/all", "get")
-@returns([NewsTO])
-@arguments()
-def load_news():
-    azzert(is_admin(gusers.get_current_user()))
-    return [NewsTO.create(n) for n in get_all_news()]
-
-
-@rest("/internal/shop/rest/news/put", "post")
-@returns(NewsReturnStatusTO)
-@arguments(title=unicode, content=unicode, youtube_id=unicode, image_url=unicode,
-           news_type=int, language=unicode, news_id=(int, long, NoneType))
-def save_news(title, content, youtube_id, image_url, news_type, language, news_id=None):
-    azzert(is_admin(gusers.get_current_user()))
-    try:
-        news = put_news(title, content, youtube_id, image_url, news_type, language, news_id)
-    except BusinessException, ex:
-        return NewsReturnStatusTO.create(False, ex)
-    return NewsReturnStatusTO.create(True, None, news)
-
-
-@rest("/internal/shop/rest/news/delete", "get")
-@returns(ReturnStatusTO)
-@arguments(news_id=(int, long, NoneType))
-def delete_news(news_id=None):
-    azzert(is_admin(gusers.get_current_user()))
-    if not news_id:
-        return ReturnStatusTO.create(False, u'The article does not exist (anymore).')
-    remove_news(news_id)
-    return ReturnStatusTO.create(True, None)
 
 
 @rest("/internal/shop/rest/product/translations", "get", silent_result=True)

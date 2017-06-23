@@ -20,9 +20,10 @@ import os
 import jinja2
 
 from shop.jinja_extensions import TranslateExtension
+from solutions.jinja_extensions import TranslateExtension as SolutionsTranslateExtension
 
 SHOP_TEMPLATES_FOLDER = os.path.join(os.path.dirname(__file__), 'html')
 SHOP_JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([SHOP_TEMPLATES_FOLDER,
                                     os.path.join(os.path.dirname(__file__), 'templates')]),
-    extensions=[TranslateExtension])
+    extensions=[TranslateExtension, SolutionsTranslateExtension])

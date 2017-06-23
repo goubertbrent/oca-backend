@@ -3,7 +3,7 @@
 {% translate language, "common", "broken-comment" %}<br>
 <b>{% translate language, "common", "broken-comment-instruction" %}</b>{% raw %}
 {{if via_rogerthat > 0}}
-<br><button class="btn btn-success via-rogerthat">{% endraw %}{% translate language, "common", "send-cancel-notification-via-rogerthat" %}{% raw %} (${via_rogerthat})</button> 
+<br><button class="btn btn-success via-rogerthat">{% endraw %}{% translate language, "common", "send-cancel-notification-via-rogerthat" %}{% raw %} (${via_rogerthat})</button>
 {{/if}}
 <table class="table table-striped">
     <thead>
@@ -26,7 +26,7 @@
             <td>
             	{{each $value.alternative_shifts}}
             	<button class="btn btn-primary move-shift" shift="${$value}">&rarr; ${$value}</button>&nbsp;
-            	{{/each}}	
+                {{/each}}
             	<button class="btn btn-success notified" shift="${$value}">{% endraw %}{% translate language, "common", "reservation-notified" %}{% raw %}</button>&nbsp;
             </td>
         </tr>

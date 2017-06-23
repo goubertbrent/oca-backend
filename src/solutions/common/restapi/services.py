@@ -29,18 +29,19 @@ from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.messaging import KeyValueTO
 from rogerthat.utils.channel import send_message_to_session
-from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import put_service, put_customer_with_service, audit_log, dict_str_for_audit_log, search_customer
+from shop.bizz import create_customer_service_to, audit_log, dict_str_for_audit_log, search_customer
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException
 from shop.exceptions import NotOperatingInCountryException, EmptyValueException, InvalidEmailFormatException, \
     NoPermissionException, ServiceNameTooBigException
 from shop.jobs.migrate_user import migrate as migrate_user
-from shop.models import Customer, Contact, Product, RegioManagerTeam
+from shop.models import Customer, Contact
 from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
-from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
+from solutions.common.bizz import OrganizationType, SolutionModule
+from solutions.common.bizz.service import create_customer_with_service, filter_modules, get_allowed_broadcast_types, \
+    get_allowed_modules, put_customer_service, set_customer_signup_done
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
@@ -50,26 +51,7 @@ from solutions.common.to.services import ModuleAndBroadcastTypesTO, ServiceStati
 from solutions.flex.bizz import get_services_statistics
 
 
-def get_allowed_broadcast_types(city_customer):
-    """
-    Args:
-        city_customer (Customer)
-    """
-    if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
-        return ASSOCIATION_BROADCAST_TYPES
-    else:
-        return DEFAULT_BROADCAST_TYPES
 
-
-def get_allowed_modules(city_customer):
-    """
-    Args:
-        city_customer (Customer)
-    """
-    if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
-        return SolutionModule.ASSOCIATION_MODULES
-    else:
-        return SolutionModule.POSSIBLE_MODULES
 
 
 @rest("/common/services/get_defaults", "get", read_only_access=True)
@@ -85,6 +67,25 @@ def get_modules_and_broadcast_types():
     organization_types = [KeyValueTO(unicode(t), ServiceProfile.localized_singular_organization_type(t, lang))
                           for t in city_customer.editable_organization_types]
     return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
+
+
+@rest('/common/customer/signup/get_defaults', 'get')
+@returns(ModuleAndBroadcastTypesTO)
+@arguments(signup_key=unicode)
+def rest_signup_get_modules_and_broadcast_types(signup_key):
+    modules_and_broadcast_types = get_modules_and_broadcast_types()
+    preselected_modules = []
+
+    signup = db.get(signup_key)
+    if signup:
+        preselected_modules = signup.modules
+
+    if preselected_modules:
+        for module in modules_and_broadcast_types.modules:
+            if module.key in preselected_modules:
+                module.is_default = True
+
+    return modules_and_broadcast_types
 
 
 @rest("/common/services/search", "post")
@@ -196,51 +197,24 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
     lang = city_sln_settings.main_language
-    customer_key = None
     customer = Customer.get_by_id(customer_id) if customer_id else None
     # check if the current user is in fact a city app
     if customer and not city_customer.can_edit_service(customer):
         logging.warn(u'Service {} tried to save service information for customer {}'.format(city_service_user, customer_id))
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
-    if not customer and organization_type not in city_customer.editable_organization_types:
-        organization_type = city_customer.editable_organization_types[0]
+
     success1 = False
     error_msg = None
     email_changed = False
     is_new_service = False
 
-    mods = [m for m in SolutionModule.MANDATORY_MODULES]
-    mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
-    modules = list(set(mods))
-
-    if SolutionModule.BROADCAST in modules and not broadcast_types:
-        modules.remove(SolutionModule.BROADCAST)
-
     try:
-        if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
-            product_code = Product.PRODUCT_SUBSCRIPTION_ASSOCIATION
-        else:
-            product_code = Product.PRODUCT_FREE_SUBSCRIPTION
-
-        team = RegioManagerTeam.get_by_id(city_customer.team_id)
-        if not team.legal_entity.is_mobicage:
-            if product_code == Product.PRODUCT_SUBSCRIPTION_ASSOCIATION:
-                from shop.products import create_sjup_product
-                p = create_sjup_product(team.legal_entity_id, "%s." % team.legal_entity_id)
-                p.put()
-                product_code = p.code
-            else:
-                from shop.products import create_free_product
-                p = create_free_product(team.legal_entity_id, "%s." % team.legal_entity_id)
-                p.put()
-                product_code = p.code
-
-        (customer, service, email_changed, is_new_service) \
- = put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language,
-                                        modules, broadcast_types, organization_type, city_customer.app_id,
-                                        city_sln_settings.currency, city_customer.country, city_customer.team_id,
-                                        product_code, customer_id, vat, website, facebook_page)
-        customer_key = customer.key()
+        modules = filter_modules(city_customer, modules, broadcast_types)
+        service = create_customer_service_to(name, address1, address1, city, zip_code, user_email, language, city_sln_settings.currency,
+                                             telephone, organization_type, city_customer.app_id, broadcast_types, modules)
+        (customer, email_changed, is_new_service) \
+ = create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code, city,
+                                language, organization_type, vat, website, facebook_page)
         success1 = True
     except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
@@ -265,13 +239,10 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
         if not success1:
             return ReturnStatusTO.create(False, error_msg)
 
-    def trans2():
-        # create/update service
-        put_service(customer, service, skip_module_check=True, search_enabled=False, skip_email_check=True)
-
     success2 = False
     try:
-        run_in_xg_transaction(trans2)
+        put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
+                             skip_email_check=True, rollback=is_new_service)
         success2 = True
     except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
@@ -282,8 +253,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     finally:
         if not success2:
             if is_new_service:
-                logging.warn('Failed to save new service service information, reverting changes...')
-                db.delete(db.GqlQuery("SELECT __key__ WHERE ANCESTOR IS KEY('%s')" % customer_key).fetch(None))
+                logging.warn('Failed to save new service service information, changes would be reverted...')
             return ReturnStatusTO.create(False, error_msg)
         else:
             if email_changed:
@@ -319,3 +289,75 @@ def rest_delete_service(service_email):
                               u'service_organization_type': customer.organization_type}],
                             si=service_identity)
     return RETURNSTATUS_TO_SUCCESS
+
+
+@rest('/common/signup/services/create', 'post', read_only_access=False)
+@returns(ReturnStatusTO)
+@arguments(signup_key=unicode, modules=[unicode], broadcast_types=[unicode])
+def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=None):
+    signup = db.get(signup_key)
+
+    city_service_user = users.get_current_user()
+    city_customer = get_customer(city_service_user)
+    city_sln_settings = get_solution_settings(city_service_user)
+    lang = city_sln_settings.main_language
+
+    azzert(city_sln_settings.can_edit_services(city_customer))
+    if not signup:
+        return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'signup_not_found'))
+
+    error_msg = None
+    try:
+        if not modules:
+            modules = signup.modules
+
+        if not broadcast_types:
+            broadcast_types = []
+
+        modules = filter_modules(city_customer, modules, broadcast_types)
+        service = create_customer_service_to(signup.customer_name, signup.customer_address1, None, signup.customer_city,
+                                             signup.customer_zip_code, signup.customer_email, lang, city_sln_settings.currency,
+                                             signup.customer_telephone, signup.company_organization_type, city_customer.app_id,
+                                             broadcast_types, modules=modules)
+        (customer, email_changed, is_new_service) \
+ = create_customer_with_service(city_customer, None, service, signup.company_name, signup.company_address1, None,
+                                signup.company_zip_code, signup.company_city, lang, signup.company_organization_type,
+                                signup.company_vat, signup.customer_website, signup.customer_facebook_page)
+    except EmptyValueException as ex:
+        val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
+        error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+    except ServiceNameTooBigException:
+        error_msg = translate(lang, SOLUTION_COMMON, 'name_cannot_be_bigger_than_n_characters', n=50)
+    except DuplicateCustomerNameException as ex:
+        error_msg = translate(lang, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
+    except NoPermissionException:
+        error_msg = translate(lang, SOLUTION_COMMON, 'no_permission')
+    except InvalidEmailFormatException as ex:
+        error_msg = translate(lang, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
+    except NotOperatingInCountryException as ex:
+        error_msg = translate(lang, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
+    except BusinessException as ex:
+        logging.debug('Failed to create service, BusinessException', exc_info=True)
+        error_msg = ex.message
+    except:
+        logging.exception('Failed to create service')
+        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
+    finally:
+        if error_msg:
+            return ReturnStatusTO.create(False, error_msg)
+        else:
+            try:
+                put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
+                                     skip_email_check=True, rollback=True)
+            except EmptyValueException as ex:
+                val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
+                error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+            except:
+                logging.exception('Could not save service service information')
+                error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
+            finally:
+                if error_msg:
+                    return ReturnStatusTO.create(False, error_msg)
+                else:
+                    set_customer_signup_done(city_customer, signup)
+                    return RETURNSTATUS_TO_SUCCESS

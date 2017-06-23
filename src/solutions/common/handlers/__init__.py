@@ -165,7 +165,7 @@ class ImageViewerHandler(webapp2.RequestHandler):
     def get(self):
         picture_url = self.request.get('p')
         if not picture_url:
-            self.redirect("/")
+            self.redirect("/ourcityapp")
             return
         jinja_template = JINJA_ENVIRONMENT.get_template('image_viewer.html')
         self.response.out.write(jinja_template.render({'picture_url': picture_url}))

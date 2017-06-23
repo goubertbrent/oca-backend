@@ -57,11 +57,12 @@ from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.models import App, ServiceIdentityStatistic, UserProfile
+from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
+from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, now, send_mail_via_mime, channel, get_epoch_from_datetime, send_mail
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
@@ -81,19 +82,21 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
     OrderAlreadyCanceledException, NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
-    RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity
+    RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
-    CustomerServiceTO, OrderItemTO
+    CustomerServiceTO, OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions.common.bizz import SolutionModule, common_provision, OrganizationType
+from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.jobs import delete_solution
-from solutions.common.dal import get_solution_settings
+from solutions.common.bizz.grecaptcha import recaptcha_verify
+from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.dal.hints import get_solution_hints
-from solutions.common.models import News
+from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.models.qanda import Question
-from solutions.common.to import ProvisionResponseTO
+from solutions.common.to import ProvisionResponseTO, SolutionInboxMessageTO
 from solutions.flex.bizz import create_flex_service
 
 try:
@@ -2486,40 +2489,6 @@ def export_customers_csv(google_user):
             logging.info(csv_string.getvalue())
 
 
-@returns(db.Query)
-@arguments()
-def get_all_news():
-    return News.all().order('-datetime')
-
-
-@arguments(title=unicode, content=unicode, youtube_id=unicode, image_url=unicode,
-           news_type=int, language=unicode, news_id=(int, long, NoneType))
-def put_news(title, content, youtube_id, image_url, news_type, language, news_id=None):
-    bizz_check(title, 'Please fill in a title')
-    bizz_check(content, 'Please fill in the news text')
-    if not news_id:
-        # Create a new news item
-        news = News()
-        news.datetime = now()
-    else:
-        news = News.get_by_id(news_id)
-    news.title = title
-    news.content = content
-    if news_type == News.TYPE_COACHING_SESSION:
-        news.youtube_id = youtube_id
-    elif news_type == News.TYPE_OTHER:
-        news.image_url = image_url
-    news.type = news_type
-    news.language = language
-    news.put()
-    return news
-
-
-@arguments(news_id=(int, long))
-def remove_news(news_id):
-    db.delete(News.create_key(news_id))
-
-
 @returns([RegioManager])
 @arguments(app_id=unicode)
 def get_regiomanagers_by_app_id(app_id):
@@ -2549,28 +2518,35 @@ def post_app_broadcast(service, app_ids, message, tester=None):
     run_in_transaction(trans, xg=True)
 
 
-
-def put_customer_with_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
-                              broadcast_types, organization_type, app_id, currency, country, team_id, product_code,
-                              customer_id=None, vat=None, website=None, facebook_page=None):
+def create_customer_service_to(name, address1, address2, city, zip_code, email, language, currency, phone_number,
+                               organization_type, app_id, broadcast_types, modules):
     service = CustomerServiceTO()
+
+    service.name = name
     service.address = address1
     if address2:
         service.address += '\n' + address2
     service.address += '\n' + zip_code + ' ' + city
+    service.email = email
+    service.language = language
+    service.currency = currency
+    service.phone_number = phone_number
+
+    service.organization_type = organization_type
     service.apps = [app_id, App.APP_ID_ROGERTHAT]
     service.broadcast_types = list(set(broadcast_types))
-    service.currency = currency
-    service.email = user_email
-    service.language = language
     service.modules = modules
-    service.name = name
-    service.organization_type = organization_type
-    service.phone_number = telephone
     service.app_infos = []
     service.current_user_app_infos = []
     service.managed_organization_types = []
 
+    validate_service(service)
+    return service
+
+
+def put_customer_with_service(service, name, address1, address2, zip_code, city, country, language,
+                              organization_type, vat, team_id, product_code, customer_id=None,
+                              website=None, facebook_page=None):
     def trans1():
         email_has_changed = False
         is_new = False
@@ -2583,21 +2559,21 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
         customer.put()
         if customer_id:
             # Check if this city has access to this association
-            if app_id != customer.app_id:
+            if customer.app_id not in service.apps:
                 logging.warn('Tried to save service information for service %s (%s)', customer.name, customer.app_ids)
                 raise NoPermissionException('Create association')
 
             # save the service.
-            if user_email != customer.service_email:
-                if user_email != customer.user_email:
+            if service.email != customer.service_email:
+                if service.email != customer.user_email:
                     email_has_changed = True
 
-            update_contact(customer.id, Contact.get_one(customer.key()).id, customer.name, u'', user_email, telephone)
+            update_contact(customer.id, Contact.get_one(customer.key()).id, customer.name, u'', service.email, service.phone_number)
         else:
             is_new = True
             # create a new service. Name of the customer, contact, and service will all be the same.
 
-            contact = create_contact(customer, name, u'', user_email, telephone)
+            contact = create_contact(customer, name, u'', service.email, service.phone_number)
 
             # Create an order with only one order item
             order_items = list()
@@ -2616,9 +2592,106 @@ def put_customer_with_service(name, address1, address2, zip_code, city, user_ema
             order.put()
         return customer, email_has_changed, is_new
 
-    validate_service(service)
     customer, email_changed, is_new_association = run_in_xg_transaction(trans1)
-    return customer, service, email_changed, is_new_association
+    return customer, email_changed, is_new_association
+
+
+def get_signup_summary(lang, customer_signup):
+    """Get a translated signup summary."""
+    def trans(term, *args, **kwargs):
+        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
+
+    org_type = customer_signup.company_organization_type
+    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang)
+
+    summary = u'{}\n'.format(trans('signup_application'))
+    summary = u'{}\n'.format(trans('signup_inbox_message_header',
+                                   name=customer_signup.company_name,
+                                   org_type_name=org_type_name))
+
+    summary += u'\n{}\n'.format(org_type_name)
+    summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
+    summary += u'{}: {}\n'.format(trans('name'), customer_signup.company_name)
+    summary += u'{}: {}\n'.format(trans('address'), customer_signup.company_address1)
+    summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.company_zip_code)
+    summary += u'{}: {}\n'.format(trans('city'), customer_signup.company_city)
+    summary += u'{}: {}\n'.format(trans('vat'), customer_signup.company_vat)
+    summary += u'{}: {}\n'.format(trans('Website'), customer_signup.customer_website)
+    summary += u'{}: {}\n'.format(trans('Facebook page'), customer_signup.customer_facebook_page)
+
+    summary += u'\n{}\n'.format(trans('business-manager'))
+    summary += u'{}: {}\n'.format(trans('name'), customer_signup.customer_name)
+    summary += u'{}: {}\n'.format(trans('address'), customer_signup.customer_address1)
+    summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.customer_zip_code)
+    summary += u'{}: {}\n'.format(trans('city'), customer_signup.customer_city)
+    summary += u'{}: {}\n'.format(trans('Email'), customer_signup.customer_email)
+    summary += u'{}: {}\n'.format(trans('Phone number'), customer_signup.customer_telephone)
+
+    return summary
+
+
+def _send_new_customer_signup_message(service_user, customer_signup):
+    signup_key = unicode(customer_signup.key())
+
+    service_identity = ServiceIdentity.DEFAULT
+    sln_settings = get_solution_settings(service_user)
+    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+
+    lang = sln_settings.main_language
+    summary = get_signup_summary(lang, customer_signup)
+
+    si = get_default_service_identity(service_user)
+    user_details = UserDetailsTO.create(service_user.email(), si.name, lang, si.avatarUrl, si.app_id)
+    message = create_solution_inbox_message(service_user, service_identity,
+                                            SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP,
+                                            signup_key, True, [user_details], now(), summary, False)
+
+    message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
+    sm_data = [{u'type': u'solutions.common.customer.signup.update'},
+               {u'type': u'solutions.common.messaging.update',
+                u'message': serialize_complex_value(message_to, SolutionInboxMessageTO, False)}]
+
+    channel.send_message(service_user, sm_data, service_identity=service_identity)
+    return message.solution_inbox_message_key
+
+
+@returns()
+@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
+def create_customer_signup(city_customer_id, company, customer, recaptcha_token):
+    if not recaptcha_verify(recaptcha_token):
+        raise BusinessException('Cannot verify recaptcha response')
+
+    city_customer = Customer.get_by_id(city_customer_id)
+    user_email = customer.user_email.strip()
+    signup_key = CustomerSignup.create_key(city_customer, user_email)
+    previous_signup = db.get(signup_key)
+    another_customer = Customer.list_by_user_email(user_email).fetch(limit=1)
+    if another_customer or previous_signup:
+        message = shop_translate(customer.language, 'signup_email_is_already_used')
+        raise BusinessException(message)
+
+    signup = CustomerSignup(key=signup_key)
+
+    signup.company_name = company.name
+    signup.company_organization_type = company.organization_type
+    signup.company_address1 = company.address1
+    signup.company_zip_code = company.zip_code
+    signup.company_city = company.city
+    signup.company_vat = company.vat
+
+    signup.customer_name = customer.name
+    signup.customer_address1 = customer.address1
+    signup.customer_zip_code = customer.zip_code
+    signup.customer_city = customer.city
+    signup.customer_email = user_email
+    signup.customer_telephone = customer.telephone
+    signup.customer_website = customer.website
+    signup.customer_facebook_page = customer.facebook_page
+
+    signup.timestamp = now()
+    signup.inbox_message_key = _send_new_customer_signup_message(city_customer.service_user,
+                                                                 signup)
+    signup.put()
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):

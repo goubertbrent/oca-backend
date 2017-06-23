@@ -70,11 +70,13 @@ from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.consts import OUR_CITY_APP_COLOUR
-from solutions.common.dal import get_solution_settings
+from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR
+from solutions.common.dal import get_solution_settings, get_restaurant_menu
+from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
 from solutions.common.models import SolutionSettings, SolutionIdentitySettings, SolutionMainBranding, \
     SolutionBrandingSettings, SolutionLogo, FileBlob, SolutionNewsPublisher
+from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
 from xhtml2pdf import pisa
@@ -161,6 +163,8 @@ class SolutionModule(Enum):
         APPOINTMENT: 4,
         PHARMACY_ORDER: 5,
     }
+
+    FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA}
 
     @classmethod
     def all(cls):
@@ -593,9 +597,9 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 azzert(db.is_in_transaction())
             bizz = importlib.import_module("solutions.%s.bizz" % sln_settings.solution)
-            bizz.provision(service_user, friends)
-            if must_send_updates_to_flex:
-                channel.send_message(cur_user, 'common.provision.success')
+            needs_reload = bizz.provision(service_user, friends)
+            if must_send_updates_to_flex or needs_reload:
+                channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
         except:
             if must_send_updates_to_flex:
                 channel.send_message(cur_user, 'common.provision.failed',
@@ -772,8 +776,8 @@ def create_pdf(src, path, default_css=None):
     return output_stream.getvalue()
 
 
-def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachments, attachment_types,
-               attachment_names):
+def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachments=None,
+               attachment_types=None, attachment_names=None):
     msg = MIMEMultipart('mixed')
     msg['Subject'] = subject
     msg['From'] = from_email
@@ -929,3 +933,84 @@ def delete_news_publisher(app_user, service_user, solution):
     if publisher:
         db.delete(publisher)
         revoke_app_user_role(app_user, POKE_TAG_BROADCAST_CREATE_NEWS)
+
+
+@returns()
+@arguments(sln_settings=SolutionSettings, solution=unicode)
+def set_default_broadcast_types(sln_settings, solution=SOLUTION_COMMON):
+    if not sln_settings.broadcast_types:
+        sln_settings.broadcast_types = []
+        for broadcast_type in DEFAULT_BROADCAST_TYPES:
+            translated = common_translate(sln_settings.main_language, solution, broadcast_type)
+            sln_settings.broadcast_types.append(translated)
+
+
+@returns(SolutionOrderSettings)
+@arguments(sln_settings=SolutionSettings)
+def set_advanced_order_settings(sln_settings):
+    order_settings = get_solution_order_settings(sln_settings)
+    order_settings.order_type = ORDER_TYPE_ADVANCED
+    service_user = sln_settings.service_user
+    menu = get_restaurant_menu(service_user)
+
+    if not menu:
+        from solutions.common.bizz.menu import _put_default_menu
+        _put_default_menu(service_user)
+    SolutionOrderWeekdayTimeframe.create_default_timeframes_if_nessecary(service_user, sln_settings.solution)
+
+    return order_settings
+
+
+@returns()
+@arguments(sln_settings=SolutionSettings, module=unicode)
+def activate_solution_module(sln_settings, module):
+    modules_to_put = sln_settings.modules_to_put
+    modules_to_remove = sln_settings.modules_to_remove
+
+    if module not in modules_to_put:
+        modules_to_put.append(module)
+    if module in modules_to_remove:
+        modules_to_remove.remove(module)
+
+
+@returns()
+@arguments(sln_settings=SolutionSettings, module=unicode)
+def deactivate_solution_module(sln_settings, module):
+    modules_to_put = sln_settings.modules_to_put
+    modules_to_remove = sln_settings.modules_to_remove
+
+    if module in modules_to_put:
+        modules_to_put.remove(module)
+    if module not in modules_to_remove:
+        modules_to_remove.append(module)
+
+
+@returns()
+@arguments(service_user=users.User, module=unicode, enabled=bool)
+def enable_or_disable_solution_module(service_user, module, enabled):
+    """Add or remove the module from solution settings"""
+    if module not in SolutionModule.FUNCTIONALITY_MODUELS:
+        return
+
+    sln_settings = get_solution_settings(service_user)
+    # for broadcast module, it can be enabled only
+    if module == SolutionModule.BROADCAST:
+        if enabled:
+            set_default_broadcast_types(sln_settings)
+        else:
+            return
+
+    to_put = []
+    if enabled:
+        activate_solution_module(sln_settings, module)
+        if module == SolutionModule.ORDER:
+            order_settings = set_advanced_order_settings(sln_settings)
+            if order_settings:
+                to_put.append(order_settings)
+    else:
+        deactivate_solution_module(sln_settings, module)
+
+    sln_settings.updates_pending = True
+    to_put.append(sln_settings)
+    put_and_invalidate_cache(*to_put)
+    broadcast_updates_pending(sln_settings)

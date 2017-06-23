@@ -41,9 +41,10 @@ from rogerthat.utils import bizz_check, channel
 from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending, delete_file_blob, create_file_blob
-from solutions.common.consts import UNIT_PIECE, UNITS
+from solutions.common.bizz import broadcast_updates_pending, delete_file_blob, create_file_blob, SolutionModule
+from solutions.common.consts import UNIT_PIECE, UNITS, ORDER_TYPE_ADVANCED
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
+from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import RestaurantMenu, SolutionSettings, SolutionMainBranding
 from solutions.common.models.properties import MenuCategories, MenuCategory, MenuItem
 from solutions.common.to import MenuTO
@@ -388,3 +389,22 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
         return None
 
     return run_in_xg_transaction(trans)
+
+
+@returns(bool)
+@arguments(sln_settings=SolutionSettings)
+def menu_is_visible(sln_settings):
+    modules_to_remove = sln_settings.modules_to_remove
+    if SolutionModule.MENU in modules_to_remove:
+        return False
+
+    modules = sln_settings.modules
+    if SolutionModule.MENU in modules:
+        return True
+
+    if SolutionModule.ORDER in modules:
+        order_settings = get_solution_order_settings(sln_settings)
+        if order_settings.order_type == ORDER_TYPE_ADVANCED:
+            return True
+
+    return False

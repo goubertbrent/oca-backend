@@ -4,6 +4,19 @@
     }
 </style>
 <section id="section_settings_broadcast" style="display: none;">
+    <form class="form-horizontal">
+        <label for="service_broadcast_types" class="control-label" style="text-align: left;">{% translate language, "common", "add_broadcast_type" %}</label>
+        <div class="control-group">
+            <div class="controls">
+                <input type="text" id="settings_extra_broadcast_type" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"
+                            style="width: 292px;" required minlength="3">
+                <button type="button" id="settings_add_extra_broadcast_type" class="btn btn-default" disabled>
+                        <i class="fa fa-plus"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+    <hr />
     <!-- taken from inbox settings section -->
     <div name="broadcast_types">
     </div>

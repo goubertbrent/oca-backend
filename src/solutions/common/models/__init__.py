@@ -53,6 +53,7 @@ class SolutionInboxMessage(db.Model):
     CATEGORY_RESTAURANT_RESERVATION = 'restaurant_reservation'
     CATEGORY_SANDWICH_BAR = 'sandwich_bar'
     CATEGORY_AGENDA = 'agenda'
+    CATEGORY_CUSTOMER_SIGNUP = 'customer_signup'
 
     ICON_NAMES = {CATEGORY_APPOINTMENT: u'fa-calendar-plus-o',
                   CATEGORY_ASK_QUESTION: u'fa-comments-o',
@@ -64,7 +65,8 @@ class SolutionInboxMessage(db.Model):
                   CATEGORY_REPAIR: u'fa-wrench',
                   CATEGORY_RESTAURANT_RESERVATION: u'fa-cutlery',
                   CATEGORY_SANDWICH_BAR: u'hamburger',
-                  CATEGORY_AGENDA: u'fa-book'}
+                  CATEGORY_AGENDA: u'fa-book',
+                  CATEGORY_CUSTOMER_SIGNUP: u'fa-sign-in'}
 
     TOPICS = {CATEGORY_APPOINTMENT: u'appointment',
               CATEGORY_ASK_QUESTION: u'ask-question',
@@ -76,7 +78,8 @@ class SolutionInboxMessage(db.Model):
               CATEGORY_REPAIR: u'repair',
               CATEGORY_RESTAURANT_RESERVATION: u'reserve',
               CATEGORY_SANDWICH_BAR: u'order-sandwich',
-              CATEGORY_AGENDA: u'agenda'}
+              CATEGORY_AGENDA: u'agenda',
+              CATEGORY_CUSTOMER_SIGNUP: u'Customer'}
 
     category = db.StringProperty(indexed=False)  # only filled in on parent message
     category_key = db.StringProperty(indexed=False)  # only filled in on parent message
@@ -284,6 +287,8 @@ class SolutionSettings(SolutionIdentitySettings):
     put_identity_pending = db.BooleanProperty(indexed=True, default=False)
     provisioned_modules = db.StringListProperty()
     modules = db.StringListProperty()
+    modules_to_put = db.StringListProperty(default=[])
+    modules_to_remove = db.StringListProperty(default=[])
 
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)
@@ -628,22 +633,6 @@ def s_solution_email_settings(stream, app):
 
 
 register(SolutionEmailSettings, s_solution_email_settings, ds_solution_email_settings)
-
-
-class News(db.Model):
-    title = db.StringProperty(indexed=False)
-    datetime = db.IntegerProperty()
-    content = db.TextProperty(indexed=False)
-    youtube_id = db.StringProperty(indexed=False)
-    image_url = db.StringProperty(indexed=False)
-    type = db.IntegerProperty(indexed=False)
-    language = db.StringProperty()
-    TYPE_COACHING_SESSION = 1
-    TYPE_OTHER = 2
-
-    @classmethod
-    def create_key(cls, news_id):
-        return db.Key.from_path(cls.kind(), news_id)
 
 
 class FileBlob(db.Model):

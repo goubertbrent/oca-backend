@@ -133,7 +133,7 @@ class LoyaltySlidePreviewHandler(webapp2.RequestHandler):
         service_identity = session_.service_identity
         slide_id = self.request.get('i')
         if not slide_id:
-            self.redirect("/")
+            self.redirect("/ourcityapp")
             return
         slide_id = long(slide_id)
         if is_default_service_identity(service_identity):
@@ -145,7 +145,7 @@ class LoyaltySlidePreviewHandler(webapp2.RequestHandler):
             return slide
         slide = db.run_in_transaction(trans)
         if not slide:
-            self.redirect("/")
+            self.redirect("/ourcityapp")
             return
         server_settings = get_server_settings()
         jinja_template = JINJA_ENVIRONMENT.get_template('loyalty_preview.html')

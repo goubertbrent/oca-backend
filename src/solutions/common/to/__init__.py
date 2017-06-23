@@ -1014,3 +1014,15 @@ class AppUserRolesTO(object):
         if not any([calendar.id == c.id for c in self.calendars]):
             self.calendars.append(calendar)
             self.calendar_admin = True
+
+
+class CustomerSignupTO(object):
+    inbox_message_key = unicode_property('1')
+    key = unicode_property('2')
+
+    @classmethod
+    def from_model(cls, signup):
+        to = cls()
+        to.inbox_message_key = signup.inbox_message_key
+        to.key = unicode(signup.key())
+        return to

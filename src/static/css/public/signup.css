@@ -1,0 +1,6 @@
+@media (min-width: 1200px) {
+    [class*="span"] {
+        margin-left: 0px;
+        max-width: 600px;
+    }
+}

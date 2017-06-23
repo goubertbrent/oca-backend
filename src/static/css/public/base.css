@@ -1,0 +1,85 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+}
+#main_container {
+    min-height: 100%;
+    position: relative;
+    background: url(/static/images/public/background.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+#header {
+    height: 100%;
+    width: 100%;
+    background-color: #5cc4bf;
+}
+#body {
+    padding: 20px;
+    padding-bottom: 100px;   /* Height of the footer */
+}
+#logo {
+    margin: 15px;
+
+}
+#home-link {
+    margin: 15px;
+    text-decoration: none;
+}
+
+form {
+    margin: 0px;
+}
+
+.white-text {
+    color: white;
+}
+
+.white-box {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #44ca9b;
+}
+
+.box-small-width {
+    max-width: 350px;
+}
+
+.btn-wizard {
+    background: #5cc4bf;
+    color: white;
+}
+
+.btn-wizard:hover, .btn-wizard:focus, .btn-wizard:active {
+    background: #44918d;
+    color: white;
+}
+
+[class*="span"] {
+    margin-left: 0px;
+}
+
+@media (max-width: 767px) {
+    /*
+    for fixing modal width on small screens
+    http://stackoverflow.com/questions/10437151/twitter-bootstrap-modal-on-mobile-devices
+    */
+    .modal {
+        position: fixed;
+        top: 3%;
+        right: 3%;
+        left: 3%;
+        width: auto;
+        margin: 0;
+    }
+    .modal-body {
+        height: 60%;
+        max-height: 350px;
+        padding: 15px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}

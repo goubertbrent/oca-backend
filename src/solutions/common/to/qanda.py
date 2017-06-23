@@ -62,6 +62,7 @@ class QuestionReplyTO(object):
 class ModuleTO(object):
     key = unicode_property('1')
     label = unicode_property('2')
+    is_default = bool_property('3', default=False)
 
     @staticmethod
     def fromArray(obj):

@@ -2136,7 +2136,7 @@ $(function () {
                 success: function (result) {
                     sln.hideProcessing();
                     if(result.errormsg && !result.success) {
-                        sln.alert(result.errormsg);
+                        sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                         // re-enable the submit button
                         elemButtonSubmit.attr('disabled', false);
                         return;

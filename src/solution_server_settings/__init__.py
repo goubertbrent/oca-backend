@@ -144,6 +144,12 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                       doc="Stripe secret key",
                                       order=1402)
 
+    recaptcha_site_key = add_meta(db.StringProperty(indexed=False),
+                                  doc="Google ReCaptcha site key",
+                                  order=1501)
+    recaptcha_secret_key = add_meta(db.StringProperty(indexed=False),
+                                    doc="Google ReCaptcha secret key",
+                                    order=1502)
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")

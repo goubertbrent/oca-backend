@@ -530,7 +530,7 @@ var createLib = function() {
                         var control_group = $('#input_group', modal);
                         validated = sln.validate(control_group, inputText, T('required'));
                     }
-                    validateInput();
+                    validated = message && message.trim() !== '';
                     inputText.bind('input propertychange', validateInput);
                 }
             });
@@ -838,7 +838,8 @@ var createLib = function() {
             };
             var tagName = input.prop('tagName');
             var inputType = input.attr('type') ? input.attr('type').toLowerCase() : '';
-            if((tagName === "INPUT" && (inputType === "text" || inputType == 'search')) || tagName === "TEXTAREA") {
+            var editableInputTypes = ['text', 'search', 'email', 'tel', 'url', 'number'];
+            if((tagName === "INPUT" && (editableInputTypes.indexOf(inputType) !== -1)) || tagName === "TEXTAREA") {
                 input.keyup(event_handler);
                 input.bind('paste', event_handler);
             } else if (tagName === "SELECT" || tagName === 'INPUT' && inputType === 'number') {
@@ -1046,11 +1047,11 @@ $(document).ready(function() {
     sln = createLib();
     sln.registerMsgCallback(function(data) {
         if(data.type == 'rogerthat.system.logout') {
-            window.location.assign(window.location.origin);
+            window.location.assign(window.location.origin + '/ourcityapp');
         } else if(data.type == 'rogerthat.system.dologout') {
             $.ajax({
                 hideProcessing: true,
-                url: "/logout",
+                url: "/logout?continue=ourcityapp",
                 type: "GET",
                 success: function(data, textStatus, XMLHttpRequest) {
                     window.location.reload();

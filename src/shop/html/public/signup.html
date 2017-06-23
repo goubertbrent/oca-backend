@@ -1,0 +1,160 @@
+{% extends 'public/base.html' %}
+
+{% block title %}{% translate language, "common", "signup" %}{% endblock%}
+
+{% block css %}
+    <link rel="stylesheet" href="/static/css/public/signup.css">
+{% endblock %}
+{% block js %}
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script>
+
+    var SignupTranslations = {
+        SIGNUP_SUCCCESS: '{% translate language, "common", "your_registration_request_submitted" %}',
+    };
+
+    </script>
+{% endblock %}
+
+{% block content %}
+            <div class="span12" style="float: none; margin: 0 auto;">
+                <div class="span12">
+                    <h1 class="white-text">{% translate language, "common", "signup" %}</h2>
+                    <p id="signup_note" class="white-text" style="word-wrap: break-word;" align="justify">
+                        {% translate language, "common", "signup_note" %}
+                    </p>
+                </div>
+
+                <div id="signup_box" class="span12 white-box">
+                    <form id="signup_form" class="form-horizontal">
+                        <div id="tab0">
+                            <div class="control-group">
+                                <div class="controls">
+                                    <h4>{% translate language, "common", "application" %}</h4>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label for="city" class="control-label">{% translate language, "common", "city" %}</label>
+                                <div class="controls">
+                                    <select id="city" class="input-block-level" required>
+                                        <option value="">{% translate language, "common", "Select..." %}</option>
+                                        {% for customer in all_customers %}
+                                        <option value="{{ customer.id }}" city={{ customer.city }}>{{ customer.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="organization_types" class="control-group" style="display: none;">
+                                <label for="organization_type" class="control-label">{% translate language, "common", "organization_type" %}</label>
+                                <div class="controls">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="tab1" style="display: none;">
+                            <div class="control-group">
+                                <div class="controls">
+                                    <h4>{% translate language, "common", "enterprise" %}</h4>
+                                </div>
+                            </div>
+                            <div id="enterprise">
+                                <div class="control-group">
+                                    <label for="enterprise_name" class="control-label">{% translate language, "common", "reservation-name" %}</label>
+                                    <div class="controls">
+                                        <input id="enterprise_name" type="text" class="input-block-level" minlength="3" maxlength="50" required/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="enterprise_address1" class="control-label">{% translate language, "common", "address" %}</label>
+                                    <div class="controls">
+                                        <input id="enterprise_address1" type="text" class="input-block-level"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="enterprise_zip_code" class="control-label">{% translate language, "common", "zip_code" %}</label>
+                                    <div class="controls">
+                                        <input id="enterprise_zip_code" type="number" class="input-block-level"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="enterprise_city" class="control-label">{% translate language, "common", "city" %}</label>
+                                    <div class="controls">
+                                        <input id="enterprise_city" type="text" class="input-block-level"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="enterprise_vat" class="control-label">{% translate language, "common", "vat" %}</label>
+                                    <div class="controls">
+                                        <input id="enterprise_vat" type="text" class="input-block-level"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="tab2" style="display: none;">
+                            <div class="control-group">
+                                <div class="controls">
+                                    <h4>{% translate language, "common", "entrepreneur" %}</h4>
+                                </div>
+                            </div>
+                            <div id="entrepreneur">
+                                <div class="control-group">
+                                    <label for="entrepreneur_name" class="control-label">{% translate language, "common", "reservation-name" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_name" class="input-block-level" type="text" minlength="3" maxlength="50" required/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_address1" class="control-label">{% translate language, "common", "address" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_address1" type="text" class="input-block-level"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_zip_code" class="control-label">{% translate language, "common", "zip_code" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_zip_code" type="number" class="input-block-level"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_city" class="control-label">{% translate language, "common", "city" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_city" type="text" class="input-block-level" required/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_user_email" class="control-label">{% translate language, "common", "Email" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_user_email" type="email" class="input-block-level" required/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_telephone" class="control-label">{% translate language, "common", "Phone number" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_telephone" type="tel" pattern="^[0-9\-\+\s\(\)]*$" class="input-block-level" required/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_website" class="control-label">{% translate language, "common", "Website" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_website" type="text" class="input-block-level"/>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="entrepreneur_facebook_page" class="control-label">{% translate language, "common", "Facebook page" %}</label>
+                                    <div class="controls">
+                                        <input id="entrepreneur_facebook_page" type="text" class="input-block-level"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr />
+                        <div style="display: none;" class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="signupCallback" data-size="invisible"></div>
+                        <button id="signup" style="display: none;" class="btn btn-wizard pull-right" type="button">{% translate language, "common", "Submit" %} <i class="icon-ok icon-white"></i></button>
+                        <button id="next" class="btn btn-wizard pull-right" type="button">{% translate language, "common", "Next" %} <i class="icon-circle-arrow-right icon-white"></i></button>
+                        <button id="back" style="display: none;" class="btn btn btn-wizard pull-left" type="button"><i class="icon-circle-arrow-left icon-white"></i> {% translate language, "common", "back" %}</button>
+                        <div class="clearfix"></div>
+                    </form>
+
+                    <script src="/static/js/public/signup.js"></script>
+                </div>
+            </div>
+{% endblock %}

@@ -35,7 +35,6 @@ from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMEN
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language, put_avatar_if_needed
 from solutions.common.dal import get_solution_settings
-from solutions.common.models import News
 from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
@@ -104,14 +103,26 @@ DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_pa
                   }
 
 
-@returns(NoneType)
+@returns(bool)
 @arguments(service_user=users.User, friends=[BaseMemberTO], transactional=bool)
 def provision(service_user, friends=None, transactional=True):
+    needs_reload = False
     with users.set_user(service_user):
         default_lang = get_default_language()
         sln_settings = get_and_complete_solution_settings(service_user, SOLUTION_FLEX)
         put_avatar_if_needed(service_user)
         main_branding = get_and_store_main_branding(service_user)
+
+        if sln_settings.modules_to_put or sln_settings.modules_to_remove:
+            needs_reload = True
+            for module in sln_settings.modules_to_put:
+                if module not in sln_settings.modules:
+                    sln_settings.modules.append(module)
+            for module in sln_settings.modules_to_remove:
+                if module in sln_settings.modules:
+                    sln_settings.modules.remove(module)
+            sln_settings.modules_to_put = []
+            sln_settings.modules_to_remove = []
 
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
@@ -127,6 +138,7 @@ def provision(service_user, friends=None, transactional=True):
 
         system.publish_changes(friends)
         logging.info('Service populated!')
+    return needs_reload
 
 
 @returns(ProvisionResponseTO)
@@ -152,10 +164,6 @@ def create_flex_service(email, name, address, phone_number, languages, currency,
                                              broadcast_types, apps, owner_user_email=owner_user_email,
                                              search_enabled=search_enabled, qualified_identifier=qualified_identifier,
                                              broadcast_to_users=broadcast_to_users)
-
-
-def get_all_news(language):
-    return News.all().filter('language', language).order('-datetime')
 
 
 @returns(AssociationStatistic)

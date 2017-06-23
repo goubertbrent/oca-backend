@@ -72,12 +72,12 @@ DEFAULT_JS_TEMPLATES = ['inbox_messages',
                         'shop/apps',
                         'shop/shopping_cart',
                         'shop/product',
-                        'news/news_item',
                         'settings/settings_branding',
                         'settings/settings_branding_preview',
                         'settings/app_user_roles',
                         'settings/app_user_add_roles',
-                        'settings/try_publish_changes'
+                        'settings/try_publish_changes',
+                        'functionalities/functionality'
                         ]
 
 MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
@@ -106,6 +106,7 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                                  'broadcast/news_stats_row'],
                                SolutionModule.CITY_APP: ['services/service',
                                                          'services/service_form',
+                                                         'services/modules_list',
                                                          'services/service_search',
                                                          'settings/app_settings'],
                                SolutionModule.CITY_VOUCHERS : ['city_vouchers/city_vouchers_list',
@@ -226,11 +227,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def get(self):
         service_user = users.get_current_user()
         if not service_user:
-            self.redirect("/")
+            self.redirect("/ourcityapp")
             return
         sln_settings = get_solution_settings(service_user)
         if not sln_settings or sln_settings.solution != SOLUTION_FLEX:
-            self.redirect("/")
+            self.redirect("/ourcityapp")
             return
 
         # only a shop user can update the loyalty type
@@ -361,6 +362,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                           SolutionOrderSettingsTO.fromModel(order_settings, sln_settings.main_language),
                           SolutionOrderSettingsTO, False)),
                   'modules': json.dumps(sln_settings.modules),
+                  'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
                   'hide_menu_tab': SolutionModule.MENU not in sln_settings.modules
                                    and SolutionModule.ORDER in sln_settings.modules
                                    and (
@@ -388,7 +390,7 @@ class FlexLogoutHandler(SessionHandler):
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
         if not sln_settings or sln_settings.solution != SOLUTION_FLEX:
-            self.redirect("/logout")
+            self.redirect("/logout?continue=ourcityapp")
             return
 
         session_ = users.get_current_session()
@@ -396,8 +398,8 @@ class FlexLogoutHandler(SessionHandler):
             session_ = set_service_identity(session_, None)
 
         if not sln_settings.identities:
-            self.redirect("/logout")
+            self.redirect("/logout?continue=ourcityapp")
             return
 
         send_message_to_session(service_user, session_, u"solutions.common.locations.update", si=None)
-        self.redirect("/")
+        self.redirect('/ourcityapp')

@@ -17,7 +17,10 @@
     <link rel="stylesheet" type="text/css" href="/static/js/slick/slick.css"/>
     <link rel="stylesheet" type="text/css" href="/static/js/slick/slick-theme.css"/>
     <link rel="stylesheet" type="text/css" href="/static/js/bower_components/cropper/dist/cropper.min.css"/>
-    <link href="/static/css/solutions/flex/news.css" rel="stylesheet">
+    {% if customer.country == 'BE' %}
+    <link href="https://fonts.googleapis.com/css?family=Roboto:700" rel="stylesheet">
+    <link href="/static/css/solutions/flex/functionalities.css" rel="stylesheet">
+    {% endif %}
 {%if debug or appscale %}
 <script src='/_ah/channel/jsapi'></script>
 {%else%}
@@ -66,6 +69,7 @@ var LEGAL_ENTITY_CURRENCY = "{{ LEGAL_ENTITY_CURRENCY }}";
 var CONSTS = {{ CONSTS_JSON }};
 var orderSettings = {{ order_settings_json }};
 var MODULES = {{ modules }};
+var PROVISIONED_MODULES = {{ provisioned_modules }};
 var VAT_PCT = {{ VAT_PCT }};
 var IS_MOBICAGE_LEGAL_ENTITY = {% if IS_MOBICAGE_LEGAL_ENTITY %}true{% else %}false{% endif %};
 var ACTIVE_APPS = {{ active_apps }};
@@ -94,11 +98,16 @@ var modules = {};
         <div class="container" style="padding-bottom:80px;">
             <div class="navbar navbar-fixed-top">
                 <div class="navbar-inner" {% if debug %}style="background: #e5ffe5;"{% endif %}>
-                    <a class="brand" {% if not loyalty %}href="#/news"{% else %}href="#"{% endif %}>
-                        {% translate language, "flex", "dashboard" %}{% if debug %} - dev{% endif %}</a>
                     <ul id="topmenu" class="nav">
 
 {% if not is_layout_user %}
+                        {% if customer.country == 'BE' %}
+                        <li menu="functionalities">
+                            <a href="#functionalities">
+                                {% translate language, "common", "functionalities" %}
+                            </a>
+                        </li>
+                        {% endif %}
 {% if sln_settings.uses_inbox() %}
                         <li menu="inbox">
                             <a href="#" help="OyWCQ7nh00o">
@@ -187,8 +196,16 @@ var modules = {};
                         </li>
 {% endif %}
 {% if not loyalty %}
+    {% if customer.country == 'BE' %}
+        <!-- show loyalty tab if country is BE only if loyalty is enabled -->
+        {% if SolutionModule.LOYALTY in sln_settings.modules %}
                         <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
                                 class="badge badge-important sln-loyalty-badge"></span></a></li>
+        {% endif %}
+    {% else %}
+                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
+                                class="badge badge-important sln-loyalty-badge"></span></a></li>
+    {% endif %}
 {% endif %}
 {% if SolutionModule.CITY_VOUCHERS in sln_settings.modules and not loyalty %}
                         <li menu="city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
@@ -278,11 +295,14 @@ var modules = {};
 	            </div>
 
 {% if not is_layout_user %}
-{% if not loyalty %}
-    {% include 'news/news.tmpl' %}
+{% if customer.country == 'BE' %}
+{% include 'functionalities/functionalities.tmpl' %}
 {% endif %}
 {% if sln_settings.uses_inbox() %}
     {%- include 'inbox.tmpl' %}
+{% endif %}
+{% if sln_settings.uses_inbox() and sln_settings.can_edit_services(customer) %}
+    {%- include 'customer_signup.tmpl' %}
 {% endif %}
 {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
     {%- include 'restaurant_reservation.tmpl' %}
@@ -533,7 +553,7 @@ var modules = {};
     <div id="video-popup" class="modal hide fade" style="display: none;" aria-hidden="true">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3>Coaching sessie</h3>
+            <h3 class="video-title"></h3>
         </div>
         <div id="video-yt-container"></div>
     </div>

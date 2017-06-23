@@ -51,7 +51,7 @@ from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user,
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from shop.business.order import get_subscription_order_remaining_length
-from shop.dal import get_customer
+from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
 from shop.models import Product, Order
 from shop.to import ProductTO
@@ -60,7 +60,8 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
-    OrganizationType, create_news_publisher, delete_news_publisher, twitter as bizz_twitter
+    OrganizationType, create_news_publisher, delete_news_publisher, send_email, enable_or_disable_solution_module, \
+    twitter as bizz_twitter
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
@@ -68,12 +69,13 @@ from solutions.common.bizz.group_purchase import save_group_purchase, delete_gro
     new_group_purchase_subscription
 from solutions.common.bizz.inbox import send_statistics_export_email
 from solutions.common.bizz.loyalty import update_user_data_admins
-from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url
+from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
+from solutions.common.bizz.service import get_allowed_modules
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
@@ -99,9 +101,10 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
-    SaveSettingsReturnStatusTO, AppUserRolesTO
+    SaveSettingsReturnStatusTO, AppUserRolesTO, CustomerSignupTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
+from solutions.common.to.qanda import ModuleTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
 
@@ -601,7 +604,7 @@ def get_all_defaults():
     if not avatar or avatar.is_default:
         defaults.append(u'Avatar')
 
-    if SolutionModule.MENU in sln_settings.modules:
+    if menu_is_visible(sln_settings):
         menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
         if not menu or menu.is_default:
             defaults.append(u'menu')
@@ -1871,6 +1874,23 @@ def change_broadcast_types_order(broadcast_types):
     return RETURNSTATUS_TO_SUCCESS
 
 
+@rest('/common/settings/broadcast/add_type', 'post')
+@returns(ReturnStatusTO)
+@arguments(broadcast_type=unicode)
+def add_new_broadcast_type(broadcast_type):
+    try:
+        sln_settings = get_solution_settings(users.get_current_user())
+        azzert(broadcast_type not in sln_settings.broadcast_types)
+        sln_settings.broadcast_types.append(broadcast_type)
+        sln_settings.updates_pending = True
+        put_and_invalidate_cache(sln_settings)
+
+        broadcast_updates_pending(sln_settings)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)
+
+
 @rest('/common/get_menu', 'get', read_only_access=True)
 @returns(ServiceMenuDetailTO)
 @arguments()
@@ -1884,3 +1904,58 @@ def rest_get_menu():
 def get_facebook_app_id():
     server_settings = get_solution_server_settings()
     return server_settings.facebook_app_id
+
+
+@rest('/common/customer/signup/all', 'get')
+@returns([CustomerSignupTO])
+@arguments()
+def rest_get_customer_signups():
+    service_user = users.get_current_user()
+    city_customer = get_customer(service_user)
+    return [CustomerSignupTO.from_model(s) for s in get_customer_signups(city_customer)]
+
+
+@rest('/common/customer/singup/reply', 'post')
+@returns(ReturnStatusTO)
+@arguments(signup_key=unicode, message=unicode)
+def rest_customer_signup_reply(signup_key, message):
+    service_user = users.get_current_user()
+    city_customer = get_customer(service_user)
+
+    signup = db.get(signup_key)
+    subject = common_translate(city_customer.language, SOLUTION_COMMON,
+                               u'can_not_fulfil_signup_application', city=city_customer.name)
+    if signup:
+        send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
+
+    return RETURNSTATUS_TO_SUCCESS
+
+
+@rest('/common/functionalities/modules/activated', 'get')
+@returns([unicode])
+@arguments()
+def rest_get_activated_modules():
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    modules = sln_settings.modules
+
+    for module in sln_settings.modules_to_put:
+        if module not in modules:
+            modules.append(module)
+    for module in sln_settings.modules_to_remove:
+        if module in modules:
+            modules.remove(module)
+
+    return modules
+
+
+@rest('/common/functionalities/modules/enable', 'post')
+@returns(ReturnStatusTO)
+@arguments(name=unicode, enabled=bool)
+def rest_enable_or_disable_module(name, enabled):
+    try:
+        service_user = users.get_current_user()
+        enable_or_disable_solution_module(service_user, name, enabled)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)

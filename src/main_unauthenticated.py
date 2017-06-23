@@ -26,7 +26,8 @@ from rogerthat.handlers.blobstore import CloudStorageBlobstoreHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
-    BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler
+    BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
+    CustomerSignupHandler, CustomerSetPasswordHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
@@ -34,6 +35,9 @@ from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, Loyal
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
+
+from webapp2_extras.routes import RedirectRoute
+
 from version.handler import VersionsHandler
 
 handlers = [
@@ -54,6 +58,10 @@ handlers = [
     ('/shop/beacons/app/validate_url', BeaconsAppValidateUrlHandler),
     ('/customers/map/([a-z-_]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
+    ('/customers/setpassword', CustomerSetPasswordHandler),
+    RedirectRoute('/customers/signin', name='customers_login', handler=CustomerSigninHandler, strict_slash=True),
+    RedirectRoute('/customers/signup', name='signup', handler=CustomerSignupHandler, strict_slash=True),
+    RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='customers_login', strict_slash=True),
     ('/solutions/common/public/attachment/view/(.*)', CloudStorageBlobstoreHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
     ('/version', VersionsHandler)
