@@ -350,7 +350,7 @@ class SolutionSettings(SolutionIdentitySettings):
         from solutions.common.bizz import SolutionModule, OrganizationType
         if SolutionModule.CITY_APP not in self.modules:
             return False
-        if customer.country == u"FR" or customer.organization_type != OrganizationType.CITY:
+        if not customer or customer.country == u"FR" or customer.organization_type != OrganizationType.CITY:
             return False
         return True
 
