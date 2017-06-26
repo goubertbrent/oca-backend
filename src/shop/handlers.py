@@ -544,7 +544,7 @@ class CustomerSetPasswordHandler(SetPasswordHandler):
 
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)
 @returns(ReturnStatusTO)
-@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
+@arguments(city_customer_id=(int, long), company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
 def customer_signup(city_customer_id, company, customer, recaptcha_token):
     try:
         create_customer_signup(city_customer_id, company, customer, recaptcha_token, accept_missing=True)

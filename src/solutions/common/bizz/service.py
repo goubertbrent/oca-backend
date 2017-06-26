@@ -24,11 +24,10 @@ from rogerthat.utils import channel
 from rogerthat.utils.transactions import run_in_xg_transaction
 
 from shop.bizz import put_customer_with_service, put_service
-from shop.models import Customer, Product, RegioManagerTeam
+from shop.models import Product, RegioManagerTeam
 
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import OrganizationType, SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, \
-    send_email
+from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, send_email
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.to import SolutionInboxMessageTO
 
@@ -131,15 +130,20 @@ def _send_approved_signup_email(city_customer, signup, lang):
     send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
 
 
-def set_customer_signup_done(city_customer, signup):
+def _send_denied_signup_email(city_customer, signup, lang, reason):
+    subject = common_translate(city_customer.language, SOLUTION_COMMON,
+                               u'can_not_fulfil_signup_application', city=city_customer.name)
+    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, reason)
+
+
+def set_customer_signup_done(city_customer, signup, approved, reason=None):
     """Set the customer signup to done and move the inbox message to trash"""
 
     def trans():
         to_put = [signup]
         inbox_message = None
         signup.done = True
-        inbox_message_key = signup.inbox_message_key
-        if inbox_message_key:
+        if signup.inbox_message_key:
             inbox_message = db.get(signup.inbox_message_key)
             if inbox_message:
                 inbox_message.trashed = True
@@ -151,11 +155,17 @@ def set_customer_signup_done(city_customer, signup):
     message = run_in_xg_transaction(trans)
     if message:
         service_user = signup.parent().service_user
-        service_identity = ServiceIdentity.DEFAULT
         sln_settings = get_solution_settings(service_user)
+
+        if approved:
+            _send_approved_signup_email(city_customer, signup, sln_settings.main_language)
+        else:
+            _send_denied_signup_email(city_customer, signup, sln_settings.main_language, reason)
+
+        service_identity = ServiceIdentity.DEFAULT
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
-        _send_approved_signup_email(city_customer, signup, sln_settings.main_language)
         channel.send_message(service_user, u'solutions.common.messaging.update',
-                     service_identity=service_identity,
-                     message=serialize_complex_value(message_to, SolutionInboxMessageTO, False))
+                             service_identity=service_identity,
+                             message=serialize_complex_value(message_to, SolutionInboxMessageTO, False))
+

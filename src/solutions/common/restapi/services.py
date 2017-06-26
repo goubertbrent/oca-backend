@@ -319,10 +319,11 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
                                              signup.customer_zip_code, signup.customer_email, lang, city_sln_settings.currency,
                                              signup.customer_telephone, signup.company_organization_type, city_customer.app_id,
                                              broadcast_types, modules=modules)
-        (customer, email_changed, is_new_service) \
- = create_customer_with_service(city_customer, None, service, signup.company_name, signup.company_address1, None,
-                                signup.company_zip_code, signup.company_city, lang, signup.company_organization_type,
-                                signup.company_vat, signup.customer_website, signup.customer_facebook_page)
+        customer = create_customer_with_service(city_customer, None, service, signup.company_name,
+                                                signup.company_address1, None, signup.company_zip_code,
+                                                signup.company_city, lang, signup.company_organization_type,
+                                                signup.company_vat, signup.customer_website,
+                                                signup.customer_facebook_page)[0]
     except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
         error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
@@ -359,5 +360,5 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
                 if error_msg:
                     return ReturnStatusTO.create(False, error_msg)
                 else:
-                    set_customer_signup_done(city_customer, signup)
+                    set_customer_signup_done(city_customer, signup, approved=True)
                     return RETURNSTATUS_TO_SUCCESS

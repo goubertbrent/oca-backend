@@ -16,15 +16,14 @@
 # @@license_version:1.2@@
 
 import base64
+from collections import defaultdict
 import datetime
 import logging
-from collections import defaultdict
 from types import NoneType
-
-from google.appengine.ext import db, deferred
 
 from babel.dates import format_date
 from babel.numbers import format_currency
+from google.appengine.ext import db, deferred
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
@@ -74,8 +73,8 @@ from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, 
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
+from solutions.common.bizz.service import get_allowed_modules, set_customer_signup_done
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
-from solutions.common.bizz.service import get_allowed_modules
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
@@ -103,8 +102,8 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
     SaveSettingsReturnStatusTO, AppUserRolesTO, CustomerSignupTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
-from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.to.qanda import ModuleTO
+from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
 
@@ -1923,10 +1922,8 @@ def rest_customer_signup_reply(signup_key, message):
     city_customer = get_customer(service_user)
 
     signup = db.get(signup_key)
-    subject = common_translate(city_customer.language, SOLUTION_COMMON,
-                               u'can_not_fulfil_signup_application', city=city_customer.name)
     if signup:
-        send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
+        set_customer_signup_done(city_customer, signup, approved=False, reason=message)
 
     return RETURNSTATUS_TO_SUCCESS
 
