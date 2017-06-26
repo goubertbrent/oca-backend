@@ -127,6 +127,8 @@ POKE_TAGS = { SolutionModule.AGENDA:        POKE_TAG_EVENTS,
               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
               }
 
+STATIC_CONTENT_TAG_PREFIX = 'Static content: '
+
 COLOR_WHITE = '#FFFFFF'
 COLOR_BLACK = '#000000'
 
@@ -924,8 +926,8 @@ def put_static_content(sln_settings, current_coords, main_branding, default_lang
             if sc.visible:
                 logging.debug('Creating static content menu item \"%s\"' % sc.icon_label)
                 menu_items.append(SolutionServiceMenuItem(sc.icon_name, sln_settings.menu_item_color, sc.icon_label,
-                                                          u'Static content: %s' % sc.icon_label, sc.branding_hash,
-                                                          coords=map(int, sc.coords)))
+                                                          u'%s%s' % (STATIC_CONTENT_TAG_PREFIX, sc.icon_label),
+                                                          sc.branding_hash, coords=map(int, sc.coords)))
             sc.provisioned = True
             sc.old_coords = map(int, sc.coords)
             to_put.append(sc)

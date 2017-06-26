@@ -49,6 +49,7 @@ from solutions.common.bizz.reservation import my_reservations_edit_comment_updat
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.to import SolutionInboxMessageTO
+from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
 
 
 # XXX TODO
@@ -74,10 +75,12 @@ def _get_human_readable_tag(tag):
 @arguments(email=unicode, tag=unicode, result_key=unicode, context=unicode, service_identity=unicode,
            user_details=[UserDetailsTO])
 def common_messaging_poke(email, tag, result_key, context, service_identity, user_details):
-    if tag and tag.startswith(POKE_TAG_EVENTS_CONNECT_VIA_SCAN):
-        handler = solution_add_admin_to_calendar
-    elif tag in POKE_TAG_MAPPING:
+    if tag in POKE_TAG_MAPPING:
         handler = POKE_TAG_MAPPING[tag]
+    elif tag and tag.startswith(STATIC_CONTENT_TAG_PREFIX):
+        return None
+    elif tag and tag.startswith(POKE_TAG_EVENTS_CONNECT_VIA_SCAN):
+        handler = solution_add_admin_to_calendar
     else:
         logging.info("Unconfigured messaging.poke tag: %s" % tag)
         raise NotImplementedError()
