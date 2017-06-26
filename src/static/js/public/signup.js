@@ -41,7 +41,7 @@ var signupCallback;
         $('#next').click(nextStep);
         $('#back').click(previousStep);
 
-        $('#city').change(customerSelected);
+        $('#app').change(customerSelected);
         $('select').change(validateInput);
         $('input[type!=checkbox][type!=radio]').keyup(function() {
             var input = this;
@@ -73,7 +73,7 @@ var signupCallback;
     }
 
     function customerSelected() {
-        var customerId = $('#city').val().trim();
+        var customerId = $('#app option:selected').attr('customer_id');
         if(customerId) {
             $('#signup_form').attr('customer', customerId);
 
@@ -86,8 +86,7 @@ var signupCallback;
                     url: '/unauthenticated/osa/customer/org/types',
                     type: 'GET',
                     data: {
-                        customer_id: parseInt(customerId),
-                        language: getBrowserLanguage()
+                        customer_id: parseInt(customerId)
                     },
                     success: function(data) {
                         setEditableOrganizationTypes(data);
@@ -198,7 +197,7 @@ var signupCallback;
 
         /* refill some info from the previous one */
         if(currentStep == 1) {
-            var city = $('#city option:selected').attr('city');
+            var city = $('#app option:selected').attr('city');
             $('#enterprise_city').val(city);
         }
         if(currentStep == 2) {

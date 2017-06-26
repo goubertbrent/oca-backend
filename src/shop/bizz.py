@@ -16,45 +16,41 @@
 # @@license_version:1.2@@
 
 import base64
-import csv
-import datetime
-import logging
-import sys
 from collections import OrderedDict
 from contextlib import closing
+import csv
+import datetime
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
-import httplib2
+import logging
 import os
-import stripe
+import sys
+from types import NoneType
+
 from PIL.Image import Image
+from dateutil.relativedelta import relativedelta
+
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
-from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
-from solution_server_settings import get_solution_server_settings
-from solutions import SOLUTION_COMMON, translate as common_translate
-from types import NoneType
-from xhtml2pdf import pisa
-
+import httplib2
+from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import add_auto_connected_services, get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
     OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_app_settings
+from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
@@ -69,6 +65,7 @@ from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZe
     address_to_coordinates, GeoCodeException
 from rogerthat.utils.service import create_service_identity_user, add_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction
+from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
 from shop.business.i18n import shop_translate
 from shop.business.legal_entities import get_vat_pct
 from shop.business.service import set_service_enabled
@@ -82,22 +79,28 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
     OrderAlreadyCanceledException, NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
-    RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup
+    RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
+    ShopApp
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
     CustomerServiceTO, OrderItemTO, CompanyTO, CustomerTO
+from solution_server_settings import get_solution_server_settings
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
+from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision, OrganizationType
+from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.jobs import delete_solution
-from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.hints import SolutionHint
-from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.models.qanda import Question
+from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO, SolutionInboxMessageTO
 from solutions.flex.bizz import create_flex_service
+import stripe
+from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -2407,6 +2410,26 @@ def put_surrounding_apps(app):
     return True
 
 
+@returns()
+@arguments(app_id=unicode, enabled=bool)
+def put_app_signup_enabled(app_id, enabled):
+    def trans():
+        key = ShopApp.create_key(app_id)
+        shop_app = ShopApp.get(key) or ShopApp(key=key,
+                                               name=get_app_by_id(app_id).name)
+        shop_app.signup_enabled = enabled
+        shop_app.put()
+    run_in_transaction(trans, xg=True)
+
+
+@cached(2, lifetime=0, request=True, memcache=True, datastore=False)
+@returns(bool)
+@arguments(app_id=unicode)
+def is_signup_enabled(app_id):
+    shop_app = ShopApp.get(ShopApp.create_key(app_id))
+    return shop_app is not None and shop_app.signup_enabled
+
+
 @returns(db.Query)
 @arguments()
 def get_all_customers():
@@ -2604,14 +2627,14 @@ def get_signup_summary(lang, customer_signup):
     org_type = customer_signup.company_organization_type
     org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang)
 
-    summary = u'{}\n'.format(trans('signup_application'))
-    summary = u'{}\n'.format(trans('signup_inbox_message_header',
-                                   name=customer_signup.company_name,
-                                   org_type_name=org_type_name))
+    summary = u'{}\n\n'.format(trans('signup_application'))
+    summary += u'{}\n'.format(trans('signup_inbox_message_header',
+                                    name=customer_signup.company_name,
+                                    org_type_name=org_type_name.lower()))
 
     summary += u'\n{}\n'.format(org_type_name)
     summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
-    summary += u'{}: {}\n'.format(trans('name'), customer_signup.company_name)
+    summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.company_name)
     summary += u'{}: {}\n'.format(trans('address'), customer_signup.company_address1)
     summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.company_zip_code)
     summary += u'{}: {}\n'.format(trans('city'), customer_signup.company_city)
@@ -2620,7 +2643,7 @@ def get_signup_summary(lang, customer_signup):
     summary += u'{}: {}\n'.format(trans('Facebook page'), customer_signup.customer_facebook_page)
 
     summary += u'\n{}\n'.format(trans('business-manager'))
-    summary += u'{}: {}\n'.format(trans('name'), customer_signup.customer_name)
+    summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.customer_name)
     summary += u'{}: {}\n'.format(trans('address'), customer_signup.customer_address1)
     summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.customer_zip_code)
     summary += u'{}: {}\n'.format(trans('city'), customer_signup.customer_city)

@@ -26,7 +26,7 @@ from rogerthat.dal import generator
 from rogerthat.dal.app import get_apps
 from rogerthat.models import App
 from rogerthat.rpc import users
-from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity
+from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity, ShopApp
 
 
 @returns(Customer)
@@ -97,17 +97,19 @@ def get_customer_signups(city_customer, done=False):
     return list(CustomerSignup.all().ancestor(city_customer.key()).filter('done =', done))
 
 
-@returns([Customer])
+@returns([App])
 @arguments()
-def get_all_city_customers():
-    city_apps = filter(lambda app: app.app_id.startswith('be-'), get_apps([App.APP_TYPE_CITY_APP]))
-    customers = {}
+def get_all_signup_enabled_apps():
+    signup_enabled_app_keys = ShopApp.all(keys_only=True).filter('signup_enabled', True)
+    signup_enabled_apps = filter(lambda app: app.main_service,
+                                 db.get([App.create_key(app_key.name()) for app_key in signup_enabled_app_keys]))
 
-    for app in city_apps:
-        if not app.main_service:
-            continue
+    for app in reversed(signup_enabled_apps):
+        # TODO: cache Customer.get_by_service_email(app.main_service)
         customer = Customer.get_by_service_email(app.main_service)
-        if customer and customer.id not in customers:
-            customers[customer.id] = customer
+        if not customer:
+            signup_enabled_apps.remove(app)
+            continue
+        app.customer_id = customer.id
 
-    return sorted(customers.values(), key=lambda c: c.name)
+    return signup_enabled_apps

@@ -17,7 +17,7 @@
     <link rel="stylesheet" type="text/css" href="/static/js/slick/slick.css"/>
     <link rel="stylesheet" type="text/css" href="/static/js/slick/slick-theme.css"/>
     <link rel="stylesheet" type="text/css" href="/static/js/bower_components/cropper/dist/cropper.min.css"/>
-    {% if customer.country == 'BE' %}
+    {% if show_functionalities_page %}
     <link href="https://fonts.googleapis.com/css?family=Roboto:700" rel="stylesheet">
     <link href="/static/css/solutions/flex/functionalities.css" rel="stylesheet">
     {% endif %}
@@ -101,13 +101,13 @@ var modules = {};
                     <ul id="topmenu" class="nav">
 
 {% if not is_layout_user %}
-                        {% if customer.country == 'BE' %}
+    {% if show_functionalities_page %}
                         <li menu="functionalities">
                             <a href="#functionalities">
                                 {% translate language, "common", "functionalities" %}
                             </a>
                         </li>
-                        {% endif %}
+    {% endif %}
 {% if sln_settings.uses_inbox() %}
                         <li menu="inbox">
                             <a href="#" help="OyWCQ7nh00o">
@@ -196,13 +196,8 @@ var modules = {};
                         </li>
 {% endif %}
 {% if not loyalty %}
-    {% if customer.country == 'BE' %}
-        <!-- show loyalty tab if country is BE only if loyalty is enabled -->
-        {% if SolutionModule.LOYALTY in sln_settings.modules %}
-                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
-                                class="badge badge-important sln-loyalty-badge"></span></a></li>
-        {% endif %}
-    {% else %}
+    <!-- show loyalty tab if there is no "Functionalities" page or in case loyalty is enabled -->
+    {% if not show_functionalities_page or SolutionModule.LOYALTY in sln_settings.modules %}
                         <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
                                 class="badge badge-important sln-loyalty-badge"></span></a></li>
     {% endif %}
@@ -295,7 +290,7 @@ var modules = {};
 	            </div>
 
 {% if not is_layout_user %}
-{% if customer.country == 'BE' %}
+{% if show_functionalities_page %}
 {% include 'functionalities/functionalities.tmpl' %}
 {% endif %}
 {% if sln_settings.uses_inbox() %}

@@ -34,12 +34,12 @@
                                 </div>
                             </div>
                             <div class="control-group">
-                                <label for="city" class="control-label">{% translate language, "common", "city" %}</label>
+                                <label for="app" class="control-label">{% translate language, "common", "city" %}</label>
                                 <div class="controls">
-                                    <select id="city" class="input-block-level" required>
+                                    <select id="app" class="input-block-level" required>
                                         <option value="">{% translate language, "common", "Select..." %}</option>
-                                        {% for customer in all_customers %}
-                                        <option value="{{ customer.id }}" city={{ customer.city }}>{{ customer.name }}</option>
+                                        {% for app in apps %}
+                                        <option value="{{ app.app_id }}" city="{{ app.name }}" customer_id="{{ app.customer_id }}">{{ app.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>

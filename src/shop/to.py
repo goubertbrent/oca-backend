@@ -651,6 +651,7 @@ class ShopAppTO(object):
     bounds = typed_property('2', BoundsTO, False)
     searched_bounds = typed_property('3', BoundsTO, True)
     postal_codes = unicode_list_property('4')
+    signup_enabled = bool_property('5')
 
     @classmethod
     def from_model(cls, model):
@@ -661,6 +662,7 @@ class ShopAppTO(object):
         to.searched_bounds = [BoundsTO.create(sw.lat, sw.lon, ne.lat, ne.lon)
                               for sw, ne in zip(model.searched_south_west_bounds, model.searched_north_east_bounds)]
         to.postal_codes = model.postal_codes
+        to.signup_enabled = model.signup_enabled
         return to
 
 

@@ -29,10 +29,10 @@ from types import NoneType
 import urllib
 
 from PIL.Image import Image  # @UnresolvedImport
-from babel.dates import format_date
 
 from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
+from babel.dates import format_date
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
@@ -73,7 +73,8 @@ from shop.bizz import search_customer, create_or_update_customer, \
     create_contact, create_order, export_customers_csv, put_service, update_contact, put_regio_manager_team, \
     user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
-    regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin, user_has_permissions_to_question
+    regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin, user_has_permissions_to_question, \
+    put_app_signup_enabled
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -791,6 +792,32 @@ class OrderableAppsHandler(BizzManagerHandler):
         path = os.path.join(os.path.dirname(__file__), 'html', 'apps.html')
         context = get_shop_context(shop_apps=ShopApp.all(),
                                    js_templates=render_js_templates(['apps']))
+        self.response.out.write(template.render(path, context))
+
+
+class SignupAppsHandler(BizzManagerHandler):
+    def get(self):
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
+
+        # List all shop apps, joined with all city apps
+        shop_apps = list(ShopApp.all())
+        shop_app_ids = [a.app_id for a in shop_apps]
+        for city_app in get_apps([App.APP_TYPE_CITY_APP]):
+            if city_app.app_id in shop_app_ids:
+                shop_app = shop_apps[shop_app_ids.index(city_app.app_id)]
+            else:
+                shop_app = ShopApp(key=ShopApp.create_key(city_app.app_id),
+                                   name=city_app.name)
+                shop_apps.append(shop_app)
+
+            shop_app.main_service = city_app.main_service  # just setting this property for the template
+
+        shop_apps.sort(key=lambda a: a.name and a.name.lower())
+
+        path = os.path.join(os.path.dirname(__file__), 'html', 'signup_apps.html')
+        context = get_shop_context(shop_apps=shop_apps)
         self.response.out.write(template.render(path, context))
 
 
@@ -2168,6 +2195,22 @@ def load_unsigned_orders_by_customer(customer_id):
 @arguments(prospect_id=unicode)
 def load_prospect_history(prospect_id):
     return [ProspectHistoryTO.create(h) for h in get_prospect_history(prospect_id)]
+
+
+@rest("/internal/shop/rest/signup_apps", "get")
+@returns([ShopAppTO])
+@arguments()
+def load_signup_apps():
+    return [ShopAppTO.from_model(a) for a in ShopApp.all()]
+
+
+@rest("/internal/shop/rest/apps/signup_enabled", "post")
+@returns(ReturnStatusTO)
+@arguments(app_id=unicode, enabled=bool)
+def set_app_signup_enabled(app_id, enabled):
+    azzert(is_admin(gusers.get_current_user()))
+    put_app_signup_enabled(app_id, enabled)
+    return RETURNSTATUS_TO_SUCCESS
 
 
 @rest("/internal/shop/rest/apps/all", "get")

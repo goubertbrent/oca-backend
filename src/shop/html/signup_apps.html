@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block stylesheets %}
+<style>
+</style>
+{% endblock %}
+{% block custom_javascript %}
+<script src="/static/js/shop/signup_apps.js"></script>
+{% endblock %}
+{% block body %}
+<div class="container">
+    <h2>Configure the apps that must have signup enabled</h2>
+    <table id="app-container" class="table table-striped table-bordered">
+    {% for app in shop_apps %}
+        <tr>
+            <td style="width: 1%;">
+                <div class="btn-group">
+                    <button 
+                            class="btn {% if app.signup_enabled %}btn-success{% endif %}"
+                            data-app="{{ app.app_id }}"
+                            data-action="enable"
+                            data-enabled="{{ app.signup_enabled }}">
+                        {% if app.signup_enabled %}Enabled{% else %}&nbsp;{% endif %}
+                    </button>
+                    <button
+                            class="btn" 
+                            data-app="{{ app.app_id }}"
+                            data-action="disable"
+                            data-enabled="{{ app.signup_enabled }}">
+                        {% if not app.signup_enabled %}Disabled{% else %}&nbsp;{% endif %}
+                    </button>
+                </div>
+            </td>
+            <td>
+                <div style="font-size: larger;">{{ app.name }}</div>
+            </td>
+            <td>
+                <div style="font-size: larger;">{{ app.app_id }}</div>
+        {% if not app.main_service %}
+                <div>
+                    <i class="fa fa-warning" style="color: orange;">
+                    </i>
+                    <i>This app has no main service, so won't be shown in the signup page.</i>
+                </div>
+        {% endif %}
+            </td>
+        </div>
+    {% endfor %}
+    </table>
+</div>
+{% endblock %}

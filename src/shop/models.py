@@ -1127,11 +1127,12 @@ class AuditLog(db.Model):
     variables = db.TextProperty()
 
 
-class ShopApp(db.Model):
+class ShopApp(CachedModelMixIn, db.Model):
     name = db.StringProperty(indexed=False)
     searched_south_west_bounds = db.ListProperty(db.GeoPt)  # [south_west1, south_west2, ...]
     searched_north_east_bounds = db.ListProperty(db.GeoPt)  # [north_east1, north_east2, ...]
     postal_codes = db.StringListProperty()
+    signup_enabled = db.BooleanProperty(indexed=True, default=False)
 
     def south_west(self):
         if not self.searched_south_west_bounds:
@@ -1156,6 +1157,10 @@ class ShopApp(db.Model):
     @classmethod
     def find_by_postal_code(cls, postal_code):
         return cls.all().filter('postal_codes =', postal_code).get()
+
+    def invalidateCache(self):
+        from shop.bizz import is_signup_enabled
+        invalidate_cache(is_signup_enabled, self.app_id)
 
 
 class ShopAppGridPoints(db.Model):

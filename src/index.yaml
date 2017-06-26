@@ -867,7 +867,3 @@ indexes:
   - name: service_disabled_at
   - name: organization_type
   - name: name
-
-- kind: CustomerSignup
-  properties:
-  - name: done

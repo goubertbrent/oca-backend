@@ -23,7 +23,6 @@ import logging
 import os
 import re
 
-import webapp2
 from dateutil.relativedelta import relativedelta
 
 from google.appengine.api import search
@@ -32,7 +31,7 @@ from google.appengine.ext import db
 from google.appengine.ext.webapp import template
 from mcfw.cache import cached
 from mcfw.consts import MISSING
-from mcfw.restapi import rest
+from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
 from mcfw.serialization import s_ushort
 from rogerthat.bizz.beacon import add_new_beacon
@@ -54,13 +53,15 @@ from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, is_admin
-from shop.dal import get_all_city_customers
 from shop.business.i18n import shop_translate
+from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import _get_organization_types, get_shop_context
 from solution_server_settings import get_solution_server_settings
+import webapp2
+
 
 try:
     from cStringIO import StringIO
@@ -495,12 +496,12 @@ class CustomerSignupHandler(webapp2.RequestHandler):
         if users.get_current_user():
             return self.redirect('/')
 
-        all_customers = get_all_city_customers()
+        apps = get_all_signup_enabled_apps()
         lang = get_languages_from_request(self.request)[0]
         solution_server_settings = get_solution_server_settings()
         params = {
             'language': lang,
-            'all_customers': all_customers,
+            'apps': apps,
             'recaptcha_site_key': solution_server_settings.recaptcha_site_key
         }
         self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
@@ -554,8 +555,10 @@ def customer_signup(city_customer_id, company, customer, recaptcha_token):
 
 @rest('/unauthenticated/osa/customer/org/types', 'get', read_only_access=True, authenticated=False)
 @returns(dict)
-@arguments(customer_id=int, language=unicode)
-def customer_get_editable_organization_types(customer_id, language):
+@arguments(customer_id=int)
+def customer_get_editable_organization_types(customer_id):
+    request = GenericRESTRequestHandler.getCurrentRequest()
+    language = get_languages_from_request(request)[0]
     try:
         customer = Customer.get_by_id(customer_id)
         organization_types = {}
