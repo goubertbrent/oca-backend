@@ -15,13 +15,13 @@
 #
 # @@license_version:1.2@@
 
+from contextlib import closing
 import datetime
 import logging
 
 from babel.dates import format_date
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
-
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
@@ -50,6 +50,7 @@ from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatus
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings
+
 
 try:
     from cStringIO import StringIO
@@ -399,10 +400,10 @@ def pay_order():
 def generate_and_put_order_pdf_and_send_mail(customer, new_order_key, service_user):
     def trans():
         new_order = Order.get(new_order_key)
-        pdf = StringIO()
-        generate_order_or_invoice_pdf(pdf, customer, new_order)
-        new_order.pdf = pdf.getvalue()
-        pdf.close()
+        with closing(StringIO()) as pdf:
+            generate_order_or_invoice_pdf(pdf, customer, new_order)
+            new_order.pdf = pdf.getvalue()
+
         new_order.put()
         deferred.defer(send_order_email, new_order_key, service_user, _transactional=True)
     run_in_xg_transaction(trans)

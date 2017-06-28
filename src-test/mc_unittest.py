@@ -20,17 +20,16 @@ import pprint
 import sys
 import traceback
 import unittest
-import uuid
 
 from google.appengine.ext import db
-
+from mcfw.cache import _tlocal
 from rogerthat.bizz.qrtemplate import store_template
 from rogerthat.bizz.service import create_qr_template_key_name
 from rogerthat.bizz.system import DEFAULT_QR_CODE_OVERLAY, DEFAULT_QR_CODE_COLOR, HAND_ONLY_QR_CODE_OVERLAY
 from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
-from rogerthat.utils import now
-from mcfw.cache import _tlocal
+from rogerthat.utils import now, guid
+from shop.bizz import put_app_signup_enabled
 from shop.models import RegioManagerTeam, RegioManager, LegalEntity
 from shop.products import add_all_products
 from solution_server_settings import get_solution_server_settings
@@ -87,61 +86,44 @@ class TestCase(unittest.TestCase):
         ss.xmppInfoMembers = ["test@example.com"]
         ss.serviceCreators = ["djmatic", "djmatic@example.com", "", "test@example.com"]
         ss.staticPinCodes = ["0666", "test@example.com"]
-        
+
         sss = get_solution_server_settings()
         sss.shop_bizz_admin_emails = [u"test@example.com"]
         sss.shop_no_reply_email = u"norepy@example.com"
 
-        rogerthat_app = App(key=App.create_key(u"rogerthat"))
-        rogerthat_app.name = u"Rogerthat"
-        rogerthat_app.type = App.APP_TYPE_ROGERTHAT
-        rogerthat_app.core_branding_hash = None
-        rogerthat_app.facebook_app_id = 188033791211994
-        rogerthat_app.ios_app_id = u"id446796149"
-        rogerthat_app.android_app_id = u"com.mobicage.rogerth.at"
-        rogerthat_app.is_default = True
-        rogerthat_app.visible = True
-        rogerthat_app.creation_time = now()
+        apps_to_be_created = {App.APP_TYPE_ROGERTHAT: {App.APP_ID_ROGERTHAT: u'Rogerthat'},
+                              App.APP_TYPE_CONTENT_BRANDING: {App.APP_ID_OSA_LOYALTY: u'OSA Terminal'},
+                              App.APP_TYPE_CITY_APP: {u'be-loc': u'Lochristi',
+                                                      u'be-berlare': u'Berlare',
+                                                      u'be-beveren': u'Beveren',
+                                                      u'be-neerpelt': u'Neerpelt',
+                                                      u'be-sint-truiden': u'Sint-Truiden',
+                                                      u'es-madrid': u'Madrid'}}
+
+        apps = {}
+        for app_type, apps_dict in apps_to_be_created.iteritems():
+            for app_id, app_name in apps_dict.iteritems():
+                new_app = App(key=App.create_key(app_id))
+                new_app.name = app_name
+                new_app.type = app_type
+                new_app.core_branding_hash = None
+                new_app.facebook_app_id = None
+                new_app.ios_app_id = u'com.mobicage.%s' % app_id
+                new_app.android_app_id = new_app.ios_app_id
+                new_app.is_default = False
+                new_app.visible = True
+                new_app.creation_time = now()
+                new_app.mdp_client_id = guid()
+                new_app.mdp_client_secret = guid()
+                apps[app_id] = new_app
+
+        rogerthat_app = apps[App.APP_ID_ROGERTHAT]
         rogerthat_app.admin_services = [u'app_admin@rogerth.at']
-        rogerthat_app.mdp_client_id = str(uuid.uuid4())
-        rogerthat_app.mdp_client_secret = str(uuid.uuid4())
+        rogerthat_app.is_default = True
+        rogerthat_app.facebook_app_id = 188033791211994
 
-        be_loc_app = App(key=App.create_key(u"be-loc"))
-        be_loc_app.name = u"Lochristi"
-        be_loc_app.type = App.APP_TYPE_CITY_APP
-        be_loc_app.core_branding_hash = None
-        be_loc_app.facebook_app_id = 188033791211994
-        be_loc_app.ios_app_id = u"com.mobicage.cityapp.lochristi"
-        be_loc_app.android_app_id = u"com.mobicage.cityapp.lochristi"
-        be_loc_app.creation_time = now()
-        be_loc_app.is_default = False
-        be_loc_app.visible = True
-        be_loc_app.mdp_client_id = str(uuid.uuid4())
-        be_loc_app.mdp_client_secret = str(uuid.uuid4())
-
-        be_berlare_app = App(key=App.create_key(u"be-berlare"))
-        be_berlare_app.name = u"Berlare"
-        be_berlare_app.type = App.APP_TYPE_CITY_APP
-        be_berlare_app.core_branding_hash = None
-        be_berlare_app.facebook_app_id = None
-        be_berlare_app.ios_app_id = u"com.mobicage.cityapp.berlare"
-        be_berlare_app.android_app_id = u"com.mobicage.cityapp.berlare"
-        be_berlare_app.creation_time = now()
-        be_berlare_app.is_default = False
-        be_berlare_app.visible = True
-        be_berlare_app.mdp_client_id = str(uuid.uuid4())
-        be_berlare_app.mdp_client_secret = str(uuid.uuid4())
-
-        osa_loyalty_app = App(key=App.create_key(u"osa-loyalty"))
-        osa_loyalty_app.name = u"OSA Loyalty"
-        osa_loyalty_app.type = App.APP_TYPE_CONTENT_BRANDING
-        osa_loyalty_app.core_branding_hash = None
-        osa_loyalty_app.facebook_app_id = 188033791211994
-        osa_loyalty_app.ios_app_id = u"com.mobicage.rogerthat.osa.loyalty"
-        osa_loyalty_app.android_app_id = u"com.mobicage.rogerthat.osa.loyalty"
-        osa_loyalty_app.creation_time = now()
-        osa_loyalty_app.is_default = False
-        osa_loyalty_app.visible = True
+        app.get_default_app = lambda: rogerthat_app
+        app.get_default_app_key = lambda: rogerthat_app.key()
 
         mobicage_entity = LegalEntity(is_mobicage=True,
                                       name='Mobicage NV',
@@ -176,15 +158,11 @@ class TestCase(unittest.TestCase):
         regio_manager.team_id = regio_manager_team.id
         regio_manager_team.support_manager = regio_manager.email
 
-        put_and_invalidate_cache(ss, sss, rogerthat_app, be_loc_app, be_berlare_app, osa_loyalty_app, regio_manager,
-                                 regio_manager_team)
+        to_put = apps.values() + [ss, sss, regio_manager, regio_manager_team]
+        put_and_invalidate_cache(*to_put)
 
-        self.setup_qr_templates(u"rogerthat")
-        self.setup_qr_templates(u"be-loc")
-        self.setup_qr_templates(u"be-berlare")
-
-        app.get_default_app = lambda: rogerthat_app
-        app.get_default_app_key = lambda: rogerthat_app.key()
+        for app_id in apps:
+            self.setup_qr_templates(app_id)
 
         users.get_current_user = lambda:users.User(u'g.audenaert@gmail.com')
         user = users.get_current_user()
@@ -193,6 +171,10 @@ class TestCase(unittest.TestCase):
         users.get_current_mobile = lambda:m
 
         add_all_products(mobicage_entity)
+
+        for app_id, new_app in apps.iteritems():
+            if new_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
+                put_app_signup_enabled(app_id=new_app.app_id, enabled=True)
 
     def setup_qr_templates(self, app_id):
         app = App.get(App.create_key(app_id))

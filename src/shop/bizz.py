@@ -937,10 +937,9 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
 
         if not no_charge:
             order.signature = jpg
-        pdf = StringIO()
-        generate_order_or_invoice_pdf(pdf, customer, order)
-        order.pdf = pdf.getvalue()
-        pdf.close()
+        with closing(StringIO()) as pdf:
+            generate_order_or_invoice_pdf(pdf, customer, order)
+            order.pdf = pdf.getvalue()
         order.status = Order.STATUS_SIGNED
         order.date_signed = now()
 
@@ -1190,11 +1189,11 @@ def create_invoice(customer_id, order_number, charge_id, invoice_number, operato
             invoice.paid = True
             invoice.paid_timestamp = now()
 
-        pdf = StringIO()
-        generate_order_or_invoice_pdf(pdf, customer, order, invoice, payment_type=payment_type,
-                                      payment_note=payment_note, charge=charge)
-        invoice.pdf = pdf.getvalue()
-        pdf.close()
+        with closing(StringIO()) as pdf:
+            generate_order_or_invoice_pdf(pdf, customer, order, invoice, payment_type=payment_type,
+                                          payment_note=payment_note, charge=charge)
+            invoice.pdf = pdf.getvalue()
+
         if charge.invoice_number and charge.invoice_number != invoice.invoice_number:
             raise BusinessException('Charge %s already has another invoice: %s' % (charge_id, invoice.invoice_number))
         charge.invoice_number = invoice.invoice_number
@@ -1538,12 +1537,12 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
 
     body = MIMEText(body, 'plain', 'utf-8')
     msg.attach(body)
-    pdf_stream = StringIO()
-    generate_order_or_invoice_pdf(pdf_stream, customer, order, None, True,
-                                  "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
-                                  charge=charge)
-    pro_forma_invoice = MIMEApplication(pdf_stream.getvalue(), _subtype="pdf")
-    pdf_stream.close()
+    with closing(StringIO()) as pdf_stream:
+        generate_order_or_invoice_pdf(pdf_stream, customer, order, None, True,
+                                      "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
+                                      charge=charge)
+        pro_forma_invoice = MIMEApplication(pdf_stream.getvalue(), _subtype="pdf")
+
     pro_forma_invoice.add_header('Content-Disposition', 'attachment', filename="pro-forma-invoice.pdf")
     msg.attach(pro_forma_invoice)
     img = MIMEImage(transfer_doc_png)
@@ -1562,11 +1561,7 @@ def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, 
     else:
         path = 'order_pdf.html'
 
-    @db.non_transactional
-    def get_products():
-        return {p.code: p for p in Product.all()}
-
-    products = get_products()
+    products = Product.get_products_dict()
     order_items = list()
     for item in order_item_qry:
         if recurrent:
@@ -1577,7 +1572,7 @@ def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, 
             order_items.append(item)
 
     if recurrent and charge.subscription_extension_order_item_keys:
-        recurrent_order_items = list(db.get(charge.subscription_extension_order_item_keys))
+        recurrent_order_items = db.get(charge.subscription_extension_order_item_keys)
         order_items.extend(recurrent_order_items)
 
     for item in order_items:
@@ -2426,6 +2421,8 @@ def put_app_signup_enabled(app_id, enabled):
 @returns(bool)
 @arguments(app_id=unicode)
 def is_signup_enabled(app_id):
+    if not app_id:
+        return False
     shop_app = ShopApp.get(ShopApp.create_key(app_id))
     return shop_app is not None and shop_app.signup_enabled
 
@@ -2607,10 +2604,10 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
             order_items.append(item)
             order = create_order(customer, contact, order_items, skip_app_check=True)
             order.status = Order.STATUS_SIGNED
-            pdf = StringIO()
-            generate_order_or_invoice_pdf(pdf, customer, order)
-            order.pdf = db.Blob(pdf.getvalue())
-            pdf.close()
+            with closing(StringIO()) as pdf:
+                generate_order_or_invoice_pdf(pdf, customer, order)
+                order.pdf = db.Blob(pdf.getvalue())
+
             order.next_charge_date = Order.default_next_charge_date()
             order.put()
         return customer, email_has_changed, is_new

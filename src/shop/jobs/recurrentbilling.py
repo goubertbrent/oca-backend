@@ -66,13 +66,13 @@ def _create_charge(order_key, today, products):
         if not order.next_charge_date:
             logging.warning('Not creating recurrent charge for order %s (%s: %s) because no next charge date is set',
                             order.order_number, customer_id, customer.name)
-            return
+            return None
         elif order.next_charge_date > today:
             # Scenario: this job fails today, tomorrow this job runs again and fails again
             # -> 2 jobs for the same order would create 2 charges when the bug is fixed
             logging.warning('This order has already been charged this month, skipping... %s (%s: %s)',
                             order.order_number, customer_id, customer.name)
-            return
+            return None
         elif customer.subscription_cancel_pending_date:
             logging.info('Disabling service from customer %s (%d)', customer.name, customer.id)
             try:
@@ -82,7 +82,7 @@ def _create_charge(order_key, today, products):
 
             set_service_disabled(customer, Customer.DISABLED_OTHER)
             cleanup_expired_subscription(customer)
-            return
+            return None
 
         logging.info("Creating recurrent charge for order %s (%s: %s)", order.order_number, customer_id, customer.name)
         subscription_extension_orders = list(Order.all()
@@ -121,7 +121,7 @@ def _create_charge(order_key, today, products):
             order.put()
             logging.info("Skipping, cannot calculate recurrent charge of 0 euros for order %s (%s: %s)",
                          order.order_number, customer_id, customer.name)
-            return
+            return None
 
         if subscription_length == 0:
             raise Exception('subscription_length is 0')
@@ -161,7 +161,7 @@ def _create_charge(order_key, today, products):
                                               comment=u"Customer needs to be contacted for subscription renewal",
                                               notify_by_email=True))
                 put_and_invalidate_cache(*to_put)
-            return
+            return None
         else:
             cleanup_expired_subscription(customer)
 
@@ -180,8 +180,9 @@ def _create_charge(order_key, today, products):
             to_put.append(extension_order)
 
         put_and_invalidate_cache(*to_put)
+        return charge
 
     try:
-        run_in_xg_transaction(trans)
+        return run_in_xg_transaction(trans)
     except Exception as e:
         logging.exception("Failed to create new charge: %s" % e.message, _suppress=False)

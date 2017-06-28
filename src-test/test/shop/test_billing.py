@@ -17,25 +17,28 @@
 
 import base64
 import datetime
+from test import set_current_user
 
 from dateutil import relativedelta
-from google.appengine.ext import db
 
+from google.appengine.ext import db
 import mc_unittest
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import today, now
+from rogerthat.utils.transactions import run_in_transaction
 from shop.bizz import create_or_update_customer, create_contact, create_order, sign_order, put_service, \
-    _after_service_saved
+    _after_service_saved, create_invoice
 from shop.business.expired_subscription import set_expired_subscription_status
+from shop.dal import get_mobicage_legal_entity
+from shop.handlers import export_invoices
 from shop.jobs import recurrentbilling
 from shop.jobs.recurrentbilling import _create_charge
-from shop.models import Product, ShopTask, ExpiredSubscription, RegioManagerTeam, Charge, Order
+from shop.models import Product, ShopTask, ExpiredSubscription, RegioManagerTeam, Charge, Order, InvoiceNumber, Invoice
 from shop.to import OrderItemTO, CustomerServiceTO
 from solutions.common.bizz import OrganizationType, SolutionModule
-from test import set_current_user
 
 
 class TestCase(mc_unittest.TestCase):
@@ -63,7 +66,10 @@ class TestCase(mc_unittest.TestCase):
                                              team_id=RegioManagerTeam.all().get().id)
 
         contact = create_contact(customer.id, u'Bart', u'example', u'bart@example.com', u'+32 9 324 25 64')
+        items = self._create_items(customer, products)
+        return self._create_order(customer, contact.id, items)
 
+    def _create_items(self, customer, products):
         items = list()
         for x, product_info in enumerate(products):
             if isinstance(product_info, tuple):
@@ -81,8 +87,10 @@ class TestCase(mc_unittest.TestCase):
             order_item.number = x
             order_item.product = product_code
             items.append(order_item)
+        return items
 
-        order = create_order(customer.id, contact.id, items)
+    def _create_order(self, customer, contact_id, items, replace=False):
+        order = create_order(customer.id, contact_id, items, replace=replace)
         sign_order(customer.id, order.order_number, 'image/png,%s' % base64.b64encode(UNKNOWN_AVATAR))
         return db.get((order.key(), customer.key()))
 
@@ -99,10 +107,10 @@ class TestCase(mc_unittest.TestCase):
         order_key = recurrentbilling._qry(order.next_charge_date + 86400).get()
         self.assertEqual(order.key(), order_key)
 
-    def _create_service(self, customer):
+    def _create_service(self, customer, apps=None):
         service = CustomerServiceTO()
         service.address = u'antwerpsesteenweg 19 lochristi'
-        service.apps = [App.APP_ID_ROGERTHAT, u'be-loc']
+        service.apps = apps or [App.APP_ID_ROGERTHAT, u'be-loc']
         service.broadcast_types = [u'broadcast']
         service.currency = u'euro'
         service.email = u'test@example.com'
@@ -161,3 +169,50 @@ class TestCase(mc_unittest.TestCase):
             months=12, days=-1)
         self.assertLess(subscription_order.next_charge_date, int(one_year_from_now_plus_one_day.strftime('%s')))
         self.assertGreater(subscription_order.next_charge_date, int(one_year_from_now_minus_one_day.strftime('%s')))
+
+    def test_change_order_to_free(self):
+        self.set_datastore_hr_probability(1)
+        products_to_order = [(u'MSUP', 1),  # monthly subscription, $50.00
+                             (u'KFUP', 1),  # subscription discount, -$15.00
+                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
+                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
+                             (Product.PRODUCT_EXTRA_CITY, 1)]  # extra city, $5.00
+        old_subscription_order, customer = self._create_customer_and_subscription_order(products_to_order)
+        old_subscription_order.next_charge_date -= 32 * 86400  # Turn back next_charge_date more than 1 month
+        old_subscription_order.put()
+
+        self._create_service(customer, [u'be-loc', u'be-berlare', u'be-beveren', u'es-madrid',
+                                        App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY])
+
+        products_to_order = [(Product.PRODUCT_FREE_SUBSCRIPTION, 1),
+                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
+                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
+                             (Product.PRODUCT_EXTRA_CITY, 1)]  # extra city, $5.00
+        order_items = self._create_items(customer, products_to_order)
+        new_subscription_order, customer = self._create_order(customer, old_subscription_order.contact_id, order_items,
+                                                              replace=True)
+        new_subscription_order.next_charge_date -= 32 * 86400  # Turn back next_charge_date more than 1 month
+        new_subscription_order.put()
+
+        # Execute recurrent billing code
+        products = Product.get_products_dict()
+        charge = _create_charge(new_subscription_order.key(), now(), products)
+        self.assertIsNotNone(charge)
+        expected_charge_amount = 3 * products[Product.PRODUCT_EXTRA_CITY].price  # 3x $5.00
+        self.assertEqual(expected_charge_amount, charge.amount)
+
+        def trans_invoice_number():
+            return InvoiceNumber.next(get_mobicage_legal_entity())
+
+        invoice_number = run_in_transaction(trans_invoice_number)
+        create_invoice(customer.id, new_subscription_order.order_number, charge.id, invoice_number,
+                       new_subscription_order.manager, payment_type=Invoice.PAYMENT_ON_SITE)
+
+        dt = datetime.datetime.utcnow()
+        invoices = export_invoices(dt.year, dt.month)
+        self.assertEqual(1, len(invoices))
+        self.assertEqual(len(products_to_order), len(invoices[0]['order_items']))
+
+        order_items_cost = sum(order_item['price'] * order_item['count']
+                               for order_item in invoices[0]['order_items'])
+        self.assertEqual(expected_charge_amount, order_items_cost)

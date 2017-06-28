@@ -184,15 +184,18 @@ def export_invoices(year, month):
             for order_item in reversed(i['order_items']):
                 order_item['count'] = invoice_model.charge.subscription_extension_length or 1
                 product = all_products[order_item['product_code']]
-                if not (product.is_subscription_discount or product.is_subscription):
+                if not (product.is_subscription_discount or product.is_subscription or product.is_subscription_extension):
                     i['order_items'].remove(order_item)
 
             # add the subscription extensions like XCTY
             if invoice_model.charge.subscription_extension_order_item_keys:
+                known_extension_item_keys = [item['_key'] for item in i['order_items']]
+
                 extension_order_items = db.get(invoice_model.charge.subscription_extension_order_item_keys)
                 for item in extension_order_items:
                     item.count = 1
-                i['order_items'] += map(model_to_dict, extension_order_items)
+                    if str(item.key()) not in known_extension_item_keys:
+                        i['order_items'].append(model_to_dict(item))
 
         i['order_key'] = order_key
         i['currency'] = invoice_model.currency_code
