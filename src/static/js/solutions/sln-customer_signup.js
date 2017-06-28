@@ -46,8 +46,6 @@ $(function () {
     };
 
     var signupAction = function(signupKey, ok) {
-        event.stopPropagation();
-
         if(ok) {
             signupCustomer(signupKey);
         } else {
