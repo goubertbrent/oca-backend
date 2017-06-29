@@ -26,28 +26,28 @@ def _replace_subscription_order(order_key, products, paying_subscription_product
     customer, old_order = db.get([order_key.parent(), order_key])
 
     if not is_signup_enabled(customer.app_id):
-        logging.debug('Signup is not enabled for customer %s with app %s', customer.name, customer.app_id)
+        logging.debug('FREE_SUBSCRIPTIONS - Signup is not enabled for customer %s with app %s', customer.name, customer.app_id)
         return
 
     if customer.service_disabled_at != 0:
-        logging.debug('Customer %s is disabled', customer.name)
+        logging.debug('FREE_SUBSCRIPTIONS - Customer %s is disabled', customer.name)
         return
 
     if old_order.status == Order.STATUS_SIGNED:
         order_items = list(OrderItem.all().ancestor(old_order))
         ordered_product_codes = {i.product_code for i in order_items}
         if not ordered_product_codes.intersection(paying_subscription_product_codes):
-            logging.debug('Customer %s already had a FREE subscription: %s', customer.name, list(ordered_product_codes))
+            logging.debug('FREE_SUBSCRIPTIONS - Customer %s already had a FREE subscription: %s', customer.name, list(ordered_product_codes))
             return
 
-        logging.debug('Creating new FREE order for customer %s', customer.name)
+        logging.debug('FREE_SUBSCRIPTIONS - Creating new FREE order for customer %s', customer.name)
         new_order_items = []
         for old_order_item in OrderItem.list_by_order(order_key):
             product = products[old_order_item.product_code]
             if product.is_subscription_extension:
                 new_order_items.append(OrderItemTO.create(old_order_item))
         if new_order_items:
-            logging.debug('Adding %s old order items: %s',
+            logging.debug('FREE_SUBSCRIPTIONS - Adding %s old order items: %s',
                           len(new_order_items), serialize_complex_value(new_order_items, OrderItemTO, True))
 
         free_item = OrderItemTO()
@@ -82,6 +82,6 @@ def _replace_subscription_order(order_key, products, paying_subscription_product
                    'Something is seriously wrong with customer %s (%s)!' % (customer.id, customer.name))
         new_order = Order.get_by_order_number(customer.id, customer.subscription_order_number)
 
-    if new_order.status == Order.STATUS_UNSIGNED:
-        logging.debug('Signing order %s for customer %s', new_order.order_number, customer.name)
+    if new_order.status == Order.STATUS_UNSIGNED and new_order.total_amount > 0:
+        logging.debug('FREE_SUBSCRIPTIONS - Signing order %s for customer %s', new_order.order_number, customer.name)
         sign_order(customer.id, new_order.order_number, signature=u'', no_charge=True)

@@ -172,17 +172,21 @@ class TestCase(mc_unittest.TestCase):
 
     def test_change_order_to_free(self):
         self.set_datastore_hr_probability(1)
-        products_to_order = [(u'MSUP', 1),  # monthly subscription, $50.00
-                             (u'KFUP', 1),  # subscription discount, -$15.00
-                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
-                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
-                             (Product.PRODUCT_EXTRA_CITY, 1)]  # extra city, $5.00
+        products_to_order = [(u'MSUP', 12),  # monthly subscription, $50.00
+                             (u'KSUP', 12),  # subscription discount, -$15.00
+                             (Product.PRODUCT_EXTRA_CITY, 12),  # extra city, $5.00
+                             (Product.PRODUCT_EXTRA_CITY, 12),  # extra city, $5.00
+                             (Product.PRODUCT_EXTRA_CITY, 12)]  # extra city, $5.00
         old_subscription_order, customer = self._create_customer_and_subscription_order(products_to_order)
-        old_subscription_order.next_charge_date -= 32 * 86400  # Turn back next_charge_date more than 1 month
+        old_subscription_order.next_charge_date -= 12 * 31 * 86400  # Turn back next_charge_date more than 12 months
         old_subscription_order.put()
 
         self._create_service(customer, [u'be-loc', u'be-berlare', u'be-beveren', u'es-madrid',
                                         App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY])
+
+        # Creating some random order with a discount to be sure this discount isn't applied in recurrent billing job
+        self._create_order(customer, old_subscription_order.contact_id, self._create_items(customer, [(u'KLUP', 1),
+                                                                                                      (u'LSUP', 1)]))
 
         products_to_order = [(Product.PRODUCT_FREE_SUBSCRIPTION, 1),
                              (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
@@ -191,7 +195,7 @@ class TestCase(mc_unittest.TestCase):
         order_items = self._create_items(customer, products_to_order)
         new_subscription_order, customer = self._create_order(customer, old_subscription_order.contact_id, order_items,
                                                               replace=True)
-        new_subscription_order.next_charge_date -= 32 * 86400  # Turn back next_charge_date more than 1 month
+        new_subscription_order.next_charge_date -= 12 * 31 * 86400  # Turn back next_charge_date more than 12 months
         new_subscription_order.put()
 
         # Execute recurrent billing code
