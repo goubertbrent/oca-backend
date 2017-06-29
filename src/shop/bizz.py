@@ -2547,7 +2547,7 @@ def create_customer_service_to(name, address1, address2, city, zip_code, email, 
     if address2:
         service.address += '\n' + address2
     service.address += '\n' + zip_code + ' ' + city
-    service.email = email
+    service.email = email and email.lower()
     service.language = language
     service.currency = currency
     service.phone_number = phone_number
