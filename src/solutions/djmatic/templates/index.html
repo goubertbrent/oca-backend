@@ -12,7 +12,6 @@
 <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet" media="screen">
 <link href="/static/css/solutions/style.css" rel="stylesheet" media="screen">
 <link href="/static/css/solutions/djm-style.css" rel="stylesheet" media="screen">
-{%if debug%}<script src='/_ah/channel/jsapi'></script>{%else%}<script src='https://talkgadget.google.com/talkgadget/channel.js'></script>{%endif%}
 <style>
 button.btn.control { margin: 5px; }
 img.avatar { float: left; margin-right: 5px; }
@@ -49,6 +48,7 @@ input.error {
 }
 </style>
 
+{% include "firebase_config.html" %}
 <script src="/static/js/jquery-1.10.0.min.js"></script>
 <script src="/static/bootstrap/js/bootstrap.min.js"></script>
 <script src="/static/bootstrap/datepicker/js/bootstrap-datepicker.js"></script>
@@ -66,7 +66,6 @@ $.ajaxSetup({
 <script src="/static/js/solutions/sln-utils.js"></script>
 <script language="javascript">
 <!--
-var CHANNEL_API_TOKEN = "{{ token }}";
 var DJMaticTranslations = {
     JUKEBOX_ENABLED : "{% translate language, 'djmatic', 'jukebox-enabled' %}",
     JUKEBOX_DISABLED : "{% translate language, 'djmatic', 'jukebox-disabled' %}",
@@ -309,7 +308,7 @@ var modules = {};
     <script src="/static/js/solutions/sln-router.js"></script>
     <script type="text/javascript">
         $(function () {
-            sln.runChannel(CHANNEL_API_TOKEN);
+            sln.runChannel();
         });
     </script>
 </body>

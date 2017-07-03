@@ -169,36 +169,24 @@ var createLib = function() {
                 });
             };
             var onClose = function() {
-                window.setTimeout(
-                        function() {
-                            if (closing)
-                                return;
-                            $.ajax({
-                                url : '/api/channel/token',
-                                success : function(token) {
-                                    sln.runChannel(token);
-                                },
-                                error : function() {
-                                    BootstrapDialog.show({
-                                        type: sln.BOOTSTRAP_DIALOG_TYPE_DANGER,
-                                        title: 'Problem',
-                                        message: "Could not renew auto updating channel automatically. Reload your browser to resolve the situation.",
-                                        onhidden : function() {
-                                            window.location.reload();
-                                        }
-                                    });
-                                }
-                             });
-                }, 1000);
+                BootstrapDialog.show({
+                    type: sln.BOOTSTRAP_DIALOG_TYPE_DANGER,
+                    title: 'Problem',
+                    message: "Could not renew auto updating channel automatically. Reload your browser to resolve the situation.",
+                    onhidden : function() {
+                        window.location.reload();
+                    }
+                });
             };
-            var channel = new goog.appengine.Channel(token);
-            var socket = channel.open({
-                'onopen' : onOpen,
-                'onmessage' : sln._on_message,
-                'onerror' : function() {
-                },
-                'onclose' : onClose
-            });
+            var channel = new FirebaseChannel(firebaseConfig,
+                                              serviceIdentity,
+                                              token || firebaseToken,
+                                              'channels',
+                                              [userChannelId, sessionChannelId],
+                                              onOpen,
+                                              sln._on_message,
+                                              onClose);
+            channel.connect();
         },
     }
 };

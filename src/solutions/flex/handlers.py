@@ -23,7 +23,7 @@ from babel import dates
 import jinja2
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.app import get_app
-from rogerthat.bizz.channel import create_channel_for_current_session
+from rogerthat.bizz import channel
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.service import get_service_identity
@@ -237,7 +237,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
         # only a shop user can update the loyalty type
         session_ = users.get_current_session()
-        token = create_channel_for_current_session()
         all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
                             translations[SOLUTION_COMMON]['en']}
         for key in COMMON_JS_KEYS:
@@ -245,8 +244,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         if sln_settings.identities:
             if not session_.service_identity:
                 jinja_template = JINJA_ENVIRONMENT.get_template('locations.html')
-                params = {'token': token,
-                          'language': sln_settings.main_language or DEFAULT_LANGUAGE,
+                params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                           'debug': DEBUG,
                           'appscale': APPSCALE,
                           'templates': self._get_location_templates(sln_settings),
@@ -256,6 +254,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                           'currency': sln_settings.currency,
                           'translations': json.dumps(all_translations)
                           }
+                channel.append_firebase_params(params)
                 self.response.out.write(jinja_template.render(params))
                 return
         elif session_.service_identity:
@@ -327,7 +326,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'sln_i_settings': sln_i_settings,
                   'debug': DEBUG,
                   'appscale': APPSCALE,
-                  'token': token,
                   'templates': self._get_templates(sln_settings),
                   'service_name': sln_i_settings.name,
                   'service_display_email': sln_i_settings.qualified_identifier or service_user.email().encode("utf-8"),
@@ -384,6 +382,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         if SolutionModule.MENU in sln_settings.modules:
             params['menu'] = get_restaurant_menu(service_user)
 
+        channel.append_firebase_params(params)
         self.response.out.write(jinja_template.render(params))
 
 

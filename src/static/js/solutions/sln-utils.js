@@ -727,61 +727,29 @@ var createLib = function() {
                     sln.broadcast(data);
                 }
             };
-            if(msg.data.indexOf("large_object=") == 0) {
-                var getLargeObjUrl = typeof (LARGE_CHANNEL_OBJECT_URL) != "undefined" ? LARGE_CHANNEL_OBJECT_URL : null;
-                $.ajax({
-                    url: getLargeObjUrl || '/mobi/rest/channel',
-                    data: {
-                        key: msg.data.substring(13)
-                    },
-                    success: function(data) {
-                        process(data);
-                    },
-                    error: function() {
-                    }
-                });
-            } else {
-                process(msg.data);
-            }
+            process(msg.data);
         },
         runChannel: function(token) {
-            var tokenRenewUrl = '/common/token';
-            if(typeof (TOKEN_RENEW_URL) !== "undefined")
-                tokenRenewUrl = TOKEN_RENEW_URL;
-            var closing = false;
-            $(window).unload(function() {
-                closing = true;
-            });
             var onOpen = function() {
                 sln.broadcast({
                     type: "rogerthat.system.channel_connected"
                 });
             };
             var onClose = function() {
-                window.setTimeout(function() {
-                    if(closing)
-                        return;
-                    $.ajax({
-                        url: tokenRenewUrl,
-                        success: function(token) {
-                            sln.runChannel(token);
-                        },
-                        error: function() {
-                            sln.alert(CommonTranslations.CHANNEL_DISCONNECTED_RELOAD_BROWSER, function() {
-                                window.location.reload();
-                            }, CommonTranslations.WARNING);
-                        }
-                    });
-                }, 1000);
+                sln.alert(CommonTranslations.CHANNEL_DISCONNECTED_RELOAD_BROWSER, function() {
+                    window.location.reload();
+                }, CommonTranslations.WARNING);
             };
-            var channel = new goog.appengine.Channel(token);
-            var socket = channel.open({
-                'onopen': onOpen,
-                'onmessage': sln._on_message,
-                'onerror': function() {
-                },
-                'onclose': onClose
-            });
+
+            var channel = new FirebaseChannel(firebaseConfig,
+                                              serviceIdentity,
+                                              token || firebaseToken,
+                                              'channels',
+                                              [userChannelId, sessionChannelId],
+                                              onOpen,
+                                              sln._on_message,
+                                              onClose);
+            channel.connect();
         },
         map: function(array, callback) {
             var result = [];

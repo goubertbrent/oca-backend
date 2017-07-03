@@ -37,9 +37,9 @@ $(function() {
             locations : locations,
             CommonTranslations : CommonTranslations
         });
-        
+
         $(".locations").empty().append(html);
-        
+
         $(".use-this-location", html).click(function() {
            var service_identity = $(this).attr("service_identity");
            sln.showProcessing(CommonTranslations.LOADING_DOT_DOT_DOT);
@@ -57,9 +57,9 @@ $(function() {
            });
         });
     };
-    
+
     loadLocations();
-    
+
     var channelUpdates = function(data) {
         if (data.type == 'solutions.common.locations.update') {
             window.location.reload();

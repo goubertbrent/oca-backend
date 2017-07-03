@@ -23,7 +23,7 @@ from babel import dates
 from google.appengine.api import users as gae_users
 import jinja2
 from mcfw.rpc import serialize_complex_value
-from rogerthat.bizz.channel import create_channel_for_current_session
+from rogerthat.bizz import channel
 from rogerthat.consts import DEBUG
 from rogerthat.rpc import users
 from rogerthat.service.api import system
@@ -72,7 +72,6 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
         if not sln_settings or sln_settings.solution != SOLUTION_DJMATIC:
             self.redirect("/")
             return
-        token = create_channel_for_current_session()
 
         tmpl_params = {'language': DEFAULT_LANGUAGE,
                        'debug': DEBUG,
@@ -124,7 +123,6 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'solution': sln_settings.solution,
             'logo_languages': LOGO_LANGUAGES,
             'debug': DEBUG,
-            'token': token,
             'templates': templates,
             'service_user_email': service_user.email().encode("utf-8"),
             'service_name': sln_settings.name,
@@ -152,6 +150,8 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'modules': json.dumps(sln_settings.modules),
             'translations': json.dumps(all_translations)
         }
+
+        channel.append_firebase_params(params)
         self.response.out.write(jinja_template.render(params))
 
 

@@ -1,1 +1,0 @@
-// todo: script which builds all projects (to use when deploying)

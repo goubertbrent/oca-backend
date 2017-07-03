@@ -42,7 +42,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
-from rogerthat.bizz.channel import create_channel_for_current_session
+from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
@@ -283,10 +283,10 @@ class BizzAdminHandler(BizzManagerHandler):
         if self.request.get('iframe', 'false') != 'true':
             # loads admin.html in an iframe
             path = os.path.join(os.path.dirname(__file__), 'html', 'index.html')
-            context = dict(CHANNEL_API_TOKEN=create_channel_for_current_session(),
-                           DEBUG=DEBUG,
+            context = dict(DEBUG=DEBUG,
                            APPSCALE=APPSCALE,
                            )
+            channel.append_firebase_params(context)
         else:
             path = os.path.join(os.path.dirname(__file__), 'html', 'admin.html')
             context = get_shop_context()
@@ -819,13 +819,6 @@ class SignupAppsHandler(BizzManagerHandler):
         path = os.path.join(os.path.dirname(__file__), 'html', 'signup_apps.html')
         context = get_shop_context(shop_apps=shop_apps)
         self.response.out.write(template.render(path, context))
-
-
-@rest("/internal/token", "get", read_only_access=True)
-@returns(unicode)
-@arguments()
-def token():
-    return create_channel_for_current_session()
 
 
 @rest("/internal/shop/rest/salesstats/load", "get")

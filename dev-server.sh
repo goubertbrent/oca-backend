@@ -5,6 +5,10 @@ SEARCH_INDEXES_PATH=""
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
+if [ -f "${DIR}/google-app-credentials.json" ]; then
+    export GOOGLE_APPLICATION_CREDENTIALS=${DIR}/google-app-credentials.json
+fi
+
 if [ -f "${DIR}/setenv.sh" ]; then
     . setenv.sh
 fi

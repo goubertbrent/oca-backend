@@ -28,7 +28,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from rogerthat.bizz.channel import create_channel_for_current_session
+from rogerthat.bizz import channel
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
@@ -245,13 +245,6 @@ def rest_delete_static_content(static_content_id=None):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
-
-
-@rest("/common/token", "get", read_only_access=True)
-@returns(unicode)
-@arguments()
-def token():
-    return create_channel_for_current_session()
 
 
 @rest("/common/inbox/load/all", "get", read_only_access=True)

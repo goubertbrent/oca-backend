@@ -18,14 +18,9 @@ body, iframe {
 }
 </style>
 
-{%if DEBUG or APPSCALE %}
-<script src='/_ah/channel/jsapi'></script>
-{%else%}
-<script src='https://talkgadget.google.com/talkgadget/channel.js'></script>
-{%endif%}
-
 <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
 
+{% include "firebase_config.html" %}
 <script src="/static/js/jquery-1.10.0.min.js"></script>
 <script src="/static/js/jquery.tmpl.min.js"></script>
 <script src="/static/bootstrap/js/bootstrap.min.js"></script>
@@ -52,13 +47,10 @@ var CommonTranslations = {
     YES : 'Yes'
 };
 
-var TOKEN_RENEW_URL = '/internal/token';
-var LARGE_CHANNEL_OBJECT_URL = '/internal/channel/large_object';
-
 var loaded = false;
 document.getElementById('main_frame').onload = function() {
     if (!loaded) {
-        sln.runChannel("{{ CHANNEL_API_TOKEN }}");
+        sln.runChannel();
 
         var obj = document.getElementById('main_frame').contentWindow;
         sln.registerMsgCallback(function(data) {

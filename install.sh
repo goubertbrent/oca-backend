@@ -5,16 +5,7 @@ pushd ../rogerthat-backend
 git checkout $VERSION
 pip install -r requirements.txt -t src/lib
 popd
-build_type=$1
-if [ -z ${build_type} ]; then
-  build_type="--dev"
-fi
 
-pushd src-frontend
-npm install
-bower install --allow-root
-gulp build --project admin ${build_type}
-popd
 npm install
 pushd src/static
 npm install
