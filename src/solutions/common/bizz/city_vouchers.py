@@ -19,7 +19,7 @@ import json
 import logging
 
 from google.appengine.ext import db, deferred
-
+from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import InvalidURLException
@@ -37,11 +37,12 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_service_user_for_city
+from solutions.common.dal.cityapp import get_service_users_for_city
 from solutions.common.models.city_vouchers import SolutionCityVoucher, SolutionCityVoucherQRCodeExport, \
     SolutionCityVoucherTransaction, SolutionCityVoucherRedeemTransaction, SolutionCityVoucherSettings
 from solutions.common.models.loyalty import CustomLoyaltyCard
 from solutions.common.utils import create_service_identity_user_wo_default
+
 
 POKE_TAG_CITY_VOUCHER_QR = u"city_voucher_qr"
 
@@ -225,8 +226,7 @@ def _find_voucher(url, app_ids):
     poke_information = None
     city_service_user = None
     for app_id in app_ids:
-        city_service_user = get_service_user_for_city(app_id)
-        if city_service_user:
+        for city_service_user in get_service_users_for_city(app_id):
             with users.set_user(city_service_user):
                 try:
                     poke_information = messaging.poke_information(url)
@@ -234,6 +234,11 @@ def _find_voucher(url, app_ids):
                         break
                 except InvalidURLException:
                     break
+        else:
+            continue  # we did not break
+
+        azzert(poke_information)
+        break
     else:
         raise Exception("city_service_user not found for app_ids: %s" % app_ids)
 
@@ -332,11 +337,11 @@ def solution_voucher_pin_activate(service_user, email, method, params, tag, serv
     try:
         jsondata = json.loads(params)
 
-        city_service_user = get_service_user_for_city(jsondata["app_id"])
-        if not city_service_user:
-            raise Exception(u"city_service_user was None")
+        city_service_users = get_service_users_for_city(jsondata["app_id"])
+        if not city_service_users:
+            raise Exception(u"No city_service_users")
 
-        if service_user != city_service_user:
+        if service_user not in city_service_users:
             raise Exception(u"Normal service tried activating voucher")
 
         ancestor_key = SolutionCityVoucher.create_parent_key(jsondata["app_id"])
@@ -380,11 +385,11 @@ def solution_voucher_activate(service_user, email, method, params, tag, service_
     try:
         jsondata = json.loads(params)
 
-        city_service_user = get_service_user_for_city(jsondata["app_id"])
-        if not city_service_user:
-            raise Exception(u"city_service_user was None")
+        city_service_users = get_service_users_for_city(jsondata["app_id"])
+        if not city_service_users:
+            raise Exception(u"No city_service_users")
 
-        if service_user != city_service_user:
+        if service_user not in city_service_users:
             raise Exception(u"Normal service tried activating voucher")
 
         def trans():
