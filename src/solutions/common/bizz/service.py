@@ -15,6 +15,8 @@
 #
 # @@license_version:1.2@@
 
+import logging
+
 from google.appengine.ext import db
 
 from mcfw.rpc import serialize_complex_value
@@ -117,6 +119,7 @@ def put_customer_service(customer, service, search_enabled, skip_module_check, s
     except Exception as e:
         if rollback:
             db.delete(db.GqlQuery("SELECT __key__ WHERE ANCESTOR IS KEY('%s')" % customer_key).fetch(None))
+        logging.debug('Unhandled exception: %s', e, exc_info=True)
         raise e
 
 
