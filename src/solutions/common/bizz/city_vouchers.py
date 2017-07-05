@@ -237,7 +237,6 @@ def _find_voucher(url, app_ids):
         else:
             continue  # we did not break
 
-        azzert(poke_information)
         break
     else:
         raise Exception("city_service_user not found for app_ids: %s" % app_ids)
