@@ -147,7 +147,8 @@
                                    minlength="4" maxlength="15"
                                    id="news_action_${action.value}_caption"
                                    name="news_action_${action.value}_caption"
-                                   value="${actionButton.id === action.value ? actionButton.label : action.defaultLabel}">
+                                   value="${actionButton.id === action.value ? actionButton.label : action.defaultLabel}"
+                                   required>
                         </div>
                         {{if action.value !== 'attachment'}}
                         <label class="control-label" for="news_action_${action.value}_field">${action.translation}</label>
