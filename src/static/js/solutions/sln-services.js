@@ -177,7 +177,9 @@
                     $('#service-facebook-page').attr('disabled', false);
                 }
             });
-            $('#service-submit').click(putService);
+            $('#service-submit').click(function() {
+                putService(false);
+            });
         });
     }
 
@@ -254,7 +256,7 @@
     }
 
 
-    function putService() {
+    function putService(force) {
         var formValues = getServiceFormValues();
         currentService = formValues;
         if(currentService.modules.indexOf('broadcast') !== -1 && !currentService.broadcast_types.length) {
@@ -284,15 +286,24 @@
         sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
         // Not registered on page load to prevent updates when multiple people are logged in on the same dashboard
         isWaitingForProvisionUpdate = true;
+        currentService['force'] = force;
         sln.call({
             url: '/common/services/put',
             method: 'post',
             data: {data: JSON.stringify(formValues)},
             success: function (data) {
-                if (data.errormsg) {
+                if(!data.success) {
                     isWaitingForProvisionUpdate = false;
                     sln.hideProcessing();
-                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+
+                    if (data.errormsg) {
+                        sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                    } else if(data.warningmsg) {
+                        // just show the warning with the confirmation
+                        sln.confirm(data.warningmsg, function() {
+                            putService(true);
+                        });
+                    }
                 }
                 // else: successfully created service, but still provisioning. Channel update will tell us when it's done.
             },

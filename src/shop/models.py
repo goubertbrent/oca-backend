@@ -574,8 +574,27 @@ class CustomerSignup(db.Model):
     inbox_message_key = db.StringProperty(indexed=False)
 
     @classmethod
-    def create_key(cls, main_service_customer, user_email):
-        return db.Key.from_path(cls.kind(), user_email, parent=main_service_customer.key())
+    def list_pending_by_customer_email(cls, email):
+        return cls.all().filter('done', False).filter('customer_email', email)
+
+    @staticmethod
+    def normalize(value):
+        if not isinstance(value, unicode):
+            value = unicode(value)
+        return ''.join(value.lower().split())
+
+    def is_same_signup(self, signup):
+        for prop_name, _ in self.properties().iteritems():
+            if prop_name.startswith('company') or prop_name.startswith('customer'):
+                value = self.normalize(getattr(self, prop_name))
+                other_value = self.normalize(getattr(signup, prop_name))
+                if value != other_value:
+                    return False
+        return True
+
+    @property
+    def id(self):
+        return self.key().id()
 
     @property
     def city_customer(self):

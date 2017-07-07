@@ -111,5 +111,6 @@ def get_all_signup_enabled_apps():
             signup_enabled_apps.remove(app)
             continue
         app.customer_id = customer.id
+        app.country = customer.country
 
     return signup_enabled_apps

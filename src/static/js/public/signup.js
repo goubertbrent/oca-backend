@@ -18,7 +18,7 @@
 
 var signupCallback;
 
-(function() {
+$(function() {
     'use strict';
 
     var TMPL_ORG_TYPE = '<div class="radio">'
@@ -43,14 +43,18 @@ var signupCallback;
 
         $('#app').change(customerSelected);
         $('select').change(validateInput);
-        $('input[type!=checkbox][type!=radio]').keyup(function() {
+        $('input[type!=checkbox][type!=radio]').each(function() {
             var input = this;
             sln.configureDelayedInput($(input), function() {
                 validateInput(input);
             }, null, false, 1000);
         });
+        var vatInput = $('#enterprise_vat');
+        sln.configureDelayedInput(vatInput, function() {
+            validateVat(vatInput);
+        }, null, false, 500, true);
 
-        for(var i = 0; i <= 2; i++) {
+        for(var i = 0; i <= 3; i++) {
             tabs.push($('#tab' + i));
         }
     }
@@ -104,6 +108,60 @@ var signupCallback;
         }
     }
 
+    function validateVat(input) {
+        var vat = input.val().replace(/\s/g,'');
+
+        input.next('p[class=text-error]').remove();
+        if(!vat) {
+            $('#next').attr('disabled', false);
+            return;
+        } else {
+            $('#next').attr('disabled', true);
+        }
+
+        sln.call({
+            url: '/unauthenticated/osa/company/info',
+            type: 'get',
+            data: {
+                vat: vat
+            },
+            success: function(data) {
+                var country, errorMessage;
+                var country = $('#app option:selected').attr('country').toLowerCase();
+                if(data.errormsg) {
+                    // vat is invalid
+                    errorMessage = SignupTranslations.VAT_INVALID;
+                } else if(data.country.toLowerCase() !== country) {
+                    errorMessage = SignupTranslations.VAT_INCORRECT_COUNTRY;
+                } else {
+                    var enterpriseDetails = gatherFromInputs('enterprise');
+                    if(!enterpriseDetails.name) {
+                        $('#enterprise_name').val(data.name);
+                    }
+                    if(!enterpriseDetails.address1) {
+                        var address = data.address1;
+                        if(data.address2) {
+                            address += ', ' + data.address2;
+                        }
+                        $('#enterprise_address1').val(address);
+                    }
+                    if(!enterpriseDetails.zip_code) {
+                        $('#enterprise_zip_code').val(data.zip_code);
+                    }
+                    if(!enterpriseDetails.city) {
+                        $('#enterprise_city').val(data.city);
+                    }
+                    $('#next').attr('disabled', false);
+                }
+
+                if(errorMessage) {
+                    $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
+                }
+            },
+            error: sln.showAjaxError
+        });
+    }
+
     function gatherFromInputs(divName) {
         var result = {};
 
@@ -147,7 +205,8 @@ var signupCallback;
                 if(!result.success) {
                     sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                 } else {
-                    $('#signup_note').text(SignupTranslations.SIGNUP_SUCCCESS);
+                    var email = gatherFromInputs('entrepreneur').user_email;
+                    $('#signup_note').text(SignupTranslations.SIGNUP_SUCCCESS.replace('%(email)s', email));
                     $('#signup_box').hide();
                 }
             },
@@ -195,16 +254,25 @@ var signupCallback;
         getCurrentTab().find('input').first().focus();
         showHideButtons();
 
-        /* refill some info from the previous one */
-        if(currentStep == 1) {
-            var city = $('#app option:selected').attr('city');
-            $('#enterprise_city').val(city);
+        if(currentStep > 0) {
+            // redirect to the signup page if the user already in/have an app
+            if($('input[name=already_in_app]:checked').val() === 'yes') {
+                window.location = '/customers/signin';
+            }
         }
-        if(currentStep == 2) {
-            var enterprise_details = gatherFromInputs('enterprise');
-            $.each(enterprise_details, function(field_name, value) {
-                $('#entrepreneur input[id=entrepreneur_' + field_name + ']').val(value);
-            });
+
+        /* refill some info from the previous one */
+        if(currentStep === 2) {
+            var city = $('#app option:selected').attr('city');
+            if(!$('#enterprise_city').val()) {
+                $('#enterprise_city').val(city);
+            }
+        }
+        if(currentStep === 3) {
+            var city = $('#enterprise_city').val();
+            if(!$('#entrepreneur_city').val()) {
+                $('#entrepreneur_city').val(city);
+            }
         }
     }
 
@@ -237,4 +305,4 @@ var signupCallback;
         }
     });
 
-})();
+});

@@ -777,7 +777,7 @@ var createLib = function() {
             }
             return ft();
         },
-        configureDelayedInput: function(input, callback, label, check_value, timeout) {
+        configureDelayedInput: function(input, callback, label, check_value, timeout, unbind) {
             if(timeout == undefined)
                 timeout = 2000;
             if(check_value == undefined)
@@ -807,6 +807,10 @@ var createLib = function() {
             var tagName = input.prop('tagName');
             var inputType = input.attr('type') ? input.attr('type').toLowerCase() : '';
             var editableInputTypes = ['text', 'search', 'email', 'tel', 'url', 'number'];
+            if(unbind) {
+                // unbind keyup, paste, change... event types
+                input.unbind();
+            }
             if((tagName === "INPUT" && (editableInputTypes.indexOf(inputType) !== -1)) || tagName === "TEXTAREA") {
                 input.keyup(event_handler);
                 input.bind('paste', event_handler);

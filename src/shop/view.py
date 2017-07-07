@@ -1668,42 +1668,6 @@ def rest_cancel_charge(customer_id, order_number, charge_id):
         return ReturnStatusTO.create(False, exception.message)
 
 
-@rest("/internal/shop/rest/company/info", "get")
-@returns((ReturnStatusTO, CompanyTO))
-@arguments(vat=unicode)
-def get_company_info(vat):
-    audit_log(-1, u"Get company info")
-    vat = vat.strip().upper().replace(' ', '')
-    url = 'http://euvat.ga/api/info/%s' % urllib.quote(vat)
-    logging.info(url)
-    response = urlfetch.fetch(url, deadline=10, validate_certificate=False)
-    if response.status_code != 200:
-        return ReturnStatusTO.create(False, u'VAT number could not be validated!')
-    logging.info(response.content)
-    data = json.loads(response.content)
-    if not data['valid']:
-        return ReturnStatusTO.create(False, data.get(u'message', u'VAT number could not be validated!'))
-
-    comp = CompanyTO()
-    comp.name = data.get('traderName')
-    address = data.get('traderAddress')
-    if address:
-        comp.address1, comp.address2, comp.zip_code, comp.city = parse_euvat_address_eu(address)
-    comp.country = data['countryCode']
-    comp.vat = comp.country + data['vatNumber']
-    comp.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
-    return comp
-
-
-def parse_euvat_address_eu(address):
-    address = address.strip().splitlines()
-    zc_ci = address.pop()
-    zip_code, city = zc_ci.split(' ', 1)
-    address1 = address.pop(0) if len(address) > 0 else ''
-    address2 = address.pop(0) if len(address) > 0 else ''
-    return address1, address2, zip_code, city
-
-
 def parseDataDotBeAddressBE(address):
     address = address.split(',')
     if len(address) == 1:

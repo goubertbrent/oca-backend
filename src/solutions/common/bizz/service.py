@@ -21,8 +21,10 @@ from google.appengine.ext import db
 
 from mcfw.rpc import serialize_complex_value
 
+from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
-from rogerthat.utils import channel
+from rogerthat.to.service import UserDetailsTO
+from rogerthat.utils import channel, now
 from rogerthat.utils.transactions import run_in_xg_transaction
 
 from shop.bizz import put_customer_with_service, put_service
@@ -30,6 +32,7 @@ from shop.models import Product, RegioManagerTeam
 
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, send_email
+from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.to import SolutionInboxMessageTO
 
@@ -75,7 +78,7 @@ def filter_modules(city_customer, modules, broadcast_types):
 
 
 def create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code,
-                                 city, language,  organization_type, vat, website=None, facebook_page=None):
+                                 city, language,  organization_type, vat, website=None, facebook_page=None, force=False):
     """Given a customer and a service, will create the customer, contact and order."""
 
     customer_id = customer.id if customer else None
@@ -102,7 +105,7 @@ def create_customer_with_service(city_customer, customer, service, name, address
 
     return put_customer_with_service(service, name, address1, address2, zip_code, city, city_customer.country, language,
                                      organization_type, vat, city_customer.team_id, product_code, customer_id,
-                                     website, facebook_page)
+                                     website, facebook_page, force=force)
 
 
 def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False):
@@ -123,33 +126,59 @@ def put_customer_service(customer, service, search_enabled, skip_module_check, s
         raise e
 
 
+def _send_signup_status_inbox_reply(sln_settings, parent_chat_key, approved, reason):
+    service_user = sln_settings.service_user
+    lang = sln_settings.main_language
+    si = get_default_service_identity(service_user)
+
+    user_details = UserDetailsTO.create(service_user.email(), si.name, lang, si.avatarUrl, si.app_id)
+    if approved:
+        message = common_translate(lang, SOLUTION_COMMON, u'approved')
+    else:
+        message = common_translate(lang, SOLUTION_COMMON, u'signup_request_denial_reason', reason=reason)
+
+    inbox_message, _ = add_solution_inbox_message(service_user, parent_chat_key, False,
+                                                  [user_details], now(), message,
+                                                  mark_as_read=not approved,
+                                                  mark_as_trashed=approved)
+    return inbox_message
+
+
 def _send_approved_signup_email(city_customer, signup, lang):
     def trans(term, *args, **kwargs):
-        return common_translate(lang, SOLUTION_COMMON, unicode(term))
+        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     subject = u'{} - {}'.format(trans('our-city-app'), trans('signup_application'))
     message = trans('signup_approval_email_message', name=signup.customer_name, city_name=city_customer.name)
 
-    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
+    city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
+    send_email(subject, city_from, [signup.customer_email], [], None, message)
 
 
 def _send_denied_signup_email(city_customer, signup, lang, reason):
     subject = common_translate(city_customer.language, SOLUTION_COMMON,
-                               u'can_not_fulfil_signup_application', city=city_customer.name)
-    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, reason)
+                               u'signup_request_denied_by_city', city=city_customer.name)
+    message = common_translate(city_customer.language, SOLUTION_COMMON,
+                               u'signup_request_denial_reason', reason=reason)
+
+    city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
+    send_email(subject, city_from, [signup.customer_email], [], None, message)
 
 
-def set_customer_signup_done(city_customer, signup, approved, reason=None):
+def set_customer_signup_status(city_customer, signup, approved, reason=None):
     """Set the customer signup to done and move the inbox message to trash"""
 
     def trans():
         to_put = [signup]
         inbox_message = None
-        signup.done = True
+        signup.done = approved
         if signup.inbox_message_key:
             inbox_message = db.get(signup.inbox_message_key)
             if inbox_message:
-                inbox_message.trashed = True
+                if approved:
+                    inbox_message.trashed = True
+                else:
+                    inbox_message.read = True
                 to_put.append(inbox_message)
 
         db.put(to_put)
@@ -165,10 +194,20 @@ def set_customer_signup_done(city_customer, signup, approved, reason=None):
         else:
             _send_denied_signup_email(city_customer, signup, sln_settings.main_language, reason)
 
-        service_identity = ServiceIdentity.DEFAULT
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
-        channel.send_message(service_user, u'solutions.common.messaging.update',
-                             service_identity=service_identity,
-                             message=serialize_complex_value(message_to, SolutionInboxMessageTO, False))
+        status_reply_message = _send_signup_status_inbox_reply(sln_settings, signup.inbox_message_key, approved, reason)
+        send_signup_update_messages(sln_settings, message, status_reply_message)
 
+
+def send_signup_update_messages(sln_settings, *messages):
+    service_identity = ServiceIdentity.DEFAULT
+    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+
+    sm_data = [{u'type': u'solutions.common.customer.signup.update'}]
+    for message in messages:
+        message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
+        sm_data.append({
+            u'type': u'solutions.common.messaging.update',
+            u'message': serialize_complex_value(message_to, SolutionInboxMessageTO, False)
+        })
+
+    channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)

@@ -1876,7 +1876,7 @@ $(function () {
         $('#tab-details input, #tab-details select:not(#customer_organization_type)').val('');
         $('#customer_form #vat').val(vat);
         sln.call({
-            url: '/internal/shop/rest/company/info',
+            url: '/unauthenticated/osa/company/info',
             data: {
                 vat: vat
             },

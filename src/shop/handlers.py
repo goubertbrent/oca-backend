@@ -22,11 +22,11 @@ import json
 import logging
 import os
 import re
+import urllib
 
 from dateutil.relativedelta import relativedelta
 
-from google.appengine.api import search
-from google.appengine.api import users as gusers
+from google.appengine.api import search, urlfetch, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
 from mcfw.cache import cached
@@ -52,7 +52,7 @@ from rogerthat.utils import get_epoch_from_datetime, bizz_check
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from shop import SHOP_JINJA_ENVIRONMENT
-from shop.bizz import create_customer_signup, is_admin
+from shop.bizz import create_customer_signup, complete_customer_signup, is_admin
 from shop.business.i18n import shop_translate
 from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
@@ -480,6 +480,19 @@ def rest_loyalty_scanned(user_email_hash, merchant_email, app_id):
         return RETURNSTATUS_TO_SUCCESS
 
 
+class PublicErrorMixin(object):
+
+    def return_error(self, message, **kwargs):
+        error_template = SHOP_JINJA_ENVIRONMENT.get_template('public/error.html')
+        language = get_languages_from_request(self.request)[0]
+        translated_message = shop_translate(language, message, **kwargs)
+        params = {
+            'language': language,
+            'message': translated_message
+        }
+        self.response.out.write(error_template.render(params))
+
+
 class CustomerSigninHandler(webapp2.RequestHandler):
 
     def get(self):
@@ -493,34 +506,43 @@ class CustomerSigninHandler(webapp2.RequestHandler):
         self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signin.html').render(params))
 
 
-class CustomerSignupHandler(webapp2.RequestHandler):
+class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
 
     def get(self):
         if users.get_current_user():
             return self.redirect('/')
 
-        apps = get_all_signup_enabled_apps()
-        lang = get_languages_from_request(self.request)[0]
-        solution_server_settings = get_solution_server_settings()
-        params = {
-            'language': lang,
-            'apps': apps,
-            'recaptcha_site_key': solution_server_settings.recaptcha_site_key
-        }
+        email = self.request.get('email')
+        data = self.request.get('data')
+        if email and data:
+            try:
+                complete_customer_signup(email, data)
+            except ExpiredUrlException as e:
+                return self.return_error("link_expired", action='')
+            except AlreadyUsedUrlException as e:
+                return self.return_error("link_is_already_used", action='')
+            except InvalidUrlException:
+                return self.return_error('invalid_url')
+
+            params = {
+                'email_verified': True,
+            }
+        else:
+            apps = get_all_signup_enabled_apps()
+            lang = get_languages_from_request(self.request)[0]
+            solution_server_settings = get_solution_server_settings()
+            params = {
+                'language': lang,
+                'apps': apps,
+                'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
+                'email_verified': False,
+            }
+
         self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
 
 
-class CustomerSetPasswordHandler(SetPasswordHandler):
-
-    def return_error(self, message, **kwargs):
-        error_template = SHOP_JINJA_ENVIRONMENT.get_template('public/error.html')
-        language = get_languages_from_request(self.request)[0]
-        translated_message = shop_translate(language, message, **kwargs)
-        params = {
-            'language': language,
-            'message': translated_message
-        }
-        self.response.out.write(error_template.render(params))
+class CustomerSetPasswordHandler(PublicErrorMixin, SetPasswordHandler):
+    """Inherit PublicErrorMixin first to override SetPasswordHandler return_error()"""
 
     def get(self):
         email = self.request.get('email')
@@ -576,3 +598,38 @@ def customer_get_editable_organization_types(customer_id):
         return organization_types
     except CustomerNotFoundException:
         return {}
+
+
+def parse_euvat_address_eu(address):
+    address = address.strip().splitlines()
+    zc_ci = address.pop()
+    zip_code, city = zc_ci.split(' ', 1)
+    address1 = address.pop(0) if len(address) > 0 else ''
+    address2 = address.pop(0) if len(address) > 0 else ''
+    return address1, address2, zip_code, city
+
+
+@rest("/unauthenticated/osa/company/info", "get", read_only_access=True, authenticated=False)
+@returns((ReturnStatusTO, CompanyTO))
+@arguments(vat=unicode)
+def get_company_info(vat):
+    vat = vat.strip().upper().replace(' ', '')
+    url = 'http://euvat.ga/api/info/%s' % urllib.quote(vat)
+    logging.info(url)
+    response = urlfetch.fetch(url, deadline=10, validate_certificate=False)
+    if response.status_code != 200:
+        return ReturnStatusTO.create(False, u'VAT number could not be validated!')
+    logging.info(response.content)
+    data = json.loads(response.content)
+    if not data['valid']:
+        return ReturnStatusTO.create(False, data.get(u'message', u'VAT number could not be validated!'))
+
+    comp = CompanyTO()
+    comp.name = data.get('traderName')
+    address = data.get('traderAddress')
+    if address:
+        comp.address1, comp.address2, comp.zip_code, comp.city = parse_euvat_address_eu(address)
+    comp.country = data['countryCode']
+    comp.vat = comp.country + data['vatNumber']
+    comp.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
+    return comp

@@ -59,7 +59,7 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
-    OrganizationType, create_news_publisher, delete_news_publisher, send_email, enable_or_disable_solution_module, \
+    OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
     twitter as bizz_twitter
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
@@ -73,7 +73,7 @@ from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, 
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
-from solutions.common.bizz.service import get_allowed_modules, set_customer_signup_done
+from solutions.common.bizz.service import get_allowed_modules, set_customer_signup_status
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
@@ -1916,7 +1916,7 @@ def rest_customer_signup_reply(signup_key, message):
 
     signup = db.get(signup_key)
     if signup:
-        set_customer_signup_done(city_customer, signup, approved=False, reason=message)
+        set_customer_signup_status(city_customer, signup, approved=False, reason=message)
 
     return RETURNSTATUS_TO_SUCCESS
 

@@ -30,6 +30,7 @@ $(function () {
             url: '/common/customer/signup/all',
             type: 'get',
             success: function(data) {
+                customerSignupMessages = {};
                 $.each(data, function(i, signup) {
                     var chatId = signup.inbox_message_key;
                     if(chatId) {
@@ -47,7 +48,7 @@ $(function () {
 
     var signupAction = function(signupKey, ok) {
         if(ok) {
-            signupCustomer(signupKey);
+            signupCustomer(signupKey, false);
         } else {
             sendReply(signupKey);
         }
@@ -73,8 +74,12 @@ $(function () {
         }
     };
 
-    var signupCustomer = function(signupKey) {
-        sln.confirm(CommonTranslations.create_service_for_signup_request, createService);
+    var signupCustomer = function(signupKey, force) {
+        if(force) {
+            createService()
+        } else {
+            sln.confirm(CommonTranslations.create_service_for_signup_request, createService);
+        }
 
         function createService() {
             // get allowed/default modules and broadcast types
@@ -97,15 +102,23 @@ $(function () {
                     data: {
                         signup_key: signupKey,
                         modules: defaultModules,
-                        broadcast_types: broadcastTypes
+                        broadcast_types: broadcastTypes,
+                        force: force
                     },
                     success: function(data) {
                         if(!data.success) {
                             isWaitingForProvisionUpdate = false;
                             sln.hideProcessing();
-                            sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+
+                            if(data.errormsg) {
+                                sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                            } else if(data.warningmsg) {
+                                sln.confirm(data.warningmsg, function() {
+                                    signupCustomer(signupKey, true);
+                                })
+                            }
+                            // will be updated through the channel
                         }
-                        // will be updated through the channel
                     },
                     error: sln.showAjaxError
                 });
@@ -114,7 +127,7 @@ $(function () {
     };
 
     var sendReply = function(signupKey) {
-        sln.inputBox(function(message) {
+        function sendMessage(message) {
             sln.call({
                 url: '/common/customer/singup/reply',
                 type: 'post',
@@ -129,8 +142,11 @@ $(function () {
                 },
                 error: sln.showAjaxError
             });
-        },
-        CommonTranslations.reason, CommonTranslations.SEND, CommonTranslations.signup_not_ok, null, null, '', true);
+        }
+
+        sln.inputBox(sendMessage, CommonTranslations.reason, CommonTranslations.SEND,
+                     CommonTranslations.signup_not_ok, null, null, '', true,
+                     CommonTranslations.signup_not_ok_fill_reason);
     };
 
     var getSignupButtonGroup = function(signup, onRight) {
@@ -139,10 +155,12 @@ $(function () {
         var btnOk = $('<button action="ok" class="btn btn-large btn-success"><i class="fa fa-check"></i> ' + CommonTranslations['reservation-approve'] + '</button>').attr('key', signup.key);
         var btnNotOk = $('<button action="notok" class="btn btn-large btn-warning"><i class="fa fa-times"></i> ' + CommonTranslations['reservation-decline'] + '</button>').attr('key', signup.key);
 
-        btnOk.click(function() {
+        btnOk.click(function(event) {
+            event.stopPropagation();
             signupAction(signup.key, true);
         });
-        btnNotOk.click(function() {
+        btnNotOk.click(function(event) {
+            event.stopPropagation();
             signupAction(signup.key, false);
         });
 
@@ -201,10 +219,12 @@ $(function () {
     });
 
     // add signup toolbar buttons when opening the message
+    // buttons will be added after the details are loaded
+    // to get the parent message
     var inboxReply = $('#inbox-reply');
-    $(document).on("click", '.inbox-message-action-reply', function(event) {
-        var chatId = $(this).attr('message_key');
-        var signup = customerSignupMessages[chatId];
+    inboxReply.bind('message-details-loaded', function() {
+        var parentMessageId = inboxReply.find('tbody > tr').first().attr('message_key');
+        var signup = customerSignupMessages[parentMessageId];
         // remove the previous signup button group if any
         var prevButtonGroup = inboxReply.find('.btn-toolbar .btn-group').last();
         if(prevButtonGroup.attr('signup_key')) {

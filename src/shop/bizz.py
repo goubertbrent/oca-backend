@@ -16,6 +16,9 @@
 # @@license_version:1.2@@
 
 import base64
+import json
+import hashlib
+import urllib
 from collections import OrderedDict
 from contextlib import closing
 import csv
@@ -53,6 +56,7 @@ from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
+from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
@@ -61,6 +65,7 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, now, send_mail_via_mime, channel, get_epoch_from_datetime, send_mail
+from rogerthat.utils.crypto import encrypt, decrypt
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
     address_to_coordinates, GeoCodeException
 from rogerthat.utils.service import create_service_identity_user, add_slash_default
@@ -797,13 +802,20 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             settings = get_server_settings()
             contact = Contact.get_one(customer_key)
 
+            # get the login url that matches the /customers/signin path
+            # from settings customSigninPaths for now
+            login_url = settings.baseUrl
+            for url, path in chunks(settings.customSigninPaths, 2):
+                if path.startswith('/customers/signin'):
+                    login_url = 'https://' + url
+
             # TODO: email with OSA style in header, footer
             with closing(StringIO()) as sb:
                 sb.write(shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'your_service_created').encode('utf-8'))
                 sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=settings.baseUrl,
+                sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=login_url,
                                         login=user_email, password=r.password).encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
@@ -813,12 +825,17 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
 
             # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
 
+            subject = '%s - %s' % (common_translate(customer.language, SOLUTION_COMMON, 'our-city-app'),
+                                   common_translate(customer.language, SOLUTION_COMMON, 'login_information'))
+            app = get_app_by_id(customer.app_id)
+            from_email = '%s <%s>' % (app.name, app.get_contact_email_address())
+
             msg = MIMEMultipart('alternative')
-            msg['Subject'] = shop_translate(customer.language, 'service_created')
-            msg['From'] = settings.senderEmail
+            msg['Subject'] = subject
+            msg['From'] = from_email
             msg['To'] = user_email
             msg.attach(MIMEText(body, 'plain', 'utf-8'))
-            send_mail_via_mime(settings.dashboardEmail, [user_email], msg, transactional=True)
+            send_mail_via_mime(from_email, [user_email], msg, transactional=True)
         if to_put:
             db.put(to_put)
         return customer
@@ -2566,7 +2583,7 @@ def create_customer_service_to(name, address1, address2, city, zip_code, email, 
 
 def put_customer_with_service(service, name, address1, address2, zip_code, city, country, language,
                               organization_type, vat, team_id, product_code, customer_id=None,
-                              website=None, facebook_page=None):
+                              website=None, facebook_page=None, force=False):
     def trans1():
         email_has_changed = False
         is_new = False
@@ -2574,7 +2591,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
                                              organization_type=organization_type, prospect_id=None,
-                                             force=False, team_id=team_id, website=website, facebook_page=facebook_page)
+                                             force=force, team_id=team_id, website=website, facebook_page=facebook_page)
 
         customer.put()
         if customer_id:
@@ -2675,6 +2692,30 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     return message.solution_inbox_message_key
 
 
+def calculate_signup_url_digest(data):
+    alg = hashlib.sha256()
+    alg.update(data['c'].encode('utf-8'))
+    alg.update(data['s'].encode('utf-8'))
+    return alg.hexdigest()
+
+
+def send_signup_verification_email(city_customer, signup):
+    from solutions.common.bizz import send_email
+
+    data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
+    user = users.User(signup.customer_email)
+    data['d'] = calculate_signup_url_digest(data)
+    data = encrypt(user, json.dumps(data))
+    url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.encodestring(data)})
+
+    link = '{}/customers/signup?{}'.format(get_server_settings().baseUrl, url_params)
+    lang = city_customer.language
+    subject = city_customer.name + ' - ' + common_translate(lang, SOLUTION_COMMON, 'signup')
+    message = common_translate(lang, SOLUTION_COMMON, 'signup_verification_email',
+                               name=signup.customer_name, link=link)
+    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
+
+
 @returns()
 @arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
 def create_customer_signup(city_customer_id, company, customer, recaptcha_token):
@@ -2682,15 +2723,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
         raise BusinessException('Cannot verify recaptcha response')
 
     city_customer = Customer.get_by_id(city_customer_id)
-    user_email = customer.user_email.strip()
-    signup_key = CustomerSignup.create_key(city_customer, user_email)
-    previous_signup = db.get(signup_key)
-    another_customer = Customer.list_by_user_email(user_email).fetch(limit=1)
-    if another_customer or previous_signup:
-        message = shop_translate(customer.language, 'signup_email_is_already_used')
-        raise BusinessException(message)
-
-    signup = CustomerSignup(key=signup_key)
+    user_email = customer.user_email.strip().lower()
+    signup = CustomerSignup(parent=city_customer)
 
     signup.company_name = company.name
     signup.company_organization_type = company.organization_type
@@ -2708,9 +2742,41 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
     signup.customer_website = customer.website
     signup.customer_facebook_page = customer.facebook_page
 
+    for other_signup in CustomerSignup.list_pending_by_customer_email(user_email):
+        # check if the same information has been used in a pending signup
+        if signup.is_same_signup(other_signup):
+            message = shop_translate(customer.language, 'signup_same_information_used')
+            raise BusinessException(message)
+
     signup.timestamp = now()
-    signup.inbox_message_key = _send_new_customer_signup_message(city_customer.service_user,
-                                                                 signup)
+    signup.put()
+    send_signup_verification_email(city_customer, signup)
+
+
+@returns()
+@arguments(email=unicode, data=str)
+def complete_customer_signup(email, data):
+    try:
+        user = users.User(email)
+        data = base64.decodestring(decrypt(user, data))
+        data = json.loads(data)
+        azzert(data['d'] == calculate_signup_url_digest(data))
+    except:
+        raise InvalidUrlException
+
+    signup = CustomerSignup.get(data['s'])
+    if not signup:
+        raise InvalidUrlException
+
+    timestamp = signup.timestamp
+    if not (timestamp < now() < timestamp + 24 * 3600):
+        raise ExpiredUrlException
+
+    if signup.inbox_message_key:
+        raise AlreadyUsedUrlException
+
+    service_user = users.User(data['c'])
+    signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
     signup.put()
 
 

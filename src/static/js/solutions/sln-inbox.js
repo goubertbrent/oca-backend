@@ -307,6 +307,7 @@ $(function() {
                 });
 
                 inboxReply.find("tbody").html(html);
+                inboxReply.trigger('message-details-loaded');
             }
         });
     };

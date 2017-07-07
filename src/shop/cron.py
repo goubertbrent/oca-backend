@@ -21,6 +21,7 @@ from shop.jobs import notify_extention_needed
 from shop.jobs.export_reseller_invoices import export_reseller_invoices_this_week
 from shop.jobs.recurrentbilling import schedule_recurrent_billing
 from shop.jobs.report_on_site_payments import schedule_report_on_site_payments
+from shop.jobs import clean_unverified_signups
 
 
 class RecurrentBilling(webapp2.RequestHandler):
@@ -44,3 +45,9 @@ class NotifyExtentionNeededHandler(webapp2.RequestHandler):
 class ExportResellerInvoicesHandler(webapp2.RequestHandler):
     def get(self):
         export_reseller_invoices_this_week()
+
+
+class CleanupUnverifiedSignupRequests(webapp2.RequestHandler):
+
+    def get(self):
+        clean_unverified_signups.job()
