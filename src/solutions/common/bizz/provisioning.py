@@ -580,7 +580,7 @@ def get_app_data_agenda(sln_settings, service_identity):
 @arguments(sln_settings=SolutionSettings, service_identity=unicode)
 def get_app_data_broadcast(sln_settings, service_identity):
     with users.set_user(sln_settings.service_user):
-        si = system.get_identity(service_identity)
+        si = system.get_info(service_identity)
 
     def transl(key):
         try:
