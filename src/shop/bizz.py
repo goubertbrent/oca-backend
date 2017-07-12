@@ -796,7 +796,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
         deferred.defer(re_index_customer, customer_key, _transactional=True, _queue=FAST_QUEUE)
 
         if broadcast_to_users:
-            channel.send_message(broadcast_to_users, 'shop.provision.success')
+            channel.send_message(broadcast_to_users, 'shop.provision.success', customer_id=customer.id)
 
         if not is_redeploy:
             settings = get_server_settings()
