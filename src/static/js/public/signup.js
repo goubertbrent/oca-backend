@@ -236,6 +236,14 @@ $(function() {
             return;
         }
 
+        if(isFirstStep()) {
+            // redirect to the signup page if the user already in/have an app
+            if($('input[name=already_in_app]:checked').val() === 'yes') {
+                window.location = '/customers/signin';
+                return;
+            }
+        }
+
         stepChanged(currentStep + 1);
     }
 
@@ -253,13 +261,6 @@ $(function() {
         getCurrentTab().show();
         getCurrentTab().find('input').first().focus();
         showHideButtons();
-
-        if(currentStep > 0) {
-            // redirect to the signup page if the user already in/have an app
-            if($('input[name=already_in_app]:checked').val() === 'yes') {
-                window.location = '/customers/signin';
-            }
-        }
 
         /* refill some info from the previous one */
         if(currentStep === 2) {

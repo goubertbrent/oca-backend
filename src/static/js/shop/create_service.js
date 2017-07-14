@@ -154,7 +154,7 @@ var submitModules = function() {
             return;
         }
     }
-    
+
     if (newService.modules.indexOf('city_app') == -1) {
     	newService.managed_organization_types = [];
     } else {
@@ -308,7 +308,7 @@ var showServiceTab = function() {
             broadcastTypes.slideUp();
         }
     }).change();
-    
+
     form.find('#form_modules input[type="checkbox"][value="city_app"]').change(function() {
         var managedOrganizationTypes = form.find('#form_managed_organization_types');
         if ($(this).is(':checked')) {
@@ -317,7 +317,7 @@ var showServiceTab = function() {
         	managedOrganizationTypes.slideUp();
         }
     }).change();
-    
+
     form.find('#form_apps #service_default_app').change(function() {
         var appId = $(this).val();
         form.find('#form_apps input[type="checkbox"]').each(function() {
@@ -485,7 +485,7 @@ var customerSelected = function(customer) {
                     });
                     $('#service_other_broadcast_types', createServiceForm).val(otherBroadcastTypes);
                 }
-                
+
                 if (service.modules.indexOf('city_app') == -1) {
                     $('#form_managed_organization_types', createServiceForm).hide();
                 }
@@ -595,7 +595,7 @@ function selectDefaultApps(){
         elemServiceDefaultApp.val(default_app).change();
     } else{
     	var defaultAppId = "rogerthat";
-    	
+
     	var form = $('#create_service_form');
     	form.find('#form_apps input[type="checkbox"]').each(function() {
             var checkbox = $(this);
@@ -620,6 +620,9 @@ $(document).ready(function () {
     sln.registerMsgCallback(function (data) {
         switch (data.type) {
             case 'shop.provision.success':
+                if(!currentCustomer || currentCustomer.id != data.customer_id) {
+                    return;
+                }
                 loadCustomer(currentCustomer.id, function (updatedCustomer) {
                     for (var prop in updatedCustomer) {
                         if (updatedCustomer.hasOwnProperty(prop)) {
