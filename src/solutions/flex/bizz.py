@@ -16,7 +16,6 @@
 # @@license_version:1.2@@
 
 import logging
-from types import NoneType
 import uuid
 
 from mcfw.rpc import returns, arguments

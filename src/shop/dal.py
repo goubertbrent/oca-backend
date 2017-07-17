@@ -23,7 +23,6 @@ from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import generator
-from rogerthat.dal.app import get_apps
 from rogerthat.models import App
 from rogerthat.rpc import users
 from shop.models import Customer, CustomerSignup, ShopLoyaltySlide, ShopLoyaltySlideNewOrder, LegalEntity, ShopApp

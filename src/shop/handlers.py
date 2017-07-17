@@ -517,9 +517,9 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
         if email and data:
             try:
                 complete_customer_signup(email, data)
-            except ExpiredUrlException as e:
+            except ExpiredUrlException:
                 return self.return_error("link_expired", action='')
-            except AlreadyUsedUrlException as e:
+            except AlreadyUsedUrlException:
                 return self.return_error("link_is_already_used", action='')
             except InvalidUrlException:
                 return self.return_error('invalid_url')

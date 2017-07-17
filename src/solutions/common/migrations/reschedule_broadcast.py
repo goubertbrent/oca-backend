@@ -6,7 +6,6 @@ from rogerthat.bizz.job import run_job
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.utils import now
 
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionScheduledBroadcast
