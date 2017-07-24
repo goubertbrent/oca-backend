@@ -1,3 +1,5 @@
-VERSIONS = {}
-VERSIONS["rogerthat_backend"] = ""
-VERSIONS["oca_backend"] = ""
+# coding=utf-8
+VERSIONS = {
+    'rogerthat-backend': '',
+    'oca-backend': ''
+}

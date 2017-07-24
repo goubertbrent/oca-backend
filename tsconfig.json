@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "declaration": false,
+    "removeComments": true,
+    "noLib": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "lib": [
+      "es2017"
+    ],
+    "sourceMap": true,
+    "pretty": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitUseStrict": false,
+    "noFallthroughCasesInSwitch": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./node_modules"
+    ],
+    "types": [
+      "node"
+    ]
+  },
+  "files": [
+    "gulpfile.ts",
+    "tools/manual_typings/isstream.d.ts",
+    "tools/manual_typings/open.d.ts",
+    "tools/manual_typings/merge-stream.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src"
+  ],
+  "compileOnSave": false
+}

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
+set -euf
 VERSION=`cat BACKEND_VERSION`
-echo 'using rogerthat-backend version' $VERSION;
+echo 'using rogerthat-backend version' ${VERSION};
 pushd ../rogerthat-backend
-git checkout $VERSION
-pip install -r requirements.txt -t src/lib
+git checkout ${VERSION}
 popd
 
+pip install -U --target=build/lib -r ../rogerthat-backend/requirements.txt --prefix=
 npm install
-pushd src/static
+npm run build
+pushd build/static
 npm install
 popd
-python build.py
