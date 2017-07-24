@@ -159,7 +159,7 @@ class DJMaticOverviewHandler(webapp2.RequestHandler):
 
     def get(self):
         solution_server_settings = get_solution_server_settings()
-        VALID_USERS = [gae_users.User(email) for email in solution_server_settings.djmatic_overview_users]
+        VALID_USERS = [gae_users.User(email) for email in solution_server_settings.djmatic_overview_emails]
         user = gae_users.get_current_user()
         if user and user in VALID_USERS:
 
