@@ -1533,9 +1533,8 @@ def get_order_contact(customer_id, order_number):
 @arguments(customer_id=(int, long), order_number=unicode, contact_id=(int, long))
 def rest_put_order_contact(customer_id, order_number, contact_id):
     audit_log(customer_id, u"Put order contact")
-    customer, order, contact = db.get((Customer.create_key(customer_id),
-                                       Order.create_key(customer_id, order_number),
-                                       Contact.create_key(contact_id, customer_id)))
+    order, contact = db.get((Order.create_key(customer_id, order_number),
+                             Contact.create_key(contact_id, customer_id)))
     if not contact:
         return u'New contact could not be found'
     if order.status == Order.STATUS_SIGNED:
