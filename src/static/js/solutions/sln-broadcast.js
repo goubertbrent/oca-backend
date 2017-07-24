@@ -2251,7 +2251,6 @@ $(function () {
                 elemButtonSaveImage.show().unbind('click').click(resizeImage);
             });
         }
-
         function resizeImage(event) {
             if (elemInputImage.get(0).files.length !== 0) {
                 var croppedImageCanvas = elemImagePreview.cropper('getCroppedCanvas', {
@@ -2299,6 +2298,10 @@ $(function () {
                     currentStep = i;
                     break;
                 }
+            }
+            if (currentStep === 1) {
+                // When going back, ensure we save the image to avoid errors.
+                resizeImage();
             }
             stepChanged(data);
         }
