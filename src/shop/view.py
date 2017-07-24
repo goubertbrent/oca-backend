@@ -162,10 +162,10 @@ def _get_apps():
 
 def _get_organization_types():
     # organization_type value, description, selected by default
-    organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'Community Service', False),
+    organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'community_service', False),
                           (ServiceProfile.ORGANIZATION_TYPE_EMERGENCY, 'Care', False),
-                          (ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, 'Association', False),
-                          (ServiceProfile.ORGANIZATION_TYPE_PROFIT, 'Merchant', True),
+                          (ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, 'association', False),
+                          (ServiceProfile.ORGANIZATION_TYPE_PROFIT, 'merchant', True),
                           ]
     return sorted(organization_types, key=lambda x: x[1])
 
@@ -215,7 +215,6 @@ def get_shop_context(**kwargs):
                admin=is_admin(user),
                team_admin=team_admin,
                payment_admin=is_payment_admin(user),
-               organization_types=_get_organization_types(),
                broadcast_types=get_all_existing_broadcast_types(),
                js_templates=json.dumps(js_templates),
                prospect_reasons_json=u"[]",

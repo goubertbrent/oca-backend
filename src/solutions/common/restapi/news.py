@@ -60,9 +60,9 @@ def rest_get_news_statistics(news_id):
            scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
            broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO)
 def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
-                       type=MISSING, qr_code_caption=MISSING, app_ids=MISSING, scheduled_at=MISSING, news_id=None,
-                       broadcast_on_facebook=False, broadcast_on_twitter=False, facebook_access_token=None,
-                       target_audience=None):  # @ReservedAssignment
+                       type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
+                       scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
+                       facebook_access_token=None, target_audience=None):
     """
     Args:
         title (unicode)

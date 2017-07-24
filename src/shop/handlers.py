@@ -24,11 +24,12 @@ import os
 import re
 import urllib
 
-from dateutil.relativedelta import relativedelta
-
+import webapp2
 from google.appengine.api import search, urlfetch, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
+
+from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.restapi import rest, GenericRESTRequestHandler
@@ -51,6 +52,7 @@ from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.utils import get_epoch_from_datetime, bizz_check
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
+from rogerthat.utils.translations import localize_app_translation
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, is_admin
 from shop.business.i18n import shop_translate
@@ -60,8 +62,6 @@ from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam,
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import _get_organization_types, get_shop_context
 from solution_server_settings import get_solution_server_settings
-import webapp2
-
 
 try:
     from cStringIO import StringIO
@@ -517,9 +517,9 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
         if email and data:
             try:
                 complete_customer_signup(email, data)
-            except ExpiredUrlException as e:
+            except ExpiredUrlException:
                 return self.return_error("link_expired", action='')
-            except AlreadyUsedUrlException as e:
+            except AlreadyUsedUrlException:
                 return self.return_error("link_is_already_used", action='')
             except InvalidUrlException:
                 return self.return_error('invalid_url')
@@ -593,7 +593,7 @@ def customer_get_editable_organization_types(customer_id):
 
         for _type, label, _ in _get_organization_types():
             if _type in customer.editable_organization_types:
-                organization_types[_type] = shop_translate(language, label.lower())
+                organization_types[_type] = localize_app_translation(language, label, customer.app_id)
 
         return organization_types
     except CustomerNotFoundException:

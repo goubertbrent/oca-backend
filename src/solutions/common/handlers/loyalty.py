@@ -22,8 +22,7 @@ import json
 import logging
 
 import cloudstorage
-from google.appengine.ext import blobstore, db, webapp
-from google.appengine.ext.webapp import blobstore_handlers
+from google.appengine.ext import db, webapp
 from mcfw.properties import azzert
 from rogerthat.bizz.gcs import get_blobstore_cloudstorage_path, upload_to_gcs
 from rogerthat.bizz.user import calculate_secure_url_digest

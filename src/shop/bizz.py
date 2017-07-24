@@ -16,31 +16,32 @@
 # @@license_version:1.2@@
 
 import base64
-import json
+import csv
+import datetime
 import hashlib
+import json
+import logging
+import os
+import sys
 import urllib
 from collections import OrderedDict
 from contextlib import closing
-import csv
-import datetime
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import logging
-import os
-import sys
 from types import NoneType
-
-from PIL.Image import Image
-from dateutil.relativedelta import relativedelta
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
-from babel.dates import format_datetime, get_timezone, format_date
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
+
 import httplib2
+import stripe
+from PIL.Image import Image
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -103,9 +104,7 @@ from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO, SolutionInboxMessageTO
 from solutions.flex.bizz import create_flex_service
-import stripe
 from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -2633,13 +2632,18 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
     return customer, email_changed, is_new_association
 
 
-def get_signup_summary(lang, customer_signup):
-    """Get a translated signup summary."""
+def get_signup_summary(lang, customer_signup, app_id):
+    """Get a translated signup summary.
+
+    Args:
+        lang (unicode)
+        customer_signup(CustomerSignup)
+    """
     def trans(term, *args, **kwargs):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
-    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang)
+    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer.app_id)
 
     summary = u'{}\n\n'.format(trans('signup_application'))
     summary += u'{}\n'.format(trans('signup_inbox_message_header',
@@ -2675,9 +2679,9 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
     lang = sln_settings.main_language
-    summary = get_signup_summary(lang, customer_signup)
-
     si = get_default_service_identity(service_user)
+    summary = get_signup_summary(lang, customer_signup, si.app_id)
+
     user_details = UserDetailsTO.create(service_user.email(), si.name, lang, si.avatarUrl, si.app_id)
     message = create_solution_inbox_message(service_user, service_identity,
                                             SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP,

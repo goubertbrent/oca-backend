@@ -19,7 +19,6 @@ import json
 import logging
 
 from google.appengine.ext import db, deferred
-from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import InvalidURLException
