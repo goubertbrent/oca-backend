@@ -16,22 +16,22 @@
 # @@license_version:1.2@@
 
 import base64
-from contextlib import closing
-from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-from types import NoneType
 import urllib
+from contextlib import closing
+from datetime import timedelta, datetime
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from babel import dates
-from babel.dates import format_date, format_timedelta, get_next_timezone_transition
-from babel.dates import format_time
-
-from google.appengine.ext import db
 import jinja2
+from google.appengine.ext import db
+
+import solutions
+from babel import dates
+from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.features import Features
@@ -41,13 +41,12 @@ from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.settings import get_server_settings
-from rogerthat.to.friends import ServiceMenuDetailTO
+from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.profile import ProfileLocationTO
 from rogerthat.to.qr import QRDetailsTO
 from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, OrganizationType, \
@@ -96,7 +95,6 @@ from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, Loyalt
 from solutions.common.utils import is_default_service_identity
 from solutions.djmatic import SOLUTION_DJMATIC
 from solutions.jinja_extensions import TranslateExtension
-
 
 try:
     from cStringIO import StringIO
@@ -760,7 +758,7 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
         args = [ssmi.icon_name, ssmi.label, ssmi.tag, coords, ssmi.icon_color, ssmi.screen_branding, ssmi.static_flow,
                 ssmi.requires_wifi, ssmi.run_in_background, ssmi.is_broadcast_settings, ssmi.broadcast_branding,
-                ssmi.roles, ssmi.action]
+                ssmi.roles, ssmi.action, ssmi.link]
         if db.is_in_transaction():
             on_trans_committed(system.put_menu_item, *args)
         else:
@@ -918,16 +916,21 @@ def put_static_content(sln_settings, current_coords, main_branding, default_lang
     menu_items = list()
     to_put = list()
     to_delete = list()
-    for sc in SolutionStaticContent.list_changed(sln_settings.service_user):
+    for sc in SolutionStaticContent.list_changed(sln_settings.service_user):  # type: SolutionStaticContent
         system.delete_menu_item(sc.old_coords)
         if sc.deleted:
             to_delete.append(sc)
         else:
             if sc.visible:
                 logging.debug('Creating static content menu item \"%s\"' % sc.icon_label)
+                link = None
+                if sc.sc_type == SolutionStaticContent.TYPE_WEBSITE:
+                    link = ServiceMenuItemLinkTO()
+                    link.url = sc.website
+                    link.external = False
                 menu_items.append(SolutionServiceMenuItem(sc.icon_name, sln_settings.menu_item_color, sc.icon_label,
                                                           u'%s%s' % (STATIC_CONTENT_TAG_PREFIX, sc.icon_label),
-                                                          sc.branding_hash, coords=map(int, sc.coords)))
+                                                          sc.branding_hash, coords=map(int, sc.coords), link=link))
             sc.provisioned = True
             sc.old_coords = map(int, sc.coords)
             to_put.append(sc)

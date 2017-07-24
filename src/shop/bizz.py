@@ -724,8 +724,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
                             search_enabled, qualified_identifier=service.email, broadcast_to_users=broadcast_to_users)
 
-    # Setting service_email to make sure the auto_login_url can be constructed
-    customer.service_email = customer.service_email or service.email
     r.auto_login_url = customer.auto_login_url
 
     deferred.defer(_after_service_saved, customer.key(), service.email, r, bool(redeploy or user_existed), service.apps,

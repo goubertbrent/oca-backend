@@ -16,15 +16,15 @@
 # @@license_version:1.2@@
 
 import base64
+from test import set_current_user
 
 from google.appengine.ext import db
-
 import mc_unittest
+from mcfw.consts import MISSING
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
-from mcfw.consts import MISSING
 from shop.bizz import put_service, _after_service_saved, create_or_update_customer, create_contact, create_order, \
     sign_order
 from shop.business.order import get_subscription_order_remaining_length
@@ -32,8 +32,8 @@ from shop.models import RegioManagerTeam, Product, Customer, Order
 from shop.to import ShopProductTO, CustomerServiceTO, OrderItemTO
 from solutions.common.bizz import OrganizationType
 from solutions.common.bizz import SolutionModule
+from solutions.common.bizz.service import put_customer_service
 from solutions.common.restapi.store import add_item_to_order, remove_from_order, pay_order
-from test import set_current_user
 
 
 class CustomerStoreTestCase(mc_unittest.TestCase):
@@ -101,6 +101,34 @@ class CustomerStoreTestCase(mc_unittest.TestCase):
         provision_response = put_service(customer, service)
         # deferred functions seem to get ignored in unit tests..
         _after_service_saved(customer.key(), service.email, provision_response, True, service.apps, [])
+
+    def test_create_service_trans(self):
+        _, customer = self._create_customer_and_subscription_order(
+            [u'MSUP', u'BEAC', u'KSUP', u'ILOS'])
+
+        service = CustomerServiceTO()
+        service.address = u'antwerpsesteenweg 19 lochristi'
+        service.apps = [App.APP_ID_ROGERTHAT, u'be-loc']
+        service.broadcast_types = [u'broadcast']
+        service.currency = u'euro'
+        service.email = u'test@example.com'
+        service.language = u'en'
+        mods = [m for m in SolutionModule.MANDATORY_MODULES]
+        service.modules = list(set(mods))
+        service.name = customer.name
+        service.organization_type = OrganizationType.PROFIT
+        service.phone_number = u'00248498498494'
+        service.app_infos = []
+        service.current_user_app_infos = []
+        service.managed_organization_types = []
+
+        put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
+                             skip_email_check=True, rollback=True)
+
+        put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
+                             skip_email_check=True, rollback=True)
+
+
 
     def test_customer_store(self):
         xcty_product = ShopProductTO.create(u'be-berlare', u'XCTY', 1)

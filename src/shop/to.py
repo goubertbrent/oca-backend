@@ -87,7 +87,7 @@ class CustomerTO(CompanyTO):
         c.id = customer.id
         c.service_email = customer.service_email
         c.user_email = customer.user_email
-        c.auto_login_url = customer.auto_login_url
+        c.auto_login_url = customer.auto_login_url if customer.service_email else None
         c.stripe_valid = customer.stripe_valid
         c.migration_job = customer.migration_job
         c.manager = customer.manager.email().decode('utf-8') if customer.manager else None

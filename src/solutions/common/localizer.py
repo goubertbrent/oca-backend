@@ -1209,6 +1209,7 @@ translations = \
          u'static-content-option': u'How do you want to create a new static content',
          u'static-content-option-1': u'1. Create your own content',
          u'static-content-option-2': u'2. Upload a pdf',
+         u'static-content-option-3': u'3. Add link to website',
          u'static-content-update': u'Update static content',
          u'static_content_items': u'Static content items',
          u'statistics': u'Statistics',

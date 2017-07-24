@@ -36,7 +36,7 @@ from google.appengine.ext.webapp import template
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
-    azzert, long_property
+    azzert, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding
@@ -58,7 +58,7 @@ from rogerthat.service.api.system import list_roles, add_role_member, delete_rol
 from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
-from rogerthat.to.friends import ServiceMenuDetailTO
+from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -221,10 +221,11 @@ class SolutionServiceMenuItem(object):
     broadcast_types = unicode_list_property('12')
     coords = long_list_property('13')
     action = long_property('14')
+    link = typed_property('15', ServiceMenuItemLinkTO)
 
     def __init__(self, icon_name, icon_color, label, tag, screen_branding=None, requires_wifi=False,
                  run_in_background=True, static_flow=None, roles=None, is_broadcast_settings=False,
-                 broadcast_branding=None, broadcast_types=None, coords=None, action=0):
+                 broadcast_branding=None, broadcast_types=None, coords=None, action=0, link=None):
         self.icon_name = icon_name
         self.icon_color = icon_color
         self.label = label
@@ -239,6 +240,7 @@ class SolutionServiceMenuItem(object):
         self.broadcast_types = list() if broadcast_types is None else broadcast_types
         self.coords = list() if coords is None else coords
         self.action = action
+        self.link = link
 
 BASE_CODE = ServiceApiException.BASE_CODE_SOLUTIONS
 

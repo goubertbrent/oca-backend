@@ -16,12 +16,13 @@
 # @@license_version:1.2@@
 
 import base64
-from contextlib import closing
 import logging
+from contextlib import closing
 from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from google.appengine.ext import db
+
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import put_and_invalidate_cache, parent_key
@@ -38,7 +39,6 @@ from solutions.common.models import SolutionSettings
 from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.to import SolutionStaticContentTO
 
-
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -49,9 +49,14 @@ except ImportError:
 @arguments(service_user=users.User, static_content=SolutionStaticContentTO)
 def put_static_content(service_user, static_content):
     try:
-        branding_hash = store_static_content_branding(service_user, static_content.background_color,
-                                                      static_content.text_color, static_content.html_content,
-                                                      static_content.icon_label)
+        if static_content.sc_type == SolutionStaticContent.TYPE_OWN:
+            branding_hash = store_static_content_branding(service_user, static_content.background_color,
+                                                          static_content.text_color, static_content.html_content,
+                                                          static_content.icon_label)
+        elif static_content.sc_type != SolutionStaticContent.TYPE_WEBSITE:
+            raise BusinessException('Invalid static content type')
+        else:
+            branding_hash = None
     except BrandingValidationException:
         raise
     except ServiceApiException:
@@ -71,12 +76,15 @@ def put_static_content(service_user, static_content):
                 sc.old_coords = sc.coords
         sc.icon_label = static_content.icon_label
         sc.icon_name = static_content.icon_name
-        sc.text_color = static_content.text_color
-        sc.background_color = static_content.background_color
-        sc.html_content = static_content.html_content
-        sc.sc_type = SolutionStaticContent.TYPE_OWN
+        if static_content.sc_type == SolutionStaticContent.TYPE_OWN:
+            sc.text_color = static_content.text_color
+            sc.background_color = static_content.background_color
+            sc.html_content = static_content.html_content
+            sc.branding_hash = branding_hash
+        elif static_content.sc_type == SolutionStaticContent.TYPE_WEBSITE:
+            sc.website = static_content.website
+        sc.sc_type = static_content.sc_type
         sc.visible = static_content.visible
-        sc.branding_hash = branding_hash
         sc.provisioned = False
         sc.coords = new_coords
         sc.put()
