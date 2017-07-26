@@ -18,7 +18,6 @@
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.admin import restapi as restapi_admin
-from shop.admin.handlers import AdminHandler
 from shop.cron import RecurrentBilling, ReportOnSitePaymentsHandler, NotifyExtentionNeededHandler, \
     ExportResellerInvoicesHandler, CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
@@ -66,7 +65,6 @@ handlers = [
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
-    ('/admin/home/?.*', AdminHandler),
 ]
 
 handlers.extend(rest_functions(restapi_admin))

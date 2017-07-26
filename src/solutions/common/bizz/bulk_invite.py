@@ -29,6 +29,7 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
+from rogerthat.utils.models import reconstruct_key
 from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -107,7 +108,7 @@ def _restaurant_invite(service_user, service_identity, invitee, message, tag, sl
 @arguments(service_user=users.User, service_identity=unicode, tag=unicode, email=unicode, result=unicode, user_details=[UserDetailsTO])
 def bulk_invite_result(service_user, service_identity, tag, email, result, user_details):
     def trans():
-        invite = db.get(tag)
+        invite = db.get(reconstruct_key(db.Key(tag)))
         if not invite:
             logging.error("Invite object not found in datastore")
             return

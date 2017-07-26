@@ -51,6 +51,23 @@ $(function() {
             + CommonTranslations.column + ": " + (x + 1);
     };
 
+    function setIcon(iconName, iconDivElem) {
+        if (iconName) {
+            if (iconName.indexOf('fa-') === 0) {
+                var iconElem = $('<i class="fa rounded_icon"></i>').addClass(iconName).css({
+                    color: default_menu_item_background,
+                    'background-color': '#' + default_menu_item_color
+                });
+                iconDivElem.append(iconElem);
+                iconDivElem.css('background-color', '#' + default_menu_item_color);
+            } else {
+                iconDivElem.append('<img src="/mobi/service/menu/icons/lib/' + iconName + '?color=' + default_menu_item_color + '">');
+                iconDivElem.css("background-color", default_menu_item_background);
+            }
+        }
+        iconDivElem.attr('name', iconName);
+    }
+
     var initSaveStaticContentModal = function(staticContentId, html_content, label, icon_name, text_color, background_color, visible, position) {
         $(document).on('focusin', function(e) {
             if($(e.target).closest(".mce-window").length) {
@@ -140,48 +157,22 @@ $(function() {
             tinyMCE.get('static_content_container').setContent(html_content);
         }
 
-        sln.call({
-            url: "/common/service_menu/get_free_spots",
-            type: "GET",
-            success: function(data) {
-                var select = $('#free_spots').empty();
-                if(position && visible) {
-                    var x = position.x;
-                    var y = position.y;
-                    var z = position.z;
-                    select.append($('<option selected></option>').attr('value', x + "," + y + "," + z).text(getPageString(x, y, z)));
-                }
-                $.each(data.spots, function(i, d) {
-                    select.append($('<option></option>').attr('value', d.x + "," + d.y + "," + d.z).text(getPageString(d.x, d.y, d.z)));
-                });
-            }
-        });
+        var freeSpotsElem = $('#free_spots');
+        getFreeSpots(position, visible, freeSpotsElem);
 
         $("#textIcon").val(label);
         iconDivElem.attr("name", icon_name).empty();
 
-        if(icon_name) {
-            if (icon_name.indexOf('fa-') === 0) {
-                var iconElem = $('<i class="fa rounded_icon"></i>').addClass(icon_name).css({
-                    color: default_menu_item_background,
-                    'background-color': '#' + default_menu_item_color
-                });
-                iconDivElem.append(iconElem);
-                iconDivElem.css('background-color', '#' + default_menu_item_color);
-            } else {
-                iconDivElem.append('<img src="/mobi/service/menu/icons/lib/' + icon_name + '?color=' + default_menu_item_color + '">');
-                iconDivElem.css("background-color", default_menu_item_background);
-            }
-        }
+        setIcon(icon_name, iconDivElem);
         $("#textColor").val(text_color);
         $("#textColorPicker").val(text_color);
         designerPreviewFrameElem.contents().find('body').css("color", text_color);
         $("#backgroundColor").val(background_color);
         $("#backgroundColorPicker").val(background_color);
         $('#staticContentVisible').prop('checked', visible).change(function() {
-            $('#free_spots').attr('disabled', !$(this).prop('checked'));
+            freeSpotsElem.attr('disabled', !$(this).prop('checked'));
         });
-        $('#free_spots').attr('disabled', !visible);
+        freeSpotsElem.attr('disabled', !visible);
         //noinspection JSJQueryEfficiency
         sln.fixColorPicker($("#textColor"), $("#textColorPicker"), textColorChanged);
         //noinspection JSJQueryEfficiency
@@ -197,52 +188,56 @@ $(function() {
         }, 300);
     };
 
-    var initSaveStaticContentPdfModal = function(staticContentId, label, icon_name, visible, position) {
+    function getFreeSpots(position, visible, freeSpotsDiv) {
         sln.call({
             url: "/common/service_menu/get_free_spots",
             type: "GET",
-            success: function(data) {
-                var select = $('#free_spots_pdf').empty();
-                if(position && visible) {
+            success: function (data) {
+                var select = freeSpotsDiv.empty();
+                if (position && visible) {
                     var x = position.x;
                     var y = position.y;
                     var z = position.z;
                     select.append($('<option selected></option>').attr('value', x + "," + y + "," + z).text(getPageString(x, y, z)));
                 }
-                $.each(data.spots, function(i, d) {
+                $.each(data.spots, function (i, d) {
                     select.append($('<option></option>')
                         .attr('value', d.x + ',' + d.y + ',' + d.z)
                         .text(getPageString(d.x, d.y, d.z)));
                 });
-
             }
         });
+    }
+
+    var initSaveStaticContentPdfModal = function(staticContentId, label, icon_name, visible, position) {
+        var freeSpotsElem = $('#free_spots_pdf');
+        var iconDivElement = $('#icon_div_pdf');
+        var pdfUploadElement = $('#pdf_upload');
+        getFreeSpots(position, visible, freeSpotsElem);
         $('#save_static_content_2_form').find('[name="static_content_id"]').val(staticContentId);
         $("#textIconPdf").val(label);
-        $("#icon_div_pdf").attr("name", icon_name).empty();
+        iconDivElement.attr("name", icon_name).empty();
         $('#staticContentVisiblePdf').prop('checked', visible).change(function() {
             $('#free_spots_pdf').toggleClass('disabled', !$(this).prop('checked'));
         });
-        $('#free_spots_pdf').toggleClass('disabled', !visible);
-        if(icon_name) {
-            var iconDivElem = $('#icon_div_pdf');
-            if (icon_name.indexOf('fa-') === 0) {
-                var iconElem = $('<i class="fa"></i>').addClass(icon_name).css({
-                    color: '#' + default_menu_item_color,
-                    'background-color': default_menu_item_background,
-                    'font-size': '56px',
-                    padding: '5px'
-                });
-                iconDivElem.append(iconElem);
-            } else {
-                iconDivElem.append('<img src="/mobi/service/menu/icons/lib/' + icon_name + '?color=' + default_menu_item_color + '">');
-                iconDivElem.css("background-color", default_menu_item_background);
-            }
-        }
+        freeSpotsElem.toggleClass('disabled', !visible);
+        setIcon(icon_name, iconDivElement);
 
-        var pdfUploadElement = $('#pdf_upload');
         pdfUploadElement.replaceWith(pdfUploadElement.val('').clone(true));
     };
+
+    function initSaveStaticContentWebsiteModal(staticContentId, label, icon_name, visible, position, website) {
+        var freeSpotsElem = $('#free_spots_website');
+        getFreeSpots(position, visible, freeSpotsElem);
+        $('#save_static_content_3_form').find('[name="static_content_id"]').val(staticContentId);
+        $("#textIconWebsite").val(label);
+        $('#staticContentVisibleWebsite').prop('checked', visible).change(function () {
+            freeSpotsElem.toggleClass('disabled', !$(this).prop('checked'));
+        });
+        freeSpotsElem.toggleClass('disabled', !visible);
+        setIcon(icon_name, $('#icon_div_website'));
+        $('#static_content_website').val(website);
+    }
 
     var getStaticContent = function() {
         sln.call({
@@ -275,18 +270,22 @@ $(function() {
         staticContentElem.find('table tbody button[action="edit"]').click(function() {
             var staticContentId = $(this).attr("static_content_id");
             var sc = $("#static-content-" + staticContentId).closest("tr").data("sc");
-            if(sc.sc_type == 1) {
+            $('.static_content_modal_label').text(CommonTranslations.STATIC_CONTENT_UPDATE);
+            if (sc.sc_type === 1) {
                 staticContentModalElem.modal("show");
                 $("#save_static_content").attr("static_content_id", staticContentId);
-                $("#staticContentModalLabel").text(CommonTranslations.STATIC_CONTENT_UPDATE);
                 staticContentModalElem.find(".modal-body").css('height', staticContentModalElem.height() - 138 + "px");
                 initSaveStaticContentModal(staticContentId, sc.html_content, sc.icon_label, sc.icon_name, sc.text_color,
                     sc.background_color, sc.visible, sc.position);
-            } else {
+            } else if (sc.sc_type === 2) {
                 $("#staticContentPdfModal").modal("show");
                 $("#save_static_content_2").attr("static_content_id", staticContentId);
-                $("#staticContent2ModalLabel").text(CommonTranslations.STATIC_CONTENT_UPDATE);
                 initSaveStaticContentPdfModal(staticContentId, sc.icon_label, sc.icon_name, sc.visible, sc.position);
+            } else {
+                $("#staticContentWebsiteModal").modal("show");
+                $("#save_static_content_3").attr("static_content_id", staticContentId);
+                initSaveStaticContentWebsiteModal(staticContentId, sc.icon_label, sc.icon_name, sc.visible, sc.position, sc.website);
+
             }
         });
         staticContentElem.find('table tbody button[action="delete"]').click(function() {
@@ -313,8 +312,16 @@ $(function() {
     $("#create_static_content_choice_2").click(function() {
         $("#staticContentChoice").modal("hide");
         $("#save_static_content_2").attr("static_content_id", null);
-        $("#staticContent2ModalLabel").text(CommonTranslations.STATIC_CONTENT_CREATE);
+        $('.static_content_modal_label').text(T('static-content-create'));
         initSaveStaticContentPdfModal(null, "", "", true);
+    });
+
+    $("#create_static_content_choice_3").click(function () {
+        // Add link to website
+        $("#staticContentChoice").modal("hide");
+        $("#save_static_content_3").attr("static_content_id", null);
+        $('.static_content_modal_label').text(T('static-content-create'));
+        initSaveStaticContentWebsiteModal(null, '', '', true);
     });
 
     $("#save_static_content_2").click(function(e) {
@@ -324,25 +331,13 @@ $(function() {
         var label = $("#textIconPdf").val();
         var iconName = $("#icon_div_pdf").attr("name");
 
-        var errorlist = [];
-        if(!position) {
-            errorlist.push("<li>" + CommonTranslations.POSITION_IS_REQUIRED + "</li>");
-        }
-        if(!label) {
-            errorlist.push("<li>" + CommonTranslations.LABEL_IS_REQUIRED + "</li>");
-        }
-        if(!iconName) {
-            errorlist.push("<li>" + CommonTranslations.ICON_IS_REQUIRED + "</li>");
-        }
+        var errorlist = getErrorList(position, label, iconName);
         var pdfUploadElement = document.getElementById('pdf_upload');
         if(!staticContentId && pdfUploadElement.files.length === 0) {
-            errorlist.push("<li>" + CommonTranslations.PDF_IS_REQUIRED + "</li>");
+            errorlist.push(CommonTranslations.PDF_IS_REQUIRED);
         }
 
-        if(errorlist.length > 0) {
-            errorlist.splice(0, 0, "<ul>");
-            errorlist.push("</ul>");
-            sln.alert(errorlist.join(""), null, CommonTranslations.ERROR);
+        if (showErrors(errorlist)) {
             return;
         }
 
@@ -351,57 +346,67 @@ $(function() {
         $("#save_static_content_2_form").submit();
     });
 
-    $("#create_static_content_choice_1").click(function() {
-        $("#staticContentChoice").modal("hide");
-        $("#save_static_content").attr("static_content_id", null);
-        $("#staticContentModalLabel").text(CommonTranslations.STATIC_CONTENT_CREATE);
-        staticContentModalElem.find(".modal-body").css('height', staticContentModalElem.height() - 138 + "px");
+    $("#save_static_content_3").click(function (e) {
+        e.preventDefault();
+        var staticContentId = parseInt($(this).attr('static_content_id'));
+        var position = $("#free_spots_website").val();
+        var label = $("#textIconWebsite").val();
+        var iconName = $("#icon_div_website").attr("name");
+        var website = $('#static_content_website').val();
+        var visible = $('#staticContentVisibleWebsite').prop('checked');
 
-        initSaveStaticContentModal(null, "", "", null, default_text_color, default_menu_item_background, true);
-    });
-
-    $("#save_static_content").click(function() {
-        var staticContentId = parseInt($("#save_static_content").attr("static_content_id"));
-        var position = $("#free_spots").val(); // z|x|y seperator: x
-        var label = $("#textIcon").val();
-        var iconName = $("#icon_div").attr("name");
-        var textColor = $("#textColor").val();
-        var backgroundColor = $("#backgroundColor").val();
-        var htmlContent = tinyMCE.get('static_content_container').getContent();
-        var visible = $('#staticContentVisible').prop('checked');
-
-        var errorlist = [];
-        if(!position) {
-            errorlist.push("<li>" + CommonTranslations.POSITION_IS_REQUIRED + "</li>");
+        console.log(position, label, iconName);
+        var errorlist = getErrorList(position, label, iconName);
+        if (!website) {
+            errorlist.push(T('website-required'));
         }
-        if(!label) {
-            errorlist.push("<li>" + CommonTranslations.LABEL_IS_REQUIRED + "</li>");
-        }
-        if(!iconName) {
-            errorlist.push("<li>" + CommonTranslations.ICON_IS_REQUIRED + "</li>");
-        }
-        if(!textColor) {
-            errorlist.push("<li>" + CommonTranslations.TEXT_COLOR_IS_REQUIRED + "</li>");
-        }
-        if(!backgroundColor) {
-            errorlist.push("<li>" + CommonTranslations.BACKGROUND_COLOR_IS_REQUIRED + "</li>");
-        }
-        if(!htmlContent) {
-            errorlist.push("<li>" + CommonTranslations.CONTENT_IS_REQUIRED + "</li>");
-        }
-
-        if(errorlist.length > 0) {
-            errorlist.splice(0, 0, "<ul>");
-            errorlist.push("</ul>");
-            sln.alert(errorlist.join(""), null, CommonTranslations.ERROR);
+        if (showErrors(errorlist)) {
             return;
         }
 
-        var positionList = position.split(',');
+        $('[name="icon_name"]').val(iconName);
+        sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
+        putStaticContent(position, label, iconName, null, null, null, visible, website, staticContentId);
+    });
 
+    $("#create_static_content_choice_1").click(function() {
+        $("#staticContentChoice").modal("hide");
+        $("#save_static_content").attr("static_content_id", null);
+        $('.static_content_modal_label').text(T('static-content-create'));
+        staticContentModalElem.find(".modal-body").css('height', staticContentModalElem.height() - 138 + "px");
+        initSaveStaticContentModal(null, "", "", null, default_text_color, default_menu_item_background, true);
+    });
+
+    function getErrorList(position, label, iconName) {
+        var errorList = [];
+        if (!position) {
+            errorList.push(CommonTranslations.POSITION_IS_REQUIRED);
+        }
+        if (!label) {
+            errorList.push(CommonTranslations.LABEL_IS_REQUIRED);
+        }
+        if (!iconName) {
+            errorList.push(CommonTranslations.ICON_IS_REQUIRED);
+        }
+        return errorList;
+    }
+
+    function showErrors(errorList) {
+        if (errorList.length > 0) {
+            var msg = '<ul>' + errorList.map(function (err) {
+                return '<li>' + err + '</li>';
+            }).join('') + '</ul>';
+            sln.alert(msg, null, CommonTranslations.ERROR);
+            return true;
+        }
+        return false;
+    }
+
+    function putStaticContent(position, label, iconName, textColor, backgroundColor, htmlContent, visible, website, staticContentId) {
+        var positionList = position.split(',');
         sln.call({
-            url: "/common/static_content/put",
-            type: "POST",
+            url: '/common/static_content/put',
+            type: 'POST',
             data: {
                 data: JSON.stringify({
                     static_content: {
@@ -416,17 +421,48 @@ $(function() {
                         background_color: backgroundColor,
                         html_content: htmlContent,
                         visible: visible,
-                        id: staticContentId || null
+                        id: staticContentId || null,
+                        sc_type: website ? 3 : 1,
+                        website: website
                     }
                 })
             },
-            success: function(data) {
-                if(!data.success) {
+            success: function (data) {
+                if (!data.success) {
                     return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 }
+                $('#staticContentWebsiteModal').modal('hide');
                 staticContentModalElem.modal('hide');
+                sln.hideProcessing();
             }
         });
+    };
+    $("#save_static_content").click(function () {
+        var staticContentId = parseInt($("#save_static_content").attr("static_content_id"));
+        var position = $("#free_spots").val(); // z|x|y seperator: x
+        var label = $("#textIcon").val();
+        var iconName = $("#icon_div").attr("name");
+        var textColor = $("#textColor").val();
+        var backgroundColor = $("#backgroundColor").val();
+        var htmlContent = tinyMCE.get('static_content_container').getContent();
+        var visible = $('#staticContentVisible').prop('checked');
+
+        var errorlist = getErrorList(position, label, iconName);
+        if (!textColor) {
+            errorlist.push(CommonTranslations.TEXT_COLOR_IS_REQUIRED);
+        }
+        if (!backgroundColor) {
+            errorlist.push(CommonTranslations.BACKGROUND_COLOR_IS_REQUIRED);
+        }
+        if (!htmlContent) {
+            errorlist.push(CommonTranslations.CONTENT_IS_REQUIRED);
+        }
+
+        if (showErrors(errorlist)) {
+            return;
+        }
+
+        putStaticContent(position, label, iconName, textColor, backgroundColor, htmlContent, visible, null, staticContentId);
     });
 
     function getIconList (callback) {
@@ -457,7 +493,7 @@ $(function() {
 
             $('div[data-name]', html).click(function () {
                 var iconName = $(this).attr('data-name');
-                var iconDivElem = $("#icon_div_pdf, #icon_div");
+                var iconDivElem = $("#icon_div_pdf, #icon_div, #icon_div_website");
                 if (iconName.indexOf('fa-') === 0) {
                     var iconElem = $('<i class="fa rounded_icon"></i>').addClass(iconName).css({
                         color: default_menu_item_background,

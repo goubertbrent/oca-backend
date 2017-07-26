@@ -427,10 +427,7 @@ class Customer(db.Model):
 
     @property
     def auto_login_url(self):
-        if self.service_email:
-            return u"/internal/shop/login_as?%s" % urllib.urlencode((("customer_id", self.id),))
-        else:
-            return None
+        return u"/internal/shop/login_as?%s" % urllib.urlencode({"customer_id": self.id})
 
     @classmethod
     def get_by_service_email(cls, service_email):
@@ -696,7 +693,7 @@ class Order(db.Model):
     contact_id = db.IntegerProperty()
     signature = db.BlobProperty()
     pdf = db.BlobProperty()
-    status = db.IntegerProperty(default=0)
+    status = db.IntegerProperty(default=STATUS_UNSIGNED)
     is_subscription_order = db.BooleanProperty()
     is_subscription_extension_order = db.BooleanProperty(default=False)
     date_signed = db.IntegerProperty()

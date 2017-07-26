@@ -26,8 +26,9 @@ class SolutionStaticContent(db.Model):
 
     TYPE_OWN = 1
     TYPE_PDF = 2
+    TYPE_WEBSITE = 3
 
-    sc_type = db.IntegerProperty(indexed=True, default=1)
+    sc_type = db.IntegerProperty(indexed=True, default=1, choices=(TYPE_OWN, TYPE_PDF, TYPE_WEBSITE))
 
     icon_label = db.StringProperty(indexed=False)
     icon_name = db.StringProperty(indexed=False)
@@ -40,6 +41,7 @@ class SolutionStaticContent(db.Model):
     coords = db.ListProperty(int, indexed=False)
     old_coords = db.ListProperty(int, indexed=False)
     deleted = db.BooleanProperty(default=False)
+    website = db.StringProperty(indexed=False, default=None)
 
     @property
     def service_user(self):

@@ -16,26 +16,27 @@
 # @@license_version:1.2@@
 
 import base64
-from cgi import FieldStorage
-from collections import namedtuple
 import csv
-from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-from types import NoneType
 import urllib
+from cgi import FieldStorage
+from collections import namedtuple
+from datetime import date, timedelta
+from types import NoneType
 
-from PIL.Image import Image  # @UnresolvedImport
-
-from PyPDF2.merger import PdfFileMerger
-from add_1_monkey_patches import DEBUG, APPSCALE
-from babel.dates import format_date
+import webapp2
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+
+from PIL.Image import Image  # @UnresolvedImport
+from PyPDF2.merger import PdfFileMerger
+from add_1_monkey_patches import DEBUG, APPSCALE
+from babel.dates import format_date
 from googleapiclient.discovery import build
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -74,7 +75,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
     user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
     regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin, user_has_permissions_to_question, \
-    put_app_signup_enabled
+    put_app_signup_enabled, sign_order
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -120,9 +121,7 @@ from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
-import webapp2
 from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -162,10 +161,10 @@ def _get_apps():
 
 def _get_organization_types():
     # organization_type value, description, selected by default
-    organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'Community Service', False),
+    organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'community_service', False),
                           (ServiceProfile.ORGANIZATION_TYPE_EMERGENCY, 'Care', False),
-                          (ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, 'Association', False),
-                          (ServiceProfile.ORGANIZATION_TYPE_PROFIT, 'Merchant', True),
+                          (ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, 'association', False),
+                          (ServiceProfile.ORGANIZATION_TYPE_PROFIT, 'merchant', True),
                           ]
     return sorted(organization_types, key=lambda x: x[1])
 
@@ -215,7 +214,6 @@ def get_shop_context(**kwargs):
                admin=is_admin(user),
                team_admin=team_admin,
                payment_admin=is_payment_admin(user),
-               organization_types=_get_organization_types(),
                broadcast_types=get_all_existing_broadcast_types(),
                js_templates=json.dumps(js_templates),
                prospect_reasons_json=u"[]",
@@ -1533,15 +1531,16 @@ def get_order_contact(customer_id, order_number):
 @rest("/internal/shop/rest/order/contact", "post")
 @returns(unicode)
 @arguments(customer_id=(int, long), order_number=unicode, contact_id=(int, long))
-def put_order_contact(customer_id, order_number, contact_id):
+def rest_put_order_contact(customer_id, order_number, contact_id):
     audit_log(customer_id, u"Put order contact")
-    customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
-    contact = Contact.get_by_contact_id(customer, contact_id)
-    if contact:
-        order.contact_id = contact_id
-        order.put()
-    else:
-        return u"New contact could not be found"
+    order, contact = db.get((Order.create_key(customer_id, order_number),
+                             Contact.create_key(contact_id, customer_id)))
+    if not contact:
+        return u'New contact could not be found'
+    if order.status == Order.STATUS_SIGNED:
+        return u'You may not change the contact of an order that has already been signed'
+    order.contact_id = contact_id
+    order.put()
 
 
 @rest("/internal/shop/rest/order/new", "post")
@@ -1712,11 +1711,10 @@ def get_companies_at_location(lat, lon):
 @rest("/internal/shop/rest/order/sign", "post")
 @returns(SignOrderReturnStatusTO)
 @arguments(customer_id=(int, long), order_number=unicode, signature=unicode)
-def sign_order(customer_id, order_number, signature):
-    from shop.bizz import sign_order as bizz_sign_order
+def rest_sign_order(customer_id, order_number, signature):
     has_admin_permissions = is_admin(gusers.get_current_user())
     try:
-        r = bizz_sign_order(customer_id, order_number, signature)
+        r = sign_order(customer_id, order_number, signature)
         if r is None:
             customer, charge = None, None
         else:

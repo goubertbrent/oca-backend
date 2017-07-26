@@ -518,6 +518,7 @@ class SolutionStaticContentTO(object):
     html_content = unicode_property('7')
     visible = bool_property('8')
     id = long_property('9')
+    website = unicode_property('10')
 
 
     @property
@@ -536,6 +537,7 @@ class SolutionStaticContentTO(object):
         sc.background_color = obj.background_color
         sc.html_content = obj.html_content
         sc.visible = obj.visible
+        sc.website = obj.website
         sc.id = obj.key().id()
         return sc
 

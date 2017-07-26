@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db
+
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -32,9 +33,8 @@ from rogerthat.utils.channel import send_message_to_session
 from shop.bizz import create_customer_service_to, audit_log, dict_str_for_audit_log, search_customer
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
-from shop.exceptions import DuplicateCustomerNameException
-from shop.exceptions import NotOperatingInCountryException, EmptyValueException, InvalidEmailFormatException, \
-    NoPermissionException, ServiceNameTooBigException
+from shop.exceptions import DuplicateCustomerNameException, NotOperatingInCountryException, EmptyValueException, \
+    InvalidEmailFormatException, NoPermissionException, ServiceNameTooBigException
 from shop.jobs.migrate_user import migrate as migrate_user
 from shop.models import Customer, Contact
 from shop.to import CustomerTO
@@ -46,12 +46,9 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
 from solutions.common.to.qanda import ModuleTO
-from solutions.common.to.services import CreateServiceStatusTO, ModuleAndBroadcastTypesTO, ServiceStatisticTO, ServicesTO, \
-    ServiceListTO
+from solutions.common.to.services import CreateServiceStatusTO, ModuleAndBroadcastTypesTO, ServiceStatisticTO, \
+    ServicesTO, ServiceListTO
 from solutions.flex.bizz import get_services_statistics
-
-
-
 
 
 @rest("/common/services/get_defaults", "get", read_only_access=True)
@@ -64,8 +61,9 @@ def get_modules_and_broadcast_types():
     modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
                get_allowed_modules(city_customer)]
     broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in get_allowed_broadcast_types(city_customer)]
-    organization_types = [KeyValueTO(unicode(t), ServiceProfile.localized_singular_organization_type(t, lang))
-                          for t in city_customer.editable_organization_types]
+    organization_types = [
+        KeyValueTO(unicode(t), ServiceProfile.localized_singular_organization_type(t, lang, city_customer.app_id))
+        for t in city_customer.editable_organization_types]
     return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
 
 

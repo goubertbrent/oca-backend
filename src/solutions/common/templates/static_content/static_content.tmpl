@@ -30,6 +30,10 @@
             <br>
             <button id="create_static_content_choice_2" class="btn btn-primary control" href="#staticContentPdfModal"
                     data-toggle="modal">{% translate language, "common", "static-content-option-2" %}</button>
+            <br>
+            <button id="create_static_content_choice_3" class="btn btn-primary control"
+                    href="#staticContentWebsiteModal"
+                    data-toggle="modal">{% translate language, "common", "static-content-option-3" %}</button>
         </div>
     </div>
 
@@ -37,7 +41,7 @@
          aria-hidden="true" style="width: 98%;  height: 92%;  padding: 0px;  margin: 0px;  top: 1%;  left: 1%;">
         <div class="modal-header clearfix">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3 id="staticContentModalLabel">{% translate language, "common", "static-content-create" %}</h3>
+            <h3 class="static_content_modal_label">{% translate language, "common", "static-content-create" %}</h3>
         </div>
         <div class="modal-body" style="max-height: none; min-width:1000px;">
             <div class="pull-left" style="width: 49%;">
@@ -122,7 +126,7 @@
     <div class="modal hide fade" id="staticContentPdfModal">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3 id="staticContent2ModalLabel">{% translate language, "common", "static-content-create" %}</h3>
+            <h3 class="static_content_modal_label">{% translate language, "common", "static-content-create" %}</h3>
         </div>
 
         <div class="modal-body">
@@ -157,6 +161,60 @@
             <button class="btn" data-dismiss="modal"
                     aria-hidden="true">{% translate language, "common", "Close" %}</button>
             <button id="save_static_content_2"
+                    class="btn btn-primary">{% translate language, "common", "Save" %}</button>
+        </div>
+    </div>
+
+    <div id="staticContentWebsiteModal" class="modal hide fade" tabindex="-1" role="dialog">
+        <div class="modal-header clearfix">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h3 class="static_content_modal_label">{% translate language, "common", "static-content-create" %}</h3>
+        </div>
+        <div class="modal-body" style="max-height: none; min-width:1000px;">
+            <div class="control-group">
+                <label class="control-label"
+                       for="staticContentVisibleWebsite">{% translate language, "common", "visibility" %}</label>
+                <div class="controls">
+                    <label class="checkbox">
+                        <input type="checkbox" id="staticContentVisibleWebsite"/>
+                        {% translate language, "common", "visible" %}
+                    </label>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label"
+                       for="free_spots_website">{% translate language, "common", "Position" %}</label>
+                <div class="controls">
+                    <select id="free_spots_website"></select>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label"
+                       for="textIconWebsite">{% translate language, "common", "Label" %}</label>
+                <div class="controls">
+                    <input id="textIconWebsite"
+                           placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"/>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">{% translate language, "common", "Icon" %}</label>
+                <div class="controls">
+                    <div id="icon_div_website" class="rounded_icon_background"></div>
+                    <button type="button"
+                            class="btn btn-primary selectIcon">{% translate language, "common", "select-icon" %}</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label"
+                       for="static_content_website">{% translate language, "common", "Website" %}</label>
+                <div class="controls">
+                    <input id="static_content_website">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" data-dismiss="modal">{% translate language, "common", "Close" %}</button>
+            <button id="save_static_content_3"
                     class="btn btn-primary">{% translate language, "common", "Save" %}</button>
         </div>
     </div>

@@ -222,7 +222,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_organization_types(self, customer, lang):
         if not customer:
             return []
-        return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, lang))
+        return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, lang, customer.app_id))
                 for org_type in customer.editable_organization_types]
 
     def get(self):

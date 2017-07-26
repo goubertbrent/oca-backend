@@ -14,12 +14,9 @@ src-tools/shop/*.xls
 .idea
 bin/
 build/
-src-frontend/node_modules
-src/shop/admin/admin.min.html
 src/solution_server_settings/consts.py
 src/migrations/
 node_modules/
 npm-debug.log
 google-app-credentials.json
 .vscode
-/src-frontend/
