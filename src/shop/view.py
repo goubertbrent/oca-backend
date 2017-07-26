@@ -161,10 +161,10 @@ def _get_apps():
 
 def _get_organization_types():
     # organization_type value, description, selected by default
-    organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'community_service', False),
+    organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'Community Service', False),
                           (ServiceProfile.ORGANIZATION_TYPE_EMERGENCY, 'Care', False),
-                          (ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, 'association', False),
-                          (ServiceProfile.ORGANIZATION_TYPE_PROFIT, 'merchant', True),
+                          (ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, 'Association', False),
+                          (ServiceProfile.ORGANIZATION_TYPE_PROFIT, 'Merchant', True),
                           ]
     return sorted(organization_types, key=lambda x: x[1])
 
@@ -230,6 +230,7 @@ def get_shop_context(**kwargs):
                prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
                DEBUG=DEBUG,
                APPSCALE=APPSCALE,
+               organization_types=_get_organization_types(),
                )
     ctx.update(kwargs)
     return ctx
