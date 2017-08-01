@@ -128,14 +128,9 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                   doc="The app_secret for twitter",
                                   order=1202)
 
-
-    facebook_app_id = add_meta(db.StringProperty(indexed=False),
-                               doc="The app_id for facebook",
-                               order=1301)
-    facebook_app_secret = add_meta(db.StringProperty(indexed=False),
-                                  doc="The app_secret for facebook",
-                                  order=1302)
-
+    facebook_apps = add_meta(db.StringListProperty(indexed=False),
+                             doc="Facebook apps (3 entries per app (domain, app id and secret): - www.example.com - 123456789 - aabbccddeeffggeehh123445",
+                             order=1301)
 
     stripe_public_key = add_meta(db.StringProperty(indexed=False),
                                       doc="Stripe public key",

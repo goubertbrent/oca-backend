@@ -19,7 +19,7 @@ import logging
 from types import NoneType
 
 from mcfw.consts import MISSING
-from mcfw.restapi import rest
+from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
@@ -91,10 +91,11 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         service_identity_user = create_service_identity_user(service_user, service_identity)
 
     try:
+        host = GenericRESTRequestHandler.getCurrentRequest().host
         return put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
                              order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
                              broadcast_on_twitter, facebook_access_token, target_audience=target_audience,
-                             accept_missing=True)
+                             host=host, accept_missing=True)
     except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
         message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)

@@ -21,7 +21,20 @@ import StringIO
 import facebook
 
 from mcfw.rpc import returns, arguments
+from mcfw.utils import chunks
+
 from solution_server_settings import get_solution_server_settings
+
+
+@returns(tuple)
+@arguments(domain=unicode)
+def get_facebook_app_info(domain):
+    settings = get_solution_server_settings()
+    apps = settings.facebook_apps
+
+    for host, app_id, app_secret in chunks(apps, 3):
+        if host == domain.lower().strip():
+            return app_id, app_secret
 
 
 @returns()
@@ -48,11 +61,12 @@ def post_to_facebook(access_token, message, image=None):
 
 
 @returns(unicode)
-@arguments(access_token=unicode)
-def extend_access_token(access_token):
-    server_settings = get_solution_server_settings()
-    app_id = server_settings.facebook_app_id
-    app_secret = server_settings.facebook_app_secret
+@arguments(domain=unicode, access_token=unicode)
+def extend_access_token(domain, access_token):
+    try:
+        app_id, app_secret = get_facebook_app_info(domain)
+    except ValueError:
+        raise ValueError('No facebook app is linked to %s' % domain)
 
     fb = facebook.GraphAPI(access_token)
     extended_token = fb.extend_access_token(app_id, app_secret)['access_token']

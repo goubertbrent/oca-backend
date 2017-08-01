@@ -105,10 +105,10 @@ def _save_coupon_news_id(news_item_id, coupon):
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
-           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO)
+           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, host=unicode)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
-                  broadcast_on_twitter=False, facebook_access_token=None, target_audience=None):
+                  broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, host=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -131,6 +131,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         broadcast_on_twitter (bool)
         facebook_access_token (unicode): user or page access token
         target_audience (NewsTargetAudienceTO)
+        host (unicode): host of the api request (used for social media apps)
 
     Returns:
         news_item (NewsBroadcastItemTO)
@@ -237,7 +238,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
             news_item = run_in_xg_transaction(trans)
             if broadcast_on_facebook or broadcast_on_twitter:
                 if scheduled_at is not MISSING and scheduled_at > 0:
-                    schedule_post_to_social_media(service_user, broadcast_on_facebook,
+                    schedule_post_to_social_media(service_user, host, broadcast_on_facebook,
                                                   broadcast_on_twitter, facebook_access_token,
                                                   news_item.id, scheduled_at)
                 else:
@@ -314,7 +315,7 @@ def get_scheduled_broadcast(news_item_id, service_user=None, create=False):
     return scheduled_broadcast
 
 
-def schedule_post_to_social_media(service_user, on_facebook, on_twitter,
+def schedule_post_to_social_media(service_user, host, on_facebook, on_twitter,
                                   facebook_access_token, news_id, scheduled_at):
     if scheduled_at < 1:
         return
@@ -323,7 +324,7 @@ def schedule_post_to_social_media(service_user, on_facebook, on_twitter,
     try:
         if not facebook_access_token:
             raise ValueError('facebook access token is not provided, %s, news id: %d' % (service_user, news_id))
-        facebook_access_token = facebook.extend_access_token(facebook_access_token)
+        facebook_access_token = facebook.extend_access_token(host, facebook_access_token)
     except:
         logging.error('Cannot get an extended facebook access token', exc_info=True)
 

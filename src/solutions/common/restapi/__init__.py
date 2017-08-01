@@ -64,6 +64,7 @@ from solutions.common.bizz import get_next_free_spots_in_service_menu, common_pr
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
+from solutions.common.bizz.facebook import get_facebook_app_info
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
 from solutions.common.bizz.inbox import send_statistics_export_email
@@ -1894,8 +1895,13 @@ def rest_get_menu():
 @returns(str)
 @arguments()
 def get_facebook_app_id():
-    server_settings = get_solution_server_settings()
-    return server_settings.facebook_app_id
+    request = GenericRESTRequestHandler.getCurrentRequest()
+    app_info = get_facebook_app_info(request.host)
+    if app_info:
+        return app_info[0]
+
+    logging.warn('cannot get facebook app id for host: %s', request.host)
+    return ''
 
 
 @rest('/common/customer/signup/all', 'get')

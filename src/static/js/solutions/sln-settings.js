@@ -406,6 +406,11 @@ $(function () {
             url: '/common/settings/facebook/app/id',
             method: 'get',
             success: function(app_id) {
+                if(!app_id) {
+                    console.error('Cannot get facebook app id');
+                    sln.alert(T('error-occured-unknown-try-again'));
+                    return;
+                }
                 FB.init({
                     appId: app_id, // App ID
                     status: true, // Check Facebook Login status
@@ -413,9 +418,7 @@ $(function () {
                     xfbml: true
                 });
             },
-            error: function() {
-                console.error('Cannot get facebook app id');
-            }
+            error: sln.showAjaxError
         });
     };
 
