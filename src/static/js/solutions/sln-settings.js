@@ -408,7 +408,7 @@ $(function () {
             success: function(app_id) {
                 if(!app_id) {
                     console.error('Cannot get facebook app id');
-                    sln.alert(T('error-occured-unknown-try-again'));
+                    $('.sln-set-facebook-place').hide();
                     return;
                 }
                 FB.init({

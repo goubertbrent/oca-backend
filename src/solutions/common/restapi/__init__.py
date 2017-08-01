@@ -19,6 +19,7 @@ import base64
 from collections import defaultdict
 import datetime
 import logging
+import os
 from types import NoneType
 
 from babel.dates import format_date
@@ -1895,12 +1896,13 @@ def rest_get_menu():
 @returns(str)
 @arguments()
 def get_facebook_app_id():
-    request = GenericRESTRequestHandler.getCurrentRequest()
-    app_info = get_facebook_app_info(request.host)
+    host = os.environ.get('HTTP_X_FORWARDED_HOST') or os.environ.get('HTTP_HOST')
+    app_info = get_facebook_app_info(host)
     if app_info:
+        logging.debug('%s --> FB app id %s', host, app_info[0])
         return app_info[0]
 
-    logging.warn('cannot get facebook app id for host: %s', request.host)
+    logging.warn('cannot get facebook app id for host: %s', host)
     return ''
 
 
