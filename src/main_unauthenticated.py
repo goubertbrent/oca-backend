@@ -15,7 +15,6 @@
 #
 # @@license_version:1.2@@
 
-
 import shop.handlers
 import solutions.common.restapi
 import solutions.djmatic.api

@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
+
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.service.api import app
