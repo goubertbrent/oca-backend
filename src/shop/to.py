@@ -44,7 +44,7 @@ class CompanyTO(object):
     country = unicode_property('6')
     vat = unicode_property('7')
     organization_type = long_property('8')
-
+    sector = unicode_property('9')
 
 class CustomerTO(CompanyTO):
     id = long_property('51')
@@ -84,6 +84,7 @@ class CustomerTO(CompanyTO):
         c.country = customer.country
         c.vat = customer.vat
         c.organization_type = customer.organization_type
+        c.sector = customer.sector
         c.id = customer.id
         c.service_email = customer.service_email
         c.user_email = customer.user_email
@@ -281,6 +282,7 @@ class CustomerServiceTO(SerializableTO):
     app_infos = typed_property('11', AppInfoTO, True)
     current_user_app_infos = typed_property('12', AppInfoTO, True)
     managed_organization_types = long_list_property('13')
+    sector = unicode_property('14')
 
 
 class ModulesReturnStatusTO(ReturnStatusTO):

@@ -21,6 +21,7 @@ from google.appengine.ext import db
 
 from mcfw.rpc import serialize_complex_value
 
+from rogerthat.dal.app import get_service_sectors as get_app_sectors
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
@@ -35,6 +36,10 @@ from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOC
 from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.to import SolutionInboxMessageTO
+
+
+def get_service_sectors(customer):
+    return get_app_sectors(customer.app_id)
 
 
 def get_allowed_broadcast_types(city_customer):
@@ -78,7 +83,8 @@ def filter_modules(city_customer, modules, broadcast_types):
 
 
 def create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code,
-                                 city, language,  organization_type, vat, website=None, facebook_page=None, force=False):
+                                 city, language,  organization_type, vat, website=None, facebook_page=None,
+                                 force=False, sector=None):
     """Given a customer and a service, will create the customer, contact and order."""
 
     customer_id = customer.id if customer else None
@@ -105,7 +111,7 @@ def create_customer_with_service(city_customer, customer, service, name, address
 
     return put_customer_with_service(service, name, address1, address2, zip_code, city, city_customer.country, language,
                                      organization_type, vat, city_customer.team_id, product_code, customer_id,
-                                     website, facebook_page, force=force)
+                                     website, facebook_page, force=force, sector=sector)
 
 
 def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False):

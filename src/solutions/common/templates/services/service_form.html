@@ -15,7 +15,7 @@
             </div>
         </div>
         <div class="control-group">
-            <label for="service-organization_type" class="control-label">${T('sector')}</label>
+            <label for="service-organization_type" class="control-label">${T('organization_type')}</label>
 
             <div class="controls">
                 <select type="text" id="organization_type" name="organization_type" value="${organizationType}"
@@ -28,6 +28,22 @@
                 </select>
             </div>
         </div>
+        {{if sectors.length}}
+        <div class="control-group">
+            <label for="service-sector" class="control-label">${T('sector')}</label>
+
+            <div class="controls">
+                <select type="text" id="service-sector" name="sector" value="${sector}"
+                        required>
+                    {{each(i, _sector) sectors}}
+                    <option value="${_sector.key}" {{if _sector.key === sector }}selected{{/if}}>
+                        ${_sector.value}
+                    </option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+        {{/if}}
         <div class="control-group">
             <label for="service-address1" class="control-label">${T('ADDRESS')}</label>
 

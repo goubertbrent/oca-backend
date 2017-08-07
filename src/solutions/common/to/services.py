@@ -27,11 +27,13 @@ class ModuleAndBroadcastTypesTO(object):
     modules = typed_property('1', ModuleTO, True)
     broadcast_types = unicode_list_property('2')
     organization_types = typed_property('3', KeyValueTO, True)
+    sectors = typed_property('4', KeyValueTO, True)
 
-    def __init__(self, modules=None, broadcast_types=None, organization_types=None):
+    def __init__(self, modules=None, broadcast_types=None, organization_types=None, sectors=None):
         self.modules = sorted(modules, key=lambda m: m.label.lower())
         self.broadcast_types = sorted(broadcast_types)
         self.organization_types = organization_types
+        self.sectors = sectors
 
 
 class ServiceStatisticTO(object):

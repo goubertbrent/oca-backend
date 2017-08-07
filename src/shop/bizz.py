@@ -312,10 +312,10 @@ def re_index_customer(customer_key):
 @arguments(current_user=users.User, customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
            address2=unicode, zip_code=unicode, city=unicode, country=unicode, language=unicode,
            organization_type=(int, long), prospect_id=unicode, force=bool, team_id=(int, long, NoneType),
-           website=unicode, facebook_page=unicode)
+           website=unicode, facebook_page=unicode, sector=unicode)
 def create_or_update_customer(current_user, customer_id, vat, name, address1, address2, zip_code, city, country,
                               language, organization_type, prospect_id, force=False, team_id=None,
-                              website=None, facebook_page=None):
+                              website=None, facebook_page=None, sector=None):
     is_in_transaction = db.is_in_transaction()
     name = name.strip()
     if not name:
@@ -382,6 +382,7 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
     customer.country = country
     customer.language = language
     customer.organization_type = organization_type
+    customer.sector = sector
     customer.website = website
     customer.facebook_page = facebook_page
     if prospect_id is not None:
@@ -722,7 +723,8 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     r = create_flex_service(customer.service_email if redeploy else service.email, service.name, service.address,
                             service.phone_number, [service.language], service.currency, modules,
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
-                            search_enabled, qualified_identifier=service.email, broadcast_to_users=broadcast_to_users)
+                            search_enabled, qualified_identifier=service.email, broadcast_to_users=broadcast_to_users,
+                            sector=service.sector)
 
     r.auto_login_url = customer.auto_login_url
 
@@ -2553,7 +2555,7 @@ def post_app_broadcast(service, app_ids, message, tester=None):
 
 
 def create_customer_service_to(name, address1, address2, city, zip_code, email, language, currency, phone_number,
-                               organization_type, app_id, broadcast_types, modules):
+                               organization_type, app_id, broadcast_types, modules, sector):
     service = CustomerServiceTO()
 
     service.name = name
@@ -2567,6 +2569,7 @@ def create_customer_service_to(name, address1, address2, city, zip_code, email, 
     service.phone_number = phone_number
 
     service.organization_type = organization_type
+    service.sector = sector
     service.apps = [app_id, App.APP_ID_ROGERTHAT]
     service.broadcast_types = list(set(broadcast_types))
     service.modules = modules
@@ -2580,15 +2583,15 @@ def create_customer_service_to(name, address1, address2, city, zip_code, email, 
 
 def put_customer_with_service(service, name, address1, address2, zip_code, city, country, language,
                               organization_type, vat, team_id, product_code, customer_id=None,
-                              website=None, facebook_page=None, force=False):
+                              website=None, facebook_page=None, force=False, sector=None):
     def trans1():
         email_has_changed = False
         is_new = False
         customer = create_or_update_customer(current_user=None, customer_id=customer_id, vat=vat, name=name,
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
-                                             organization_type=organization_type, prospect_id=None,
-                                             force=force, team_id=team_id, website=website, facebook_page=facebook_page)
+                                             organization_type=organization_type, prospect_id=None, force=force,
+                                             team_id=team_id, website=website, facebook_page=facebook_page, sector=sector,)
 
         customer.put()
         if customer_id:

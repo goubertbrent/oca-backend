@@ -313,17 +313,19 @@ def get_app_info_cached(app_id):
 @arguments(solution=unicode, email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            address=unicode, phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
            organization_type=int, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, qualified_identifier=unicode, broadcast_to_users=[users.User])
+           owner_user_email=unicode, search_enabled=bool, qualified_identifier=unicode, broadcast_to_users=[users.User],
+           sector=unicode)
 def create_or_update_solution_service(solution, email, name, branding_url, menu_item_color, address, phone_number,
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
                                       modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                                      search_enabled=False, qualified_identifier=None, broadcast_to_users=None):
+                                      search_enabled=False, qualified_identifier=None, broadcast_to_users=None,
+                                      sector=None):
     if not redeploy:
         password, sln_settings = \
             create_solution_service(email, name, branding_url, menu_item_color, address, phone_number,
                                     solution, languages, currency, organization_type=organization_type, modules=modules,
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
-                                    search_enabled=search_enabled)
+                                    search_enabled=search_enabled, sector=sector)
         service_user = sln_settings.service_user
     else:
         service_user = users.User(email)
@@ -331,7 +333,8 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
                                                currency,
                                                modules=modules, broadcast_types=broadcast_types, apps=apps,
                                                organization_type=organization_type, name=name, address=address,
-                                               phone_number=phone_number, qualified_identifier=qualified_identifier)
+                                               phone_number=phone_number, qualified_identifier=qualified_identifier,
+                                               sector=sector)
         password = None
 
     deferred.defer(common_provision, service_user, broadcast_to_users=broadcast_to_users,
@@ -347,10 +350,11 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
 @returns(SolutionSettings)
 @arguments(service_user=users.User, branding_url=unicode, menu_item_color=unicode, solution=unicode,
            languages=[unicode], currency=unicode, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           organization_type=int, name=unicode, address=unicode, phone_number=unicode, qualified_identifier=unicode)
+           organization_type=int, name=unicode, address=unicode, phone_number=unicode, qualified_identifier=unicode,
+           sector=unicode)
 def update_solution_service(service_user, branding_url, menu_item_color, solution, languages, currency, modules=None,
                             broadcast_types=None, apps=None, organization_type=None, name=None, address=None,
-                            phone_number=None, qualified_identifier=None):
+                            phone_number=None, qualified_identifier=None, sector=None):
     if branding_url:
         resp = urlfetch.fetch(branding_url, deadline=60)
         if resp.status_code != 200:
@@ -376,6 +380,9 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 
         if organization_type is not None:
             service_profile.organizationType = organization_type
+
+        if sector is not None:
+            service_profile.sector = sector
 
         solution_settings = get_solution_settings(service_user)
         solution_settings_changed = False
@@ -460,11 +467,11 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 @arguments(email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode, address=unicode,
            phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool)
+           owner_user_email=unicode, search_enabled=bool, sector=unicode)
 def create_solution_service(email, name, branding_url=None, menu_item_color=None, address=None, phone_number=None,
                             solution=None, languages=None, currency=u"€", category_id=None, organization_type=1,
                             fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                            search_enabled=False):
+                            search_enabled=False, sector=unicode):
     password = unicode(generate_random_key()[:8])
     if languages is None:
         languages = [DEFAULT_LANGUAGE]
@@ -492,7 +499,7 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
         solution = validate_and_get_solution(users.get_current_user())
 
     create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists,
-                   supported_app_ids=apps, owner_user_email=owner_user_email)
+                   supported_app_ids=apps, owner_user_email=owner_user_email, sector=sector)
     new_service_user = users.User(email)
 
     to_be_put = list()

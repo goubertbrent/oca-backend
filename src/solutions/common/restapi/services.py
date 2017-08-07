@@ -41,7 +41,7 @@ from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.service import create_customer_with_service, filter_modules, get_allowed_broadcast_types, \
-    get_allowed_modules, put_customer_service, set_customer_signup_status
+    get_allowed_modules, get_service_sectors, put_customer_service, set_customer_signup_status
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
@@ -64,7 +64,10 @@ def get_modules_and_broadcast_types():
     organization_types = [
         KeyValueTO(unicode(t), ServiceProfile.localized_singular_organization_type(t, lang, city_customer.app_id))
         for t in city_customer.editable_organization_types]
-    return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
+    sectors = [
+        KeyValueTO(sector.name, sector.title(lang)) for sector in get_service_sectors(city_customer) if sector.name != u'users'
+    ]
+    return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types, sectors)
 
 
 @rest('/common/customer/signup/get_defaults', 'get')
@@ -180,7 +183,7 @@ def get_service(service_email):
     return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
                      customer.user_email, contact.phone_number, solution_settings.main_language,
                      solution_settings.modules, solution_settings.broadcast_types, customer.organization_type,
-                     customer.vat, customer.website, customer.facebook_page)
+                     customer.vat, customer.website, customer.facebook_page, sector=customer.sector)
 
 
 @rest("/common/services/put", "post", read_only_access=False)
@@ -188,10 +191,10 @@ def get_service(service_email):
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
            telephone=unicode, language=unicode, modules=[unicode], broadcast_types=[unicode],
            customer_id=(int, long, NoneType), organization_type=(int, long), vat=unicode, website=unicode,
-           facebook_page=unicode, force=bool)
+           facebook_page=unicode, force=bool, sector=unicode)
 def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
                      broadcast_types, customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
-                     website=None, facebook_page=None, force=False):
+                     website=None, facebook_page=None, force=False, sector=None):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
@@ -209,10 +212,11 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     try:
         modules = filter_modules(city_customer, modules, broadcast_types)
         service = create_customer_service_to(name, address1, address1, city, zip_code, user_email, language, city_sln_settings.currency,
-                                             telephone, organization_type, city_customer.app_id, broadcast_types, modules)
+                                             telephone, organization_type, city_customer.app_id, broadcast_types, modules,
+                                             sector=sector)
         (customer, email_changed, is_new_service) \
  = create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code, city,
-                                language, organization_type, vat, website, facebook_page, force=force)
+                                language, organization_type, vat, website, facebook_page, force=force, sector=sector)
     except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
         error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
@@ -315,12 +319,12 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
         service = create_customer_service_to(signup.customer_name, signup.customer_address1, None, signup.customer_city,
                                              signup.customer_zip_code, signup.customer_email, lang, city_sln_settings.currency,
                                              signup.customer_telephone, signup.company_organization_type, city_customer.app_id,
-                                             broadcast_types, modules=modules)
+                                             broadcast_types, modules=modules, sector=signup.company_sector)
         customer = create_customer_with_service(city_customer, None, service, signup.company_name,
                                                 signup.company_address1, None, signup.company_zip_code,
                                                 signup.company_city, lang, signup.company_organization_type,
                                                 signup.company_vat, signup.customer_website,
-                                                signup.customer_facebook_page, force=force)[0]
+                                                signup.customer_facebook_page, force=force, sector=signup.company_sector)[0]
     except EmptyValueException as ex:
         val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
         error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)

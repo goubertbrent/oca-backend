@@ -322,6 +322,7 @@ class Customer(db.Model):
     manager = db.UserProperty(indexed=False)
     subscription_order_number = db.StringProperty()
     organization_type = db.IntegerProperty(default=ServiceProfile.ORGANIZATION_TYPE_PROFIT)
+    sector = db.StringProperty(indexed=False)
     managed_organization_types = db.ListProperty(int, indexed=False)
     migration_job = db.StringProperty(indexed=False)
     prospect_id = db.StringProperty()
@@ -551,6 +552,7 @@ class CustomerSignup(db.Model):
 
     company_name = db.StringProperty()
     company_organization_type = db.IntegerProperty()
+    company_sector = db.StringProperty()
     company_address1 = db.StringProperty()
     company_zip_code = db.StringProperty()
     company_city = db.StringProperty()

@@ -136,16 +136,21 @@
 
         getServiceConfiguration(function (config) {
             var broadcastTypes = config.broadcast_types,
-                organizationTypes = config.organization_types;
+                organizationTypes = config.organization_types,
+                sector = config.sectors[0];
             if (mode === 'edit') {
                 broadcastTypes = currentService.broadcast_types;
+                sector = currentService.sector || '';
             }
+
             var html = $.tmpl(templates['services/service_form'], {
                 service: currentService,
                 edit: mode === 'edit',
                 modules: config.modules,
                 organizationType: organizationType,
                 organizationTypes: organizationTypes,
+                sector: sector,
+                sectors: config.sectors,
                 broadcastTypes: broadcastTypes,
                 languages: supportedLanguages,
                 t: CommonTranslations
@@ -215,7 +220,8 @@
             organization_type: parseInt($('#organization_type').val()),
             vat: $('#service-vat').val(),
             website: $('#service-website').val(),
-            facebook_page: $('#service-facebook-page').val()
+            facebook_page: $('#service-facebook-page').val(),
+            sector: $('#service-sector').val()
         };
     }
 

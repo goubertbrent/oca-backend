@@ -881,10 +881,11 @@ class ServiceTO(object):
     vat = unicode_property('13')
     website = unicode_property('14')
     facebook_page = unicode_property('15')
+    sector = unicode_property('16')
 
     def __init__(self, customer_id=None, name=None, address1=None, address2=None, zip_code=None, city=None,
                  user_email=None, telephone=None, language=None, modules=None, broadcast_types=None,
-                 organization_type=None, vat=None, website=None, facebook_page=None):
+                 organization_type=None, vat=None, website=None, facebook_page=None, sector=None):
         self.customer_id = customer_id
         self.name = name
         self.address1 = address1
@@ -900,6 +901,7 @@ class ServiceTO(object):
         self.vat = vat
         self.website = website
         self.facebook_page = facebook_page
+        self.sector = sector
 
 
 class ImageReturnStatusTO(ReturnStatusTO):
