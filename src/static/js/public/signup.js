@@ -25,6 +25,10 @@ $(function() {
         + '<label><input type="radio" name="organization_type" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
         + '</div>';
 
+    var TMPL_SERVICE_SECTOR = '<div class="radio">'
+        + '<label><input type="radio" name="service_sector" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
+        + '</div>';
+
     var formElem = $('#signup_form')[0];
     var tabs = [];
     var currentStep = 0;
@@ -76,6 +80,27 @@ $(function() {
         });
     }
 
+    function setServiceSectors(sectors) {
+        if(!Object.keys(sectors).length) {
+            $('#service_sectors').hide();
+            return;
+        }
+        $('#service_sectors div[class=radio').remove();
+        $('#service_sectors').show();
+
+        var selectFirstType = true;
+        $.each(sectors, function(name, title) {
+            $('#service_sectors > div[class=controls]').append(
+                $.tmpl(TMPL_SERVICE_SECTOR, {
+                    value: name,
+                    label: title,
+                    checked: selectFirstType
+                })
+            );
+            selectFirstType = false;
+        });
+    }
+
     function customerSelected() {
         var customerId = $('#app option:selected').attr('customer_id');
         if(customerId) {
@@ -83,7 +108,8 @@ $(function() {
 
             // get editable organization types
             if(orgTypesCache[customerId]) {
-                setEditableOrganizationTypes(orgTypesCache[customerId]);
+                setEditableOrganizationTypes(orgTypesCache[customerId].organization_types);
+                setServiceSectors(orgTypesCache[customerId].sectors)
             } else {
                 $('#next').attr('disabled', true);
                 sln.call({
@@ -93,7 +119,8 @@ $(function() {
                         customer_id: parseInt(customerId)
                     },
                     success: function(data) {
-                        setEditableOrganizationTypes(data);
+                        setEditableOrganizationTypes(data.organization_types);
+                        setServiceSectors(data.sectors);
                         orgTypesCache[customerId] = data;
                         $('#next').attr('disabled', false);
                     },
@@ -105,6 +132,7 @@ $(function() {
             }
         } else {
             $('#organization_types').hide();
+            $('#service_sector').hide();
         }
     }
 
@@ -179,6 +207,7 @@ $(function() {
         args.city_customer_id = parseInt($('#signup_form').attr('customer'));
         args.company = gatherFromInputs('enterprise');
         args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
+        args.company.sector = $('input[name=service_sector]:checked').val();
         args.customer = gatherFromInputs('entrepreneur');
         args.customer.language = getBrowserLanguage();
         args.recaptcha_token = recaptchaToken;

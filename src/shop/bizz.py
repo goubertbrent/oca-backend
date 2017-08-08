@@ -58,7 +58,7 @@ from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
-from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
+from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, ServiceSector, UserProfile
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
@@ -2644,7 +2644,12 @@ def get_signup_summary(lang, customer_signup, app_id):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
-    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer.app_id)
+    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, app_id)
+    sector_title = u''
+    if customer_signup.company_sector:
+        sector = ServiceSector.get_by_name(customer_signup.company_sector)
+        if sector:
+            sector_title = sector.title(lang)
 
     summary = u'{}\n\n'.format(trans('signup_application'))
     summary += u'{}\n'.format(trans('signup_inbox_message_header',
@@ -2653,6 +2658,8 @@ def get_signup_summary(lang, customer_signup, app_id):
 
     summary += u'\n{}\n'.format(org_type_name)
     summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
+    summary += u'{}: {}\n'.format(trans('sector'), sector_title)
+    summary += u'{}: {}\n'.format(trans('organization_type'), sector_title)
     summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.company_name)
     summary += u'{}: {}\n'.format(trans('address'), customer_signup.company_address1)
     summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.company_zip_code)
@@ -2737,6 +2744,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
     signup.company_zip_code = company.zip_code
     signup.company_city = company.city
     signup.company_vat = company.vat
+    signup.company_sector = company.sector
 
     signup.customer_name = customer.name
     signup.customer_address1 = customer.address1

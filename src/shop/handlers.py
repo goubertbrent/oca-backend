@@ -39,7 +39,7 @@ from rogerthat.bizz.beacon import add_new_beacon
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
 from rogerthat.dal import parent_key
-from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.app import get_app_by_id, get_service_sectors
 from rogerthat.dal.service import get_service_interaction_def, get_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import Beacon, App, ProfilePointer, ServiceProfile
@@ -590,12 +590,18 @@ def customer_get_editable_organization_types(customer_id):
 
         if not language:
             language = customer.language
+        else:
+            language = language.lower().replace('_', '-')
 
         for _type, label, _ in _get_organization_types():
             if _type in customer.editable_organization_types:
                 organization_types[_type] = localize_app_translation(language, label, customer.app_id)
 
-        return organization_types
+        services_sectors = get_service_sectors(customer.app_id)
+        return {
+            'organization_types': organization_types,
+            'sectors': {sector.name: sector.title(language) for sector in services_sectors if sector.name != u'users'}
+        }
     except CustomerNotFoundException:
         return {}
 
