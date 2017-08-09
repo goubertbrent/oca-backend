@@ -39,7 +39,7 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import chunks
 import pytz
-from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID, DECLINE_ID
+from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.rtemail import generate_user_specific_link, EMAIL_REGEX
 from rogerthat.bizz.service import get_and_validate_service_identity_user
@@ -355,12 +355,12 @@ def loyalty_qr_register(service_user, user_details, origin):
     if origin == "qr":
         def trans():
             loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
-            if loyalty_settings:
-                return True
-            return False
+            return loyalty_settings is not None
+
         if db.run_in_transaction(trans):
             return ACCEPT_AND_CONNECT_ID
-    return DECLINE_ID
+
+    raise NotImplementedError()
 
 @returns()
 @arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], origin=unicode)
