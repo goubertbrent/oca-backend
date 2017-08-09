@@ -471,7 +471,7 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 def create_solution_service(email, name, branding_url=None, menu_item_color=None, address=None, phone_number=None,
                             solution=None, languages=None, currency=u"€", category_id=None, organization_type=1,
                             fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                            search_enabled=False, sector=unicode):
+                            search_enabled=False, sector=None):
     password = unicode(generate_random_key()[:8])
     if languages is None:
         languages = [DEFAULT_LANGUAGE]
