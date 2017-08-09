@@ -595,7 +595,7 @@ class CustomerSignup(db.Model):
 
     @property
     def city_customer(self):
-        return Customer(self.parent_key())
+        return self.parent()
 
     @property
     def city(self):

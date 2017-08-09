@@ -2641,7 +2641,7 @@ def get_signup_summary(lang, customer_signup, app_id):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
-    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer.app_id)
+    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer_signup.city_customer.app_id)
 
     summary = u'{}\n\n'.format(trans('signup_application'))
     summary += u'{}\n'.format(trans('signup_inbox_message_header',
