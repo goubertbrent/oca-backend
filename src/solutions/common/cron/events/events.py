@@ -188,6 +188,10 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
     sln_settings = get_solution_settings(customer.service_user)
     if SolutionModule.AGENDA not in sln_settings.modules:
         return
+    if sln_settings.default_calendar is None:
+        logging.error('This customer has no default calendar!\n\nSolutionSettings: %s\n\nCustomer: %s',
+                      db.to_dict(sln_settings), db.to_dict(customer), _suppress=False)
+        return
     sc = SolutionCalendar.get_by_id(sln_settings.default_calendar, parent_key(customer.service_user, sln_settings.solution))
     if not sc:
         return
