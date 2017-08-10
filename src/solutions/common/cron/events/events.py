@@ -19,8 +19,10 @@ import datetime
 import json
 import logging
 
-from babel.dates import format_date, format_time
+import webapp2
 from google.appengine.ext import db, deferred
+
+from babel.dates import format_date, format_time
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import parent_key
@@ -35,15 +37,13 @@ from rogerthat.utils.models import delete_all
 from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
 from shop.models import Customer
 from solutions.common.bizz import timezone_offset, OrganizationType, SolutionModule
-from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.bizz.events import update_events_from_google
+from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar, SolutionCalendarGoogleSync
 from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.to import EventItemTO
-import webapp2
-
 
 try:
     from cStringIO import StringIO
@@ -165,18 +165,19 @@ def _gather_events(cap_key):
             cap.gather_events = KVStore(cap_key)
         stream = StringIO()
         json.dump([], stream)
-        cap.gather_events[unicode(OrganizationType.NON_PROFIT)] = stream
-        cap.gather_events[unicode(OrganizationType.PROFIT)] = stream
+        organization_types = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
+                              OrganizationType.EMERGENCY]
+        for org_type in organization_types:
+            cap.gather_events[unicode(org_type)] = stream
         cap.put()
         if cap.gather_events_enabled:
-            on_trans_committed(run_job, _get_all_customers, [OrganizationType.NON_PROFIT, si.app_id],
-                               _gather_events_for_customer, [cap_key, OrganizationType.NON_PROFIT])
-            on_trans_committed(run_job, _get_all_customers, [OrganizationType.PROFIT, si.app_id],
-                               _gather_events_for_customer, [cap_key, OrganizationType.PROFIT])
+            for org_type in organization_types:
+                on_trans_committed(run_job, _get_customers_by_organization_type, [org_type, si.app_id],
+                                   _gather_events_for_customer, [cap_key, org_type])
     run_in_xg_transaction(trans)
 
 
-def _get_all_customers(organization_type, app_id):
+def _get_customers_by_organization_type(organization_type, app_id):
     return Customer.all(keys_only=True).filter('organization_type =', organization_type).filter('app_ids =', app_id)
 
 
