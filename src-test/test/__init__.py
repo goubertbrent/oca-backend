@@ -32,7 +32,6 @@ from google.appengine.api.blobstore import blobstore_stub, file_blob_storage
 from google.appengine.api.images import images_stub
 from google.appengine.api.memcache import memcache_stub
 from google.appengine.api.taskqueue import taskqueue_stub
-from google.appengine.api.xmpp import xmpp_service_stub
 from google.appengine.api import users as gusers
 
 import logging
@@ -102,7 +101,6 @@ def init_env():
             apiproxy_stub_map.apiproxy.RegisterStub('datastore_v3', datastore_file_stub.DatastoreFileStub('mobicagecloud', '/dev/null', '/dev/null'))
             apiproxy_stub_map.apiproxy.RegisterStub('mail', mail_stub.MailServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('blobstore', blobstore_stub.BlobstoreServiceStub(file_blob_storage.FileBlobStorage('/dev/null', 'mobicagecloud')))
-            apiproxy_stub_map.apiproxy.RegisterStub('xmpp', xmpp_service_stub.XmppServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('memcache', memcache_stub.MemcacheServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('images', images_stub.ImagesServiceStub())
             apiproxy_stub_map.apiproxy.RegisterStub('urlfetch', urlfetch_stub.URLFetchServiceStub())

@@ -83,7 +83,6 @@ class TestCase(unittest.TestCase):
         ss.dashboardEmail = u"dashboard@example.com"
         ss.supportEmail = u"support@example.com"
         ss.supportWorkers = ["test@example.com"]
-        ss.xmppInfoMembers = ["test@example.com"]
         ss.serviceCreators = ["djmatic", "djmatic@example.com", "", "test@example.com"]
         ss.staticPinCodes = ["0666", "test@example.com"]
 
