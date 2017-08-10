@@ -18,14 +18,13 @@
 import logging
 from types import NoneType
 
-from rogerthat.settings import get_server_settings
-from rogerthat.utils import now
-from google.appengine.api import users as gae_users, xmpp
+from google.appengine.api import users as gae_users
 from google.appengine.ext import deferred
+
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.utils import now
 from solutions.common.bizz import common_provision
-from solutions.common.dal import get_solution_settings
 from solutions.djmatic.dal import get_djmatic_profile_via_player_id, get_djmatic_trial_profiles_over_30_days
 from solutions.djmatic.models import DjmaticOverviewLog
 from solutions.djmatic.to import DjmaticProfileTO, DjmaticTrialsTO
@@ -51,16 +50,9 @@ def update_djmatic_status(status, player_id):
         user = gae_users.get_current_user()
         status_from = djmatic_profile.status_string(djmatic_profile.status)
         status_to = djmatic_profile.status_string(int(status))
-        settings = get_solution_settings(djmatic_profile.service_user)
         DjmaticOverviewLog(timestamp=now_, email=user.email(), player_id=player_id, description="%s >>> %s" %
                            (status_from, status_to)).put()
-
-        server_settings = get_server_settings()
-        xmpp.send_message(server_settings.xmppInfoMembers, "DJ-Matic: %s - %s (%s days created, %s days trial) updated from: %s to: %s" %
-                          (settings.name, player_id, djmatic_profile.days_created, djmatic_profile.days, status_from, status_to))
-
         djmatic_profile.status = int(status)
-
         djmatic_profile.status_history.append(int(status))
         djmatic_profile.status_history_epoch.append(now_)
 
