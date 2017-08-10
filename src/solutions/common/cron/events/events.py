@@ -165,8 +165,7 @@ def _gather_events(cap_key):
             cap.gather_events = KVStore(cap_key)
         stream = StringIO()
         json.dump([], stream)
-        organization_types = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
-                              OrganizationType.EMERGENCY]
+        organization_types = CityAppProfile.EVENTS_ORGANIZATION_TYPES
         for org_type in organization_types:
             cap.gather_events[unicode(org_type)] = stream
         cap.put()

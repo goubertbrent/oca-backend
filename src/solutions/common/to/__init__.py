@@ -16,7 +16,6 @@
 # @@license_version:1.2@@
 
 import datetime
-import logging
 import urllib
 
 from mcfw.consts import MISSING
@@ -32,7 +31,7 @@ from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings
-from solutions.common.models.agenda import Event, SolutionCalendarAdmin
+from solutions.common.models.agenda import Event
 from solutions.common.models.properties import MenuCategory
 
 
@@ -384,6 +383,7 @@ class EventItemTO(object):
         item.organizer = obj.organizer
         return item
 
+
 class SolutionCalendarTO(object):
     id = long_property('1')
     name = unicode_property('2')
@@ -398,7 +398,7 @@ class SolutionCalendarTO(object):
         item = SolutionCalendarTO()
         item.id = obj.calendar_id
         item.name = obj.name
-        item.admins = list()
+        item.admins = []
         for admin in obj.get_admins():
             sif = SolutionUserKeyLabelTO()
             sif.key = admin.app_user.email()
@@ -408,12 +408,23 @@ class SolutionCalendarTO(object):
             item.admins.append(sif)
         item.can_delete = sln_settings.default_calendar != item.id
         item.connector_qrcode = obj.connector_qrcode
-        item.events = list()
+        item.events = []
         if include_events:
             for e in obj.events:
                 item.events.append(EventItemTO.fromEventItemObject(e, include_events_picture))
         item.broadcast_enabled = obj.broadcast_enabled
         return item
+
+    def __init__(self, id=0, name=None, admins=None, can_delete=False, connector_qrcode=None, events=None,
+                 broadcast_enabled=False):
+        self.id = id
+        self.name = name
+        self.admins = admins or []
+        self.can_delete = can_delete
+        self.connector_qrcode = connector_qrcode
+        self.events = events or []
+        self.broadcast_enabled = broadcast_enabled
+
 
 class SolutionCalendarWebTO(SolutionCalendarTO):
     cursor = unicode_property('50')
