@@ -127,6 +127,8 @@ MESSAGE_TAG_RESERVE_FAIL = u'reserve_fail'
 MESSAGE_TAG_RESERVE_SUCCESS = u'reserve_success'
 POKE_TAG_MY_RESERVATIONS = u'my_reservations'
 
+POKE_TAG_RATING = u'rating'
+
 MESSAGE_TAG_SANDWICH_ORDER_NOW = u'sandwich.order.now'
 
 MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW = u'my-reservations-overview'

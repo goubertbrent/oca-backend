@@ -37,9 +37,10 @@ from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DAY
 from rogerthat.dal import parent_key, put_and_invalidate_cache
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App
 from rogerthat.rpc import users
-from rogerthat.service.api import system, qr
+from rogerthat.service.api import system, qr, ratings
 from rogerthat.settings import get_server_settings
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.profile import ProfileLocationTO
@@ -60,7 +61,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
-    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
+    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_RATING
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
@@ -123,6 +124,7 @@ POKE_TAGS = { SolutionModule.AGENDA:        POKE_TAG_EVENTS,
               SolutionModule.STATIC_CONTENT:None,
               SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
+              SolutionModule.RATING: POKE_TAG_RATING
               }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -647,6 +649,29 @@ def get_app_data_sandwich_bar(sln_settings, service_identity):
 @arguments(sln_settings=SolutionSettings, service_identity=unicode)
 def get_app_data_city_vouchers(sln_settings, service_identity):
     return dict(currency=sln_settings.currency)
+
+
+@returns(dict)
+@arguments(sln_settings=SolutionSettings, service_identity=unicode)
+def get_app_data_rating(sln_settings, service_identity):
+    def get_translation(language, translations):
+        for translation in translations:
+            if translation.language == language:
+                return translation.value
+
+    topics = []
+    with users.set_user(sln_settings.service_user):
+        language = sln_settings.main_language
+        for t in ratings.get_topics():
+            topics.append({
+                'name': t.name,
+                'title': get_translation(language, t.title_translations) or t.name,
+                'question': get_translation(language, t.question_translations) or u'',
+                'score': 0
+            })
+
+    logging.debug('Topic: %s', topics)
+    return dict(rating_topics=topics)
 
 
 @returns()
@@ -1805,6 +1830,32 @@ def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, de
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_rating(sln_settings, current_coords, main_branding, default_lang, tag):
+    # check if the rating is enabled
+    with users.set_user(sln_settings.service_user):
+        si = system.get_identity()
+
+    default_app = get_app_by_id(si.app_ids[0])
+    if default_app.ratings_enabled:
+        logging.info('Creating Rate & Review message flow')
+
+        flow_params = dict(branding_key=main_branding.branding_key,
+                           language=default_lang)
+        flow = JINJA_ENVIRONMENT.get_template('flows/rate_review.xml').render(flow_params)
+        rate_review_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
+
+        ssmi = SolutionServiceMenuItem(u'fa-star',
+                                       sln_settings.menu_item_color,
+                                       common_translate(default_lang, SOLUTION_COMMON, u'rate_review'),
+                                       tag,
+                                       static_flow=rate_review_flow.identifier,
+                                       action=SolutionModule.action_order(SolutionModule.RATING))
+        return [ssmi]
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -1825,7 +1876,8 @@ MODULES_GET_APP_DATA_FUNCS = {SolutionModule.AGENDA: get_app_data_agenda,
                               SolutionModule.CITY_VOUCHERS: get_app_data_city_vouchers,
                               SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
                               SolutionModule.LOYALTY: get_app_data_loyalty,
-                              SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
+                              SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar,
+                              SolutionModule.RATING: get_app_data_rating,
                               }
 
 MODULES_PUT_FUNCS = {SolutionModule.AGENDA: put_agenda,
@@ -1849,6 +1901,7 @@ MODULES_PUT_FUNCS = {SolutionModule.AGENDA: put_agenda,
                      SolutionModule.STATIC_CONTENT: put_static_content,
                      SolutionModule.WHEN_WHERE: put_when_where,
                      SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
+                     SolutionModule.RATING: put_rating
                      }
 
 MODULES_DELETE_FUNCS = {SolutionModule.AGENDA: delete_agenda,
@@ -1872,4 +1925,5 @@ MODULES_DELETE_FUNCS = {SolutionModule.AGENDA: delete_agenda,
                         SolutionModule.STATIC_CONTENT: delete_static_content,
                         SolutionModule.WHEN_WHERE: _default_delete,
                         SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
+                        SolutionModule.RATING: _default_delete
                         }

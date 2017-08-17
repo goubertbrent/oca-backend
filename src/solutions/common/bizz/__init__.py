@@ -119,6 +119,7 @@ class SolutionModule(Enum):
     WHEN_WHERE = u'when_where'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
+    RATING = u'rating'
 
     MODULES_TRANSLATION_KEYS = {
         AGENDA: 'agenda',
@@ -138,7 +139,8 @@ class SolutionModule(Enum):
         RESTAURANT_RESERVATION: 'restaurant_reservation',
         STATIC_CONTENT: 'static-content',
         QR_CODES: 'settings-qr-codes',
-        WHEN_WHERE: 'when-where'
+        WHEN_WHERE: 'when-where',
+        RATING: 'rating'
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE)
@@ -152,7 +154,7 @@ class SolutionModule(Enum):
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
-                        STATIC_CONTENT}
+                        STATIC_CONTENT, RATING}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
@@ -164,6 +166,7 @@ class SolutionModule(Enum):
         PHARMACY_ORDER: 5,
     }
 
+    #TODO add rating module here
     FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA}
 
     @classmethod

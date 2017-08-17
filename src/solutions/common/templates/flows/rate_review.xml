@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition name="rate_review"
+                language="{{ language }}"
+                startReference="set_topics">
+
+        <end id="end_cancel" waitForFollowUpMessage="false"/>
+        <end id="end_sent" waitForFollowUpMessage="true"/>
+
+        <message id="message_exception"
+                 brandingKey="{{ branding_key }}"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 allowDismiss="false"
+                 vibrate="false"
+                 autoLock="true">
+            <content>{% translate language, 'common', 'error-occured-unknown-try-again' %}</content>
+            <answer action=""
+                    caption="{% translate language, 'common', 'okay-i-got-it' %}"
+                    id="button_ok"
+                    reference="end_cancel"/>
+        </message>
+
+        <flowCode id="set_topics"
+                    exceptionReference="message_exception">
+            <outlet name="message_rate" value="message_rate" reference="message_rate"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun){
+                    "use strict";
+                    var topic, topics = [];
+                    for(topic in rogerthat.service.data.rating_topics) {
+                        topics.push({
+                            id: topic.name,
+                            title: topic.title,
+                            question: topic.question,
+                            score: topic.score,
+                        });
+                    }
+                    var result = {
+                        outlet: 'message_rate',
+                        form: {
+                            widget: {
+                                topics: topics
+                            }
+                        }
+                    };
+                    return result;
+                }
+            </javascriptCode>
+        </flowCode>
+
+        <formMessage id="message_rate"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     brandingKey="{{ branding_key }}"
+                     positiveReference="message_review"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_cancel">
+            <content>{% translate language, 'common', 'please_rate_every_topic' %}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="RatingWidget">
+                    <!-- topics will be set via flow code
+                    {% for topic in topic %}
+                    <topic id="{{ topic.name }}" score="{{ topic.score }}">
+                        <title>{{ topic.title }}</title>
+                        <question>{{ topic.question }}</question>
+                    </topic>
+                    {% endfor %}
+                    -->
+                    <topic id="topic" score="2.5">
+                        <title>Topic</title>
+                        <question></question>
+                    </topic>
+                </widget>
+            </form>
+        </formMessage>
+
+        <formMessage id="message_review"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     brandingKey=""
+                     positiveReference="flush_rating"
+                     vibrate="false"
+                     autoLock="true"
+                     negativeReference="end_cancel">
+            <content>{% translate language, 'common', 'optional_review' %}</content>
+            <form positiveButtonConfirmation=""
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonConfirmation="">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:type="TextBlockWidget"
+                        maxChars="1000"
+                        keyboardType="DEFAULT"/>
+                <javascriptValidation></javascriptValidation>
+            </form>
+        </formMessage>
+
+        <resultsFlush id="flush_rating"
+                      reference="end_sent"/>
+    </definition>
+</messageFlowDefinitionSet>

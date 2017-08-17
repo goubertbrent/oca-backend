@@ -30,7 +30,7 @@ from solutions.common.bizz import create_or_update_solution_service, SolutionMod
 from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMENT, POKE_TAG_ASK_QUESTION, \
     POKE_TAG_GROUP_PURCHASE, POKE_TAG_MENU, POKE_TAG_REPAIR, POKE_TAG_SANDWICH_BAR, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_NEW_EVENT, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, POKE_TAG_PHARMACY_ORDER, \
-    POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS
+    POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_RATING
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language, put_avatar_if_needed
 from solutions.common.dal import get_solution_settings
@@ -99,6 +99,9 @@ DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_pa
                                                                        "coords":[0, 1, 0],
                                                                        "priority":20}},
                   SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
+                  SolutionModule.RATING:  {POKE_TAG_RATING: {"preferred_page": 0,
+                                                             "coords":[0, 1, 0],
+                                                             "priority":20}},
                   }
 
 
