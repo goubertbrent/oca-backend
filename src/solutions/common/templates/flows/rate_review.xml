@@ -27,20 +27,11 @@
             <javascriptCode>
                 function run(rogerthat, messageFlowRun){
                     "use strict";
-                    var topic, topics = [];
-                    for(topic in rogerthat.service.data.rating_topics) {
-                        topics.push({
-                            id: topic.name,
-                            title: topic.title,
-                            question: topic.question,
-                            score: topic.score,
-                        });
-                    }
                     var result = {
                         outlet: 'message_rate',
                         form: {
                             widget: {
-                                topics: topics
+                                topics: rogerthat.service.data.rating_topics
                             }
                         }
                     };

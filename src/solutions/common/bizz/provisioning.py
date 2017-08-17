@@ -670,7 +670,6 @@ def get_app_data_rating(sln_settings, service_identity):
                 'score': 0
             })
 
-    logging.debug('Topic: %s', topics)
     return dict(rating_topics=topics)
 
 
