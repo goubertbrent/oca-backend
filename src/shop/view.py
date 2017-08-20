@@ -51,6 +51,7 @@ from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTH
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_apps
 from rogerthat.dal.profile import get_service_profile, get_profile_info
+from rogerthat.dal.ratings import get_service_sectors
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.models import App, ServiceProfile
@@ -169,6 +170,9 @@ def _get_organization_types():
     return sorted(organization_types, key=lambda x: x[1])
 
 
+def _get_service_sectors():
+    return ((sector.name, sector.title('en')) for sector in get_service_sectors() if sector.name != u'users')
+
 def authorize_manager():
     user = gusers.get_current_user()
 
@@ -231,6 +235,7 @@ def get_shop_context(**kwargs):
                DEBUG=DEBUG,
                APPSCALE=APPSCALE,
                organization_types=_get_organization_types(),
+               sectors=_get_service_sectors()
                )
     ctx.update(kwargs)
     return ctx
@@ -1383,12 +1388,13 @@ def assign_team_to_question(question_id, team_id):
 @returns(CustomerReturnStatusTO)
 @arguments(customer_id=(int, long, NoneType), name=unicode, address1=unicode, address2=unicode, zip_code=unicode,
            city=unicode, country=unicode, language=unicode, vat=unicode, organization_type=(int, long),
-           prospect_id=unicode, force=bool, team_id=(int, long, NoneType))
+           prospect_id=unicode, force=bool, team_id=(int, long, NoneType), sector=unicode)
 def put_customer(customer_id, name, address1, address2, zip_code, city, country, language, vat, organization_type,
-                 prospect_id=None, force=False, team_id=None):
+                 prospect_id=None, force=False, team_id=None, sector=None):
     try:
         customer = create_or_update_customer(gusers.get_current_user(), customer_id, vat, name, address1, address2,
-                                             zip_code, city, country, language, organization_type, prospect_id, force, team_id)
+                                             zip_code, city, country, language, organization_type, prospect_id, force, team_id,
+                                             sector=sector)
         audit_log(customer.id, u"Save Customer.", prospect_id=prospect_id)
     except DuplicateCustomerNameException, ex:
         return CustomerReturnStatusTO.create(False, warning=ex.message)
@@ -1775,7 +1781,9 @@ def get_service(customer_id):
     svc.modules = settings.modules
     svc.broadcast_types = settings.broadcast_types
     svc.apps = get_default_service_identity(service_user).sorted_app_ids
-    svc.organization_type = get_service_profile(service_user).organizationType
+    service_profile = get_service_profile(service_user)
+    svc.organization_type = service_profile.organizationType
+    svc.sector = service_profile.sector
 
     service_apps = App.get([App.create_key(app_id) for app_id in svc.apps])
     svc.app_infos = [AppInfoTO.fromModel(app) for app in service_apps]

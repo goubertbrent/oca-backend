@@ -58,13 +58,22 @@
                             </div>
                             <div class="control-group">
                                 <label class="control-label" for="service_organization_type">Type</label>
-
                                 <div class="controls">
                                     <select id="service_organization_type">
     {% for orga_value, orga_descr, orga_default in organization_types %}
                                         <option value="{{ orga_value }}"
                                         {% if orga_default %}selected="selected" {% endif %}>{{ orga_descr }}
                                         </option>
+    {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label" for="service_sector">Sector</label>
+                                <div class="controls">
+                                    <select id="service_sector">
+    {% for name, label in sectors %}
+                                        <option value="{{ name }}">{{ label }}</option>
     {% endfor %}
                                     </select>
                                 </div>

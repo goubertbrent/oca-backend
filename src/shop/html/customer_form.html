@@ -43,12 +43,21 @@
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="customer_organization_type" class="control-label">Sector</label>
-
+                                    <label for="customer_organization_type" class="control-label">Organization type</label>
                                     <div class="controls">
                                         <select id="customer_organization_type">
 {% for orga_value, orga_descr, orga_default in organization_types %}
 <option value="{{ orga_value }}"{% if orga_default %}selected="selected"{% endif %}>{{ orga_descr }}</option>
+{% endfor %}
+                                    </select>
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label for="customer_sector" class="control-label">Sector</label>
+                                    <div class="controls">
+                                        <select id="customer_sector">
+{% for name, label in sectors  %}
+<option value="{{ name }}">{{ label }}</option>
 {% endfor %}
                                     </select>
                                     </div>

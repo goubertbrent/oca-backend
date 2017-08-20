@@ -124,6 +124,7 @@ var submitMetadata = function() {
     newService.language = $("#create_service_form #service_language").val();
     newService.currency = $("#create_service_form #service_currency").val();
     newService.organization_type = parseInt($('#create_service_form #service_organization_type').val());
+    newService.sector = $('#create_service_form #service_sector').val() || null;
 
     showNextTab();
 };
@@ -451,7 +452,7 @@ var customerSelected = function(customer) {
 
                 var createServiceForm = $('#create_service_form');
                 // set values
-                $.each([ 'name', 'email', 'address', 'phone_number', 'language', 'currency', 'organization_type' ],
+                $.each([ 'name', 'email', 'address', 'phone_number', 'language', 'currency', 'organization_type', 'sector' ],
                         function(i, attr) {
                             $('#service_' + attr, createServiceForm).val(service[attr]);
                         });
@@ -552,6 +553,7 @@ function prefillServiceData(customer, contact) {
     showServiceError(null);
     if (customer) {
         $('#service_organization_type').val(customer.organization_type);
+        $('#service_sector').val(customer.sector);
         $('#service_name').val(customer.name);
         $('#service_address').val($.tmpl(TMPL_ADDRESS, {
             customer: customer

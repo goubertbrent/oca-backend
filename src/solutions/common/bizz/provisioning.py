@@ -667,7 +667,7 @@ def get_app_data_rating(sln_settings, service_identity):
                 'name': t.name,
                 'title': get_translation(language, t.title_translations) or t.name,
                 'question': get_translation(language, t.question_translations) or u'',
-                'score': 0
+                'score': 2.5
             })
 
     return dict(rating_topics=topics)
@@ -1835,23 +1835,25 @@ def put_rating(sln_settings, current_coords, main_branding, default_lang, tag):
     # check if the rating is enabled
     with users.set_user(sln_settings.service_user):
         si = system.get_identity()
+        default_app = get_app_by_id(si.app_ids[0])
+        if not default_app.ratings_enabled:
+            if current_coords:
+                system.delete_menu_item(current_coords)
+            return []
 
-    default_app = get_app_by_id(si.app_ids[0])
-    if default_app.ratings_enabled:
-        logging.info('Creating Rate & Review message flow')
+    logging.info('Creating Rate & Review message flow')
+    flow_params = dict(branding_key=main_branding.branding_key,
+                        language=default_lang)
+    flow = JINJA_ENVIRONMENT.get_template('flows/rate_review.xml').render(flow_params)
+    rate_review_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
 
-        flow_params = dict(branding_key=main_branding.branding_key,
-                           language=default_lang)
-        flow = JINJA_ENVIRONMENT.get_template('flows/rate_review.xml').render(flow_params)
-        rate_review_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
-
-        ssmi = SolutionServiceMenuItem(u'fa-star',
-                                       sln_settings.menu_item_color,
-                                       common_translate(default_lang, SOLUTION_COMMON, u'rate_review'),
-                                       tag,
-                                       static_flow=rate_review_flow.identifier,
-                                       action=SolutionModule.action_order(SolutionModule.RATING))
-        return [ssmi]
+    ssmi = SolutionServiceMenuItem(u'fa-star',
+                                    sln_settings.menu_item_color,
+                                    common_translate(default_lang, SOLUTION_COMMON, u'rate_review'),
+                                    tag,
+                                    static_flow=rate_review_flow.identifier,
+                                    action=SolutionModule.action_order(SolutionModule.RATING))
+    return [ssmi]
 
 
 @returns([SolutionServiceMenuItem])

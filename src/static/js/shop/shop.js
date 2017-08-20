@@ -1387,6 +1387,7 @@ var setCustomerDetails = function () {
         $('#customer_number', customerForm).val(null).parent().hide();
     }
     $("#customer_organization_type", customerForm).val('' + currentCustomer.organization_type).change();
+    $("#customer_sector", customerForm).val('' + currentCustomer.sector).change();
     $("#vat", customerForm).val(currentCustomer.vat);
     $("#customer_name", customerForm).val(currentCustomer.name);
     $("#address1", customerForm).val(currentCustomer.address1);
@@ -1707,6 +1708,7 @@ $(function () {
         var language = $('#customer_form').find('#language').val();
         var prospect = $('#customer_form').data('prospect');
         var type = parseInt($('#customer_form #customer_organization_type').val());
+        var sector = $('#customer_form #customer_sector').val() || null;
         if (!(name && address1 && zipcode && city && country && type)) {
             $('#new_customer_error').show()
                 .find('span').text('Not all required fields are filled');
@@ -1742,7 +1744,8 @@ $(function () {
                     vat: vat,
                     prospect_id: prospect ? prospect.id : null,
                     customer_id: customerId,
-                    team_id: parseInt(teamId)
+                    team_id: parseInt(teamId),
+                    sector: sector,
                 })
             },
             success: function (data) {
