@@ -181,7 +181,11 @@ def _get_customers_by_organization_type(organization_type, app_id):
 
 
 def _gather_events_for_customer(customer_key, cap_key, organization_type):
+    cap = CityAppProfile.get(cap_key)
     customer = Customer.get(customer_key)
+    if cap.service_user == customer.service_user:
+        # do not gather owen events
+        return
     if not customer.service_email:
         logging.debug('This customer has no service yet: %s', db.to_dict(customer))
         return
@@ -205,9 +209,8 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
     if event_items:
         new_events = serialize_complex_value(event_items, EventItemTO, True)
         gather_events_key = u"%s" % organization_type
-        def trans():
-            cap = CityAppProfile.get(cap_key)
-            stream = cap.gather_events.get(gather_events_key)
+        def trans(profile):
+            stream = profile.gather_events.get(gather_events_key)
             if stream:
                 json_list = json.load(stream)
             else:
@@ -215,10 +218,10 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
             json_list.extend(new_events)
             stream = StringIO()
             json.dump(json_list, stream)
-            cap.gather_events[gather_events_key] = stream
-            cap.put()
+            profile.gather_events[gather_events_key] = stream
+            profile.put()
 
-        db.run_in_transaction(trans)
+        db.run_in_transaction(trans, cap)
         sln_settings.put_identity_pending = True
         sln_settings.put()
 
