@@ -159,7 +159,7 @@ def _get_apps():
                   key=lambda app: app.name)
 
 
-def _get_organization_types():
+def _get_default_organization_types():
     # organization_type value, description, selected by default
     organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'Community Service', False),
                           (ServiceProfile.ORGANIZATION_TYPE_EMERGENCY, 'Care', False),
@@ -230,7 +230,7 @@ def get_shop_context(**kwargs):
                prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
                DEBUG=DEBUG,
                APPSCALE=APPSCALE,
-               organization_types=_get_organization_types(),
+               organization_types=_get_default_organization_types(),
                )
     ctx.update(kwargs)
     return ctx

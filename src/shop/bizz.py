@@ -2873,3 +2873,12 @@ def get_customer_charges(user, paid, limit=50, cursor=None):
     result.customer_charges = customer_charges
     result.cursor = unicode(cursor)
     return result
+
+
+@returns([tuple])
+@arguments(customer=Customer, language=unicode)
+def get_organization_types(customer, language):
+    if not customer:
+        return []
+    return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, language, customer.app_id))
+            for org_type in customer.editable_organization_types]

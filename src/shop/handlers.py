@@ -54,13 +54,13 @@ from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from rogerthat.utils.translations import localize_app_translation
 from shop import SHOP_JINJA_ENVIRONMENT
-from shop.bizz import create_customer_signup, complete_customer_signup, is_admin
+from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin
 from shop.business.i18n import shop_translate
 from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
-from shop.view import _get_organization_types, get_shop_context
+from shop.view import get_shop_context
 from solution_server_settings import get_solution_server_settings
 
 try:
@@ -586,16 +586,11 @@ def customer_get_editable_organization_types(customer_id):
     language = get_languages_from_request(request)[0]
     try:
         customer = Customer.get_by_id(customer_id)
-        organization_types = {}
 
         if not language:
             language = customer.language
 
-        for _type, label, _ in _get_organization_types():
-            if _type in customer.editable_organization_types:
-                organization_types[_type] = localize_app_translation(language, label, customer.app_id)
-
-        return organization_types
+        return dict(get_organization_types(customer, language))
     except CustomerNotFoundException:
         return {}
 
