@@ -15,14 +15,13 @@
 #
 # @@license_version:1.2@@
 
+from contextlib import closing
 import datetime
 import json
 import logging
 
-import webapp2
-from google.appengine.ext import db, deferred
-
 from babel.dates import format_date, format_time
+from google.appengine.ext import db, deferred
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import parent_key
@@ -44,6 +43,8 @@ from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar, SolutionCalendarGoogleSync
 from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.to import EventItemTO
+import webapp2
+
 
 try:
     from cStringIO import StringIO
@@ -163,11 +164,11 @@ def _gather_events(cap_key):
             cap.gather_events.clear()
         else:
             cap.gather_events = KVStore(cap_key)
-        stream = StringIO()
-        json.dump([], stream)
         organization_types = CityAppProfile.EVENTS_ORGANIZATION_TYPES
         for org_type in organization_types:
-            cap.gather_events[unicode(org_type)] = stream
+            with closing(StringIO()) as stream:
+                json.dump([], stream)
+                cap.gather_events[unicode(org_type)] = stream
         cap.put()
         if cap.gather_events_enabled:
             for org_type in organization_types:
@@ -183,11 +184,11 @@ def _get_customers_by_organization_type(organization_type, app_id):
 def _gather_events_for_customer(customer_key, cap_key, organization_type):
     cap = CityAppProfile.get(cap_key)
     customer = Customer.get(customer_key)
-    if cap.service_user == customer.service_user:
-        # do not gather owen events
-        return
     if not customer.service_email:
         logging.debug('This customer has no service yet: %s', db.to_dict(customer))
+        return
+    if cap.service_user == customer.service_user:
+        # do not gather own events
         return
     sln_settings = get_solution_settings(customer.service_user)
     if SolutionModule.AGENDA not in sln_settings.modules:

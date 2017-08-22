@@ -2760,8 +2760,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
 def complete_customer_signup(email, data):
     try:
         user = users.User(email)
-        data = base64.decodestring(decrypt(user, data))
-        data = json.loads(data)
+        data = base64.decodestring(data)
+        data = json.loads(decrypt(user, data))
         azzert(data['d'] == calculate_signup_url_digest(data))
     except:
         raise InvalidUrlException
