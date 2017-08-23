@@ -35,7 +35,7 @@ from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.models import delete_all
 from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
 from shop.models import Customer
-from solutions.common.bizz import timezone_offset, OrganizationType, SolutionModule
+from solutions.common.bizz import timezone_offset, SolutionModule
 from solutions.common.bizz.events import update_events_from_google
 from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
@@ -182,12 +182,11 @@ def _get_customers_by_organization_type(organization_type, app_id):
 
 
 def _gather_events_for_customer(customer_key, cap_key, organization_type):
-    cap = CityAppProfile.get(cap_key)
     customer = Customer.get(customer_key)
     if not customer.service_email:
         logging.debug('This customer has no service yet: %s', db.to_dict(customer))
         return
-    if cap.service_user == customer.service_user:
+    if cap_key.parent().name() == customer.service_email:
         # do not gather own events
         return
     sln_settings = get_solution_settings(customer.service_user)
@@ -197,8 +196,11 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
         logging.error('This customer has no default calendar!\n\nSolutionSettings: %s\n\nCustomer: %s',
                       db.to_dict(sln_settings), db.to_dict(customer), _suppress=False)
         return
-    sc = SolutionCalendar.get_by_id(sln_settings.default_calendar, parent_key(customer.service_user, sln_settings.solution))
+    sc = SolutionCalendar.get_by_id(sln_settings.default_calendar,
+                                    parent_key(customer.service_user, sln_settings.solution))
     if not sc:
+        logging.error('The default calendar for this customer was not found!\n\nSolutionSettings: %s\n\nCustomer: %s',
+                      db.to_dict(sln_settings), db.to_dict(customer), _suppress=False)
         return
 
     event_items = []
@@ -210,19 +212,20 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
     if event_items:
         new_events = serialize_complex_value(event_items, EventItemTO, True)
         gather_events_key = u"%s" % organization_type
-        def trans(profile):
-            stream = profile.gather_events.get(gather_events_key)
+        def trans():
+            cap = CityAppProfile.get(cap_key)
+            stream = cap.gather_events.get(gather_events_key)
             if stream:
                 json_list = json.load(stream)
             else:
                 json_list = list()
             json_list.extend(new_events)
-            stream = StringIO()
-            json.dump(json_list, stream)
-            profile.gather_events[gather_events_key] = stream
-            profile.put()
+            with closing(StringIO()) as stream:
+                json.dump(json_list, stream)
+                cap.gather_events[gather_events_key] = stream
+            cap.put()
 
-        db.run_in_transaction(trans, cap)
+        db.run_in_transaction(trans)
         sln_settings.put_identity_pending = True
         sln_settings.put()
 
