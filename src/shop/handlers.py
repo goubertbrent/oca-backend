@@ -52,7 +52,6 @@ from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.utils import get_epoch_from_datetime, bizz_check
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
-from rogerthat.utils.translations import localize_app_translation
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin
 from shop.business.i18n import shop_translate
@@ -529,15 +528,14 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
             }
         else:
             apps = get_all_signup_enabled_apps()
-            lang = get_languages_from_request(self.request)[0]
             solution_server_settings = get_solution_server_settings()
             params = {
-                'language': lang,
                 'apps': apps,
                 'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
                 'email_verified': False,
             }
 
+        params['lanugage'] = get_languages_from_request(self.request)[0]
         self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
 
 
