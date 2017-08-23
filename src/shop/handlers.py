@@ -535,7 +535,7 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
                 'email_verified': False,
             }
 
-        params['lanugage'] = get_languages_from_request(self.request)[0]
+        params['language'] = get_languages_from_request(self.request)[0]
         self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
 
 
