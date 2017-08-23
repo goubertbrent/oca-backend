@@ -199,8 +199,6 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
     sc = SolutionCalendar.get_by_id(sln_settings.default_calendar,
                                     parent_key(customer.service_user, sln_settings.solution))
     if not sc:
-        logging.error('The default calendar for this customer was not found!\n\nSolutionSettings: %s\n\nCustomer: %s',
-                      db.to_dict(sln_settings), db.to_dict(customer), _suppress=False)
         return
 
     event_items = []
