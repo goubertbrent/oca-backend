@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+from contextlib import closing
 import datetime
 import json
 import logging
@@ -34,9 +35,9 @@ from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.models import delete_all
 from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
 from shop.models import Customer
-from solutions.common.bizz import timezone_offset, OrganizationType, SolutionModule
-from solutions.common.bizz.provisioning import populate_identity_and_publish
+from solutions.common.bizz import timezone_offset, SolutionModule
 from solutions.common.bizz.events import update_events_from_google
+from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar, SolutionCalendarGoogleSync
@@ -163,20 +164,20 @@ def _gather_events(cap_key):
             cap.gather_events.clear()
         else:
             cap.gather_events = KVStore(cap_key)
-        stream = StringIO()
-        json.dump([], stream)
-        cap.gather_events[unicode(OrganizationType.NON_PROFIT)] = stream
-        cap.gather_events[unicode(OrganizationType.PROFIT)] = stream
+        organization_types = CityAppProfile.EVENTS_ORGANIZATION_TYPES
+        for org_type in organization_types:
+            with closing(StringIO()) as stream:
+                json.dump([], stream)
+                cap.gather_events[unicode(org_type)] = stream
         cap.put()
         if cap.gather_events_enabled:
-            on_trans_committed(run_job, _get_all_customers, [OrganizationType.NON_PROFIT, si.app_id],
-                               _gather_events_for_customer, [cap_key, OrganizationType.NON_PROFIT])
-            on_trans_committed(run_job, _get_all_customers, [OrganizationType.PROFIT, si.app_id],
-                               _gather_events_for_customer, [cap_key, OrganizationType.PROFIT])
+            for org_type in organization_types:
+                on_trans_committed(run_job, _get_customers_by_organization_type, [org_type, si.app_id],
+                                   _gather_events_for_customer, [cap_key, org_type])
     run_in_xg_transaction(trans)
 
 
-def _get_all_customers(organization_type, app_id):
+def _get_customers_by_organization_type(organization_type, app_id):
     return Customer.all(keys_only=True).filter('organization_type =', organization_type).filter('app_ids =', app_id)
 
 
@@ -185,10 +186,18 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
     if not customer.service_email:
         logging.debug('This customer has no service yet: %s', db.to_dict(customer))
         return
+    if cap_key.parent().name() == customer.service_email:
+        # do not gather own events
+        return
     sln_settings = get_solution_settings(customer.service_user)
     if SolutionModule.AGENDA not in sln_settings.modules:
         return
-    sc = SolutionCalendar.get_by_id(sln_settings.default_calendar, parent_key(customer.service_user, sln_settings.solution))
+    if sln_settings.default_calendar is None:
+        logging.error('This customer has no default calendar!\n\nSolutionSettings: %s\n\nCustomer: %s',
+                      db.to_dict(sln_settings), db.to_dict(customer), _suppress=False)
+        return
+    sc = SolutionCalendar.get_by_id(sln_settings.default_calendar,
+                                    parent_key(customer.service_user, sln_settings.solution))
     if not sc:
         return
 
@@ -209,9 +218,9 @@ def _gather_events_for_customer(customer_key, cap_key, organization_type):
             else:
                 json_list = list()
             json_list.extend(new_events)
-            stream = StringIO()
-            json.dump(json_list, stream)
-            cap.gather_events[gather_events_key] = stream
+            with closing(StringIO()) as stream:
+                json.dump(json_list, stream)
+                cap.gather_events[gather_events_key] = stream
             cap.put()
 
         db.run_in_transaction(trans)

@@ -124,11 +124,18 @@ class Test(mc_unittest.TestCase):
         date_ = date_ + datetime.timedelta(hours=19)
         today_ = get_epoch_from_datetime(date_)
         service_identity = None
-        reservationOkKey, reservationOk = self._test_reserve_table(service_user, service_identity, user_details=[UserDetailsTO.fromUserProfile(get_user_profile(users.get_current_user()))], date=today_, people=3, name=u"text Name", phone=None, comment=u"comment", force=False)
-        reservationToMany = self._test_reserve_table(service_user, service_identity, user_details=[UserDetailsTO.fromUserProfile(get_user_profile(users.get_current_user()))], date=today_, people=50, name=u"text Name", phone=None, comment=u"comment", force=False)
+
+        user_detail = UserDetailsTO.fromUserProfile(get_user_profile(users.get_current_user()))
+
+        reservationOkKey, reservationOk = \
+            self._test_reserve_table(service_user, service_identity, user_details=[user_detail], date=today_, people=3,
+                                     name=u"text Name", phone=None, comment=u"comment", force=False)
+        reservationTooMany = self._test_reserve_table(service_user, service_identity, user_details=[user_detail],
+                                                      date=today_, people=50, name=u"text Name", phone=None,
+                                                      comment=u"comment", force=False)
 
         self.assertEqual(STATUS_AVAILABLE, reservationOk)
-        self.assertEqual(STATUS_TOO_MANY_PEOPLE, reservationToMany)
+        self.assertEqual(STATUS_TOO_MANY_PEOPLE, reservationTooMany)
 
         editReservationOk = edit_reservation(service_user, reservationOkKey, people=4, comment=None, force=False)
         self.assertEqual(STATUS_AVAILABLE, editReservationOk)

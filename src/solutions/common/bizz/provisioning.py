@@ -37,7 +37,7 @@ from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DAY
 from rogerthat.dal import parent_key, put_and_invalidate_cache
-from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App
+from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.settings import get_server_settings
@@ -49,8 +49,7 @@ from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
-    get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, OrganizationType, \
-    put_branding
+    get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding
 from solutions.common.bizz.events import provision_events_branding
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
@@ -424,13 +423,14 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
         identity.search_config.locations = search_config_locations
         identity.qualified_identifier = sln_i_settings.qualified_identifier
         identity.content_branding_hash = content_branding_hash
+        default_app_id = identity.app_ids[0]
 
-        app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name)
+        app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id)
         identity.app_data = json.dumps(app_data).decode('utf8')
         system.put_identity(identity)
 
 
-def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name):
+def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id):
     start = datetime.now()
     timezone_offsets = list()
     for _ in xrange(20):
@@ -493,7 +493,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
         if module in sln_settings.modules:
             get_app_data_func = MODULES_GET_APP_DATA_FUNCS[module]
-            app_data.update(get_app_data_func(sln_settings, service_identity))
+            app_data.update(get_app_data_func(sln_settings, service_identity, default_app_id))
 
     return app_data
 
@@ -508,9 +508,10 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
     finally:
         users.clear_user()
 
+
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_agenda(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_agenda(sln_settings, service_identity, default_app_id):
     events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution), key=lambda e: e.get_first_event_date())
     event_items = []
     size = 0
@@ -528,55 +529,38 @@ def get_app_data_agenda(sln_settings, service_identity):
     solution_calendars = serialize_complex_value(calendar_items, SolutionCalendarTO, True)
 
     if SolutionModule.CITY_APP in sln_settings.modules:
-        cap_key = CityAppProfile.create_key(sln_settings.service_user)
+        city_app_profile_key = CityAppProfile.create_key(sln_settings.service_user)
+
         def trans():
-            cap = CityAppProfile.get(cap_key)
-            association_events = []
-            merchants_events = []
-            if cap and cap.gather_events_enabled and cap.gather_events:
-                association_events_stream = cap.gather_events.get(unicode(OrganizationType.NON_PROFIT))
-                if association_events_stream is not None:
-                    association_events = json.load(association_events_stream)
+            city_app_profile = CityAppProfile.get(city_app_profile_key)
+            events_per_type = {}
+            if city_app_profile and city_app_profile.gather_events_enabled and city_app_profile.gather_events:
+                for organization_type in CityAppProfile.EVENTS_ORGANIZATION_TYPES:
+                    events_stream = city_app_profile.gather_events.get(unicode(organization_type))
+                    if events_stream is not None:
+                        events_per_type[organization_type] = json.load(events_stream)
+            return events_per_type
 
-                merchants_events_stream = cap.gather_events.get(unicode(OrganizationType.PROFIT))
-                if merchants_events_stream is not None:
-                    merchants_events = json.load(merchants_events_stream)
+        events_per_organization_type = db.run_in_transaction(trans)
+        lang = sln_settings.main_language
+        for organization_type in events_per_organization_type:
+            events = events_per_organization_type[organization_type]
+            if events:
+                solution_events.extend(events)
+                name = ServiceProfile.localized_plural_organization_type(organization_type, lang, default_app_id)
+                calendar = SolutionCalendarTO(organization_type, name)
+                solution_calendars.append(serialize_complex_value(calendar, SolutionCalendarTO, False))
 
-            return association_events, merchants_events
-
-        association_events, merchants_events, = db.run_in_transaction(trans)
-        if association_events:
-            solution_events.extend(association_events)
-            sc_accociations = SolutionCalendarTO()
-            sc_accociations.id = OrganizationType.NON_PROFIT
-            sc_accociations.name = common_translate(sln_settings.main_language, SOLUTION_COMMON, u'associations')
-            sc_accociations.admins = []
-            sc_accociations.can_delete = False
-            sc_accociations.connector_qrcode = None
-            sc_accociations.events = []
-            sc_accociations.broadcast_enabled = False
-            solution_calendars.append(serialize_complex_value(sc_accociations, SolutionCalendarTO, False))
-
-        if merchants_events:
-            solution_events.extend(merchants_events)
-            sc_merchants = SolutionCalendarTO()
-            sc_merchants.id = OrganizationType.PROFIT
-            sc_merchants.name = common_translate(sln_settings.main_language, SOLUTION_COMMON, u'merchants')
-            sc_merchants.admins = []
-            sc_merchants.can_delete = False
-            sc_merchants.connector_qrcode = None
-            sc_merchants.events = []
-            sc_merchants.broadcast_enabled = False
-            solution_calendars.append(serialize_complex_value(sc_merchants, SolutionCalendarTO, False))
-
-    return dict(timezoneOffset=timezone_offset(sln_settings.timezone),
-                solutionEvents=solution_events,
-                solutionCalendars=solution_calendars)
+    return {
+        'timezoneOffset': timezone_offset(sln_settings.timezone),
+        'solutionEvents': solution_events,
+        'solutionCalendars': solution_calendars
+    }
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_broadcast(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
     with users.set_user(sln_settings.service_user):
         si = system.get_info(service_identity)
 
@@ -601,15 +585,15 @@ def get_app_data_broadcast(sln_settings, service_identity):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_group_purchase(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_group_purchase(sln_settings, service_identity, default_app_id):
     group_purchases = [SolutionGroupPurchaseTO.fromModel(m) for m in SolutionGroupPurchase.list(sln_settings.service_user, service_identity, sln_settings.solution)]
     return dict(currency=sln_settings.currency,
                 solutionGroupPurchases=serialize_complex_value(group_purchases, SolutionGroupPurchaseTO, True))
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_loyalty(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_loyalty(sln_settings, service_identity, default_app_id):
     app_data = dict(currency=sln_settings.currency)
     loyalty_settings = SolutionLoyaltySettings.get_by_user(sln_settings.service_user)
     if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
@@ -627,8 +611,8 @@ def get_app_data_loyalty(sln_settings, service_identity):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_sandwich_bar(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_sandwich_bar(sln_settings, service_identity, default_app_id):
     service_user = sln_settings.service_user
     sandwich_settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
     return {
@@ -644,8 +628,8 @@ def get_app_data_sandwich_bar(sln_settings, service_identity):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_city_vouchers(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_city_vouchers(sln_settings, service_identity, default_app_id):
     return dict(currency=sln_settings.currency)
 
 

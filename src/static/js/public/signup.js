@@ -60,7 +60,7 @@ $(function() {
     }
 
     function setEditableOrganizationTypes(types) {
-        $('#organization_types div[class=radio').remove();
+        $('#organization_types div[class=radio]').remove();
         $('#organization_types').show();
 
         var selectFirstType = true;

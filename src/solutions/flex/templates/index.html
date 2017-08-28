@@ -191,7 +191,7 @@ var modules = {};
 {% endif %}
 {% if not loyalty %}
     <!-- show loyalty tab if there is no "Functionalities" page or in case loyalty is enabled -->
-    {% if not show_functionalities_page or SolutionModule.LOYALTY in sln_settings.modules %}
+    {% if not show_functionalities_page or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
                         <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
                                 class="badge badge-important sln-loyalty-badge"></span></a></li>
     {% endif %}

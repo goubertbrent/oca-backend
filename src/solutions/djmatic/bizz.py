@@ -157,8 +157,8 @@ def put_djmatic_jukebox(sln_settings, current_coords, main_branding, default_lan
 
 
 @returns(dict)
-@arguments(settings=SolutionSettings, service_identity=unicode)
-def get_app_data_jukebox(settings, service_identity=None):
+@arguments(settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_jukebox(settings, service_identity=None, default_app_id=None):
     # service_identity is not used but is required for the flex solution
     djmatic_profile = db.run_in_transaction(get_djmatic_profile, settings.service_user)
 

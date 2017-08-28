@@ -2641,7 +2641,7 @@ def get_signup_summary(lang, customer_signup, app_id):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
-    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer.app_id)
+    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer_signup.city_customer.app_id)
 
     summary = u'{}\n\n'.format(trans('signup_application'))
     summary += u'{}\n'.format(trans('signup_inbox_message_header',
@@ -2760,8 +2760,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
 def complete_customer_signup(email, data):
     try:
         user = users.User(email)
-        data = base64.decodestring(decrypt(user, data))
-        data = json.loads(data)
+        data = base64.decodestring(data)
+        data = json.loads(decrypt(user, data))
         azzert(data['d'] == calculate_signup_url_digest(data))
     except:
         raise InvalidUrlException
@@ -2873,3 +2873,12 @@ def get_customer_charges(user, paid, limit=50, cursor=None):
     result.customer_charges = customer_charges
     result.cursor = unicode(cursor)
     return result
+
+
+@returns([tuple])
+@arguments(customer=Customer, language=unicode)
+def get_organization_types(customer, language):
+    if not customer:
+        return []
+    return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, language, customer.app_id))
+            for org_type in customer.editable_organization_types]

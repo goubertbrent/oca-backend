@@ -15,12 +15,14 @@
 #
 # @@license_version:1.2@@
 
+from google.appengine.ext import db
+
+from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key
 from rogerthat.models.properties.keyvalue import KeyValueProperty
 from rogerthat.rpc import users
-from google.appengine.ext import db
-from mcfw.rpc import arguments, returns
 from solutions.common import SOLUTION_COMMON
+from solutions.common.bizz import OrganizationType
 
 
 class CityAppProfile(db.Model):
@@ -38,6 +40,9 @@ class CityAppProfile(db.Model):
     # Run params in cron of CityAppSolutionEventsUitdatabank
     run_time = db.IntegerProperty(indexed=False)
     services_to_update = db.ListProperty(users.User, indexed=False)
+
+    EVENTS_ORGANIZATION_TYPES = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
+                                 OrganizationType.EMERGENCY]
 
     @property
     def service_user(self):

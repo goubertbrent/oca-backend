@@ -9,7 +9,8 @@ import * as newer from 'gulp-newer';
 export = () => {
   const src = [
     ...config.SOURCE_ROOTS.map(root => join(root, '**')),
-    ...config.SOURCE_ROOTS.map(root => join(`!${root}`, '*.yaml'))
+    ...config.SOURCE_ROOTS.map(root => join(`!${root}`, '*.yaml')),
+    ...config.SOURCE_ROOTS.map(root => join(`!${root}`, 'rogerthat_service_api_calls.py'))
   ];
   return gulp.src(src)
     .pipe(newer(config.BUILD_ROOT))

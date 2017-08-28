@@ -36,7 +36,7 @@ from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.service import create_service_identity_user
-from shop.bizz import is_signup_enabled
+from shop.bizz import get_organization_types, is_signup_enabled
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
@@ -220,12 +220,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_week_days(self, sln_settings):
         return [self._get_day_str(sln_settings, day) for day in [6, 0, 1, 2, 3, 4, 5]]
 
-    def _get_organization_types(self, customer, lang):
-        if not customer:
-            return []
-        return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, lang, customer.app_id))
-                for org_type in customer.editable_organization_types]
-
     def get(self):
         service_user = users.get_current_user()
         if not service_user:
@@ -372,7 +366,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
                   'translations': json.dumps(all_translations),
-                  'organization_types': self._get_organization_types(customer, sln_settings.main_language)
+                  'organization_types': get_organization_types(customer, sln_settings.main_language)
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:
