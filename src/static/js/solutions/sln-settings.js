@@ -963,11 +963,9 @@ $(function () {
     /* END HOLIDAYS */
 
     $(".sln-set-avatar").html(TMPL_SET_AVATAR);
-    $(".sln-set-avatar #avatar_div").click(uploadAvatar);
+    $("#avatar_div").click(uploadAvatar);
     $(".sln-set-logo").html(TMPL_SET_LOGO);
-
-    $('.sln-set-logo #logo_div').click(uploadLogo).css('width', '320px').css('height',
-        (320 * SLN_LOGO_HEIGHT / SLN_LOGO_WIDTH) + 'px');
+    $('#logo_div').click(uploadLogo).css({'width': '320px', 'height': (320 * SLN_LOGO_HEIGHT / SLN_LOGO_WIDTH) + 'px'});
     $(".sln-set-name").html(TMPL_SET_NAME);
     $(".sln-set-email-address").html(TMPL_SET_EMAIL);
     $(".sln-set-phone-number").html(TMPL_SET_PHONE_NUMBER);
@@ -1227,210 +1225,47 @@ $(function () {
         }
     }
 
-    function uploadImage(popupHeader, postImageUrl, updateUrl, previewDiv, previewWidth, previewHeight, imageGetUrl,
-                         tmpImageGetUrl, channelApiDataTypeUploaded, channelApiDataTypeFailed, successCallback, addGuidToPreviewSrc) {
-        var TMPL_UPDATE_AVATAR = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">'
-            + '    <div class="modal-header">'
-            + '        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>'
-            + '        <h3 id="myModalLabel">${header}</h3>'
-            + '    </div>'
-            + '    <div class="modal-body">'
-            + '        <label>'
-            + CommonTranslations.UPLOAD_IMAGE_1
-            + ':</label>'
-            + '        <iframe id="profileAvatarHiddenUploadFrame" name="profileAvatarHiddenUploadFrame" style="width: 0px; height: 0px; border: 0px; color: #fff; padding: 0px"></iframe>'
-            + '        <form id="uploadForm" target="profileAvatarHiddenUploadFrame" enctype="multipart/form-data" method="post" action="${postImageUrl}">'
-            + '            <input id="newAvatar" name="newAvatar" type="file" accept="image/*"/>'
-            + '        </form>'
-            + '        <label>'
-            + CommonTranslations.UPLOAD_IMAGE_2
-            + ':<br></label>'
-            + '        <img id="avatarUpload" style="width: 200px; border:1px; border-color: #000; border-style: solid;" src="/static/images/unknown_avatar.png"/>'
-            + '        <img id="avatarSelectionArea" style="display: block; max-width: 500px; max-height: 250px; border:1px; border-color: #000; border-style: solid;"/>'
-            + '    </div>'
-            + '    <div class="modal-footer">'
-            + '        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>'
-            + '        <button action="submit" class="btn btn-primary">${submitBtn}</button>' //
-            + '    </div>' //
-            + '</div>';
+    function uploadImage(popupHeader, updateUrl, width, height, successCallback) {
+        var html = $.tmpl(templates['settings/upload_image'], {
+            header: popupHeader
+        });
+        var modal = sln.createModal(html);
+        var imageElem = $('#avatarUpload', modal);
+        var selectedFile = null;
+        $('#newAvatar', modal).change(fileSelected);
 
-        var PREVIEW_HEIGHT = 250;
-        var PREVIEW_WIDTH = 500;
-
-        if (previewHeight > PREVIEW_HEIGHT) {
-            throw new Exception("Invalid preview height or width");
+        function fileSelected() {
+            var CROP_OPTIONS = {
+                viewMode: 1,
+                dragMode: 'crop',
+                rotatable: true,
+                autoCropArea: 1.0,
+                minContainerWidth: width,
+                minContainerHeight: height,
+                aspectRatio: width / height
+            };
+            sln.readFile(this, imageElem, 'dataURL', function () {
+                imageElem.cropper('destroy');
+                imageElem.cropper(CROP_OPTIONS);
+            });
+            selectedFile = this.value;
         }
 
-        var avatar_selection = null;
-        var avatar_tmp_key = null;
-        var avatar_scale_factor_x = null;
-        var avatar_scale_factor_y = null;
-        var cleaning_up = false;
-        var html = $.tmpl(TMPL_UPDATE_AVATAR, {
-            header: popupHeader,
-            cancelBtn: CommonTranslations.CANCEL,
-            submitBtn: CommonTranslations.SUBMIT,
-            postImageUrl: postImageUrl
-        });
-
-        var preview = function (img, selection) {
-            if (cleaning_up)
-                return;
-
-            var scale = previewWidth / (selection.width || 1);
-            var css = {
-                width: Math.round(scale * img.width) + 'px',
-                height: Math.round(scale * img.height) + 'px',
-                marginLeft: '-' + Math.round(scale * selection.x1) + 'px',
-                marginTop: '-' + Math.round(scale * selection.y1) + 'px'
-            };
-            previewDiv.find('.settings_avatar').css(css);
-        };
-
-        var select = function (img, selection) {
-            if (cleaning_up)
-                return;
-            avatar_selection = selection;
-            avatar_scale_factor_x = img.width;
-            avatar_scale_factor_y = img.height;
-        };
-
-        $("#newAvatar", html).val("");
-        $("#avatarUpload", html).show();
-        $("#avatarSelectionArea", html).imgAreaSelect({
-            aspectRatio: previewWidth + ':' + previewHeight,
-            onSelectChange: preview,
-            onSelectEnd: select,
-            handles: true,
-            zIndex: 1100,
-            minWidth: 50,
-            minHeight: 50,
-            persistent: true
-        }).hide();
-        $("#newAvatar", html).change(function () {
-            if (!$("#newAvatar", html).val())
-                return;
-            sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
-            $("#uploadForm", html).submit();
-        });
-
-        sln.registerMsgCallback(function (data) {
-            if (data.type == channelApiDataTypeUploaded) {
-                if (!html.closest(document.documentElement))
-                    return; // This function should not work anymore as its html
-                // is not in the dom anymore
-                avatar_tmp_key = data.key;
-                $("#avatarUpload", html).hide();
-                var url = tmpImageGetUrl + "?key=" + encodeURIComponent(data.key);
-                var addInitialSelection = function () {
-                    var img = $(this);
-                    img.show();
-                    img.css('min-width', 'none').css('min-height', 'none');
-                    var height = img.height();
-                    var width = img.width();
-                    var scale_height = PREVIEW_HEIGHT / height;
-                    var scale_width = PREVIEW_WIDTH / width;
-                    if (scale_height > 1 && scale_width > 1) {
-                        if (scale_height < scale_width) {
-                            img.css('min-height', PREVIEW_HEIGHT + 'px');
-                        } else {
-                            img.css('min-width', PREVIEW_WIDTH + 'px');
-                        }
-                        height = img.height();
-                        width = img.width();
-                    }
-
-                    var previewScaleHeight = previewHeight / height;
-                    var previewScaleWidth = previewWidth / width;
-
-                    var selectionHeight;
-                    var selectionWidth;
-                    if (previewScaleHeight > previewScaleWidth) {
-                        selectionHeight = height / 2;
-                        selectionWidth = selectionHeight * previewWidth / previewHeight;
-                    } else {
-                        selectionWidth = width / 2;
-                        selectionHeight = selectionWidth * previewHeight / previewWidth;
-                    }
-
-                    var x1 = (width - selectionWidth) / 2;
-                    var y1 = (height - selectionHeight) / 2;
-                    var x2 = x1 + selectionWidth;
-                    var y2 = y1 + selectionHeight;
-
-                    var imgAreaSelect = img.imgAreaSelect({
-                        instance: true
-                    });
-                    imgAreaSelect.setOptions({
-                        show: true
-                    });
-                    imgAreaSelect.setSelection(x1, y1, x2, y2, true);
-                    imgAreaSelect.update();
-                    var selection = {
-                        x1: x1,
-                        y1: y1,
-                        x2: x2,
-                        y2: y2,
-                        height: selectionHeight,
-                        width: selectionWidth
-                    };
-                    select(this, selection);
-                    preview(this, selection);
-                    sln.hideProcessing();
-                };
-                $("#avatarSelectionArea", html).attr("src", url).unbind('load').load(addInitialSelection);
-                $('img', previewDiv).attr("src", url);
-            } else if (data.type == channelApiDataTypeFailed) {
-                sln.hideProcessing();
-                sln.alert(data.error);
-            }
-        });
-
-        var cleanUpImgAreaSelect = function () {
-            cleaning_up = true;
-            $("#avatarSelectionArea", html).imgAreaSelect({
-                remove: true,
-                onSelectChange: null,
-                onSelectEnd: null
-            });
-
-            var newUrl = imageGetUrl;
-            if (addGuidToPreviewSrc) {
-                if (newUrl.indexOf('?') >= 0)
-                    newUrl += '&';
-                else
-                    newUrl += '?';
-                newUrl += sln.uuid();
-            }
-            previewDiv.empty().append($('<img class="settings_avatar"/>').attr('src', newUrl));
-            $(".modal-backdrop").hide();
-            cleaning_up = false;
-        };
-
-        var modal = sln.createModal(html);
-        modal.on('hide', cleanUpImgAreaSelect);
 
         $('button[action="submit"]', modal).click(function () {
-            if (!(avatar_tmp_key && avatar_selection)) {
-                sln.alert(CommonTranslations.NO_IMAGE_SELECTED_YET);
+            if (!selectedFile) {
+                sln.alert(T('No image selected yet'));
                 return;
             }
-            var x1 = Math.min(1, Math.max(0, avatar_selection.x1 / avatar_scale_factor_x));
-            var x2 = Math.min(1, Math.max(0, avatar_selection.x2 / avatar_scale_factor_x));
-            var y1 = Math.min(1, Math.max(0, avatar_selection.y1 / avatar_scale_factor_y));
-            var y2 = Math.min(1, Math.max(0, avatar_selection.y2 / avatar_scale_factor_y));
-            sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
-
+            var options = {
+                width: width,
+                height: height
+            };
+            var image = imageElem.cropper('getCroppedCanvas', options).toDataURL('image/png');
             sln.call({
                 url: updateUrl,
                 data: {
-                    data: JSON.stringify({
-                        tmp_avatar_key: avatar_tmp_key,
-                        x1: x1,
-                        y1: y1,
-                        x2: x2,
-                        y2: y2
-                    })
+                    image: image
                 },
                 type: 'POST',
                 success: function (errorMsg) {
@@ -1444,8 +1279,7 @@ $(function () {
                             successCallback();
                         }
                     }
-                },
-                error: sln.showAjaxError
+                }
             });
         });
     }
@@ -1520,45 +1354,22 @@ $(function () {
     }
 
     function uploadLogo(successCallback) {
-        var popupHeader = CommonTranslations.CHANGE_LOGO;
-        var previewDiv = $('#logo_div');
-        // SLN_LOGO_WIDTH & SLN_LOGO_HEIGHT defined in common/bizz/settings.py
-        // and rendered as js var in index.html
-        var previewWidth = SLN_LOGO_WIDTH;
-        var previewHeight = SLN_LOGO_HEIGHT;
-        var updateUrl = "/common/settings/update_logo";
-        var postImageUrl = "/common/settings/logo/post";
-        var imageGetUrl = "/common/settings/my_logo";
-        var tmpImageGetUrl = "/common/settings/tmp_blob";
-        var channelApiDataTypeUploaded = "solutions.common.settings.logo_uploaded";
-        var channelApiDataTypeFailed = "solutions.common.settings.logo_upload_failed";
-        var addGuidToPreviewSrc = true;
-
-        uploadImage(popupHeader, postImageUrl, updateUrl, previewDiv, previewWidth, previewHeight, imageGetUrl,
-            tmpImageGetUrl, channelApiDataTypeUploaded, channelApiDataTypeFailed, successCallback, addGuidToPreviewSrc);
+        var popupHeader = T('Change logo');
+        var updateUrl = '/common/settings/logo';
+        // SLN_LOGO_WIDTH & SLN_LOGO_HEIGHT defined in common/bizz/settings.py and rendered as js var in index.html
+        uploadImage(popupHeader, updateUrl, SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT, successCallback);
     }
 
     function uploadAvatar() {
-        var popupHeader = CommonTranslations.CHANGE_AVATAR;
-        var previewDiv = $('#avatar_div');
+        var popupHeader = T('Change avatar');
         var previewWidth = 150;
         var previewHeight = 150;
-
-        var updateUrl = "/common/settings/update_avatar";
+        var updateUrl = '/common/settings/avatar';
         var url = $(".sln-set-avatar").attr('url');
         if (url) {
             updateUrl = url;
         }
-
-        var postImageUrl = "/common/settings/avatar/post";
-        var imageGetUrl = "/common/settings/my_avatar";
-        var tmpImageGetUrl = "/common/settings/tmp_blob";
-        var channelApiDataTypeUploaded = "solutions.common.settings.avatar_uploaded";
-        var channelApiDataTypeFailed = "solutions.common.settings.avatar_upload_failed";
-        var addGuidToPreviewSrc = true;
-
-        uploadImage(popupHeader, postImageUrl, updateUrl, previewDiv, previewWidth, previewHeight, imageGetUrl,
-            tmpImageGetUrl, channelApiDataTypeUploaded, channelApiDataTypeFailed, null, addGuidToPreviewSrc);
+        uploadImage(popupHeader, updateUrl, previewWidth, previewHeight, null);
     }
 
 

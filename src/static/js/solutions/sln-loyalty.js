@@ -913,7 +913,7 @@ $(function() {
                         }
                     });
                     $.each(data, function(i, lottery) {
-                        lottery.end_timestamp_str = sln.formatUTCDate(lottery.end_timestamp, true, false, false);
+                        lottery.end_timestamp_str = sln.formatDate(lottery.end_timestamp, true, false, false);
                         lottery.winnings_html = sln.htmlize(lottery.winnings);
                         lottery.pending_lottery = pendingLotteryKey === lottery.key ? true : false;
                         lotteryDict[lottery.key] = lottery;

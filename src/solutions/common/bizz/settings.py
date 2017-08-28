@@ -14,20 +14,18 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
-
+import base64
 import logging
 from types import NoneType
 
-from google.appengine.api import images
 from google.appengine.ext import db, deferred
 
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
-from rogerthat.rpc.models import TempBlob
 from rogerthat.utils import now
 from rogerthat.utils.channel import send_message
-from rogerthat.utils.transactions import run_in_xg_transaction
+from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
 from solutions.common.bizz import _get_location, broadcast_updates_pending
 from solutions.common.dal import get_solution_settings, get_solution_logo, get_solution_main_branding, \
@@ -108,30 +106,12 @@ def save_settings(service_user, service_identity, name, description=None, openin
     return address_geocoded
 
 
-def _temp_blob_to_bytes(tmp_blob_key, x1, y1, x2, y2, width, height, max_size, substitution_color):
-    tb = TempBlob.get(tmp_blob_key)
-    quality = 100
-    color = int('0x%s' % substitution_color, 0)
-    while True:
-        img = images.Image(str(tb.blob))
-        img.crop(x1, y1, x2, y2)
-        img.resize(width, height)
-        jpg_bytes = img.execute_transforms(images.JPEG, quality, transparent_substitution_rgb=color)
-        if len(jpg_bytes) <= max_size:
-            break
-        quality -= 5
-        logging.debug("transforming TempBlob with quality: %s" % quality)
-    return jpg_bytes
-
-
 @returns(NoneType)
-@arguments(service_user=users.User, tmp_avatar_key=unicode,
-           x1=(float, int), y1=(float, int), x2=(float, int), y2=(float, int))
-def set_avatar(service_user, tmp_avatar_key, x1, y1, x2, y2):
+@arguments(service_user=users.User, image=unicode)
+def set_avatar(service_user, image):
     logging.info('%s: Saving avatar' % service_user.email())
-    branding_settings = SolutionBrandingSettings.get(SolutionBrandingSettings.create_key(service_user))
-    jpg_bytes = _temp_blob_to_bytes(tmp_avatar_key, x1, y1, x2, y2, SLN_AVATAR_WIDTH, SLN_AVATAR_HEIGHT,
-                                    SLN_AVATAR_MAX_SIZE, branding_settings.background_color)
+    _meta, img_b64 = image.split(',')
+    jpg_bytes = base64.b64decode(img_b64)
 
     def trans():
         avatar_key = SolutionAvatar.create_key(service_user)
@@ -150,20 +130,17 @@ def set_avatar(service_user, tmp_avatar_key, x1, y1, x2, y2):
 
         return sln_settings
 
-    sln_settings = run_in_xg_transaction(trans)
+    sln_settings = run_in_transaction(trans, xg=True)
     send_message(sln_settings.service_user, 'solutions.common.settings.avatar.updated')
     broadcast_updates_pending(sln_settings)
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, tmp_logo_key=unicode,
-           x1=(float, int), y1=(float, int), x2=(float, int), y2=(float, int))
-def set_logo(service_user, tmp_logo_key, x1, y1, x2, y2):
-    logging.info("%s: Saving logo" % service_user.email())
-    branding_settings = SolutionBrandingSettings.get(SolutionBrandingSettings.create_key(service_user))
-    background_color = branding_settings.background_color if branding_settings else u'000000'
-    jpg_bytes = _temp_blob_to_bytes(tmp_logo_key, x1, y1, x2, y2, SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT, SLN_LOGO_MAX_SIZE,
-                                    background_color)
+@arguments(service_user=users.User, image=unicode)
+def set_logo(service_user, image):
+    logging.info('%s: Saving logo' % service_user.email())
+    _meta, img_b64 = image.split(',')
+    jpg_bytes = base64.b64decode(img_b64)
 
     def trans():
         logo = get_solution_logo(service_user) or SolutionLogo(key=SolutionLogo.create_key(service_user))
@@ -179,8 +156,7 @@ def set_logo(service_user, tmp_logo_key, x1, y1, x2, y2):
 
         return settings
 
-    xg_on = db.create_transaction_options(xg=True)
-    common_settings = db.run_in_transaction_options(xg_on, trans)
+    common_settings = run_in_transaction(trans, xg=True)
     send_message(common_settings.service_user, 'solutions.common.settings.logo.updated')
     broadcast_updates_pending(common_settings)
 
@@ -206,6 +182,5 @@ def _regenerate_branding_with_logo(service_user):
         put_and_invalidate_cache(sln_main_branding, common_settings)
         return common_settings
 
-    xg_on = db.create_transaction_options(xg=True)
-    common_settings = db.run_in_transaction_options(xg_on, trans)
+    common_settings = run_in_transaction(trans, xg=True)
     broadcast_updates_pending(common_settings)

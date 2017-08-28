@@ -979,7 +979,7 @@ var createLib = function() {
                 if (type === 'dataURL') {
                     reader.readAsDataURL(input.files[0]);
                 } else {
-                    throw Error('unkwown file reader type', type);
+                    throw Error('Unknown file reader type', type);
                 }
             } else {
                 sln.showBrowserNotSupported();

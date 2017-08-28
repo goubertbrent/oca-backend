@@ -19,11 +19,13 @@ import json
 import logging
 import os
 
-from babel import dates
 import jinja2
+import webapp2
+
+from babel import dates
 from mcfw.rpc import serialize_complex_value
-from rogerthat.bizz.app import get_app
 from rogerthat.bizz import channel
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.service import get_service_identity
@@ -54,8 +56,6 @@ from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
-import webapp2
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -78,6 +78,7 @@ DEFAULT_JS_TEMPLATES = ['inbox_messages',
                         'settings/app_user_roles',
                         'settings/app_user_add_roles',
                         'settings/try_publish_changes',
+                        'settings/upload_image',
                         'functionalities/functionality'
                         ]
 
