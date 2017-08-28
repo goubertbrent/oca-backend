@@ -608,11 +608,6 @@ class SolutionNewsPublisher(db.Model):
                                 parent=parent_key(service_user, solution))
 
 
-class SolutionTempBlob(db.Model):
-    timeout = db.IntegerProperty(indexed=True)
-    blob_key = db.StringProperty(indexed=False)
-
-
 class SolutionEmailSettings(CachedModelMixIn, db.Model):
     visible_in_inbox = db.ListProperty(users.User, indexed=False)
 

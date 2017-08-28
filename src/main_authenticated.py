@@ -15,8 +15,6 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
-
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -35,9 +33,10 @@ import solutions.common.restapi.statistics
 import solutions.common.restapi.store
 import solutions.djmatic.restapi
 from mcfw.restapi import rest_functions
+from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
-    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetTmpSolutionImageHandler, \
-    UploadSolutionLogoHandler, UploadSolutionAvatarHandler, GetSolutionAvatarHandler, FlowStatisticsExportHandler
+    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
+    FlowStatisticsExportHandler
 from solutions.common.handlers.broadcast import UploadAttachmentHandler
 from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
     ExportVoucherHandler
@@ -56,10 +55,7 @@ handlers = [
     ('/common/login_as', LoginAsServiceHandler),
     ('/common/broadcast/attachment/upload', UploadAttachmentHandler),
     ('/common/settings/my_logo', GetSolutionLogoHandler),
-    ('/common/settings/tmp_blob', GetTmpSolutionImageHandler),
-    ('/common/settings/logo/post', UploadSolutionLogoHandler),
     ('/common/settings/my_avatar', GetSolutionAvatarHandler),
-    ('/common/settings/avatar/post', UploadSolutionAvatarHandler),
     ('/common/image_viewer', ImageViewerHandler),
     ('/common/main_branding/(.*)', SolutionMainBrandingHandler),
     ('/common/order/pdf', OrderPdfHandler),
