@@ -26,7 +26,9 @@ DAY = 24 * 3600
 
 
 def all_pending_signups():
-    return CustomerSignup.all(keys_only=True).filter('done', False)
+    # unverified signup is the one that its email address hasn't been verified yet
+    # not done and doesn't have an inbox message, as inbox messages are sent on email successful verification
+    return CustomerSignup.all(keys_only=True).filter('done', False).filter('inbox_message_key', None)
 
 
 def remove_if_expired(signup_key, at):
