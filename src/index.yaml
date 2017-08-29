@@ -1,22 +1,4 @@
 indexes:
-- kind: AuditLog
-  properties:
-  - name: customer_id
-  - name: date
-    direction: desc
-
-- kind: AuditLog
-  properties:
-  - name: prospect_id
-  - name: date
-    direction: desc
-
-- kind: AuditLog
-  properties:
-  - name: user
-  - name: date
-    direction: desc
-
 - kind: Charge
   properties:
   - name: manager
