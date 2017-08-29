@@ -123,10 +123,13 @@ def set_avatar(service_user, image):
         avatar.published = False
         avatar.is_default = False
 
+        to_put = [avatar, sln_settings]
         sln_settings.updates_pending = True
-        branding_settings.modification_time = now()
+        if branding_settings:
+            branding_settings.modification_time = now()
+            to_put.append(branding_settings)
 
-        put_and_invalidate_cache(avatar, sln_settings, branding_settings)
+        put_and_invalidate_cache(*to_put)
 
         return sln_settings
 

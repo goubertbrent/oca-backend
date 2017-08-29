@@ -22,6 +22,7 @@ from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.service.api.system import put_avatar
+from solutions.common.bizz.settings import set_avatar
 from solutions.djmatic import JUKEBOX_SERVER_API_URL
 from solutions.djmatic.dal import get_djmatic_profile
 
@@ -47,7 +48,7 @@ def rest_put_djmatic_avatar_handler(image):
         response = urllib2.urlopen(req)
         the_page = response.read()
         logging.info('Response from DJMatic: %s', the_page)
-
+        set_avatar(service_user, image)
     except Exception as e:
         logging.exception(e)
         return e.message

@@ -1262,6 +1262,7 @@ $(function () {
                 height: height
             };
             var image = imageElem.cropper('getCroppedCanvas', options).toDataURL('image/png');
+            sln.showProcessing();
             sln.call({
                 url: updateUrl,
                 data: {
@@ -1275,7 +1276,7 @@ $(function () {
                     } else {
                         modal.modal('hide');
 
-                        if (successCallback) {
+                        if (typeof successCallback === 'function') {
                             successCallback();
                         }
                     }
