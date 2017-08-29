@@ -568,7 +568,7 @@ class CustomerSignup(db.Model):
     modules = db.StringListProperty(default=DEFAULT_MODULES)
     timestamp = db.IntegerProperty()
     done = db.BooleanProperty(indexed=True, default=False)
-    inbox_message_key = db.StringProperty(indexed=False)
+    inbox_message_key = db.StringProperty(indexed=True)
 
     @classmethod
     def list_pending_by_customer_email(cls, email):
