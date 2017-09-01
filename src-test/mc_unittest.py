@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+import base64
 import os
 import pprint
 import sys
@@ -42,7 +43,7 @@ class TestCase(unittest.TestCase):
         for logitem in logs:
             if isinstance(logitem, db.Model):
                 sys.stdout.write("  db.model: %s.%s key_name %s key_id %s parent_key name %s" % (logitem.__class__.__module__, logitem.__class__.__name__, logitem.key().name(),
-                                                                             logitem.key().id(), logitem.parent_key().name()))
+                                                                                                 logitem.key().id(), logitem.parent_key().name()))
                 logitem = db.to_dict(logitem)
             sys.stdout.write('\n  ' + '\n  '.join(pprint.pformat(logitem, 2, 120, None).splitlines()))
         sys.stdout.write("\n\n")
@@ -66,7 +67,8 @@ class TestCase(unittest.TestCase):
 
         self.testbed = testbed.Testbed()
         self.testbed.activate()
-        self.datastore_hr_policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(probability=datastore_hr_probability)
+        self.datastore_hr_policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(
+            probability=datastore_hr_probability)
         self.testbed.init_datastore_v3_stub(consistency_policy=self.datastore_hr_policy)
         self.testbed.init_taskqueue_stub(root_path=os.path.join(os.path.dirname(__file__), '..', 'build'))
         self.task_queue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
@@ -85,6 +87,8 @@ class TestCase(unittest.TestCase):
         ss.supportWorkers = ["test@example.com"]
         ss.serviceCreators = ["djmatic", "djmatic@example.com", "", "test@example.com"]
         ss.staticPinCodes = ["0666", "test@example.com"]
+        ss.userEncryptCipherPart1 = base64.b64encode(u'userEncryptCipherPart1')
+        ss.userEncryptCipherPart2 = base64.b64encode(u'userEncryptCipherPart2')
 
         sss = get_solution_server_settings()
         sss.shop_bizz_admin_emails = [u"test@example.com"]
@@ -163,11 +167,11 @@ class TestCase(unittest.TestCase):
         for app_id in apps:
             self.setup_qr_templates(app_id)
 
-        users.get_current_user = lambda:users.User(u'g.audenaert@gmail.com')
+        users.get_current_user = lambda: users.User(u'g.audenaert@gmail.com')
         user = users.get_current_user()
         create_user_profile(user, u"Geert Audenaert", language='nl')
         m = register_tst_mobile(user.email())
-        users.get_current_mobile = lambda:m
+        users.get_current_mobile = lambda: m
 
         add_all_products(mobicage_entity)
 
@@ -181,12 +185,14 @@ class TestCase(unittest.TestCase):
 
         description = u"DEFAULT"
         key_name = create_qr_template_key_name(app_id, description)
-        store_template(None, DEFAULT_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0') for c in DEFAULT_QR_CODE_COLOR), key_name)
+        store_template(None, DEFAULT_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0')
+                                                                            for c in DEFAULT_QR_CODE_COLOR), key_name)
         app.qrtemplate_keys.append(key_name)
 
         description = u"HAND"
         key_name = create_qr_template_key_name(app_id, description)
-        store_template(None, HAND_ONLY_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0') for c in DEFAULT_QR_CODE_COLOR), key_name)
+        store_template(None, HAND_ONLY_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0')
+                                                                              for c in DEFAULT_QR_CODE_COLOR), key_name)
         app.qrtemplate_keys.append(key_name)
 
         put_and_invalidate_cache(app)
