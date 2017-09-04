@@ -74,7 +74,7 @@ def save_settings(service_user, service_identity, name, description=None, openin
         sln_settings.currency = currency
     sln_settings.search_enabled = search_enabled
     sln_i_settings.search_keywords = search_keywords
-    if address and sln_i_settings.address != address:
+    if address and (sln_i_settings.address != address or not sln_i_settings.location):
         sln_i_settings.address = address
         try:
             lat, lon = _get_location(address)
