@@ -39,7 +39,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.service.api.friends import get_broadcast_reach
-from rogerthat.service.api.system import get_flow_statistics
+from rogerthat.service.api.system import get_flow_statistics, list_roles
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
@@ -61,7 +61,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
     OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    twitter as bizz_twitter
+    twitter as bizz_twitter, get_user_defined_roles
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
@@ -479,8 +479,10 @@ def rest_get_broadcast_options():
         subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
                                                      locale=sln_settings.main_language)
     subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
+    roles = get_user_defined_roles()
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
-                              extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps)
+                              extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps,
+                              roles)
 
 
 @rest("/common/broadcast/scheduled/load", "get", read_only_access=True)

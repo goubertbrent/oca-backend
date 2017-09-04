@@ -17,6 +17,7 @@
 
 from mcfw.properties import unicode_property, typed_property, bool_property, long_property, unicode_list_property
 from rogerthat.to.messaging import AttachmentTO
+from rogerthat.to.roles import RoleTO
 from shop.to import ProductTO
 from solutions.common.to import TimestampTO, UrlTO
 
@@ -68,13 +69,18 @@ class BroadcastOptionsTO(object):
     news_enabled = bool_property('5')
     subscription_info = typed_property('6', SubscriptionInfoTO, False)
     can_order_extra_apps = bool_property('7')
+    roles = typed_property('8', RoleTO, True)
 
     def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
-                 extra_city_product=None, news_enabled=False, subscription_info=None, can_order_extra_apps=True):
+                 extra_city_product=None, news_enabled=False, subscription_info=None, can_order_extra_apps=True,
+                 roles=None):
         if editable_broadcast_types is None:
             editable_broadcast_types = []
         if broadcast_types is None:
             broadcast_types = []
+        if roles is None:
+            roles = []
+
         self.broadcast_types = broadcast_types
         self.editable_broadcast_types = editable_broadcast_types
         self.news_promotion_product = news_promotion_product
@@ -82,3 +88,4 @@ class BroadcastOptionsTO(object):
         self.news_enabled = news_enabled
         self.subscription_info = subscription_info
         self.can_order_extra_apps = can_order_extra_apps
+        self.roles = roles
