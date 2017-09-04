@@ -333,7 +333,27 @@
                             <option value="1" {{if newsItem.target_audience && newsItem.target_audience.gender === 1}}selected{{/if}}>${T('gender-male')}</option>
                             <option value="2" {{if newsItem.target_audience && newsItem.target_audience.gender === 2}}selected{{/if}}>${T('gender-female')}</option>
                         </select>
+                        <label class="checkbox">
+                            <input id="connected_users_only" type="checkbox"
+                                {{if newsItem.target_audience && newsItem.target_audience.connected_users_only}}checked{{/if}}
+                                {{if newsItem.published}}disabled{{/if}}/>
+                            <h5>${T('connected_users_only')}</h5>
+                        </label>
                     </div>
+                    <hr />
+                    {{if roles && roles.length}}
+                    <h5>${T('members_with_any_of_the_following_roles_only')}</h5>
+                    <div id="roles" style="width: auto;">
+                        {{each(i, role) roles}}
+                        <label class="checkbox">
+                            <input type="checkbox" name="role_checkbox" value="${role.id}"
+                                    {{if newsItem.role_ids && newsItem.role_ids.indexOf(role.id) > -1}}checked{{/if}}
+                                    {{if newsItem.published}}disabled{{/if}}/>
+                            ${role.name}
+                        </label>
+                        {{/each}}
+                    </div>
+                    {{/if}}
                 </div>
                 <div class="tab-pane" id="tab7"></div>
             </div>

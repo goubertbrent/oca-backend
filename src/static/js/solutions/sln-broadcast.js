@@ -1358,7 +1358,8 @@ $(function () {
                 sandwichSettings: sandwichSettings,
                 selectedSandwich: selectedSandwich || {},
                 isFlagSet: sln.isFlagSet,
-                allowedButtonActions: allowedButtonActions
+                allowedButtonActions: allowedButtonActions,
+                roles: broadcastOptions.roles,
             };
             var html = $.tmpl(templates['broadcast/broadcast_news'], params);
             $('#broadcast_page_news').html(html);
@@ -1458,6 +1459,7 @@ $(function () {
             elemNewsActionAttachmentCaption = $('#news_action_attachment_caption'),
             elemNewsActionAttachmentValue = $('#news_action_attachment_value'),
             elemCheckboxesApps = elemForm.find('input[name=news_checkbox_apps]'),
+            elemCheckboxesRoles = elemForm.find('input[name=role_checkbox]'),
             elemNewsActionRestaurantDatepicker = $('#news_action_restaurant_reservation_datepicker'),
             elemNewsActionRestaurantTimepicker = $('#news_action_restaurant_reservation_timepicker'),
             elemNewsActionSandwichType = $('#news_action_sandwich_bar_types'),
@@ -1918,9 +1920,14 @@ $(function () {
                 data.target_audience = {
                     min_age: parseInt($('#age_min').val()),
                     max_age: parseInt($('#age_max').val()),
-                    gender: parseInt($('#gender').val())
+                    gender: parseInt($('#gender').val()),
+                    connected_users_only: $('#connected_users_only').is(':checked')
                 };
             }
+            data.role_ids = []
+            elemCheckboxesRoles.filter(':checked').each(function() {
+                data.role_ids.push(parseInt($(this).val()));
+            });
             return data;
         }
 

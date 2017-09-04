@@ -925,6 +925,16 @@ def create_news_publisher(app_user, service_user, solution):
     return publisher
 
 
+def get_user_defined_roles():
+    from solutions.common.bizz.messaging import POKE_TAG_BROADCAST_CREATE_NEWS, \
+        POKE_TAG_NEW_EVENT
+
+    def is_user_defined(role):
+        return role.name not in [POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_NEW_EVENT]
+
+    return filter(is_user_defined, list_roles())
+
+
 @returns()
 @arguments(app_user=users.User, service_user=users.User, solution=unicode)
 def delete_news_publisher(app_user, service_user, solution):

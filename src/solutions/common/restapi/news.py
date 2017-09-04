@@ -58,11 +58,12 @@ def rest_get_news_statistics(news_id):
            action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
            type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)), app_ids=[unicode],
            scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
-           broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO)
+           broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO,
+           role_ids=[(int, long)])
 def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
                        type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
                        scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
-                       facebook_access_token=None, target_audience=None):
+                       facebook_access_token=None, target_audience=None, role_ids=None):
     """
     Args:
         title (unicode)
@@ -81,6 +82,7 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         broadcast_on_twitter (bool)
         facebook_access_token (unicode): user or page access token
         target_audience (NewsTargetAudienceTO)
+        role_ids (list of long)
     """
     service_user = users.get_current_user()
     session_ = users.get_current_session()
@@ -95,7 +97,7 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         return put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
                              order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
                              broadcast_on_twitter, facebook_access_token, target_audience=target_audience,
-                             host=host, accept_missing=True)
+                             role_ids=role_ids, host=host, accept_missing=True)
     except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
         message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)
