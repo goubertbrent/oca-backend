@@ -173,7 +173,8 @@ def _send_approved_signup_email(city_customer, signup, lang):
 
     city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
     send_email(subject, city_from, [signup.customer_email], [], None, message)
-    _schedule_signup_smart_emails(signup.customer_email)
+    if signup.parent().language == 'nl':
+        _schedule_signup_smart_emails(signup.customer_email)
 
 
 def _send_denied_signup_email(city_customer, signup, lang, reason):
