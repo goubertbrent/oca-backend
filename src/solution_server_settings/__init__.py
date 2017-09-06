@@ -146,6 +146,10 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                     doc="Google ReCaptcha secret key",
                                     order=1502)
 
+    createsend_api_key = add_meta(db.StringProperty(indexed=False),
+                                  doc="Createsend api key",
+                                  order=1601)
+
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
         get_solution_server_settings.invalidate_cache()
