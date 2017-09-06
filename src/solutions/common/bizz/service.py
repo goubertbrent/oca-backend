@@ -18,10 +18,12 @@
 import logging
 
 from google.appengine.ext import db
+from google.appengine.ext.deferred import deferred
 
 from mcfw.rpc import serialize_complex_value
 
 from rogerthat.dal.service import get_default_service_identity
+from rogerthat.consts import DAY, DEBUG, SCHEDULED_QUEUE
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, now
@@ -32,9 +34,20 @@ from shop.models import Product, RegioManagerTeam
 
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, send_email
+from solutions.common.bizz.createsend import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.to import SolutionInboxMessageTO
+
+
+# signup smart emails with the countdown (seconds) they should be sent after
+# successfull registration
+SMART_EMAILS = {
+    '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 2 * 60,
+    'f4e19feb-f394-47b4-880f-f7a5a0c163ac': 2 * DAY,
+    'e6b456af-a811-4540-903c-5135cd6e4802': 4 * DAY,
+    'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 6 * DAY,
+}
 
 
 def get_allowed_broadcast_types(city_customer):
@@ -144,6 +157,13 @@ def _send_signup_status_inbox_reply(sln_settings, parent_chat_key, approved, rea
     return inbox_message
 
 
+def _schedule_signup_smart_emails(customer_email):
+    for email_id, countdown in SMART_EMAILS.iteritems():
+        deferred.defer(send_smart_email, email_id, [customer_email],
+                       _countdown=countdown,
+                       _queue=SCHEDULED_QUEUE)
+
+
 def _send_approved_signup_email(city_customer, signup, lang):
     def trans(term, *args, **kwargs):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
@@ -153,6 +173,7 @@ def _send_approved_signup_email(city_customer, signup, lang):
 
     city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
     send_email(subject, city_from, [signup.customer_email], [], None, message)
+    _schedule_signup_smart_emails(signup.customer_email)
 
 
 def _send_denied_signup_email(city_customer, signup, lang, reason):
