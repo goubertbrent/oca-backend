@@ -4812,7 +4812,7 @@ translations = \
          u'signup_note': u'Welkom.\nMaak uw eigen app aan in 2 stappen. \nSelecteer uw stad of gemeente.',
          u'signup_request_denial_reason': u'Uw aanvraag werd geweigerd omwille van de volgende reden:\n\n%(reason)s',
          u'signup_request_denied_by_city': u'Uw aanvraag werd geweigerd door %(city)s',
-         u'signup_verification_email': u'Beste %(name)s,\n\nOm het registratieproces te voltooien, moet je je e-mailadres verifi\xebren door op deze link te klikken:\n%(link)s. \n\nOpgelet, deze link blijft maar 24u geldig.',
+         u'signup_verification_email': u'Beste %(name)s,\n\nOm het registratieproces te voltooien, moet je je e-mailadres verifi\xebren door op deze link te klikken:\n%(link)s\n\nOpgelet, deze link blijft maar 24u geldig.',
          u'signup_verification_note': u'Om verder te kunnen gaan in het registratieproces moet uw e-mailadres geverifieerd worden. Een mail met verdere instructies is verzonden naar %(email)s.',
          u'simple': u'Eenvoudig',
          u'simple_orders': u'Eenvoudige bestellingen',
