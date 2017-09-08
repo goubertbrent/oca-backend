@@ -1872,7 +1872,17 @@ def add_new_broadcast_type(broadcast_type):
 @returns(ServiceMenuDetailTO)
 @arguments()
 def rest_get_menu():
-    return system.get_menu()
+    service_menu = system.get_menu()
+    user_role_ids = [role.id for role in get_user_defined_roles()]
+
+    def has_user_defined_roles_only(item):
+        return all([role_id in user_role_ids for role_id in item.roles])
+
+    def include_item(item):
+        return '__rt__.' not in item.tag and has_user_defined_roles_only(item)
+
+    service_menu.items = filter(include_item, service_menu.items)
+    return service_menu
 
 
 @rest('/common/settings/facebook/app/id', 'get')

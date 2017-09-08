@@ -1240,6 +1240,7 @@ translations = \
          u'there_are_no_orders': u'There are no new orders.',
          u'this_field_is_required': u'This field is required.',
          u'this_is_the_last_free_promoted_news_item': u'Free sponsored news item in the %(app_name)s app . This will be the last free promoted news item in this app.',
+         u'This news item is missing action button roles': 'This news item is missing action button roles',
          u'till': u'till',
          u'time-in-seconds': u'Time (seconds)',
          u'time-start-end-equal': u'Start time and end time cannot be equal',

@@ -346,7 +346,7 @@
                     <div id="roles" style="width: auto;">
                         {{each(i, role) roles}}
                         <label class="checkbox">
-                            <input type="checkbox" name="role_checkbox" value="${role.id}"
+                            <input type="checkbox" name="${role.name}" value="${role.id}"
                                     {{if newsItem.role_ids && newsItem.role_ids.indexOf(role.id) > -1}}checked{{/if}}
                                     {{if newsItem.published}}disabled{{/if}}/>
                             ${role.name}
