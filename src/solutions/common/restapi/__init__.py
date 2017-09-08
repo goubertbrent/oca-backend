@@ -552,7 +552,7 @@ def broadcast_validate_url(url, allow_empty=False):
 def settings_save(name, description=None, opening_hours=None, address=None, phone_number=None, facebook_page=None,
                   facebook_name=None, facebook_action=None, currency=None, search_enabled=True, search_keywords=None,
                   timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None, iban=None,
-                  bic=None, search_enabled_check=None):
+                  bic=None, search_enabled_check=False):
     try:
         service_user = users.get_current_user()
         session_ = users.get_current_session()

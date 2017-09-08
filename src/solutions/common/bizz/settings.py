@@ -73,8 +73,7 @@ def save_settings(service_user, service_identity, name, description=None, openin
     if currency is not None:
         sln_settings.currency = currency
     sln_settings.search_enabled = search_enabled
-    if search_enabled_check is not None:
-        sln_settings.search_enabled_check = search_enabled_check
+    sln_settings.search_enabled_check = search_enabled_check
 
     sln_i_settings.search_keywords = search_keywords
     if address and (sln_i_settings.address != address or not sln_i_settings.location):

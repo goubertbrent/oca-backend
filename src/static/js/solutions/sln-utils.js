@@ -150,7 +150,7 @@ var TMPL_CONFIRM = '<div class="modal hide fade" tabindex="-1" role="dialog" ari
     + '        <p>{{html body}}</p>'
     + '    </div>'
     + '    <div class="modal-footer">'
-    + '        {{if showRemember}}<label class="checkbox pull-left"><input id="remember_choice" type="checkbox">' + CommonTranslations.remember_my_choice + '</label>{{/if}}'
+    + '        {{if showRemember}}<label class="checkbox pull-left"><input id="remember_choice" type="checkbox">${remember_my_choice}</label>{{/if}}'
     + '        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>'
     + '        <button action="submit" class="btn btn-primary">${submitBtn}</button>' //
     + '    </div>'
@@ -494,7 +494,8 @@ var createLib = function() {
                 header: title || CommonTranslations.CONFIRM,
                 cancelBtn: negativeCaption || CommonTranslations.NO,
                 submitBtn: positiveCaption || CommonTranslations.YES,
-                showRemember: showRemember
+                showRemember: showRemember,
+                remember_my_choice: CommonTranslations.remember_my_choice,
             });
             var modal = sln.createModal(html);
 

@@ -381,7 +381,7 @@ $(function () {
                 if (fbPlaceId.size() > 0)
                     fbPlaceId.val(data.facebook_page);
                 searchEnabled = data.search_enabled;
-                searchEnabledCheck = data.search_enabled_check
+                searchEnabledCheck = data.search_enabled_check;
                 setServiceVisible(searchEnabled);
                 eventsEnabled = data.events_visible;
                 setEventsVisible(eventsEnabled);
