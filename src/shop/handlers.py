@@ -69,6 +69,7 @@ except ImportError:
 
 
 class ExportProductsHandler(webapp2.RequestHandler):
+
     def get(self):
         if self.request.headers.get('X-Rogerthat-Secret') != get_server_settings().secret:
             self.abort(401)
@@ -80,6 +81,7 @@ class ExportProductsHandler(webapp2.RequestHandler):
 
 
 class ExportInvoicesHandler(webapp2.RequestHandler):
+
     def get(self):
         if self.request.headers.get('X-Rogerthat-Secret') != get_server_settings().secret:
             self.abort(401)
@@ -95,7 +97,7 @@ class ExportInvoicesHandler(webapp2.RequestHandler):
 
 class ProspectCallbackHandler(webapp2.RequestHandler):
 
-    def get (self):
+    def get(self):
         solution_server_settings = get_solution_server_settings()
         if not solution_server_settings.tropo_callback_token:
             logging.error("tropo_callback_token is not set yet")
@@ -144,6 +146,7 @@ class ProspectCallbackHandler(webapp2.RequestHandler):
 
 
 class StaticFileHandler(webapp2.RequestHandler):
+
     def get(self, filename):
         cur_path = os.path.dirname(__file__)
         path = os.path.join(cur_path, u'html', filename)
@@ -251,6 +254,7 @@ def export_products():
 
 
 class BeaconsAppValidateUrlHandler(webapp2.RequestHandler):
+
     def post(self):
         # this url is used in the beacon configurator app to override the uuid, major and minor
         from rogerthat.pages.shortner import get_short_url_by_code
@@ -349,6 +353,7 @@ class BeaconsAppValidateUrlHandler(webapp2.RequestHandler):
 
 
 class GenerateQRCodesHandler(webapp2.RequestHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -359,6 +364,7 @@ class GenerateQRCodesHandler(webapp2.RequestHandler):
 
 
 class AppBroadcastHandler(webapp2.RequestHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -369,6 +375,7 @@ class AppBroadcastHandler(webapp2.RequestHandler):
 
 
 class CustomerMapHandler(webapp2.RequestHandler):
+
     def get(self, app_id):
         path = os.path.join(os.path.dirname(__file__), 'html', 'customer_map.html')
         settings = get_server_settings()
@@ -438,6 +445,7 @@ def get_customer_locations_for_app(app_id):
 
 
 class CustomerMapServicesHandler(webapp2.RequestHandler):
+
     def get(self, app_id):
         customer_locations = get_customer_locations_for_app(app_id)
         self.response.write(customer_locations)
@@ -457,7 +465,7 @@ def rest_loyalty_scanned(user_email_hash, merchant_email, app_id):
         if not profile_pointer:
             logging.debug('No ProfilePointer found with user_code %s', user_code)
             raise BusinessException('User not found')
-        app_user=profile_pointer.user
+        app_user = profile_pointer.user
 
         bizz_check(get_app_by_id(app_id), 'App not found')
         bizz_check(app_id == get_app_id_from_app_user(profile_pointer.user), 'Invalid user email hash')
@@ -512,6 +520,8 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
             return self.redirect('/')
 
         email = self.request.get('email')
+        if email.endswith('.'):
+            email = email[:-1]
         data = self.request.get('data')
         if email and data:
             try:
