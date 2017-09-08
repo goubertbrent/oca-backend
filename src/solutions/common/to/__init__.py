@@ -165,6 +165,7 @@ class SolutionSettingsTO(object):
     iban = unicode_property('21')
     bic = unicode_property('22')
     publish_changes_users = unicode_list_property('23', default=[])
+    search_enabled_check = bool_property('24')
 
     @staticmethod
     def fromModel(sln_settings, sln_i_settings):
@@ -192,6 +193,7 @@ class SolutionSettingsTO(object):
         to.iban = sln_settings.iban
         to.bic = sln_settings.bic
         to.publish_changes_users = sln_settings.publish_changes_users
+        to.search_enabled_check = sln_settings.search_enabled_check
         return to
 
 

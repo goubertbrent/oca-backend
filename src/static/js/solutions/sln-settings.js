@@ -22,6 +22,7 @@ $(function () {
     var AVATAR_URL = '/common/settings/my_avatar';
     var LOGO_URL = '/common/settings/my_logo';
     var searchEnabled = true;
+    var searchEnabledCheck = true;
     var eventsEnabled = true;
     var eventNotificationsEnabled = false;
     var inboxEmailRemindersEnabled = true;
@@ -280,30 +281,55 @@ $(function () {
     }
 
     var publishChangesToUsers = function (friends) {
-        validateDefaultSettings(function() {
-            var args = {};
-            if(friends && friends.length) {
-                args.friends = friends;
-            }
-            sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
-            sln.call({
-                url: "/common/settings/publish_changes",
-                type: "POST",
-                data: args,
-                success: function (data) {
-                    sln.hideProcessing();
-                    if (data.success && !args.friends) {
-                        toggleUpdatesPending(false);
-                    } else if(!data.success){
-                        sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
-                    }
-                },
-                error: function (XMLHttpRequest, textStatus, errorThrown) {
-                    sln.hideProcessing();
-                    sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
+        function publish() {
+            validateDefaultSettings(function() {
+                var args = {};
+                if(friends && friends.length) {
+                    args.friends = friends;
                 }
+                sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
+                sln.call({
+                    url: "/common/settings/publish_changes",
+                    type: "POST",
+                    data: args,
+                    success: function (data) {
+                        sln.hideProcessing();
+                        if (data.success && !args.friends) {
+                            toggleUpdatesPending(false);
+                        } else if(!data.success){
+                            sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
+                        }
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        sln.hideProcessing();
+                        sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
+                    }
+                });
             });
-        });
+        }
+
+        function setSearchEnabled(neverCheckAgain, enabled) {
+            if (neverCheckAgain) {
+                searchEnabledCheck = false;
+            }
+            setServiceVisible(enabled);
+            if (!searchEnabledCheck || enabled) {
+                saveSettings(publish);
+            } else {
+                publish();
+            }
+        }
+
+        if (!searchEnabled && searchEnabledCheck) {
+            // ask the user to enable search for this service before publishing
+            sln.confirm(CommonTranslations.enable_search_before_publishing, function(neverCheckAgain) {
+                setSearchEnabled(neverCheckAgain, true);
+            }, function(neverCheckAgain) {
+                setSearchEnabled(neverCheckAgain, false);
+            }, CommonTranslations.YES, CommonTranslations.NO, CommonTranslations.visibility, null, true);
+        } else {
+            publish();
+        }
     };
 
     var saveTryPublishUsers = function(userKeys) {
@@ -355,6 +381,7 @@ $(function () {
                 if (fbPlaceId.size() > 0)
                     fbPlaceId.val(data.facebook_page);
                 searchEnabled = data.search_enabled;
+                searchEnabledCheck = data.search_enabled_check
                 setServiceVisible(searchEnabled);
                 eventsEnabled = data.events_visible;
                 setEventsVisible(eventsEnabled);
@@ -1285,7 +1312,7 @@ $(function () {
         });
     }
 
-    function saveSettings() {
+    function saveSettings(callback) {
         var allOK = true;
         $('#required_fields').empty();
         // Check name
@@ -1323,6 +1350,7 @@ $(function () {
             opening_hours: $('.sln-set-openinghours textarea').val(),
             address: $('.sln-set-address textarea').val(),
             search_enabled: searchEnabled,
+            search_enabled_check: searchEnabledCheck,
             search_keywords: $('.sln-set-search-keywords textarea').val(),
             email_address: $('.sln-set-email-address input').val(),
             timezone: $('.sln-set-timezone select').val(),
@@ -1341,6 +1369,9 @@ $(function () {
             success: function (data) {
                 if (!data.success) {
                     return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                }
+                if (typeof callback === 'function') {
+                    callback();
                 }
                 if(data.result === null){
                     $("#address_geocode_error").hide();

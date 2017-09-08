@@ -548,11 +548,11 @@ def broadcast_validate_url(url, allow_empty=False):
 @arguments(name=unicode, description=unicode, opening_hours=unicode, address=unicode, phone_number=unicode,
            facebook_page=unicode, facebook_name=unicode, facebook_action=unicode, currency=unicode, search_enabled=bool,
            search_keywords=unicode, timezone=unicode, events_visible=bool, email_address=unicode,
-           inbox_email_reminders=bool, iban=unicode, bic=unicode)
+           inbox_email_reminders=bool, iban=unicode, bic=unicode, search_enabled_check=bool)
 def settings_save(name, description=None, opening_hours=None, address=None, phone_number=None, facebook_page=None,
                   facebook_name=None, facebook_action=None, currency=None, search_enabled=True, search_keywords=None,
                   timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None, iban=None,
-                  bic=None):
+                  bic=None, search_enabled_check=None):
     try:
         service_user = users.get_current_user()
         session_ = users.get_current_session()
@@ -560,7 +560,7 @@ def settings_save(name, description=None, opening_hours=None, address=None, phon
         address_geocoded = save_settings(service_user, service_identity, name, description, opening_hours, address,
                                          phone_number, facebook_page, facebook_name, facebook_action, currency,
                                          search_enabled, search_keywords, timezone, events_visible, email_address,
-                                         inbox_email_reminders, iban, bic)
+                                         inbox_email_reminders, iban, bic, search_enabled_check)
 
         r = SaveSettingsResultTO()
         r.address_geocoded = address_geocoded

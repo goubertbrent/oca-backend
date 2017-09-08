@@ -274,6 +274,7 @@ class SolutionSettings(SolutionIdentitySettings):
     bic = db.StringProperty(indexed=False)
 
     search_enabled = db.BooleanProperty(indexed=False, default=False)
+    search_enabled_check = db.BooleanProperty(indexed=False, default=True)
 
     menu_item_color = db.StringProperty(indexed=False)
 
