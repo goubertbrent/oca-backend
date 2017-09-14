@@ -18,16 +18,18 @@
 
 </style>
 <div id="loyalty" class="page" style="display: none;">
+{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY not in sln_settings.modules %}
 	<div id="loyalty_order_now">
 	    <p>{% translate language, 'common' , 'you_do_not_have_tablet_yet_contact_support' %}</p>
 	    <button type="button" class="btn btn-default btn-large" id="loyalty_request_device">
 	        {% translate language, 'common', 'request_loyalty_device' %}
 	    </button>
 	</div>
+{% endif %}
     <div id="loyalty_export" style="display: none;">
     	<a href="#/loyalty" class="btn btn-success pull-left" style="margin-right: 20px; margin-top: 20px;">
     		<i class="fa fa-arrow-left"></i> {% translate language, "common", 'back' %}</a>
-    	
+
     	<div class="span12">
 	    	<div class="span5">
 	    		<h2>{% translate language, "common", 'loyalty' %}</h2>
@@ -53,11 +55,11 @@
         <button id="loyalty_add_lottery" type="button" class="btn btn-success" style="margin-bottom: 20px;">
                 {% translate language, "common", "Add lottery" %}
         </button>
-            
+
         <div class="alert alert-danger add-lottery-required" style="display: none;">
             <h4>{% translate language, "common", "loyalty-lottery-configure-title" %}</h4>
             <br/>
-    
+
             <div>{% translate language, "common", "loyalty-lottery-configure-text" %}</div>
         </div>
 
@@ -66,14 +68,14 @@
                 <li class="active" section="lottery-history-pending"><a href="#/loyalty"><i class="fa fa-inbox"></i> {% translate language, "common", "Pending" %} <span class="badge"></span></a></li>
                 <li class="" section="lottery-history-history"><a href="#/loyalty"><i class="fa fa-trash"></i> {% translate language, "common", "Trash" %} <span class="badge"></span></a></li>
             </ul>
-    
+
             <section id="lottery-history-pending">
             </section>
-            
+
             <section id="lottery-history-history" style="display: none;">
             </section>
         </div>
     </div>
-    
+
     <div id="customer_loyalty_visits"></div>
 </div>
