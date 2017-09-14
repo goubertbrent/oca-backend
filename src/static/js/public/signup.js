@@ -110,15 +110,13 @@ $(function() {
 
     function validateVat(input) {
         var vat = input.val().replace(/\s/g,'');
-
-        input.next('p[class=text-error]').remove();
         if(!vat) {
-            $('#next').attr('disabled', false);
+            // clear any prev errors
+            input.next('p[class=text-error]').remove();
             return;
-        } else {
-            $('#next').attr('disabled', true);
         }
 
+        $('#next').attr('disabled', true);
         sln.call({
             url: '/unauthenticated/osa/company/info',
             type: 'get',
@@ -151,14 +149,18 @@ $(function() {
                     if(!enterpriseDetails.city) {
                         $('#enterprise_city').val(data.city);
                     }
-                    $('#next').attr('disabled', false);
                 }
 
+                $('#next').attr('disabled', false);
+                input.next('p[class=text-error]').remove();
                 if(errorMessage) {
                     $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
                 }
             },
-            error: sln.showAjaxError
+            error: function() {
+                $('#next').attr('disabled', false);
+                sln.showAjaxError()
+            }
         });
     }
 
@@ -232,6 +234,13 @@ $(function() {
     }
 
     function nextStep() {
+        if(currentStep == 2) {
+            var vatError = $('#enterprise_vat').next('p[class=text-error]');
+            if(vatError.length) {
+                return;
+            }
+        }
+
         if(!validateInputs(getCurrentTab()) || isLastStep()) {
             return;
         }
