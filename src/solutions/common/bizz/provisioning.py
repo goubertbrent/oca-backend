@@ -633,6 +633,24 @@ def get_app_data_city_vouchers(sln_settings, service_identity, default_app_id):
     return dict(currency=sln_settings.currency)
 
 
+def _configure_inbox_qr_code_if_needed(sln_settings, main_branding):
+    # type: (SolutionSettings, SolutionMainBranding) -> None
+    if not sln_settings.uses_inbox():
+        return
+    identities = [None]
+    if sln_settings.identities:
+        identities.extend(sln_settings.identities)
+    flow_identifier = create_inbox_forwarding_flow(main_branding.branding_key, sln_settings.main_language)
+    for service_identity in identities:
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        if not sln_i_settings.inbox_connector_qrcode:
+            if db.is_in_transaction():
+                on_trans_committed(_configure_inbox_forwarding_qr_code, sln_settings.service_user, service_identity,
+                                   flow_identifier)
+            else:
+                _configure_inbox_forwarding_qr_code(sln_settings.service_user, service_identity, flow_identifier)
+
+
 @returns()
 @arguments(sln_settings=SolutionSettings, coords_dict=dict, main_branding=SolutionMainBranding, default_lang=unicode)
 def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang):
@@ -661,6 +679,7 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
                     _default_delete(sln_settings, current_coords, service_menu)
     sln_settings.provisioned_modules = []
 
+    _configure_inbox_qr_code_if_needed(sln_settings, main_branding)
     ssmi_modules = {}
     for module in sorted(sln_settings.modules, key=lambda m: SolutionModule.PROVISION_ORDER[m]):
         current_coords = get_coords_of_service_menu_item(service_menu, POKE_TAGS[module])
@@ -1006,20 +1025,6 @@ def put_ask_question(sln_settings, current_coords, main_branding, default_lang, 
                                    tag,
                                    static_flow=ask_question_flow.identifier,
                                    action=SolutionModule.action_order(SolutionModule.ASK_QUESTION))
-
-    identities = [None]
-    if sln_settings.identities:
-        identities.extend(sln_settings.identities)
-    flow_identifier = create_inbox_forwarding_flow(main_branding.branding_key, default_lang)
-    for service_identity in identities:
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        if not sln_i_settings.inbox_connector_qrcode:
-            if db.is_in_transaction():
-                on_trans_committed(_configure_inbox_forwarding_qr_code, sln_settings.service_user, service_identity,
-                                   flow_identifier)
-            else:
-                _configure_inbox_forwarding_qr_code(sln_settings.service_user, service_identity, flow_identifier)
-
     return [ssmi]
 
 
