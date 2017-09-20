@@ -37,7 +37,6 @@ from babel.dates import format_date, format_datetime, get_timezone
 from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import chunks
 import pytz
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
 from rogerthat.bizz.job import run_job
@@ -60,7 +59,6 @@ from rogerthat.utils.channel import send_message
 from shop.constants import LOGO_LANGUAGES, STORE_MANAGER
 from shop.dal import get_shop_loyalty_slides, get_customer
 from shop.models import ShopLoyaltySlideNewOrder, Customer, Contact, RegioManagerTeam, Prospect, ShopTask
-from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
@@ -1844,7 +1842,7 @@ def _get_app_id_if_using_city_wide_tombola(service_user, service_identity, shoul
 
 
 @returns()
-@arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long),)
+@arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long))
 def add_city_wide_lottery_visit(service_user, service_identity, user_detail, loyalty_type, visit_key, now_):
     city_app_id = _get_app_id_if_using_city_wide_tombola(service_user, service_identity)
     if not city_app_id:

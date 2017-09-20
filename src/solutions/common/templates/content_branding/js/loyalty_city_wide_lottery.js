@@ -20,13 +20,6 @@ var LOYALTY_TYPE_CITY_WIDE_LOTTERY = 4;
 
 var qrCodeScannedCityWideLottery = function(now_, result) {
 	hideLoading();
-	rogerthat.api.call("solutions.loyalty.put", 
-            JSON.stringify({
-                'loyalty_type': LOYALTY_TYPE,
-                'timestamp': Math.floor(Date.now() / 1000),
-                'user_details': result.userDetails
-            }),
-            null);
 	
 	solutionsLoyaltyPutGuid = rogerthat.util.uuid();
     var tag = solutionsLoyaltyPutGuid;
