@@ -17,7 +17,7 @@
 <link rel="stylesheet" type="text/css" href="/static/js/slick/slick.css"/>
 <link rel="stylesheet" type="text/css" href="/static/js/slick/slick-theme.css"/>
 <link rel="stylesheet" type="text/css" href="/static/js/bower_components/cropper/dist/cropper.min.css"/>
-{% if show_functionalities_page %}
+{% if functionality_modules %}
 <link href="https://fonts.googleapis.com/css?family=Roboto:700" rel="stylesheet">
 <link href="/static/css/solutions/flex/functionalities.css" rel="stylesheet">
 {% endif %}
@@ -95,7 +95,7 @@ var modules = {};
                     <ul id="topmenu" class="nav">
 
 {% if not is_layout_user %}
-    {% if show_functionalities_page %}
+    {% if functionality_modules %}
                         <li menu="functionalities">
                             <a href="#functionalities">
                                 {% translate language, "common", "functionalities" %}
@@ -191,7 +191,7 @@ var modules = {};
 {% endif %}
 {% if not loyalty %}
     <!-- show loyalty tab if there is no "Functionalities" page or in case loyalty is enabled -->
-    {% if not show_functionalities_page or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
+    {% if not functionality_modules or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
                         <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "loyalty" %} <span
                                 class="badge badge-important sln-loyalty-badge"></span></a></li>
     {% endif %}
@@ -284,7 +284,7 @@ var modules = {};
 	            </div>
 
 {% if not is_layout_user %}
-{% if show_functionalities_page %}
+{% if functionality_modules %}
 {% include 'functionalities/functionalities.tmpl' %}
 {% endif %}
 {% if sln_settings.uses_inbox() %}
@@ -375,8 +375,7 @@ var modules = {};
                                 <li class="" section="section_settings_inbox"><a href="#" help="kZqDPlPAtQY">{% translate language, "common", "Inbox" %}</a></li>
                             {% endif %}
                             {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
-	                            <li section="section_tables"><a href="#" help="oQeTd85ejYY">{% translate language, "common", "settings-tables" %}</a></li>
-	                            <li section="section_shifts"><a href="#" help="i5QQze4Asno">{% translate language, "common", "settings-shifts" %}</a></li>
+	                            <li section="section_settings_restaurant_reservation"><a href="#" help="oQeTd85ejYY">{% translate language, "common", "reservation" %}</a></li>
                             {% endif %}
                             <li section="section_holidays"><a href="#" help="l_BlEhnXRcE">{% translate language, "common", "settings-holidays" %}</a></li>
                             {% if SolutionModule.AGENDA in sln_settings.modules %}
@@ -391,7 +390,7 @@ var modules = {};
                                 </li>
                             {% endif %}
                             {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
-                                <li class="" section="section_settings_sandwich"><a href="#">{% translate language, "common", "Sandwiches" %}</a></li>
+                                <li class="" section="section_settings_sandwich_bar"><a href="#">{% translate language, "common", "Sandwiches" %}</a></li>
                             {% endif %}
                             {% if SolutionModule.REPAIR in sln_settings.modules %}
                                 <li class="" section="section_settings_repair"><a href="#">{% translate language, "common", "repair" %}</a></li>

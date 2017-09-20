@@ -217,6 +217,12 @@ $(function() {
             loadLoyaltyScans();
         } else if (data.type == "solutions.common.loyalty.lottery.update") {
             loadLotteryInfo();
+        } else if(data.type == "solutions.common.postal_code.update") {
+            if(data.deleted) {
+                removePostalCodeRow(data.code);
+            } else {
+                addPostalCodeRow(data.code);
+            }
         } else if (data.type == "solutions.common.loyalty.points.update") {
             if (currentLoyaltyType > 0) {
                 cursor = null;
@@ -1300,6 +1306,82 @@ $(function() {
     if (HAS_LOYALTY) {
         loadLoyaltyScans();
     }
+
+    function addPostalCodeRow(code) {
+        $('#postal_codes > tbody').append(
+            '<tr><td>' + code + '</td><td><button class="remove-postal-code btn btn-warning">'
+            + CommonTranslations.DELETE + '</button></td></tr>'
+        );
+    }
+
+    function removePostalCodeRow(code_or_row) {
+        if (typeof code_or_row === 'string') {
+            $('#postal_codes td:contains(' + code_or_row + ')').parent().remove();
+        } else {
+            // the row itself
+            code_or_row.remove();
+        }
+    }
+
+    function loadPostalCodes() {
+        sln.call({
+            url: '/common/city/postal_codes',
+            type: 'get',
+            data: {
+                app_id: CITY_APP_ID
+            },
+            success: function(codes) {
+                $.each(codes, function(i, code) {
+                    addPostalCodeRow(code);
+                });
+            }
+        });
+    }
+
+    function addOrRemovePostalCode(code, remove) {
+        var operation = 'add';
+        if (remove) {
+            operation = 'remove'
+        }
+        sln.showProcessing();
+        sln.call({
+            url: '/common/city/postal_codes/' + operation,
+            type: 'post',
+            data: {
+                app_id: CITY_APP_ID,
+                postal_code: code
+            },
+            success: function(result) {
+                sln.hideProcessing();
+                if (!result.success) {
+                    sln.alert(result.errormsg, null, CommonTranslations.ERROR);
+                }
+                // will be added or removed by the channel update
+            },
+            error: function() {
+                sln.hideProcessing();
+                sln.showAjaxError();
+            }
+        });
+    }
+
+    function addPostalCode() {
+        sln.input(function(code) {
+           addOrRemovePostalCode(code, false)
+        }, CommonTranslations.postal_code, CommonTranslations.ADD);
+    }
+
+    function removePostalCode() {
+        var row = $(this).parent().parent();
+        var code = $('td:first-child', row).text();
+        addOrRemovePostalCode(code, true)
+    }
+
+    loadPostalCodes();
+    $('.add-postal-code').on('click', addPostalCode);
+    // remove button will be added later
+    $('body').on('click', '.remove-postal-code', removePostalCode);
+
 });
 
 function loadLoyaltyExportList() {

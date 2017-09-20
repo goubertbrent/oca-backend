@@ -1345,6 +1345,8 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         except TypeError:
             timezone_offsets.append([0, now() + (DAY * 7 * 52 * 20), timezone_offset(sln_settings.timezone)])
             break
+        if t is None:
+            break
         timezone_offsets.append([int(time.mktime(start.timetuple())),
                                  int(time.mktime(t.activates.timetuple())),
                                  int(t.from_offset)])
@@ -1668,6 +1670,8 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
         except TypeError:
             timezone_offsets.append([0, now() + (DAY * 7 * 52 * 20), timezone_offset(sln_settings.timezone)])
             break
+        if t is None:
+            break
         timezone_offsets.append([int(time.mktime(start.timetuple())),
                                  int(time.mktime(t.activates.timetuple())),
                                  int(t.from_offset)])
@@ -1775,6 +1779,8 @@ def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, de
     service_user = sln_settings.service_user
     service_identity = None
     loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
+    if not loyalty_settings:
+        loyalty_settings = SolutionLoyaltySettings(key=SolutionLoyaltySettings.create_key(service_user))
     loyalty_settings.loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY
     should_put = False
     if not loyalty_settings:

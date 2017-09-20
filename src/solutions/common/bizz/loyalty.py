@@ -75,7 +75,7 @@ from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyalt
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
     SolutionLoyaltyVisitRevenueDiscountArchive, SolutionLoyaltyVisitLotteryArchive, SolutionLoyaltyVisitStampsArchive, \
     SolutionLoyaltyExport, SolutionLoyaltyIdentitySettings, SolutionCityWideLotteryVisit, \
-    SolutionCityWideLotteryStatistics, CustomLoyaltyCard
+    SolutionCityWideLotteryStatistics, CustomLoyaltyCard, CityPostalCodes
 from solutions.common.models.news import NewsCoupon
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
@@ -1815,10 +1815,10 @@ def request_loyalty_device(service_user, source):
 @returns(unicode)
 @arguments(service_user=users.User, service_identity=unicode, should_set_user=bool)
 def _get_app_id_if_using_city_wide_tombola(service_user, service_identity, should_set_user=True):
-    solution_server_settings = get_solution_server_settings()
     city_wide_lottery = {}
-    for app_id, postcode in chunks(solution_server_settings.solution_city_wide_lottery, 2):
-        city_wide_lottery[app_id] = postcode
+    for city in CityPostalCodes.all():
+        if city.postal_codes:
+            city_wide_lottery[city.app_id] = city.postal_codes
     if not city_wide_lottery:
         return None
 
@@ -1834,12 +1834,14 @@ def _get_app_id_if_using_city_wide_tombola(service_user, service_identity, shoul
             if not identity.search_config.locations:
                 continue
             for location in identity.search_config.locations:
-                if city_wide_lottery[i_app_id] in location.address:
-                    return i_app_id
+                for postal_code in city_wide_lottery[i_app_id]:
+                    if postal_code in location.address:
+                        return i_app_id
     finally:
         if should_set_user:
             users.clear_user()
     return None
+
 
 @returns()
 @arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long),)
@@ -1905,3 +1907,44 @@ def delete_city_wide_lottery_visit(service_user, service_identity, email, app_id
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
+
+
+def send_postal_code_update_message(code, deleted):
+    service_user = users.get_current_user()
+    send_message(service_user, 'solutions.common.postal_code.update',
+                 code=code, deleted=deleted)
+
+
+@returns(CityPostalCodes)
+@arguments(app_id=unicode)
+def get_or_create_city_postal_codes(app_id):
+    key = CityPostalCodes.create_key(app_id)
+    city = db.get(key)
+    if not city:
+        city = CityPostalCodes(key=key)
+    if not city.postal_codes:
+        city.postal_codes = []
+    city.app_id = app_id
+    return city
+
+
+@returns()
+@arguments(app_id=unicode, postal_code=unicode)
+def add_city_postal_code(app_id, postal_code):
+    if not re.match('\d+', postal_code):
+        raise ValueError
+    city = get_or_create_city_postal_codes(app_id)
+    if postal_code not in city.postal_codes:
+        city.postal_codes.append(postal_code)
+        city.put()
+        send_postal_code_update_message(postal_code, False)
+
+
+@returns()
+@arguments(app_id=unicode, postal_code=unicode)
+def remove_city_postal_code(app_id, postal_code):
+    city = get_or_create_city_postal_codes(app_id)
+    if postal_code in city.postal_codes:
+        city.postal_codes.remove(postal_code)
+        city.put()
+        send_postal_code_update_message(postal_code, True)

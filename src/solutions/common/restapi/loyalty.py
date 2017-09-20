@@ -38,7 +38,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import loyalty as loyalty_bizz, broadcast_updates_pending, get_app_info_cached, \
     SolutionModule
 from solutions.common.bizz.loyalty import add_loyalty_for_user, redeem_loyalty_for_user, calculate_chance_for_user, \
-    delete_visit, request_loyalty_device, calculate_city_wide_lottery_chance_for_user
+    delete_visit, request_loyalty_device, calculate_city_wide_lottery_chance_for_user, get_or_create_city_postal_codes, \
+    add_city_postal_code, remove_city_postal_code
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
     get_solution_loyalty_visits_for_lottery, get_solution_loyalty_visits_for_stamps, \
@@ -790,3 +791,46 @@ def close_city_wide_lottery_info(key):
 @arguments(city_app_id=unicode)
 def load_city_wide_lottery_info(city_app_id):
     return [CityWideLotteryInfoTO.fromModel(ll_info) for ll_info in SolutionCityWideLottery.load_all(city_app_id)]
+
+
+@rest("/common/city/postal_codes", "get")
+@returns([unicode])
+@arguments(app_id=unicode)
+def restapi_get_city_postal_codes(app_id):
+    return get_or_create_city_postal_codes(app_id).postal_codes
+
+
+def can_edit_city_postal_codes():
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    if SolutionModule.CITY_APP not in sln_settings.modules:
+        raise BusinessException(common_translate(sln_settings.main_language,
+                                                 SOLUTION_COMMON, u'insufficient-permissions'))
+    return sln_settings
+
+
+@rest("/common/city/postal_codes/add", "post")
+@returns(ReturnStatusTO)
+@arguments(app_id=unicode, postal_code=unicode)
+def restapi_add_city_postal_code(app_id, postal_code):
+    try:
+        sln_settings = can_edit_city_postal_codes()
+        add_city_postal_code(app_id, postal_code)
+        return RETURNSTATUS_TO_SUCCESS
+    except ValueError:
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language,
+                                     SOLUTION_COMMON, u'invlid_postal_code'))
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/city/postal_codes/remove", "post")
+@returns(ReturnStatusTO)
+@arguments(app_id=unicode, postal_code=unicode)
+def restapi_remove_city_postal_codes(app_id, postal_code):
+    try:
+        can_edit_city_postal_codes()
+        remove_city_postal_code(app_id, postal_code)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)

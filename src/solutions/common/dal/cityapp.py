@@ -30,7 +30,7 @@ from solutions.common.models.cityapp import CityAppProfile
 @returns(CityAppProfile)
 @arguments(service_user=users.User)
 def get_cityapp_profile(service_user):
-    
+
     def trans():
         cityapp_profile = CityAppProfile.get(CityAppProfile.create_key(service_user))
         if not cityapp_profile:

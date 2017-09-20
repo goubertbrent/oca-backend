@@ -44,6 +44,7 @@ from solution_server_settings import get_solution_server_settings
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
+from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
@@ -314,6 +315,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
             is_mobicage = customer.team.legal_entity.is_mobicage
             legal_entity_currency = customer.team.legal_entity.currency
 
+        functionality_modules  = functionality_info = None
+        if city_app_id and is_signup_enabled(city_app_id):
+            functionality_modules, functionality_info = map(json.dumps, get_functionalities(sln_settings))
+
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
                   'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                   'logo_languages': LOGO_LANGUAGES,
@@ -339,7 +344,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'loyalty': True if loyalty_version else False,
                   'city_app_id': city_app_id,
                   'is_demo_app': is_demo_app,
-                  'show_functionalities_page': city_app_id and is_signup_enabled(city_app_id),
+                  'functionality_modules': functionality_modules,
+                  'functionality_info': functionality_info,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
                   'currency': sln_settings.currency,
                   'is_layout_user': session_.layout_only if session_ else False,
@@ -386,17 +392,14 @@ class FlexLogoutHandler(SessionHandler):
     def get(self):
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
-        if not sln_settings or sln_settings.solution != SOLUTION_FLEX:
-            self.redirect("/logout?continue=ourcityapp")
-            return
+
+        if not sln_settings or sln_settings.solution != SOLUTION_FLEX or not sln_settings.identities:
+            self.stop_session()
+            return self.redirect('/ourcityapp')
 
         session_ = users.get_current_session()
         if session_.service_identity:
             session_ = set_service_identity(session_, None)
-
-        if not sln_settings.identities:
-            self.redirect("/logout?continue=ourcityapp")
-            return
 
         send_message_to_session(service_user, session_, u"solutions.common.locations.update", si=None)
         self.redirect('/ourcityapp')

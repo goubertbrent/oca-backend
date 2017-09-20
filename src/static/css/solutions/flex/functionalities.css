@@ -41,12 +41,13 @@
 }
 
 .functionality-tile {
-    margin-bottom: 30px;
+    margin-bottom: 40px;
     margin-right: 20px;
 }
 
 .functionality-header {
     margin-bottom: 10px;
+    height: 2.5em;
 }
 
 .functionality-title {

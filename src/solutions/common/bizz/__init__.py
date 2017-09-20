@@ -165,7 +165,8 @@ class SolutionModule(Enum):
         PHARMACY_ORDER: 5,
     }
 
-    FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA}
+    FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
+                             PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION}
 
     @classmethod
     def all(cls):
@@ -1024,6 +1025,11 @@ def enable_or_disable_solution_module(service_user, module, enabled):
             order_settings = set_advanced_order_settings(sln_settings)
             if order_settings:
                 to_put.append(order_settings)
+        elif module == SolutionModule.HIDDEN_CITY_WIDE_LOTTERY:
+            deactivate_solution_module(sln_settings, SolutionModule.LOYALTY)
+        # don't enable loyalty if this is a city service
+        if module == SolutionModule.LOYALTY and SolutionModule.CITY_APP in sln_settings.modules:
+            return
     else:
         deactivate_solution_module(sln_settings, module)
 

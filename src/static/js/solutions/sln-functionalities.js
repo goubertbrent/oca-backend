@@ -25,116 +25,6 @@ $(function () {
 
     var isLoadingModules = false;
     var activatedModules = [];
-    var FNS = [ 'broadcast', 'loyalty', 'order', 'sandwich_bar', 'restaurant_reservation', 'menu', 'agenda',
-            'pharmacy_order' ];
-    var INFO = {
-        broadcast: {
-            name: 'broadcast',
-            title: CommonTranslations['News & actions'],
-            description: CommonTranslations['module-description-broadcast'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_broadcast.jpg'
-                },
-                nl: {
-                    video_id: '5NvAKVnbEqI',
-                    tutorial_video_id: '5NvAKVnbEqI',
-                }
-            }
-        },
-        loyalty: {
-            name: 'loyalty',
-            title: CommonTranslations['loyalty'],
-            description: CommonTranslations['module-description-loyalty'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_loyalty.jpg'
-                },
-                nl: {
-                    video_id: 'WRwNCNtIQG4',
-                    tutorial_video_id: 'WRwNCNtIQG4',
-                }
-            }
-        },
-        order: {
-            name: 'order',
-            title: CommonTranslations['e-shop'],
-            description: CommonTranslations['module-description-order'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_order.jpg'
-                },
-                nl: {
-                    video_id: 'hHOkurV4IIE',
-                    tutorial_video_id: 'hHOkurV4IIE',
-                }
-            }
-        },
-        sandwich_bar: {
-            name: 'sandwich_bar',
-            settings_section: 'section_settings_sandwich',
-            title: CommonTranslations['order-sandwich'],
-            description: CommonTranslations['module-description-sandwich_bar'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_sandwich_bar.jpg'
-                },
-                nl: {
-                }
-            }
-        },
-        restaurant_reservation: {
-            name: 'restaurant_reservation',
-            settings_section: 'section_tables',
-            title: CommonTranslations['reservations-menu'],
-            description: CommonTranslations['module-description-restaurant_reservation'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_restaurant_reservation.jpg'
-                },
-                nl: {
-                    video_id: '7aFdU2wyTkM',
-                    tutorial_video_id: '7aFdU2wyTkM',
-                }
-            }
-        },
-        menu: {
-            name: 'menu',
-            title: CommonTranslations['menu-card'],
-            description: CommonTranslations['module-description-menu'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_menu.jpg'
-                },
-                nl: {
-                }
-            }
-        },
-        agenda: {
-            name: 'agenda',
-            title: CommonTranslations['agenda'],
-            description: CommonTranslations['module-description-agenda'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_agenda.jpg'
-                },
-                nl: {
-                }
-            }
-        },
-        pharmacy_order: {
-            name: 'pharmacy_order',
-            title: CommonTranslations['pharmacy_order'],
-            description: CommonTranslations['module-description-pharmacy_order'],
-            media: {
-                en: {
-                    screenshot_image: '/static/images/solutions/func_pharmacy_order.jpg'
-                },
-                nl: {
-                }
-            }
-        }
-    };
 
     init();
 
@@ -205,9 +95,9 @@ $(function () {
 
     function renderFunctionalities(modules) {
         var activeCount = 0, inactiveCount = 0;
-        $.each(FNS, function(i, module) {
+        $.each(FUNCTIONALITY_MODULES, function(i, module) {
             var enabled = activatedModules.indexOf(module) !== -1;
-            var info = INFO[module];
+            var info = FUNCTIONALITY_INFO[module];
             var tile = functionalityTile(info, getCurrentLanguageMedia(info.name), enabled,
                                          module === 'broadcast' && enabled,
                                          PROVISIONED_MODULES.indexOf(module) !== -1);
@@ -236,24 +126,24 @@ $(function () {
 
     function goToSettings() {
         var module = $(this).attr('name');
-        var info = INFO[module];
-        var settingsSection;
+        var info = FUNCTIONALITY_INFO[module];
+        var settingsLink;
 
-        // check if settings section is pre-defined in module info
         if(info.settings_section) {
-            settingsSection = info.settings_section;
+            settingsLink = $('li[section=section_settings_' + info.settings_section + '] a');
         } else {
-            settingsSection = 'section_settings_' + module;
+            settingsLink = $('li[section=section_settings_' + module + '] a');
         }
 
-        var settingsLink = $('li[section=' + settingsSection + '] a');
         if(settingsLink.length) {
             // got to settings page first
             $('li[menu=settings] a').click();
             ROUTES.settings(['settings', module]);
             settingsLink.click();
         } else {
-            ROUTES[module]();
+            if(typeof ROUTES[module] === 'function') {
+                ROUTES[module]();
+            }
             $('li[menu=' + module + '] a').click();
         }
         window.scrollTo(0, 0);
@@ -294,7 +184,7 @@ $(function () {
     }
 
     function getCurrentLanguageMedia(functionality) {
-        var media = INFO[functionality].media;
+        var media = FUNCTIONALITY_INFO[functionality].media;
         var languageMedia = media[LANGUAGE];
 
         if (!languageMedia) {

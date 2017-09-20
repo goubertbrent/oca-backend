@@ -639,3 +639,12 @@ class CustomLoyaltyCard(db.Model):
     @classmethod
     def create_key(cls, url):
         return db.Key.from_path(cls.kind(), sha256_hex(url))
+
+
+class CityPostalCodes(db.Model):
+    app_id = db.StringProperty(indexed=False)
+    postal_codes = db.StringListProperty(indexed=False)
+
+    @classmethod
+    def create_key(cls, app_id):
+        return db.Key.from_path(cls.kind(), app_id)
