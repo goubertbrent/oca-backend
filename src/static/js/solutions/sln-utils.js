@@ -150,6 +150,7 @@ var TMPL_CONFIRM = '<div class="modal hide fade" tabindex="-1" role="dialog" ari
     + '        <p>{{html body}}</p>'
     + '    </div>'
     + '    <div class="modal-footer">'
+    + '        {{if showRemember}}<label class="checkbox pull-left"><input id="remember_choice" type="checkbox">${remember_my_choice}</label>{{/if}}'
     + '        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>'
     + '        <button action="submit" class="btn btn-primary">${submitBtn}</button>' //
     + '    </div>'
@@ -487,24 +488,31 @@ var createLib = function() {
             sln._processingModal.modal('hide');
             sln._processingModal = null;
         },
-        confirm: function(message, onConfirm, onCancel, positiveCaption, negativeCaption, title, closeCheck) {
+        confirm: function(message, onConfirm, onCancel, positiveCaption, negativeCaption, title, closeCheck, showRemember) {
             var html = $.tmpl(TMPL_CONFIRM, {
                 body: message,
                 header: title || CommonTranslations.CONFIRM,
                 cancelBtn: negativeCaption || CommonTranslations.NO,
-                submitBtn: positiveCaption || CommonTranslations.YES
+                submitBtn: positiveCaption || CommonTranslations.YES,
+                showRemember: showRemember,
+                remember_my_choice: CommonTranslations.remember_my_choice,
             });
             var modal = sln.createModal(html);
+
+            function rememberChoice() {
+                return showRemember && $('#remember_choice', modal).is(':checked');
+            }
+
             $('button[action="submit"]', modal).click(function() {
                 if(onConfirm)
-                    onConfirm();
+                    onConfirm(rememberChoice());
                 if(!closeCheck || closeCheck()) {
                     modal.modal('hide');
                 }
             });
             $('button[action="cancel"]', modal).click(function() {
                 if(onCancel)
-                    onCancel();
+                    onCancel(rememberChoice());
                 modal.modal('hide');
             });
         },

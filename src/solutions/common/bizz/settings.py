@@ -46,11 +46,11 @@ SLN_AVATAR_MAX_SIZE = 51200  # 50 kB
 @arguments(service_user=users.User, service_identity=unicode, name=unicode, description=unicode, opening_hours=unicode, address=unicode,
            phone_number=unicode, facebook_page=unicode, facebook_name=unicode, facebook_action=unicode,
            currency=unicode, search_enabled=bool, search_keywords=unicode, timezone=unicode, events_visible=bool,
-           email_address=unicode, inbox_email_reminders=bool, iban=unicode, bic=unicode)
+           email_address=unicode, inbox_email_reminders=bool, iban=unicode, bic=unicode, search_enabled_check=bool)
 def save_settings(service_user, service_identity, name, description=None, opening_hours=None, address=None, phone_number=None,
                   facebook_page=None, facebook_name=None, facebook_action=None, currency=None, search_enabled=True,
                   search_keywords=None, timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None,
-                  iban=None, bic=None):
+                  iban=None, bic=None, search_enabled_check=False):
     address_geocoded = True
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
@@ -73,6 +73,8 @@ def save_settings(service_user, service_identity, name, description=None, openin
     if currency is not None:
         sln_settings.currency = currency
     sln_settings.search_enabled = search_enabled
+    sln_settings.search_enabled_check = search_enabled_check
+
     sln_i_settings.search_keywords = search_keywords
     if address and (sln_i_settings.address != address or not sln_i_settings.location):
         sln_i_settings.address = address

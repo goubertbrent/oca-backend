@@ -29,7 +29,7 @@ from rogerthat.bizz.app import get_app
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import ServiceIdentity, App, ServiceProfile
+from rogerthat.models import ServiceIdentity, App
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
 from rogerthat.service.api import system
@@ -111,10 +111,10 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                          'services/modules_list',
                                                          'services/service_search',
                                                          'settings/app_settings'],
-                               SolutionModule.CITY_VOUCHERS : ['city_vouchers/city_vouchers_list',
-                                                               'city_vouchers/city_vouchers_transactions',
-                                                               'city_vouchers/city_vouchers_qrcode_export_list',
-                                                               'city_vouchers/city_vouchers_export_list'],
+                               SolutionModule.CITY_VOUCHERS: ['city_vouchers/city_vouchers_list',
+                                                              'city_vouchers/city_vouchers_transactions',
+                                                              'city_vouchers/city_vouchers_qrcode_export_list',
+                                                              'city_vouchers/city_vouchers_export_list'],
                                SolutionModule.DISCUSSION_GROUPS: ['discussion_groups/discussion_groups_list',
                                                                   'discussion_groups/discussion_groups_put'],
                                SolutionModule.GROUP_PURCHASE:   ['group_purchase',
@@ -162,17 +162,18 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                              'sandwiches_list_item'],
                                SolutionModule.STATIC_CONTENT:   ['static_content/static_content_select_icon',
                                                                  'static_content/static_content'],
-                               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY:['loyalty_lottery_add_modal',
-                                                                 'loyalty_customer_visits_detail_modal',
-                                                                 'loyalty_customer_visits_detail',
-                                                                 'loyalty_customer_visit',
-                                                                 'loyalty_lottery_history',
-                                                                 'loyalty_slides',
-                                                                 'loyalty_slide_add'],
+                               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: ['loyalty_lottery_add_modal',
+                                                                         'loyalty_customer_visits_detail_modal',
+                                                                         'loyalty_customer_visits_detail',
+                                                                         'loyalty_customer_visit',
+                                                                         'loyalty_lottery_history',
+                                                                         'loyalty_slides',
+                                                                         'loyalty_slide_add'],
                                }
 
 
 class FlexHomeHandler(webapp2.RequestHandler):
+
     def _get_location_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
@@ -230,7 +231,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
             self.redirect("/ourcityapp")
             return
 
-        # only a shop user can update the loyalty type
         session_ = users.get_current_session()
         all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
                             translations[SOLUTION_COMMON]['en']}
@@ -359,9 +359,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'modules': json.dumps(sln_settings.modules),
                   'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
                   'hide_menu_tab': SolutionModule.MENU not in sln_settings.modules
-                                   and SolutionModule.ORDER in sln_settings.modules
-                                   and (
-                                       not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
+                  and SolutionModule.ORDER in sln_settings.modules
+                  and (
+                      not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
                   'VAT_PCT': vat_pct,
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
@@ -382,6 +382,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
 
 class FlexLogoutHandler(SessionHandler):
+
     def get(self):
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)

@@ -87,7 +87,7 @@ SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
 ASSOCIATION_BROADCAST_TYPES = [u'News', u'Events']
 MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Info sessions'] + CITY_APP_BROADCAST_TYPES \
-                           + ASSOCIATION_BROADCAST_TYPES
+    + ASSOCIATION_BROADCAST_TYPES
 DEFAULT_BROADCAST_TYPES = [item for item in MERCHANT_BROADCAST_TYPES if item not in CITY_APP_BROADCAST_TYPES]
 
 try:
@@ -141,7 +141,8 @@ class SolutionModule(Enum):
         WHEN_WHERE: 'when-where'
     }
 
-    INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE)
+    INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
+                     PHARMACY_ORDER)
     FACEBOOK_MODULES = (BROADCAST,)
     TWITTER_MODULES = (BROADCAST,)
     PROVISION_ORDER = defaultdict(lambda: 10, {BROADCAST: 20})  # Broadcast should be last for auto broadcast types
@@ -246,6 +247,7 @@ BASE_CODE = ServiceApiException.BASE_CODE_SOLUTIONS
 
 
 class BrandingNotFoundException(ServiceApiException):
+
     def __init__(self):
         ServiceApiException.__init__(self,
                                      BASE_CODE,
@@ -253,6 +255,7 @@ class BrandingNotFoundException(ServiceApiException):
 
 
 class InvalidMenuItemColorException(ServiceApiException):
+
     def __init__(self):
         ServiceApiException.__init__(self,
                                      BASE_CODE + 1,
@@ -260,6 +263,7 @@ class InvalidMenuItemColorException(ServiceApiException):
 
 
 class InvalidAddressException(ServiceApiException):
+
     def __init__(self):
         ServiceApiException.__init__(self,
                                      BASE_CODE + 2,
@@ -267,6 +271,7 @@ class InvalidAddressException(ServiceApiException):
 
 
 class GoogleMapsException(ServiceApiException):
+
     def __init__(self, status):
         ServiceApiException.__init__(self,
                                      BASE_CODE + 3,
@@ -815,7 +820,7 @@ def delete_file_blob(service_user, file_id):
     if file_to_delete:
         if file_to_delete.service_user_email != service_user.email():
             logging.warning(
-                    '%s tried to delete a file from %s!' % (service_user.email(), file_to_delete.service_user_email))
+                '%s tried to delete a file from %s!' % (service_user.email(), file_to_delete.service_user_email))
         else:
             file_to_delete.delete()
     else:
