@@ -887,6 +887,7 @@ $(function() {
 
     var loadLotteryInfo = function() {
         $('.sln-loyalty-badge').text('');
+        $('#loyalty .add-lottery-required').hide();
         var url = "/common/loyalty/lottery/load";
         var params = {};
         if (HAS_CITY_WIDE_LOTTERY) {
