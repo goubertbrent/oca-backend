@@ -29,7 +29,12 @@
     <div id="menu_contents">
         <button name="newcat" class="btn btn-success">{% translate language, "common", "menu-new-category" %}</button>
         <button id="edit_menu_name" class="btn">{% translate language, "common", "edit-name" %}</button>
-        <button id="import_menu" class="btn pull-right">{% translate language, "common", "import_menu" %}</button>
+        <div id="menu_export_import" class="pull-right">
+            <a href="/common/restaurant/menu/export" download class="btn">
+                {% translate language, "common", "export" %}
+            </a>
+            <button id="import_menu" class="btn">{% translate language, "common", "import" %}</button>
+        </div>
         <div id="menu_test"></div>
     </div>
     <script src="/static/js/solutions/sln-menu.js"></script>

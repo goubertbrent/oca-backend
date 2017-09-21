@@ -44,6 +44,7 @@ from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandl
 from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
 from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
     LoyaltySlideOverlayHandler, ExportLoyaltyHandler
+from solutions.common.handlers.menu import ExportMenuHandler
 from solutions.common.handlers.service import LoginAsServiceHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler
@@ -71,6 +72,7 @@ handlers = [
     ('/common/discussion_groups/(\d+)/pdf', DiscussionGroupsPdfHandler),
     ('/common/city/vouchers/qr/download/(\d+)', CityVouchersDownloadHandler),
     ('/common/city_vouchers/export', CityVoucherExportHandler),
+    ('/common/restaurant/menu/export', ExportMenuHandler),
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi))

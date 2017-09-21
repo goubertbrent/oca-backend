@@ -53,7 +53,7 @@ from solutions.common.bizz import timezone_offset, render_common_content, Soluti
 from solutions.common.bizz.events import provision_events_branding
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
-from solutions.common.bizz.menu import _put_default_menu
+from solutions.common.bizz.menu import _put_default_menu, get_item_image_url
 from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPOINTMENT, POKE_TAG_REPAIR, \
     POKE_TAG_SANDWICH_BAR, POKE_TAG_EVENTS, POKE_TAG_MENU, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
@@ -1311,6 +1311,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         orderable_times_str.write(t.label(lang).encode('utf-8'))
         orderable_times.append(t)
 
+    server_settings = get_server_settings()
     category_count = 0
     for cat in menu.categories:
         cat.has_visible = False
@@ -1330,7 +1331,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
                 item.step_unit_conversion = 1000
 
             if item.image_id:
-                item.image_url = u"%s/solutions/common/public/menu/image/%s" % (get_server_settings().baseUrl, item.image_id)
+                item.image_url = get_item_image_url(item.image_id, server_settings)
             else:
                 item.image_url = None
 

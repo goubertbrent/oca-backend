@@ -15,17 +15,15 @@
 #
 # @@license_version:1.2@@
 
-import json
-import uuid
 import base64
 from collections import OrderedDict
+from functools import partial
+import json
 from types import NoneType, FunctionType
+import uuid
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
-
-import xlrd
-
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -34,6 +32,7 @@ from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system, qr
+from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import CallbackResultType, MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
@@ -48,6 +47,16 @@ from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import RestaurantMenu, SolutionSettings, SolutionMainBranding
 from solutions.common.models.properties import MenuCategories, MenuCategory, MenuItem
 from solutions.common.to import MenuTO
+import xlrd
+import xlwt
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+# translation keys used in export/import
+MENU_HEADER = [u'category', u'item', u'events-description', u'unit', u'Price', u'image_optional']
 
 
 @returns()
@@ -117,8 +126,8 @@ def save_menu(service_user, menu):
 def import_menu_from_excel(service_user, file_contents):
     sln_settings = get_solution_settings(service_user)
 
-    def translate(t, *args):
-        return common_translate(sln_settings.main_language, SOLUTION_COMMON, t, *args)
+    def translate(t, *args, **kwargs):
+        return common_translate(sln_settings.main_language, SOLUTION_COMMON, t, *args, **kwargs)
 
     def make_category(name, index, predescription=None, postdescription=None, items=None):
         cat = MenuCategory()
@@ -142,7 +151,7 @@ def import_menu_from_excel(service_user, file_contents):
             except KeyError:
                 continue
 
-    def make_item(name, description, price, unit, visible_in=None, has_price=True, step=1):
+    def make_item(name, description, price, unit, visible_in=None, has_price=True, step=1, image_url=None):
         item = MenuItem()
         item.name = name
         item.description = description
@@ -153,6 +162,12 @@ def import_menu_from_excel(service_user, file_contents):
             item.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
         else:
             item.visible_in = visible_in
+
+        if image_url:
+            response = download(image_url)
+            if response.status_code != 200:
+                raise BusinessException(translate('download_failed', url=image_url))
+            item.image_id = create_file_blob(service_user, response.content).key().id()
 
         item.has_price = has_price
         item.step = step
@@ -175,7 +190,7 @@ def import_menu_from_excel(service_user, file_contents):
 
         # check the category name at every first row of a sheet
         # we need at least 1 category
-        if not sheet.row(0)[0].value:
+        if not sheet.row(1)[0].value:
             raise BusinessException(translate('please_provide_1_category'))
 
         # make categories and items, every row is an item
@@ -183,7 +198,7 @@ def import_menu_from_excel(service_user, file_contents):
         # also skip the first row (the header)
         for r in range(1, sheet.nrows):
             try:
-                cat_name, name, desc, unit, price = [c.value for c in sheet.row(r)]
+                cat_name, name, desc, unit, price, image_url = [c.value for c in sheet.row(r)]
             except ValueError:
                 raise BusinessException('please_check_missing_product_details')
 
@@ -202,7 +217,7 @@ def import_menu_from_excel(service_user, file_contents):
                 cat_index += 1
                 last_category = category
 
-            item = make_item(name, desc, price, unit)
+            item = make_item(name, desc, price, unit, image_url=image_url)
             category.items.append(item)
 
         menu = MenuTO()
@@ -216,14 +231,67 @@ def import_menu_from_excel(service_user, file_contents):
         save_menu(service_user, menu)
 
 
+def get_item_image_url(image_id, settings=None):
+    if not settings:
+        settings = get_server_settings()
+    return u"%s/solutions/common/public/menu/image/%s" % (settings.baseUrl, image_id)
+
+
+@db.non_transactional
+def download(url):
+    response = urlfetch.fetch(url, follow_redirects=True)
+    return response
+
+
+@returns(str)
+@arguments(service_user=users.User, sln_settings=SolutionSettings)
+def export_menu_to_excel(service_user, sln_settings=None):
+    """Exports the menu to excel file
+
+    Args:
+        service_user: users.User
+
+    Returns:
+        Excel file content
+    """
+    if not sln_settings:
+        sln_settings = get_solution_settings(service_user)
+    language = sln_settings.main_language
+    translate = partial(common_translate, language, SOLUTION_COMMON)
+
+    menu = get_restaurant_menu(service_user, sln_settings.solution)
+    workbook = xlwt.Workbook(encoding="utf-8")
+    sheet = workbook.add_sheet(translate('menu'))
+    settings = get_server_settings()
+
+    row = 0
+    for i, head in enumerate(MENU_HEADER):
+        sheet.write(row, i, translate(head).capitalize())
+
+    for cat in menu.categories:
+        for item_idx, item in enumerate(cat.items):
+            row += 1
+            if item_idx == 0:
+                sheet.write(row, 0, cat.name)
+            sheet.write(row, 1, item.name)
+            sheet.write(row, 2, item.description)
+            sheet.write(row, 3, translate(UNITS[item.unit]))
+            sheet.write(row, 4, item.price / 100.0)
+            if item.image_id:
+                sheet.write(row, 5, get_item_image_url(item.image_id, settings))
+
+    excel_file = StringIO()
+    workbook.save(excel_file)
+    return excel_file.getvalue()
+
+
 @returns(RestaurantMenu)
 @arguments(service_user=users.User, translate=FunctionType, solution=unicode)
 def _put_default_menu(service_user, translate=None, solution=None):
     if not translate:
         languages_to = system.get_languages()
         default_lang = languages_to.default_language
-        translate = lambda name: common_translate(default_lang, SOLUTION_COMMON, name)
-
+        translate = partial(common_translate, default_lang, SOLUTION_COMMON)
     if not solution:
         solution = get_solution_settings(service_user).solution
 
@@ -354,11 +422,7 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
         result.message = message
         return result
 
-    @db.non_transactional
-    def download():
-        response = urlfetch.fetch(url, follow_redirects=True)
-        return response
-
+    download_image = partial(download, url)
     def trans():
         sln_settings = get_solution_settings(service_user)
         menu = get_restaurant_menu(service_user, sln_settings.solution)
@@ -376,7 +440,7 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
         if item.image_id:
             delete_file_blob(service_user, item.image_id)
 
-        response = download()
+        response = download_image()
         if response.status_code != 200:
             return create_error(common_translate(sln_settings.main_language, SOLUTION_COMMON,
                                                  u'error-occured-unknown-try-again'))
