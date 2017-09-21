@@ -16,10 +16,9 @@
 # @@license_version:1.2@@
 
 from __future__ import unicode_literals
-import json
 
 from solutions import translate as common_translate, SOLUTION_COMMON
-from solutions.common.bizz import SolutionModule, get_solution_settings
+from solutions.common.bizz import SolutionModule
 
 
 OTHER_LANGUAGES = ['nl']
@@ -98,7 +97,7 @@ class Functionality(object):
         languages_media = {
             'en': {
                 'screenshot_image': self.screenshot_image
-        }}
+            }}
 
         for language in OTHER_LANGUAGES:
             default_media = MEDIA.get(language)
@@ -139,7 +138,7 @@ def get_functionalities(sln_settings):
         city_loyalty_module = SolutionModule.HIDDEN_CITY_WIDE_LOTTERY
         del info[SolutionModule.LOYALTY]
         info[city_loyalty_module] = Functionality(language, city_loyalty_module).to_dict()
-    else:
+    elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
 
     return modules, info
