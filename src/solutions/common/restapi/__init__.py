@@ -55,6 +55,7 @@ from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
 from shop.models import Product, Order
 from shop.to import ProductTO
+from shop.view import get_current_http_host
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -1889,7 +1890,7 @@ def rest_get_menu():
 @returns(str)
 @arguments()
 def get_facebook_app_id():
-    host = os.environ.get('HTTP_X_FORWARDED_HOST') or os.environ.get('HTTP_HOST')
+    host = get_current_http_host()
     app_info = get_facebook_app_info(host)
     if app_info:
         logging.debug('%s --> FB app id %s', host, app_info[0])

@@ -2701,7 +2701,7 @@ def calculate_signup_url_digest(data):
     return alg.hexdigest()
 
 
-def send_signup_verification_email(city_customer, signup):
+def send_signup_verification_email(city_customer, signup, host=None):
     from solutions.common.bizz import send_email
 
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
@@ -2710,7 +2710,7 @@ def send_signup_verification_email(city_customer, signup):
     data = encrypt(user, json.dumps(data))
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.encodestring(data)})
 
-    link = '{}/customers/signup?{}'.format(get_server_settings().baseUrl, url_params)
+    link = '{}/customers/signup?{}'.format(host or get_server_settings().baseUrl, url_params)
     lang = city_customer.language
     subject = city_customer.name + ' - ' + common_translate(lang, SOLUTION_COMMON, 'signup')
     message = common_translate(lang, SOLUTION_COMMON, 'signup_verification_email',
@@ -2719,8 +2719,8 @@ def send_signup_verification_email(city_customer, signup):
 
 
 @returns()
-@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
-def create_customer_signup(city_customer_id, company, customer, recaptcha_token):
+@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode, domain=unicode)
+def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None):
     if not recaptcha_verify(recaptcha_token):
         raise BusinessException('Cannot verify recaptcha response')
 
@@ -2752,7 +2752,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
 
     signup.timestamp = now()
     signup.put()
-    send_signup_verification_email(city_customer, signup)
+    send_signup_verification_email(city_customer, signup, domain)
 
 
 @returns()

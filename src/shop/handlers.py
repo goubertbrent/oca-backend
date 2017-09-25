@@ -59,7 +59,7 @@ from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
-from shop.view import get_shop_context
+from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
 
 try:
@@ -580,7 +580,8 @@ class CustomerSetPasswordHandler(PublicErrorMixin, SetPasswordHandler):
 @arguments(city_customer_id=(int, long), company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
 def customer_signup(city_customer_id, company, customer, recaptcha_token):
     try:
-        create_customer_signup(city_customer_id, company, customer, recaptcha_token, accept_missing=True)
+        create_customer_signup(city_customer_id, company, customer, recaptcha_token,
+                               domain=get_current_http_host(with_protocol=True), accept_missing=True)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
