@@ -178,9 +178,9 @@ def common_friend_invite_result(email, result, tag, origin, service_identity, us
         raise NotImplementedError()
 
 @returns(unicode)
-@arguments(service_identity=unicode, user_details=[UserDetailsTO], origin=unicode)
-def common_friend_register(service_identity, user_details, origin):
-    return loyalty_qr_register(users.get_current_user(), user_details, origin)
+@arguments(service_identity=unicode, user_details=[UserDetailsTO], origin=unicode, data=unicode)
+def common_friend_register(service_identity, user_details, origin, data):
+    return loyalty_qr_register(users.get_current_user(), user_details, origin, data)
 
 @returns(NoneType)
 @arguments(service_identity=unicode, user_details=[UserDetailsTO], origin=unicode)
