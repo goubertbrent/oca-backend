@@ -157,7 +157,9 @@ def _get_default_modules():
 
 def get_current_http_host(with_protocol=False):
     host = os.environ.get('HTTP_X_FORWARDED_HOST') or os.environ.get('HTTP_HOST')
-    return u'%s://%s' % (os.environ['wsgi.url_scheme'], host)
+    if with_protocol:
+        return u'%s://%s' % (os.environ['wsgi.url_scheme'], host)
+    return host
 
 
 def _get_apps():
