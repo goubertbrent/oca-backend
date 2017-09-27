@@ -208,8 +208,10 @@ $(function() {
                     sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                 } else {
                     var email = gatherFromInputs('entrepreneur').user_email;
-                    $('#signup_note').text(SignupTranslations.SIGNUP_SUCCCESS.replace('%(email)s', email));
+                    $('#signup_note').removeClass('white-text').parent().addClass('white-box');
+                    $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
                     $('#signup_box').hide();
+                    $('#go_back').show();
                 }
             },
             error: function() {

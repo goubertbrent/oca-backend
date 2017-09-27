@@ -35,8 +35,6 @@
 
     function init() {
         $('#signin_button').click(signin);
-        $('#forgot_password').click(sendForgotPasswordInstructions);
-
         $('input').keydown(function(event) {
             $('#errors').hide();
         });
@@ -89,37 +87,6 @@
             },
             error: sln.showAjaxError
         });
-    }
-
-    function sendForgotPasswordInstructions() {
-        var email = $('#email').val();
-        sln.input(doSend, SigninTranslations.RESET_PASSWORD,
-                 CommonTranslations.SEND, CommonTranslations.EMAIL,
-                 email, 'email');
-
-        function doSend(value) {
-            if(!value.trim()) {
-                return false;
-            }
-            sln.call({
-                url: '/mobi/rest/user/reset_password',
-                type: 'post',
-                data: {
-                    email: value,
-                    sender_name: 'OCA',
-                    set_password_route: '/customers/setpassword'
-                },
-                success: function(result) {
-                    if(result) {
-                        sln.alert(SigninTranslations.RESET_INSTRUCTIONS_SENT,
-                                  null, CommonTranslations.SUCCESS);
-                    } else {
-                        sln.alert(SigninTranslations.RESET_PASSWORD_FAILED);
-                    }
-                },
-                error: sln.showAjaxError
-            });
-        }
     }
 
     $(document).ready(function() {
