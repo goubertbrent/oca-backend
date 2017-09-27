@@ -4849,7 +4849,7 @@ translations = \
          u'signup_note': u'Welkom.\nMaak uw eigen app aan in 2 stappen. \nSelecteer uw stad of gemeente.',
          u'signup_request_denial_reason': u'Uw aanvraag werd geweigerd omwille van de volgende reden:\n\n%(reason)s',
          u'signup_request_denied_by_city': u'Uw aanvraag werd geweigerd door %(city)s',
-         u'signup_verification_note': u'Om verder te kunnen gaan in het registratieproces moet uw e-mailadres geverifieerd worden. Een mail met verdere instructies is verzonden naar %(email)s.',
+         u'signup_verification_note': u'Uw eigen app is bijna een feit, proficiat!<br/>We moeten nog wel een paar zaken doen, opgelet dit is belangrijk:<br/><br/><b>Stap 1:</b> E-MAIL<br/>Om zeker te zijn dat het e-mailadres correct is ingevuld en wel degelijk van u is, hebben we zonet een e-mail verstuurd met een "Verifiëren" knop. Vergeet niet te kijken in uw Spam of Ongewenste E-mail map.<br/><br/><b>Stap 2:</b> KLIK op "Verifiëren"<br/>Wanneer u op de "Verifiëren" knop in de e-mail geklikt hebt, zal uw stad/gemeente op de hoogte gebracht worden van uw registratie.<br/><br/><b>Stap 3:</b> Uw eigen app is een feit!<br/>Wanneer de stad/gemeente uw registratie aanvaardt, zal u een e-mail ontvangen met uw login en wachtwoord. U kan nu uw eigen invulling geven aan uw applicatie. VEEL SUCCES en WELKOM!',
          u'signup_verify_your_email': u'Om het registratieproces af te ronden moet je e-mailadres geverifieerd worden.',
          u'simple': u'Eenvoudig',
          u'simple_orders': u'Eenvoudige bestellingen',
