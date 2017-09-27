@@ -549,6 +549,16 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
         self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
 
 
+class CustomerResetPasswordHandler(webapp2.RequestHandler):
+
+    def get(self):
+        reset_password_template = SHOP_JINJA_ENVIRONMENT.get_template('public/reset_password.html')
+        params = {
+            'language': get_languages_from_request(self.request)[0]
+        }
+        self.response.out.write(reset_password_template.render(params))
+
+
 class CustomerSetPasswordHandler(PublicErrorMixin, SetPasswordHandler):
     """Inherit PublicErrorMixin first to override SetPasswordHandler return_error()"""
 

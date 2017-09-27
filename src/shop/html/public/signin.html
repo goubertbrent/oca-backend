@@ -9,9 +9,6 @@
             TOO_MANY_ATTEMPTS: '{% translate language, "common", "too-many-failed-attempts" %}',
             DEACTIVATED_ACCOUNT: '{% translate language, "common", "deactivated-account" %}',
             DEACTIVATED_SERVICE: '{% translate language, "common", "deactivated-service" %}',
-            RESET_INSTRUCTIONS_SENT: '{% translate language, "common", "reset-password-instructions-sent" %}',
-            RESET_PASSWORD_FAILED: '{% translate language, "common", "reset-password-failed" %}',
-            RESET_PASSWORD: '{% translate language, "common", "reset-password" %}',
         };
     </script>
     <script src="/static/js/public/signin.js"></script>
@@ -38,7 +35,7 @@
             <label class="checkbox">
                 <input type="checkbox">
                 {% translate language, "common", "remember-me" %} |
-                <a id="forgot_password" href="#">
+                <a id="forgot_password" href="/customers/resetpassword">
                     {% translate language, "common", "forgot-password" %}
                 </a>
             </label>

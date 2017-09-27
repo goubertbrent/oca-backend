@@ -24,12 +24,14 @@ import logging
 import os
 import sys
 import urllib
+import urlparse
 from collections import OrderedDict
 from contextlib import closing
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from functools import partial
 from types import NoneType
 
 from apiclient.discovery import build
@@ -806,6 +808,9 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 if path.startswith('/customers/signin'):
                     login_url = 'https://' + url
 
+            parsed_login_url = urlparse.urlparse(login_url)
+            reset_password_link = '%s://%s%s' % (parsed_login_url.scheme, parsed_login_url.netloc, '/customers/resetpassword')
+
             # TODO: email with OSA style in header, footer
             with closing(StringIO()) as sb:
                 sb.write(shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
@@ -814,6 +819,8 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=login_url,
                                         login=user_email, password=r.password).encode('utf-8'))
+                sb.write('\n')
+                sb.write(shop_translate(customer.language, 'do_you_want_another_password', link=reset_password_link))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
                 sb.write('\n\n')
@@ -2703,6 +2710,7 @@ def calculate_signup_url_digest(data):
 
 def send_signup_verification_email(city_customer, signup, host=None):
     from solutions.common.bizz import send_email
+    from solutions.common.handlers import JINJA_ENVIRONMENT
 
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
@@ -2710,12 +2718,20 @@ def send_signup_verification_email(city_customer, signup, host=None):
     data = encrypt(user, json.dumps(data))
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.encodestring(data)})
 
-    link = '{}/customers/signup?{}'.format(host or get_server_settings().baseUrl, url_params)
     lang = city_customer.language
-    subject = city_customer.name + ' - ' + common_translate(lang, SOLUTION_COMMON, 'signup')
-    message = common_translate(lang, SOLUTION_COMMON, 'signup_verification_email',
-                               name=signup.customer_name, link=link)
-    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
+    translate = partial(common_translate, lang, SOLUTION_COMMON)
+
+    link = '{}/customers/signup?{}'.format(host or get_server_settings().baseUrl, url_params)
+    subject = city_customer.name + ' - ' + translate('signup')
+    params = {
+        'language': lang,
+        'name': signup.customer_name,
+        'link_text': translate('verify'),
+        'link': link
+    }
+    message = JINJA_ENVIRONMENT.get_template('emails/signup_verification.tmpl').render(params)
+    html_message = JINJA_ENVIRONMENT.get_template('emails/signup_verification_html.tmpl').render(params)
+    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message, html_body=html_message)
 
 
 @returns()

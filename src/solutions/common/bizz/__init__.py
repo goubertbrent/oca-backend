@@ -785,24 +785,31 @@ def create_pdf(src, path, default_css=None):
 
 
 def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachments=None,
-               attachment_types=None, attachment_names=None):
-    msg = MIMEMultipart('mixed')
-    msg['Subject'] = subject
-    msg['From'] = from_email
-    msg['To'] = ','.join(to_emails)
-    msg['Bcc'] = ','.join(bcc_emails)
-    msg["Reply-To"] = reply_to
+               attachment_types=None, attachment_names=None, html_body=None):
+    msg_root = MIMEMultipart('mixed')
+    msg_root['Subject'] = subject
+    msg_root['From'] = from_email
+    msg_root['To'] = ','.join(to_emails)
+    msg_root['Bcc'] = ','.join(bcc_emails)
+    msg_root["Reply-To"] = reply_to
+    msg = MIMEMultipart('alternative')
+    msg_root.attach(msg)
     body = MIMEText(body_text.encode('utf-8'), 'plain', 'utf-8')
     msg.attach(body)
+
+    if html_body:
+        html_part = MIMEMultipart('related')
+        msg.attach(html_part)
+        html_part.attach(MIMEText(html_body.encode('utf-8'), 'html', 'utf-8'))
 
     if attachments:
         for attachment, attachment_type, name, in zip(attachments, attachment_types, attachment_names):
             att = MIMEApplication(attachment, _subtype=attachment_type)
             att.add_header('Content-Disposition', 'attachment', filename=name)
-            msg.attach(att)
+            msg_root.attach(att)
 
     settings = get_server_settings()
-    send_mail_via_mime(settings.senderEmail, to_emails, msg)
+    send_mail_via_mime(settings.senderEmail, to_emails, msg_root)
 
 
 @returns(FileBlob)
