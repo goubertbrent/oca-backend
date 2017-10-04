@@ -233,15 +233,15 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
             return None
 
         if uitdatabank_secret:
-            timestamp = int((r_timestamp["date"] + r_timestart) / 1000)
+            timestamp = long((r_timestamp["date"] + r_timestart) / 1000)
             tz = pytz.timezone('Europe/Brussels')
             dt_with_tz = datetime.datetime.fromtimestamp(timestamp, tz)
             dt_without_tz = datetime.datetime(dt_with_tz.year, dt_with_tz.month, dt_with_tz.day, dt_with_tz.hour, dt_with_tz.minute)
             time_epoch = get_epoch_from_datetime(dt_without_tz)
             time_diff = _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz)
-            event_start_dates.append(time_epoch - time_diff - 3600)
+            event_start_dates.append(time_epoch - time_diff)
             if r_timestamp.get("timeend", None):
-                event_end_dates = [int(r_timestamp["timeend"] / 1000) - time_diff - 3600]
+                event_end_dates = [int(r_timestamp["timeend"] / 1000) - time_diff]
             else:
                 event_end_dates = [0]
         else:
@@ -250,7 +250,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
             event_start_dates = [event_last_start_date]
             if r_timestamp.get("timeend", None):
                 end_date = time.strptime(r_timestamp["timeend"], '%H:%M:%S')
-                event_end_dates = [int(datetime.timedelta(hours=end_date.tm_hour, minutes=end_date.tm_min, seconds=end_date.tm_sec).total_seconds())]
+                event_end_dates = [long(datetime.timedelta(hours=end_date.tm_hour, minutes=end_date.tm_min, seconds=end_date.tm_sec).total_seconds())]
             else:
                 event_end_dates = [0]
     elif isinstance(r_timestamp, list):
@@ -258,15 +258,15 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
         for r_ts in r_timestamp:
             if r_ts.get("timestart", None):
                 if uitdatabank_secret:
-                    timestamp = int((r_ts["date"] + r_ts["timestart"]) / 1000)
+                    timestamp = long((r_ts["date"] + r_ts["timestart"]) / 1000)
                     tz = pytz.timezone('Europe/Brussels')
                     dt_with_tz = datetime.datetime.fromtimestamp(timestamp, tz)
                     dt_without_tz = datetime.datetime(dt_with_tz.year, dt_with_tz.month, dt_with_tz.day, dt_with_tz.hour, dt_with_tz.minute)
                     time_epoch = get_epoch_from_datetime(dt_without_tz)
                     time_diff = _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz)
-                    event_start_dates.append(time_epoch - time_diff - 3600)
+                    event_start_dates.append(time_epoch - time_diff)
                     if r_ts.get("timeend", None):
-                        event_end_dates.append(int(r_ts["timeend"] / 1000) - time_diff - 3600)
+                        event_end_dates.append(int(r_ts["timeend"] / 1000) - time_diff)
                     else:
                         event_end_dates.append(0)
                 else:
@@ -299,7 +299,10 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     return events
 
 def _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz):
-    return int((dt_with_tz - pytz.UTC.localize(dt_without_tz)).total_seconds())
+    time_diff = int((dt_with_tz - pytz.UTC.localize(dt_without_tz)).total_seconds())
+    if time_diff == -7200:
+        return -3600 # Thre json response from uitdatabank is incorrect
+    return time_diff
 
 
 def _get_uitdatabank_events_detail(uitdatabank_secret, uitdatabank_key, cbd_id):
@@ -338,7 +341,7 @@ def _get_uitdatabank_events_detail_v2(uitdatabank_secret, uitdatabank_key, cbd_i
 
     params = {
         "oauth_consumer_key": key,
-        "oauth_timestamp": str(int(time.time())),
+        "oauth_timestamp": str(long(time.time())),
         "oauth_nonce": str(getrandbits(64)),
         "oauth_signature_method": "HMAC-SHA1",
         "oauth_version": "1.0",
