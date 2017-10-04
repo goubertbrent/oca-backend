@@ -543,6 +543,7 @@ def generate_monthly_stats_for_visits():
             sheet.write(0, column, '%d/%d' % (month, year))
             column += 1
         sheet.write(0, column, year)
+        #column += 1
 
     row = 1
     for k, customer_data in data.iteritems():
