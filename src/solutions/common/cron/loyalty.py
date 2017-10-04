@@ -15,8 +15,10 @@
 #
 # @@license_version:1.2@@
 
+from collections import defaultdict
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
@@ -24,8 +26,10 @@ import logging
 import pytz
 import random
 import time
+import StringIO
 
 from babel.dates import format_datetime
+import xlwt
 
 from google.appengine.ext import webapp, deferred, db
 from mcfw.properties import azzert
@@ -43,6 +47,7 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, send_mail_via_mime
 from rogerthat.utils.channel import send_message
+from shop.models import Customer
 from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
@@ -427,7 +432,7 @@ def _pick_city_wide_lottery_winner(service_user, sln_cwl_lottery_key):
         if to_emails:
             solution_server_settings = get_solution_server_settings()
             msg = MIMEMultipart('mixed')
-            msg['Subject'] = 'Winnaars gemeentelijke tombola' 
+            msg['Subject'] = 'Winnaars gemeentelijke tombola'
             msg['From'] = solution_server_settings.shop_export_email
             msg['To'] = ','.join(to_emails)
             msg["Reply-To"] = solution_server_settings.shop_no_reply_email
@@ -477,3 +482,105 @@ def _redeem_city_wide_lottery_visits(service_user, sln_cwl_key, now_):
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
+
+
+LOYALTY_NAME_MAPPING = {
+    SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT : 'Revenue discount',
+    SolutionLoyaltySettings.LOYALTY_TYPE_LOTTERY : 'Lottery',
+    SolutionLoyaltySettings.LOYALTY_TYPE_STAMPS: 'Stamps',
+    SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY: 'City'
+}
+
+
+def generate_monthly_stats_for_visits():
+    with_loyalty = SolutionSettings.all().filter('modules', SolutionModule.LOYALTY)
+
+    data = {}
+    years = set()
+    for sln_settings in with_loyalty.filter('service_disabled', False):
+        service_user = sln_settings.service_user
+        customer = Customer.get_by_service_email(service_user.email())
+        if not customer:
+            continue
+
+        loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
+        if not loyalty_settings:
+            logging.warning('Cannot generate vists stats, no loyalty settings for %s', service_user.email())
+            continue
+        loyalty_type = loyalty_settings.loyalty_type
+        loyalty_type_name = LOYALTY_NAME_MAPPING[loyalty_type]
+
+        year_data = defaultdict(lambda: defaultdict(int))
+
+        # gather loylty visits
+        identities = [None] + (sln_settings.identities or [])
+        for service_identity in identities:
+            if loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY:
+                visit_model = SolutionCityWideLotteryVisit
+            else:
+                visit_model = SolutionLoyaltySettings.LOYALTY_TYPE_MAPPING[loyalty_type]
+
+            si_user = create_service_identity_user_wo_default(service_user, service_identity)
+            parent_key = parent_key_unsafe(si_user, SOLUTION_COMMON)
+            visits_qry = visit_model.all().ancestor(parent_key)
+            for visit in visits_qry:
+                visit_date = datetime.utcfromtimestamp(visit.timestamp)
+                year_data[visit_date.year][visit_date.month] += 1
+                years.add(visit_date.year)
+
+        data[(customer, loyalty_type)] = year_data
+
+    book = xlwt.Workbook(encoding='utf-8')
+    sheet = book.add_sheet('Loyalty vists stats')
+    years = sorted(years)
+
+    # writing header
+    sheet.write(0, 0, 'VAT')
+    sheet.write(0, 1, 'Type')
+    column = 2
+    for year in years:
+        for month in range(1, 13):
+            sheet.write(0, column, '%d/%d' % (month, year))
+            column += 1
+        sheet.write(0, column, year)
+
+    row = 1
+    for k, customer_data in data.iteritems():
+        column = 1
+        customer, loyalty_type = k
+        sheet.write(row, 0, customer.vat or '')
+        sheet.write(row, 1, LOYALTY_NAME_MAPPING[loyalty_type])
+        for year_idx, year in enumerate(years):
+            total = 0
+            for month in range(1, 13):
+                column += year_idx + 1
+                year_data = customer_data.get(year)
+                if year_data:
+                    value = year_data.get(month) or 0
+                else:
+                    value = 0
+                total += value
+                sheet.write(row, column, value)
+            column += 1
+            sheet.write(row, column, total)
+        row += 1
+
+    excel_file = StringIO.StringIO()
+    book.save(excel_file)
+
+    solution_server_settings = get_solution_server_settings()
+    to_emails = ['bart@mobicage.com']
+    msg = MIMEMultipart('mixed')
+    msg['Subject'] = 'Loyalty visits stats'
+    msg['From'] = solution_server_settings.shop_export_email
+    msg['To'] = ','.join(to_emails)
+    msg["Reply-To"] = solution_server_settings.shop_no_reply_email
+    body = MIMEText('Loyalty visits stats in excel format', 'plain', 'utf-8')
+    msg.attach(body)
+
+    att = MIMEApplication(excel_file.getvalue(), _subtype='vnd.ms-excel')
+    att.add_header('Content-Disposition', 'attachment', filename='loyalty_visits_stats.xls')
+    msg.attach(att)
+
+    server_settings = get_server_settings()
+    send_mail_via_mime(server_settings.senderEmail, to_emails, msg)
