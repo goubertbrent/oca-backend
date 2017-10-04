@@ -543,7 +543,7 @@ def generate_monthly_stats_for_visits():
             sheet.write(0, column, '%d/%d' % (month, year))
             column += 1
         sheet.write(0, column, year)
-        #column += 1
+        column += 1
 
     row = 1
     for k, customer_data in data.iteritems():
@@ -554,7 +554,7 @@ def generate_monthly_stats_for_visits():
         for year_idx, year in enumerate(years):
             total = 0
             for month in range(1, 13):
-                column += year_idx + 1
+                column += 1
                 year_data = customer_data.get(year)
                 if year_data:
                     value = year_data.get(month) or 0
@@ -585,3 +585,4 @@ def generate_monthly_stats_for_visits():
 
     server_settings = get_server_settings()
     send_mail_via_mime(server_settings.senderEmail, to_emails, msg)
+    return excel_file.getvalue()
