@@ -78,6 +78,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_news_product(mobicage_legal_entity_id))
     to_put.append(create_free_product(mobicage_legal_entity_id))
     to_put.append(create_fcty_product(mobicage_legal_entity_id))
+    to_put.append(create_pres_product(mobicage_legal_entity_id))
 
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
@@ -115,7 +116,7 @@ def create_ilos_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = False
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -138,7 +139,7 @@ def create_xcty_product(legal_entity_id, code_prefix=''):
                                                              Product.PRODUCT_FREE_PRESENCE,
                                                              Product.PRODUCT_FREE_SUBSCRIPTION)])]
     p.picture_url = ""
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -176,9 +177,10 @@ def create_a3ct_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = False
     p.is_subscription_extension = True
     p.organization_types = []
-    p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(code_prefix=code_prefix)]
+    p.product_dependencies = [
+        '%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(code_prefix=code_prefix)]
     p.picture_url = ""
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -216,7 +218,7 @@ def create_msub_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     p.description_translation_key = 'MSUP.description'
     p.default_comment_translation_key = 'MSSU.default_comment'
@@ -234,7 +236,7 @@ def create_msup_product(legal_entity_id, code_prefix='', default_count=12):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = 'MSSU.default_comment'
     if code_prefix:
@@ -271,7 +273,8 @@ def create_sx6m_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.module_set = 'ALL'
     p.organization_types = []
-    p.product_dependencies = ['%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
+    p.product_dependencies = [
+        '%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
     p.visible = False
     p.extra_subscription_months = 6
     p.legal_entity_id = legal_entity_id
@@ -291,7 +294,8 @@ def create_sxdm_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.module_set = 'ALL'
     p.organization_types = []
-    p.product_dependencies = ['%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
+    p.product_dependencies = [
+        '%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
     p.visible = False
     p.extra_subscription_months = 12
     p.legal_entity_id = legal_entity_id
@@ -312,7 +316,7 @@ def create_setu_product(legal_entity_id, code_prefix='', price=7500):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -350,7 +354,7 @@ def create_setx_product(legal_entity_id, code_prefix=''):  # Used for the platin
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -390,9 +394,9 @@ def create_xtra_product(legal_entity_id, code_prefix=''):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
-        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
@@ -407,7 +411,7 @@ def create_xtrb_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     p.description_translation_key = 'XTRA.description'
     p.default_comment_translation_key = 'XTRA.default_comment'
@@ -424,7 +428,7 @@ def create_kfup_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.organization_types = []
     p.product_dependencies = [code_prefix + 'MSUP']
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -442,7 +446,7 @@ def create_ksup_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.organization_types = []
     p.product_dependencies = [code_prefix + 'MSUP']
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -460,7 +464,7 @@ def create_vsdi_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.organization_types = []
     p.product_dependencies = ['%(code_prefix)sMSUP:-1|%(code_prefix)sLSUP:-1' % dict(code_prefix=code_prefix)]
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -478,7 +482,7 @@ def create_kspp_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.organization_types = []
     p.product_dependencies = [code_prefix + 'MSUP']
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -497,7 +501,7 @@ def create_mssu_product(legal_entity_id, code_prefix=''):
     p.module_set = 'STATIC_MODULES'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -516,7 +520,7 @@ def create_ocap_product(legal_entity_id, code_prefix=''):
     p.module_set = 'STATIC_MODULES'
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.default_comment_translation_key = ''
     p.legal_entity_id = legal_entity_id
     if code_prefix:
@@ -574,7 +578,7 @@ def create_sjup_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT]
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -593,7 +597,7 @@ def create_sgup_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = ['%(code_prefix)sCSUB:-1|%(code_prefix)sMSUP:-1' % dict(code_prefix=code_prefix)]
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -612,7 +616,7 @@ def create_sszp_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_EMERGENCY]
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = 'MSSU.default_comment'
     if code_prefix:
@@ -668,7 +672,7 @@ def create_csub_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = [code_prefix + 'SGUP:-1']
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -687,7 +691,7 @@ def create_csux_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = 'CSUB.default_comment'
     if code_prefix:
@@ -723,7 +727,7 @@ def create_lsup_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = True
     p.organization_types = []
     p.product_dependencies = [code_prefix + 'MSUP:-1']
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.extra_subscription_months = 12
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = 'LOYA.default_comment'
@@ -760,7 +764,7 @@ def create_updi_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = False
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -778,7 +782,7 @@ def create_bnnr_product(legal_entity_id, code_prefix=''):
     p.is_subscription_discount = False
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.picture_url = "/static/images/solutions/flex/rollup_banner.jpg"
     p.legal_entity_id = legal_entity_id
     if code_prefix:
@@ -798,7 +802,7 @@ def create_term_product(legal_entity_id, code_prefix=''):
     p.is_subscription_extension = False
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -817,7 +821,7 @@ def create_otrm_product(legal_entity_id, code_prefix=''):
     p.is_subscription_extension = False
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -835,7 +839,7 @@ def create_kkrt_product(legal_entity_id, code_prefix=''):
     p.is_subscription_extension = False
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.picture_url = "/static/images/solutions/flex/loyalty_cards.jpg"
     p.legal_entity_id = legal_entity_id
     if code_prefix:
@@ -855,7 +859,7 @@ def create_subx_product(legal_entity_id, code_prefix=''):
     p.extra_subscription_months = 12
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -874,7 +878,7 @@ def create_suby_product(legal_entity_id, code_prefix=''):
     p.extra_subscription_months = 12
     p.organization_types = []
     p.product_dependencies = []
-    p.visible = True
+    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = u'SUBX.default_comment'
     if code_prefix:
@@ -933,6 +937,25 @@ def create_fcty_product(legal_entity_id, code_prefix=''):
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_pres_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'PRES')
+    p.price = 30000
+    p.default_count = 4
+    p.default = False
+    p.possible_counts = range(1, 101)
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.module_set = 'ALL'
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
 
 
