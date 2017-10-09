@@ -191,11 +191,8 @@
         }
     }
 
-    function getUpcomingStartAndEndDates(event, now, full_end_date, include_yesterday, allow_empty) {
+    function getUpcomingStartAndEndDates(event, now, full_end_date, allow_empty) {
         var checkdate = now;
-        if (include_yesterday) {
-            checkdate = now - DAY;
-        }
         var upcoming = [];
         for (var i in event.start_dates) {
             var endDate = event.end_dates_timestamps[i];
@@ -354,7 +351,7 @@
 
             $("#detail .event-detail-title").text(event.title);
 
-            var upcomingEvents = getUpcomingStartAndEndDates(event, now, true, false);
+            var upcomingEvents = getUpcomingStartAndEndDates(event, now, true);
             var eventDate = new Date(upcomingEvents[0].start.year, upcomingEvents[0].start.month - 1, upcomingEvents[0].start.day, upcomingEvents[0].start.hour, upcomingEvents[0].start.minute);
 
             if (upcomingEvents.length == 1) {
@@ -795,7 +792,7 @@
         var days = [];
         eventsDict = {};
         $.each(events, function (i, event) {
-            var upcomingEvents = getUpcomingStartAndEndDates(event, now, true, true, true);
+            var upcomingEvents = getUpcomingStartAndEndDates(event, now, true, true);
             for(var i=0; i < upcomingEvents.length; i++) {
                 var eventDate = toDateObject(upcomingEvents[i].start);
                 var eventDateEnd = toDateObject(upcomingEvents[i].end);
