@@ -52,7 +52,7 @@ $(function() {
         var vatInput = $('#enterprise_vat');
         sln.configureDelayedInput(vatInput, function() {
             validateVat(vatInput);
-        }, null, false, 500, true);
+        }, null, false, 3000, true);
 
         for(var i = 0; i <= 3; i++) {
             tabs.push($('#tab' + i));
@@ -108,12 +108,28 @@ $(function() {
         }
     }
 
+    function fillInput(inputId, value) {
+        var input = $('#' + inputId);
+        if (!input.val().trim()) {
+            input.val(value);
+        }
+    }
+
+    function clearErrors(input) {
+        input.next('p[class=text-error], [class=text-warning]').remove();
+    }
+
     function validateVat(input) {
         var vat = input.val().replace(/\s/g,'');
         if(!vat) {
-            // clear any prev errors
-            input.next('p[class=text-error]').remove();
+            // clear any prev errors/warnings
+            clearErrors(input);
             return;
+        }
+
+        var country = $('#app option:selected').attr('country');
+        if(isDigit(vat[0])) {
+            vat = country + vat;
         }
 
         $('#next').attr('disabled', true);
@@ -121,40 +137,35 @@ $(function() {
             url: '/unauthenticated/osa/company/info',
             type: 'get',
             data: {
-                vat: vat
+                vat: vat,
+                country: country
             },
             success: function(data) {
-                var country, errorMessage;
-                var country = $('#app option:selected').attr('country').toLowerCase();
-                if(data.errormsg) {
-                    // vat is invalid
+                var errorMessage, warningMessage;
+                if(data.errormsg && !data.vat) {
                     errorMessage = SignupTranslations.VAT_INVALID;
-                } else if(data.country.toLowerCase() !== country) {
+                } else if(data.errormsg && data.vat) {
+                    // vat format is valid, but it's unknown
+                    warningMessage = SignupTranslations.VAT_UNKNOWN;
+                } else if(data.country.toUpperCase() !== country) {
                     errorMessage = SignupTranslations.VAT_INCORRECT_COUNTRY;
                 } else {
-                    var enterpriseDetails = gatherFromInputs('enterprise');
-                    if(!enterpriseDetails.name) {
-                        $('#enterprise_name').val(data.name);
-                    }
-                    if(!enterpriseDetails.address1) {
-                        var address = data.address1;
-                        if(data.address2) {
-                            address += ', ' + data.address2;
-                        }
-                        $('#enterprise_address1').val(address);
-                    }
-                    if(!enterpriseDetails.zip_code) {
-                        $('#enterprise_zip_code').val(data.zip_code);
-                    }
-                    if(!enterpriseDetails.city) {
-                        $('#enterprise_city').val(data.city);
-                    }
+                    fillInput('enterprise_name', data.name);
+                    fillInput('enterprise_address1', data.address1 + (data.address2 ? ', ' + data.address2 : ''));
+                    fillInput('enterprise_zip_code', data.zip_code);
+                    fillInput('enterprise_city', data.city);
+                }
+
+                if(data.vat) {
+                    $('#enterprise_vat').val(data.vat);
                 }
 
                 $('#next').attr('disabled', false);
-                input.next('p[class=text-error]').remove();
+                clearErrors(input);
                 if(errorMessage) {
                     $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
+                } else if(warningMessage) {
+                    $('<p class="text-warning">' + warningMessage + '</p>').insertAfter(input);
                 }
             },
             error: function() {
@@ -214,10 +225,7 @@ $(function() {
                     $('#go_back').show();
                 }
             },
-            error: function() {
-                sln.hideProcessing();
-                sln.showAjaxError();
-            }
+            error: sln.showAjaxError
         });
 
         grecaptcha.reset();

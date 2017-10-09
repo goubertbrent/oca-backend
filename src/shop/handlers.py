@@ -32,6 +32,7 @@ from google.appengine.ext.webapp import template
 from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.consts import MISSING
+from mcfw.properties import unicode_property
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
 from mcfw.serialization import s_ushort
@@ -57,7 +58,8 @@ from shop.bizz import create_customer_signup, complete_customer_signup, get_orga
 from shop.business.i18n import shop_translate
 from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
-from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer
+from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
+    normalize_vat
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
@@ -623,20 +625,38 @@ def parse_euvat_address_eu(address):
     return address1, address2, zip_code, city
 
 
+class ValidateVatReturnStatusTO(ReturnStatusTO):
+    vat = unicode_property('vat')
+
+    @classmethod
+    def create(cls, success, errormsg, vat=None):
+        to = super(ValidateVatReturnStatusTO, cls).create(success, errormsg)
+        to.vat = vat
+        return to
+
+
 @rest("/unauthenticated/osa/company/info", "get", read_only_access=True, authenticated=False)
-@returns((ReturnStatusTO, CompanyTO))
-@arguments(vat=unicode)
-def get_company_info(vat):
+@returns((ValidateVatReturnStatusTO, CompanyTO))
+@arguments(vat=unicode, country=unicode)
+def get_company_info(vat, country=None):
     vat = vat.strip().upper().replace(' ', '')
+    if country:
+        try:
+            vat = normalize_vat(country, vat)
+        except BusinessException as ex:
+            return ValidateVatReturnStatusTO.create(False, unicode(ex.message))
+
     url = 'http://euvat.ga/api/info/%s' % urllib.quote(vat)
     logging.info(url)
     response = urlfetch.fetch(url, deadline=10, validate_certificate=False)
     if response.status_code != 200:
-        return ReturnStatusTO.create(False, u'VAT number could not be validated!')
+        return ValidateVatReturnStatusTO.create(False, u'VAT number could not be validated!',
+                                                vat=vat)
     logging.info(response.content)
     data = json.loads(response.content)
     if not data['valid']:
-        return ReturnStatusTO.create(False, data.get(u'message', u'VAT number could not be validated!'))
+        return ValidateVatReturnStatusTO.create(False, data.get(u'message', u'VAT number could not be validated!'),
+                                                vat=vat)
 
     comp = CompanyTO()
     comp.name = data.get('traderName')
