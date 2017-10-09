@@ -142,6 +142,7 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                       'order_list',
                                                       'timeframe_template',
                                                       'menu',
+                                                      'menu_import',
                                                       'menu_additem',
                                                       'menu_editdescription',
                                                       'menu_edit_image'],
@@ -315,7 +316,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             is_mobicage = customer.team.legal_entity.is_mobicage
             legal_entity_currency = customer.team.legal_entity.currency
 
-        functionality_modules  = functionality_info = None
+        functionality_modules = functionality_info = None
         if city_app_id and is_signup_enabled(city_app_id):
             functionality_modules, functionality_info = map(json.dumps, get_functionalities(sln_settings))
 
