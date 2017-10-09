@@ -489,38 +489,41 @@ def rest_loyalty_scanned(user_email_hash, merchant_email, app_id):
         return RETURNSTATUS_TO_SUCCESS
 
 
-class PublicErrorMixin(object):
+class PublicPageHandler(webapp2.RequestHandler):
+
+    @property
+    def language(self):
+        return get_languages_from_request(self.request)[0]
+
+    def translate(self, key, **kwargs):
+        return shop_translate(self.language, key, **kwargs)
+
+    def render(self, template_name, **params):
+        if not params.get('language'):
+            params['language'] = self.language
+
+        template_path = 'public/%s.html' % template_name
+        return SHOP_JINJA_ENVIRONMENT.get_template(template_path).render(params)
 
     def return_error(self, message, **kwargs):
-        error_template = SHOP_JINJA_ENVIRONMENT.get_template('public/error.html')
-        language = get_languages_from_request(self.request)[0]
-        translated_message = shop_translate(language, message, **kwargs)
-        params = {
-            'language': language,
-            'message': translated_message
-        }
-        self.response.out.write(error_template.render(params))
+        translated_message = self.translate(message, **kwargs)
+        self.response.out.write(self.render('error', message=translated_message))
 
-
-class CustomerSigninHandler(webapp2.RequestHandler):
-
-    def get(self):
+    def dispatch(self):
         if users.get_current_user():
             return self.redirect('/')
-
-        lang = get_languages_from_request(self.request)[0]
-        params = {
-            'language': lang
-        }
-        self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signin.html').render(params))
+        return super(PublicPageHandler, self).dispatch()
 
 
-class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
+class CustomerSigninHandler(PublicPageHandler):
 
     def get(self):
-        if users.get_current_user():
-            return self.redirect('/')
+        self.response.write(self.render('signin'))
 
+
+class CustomerSignupHandler(PublicPageHandler):
+
+    def get(self):
         email = self.request.get('email')
         if email.endswith('.'):
             email = email[:-1]
@@ -547,22 +550,18 @@ class CustomerSignupHandler(PublicErrorMixin, webapp2.RequestHandler):
                 'email_verified': False,
             }
 
-        params['language'] = get_languages_from_request(self.request)[0]
-        self.response.write(SHOP_JINJA_ENVIRONMENT.get_template('public/signup.html').render(params))
+        params['signup_success'] = json.dumps(self.render('signup_success'))
+        self.response.write(self.render('signup', **params))
 
 
-class CustomerResetPasswordHandler(webapp2.RequestHandler):
+class CustomerResetPasswordHandler(PublicPageHandler):
 
     def get(self):
-        reset_password_template = SHOP_JINJA_ENVIRONMENT.get_template('public/reset_password.html')
-        params = {
-            'language': get_languages_from_request(self.request)[0]
-        }
-        self.response.out.write(reset_password_template.render(params))
+        self.response.out.write(self.render('reset_password'))
 
 
-class CustomerSetPasswordHandler(PublicErrorMixin, SetPasswordHandler):
-    """Inherit PublicErrorMixin first to override SetPasswordHandler return_error()"""
+class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
+    """Inherit PublicPageHandler first to override SetPasswordHandler return_error()"""
 
     def get(self):
         email = self.request.get('email')
@@ -583,8 +582,8 @@ class CustomerSetPasswordHandler(PublicErrorMixin, SetPasswordHandler):
             'action': parsed_data['a'],
             'data': data
         }
-        set_password_template = SHOP_JINJA_ENVIRONMENT.get_template('public/set_password.html')
-        self.response.out.write(set_password_template.render(params))
+
+        self.response.out.write(self.render('set_password', **params))
 
 
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)

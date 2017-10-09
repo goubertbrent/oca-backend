@@ -64,6 +64,7 @@ from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, Ser
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
+from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -809,7 +810,10 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                     login_url = 'https://' + url
 
             parsed_login_url = urlparse.urlparse(login_url)
-            reset_password_link = '%s://%s%s' % (parsed_login_url.scheme, parsed_login_url.netloc, '/customers/resetpassword')
+            action = shop_translate(customer.language, 'password_reset')
+            url_params = get_reset_password_url_params(customer.name, users.User(user_email), action=action)
+            reset_password_link = '%s://%s%s?%s' % (parsed_login_url.scheme, parsed_login_url.netloc,
+                                                    '/customers/setpassword', url_params)
 
             # TODO: email with OSA style in header, footer
             with closing(StringIO()) as sb:
@@ -825,7 +829,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-                body = sb.getvalue()
+                body = sb.getvalue().replace('\n', '<br/>')
 
             # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
 
@@ -838,7 +842,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             msg['Subject'] = subject
             msg['From'] = from_email
             msg['To'] = user_email
-            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            msg.attach(MIMEText(body, 'html', 'utf-8'))
             send_mail_via_mime(from_email, [user_email], msg, transactional=True)
         if to_put:
             db.put(to_put)
