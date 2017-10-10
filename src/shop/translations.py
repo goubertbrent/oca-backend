@@ -107,6 +107,7 @@ shop_translations = \
          u'date': u'Date',
          u'dear_name': u'Dear %(name)s',
          u'description': u'Description',
+         u'password_reset': u'password reset',
          u'do_you_want_another_password': u'Do you want to use another password? Change your password at %(link)s',
          u'dont_forget_structured_comment': u'Caution, do not forget to mention the structured message with your payment.',
          u'expiry_date': u'Expiry date',
