@@ -19,6 +19,7 @@ import base64
 from collections import OrderedDict
 from functools import partial
 import json
+import logging
 from types import NoneType, FunctionType
 import uuid
 
@@ -49,6 +50,7 @@ from solutions.common.models.properties import MenuCategories, MenuCategory, Men
 from solutions.common.to import MenuTO
 import xlrd
 import xlwt
+
 
 try:
     from cStringIO import StringIO
@@ -99,14 +101,16 @@ def save_menu(service_user, menu):
         category_names = list()
         for c in menu.categories:
             if c.name in category_names:
-                raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, "category_duplicate_name", name=c.name))
+                raise BusinessException(
+                    common_translate(sln_settings.main_language, SOLUTION_COMMON, "category_duplicate_name", name=c.name))
             if c.id == MISSING:
                 c.id = str(uuid.uuid4()).decode('UTF-8')
             category_names.append(c.name)
             item_names = list()
             for i in c.items:
                 if i.name in item_names:
-                    raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, "product_duplicate_name", name=i.name))
+                    raise BusinessException(
+                        common_translate(sln_settings.main_language, SOLUTION_COMMON, "product_duplicate_name", name=i.name))
                 if i.id == MISSING:
                     i.id = str(uuid.uuid4()).decode('UTF-8')
                 item_names.append(i.name)
@@ -198,9 +202,9 @@ def import_menu_from_excel(service_user, file_contents):
         # also skip the first row (the header)
         for r in range(1, sheet.nrows):
             try:
-                cat_name, name, desc, unit, price, image_url = [c.value for c in sheet.row(r)]
+                cat_name, name, desc, unit, price, image_url = [cell.value for cell in sheet.row(r)]
             except ValueError:
-                raise BusinessException('please_check_missing_product_details')
+                raise BusinessException(translate('please_check_missing_product_details'))
 
             cat_name, name, unit = map(unicode.strip, [cat_name, name, unit])
             if not cat_name:
@@ -216,6 +220,9 @@ def import_menu_from_excel(service_user, file_contents):
                 categories[cat_name] = category
                 cat_index += 1
                 last_category = category
+
+            if not all(name, unit, price):
+                raise BusinessException(translate('please_check_missing_product_details'))
 
             item = make_item(name, desc, price, unit, image_url=image_url)
             category.items.append(item)
@@ -423,6 +430,7 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
         return result
 
     download_image = partial(download, url)
+
     def trans():
         sln_settings = get_solution_settings(service_user)
         menu = get_restaurant_menu(service_user, sln_settings.solution)

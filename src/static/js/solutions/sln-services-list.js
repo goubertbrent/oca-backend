@@ -56,7 +56,7 @@ ServicesList.prototype = {
             },
             success: function (data) {
                 var newServices = [];
-                if(self.cursor === data.cursor || !data.length) {
+                if(self.cursor === data.cursor || !data.services.length) {
                     self.hasMore = false;
                 }
                 self.cursor = data.cursor;

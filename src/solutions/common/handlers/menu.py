@@ -25,7 +25,9 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models import FileBlob
 from solutions.flex import SOLUTION_FLEX
 
+
 class ViewMenuItemImageHandler(webapp2.RequestHandler):
+
     def get(self, image_id):
         image_id = long(image_id)
         image = FileBlob.get_by_id(image_id)
@@ -45,7 +47,7 @@ class ExportMenuHandler(SessionHandler):
         if not sln_settings or not sln_settings.solution == SOLUTION_FLEX:
             return self.abort(400)
 
-        if SolutionModule.MENU not in sln_settings.modules:
+        if SolutionModule.MENU not in sln_settings.modules and SolutionModule.ORDER not in sln_settings.modules:
             return self.abort(403)
 
         self.response.headers['Content-Type'] = 'application/vnd.ms-excel'

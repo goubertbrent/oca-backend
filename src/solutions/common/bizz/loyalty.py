@@ -348,9 +348,9 @@ def update_loyalty_admin(service_user, service_identity, admin_app_user_email, a
     send_message(service_user, u"solutions.common.loyalty.settings.update", service_identity=service_identity)
 
 @returns(unicode)
-@arguments(service_user=users.User, user_details=[UserDetailsTO], origin=unicode)
-def loyalty_qr_register(service_user, user_details, origin):
-    if origin == "qr":
+@arguments(service_user=users.User, user_details=[UserDetailsTO], origin=unicode, data=unicode)
+def loyalty_qr_register(service_user, user_details, origin, data):
+    if data is None and origin == "qr":
         def trans():
             loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
             return loyalty_settings is not None

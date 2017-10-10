@@ -287,7 +287,8 @@ def re_index_customer(customer_key):
     fields = [search.AtomField(name='customer_key', value=str(customer_key)),
               search.TextField(name='customer_id', value=str(customer_key.id())),
               search.TextField(name='customer_name', value=customer.name),
-              search.TextField(name='customer_address', value=" ".join([customer.address1 or '', customer.address2 or ''])),
+              search.TextField(name='customer_address', value=" ".join(
+                  [customer.address1 or '', customer.address2 or ''])),
               search.TextField(name='customer_zip_code', value=customer.zip_code),
               search.TextField(name='customer_city', value=customer.city),
               search.TextField(name='customer_team_id', value=unicode(customer.team_id))
@@ -817,7 +818,8 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
 
             # TODO: email with OSA style in header, footer
             with closing(StringIO()) as sb:
-                sb.write(shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
+                sb.write(
+                    shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'your_service_created').encode('utf-8'))
                 sb.write('\n\n')
@@ -998,7 +1000,8 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
             sub_order = None
             if extra_months > 0:
                 sub_order = Order.get_by_order_number(customer_id, customer.subscription_order_number)
-                next_charge_datetime = datetime.datetime.utcfromtimestamp(sub_order.next_charge_date) + relativedelta(months=extra_months)
+                next_charge_datetime = datetime.datetime.utcfromtimestamp(
+                    sub_order.next_charge_date) + relativedelta(months=extra_months)
                 sub_order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
                 sub_order.put()
 
@@ -1258,7 +1261,8 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
     # TODO: email with OSA styling (header, footer)
 
     with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name', name="%s %s" % (contact.first_name, contact.last_name)).encode('utf-8'))
+        sb.write(shop_translate(customer.language, 'dear_name', name="%s %s" %
+                                (contact.first_name, contact.last_name)).encode('utf-8'))
         sb.write('\n\n')
         sb.write(
             shop_translate(customer.language, 'invoice_is_available', invoice=invoice.invoice_number).encode('utf-8'))
@@ -1399,10 +1403,10 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
                     raise BusinessException('Charge with id %s not found' % charge_id)
                 if charge.status == Charge.STATUS_EXECUTED:
                     raise BusinessException(
-                            'Charge with id %s has already been executed so it cannot be canceled' % charge_id)
+                        'Charge with id %s has already been executed so it cannot be canceled' % charge_id)
                 if charge.invoice_number != '':
                     raise BusinessException(
-                            'Charge with id %s already has an invoice so it cannot be canceled' % charge_id)
+                        'Charge with id %s already has an invoice so it cannot be canceled' % charge_id)
                 charge.status = Charge.STATUS_CANCELLED
                 charge.date_cancelled = now()
                 to_put.append(charge)
@@ -1535,7 +1539,8 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
     msg["Reply-To"] = solution_server_settings.shop_reply_to_email
 
     with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name', name=(contact.first_name + ' ' + contact.last_name)).encode('utf-8'))
+        sb.write(shop_translate(customer.language, 'dear_name', name=(
+            contact.first_name + ' ' + contact.last_name)).encode('utf-8'))
         sb.write('\n\n')
         sb.write(shop_translate(customer.language, 'pro_forma_in_attachment').encode('utf-8'))
         sb.write('\n')
@@ -1770,7 +1775,7 @@ def put_prospect(current_user, prospect_id, name, phone, address, email, website
         db.put(to_put)
 
         deferred.defer(broadcast_prospect_update if is_update else broadcast_prospect_creation,
-                   current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
+                       current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
         from shop.business.prospect import re_index_prospect
         deferred.defer(re_index_prospect, prospect, _transactional=True, _queue=FAST_QUEUE)
         return prospect
@@ -2058,6 +2063,7 @@ def create_task(created_by, prospect_or_key, assignee, execution_time, task_type
                     subscription=subscription,
                     app_id=app_id)
 
+
 @returns()
 @arguments(assignees=[unicode])
 def broadcast_task_updates(assignees):
@@ -2089,6 +2095,7 @@ def broadcast_prospect_creation(current_user, prospect):
     channel.send_message(target_users, 'shop.prospect.created',
                          prospect=serialize_complex_value(ProspectTO.from_model(prospect), ProspectTO, False))
 
+
 @returns(RegioManagerTeam)
 @arguments(team_id=(int, long, NoneType), name=unicode, legal_entity_id=(int, long, NoneType),
            app_ids=[unicode])
@@ -2115,6 +2122,7 @@ def put_regio_manager_team(team_id, name, legal_entity_id, app_ids):
         return rmt
 
     return db.run_in_transaction(trans)
+
 
 @returns(RegioManager)
 @arguments(current_user=users.User, email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO],
@@ -2369,7 +2377,8 @@ def get_payed(customer_id, order_or_number, charge_or_id):
 
         # Check if we can find a payment with this description
         stripe_charge_match = None
-        stripe_charges = stripe.Charge.all(api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
+        stripe_charges = stripe.Charge.all(
+            api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
         for stripe_charge in stripe_charges.data:
             if stripe_charge.metadata.osa_charge_id and long(
                     stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
@@ -2613,7 +2622,8 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
                 if service.email != customer.user_email:
                     email_has_changed = True
 
-            update_contact(customer.id, Contact.get_one(customer.key()).id, customer.name, u'', service.email, service.phone_number)
+            update_contact(customer.id, Contact.get_one(customer.key()).id,
+                           customer.name, u'', service.email, service.phone_number)
         else:
             is_new = True
             # create a new service. Name of the customer, contact, and service will all be the same.
@@ -2652,7 +2662,8 @@ def get_signup_summary(lang, customer_signup, app_id):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
-    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, customer_signup.city_customer.app_id)
+    org_type_name = ServiceProfile.localized_singular_organization_type(
+        org_type, lang, customer_signup.city_customer.app_id)
 
     summary = u'{}\n\n'.format(trans('signup_application'))
     summary += u'{}\n'.format(trans('signup_inbox_message_header',
