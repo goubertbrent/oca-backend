@@ -2,7 +2,8 @@
   "build": [
     "init",
     "build.merge",
-    "build.yaml"
+    "build.yaml",
+    "build.api-calls"
   ],
   "build.yaml": [
     "build.yaml.app",

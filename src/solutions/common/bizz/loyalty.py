@@ -37,9 +37,8 @@ from babel.dates import format_date, format_datetime, get_timezone
 from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import chunks
 import pytz
-from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID, DECLINE_ID
+from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.rtemail import generate_user_specific_link, EMAIL_REGEX
 from rogerthat.bizz.service import get_and_validate_service_identity_user
@@ -60,7 +59,6 @@ from rogerthat.utils.channel import send_message
 from shop.constants import LOGO_LANGUAGES, STORE_MANAGER
 from shop.dal import get_shop_loyalty_slides, get_customer
 from shop.models import ShopLoyaltySlideNewOrder, Customer, Contact, RegioManagerTeam, Prospect, ShopTask
-from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
@@ -75,7 +73,7 @@ from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyalt
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
     SolutionLoyaltyVisitRevenueDiscountArchive, SolutionLoyaltyVisitLotteryArchive, SolutionLoyaltyVisitStampsArchive, \
     SolutionLoyaltyExport, SolutionLoyaltyIdentitySettings, SolutionCityWideLotteryVisit, \
-    SolutionCityWideLotteryStatistics, CustomLoyaltyCard
+    SolutionCityWideLotteryStatistics, CustomLoyaltyCard, CityPostalCodes
 from solutions.common.models.news import NewsCoupon
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
@@ -350,17 +348,17 @@ def update_loyalty_admin(service_user, service_identity, admin_app_user_email, a
     send_message(service_user, u"solutions.common.loyalty.settings.update", service_identity=service_identity)
 
 @returns(unicode)
-@arguments(service_user=users.User, user_details=[UserDetailsTO], origin=unicode)
-def loyalty_qr_register(service_user, user_details, origin):
-    if origin == "qr":
+@arguments(service_user=users.User, user_details=[UserDetailsTO], origin=unicode, data=unicode)
+def loyalty_qr_register(service_user, user_details, origin, data):
+    if data is None and origin == "qr":
         def trans():
             loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
-            if loyalty_settings:
-                return True
-            return False
+            return loyalty_settings is not None
+
         if db.run_in_transaction(trans):
             return ACCEPT_AND_CONNECT_ID
-    return DECLINE_ID
+
+    raise NotImplementedError()
 
 @returns()
 @arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], origin=unicode)
@@ -1815,10 +1813,10 @@ def request_loyalty_device(service_user, source):
 @returns(unicode)
 @arguments(service_user=users.User, service_identity=unicode, should_set_user=bool)
 def _get_app_id_if_using_city_wide_tombola(service_user, service_identity, should_set_user=True):
-    solution_server_settings = get_solution_server_settings()
     city_wide_lottery = {}
-    for app_id, postcode in chunks(solution_server_settings.solution_city_wide_lottery, 2):
-        city_wide_lottery[app_id] = postcode
+    for city in CityPostalCodes.all():
+        if city.postal_codes:
+            city_wide_lottery[city.app_id] = city.postal_codes
     if not city_wide_lottery:
         return None
 
@@ -1834,15 +1832,17 @@ def _get_app_id_if_using_city_wide_tombola(service_user, service_identity, shoul
             if not identity.search_config.locations:
                 continue
             for location in identity.search_config.locations:
-                if city_wide_lottery[i_app_id] in location.address:
-                    return i_app_id
+                for postal_code in city_wide_lottery[i_app_id]:
+                    if postal_code in location.address:
+                        return i_app_id
     finally:
         if should_set_user:
             users.clear_user()
     return None
 
+
 @returns()
-@arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long),)
+@arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO, loyalty_type=(int, long), visit_key=db.Key, now_=(int, long))
 def add_city_wide_lottery_visit(service_user, service_identity, user_detail, loyalty_type, visit_key, now_):
     city_app_id = _get_app_id_if_using_city_wide_tombola(service_user, service_identity)
     if not city_app_id:
@@ -1905,3 +1905,44 @@ def delete_city_wide_lottery_visit(service_user, service_identity, email, app_id
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
+
+
+def send_postal_code_update_message(code, deleted):
+    service_user = users.get_current_user()
+    send_message(service_user, 'solutions.common.postal_code.update',
+                 code=code, deleted=deleted)
+
+
+@returns(CityPostalCodes)
+@arguments(app_id=unicode)
+def get_or_create_city_postal_codes(app_id):
+    key = CityPostalCodes.create_key(app_id)
+    city = db.get(key)
+    if not city:
+        city = CityPostalCodes(key=key)
+    if not city.postal_codes:
+        city.postal_codes = []
+    city.app_id = app_id
+    return city
+
+
+@returns()
+@arguments(app_id=unicode, postal_code=unicode)
+def add_city_postal_code(app_id, postal_code):
+    if not re.match('\d+', postal_code):
+        raise ValueError
+    city = get_or_create_city_postal_codes(app_id)
+    if postal_code not in city.postal_codes:
+        city.postal_codes.append(postal_code)
+        city.put()
+        send_postal_code_update_message(postal_code, False)
+
+
+@returns()
+@arguments(app_id=unicode, postal_code=unicode)
+def remove_city_postal_code(app_id, postal_code):
+    city = get_or_create_city_postal_codes(app_id)
+    if postal_code in city.postal_codes:
+        city.postal_codes.remove(postal_code)
+        city.put()
+        send_postal_code_update_message(postal_code, True)

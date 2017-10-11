@@ -79,6 +79,11 @@ $(function() {
         e.preventDefault();
     });
 
+    // prevent triggering the logout more than once
+    $('#logout_link').click(function(e) {
+        $(this).addClass('disabled');
+    });
+
 });
 
 // Load the IFrame Player API code asynchronously.

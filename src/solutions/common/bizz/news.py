@@ -105,10 +105,11 @@ def _save_coupon_news_id(news_item_id, coupon):
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
-           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, host=unicode)
+           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
-                  broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, host=None):
+                  broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
+                  host=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -131,6 +132,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         broadcast_on_twitter (bool)
         facebook_access_token (unicode): user or page access token
         target_audience (NewsTargetAudienceTO)
+        role_ids (list of long) the list of role ids to filter sending the news to their members
         host (unicode): host of the api request (used for social media apps)
 
     Returns:
@@ -189,7 +191,8 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         'app_ids': app_ids,
         'image': image,
         'scheduled_at': scheduled_at,
-        'target_audience': target_audience
+        'target_audience': target_audience,
+        'role_ids': role_ids
     }
     if not news_id:
         kwargs['news_type'] = news_type

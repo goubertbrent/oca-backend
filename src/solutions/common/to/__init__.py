@@ -16,7 +16,6 @@
 # @@license_version:1.2@@
 
 import datetime
-import logging
 import urllib
 
 from mcfw.consts import MISSING
@@ -31,8 +30,9 @@ from rogerthat.utils import get_epoch_from_datetime, urlencode
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings
-from solutions.common.models.agenda import Event, SolutionCalendarAdmin
+from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
+    SolutionIdentitySettings
+from solutions.common.models.agenda import Event
 from solutions.common.models.properties import MenuCategory
 
 
@@ -138,7 +138,8 @@ class SolutionInboxesTO(object):
         to.name = name
         to.cursor = cursor
         to.has_more = has_more
-        to.messages = [SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, show_last) for message in messages]
+        to.messages = [SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, show_last) for message in
+                       messages]
         return to
 
 
@@ -166,9 +167,13 @@ class SolutionSettingsTO(object):
     iban = unicode_property('21')
     bic = unicode_property('22')
     publish_changes_users = unicode_list_property('23', default=[])
+    search_enabled_check = bool_property('24')
 
     @staticmethod
     def fromModel(sln_settings, sln_i_settings):
+        # type: (SolutionSettings, SolutionIdentitySettings) -> SolutionSettingsTO
+        assert isinstance(sln_settings, SolutionSettings)
+        assert isinstance(sln_i_settings, SolutionIdentitySettings)
         to = SolutionSettingsTO()
         to.name = sln_i_settings.name
         to.description = sln_i_settings.description
@@ -193,6 +198,7 @@ class SolutionSettingsTO(object):
         to.iban = sln_settings.iban
         to.bic = sln_settings.bic
         to.publish_changes_users = sln_settings.publish_changes_users
+        to.search_enabled_check = True if sln_settings.search_enabled_check is None else sln_settings.search_enabled_check
         return to
 
 
@@ -352,7 +358,7 @@ class EventItemTO(object):
             seconds_since_midnight = (sd - sd.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
             offset = 0 if end_date >= seconds_since_midnight else 86400
             item.end_dates_timestamps.append(TimestampTO.fromDatetime(
-                    datetime.datetime.utcfromtimestamp(start_date - seconds_since_midnight + offset + end_date)))
+                datetime.datetime.utcfromtimestamp(start_date - seconds_since_midnight + offset + end_date)))
 
         item.can_edit = obj.source == Event.SOURCE_CMS
         item.source = obj.source
@@ -384,6 +390,7 @@ class EventItemTO(object):
         item.organizer = obj.organizer
         return item
 
+
 class SolutionCalendarTO(object):
     id = long_property('1')
     name = unicode_property('2')
@@ -398,7 +405,7 @@ class SolutionCalendarTO(object):
         item = SolutionCalendarTO()
         item.id = obj.calendar_id
         item.name = obj.name
-        item.admins = list()
+        item.admins = []
         for admin in obj.get_admins():
             sif = SolutionUserKeyLabelTO()
             sif.key = admin.app_user.email()
@@ -408,12 +415,23 @@ class SolutionCalendarTO(object):
             item.admins.append(sif)
         item.can_delete = sln_settings.default_calendar != item.id
         item.connector_qrcode = obj.connector_qrcode
-        item.events = list()
+        item.events = []
         if include_events:
             for e in obj.events:
                 item.events.append(EventItemTO.fromEventItemObject(e, include_events_picture))
         item.broadcast_enabled = obj.broadcast_enabled
         return item
+
+    def __init__(self, id=0, name=None, admins=None, can_delete=False, connector_qrcode=None, events=None,
+                 broadcast_enabled=False):
+        self.id = id
+        self.name = name
+        self.admins = admins or []
+        self.can_delete = can_delete
+        self.connector_qrcode = connector_qrcode
+        self.events = events or []
+        self.broadcast_enabled = broadcast_enabled
+
 
 class SolutionCalendarWebTO(SolutionCalendarTO):
     cursor = unicode_property('50')
@@ -446,14 +464,17 @@ class SolutionCalendarWebTO(SolutionCalendarTO):
         item.broadcast_enabled = obj.broadcast_enabled
         return item
 
+
 class SolutionGoogleCalendarTO(object):
     key = unicode_property('1')
     label = unicode_property('2')
     enabled = bool_property('3')
 
+
 class SolutionGoogleCalendarStatusTO(object):
     enabled = bool_property('1')
     calendars = typed_property('3', SolutionGoogleCalendarTO, True)
+
 
 class SolutionAppointmentWeekdayTimeframeTO(object):
     id = long_property('1')
@@ -520,7 +541,6 @@ class SolutionStaticContentTO(object):
     id = long_property('9')
     website = unicode_property('10')
 
-
     @property
     def position_str(self):
         return u"%sx%sx%s" % (self.position.z, self.position.x, self.position.y)
@@ -584,7 +604,8 @@ class BrandingSettingsTO(object):
         """
         to = cls()
         to.color_scheme = model.color_scheme
-        to.background_color = model.background_color or SolutionBrandingSettings.default_background_color(to.color_scheme)
+        to.background_color = model.background_color or SolutionBrandingSettings.default_background_color(
+            to.color_scheme)
         to.text_color = model.text_color or SolutionBrandingSettings.default_text_color(to.color_scheme)
         to.menu_item_color = model.menu_item_color or SolutionBrandingSettings.default_menu_item_color(to.color_scheme)
         to.show_identity_name = model.show_identity_name
@@ -973,8 +994,10 @@ class BrandingSettingsAndMenuItemsTO(object):
         to.menu_item_rows = menu_item_rows
         return to
 
+
 class SaveSettingsResultTO(object):
     address_geocoded = bool_property('1')
+
 
 class SaveSettingsReturnStatusTO(ReturnStatusTO):
     result = typed_property('51', SaveSettingsResultTO)

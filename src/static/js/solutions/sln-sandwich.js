@@ -53,7 +53,7 @@ $(function () {
 		}
     }
 
-	$('#section_settings_sandwich').find('div.bootstrap-timepicker input').timepicker({
+	$('#section_settings_sandwich_bar').find('div.bootstrap-timepicker input').timepicker({
         showMeridian : false,
         minuteStep : 15,
         disableFocus : true

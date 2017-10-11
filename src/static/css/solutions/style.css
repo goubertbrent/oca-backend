@@ -863,3 +863,7 @@ md-divider {
 }
 
 /*</editor-fold desc="divider">*/
+
+a.disabled {
+    pointer-events: none;
+}

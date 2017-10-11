@@ -2,7 +2,7 @@
 <messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
 	<definition name="pharmacy_order" language="{{ language }}"
                 startReference="flowcode_check_holiday">
-        <end id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=" waitForFollowUpMessage="false"/>
+        <end id="end_end" waitForFollowUpMessage="false"/>
         <end
             id="end_quick"
             waitForFollowUpMessage="false" />
@@ -17,22 +17,22 @@
             <answer action=""
                     caption="{% translate language, 'common', 'continue_anyway' %}"
                     id="button_holiday_continue"
-                    reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ=="/>
+                    reference="message_has_prescription"/>
             <answer action=""
                     caption="{% translate language, 'common', 'Cancel' %}"
                     id="button_holiday_cancel"
                     reference="end_quick"/>
         </message>
-        <message id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX3RobngifQ==" 
+        <message id="message_thnx" 
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
             allowDismiss="true"
             vibrate="false"
-            dismissReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=" autoLock="true">
+            dismissReference="end_end" autoLock="true">
             <content>{% translate language, 'common', 'order-flow-tnx' %}</content>
         </message>
-        <message id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ=="
+        <message id="message_has_prescription"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
@@ -40,17 +40,17 @@
             vibrate="false"
             autoLock="true">
             <content>{% translate language, 'common', 'order-flow-prescription' %}</content>
-            <answer action="" caption="{% translate language, 'common', 'Yes' %}" id="button_button_yes" reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX3ByZXNjcmlwdGlvbiJ9"/>
-            <answer action="" caption="{% translate language, 'common', 'No' %}" id="button_button_no" reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX2JveCJ9"/>
+            <answer action="" caption="{% translate language, 'common', 'Yes' %}" id="button_button_yes" reference="message_photo_upload_prescription"/>
+            <answer action="" caption="{% translate language, 'common', 'No' %}" id="button_button_no" reference="message_photo_upload_box"/>
         </message>
-        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX2JveCJ9"
+        <formMessage id="message_photo_upload_box"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
-            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            positiveReference="message_remarks_box"
             vibrate="false"
             autoLock="true"
-            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfZGVzY3JpYmVfYm94In0=">
+            negativeReference="message_describe_box">
             <content>{% translate language, 'common', 'order-flow-picture' %}</content>
             <form 
                 positiveButtonConfirmation="" 
@@ -60,14 +60,14 @@
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
             </form>
         </formMessage> 
-        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcGhvdG9fdXBsb2FkX3ByZXNjcmlwdGlvbiJ9"
+        <formMessage id="message_photo_upload_prescription"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
-            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            positiveReference="message_remarks_box"
             vibrate="false"
             autoLock="true"
-            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=">
+            negativeReference="end_end">
             <content>{% translate language, 'common', 'order-flow-prescription-picture' %}</content>
             <form 
                 positiveButtonConfirmation=""
@@ -77,14 +77,14 @@
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
             </form>
         </formMessage>
-        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+        <formMessage id="message_remarks_box"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
-            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJmbHVzaF9mbHVzaCJ9"
+            positiveReference="flush_flush"
             vibrate="false"
             autoLock="true"
-            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJmbHVzaF9mbHVzaCJ9">
+            negativeReference="flush_flush">
             <content>{% translate language, 'common', 'order-flow-comments' %}</content>
             <form 
                 positiveButtonConfirmation=""
@@ -98,14 +98,14 @@
                     placeholder="{% translate language, 'common', '(optional)' %}"/>
             </form>
         </formMessage>
-        <formMessage id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfZGVzY3JpYmVfYm94In0=" 
+        <formMessage id="message_describe_box" 
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
-            positiveReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX21lc3NhZ2VfcmVtYXJrc19ib3gifQ=="
+            positiveReference="message_remarks_box"
             vibrate="false"
             autoLock="true"
-            negativeReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJlbmRfZW5kIn0=">
+            negativeReference="end_end">
             <content>{% translate language, 'common', 'order-flow-describe' %}</content>
             <form 
                 positiveButtonConfirmation=""
@@ -118,14 +118,14 @@
                     maxChars="500"/>
             </form>
         </formMessage>
-        <resultsFlush id="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJmbHVzaF9mbHVzaCJ9"
-            reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX3RobngifQ=="/>
+        <resultsFlush id="flush_flush"
+            reference="message_thnx"/>
         <flowCode id="flowcode_check_holiday"
-                  exceptionReference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ==">
+                  exceptionReference="message_has_prescription">
             <outlet reference="message_holiday"
                     name="message_holiday"
                     value="message_holiday"/>
-            <outlet reference="base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ=="
+            <outlet reference="message_has_prescription"
                     name="message_holiday_check_continue"
                     value="message_holiday_check_continue"/>
             <javascriptCode>
@@ -136,7 +136,7 @@
                         nextStepResult.outlet = 'message_holiday';
                     }
                     else {
-                        nextStepResult.outlet = 'base64:eyJsYW5nIjoiZW4iLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B6TVVCbmMyMHVaM050REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNXdhR0Z5YldGamVWOXZjbVJsY2d3IiwiaWQiOiJtZXNzYWdlX2hhc19wcmVzY3JpcHRpb24ifQ==';
+                        nextStepResult.outlet = 'message_has_prescription';
                     }
                     return nextStepResult;
 

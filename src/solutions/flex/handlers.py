@@ -19,22 +19,24 @@ import json
 import logging
 import os
 
-from babel import dates
 import jinja2
+import webapp2
+
+from babel import dates
 from mcfw.rpc import serialize_complex_value
-from rogerthat.bizz.app import get_app
 from rogerthat.bizz import channel
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import ServiceIdentity, App, ServiceProfile
+from rogerthat.models import ServiceIdentity, App
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.service import create_service_identity_user
-from shop.bizz import is_signup_enabled
+from shop.bizz import get_organization_types, is_signup_enabled
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
@@ -42,6 +44,7 @@ from solution_server_settings import get_solution_server_settings
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
+from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
@@ -54,8 +57,6 @@ from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
-import webapp2
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -78,6 +79,7 @@ DEFAULT_JS_TEMPLATES = ['inbox_messages',
                         'settings/app_user_roles',
                         'settings/app_user_add_roles',
                         'settings/try_publish_changes',
+                        'settings/upload_image',
                         'functionalities/functionality'
                         ]
 
@@ -110,10 +112,10 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                          'services/modules_list',
                                                          'services/service_search',
                                                          'settings/app_settings'],
-                               SolutionModule.CITY_VOUCHERS : ['city_vouchers/city_vouchers_list',
-                                                               'city_vouchers/city_vouchers_transactions',
-                                                               'city_vouchers/city_vouchers_qrcode_export_list',
-                                                               'city_vouchers/city_vouchers_export_list'],
+                               SolutionModule.CITY_VOUCHERS: ['city_vouchers/city_vouchers_list',
+                                                              'city_vouchers/city_vouchers_transactions',
+                                                              'city_vouchers/city_vouchers_qrcode_export_list',
+                                                              'city_vouchers/city_vouchers_export_list'],
                                SolutionModule.DISCUSSION_GROUPS: ['discussion_groups/discussion_groups_list',
                                                                   'discussion_groups/discussion_groups_put'],
                                SolutionModule.GROUP_PURCHASE:   ['group_purchase',
@@ -140,6 +142,7 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                       'order_list',
                                                       'timeframe_template',
                                                       'menu',
+                                                      'menu_import',
                                                       'menu_additem',
                                                       'menu_editdescription',
                                                       'menu_edit_image'],
@@ -161,17 +164,18 @@ MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
                                                              'sandwiches_list_item'],
                                SolutionModule.STATIC_CONTENT:   ['static_content/static_content_select_icon',
                                                                  'static_content/static_content'],
-                               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY:['loyalty_lottery_add_modal',
-                                                                 'loyalty_customer_visits_detail_modal',
-                                                                 'loyalty_customer_visits_detail',
-                                                                 'loyalty_customer_visit',
-                                                                 'loyalty_lottery_history',
-                                                                 'loyalty_slides',
-                                                                 'loyalty_slide_add'],
+                               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: ['loyalty_lottery_add_modal',
+                                                                         'loyalty_customer_visits_detail_modal',
+                                                                         'loyalty_customer_visits_detail',
+                                                                         'loyalty_customer_visit',
+                                                                         'loyalty_lottery_history',
+                                                                         'loyalty_slides',
+                                                                         'loyalty_slide_add'],
                                }
 
 
 class FlexHomeHandler(webapp2.RequestHandler):
+
     def _get_location_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
@@ -219,12 +223,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_week_days(self, sln_settings):
         return [self._get_day_str(sln_settings, day) for day in [6, 0, 1, 2, 3, 4, 5]]
 
-    def _get_organization_types(self, customer, lang):
-        if not customer:
-            return []
-        return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, lang, customer.app_id))
-                for org_type in customer.editable_organization_types]
-
     def get(self):
         service_user = users.get_current_user()
         if not service_user:
@@ -235,7 +233,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
             self.redirect("/ourcityapp")
             return
 
-        # only a shop user can update the loyalty type
         session_ = users.get_current_session()
         all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
                             translations[SOLUTION_COMMON]['en']}
@@ -319,6 +316,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
             is_mobicage = customer.team.legal_entity.is_mobicage
             legal_entity_currency = customer.team.legal_entity.currency
 
+        functionality_modules = functionality_info = None
+        if city_app_id and is_signup_enabled(city_app_id):
+            functionality_modules, functionality_info = map(json.dumps, get_functionalities(sln_settings))
+
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
                   'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                   'logo_languages': LOGO_LANGUAGES,
@@ -344,7 +345,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'loyalty': True if loyalty_version else False,
                   'city_app_id': city_app_id,
                   'is_demo_app': is_demo_app,
-                  'show_functionalities_page': city_app_id and is_signup_enabled(city_app_id),
+                  'functionality_modules': functionality_modules,
+                  'functionality_info': functionality_info,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
                   'currency': sln_settings.currency,
                   'is_layout_user': session_.layout_only if session_ else False,
@@ -364,14 +366,14 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'modules': json.dumps(sln_settings.modules),
                   'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
                   'hide_menu_tab': SolutionModule.MENU not in sln_settings.modules
-                                   and SolutionModule.ORDER in sln_settings.modules
-                                   and (
-                                       not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
+                  and SolutionModule.ORDER in sln_settings.modules
+                  and (
+                      not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
                   'VAT_PCT': vat_pct,
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
                   'translations': json.dumps(all_translations),
-                  'organization_types': self._get_organization_types(customer, sln_settings.main_language)
+                  'organization_types': get_organization_types(customer, sln_settings.main_language)
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:
@@ -387,20 +389,18 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
 
 class FlexLogoutHandler(SessionHandler):
+
     def get(self):
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
-        if not sln_settings or sln_settings.solution != SOLUTION_FLEX:
-            self.redirect("/logout?continue=ourcityapp")
-            return
+
+        if not sln_settings or sln_settings.solution != SOLUTION_FLEX or not sln_settings.identities:
+            self.stop_session()
+            return self.redirect('/ourcityapp')
 
         session_ = users.get_current_session()
         if session_.service_identity:
             session_ = set_service_identity(session_, None)
-
-        if not sln_settings.identities:
-            self.redirect("/logout?continue=ourcityapp")
-            return
 
         send_message_to_session(service_user, session_, u"solutions.common.locations.update", si=None)
         self.redirect('/ourcityapp')

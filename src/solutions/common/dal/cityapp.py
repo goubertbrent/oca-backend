@@ -30,7 +30,7 @@ from solutions.common.models.cityapp import CityAppProfile
 @returns(CityAppProfile)
 @arguments(service_user=users.User)
 def get_cityapp_profile(service_user):
-    
+
     def trans():
         cityapp_profile = CityAppProfile.get(CityAppProfile.create_key(service_user))
         if not cityapp_profile:
@@ -75,7 +75,7 @@ def get_service_user_for_city(app_id):
     if not service_users:
         return None
 
-    if len(service_users) > 0:
+    if len(service_users) > 1:
         logging.warn('Found multiple community services with module CITY_APP. Just taking the first user from %s.',
                      [u.email() for u in service_users])
     return service_users[0]

@@ -83,7 +83,7 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
                      'events_add', 'events_add_dates', 'events', 'events_events', 'events_settings', 'events_calendar_settings', 'events_guests_modal',
                      'events_guests_table',
                      'broadcast_types', 'broadcast_schedule', 'broadcast_schedule_items', 'addattachment',
-                     'settings/settings_branding', 'settings/settings_branding_preview'):
+                     'settings/try_publish_changes', 'settings/settings_branding', 'settings/settings_branding_preview', 'settings/upload_image'):
             templates[tmpl] = JINJA_ENVIRONMENT.get_template(tmpl + '.html').render(tmpl_params)
         templates = json.dumps(templates)
 

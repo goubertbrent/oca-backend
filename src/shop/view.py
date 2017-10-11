@@ -115,6 +115,7 @@ from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
 from solutions.common.dal import get_solution_settings
+from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
 from solutions.common.models.qanda import Question, QuestionReply
@@ -155,12 +156,19 @@ def _get_default_modules():
             )
 
 
+def get_current_http_host(with_protocol=False):
+    host = os.environ.get('HTTP_X_FORWARDED_HOST') or os.environ.get('HTTP_HOST')
+    if with_protocol:
+        return u'%s://%s' % (os.environ['wsgi.url_scheme'], host)
+    return host
+
+
 def _get_apps():
     return sorted(get_apps([App.APP_TYPE_ROGERTHAT, App.APP_TYPE_CITY_APP]),
                   key=lambda app: app.name)
 
 
-def _get_organization_types():
+def _get_default_organization_types():
     # organization_type value, description, selected by default
     organization_types = [(ServiceProfile.ORGANIZATION_TYPE_CITY, 'Community Service', False),
                           (ServiceProfile.ORGANIZATION_TYPE_EMERGENCY, 'Care', False),
@@ -234,8 +242,8 @@ def get_shop_context(**kwargs):
                prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
                DEBUG=DEBUG,
                APPSCALE=APPSCALE,
-               organization_types=_get_organization_types(),
-               sectors=_get_service_sectors()
+               sectors=_get_service_sectors(),
+               organization_types=_get_default_organization_types(),
                )
     ctx.update(kwargs)
     return ctx
@@ -1743,11 +1751,21 @@ def rest_finish_on_site_payment(customer_id, charge_reference):
         return ReturnStatusTO.create(False, be.message)
 
 
+def check_only_one_city_service(customer_id, service):
+    if SolutionModule.CITY_APP in service.modules:
+        customer = Customer.get_by_id(customer_id)
+        invalidate_service_user_for_city(service.apps[0])
+        city_service_user = get_service_user_for_city(service.apps[0])
+        if city_service_user and city_service_user.email() != customer.service_email:
+            raise BusinessException('City app module cannot be enabled for more than one service per app')
+
+
 @rest("/internal/shop/rest/service/put", "post")
 @returns(ProvisionReturnStatusTO)
 @arguments(customer_id=(int, long), service=CustomerServiceTO)
 def save_service(customer_id, service):
     try:
+        check_only_one_city_service(customer_id, service)
         xg_on = db.create_transaction_options(xg=True)
         service = allow_transaction_propagation(db.run_in_transaction_options, xg_on, put_service, customer_id, service,
                                                 broadcast_to_users=[gusers.get_current_user()])

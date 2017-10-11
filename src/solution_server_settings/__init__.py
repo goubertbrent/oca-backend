@@ -81,9 +81,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_trial_service_email = add_meta(db.StringProperty(indexed=False),
                                             doc="The e-mail address of the yourservcicehere service",
                                             order=605)
-    solution_city_wide_lottery = add_meta(db.StringListProperty(indexed=False),
-                                          doc="City wide lotteries  (2 entries per combination. eg: - be_loc - 9080",
-                                          order=606)
     solution_sync_calendar_events_client_id = add_meta(db.StringProperty(indexed=False),
                                             doc="Client id to sync calendar events",
                                             order=607)
@@ -145,6 +142,10 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     recaptcha_secret_key = add_meta(db.StringProperty(indexed=False),
                                     doc="Google ReCaptcha secret key",
                                     order=1502)
+
+    createsend_api_key = add_meta(db.StringProperty(indexed=False),
+                                  doc="Createsend api key",
+                                  order=1601)
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")

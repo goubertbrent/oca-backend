@@ -29,7 +29,6 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from rogerthat.bizz import channel
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
@@ -39,7 +38,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.service.api.friends import get_broadcast_reach
-from rogerthat.service.api.system import get_flow_statistics
+from rogerthat.service.api.system import get_flow_statistics, list_roles
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
@@ -55,13 +54,14 @@ from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
 from shop.models import Product, Order
 from shop.to import ProductTO
+from shop.view import get_current_http_host
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
     OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    twitter as bizz_twitter
+    twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
@@ -75,7 +75,7 @@ from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, 
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
-from solutions.common.bizz.service import get_allowed_modules, set_customer_signup_status
+from solutions.common.bizz.service import set_customer_signup_status
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
@@ -104,7 +104,6 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
     SaveSettingsReturnStatusTO, AppUserRolesTO, CustomerSignupTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
-from solutions.common.to.qanda import ModuleTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
@@ -480,8 +479,10 @@ def rest_get_broadcast_options():
         subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
                                                      locale=sln_settings.main_language)
     subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
+    roles = get_user_defined_roles()
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
-                              extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps)
+                              extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps,
+                              roles)
 
 
 @rest("/common/broadcast/scheduled/load", "get", read_only_access=True)
@@ -547,11 +548,11 @@ def broadcast_validate_url(url, allow_empty=False):
 @arguments(name=unicode, description=unicode, opening_hours=unicode, address=unicode, phone_number=unicode,
            facebook_page=unicode, facebook_name=unicode, facebook_action=unicode, currency=unicode, search_enabled=bool,
            search_keywords=unicode, timezone=unicode, events_visible=bool, email_address=unicode,
-           inbox_email_reminders=bool, iban=unicode, bic=unicode)
+           inbox_email_reminders=bool, iban=unicode, bic=unicode, search_enabled_check=bool)
 def settings_save(name, description=None, opening_hours=None, address=None, phone_number=None, facebook_page=None,
                   facebook_name=None, facebook_action=None, currency=None, search_enabled=True, search_keywords=None,
                   timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None, iban=None,
-                  bic=None):
+                  bic=None, search_enabled_check=False):
     try:
         service_user = users.get_current_user()
         session_ = users.get_current_session()
@@ -559,7 +560,7 @@ def settings_save(name, description=None, opening_hours=None, address=None, phon
         address_geocoded = save_settings(service_user, service_identity, name, description, opening_hours, address,
                                          phone_number, facebook_page, facebook_name, facebook_action, currency,
                                          search_enabled, search_keywords, timezone, events_visible, email_address,
-                                         inbox_email_reminders, iban, bic)
+                                         inbox_email_reminders, iban, bic, search_enabled_check)
 
         r = SaveSettingsResultTO()
         r.address_geocoded = address_geocoded
@@ -591,6 +592,9 @@ def get_all_defaults():
                                          SolutionLogo.create_key(service_user),
                                          SolutionAvatar.create_key(service_user)])
     defaults = []
+
+    if not sln_settings.broadcast_types:
+        defaults.append(u'broadcast_types')
 
     if not logo or logo.is_default:
         defaults.append(u'Logo')
@@ -638,36 +642,18 @@ def settings_save_publish_changes_users(user_keys):
     sln_settings.put()
 
 
-def _update_image(bizz_func, tmp_avatar_key, x1, y1, x2, y2):
-    service_user = users.get_current_user()
-    if not tmp_avatar_key:
-        sln_settings = get_solution_settings(service_user)
-        logging.info("No tmp_avatar_key. Service user pressed save without changing his logo.")
-        return common_translate(sln_settings.main_language, SOLUTION_COMMON,
-                                'Please select a picture')
-    x1 = float(x1)
-    x2 = float(x2)
-    y1 = float(y1)
-    y2 = float(y2)
-    try:
-        bizz_func(service_user, tmp_avatar_key, x1, y1, x2, y2)
-    except Exception as e:
-        logging.exception(e)
-        return e.message
-
-
-@rest("/common/settings/update_logo", "post")
+@rest('/common/settings/logo', 'post')
 @returns(unicode)
-@arguments(tmp_avatar_key=unicode, x1=(float, int), y1=(float, int), x2=(float, int), y2=(float, int))
-def update_logo(tmp_avatar_key, x1, y1, x2, y2):
-    return _update_image(set_logo, tmp_avatar_key, x1, y1, x2, y2)
+@arguments(image=unicode)
+def rest_update_logo(image):
+    return set_logo(users.get_current_user(), image)
 
 
-@rest("/common/settings/update_avatar", "post")
+@rest('/common/settings/avatar', 'post')
 @returns(unicode)
-@arguments(tmp_avatar_key=unicode, x1=(float, int), y1=(float, int), x2=(float, int), y2=(float, int))
-def update_avatar(tmp_avatar_key, x1, y1, x2, y2):
-    return _update_image(set_avatar, tmp_avatar_key, x1, y1, x2, y2)
+@arguments(image=unicode)
+def rest_update_avatar(image):
+    return set_avatar(users.get_current_user(), image)
 
 
 @rest("/common/settings/events/notifications/save", "post")
@@ -680,7 +666,7 @@ def agenda_set_event_notifications(notifications_enabled):
         sln_settings.event_notifications_enabled = notifications_enabled
         sln_settings.put()
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1868,18 +1854,28 @@ def change_broadcast_types_order(broadcast_types):
     return RETURNSTATUS_TO_SUCCESS
 
 
-@rest('/common/settings/broadcast/add_type', 'post')
+@rest('/common/settings/broadcast/add_or_remove_type', 'post')
 @returns(ReturnStatusTO)
-@arguments(broadcast_type=unicode)
-def add_new_broadcast_type(broadcast_type):
+@arguments(broadcast_type=unicode, delete=bool)
+def add_or_remove_broadcast_type(broadcast_type, delete):
     try:
+        updated = False
         sln_settings = get_solution_settings(users.get_current_user())
-        azzert(broadcast_type not in sln_settings.broadcast_types)
-        sln_settings.broadcast_types.append(broadcast_type)
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_settings)
+        translated_broadcast_types = get_translated_broadcast_types(sln_settings)
+        if delete:
+            if translated_broadcast_types[broadcast_type] in sln_settings.broadcast_types:
+                sln_settings.broadcast_types.remove(translated_broadcast_types[broadcast_type])
+                updated = True
+        else:
+            if broadcast_type not in translated_broadcast_types and broadcast_type not in sln_settings.broadcast_types:
+                sln_settings.broadcast_types.append(broadcast_type)
+                updated = True
 
-        broadcast_updates_pending(sln_settings)
+        if updated:
+            sln_settings.updates_pending = True
+            put_and_invalidate_cache(sln_settings)
+            broadcast_updates_pending(sln_settings)
+
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
@@ -1889,14 +1885,24 @@ def add_new_broadcast_type(broadcast_type):
 @returns(ServiceMenuDetailTO)
 @arguments()
 def rest_get_menu():
-    return system.get_menu()
+    service_menu = system.get_menu()
+    user_role_ids = [role.id for role in get_user_defined_roles()]
+
+    def has_user_defined_roles_only(item):
+        return all([role_id in user_role_ids for role_id in item.roles])
+
+    def include_item(item):
+        return '__rt__.' not in item.tag and has_user_defined_roles_only(item)
+
+    service_menu.items = filter(include_item, service_menu.items)
+    return service_menu
 
 
 @rest('/common/settings/facebook/app/id', 'get')
 @returns(str)
 @arguments()
 def get_facebook_app_id():
-    host = os.environ.get('HTTP_X_FORWARDED_HOST') or os.environ.get('HTTP_HOST')
+    host = get_current_http_host()
     app_info = get_facebook_app_info(host)
     if app_info:
         logging.debug('%s --> FB app id %s', host, app_info[0])

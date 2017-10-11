@@ -38,7 +38,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import loyalty as loyalty_bizz, broadcast_updates_pending, get_app_info_cached, \
     SolutionModule
 from solutions.common.bizz.loyalty import add_loyalty_for_user, redeem_loyalty_for_user, calculate_chance_for_user, \
-    delete_visit, request_loyalty_device, calculate_city_wide_lottery_chance_for_user
+    delete_visit, request_loyalty_device, calculate_city_wide_lottery_chance_for_user, get_or_create_city_postal_codes, \
+    add_city_postal_code, remove_city_postal_code
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
     get_solution_loyalty_visits_for_lottery, get_solution_loyalty_visits_for_stamps, \
@@ -54,6 +55,7 @@ from solutions.common.to.loyalty import LoyaltySettingsTO, LoyaltySlideTO, Exten
     CityWideLotteryInfoTO, LoyaltyCityWideLotterySettingsTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 
+
 @rest("/common/loyalty/slides/load", "get", read_only_access=True)
 @returns([LoyaltySlideTO])
 @arguments()
@@ -62,6 +64,7 @@ def load_loyalty_slides():
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     return [LoyaltySlideTO.fromSolutionLoyaltySlideObject(c) for c in get_solution_loyalty_slides(service_user, service_identity)]
+
 
 @rest("/common/loyalty/slides/delete", "post")
 @returns(ReturnStatusTO)
@@ -84,6 +87,7 @@ def load_loyalty_settings():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
+
     def trans():
         sln_l_settings = SolutionLoyaltySettings.get_by_user(service_user)
         if is_default_service_identity(service_identity):
@@ -101,12 +105,12 @@ def load_loyalty_settings():
 @arguments(loyalty_type=(int, long))
 def load_specific_loyalty_settings(loyalty_type):
     service_user = users.get_current_user()
-    # only a shop user can load a specific loyalty type
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
     if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
         loyalty_type = None
+
     def trans():
         sln_l_settings = SolutionLoyaltySettings.get_by_user(service_user)
         if is_default_service_identity(service_identity):
@@ -116,15 +120,14 @@ def load_specific_loyalty_settings(loyalty_type):
         return sln_l_settings, sln_li_settings
     xg_on = db.create_transaction_options(xg=True)
     sln_l_settings, sln_li_settings = db.run_in_transaction_options(xg_on, trans)
-    return LoyaltySettingsTO.fromSolutionLoyaltySettingsObject(sln_l_settings, sln_li_settings, loyalty_type if session_.shop else None) if sln_l_settings else None
+    return LoyaltySettingsTO.fromSolutionLoyaltySettingsObject(sln_l_settings, sln_li_settings, loyalty_type) if sln_l_settings else None
+
 
 @rest("/common/loyalty/settings/put", "post")
 @returns(ReturnStatusTO)
 @arguments(loyalty_type=(int, long), loyalty_settings=object_factory("loyalty_type", LOYALTY_SETTINGS_MAPPING), loyalty_website=unicode)
 def put_loyalty_settings(loyalty_type, loyalty_settings, loyalty_website):
     service_user = users.get_current_user()
-    # only a shop user can update the loyalty type
-    session_ = users.get_current_session()
     try:
         def trans(loyalty_type):
             sln_settings = get_solution_settings(service_user)
@@ -137,6 +140,7 @@ def put_loyalty_settings(loyalty_type, loyalty_settings, loyalty_website):
             if sln_loyalty_settings.loyalty_type != loyalty_type:
                 sln_loyalty_settings.branding_key = None
                 sln_settings.loyalty_branding_hash = None
+                sln_loyalty_settings.loyalty_type = loyalty_type
 
             if sln_loyalty_settings.website != loyalty_website:
                 sln_loyalty_settings.modification_time = now()
@@ -152,9 +156,6 @@ def put_loyalty_settings(loyalty_type, loyalty_settings, loyalty_website):
                 sln_loyalty_settings.stamps_winnings = loyalty_settings.stamps_winnings
                 sln_loyalty_settings.stamps_auto_redeem = loyalty_settings.stamps_auto_redeem
 
-            if session_.shop:
-                sln_loyalty_settings.loyalty_type = loyalty_type
-
             put_and_invalidate_cache(sln_loyalty_settings, sln_settings)
             return sln_settings
 
@@ -166,6 +167,7 @@ def put_loyalty_settings(loyalty_type, loyalty_settings, loyalty_website):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
+
 
 @rest("/common/loyalty/settings/admin/delete", "post")
 @returns(ReturnStatusTO)
@@ -180,6 +182,7 @@ def delete_loyalty_admin(admin_app_user_email):
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
 
+
 @rest("/common/loyalty/settings/admin/update", "post")
 @returns(ReturnStatusTO)
 @arguments(admin_app_user_email=unicode, admin_name=unicode, admin_functions=(int, long))
@@ -188,7 +191,8 @@ def update_loyalty_admin(admin_app_user_email, admin_name, admin_functions):
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     try:
-        loyalty_bizz.update_loyalty_admin(service_user, service_identity, admin_app_user_email, admin_name, admin_functions)
+        loyalty_bizz.update_loyalty_admin(
+            service_user, service_identity, admin_app_user_email, admin_name, admin_functions)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
@@ -199,11 +203,8 @@ def update_loyalty_admin(admin_app_user_email, admin_name, admin_functions):
 @arguments(loyalty_type=(int, long, NoneType), cursor=unicode)
 def load_customer_points(loyalty_type=None, cursor=None):
     service_user = users.get_current_user()
-    # only a shop user can load points of a specific loyalty type
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    if not session_.shop:
-        loyalty_type = None
     loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
     if not loyalty_type:
         loyalty_type = loyalty_settings.loyalty_type
@@ -242,7 +243,7 @@ def load_customer_points(loyalty_type=None, cursor=None):
         app_info = get_app_info_cached(saved_points.user_details.app_id)
         saved_points.user_details.app_name = app_info.name
         saved_points.visits = sorted(saved_points.visits,
-                                     key=lambda x:-x.timestamp)
+                                     key=lambda x: -x.timestamp)
 
     r = LoyaltyCustomersTO()
     r.cursor = cursor_.decode("utf8") if cursor_ else None
@@ -259,9 +260,10 @@ def load_customer_points(loyalty_type=None, cursor=None):
     else:
         r.loyalty_settings = None
     r.customers = sorted(result_dict.itervalues(),
-                    key=lambda x:-x.visits[0].timestamp)
+                         key=lambda x: -x.visits[0].timestamp)
 
     return r
+
 
 @rest("/common/loyalty/visit/delete", "post")
 @returns(ReturnStatusTO)
@@ -293,7 +295,6 @@ def load_detail_customer_points(loyalty_type, email, app_id):
 
     r = LoyaltyCustomerPointsTO()
 
-
     # XXX: don't use get_profile_infos
     profile_infos = get_profile_infos([app_user], allow_none_in_results=True)
     for app_user, profile_info in zip([app_user], profile_infos):
@@ -304,6 +305,7 @@ def load_detail_customer_points(loyalty_type, email, app_id):
         r.user_details.app_name = app_info.name
     r.visits = [SolutionLoyaltyVisitTO.fromModel(visit) for visit in visits]
     return r
+
 
 @rest("/common/loyalty/lottery/chance", "get", read_only_access=True)
 @returns(LoyaltyLotteryChanceTO)
@@ -332,12 +334,13 @@ def load_loyalty_scans():
     for c in loyalty_scans:
         visits = []
         if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
-            visits = get_solution_loyalty_visits_for_revenue_discount(c.service_user, c.service_identity, c.app_user, loyalty_settings.x_visits)
+            visits = get_solution_loyalty_visits_for_revenue_discount(
+                c.service_user, c.service_identity, c.app_user, loyalty_settings.x_visits)
         else:
-            visits = get_solution_loyalty_visits_for_stamps(c.service_user, c.service_identity, c.app_user, loyalty_settings.x_stamps)
+            visits = get_solution_loyalty_visits_for_stamps(
+                c.service_user, c.service_identity, c.app_user, loyalty_settings.x_stamps)
         r.append(LoyaltyScanTO.fromSolutionLoyaltyScanObject(c, loyalty_settings, sln_settings, visits))
     return r
-
 
 
 @rest("/common/loyalty/scans/add", "post")
@@ -373,7 +376,8 @@ def add_loyalty_scan(key, loyalty_type, value):
             jsondata['price'] = value
         else:
             jsondata['count'] = value
-        success, _, _ = add_loyalty_for_user(service_user, sls.service_identity, sls.admin_user, sls.app_user, jsondata, now(), user_details)
+        success, _, _ = add_loyalty_for_user(
+            service_user, sls.service_identity, sls.admin_user, sls.app_user, jsondata, now(), user_details)
         if not success:
             raise BusinessException("error-occured-unknown")
 
@@ -538,12 +542,14 @@ def close_loyalty_lottery_info(key):
             ll_info.deleted = True
             ll_info.put()
 
-        send_message(service_user, u"solutions.common.loyalty.lottery.update", service_identity=ll_info.service_identity)
+        send_message(service_user, u"solutions.common.loyalty.lottery.update",
+                     service_identity=ll_info.service_identity)
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         sln_settings = get_solution_settings(service_user)
         return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+
 
 @rest("/common/loyalty/lottery/load", "get", read_only_access=True)
 @returns([LoyaltyLotteryInfoTO])
@@ -621,15 +627,16 @@ def load_city_wide_lottery_customer_points(city_app_id, cursor=None):
         app_info = get_app_info_cached(saved_points.user_details.app_id)
         saved_points.user_details.app_name = app_info.name
         saved_points.visits = sorted(saved_points.visits,
-                                     key=lambda x:-x.timestamp)
+                                     key=lambda x: -x.timestamp)
 
     r = BaseLoyaltyCustomersTO()
     r.loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_LOTTERY
     r.cursor = cursor_.decode("utf8")
     r.has_more = has_more
     r.customers = sorted(result_dict.itervalues(),
-                    key=lambda x:-x.visits[0].timestamp)
+                         key=lambda x: -x.visits[0].timestamp)
     return r
+
 
 @rest("/common/city_wide_lottery/customer_points/detail", "get", read_only_access=True)
 @returns(LoyaltyCustomerPointsTO)
@@ -649,6 +656,7 @@ def load_city_wide_lottery_detail_customer_points(city_app_id, email, app_id):
         r.user_details.app_name = app_info.name
     r.visits = [SolutionLoyaltyVisitTO.fromModel(visit) for visit in visits]
     return r
+
 
 @rest("/common/city_wide_lottery/chance", "get", read_only_access=True)
 @returns(LoyaltyLotteryChanceTO)
@@ -769,7 +777,8 @@ def close_city_wide_lottery_info(key):
             ll_info.deleted = True
             ll_info.put()
 
-        send_message(service_user, u"solutions.common.loyalty.lottery.update", service_identity=ll_info.service_identity)
+        send_message(service_user, u"solutions.common.loyalty.lottery.update",
+                     service_identity=ll_info.service_identity)
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
@@ -782,3 +791,46 @@ def close_city_wide_lottery_info(key):
 @arguments(city_app_id=unicode)
 def load_city_wide_lottery_info(city_app_id):
     return [CityWideLotteryInfoTO.fromModel(ll_info) for ll_info in SolutionCityWideLottery.load_all(city_app_id)]
+
+
+@rest("/common/city/postal_codes", "get")
+@returns([unicode])
+@arguments(app_id=unicode)
+def restapi_get_city_postal_codes(app_id):
+    return get_or_create_city_postal_codes(app_id).postal_codes
+
+
+def can_edit_city_postal_codes():
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    if SolutionModule.CITY_APP not in sln_settings.modules:
+        raise BusinessException(common_translate(sln_settings.main_language,
+                                                 SOLUTION_COMMON, u'insufficient-permissions'))
+    return sln_settings
+
+
+@rest("/common/city/postal_codes/add", "post")
+@returns(ReturnStatusTO)
+@arguments(app_id=unicode, postal_code=unicode)
+def restapi_add_city_postal_code(app_id, postal_code):
+    try:
+        sln_settings = can_edit_city_postal_codes()
+        add_city_postal_code(app_id, postal_code)
+        return RETURNSTATUS_TO_SUCCESS
+    except ValueError:
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language,
+                                     SOLUTION_COMMON, u'invlid_postal_code'))
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/city/postal_codes/remove", "post")
+@returns(ReturnStatusTO)
+@arguments(app_id=unicode, postal_code=unicode)
+def restapi_remove_city_postal_codes(app_id, postal_code):
+    try:
+        can_edit_city_postal_codes()
+        remove_city_postal_code(app_id, postal_code)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as e:
+        return ReturnStatusTO.create(False, e.message)

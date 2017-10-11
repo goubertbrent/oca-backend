@@ -58,6 +58,7 @@ def _normalize_vat_be(vat):
     bizz_check(len(vat) == 12, "This vat number could not be validated for Belgium (BE 0123 456 789).")
     return vat
 
+
 def _normalize_vat_nl(vat):
     vat = vat.strip().upper()
     country_code = vat[:2]
@@ -68,8 +69,10 @@ def _normalize_vat_nl(vat):
     vat = "".join((c for c in vat if c in "1234567890B"))
     logging.info("vat: " + vat)
     vat = country_code + vat
-    bizz_check(re.match("NL[1234567890]{9,9}B[1234567890]{2,2}", vat), "This vat number could not be validated for the Netherlands (NL999999999B99).")
+    bizz_check(re.match("NL[1234567890]{9,9}B[1234567890]{2,2}", vat),
+               "This vat number could not be validated for the Netherlands (NL999999999B99).")
     return vat
+
 
 def _normalize_vat_fr(vat):
     vat = vat.strip().upper()
@@ -80,6 +83,7 @@ def _normalize_vat_fr(vat):
     vat = country_code + vat
     bizz_check(len(vat) == 13, "This vat number could not be validated for France (FR99 999999999).")
     return vat
+
 
 def _normalize_vat_es(vat):
     vat = vat.strip().upper()
@@ -95,6 +99,8 @@ _vat_validators = dict(BE=_normalize_vat_be,
                        NL=_normalize_vat_nl,
                        FR=_normalize_vat_fr,
                        ES=_normalize_vat_es)
+
+
 def normalize_vat(country, vat):
     bizz_check(country in _vat_validators, "VAT validation is not supported for country " + country)
     return _vat_validators[country](vat)
@@ -334,7 +340,8 @@ class Customer(db.Model):
     team_id = db.IntegerProperty(indexed=False)
     website = db.StringProperty()
     facebook_page = db.StringProperty()
-    # when set to anything lower than the current date that isn't 0, the service of the customer will be disabled over night.
+    # when set to anything lower than the current date that isn't 0, the
+    # service of the customer will be disabled over night.
     subscription_cancel_pending_date = db.IntegerProperty(default=0)
     service_disabled_at = db.IntegerProperty(default=0)  # 0 = not disabled
     disabled_reason = db.StringProperty(indexed=False)
@@ -364,7 +371,6 @@ class Customer(db.Model):
         DISABLED_OTHER: u'Other',
         DISABLED_ASSOCIATION_BY_CITY: u'Disabled by city'
     }
-
 
     @property
     def service_user(self):
@@ -548,7 +554,7 @@ class Customer(db.Model):
 class CustomerSignup(db.Model):
     DEFAULT_MODULES = [SolutionModule.BROADCAST, SolutionModule.BULK_INVITE,
                        SolutionModule.QR_CODES, SolutionModule.STATIC_CONTENT,
-                       SolutionModule.WHEN_WHERE]
+                       SolutionModule.WHEN_WHERE, SolutionModule.ASK_QUESTION]
 
     company_name = db.StringProperty()
     company_organization_type = db.IntegerProperty()
@@ -570,7 +576,7 @@ class CustomerSignup(db.Model):
     modules = db.StringListProperty(default=DEFAULT_MODULES)
     timestamp = db.IntegerProperty()
     done = db.BooleanProperty(indexed=True, default=False)
-    inbox_message_key = db.StringProperty(indexed=False)
+    inbox_message_key = db.StringProperty(indexed=True)
 
     @classmethod
     def list_pending_by_customer_email(cls, email):
@@ -597,7 +603,7 @@ class CustomerSignup(db.Model):
 
     @property
     def city_customer(self):
-        return Customer(self.parent_key())
+        return self.parent()
 
     @property
     def city(self):
@@ -874,6 +880,7 @@ class CreditCard(db.Model):
     @classmethod
     def list_by_contact_id(cls, contact_id):
         return cls.all().filter('contact_id', contact_id)
+
 
 class StructuredInfoSequence(db.Model):
     last_number = db.IntegerProperty(default=0)
@@ -1212,7 +1219,8 @@ class Prospect(db.Model):
     INVITE_RESULT_STRING_NO_ANSWER = 'NO_ANSWER'
     INVITE_RESULT_STRING_CALL_FAILURE = 'CALL_FAILURE'
 
-    INVITE_RESULT_STRINGS = (INVITE_RESULT_STRING_YES, INVITE_RESULT_STRING_NO, INVITE_RESULT_STRING_MAYBE, INVITE_RESULT_STRING_NO_ANSWER, INVITE_RESULT_STRING_CALL_FAILURE)
+    INVITE_RESULT_STRINGS = (INVITE_RESULT_STRING_YES, INVITE_RESULT_STRING_NO,
+                             INVITE_RESULT_STRING_MAYBE, INVITE_RESULT_STRING_NO_ANSWER, INVITE_RESULT_STRING_CALL_FAILURE)
 
     STATUS_TODO = 0
     STATUS_APPOINTMENT_MADE = 1
@@ -1244,7 +1252,8 @@ class Prospect(db.Model):
     app_id = db.StringProperty()
     name = db.StringProperty()
     type = db.StringListProperty()  # google types like [cafe, food, establishment...]
-    categories = db.StringListProperty()  # Simplified/summarised version of google place types. See PROSPECT_CATEGORIES dict.
+    # Simplified/summarised version of google place types. See PROSPECT_CATEGORIES dict.
+    categories = db.StringListProperty()
     address = db.StringProperty()
     geo_point = db.GeoPtProperty()
     phone = db.StringProperty()
@@ -1344,8 +1353,8 @@ class ShopTask(db.Model):
     TYPE_CHECK_CREDIT_CARD = 4
 
     TYPE_STRINGS = {
-        TYPE_VISIT : u'Visit',
-        TYPE_CALL : u'Call',
+        TYPE_VISIT: u'Visit',
+        TYPE_CALL: u'Call',
         TYPE_SUPPORT_NEEDED: u'Support',
         TYPE_CHECK_CREDIT_CARD: u'Check creditcard'
     }
@@ -1364,9 +1373,9 @@ class ShopTask(db.Model):
     STATUS_PROCESSED = 2
     STATUS_CLOSED = 3
 
-    STATUS_STRINGS = {STATUS_NEW : u'New',
-                      STATUS_PROCESSED : u'Processed',
-                      STATUS_CLOSED : u'Closed'}
+    STATUS_STRINGS = {STATUS_NEW: u'New',
+                      STATUS_PROCESSED: u'Processed',
+                      STATUS_CLOSED: u'Closed'}
     APPOINTMENT_TYPE_FIRST_APPOINTMENT = 1
     APPOINTMENT_TYPE_LOYALTY_EXPLANATION = 2
     APPOINTMENT_TYPE_SIGN = 3
@@ -1489,8 +1498,10 @@ class ProspectHistory(db.Model):
     created_time = db.IntegerProperty(indexed=False)
     type = db.IntegerProperty(indexed=False)  # Same types as ShopTask, can be None (call back, visit, ...)
     comment = db.TextProperty(indexed=False)  # Comment added by regiomanager.
-    status = db.IntegerProperty(indexed=False)  # from Prospect-> status (contact later, not existing, irrelevant, customer, ...)
-    reason = db.StringProperty(indexed=False, multiline=True)  # from Prospect -> reason (too expensive, asked to contact later, ...)
+    # from Prospect-> status (contact later, not existing, irrelevant, customer, ...)
+    status = db.IntegerProperty(indexed=False)
+    # from Prospect -> reason (too expensive, asked to contact later, ...)
+    reason = db.StringProperty(indexed=False, multiline=True)
 
     @property
     def id(self):
@@ -1535,6 +1546,7 @@ class ShopLoyaltySlide(db.Model):
         if self.gcs_filename:
             return get_serving_url(self.gcs_filename)
         return unicode("%s/unauthenticated/loyalty/slide?%s" % (server_settings.baseUrl, urllib.urlencode(dict(slide_key=self.item.key()))))
+
 
 class ShopLoyaltySlideNewOrder(db.Model):
     timestamp = db.IntegerProperty(indexed=False)
@@ -1638,7 +1650,6 @@ class LegalEntity(CachedModelMixIn, db.Model):
     def get_mobicage(cls):
         from shop.dal import get_mobicage_legal_entity
         return get_mobicage_legal_entity()  # this method is cached
-
 
     def get_or_create_customer(self):
         if self.customer_id:

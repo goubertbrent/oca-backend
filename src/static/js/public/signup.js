@@ -56,7 +56,7 @@ $(function() {
         var vatInput = $('#enterprise_vat');
         sln.configureDelayedInput(vatInput, function() {
             validateVat(vatInput);
-        }, null, false, 500, true);
+        }, null, false, 3000, true);
 
         for(var i = 0; i <= 3; i++) {
             tabs.push($('#tab' + i));
@@ -64,7 +64,7 @@ $(function() {
     }
 
     function setEditableOrganizationTypes(types) {
-        $('#organization_types div[class=radio').remove();
+        $('#organization_types div[class=radio]').remove();
         $('#organization_types').show();
 
         var selectFirstType = true;
@@ -136,57 +136,70 @@ $(function() {
         }
     }
 
+    function fillInput(inputId, value) {
+        var input = $('#' + inputId);
+        if (!input.val().trim()) {
+            input.val(value);
+        }
+    }
+
+    function clearErrors(input) {
+        input.next('p[class=text-error], [class=text-warning]').remove();
+    }
+
     function validateVat(input) {
         var vat = input.val().replace(/\s/g,'');
-
-        input.next('p[class=text-error]').remove();
         if(!vat) {
-            $('#next').attr('disabled', false);
+            // clear any prev errors/warnings
+            clearErrors(input);
             return;
-        } else {
-            $('#next').attr('disabled', true);
         }
 
+        var country = $('#app option:selected').attr('country');
+        if(isDigit(vat[0])) {
+            vat = country + vat;
+        }
+
+        $('#next').attr('disabled', true);
         sln.call({
             url: '/unauthenticated/osa/company/info',
             type: 'get',
             data: {
-                vat: vat
+                vat: vat,
+                country: country
             },
             success: function(data) {
-                var country, errorMessage;
-                var country = $('#app option:selected').attr('country').toLowerCase();
-                if(data.errormsg) {
-                    // vat is invalid
+                var errorMessage, warningMessage;
+                if(data.errormsg && !data.vat) {
                     errorMessage = SignupTranslations.VAT_INVALID;
-                } else if(data.country.toLowerCase() !== country) {
+                } else if(data.errormsg && data.vat) {
+                    // vat format is valid, but it's unknown
+                    warningMessage = SignupTranslations.VAT_UNKNOWN;
+                } else if(data.country.toUpperCase() !== country) {
                     errorMessage = SignupTranslations.VAT_INCORRECT_COUNTRY;
                 } else {
-                    var enterpriseDetails = gatherFromInputs('enterprise');
-                    if(!enterpriseDetails.name) {
-                        $('#enterprise_name').val(data.name);
-                    }
-                    if(!enterpriseDetails.address1) {
-                        var address = data.address1;
-                        if(data.address2) {
-                            address += ', ' + data.address2;
-                        }
-                        $('#enterprise_address1').val(address);
-                    }
-                    if(!enterpriseDetails.zip_code) {
-                        $('#enterprise_zip_code').val(data.zip_code);
-                    }
-                    if(!enterpriseDetails.city) {
-                        $('#enterprise_city').val(data.city);
-                    }
-                    $('#next').attr('disabled', false);
+                    fillInput('enterprise_name', data.name);
+                    fillInput('enterprise_address1', data.address1 + (data.address2 ? ', ' + data.address2 : ''));
+                    fillInput('enterprise_zip_code', data.zip_code);
+                    fillInput('enterprise_city', data.city);
                 }
 
+                if(data.vat) {
+                    $('#enterprise_vat').val(data.vat);
+                }
+
+                $('#next').attr('disabled', false);
+                clearErrors(input);
                 if(errorMessage) {
                     $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
+                } else if(warningMessage) {
+                    $('<p class="text-warning">' + warningMessage + '</p>').insertAfter(input);
                 }
             },
-            error: sln.showAjaxError
+            error: function() {
+                $('#next').attr('disabled', false);
+                sln.showAjaxError()
+            }
         });
     }
 
@@ -235,14 +248,13 @@ $(function() {
                     sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                 } else {
                     var email = gatherFromInputs('entrepreneur').user_email;
-                    $('#signup_note').text(SignupTranslations.SIGNUP_SUCCCESS.replace('%(email)s', email));
+                    $('#signup_note').removeClass('white-text').parent().addClass('white-box');
+                    $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
                     $('#signup_box').hide();
+                    $('#go_back').show();
                 }
             },
-            error: function() {
-                sln.hideProcessing();
-                sln.showAjaxError();
-            }
+            error: sln.showAjaxError
         });
 
         grecaptcha.reset();
@@ -261,6 +273,13 @@ $(function() {
     }
 
     function nextStep() {
+        if(currentStep == 2) {
+            var vatError = $('#enterprise_vat').next('p[class=text-error]');
+            if(vatError.length) {
+                return;
+            }
+        }
+
         if(!validateInputs(getCurrentTab()) || isLastStep()) {
             return;
         }

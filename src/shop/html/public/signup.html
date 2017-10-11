@@ -1,6 +1,6 @@
 {% extends 'public/base.html' %}
 
-{% block title %}{% translate language, "common", "signup" %}{% endblock%}
+{% block title %}{% translate language, "common", "signup" %}{% endblock %}
 
 {% block css %}
     <link rel="stylesheet" href="/static/css/public/signup.css">
@@ -9,19 +9,21 @@
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
 
-    var SignupTranslations = {
-        SIGNUP_SUCCCESS: '{% translate language, "common", "signup_verification_note" %}',
-        VAT_INVALID: '{% translate language, "common", "vat_invalid" %}',
-        VAT_INCORRECT_COUNTRY: '{% translate language, "common", "vat_incorrect_country" %}',
-    };
+        var SignupTranslations = {
+            SIGNUP_SUCCCESS: {{ signup_success }},
+            VAT_INVALID: '{% translate language, "common", "vat_invalid" %}',
+            VAT_UNKNOWN: '{% translate language, "common", "vat_unknown" %}',
+            VAT_INCORRECT_COUNTRY: '{% translate language, "common", "vat_incorrect_country" %}',
+        };
 
     </script>
+    <script src="/static/js/public/signup.js"></script>
 {% endblock %}
 
 {% block content %}
             <div class="span12" style="float: none; margin: 0 auto;">
+                <h1 class="white-text">{% translate language, "common", "signup" %}</h1>
                 <div class="span12">
-                    <h1 class="white-text">{% translate language, "common", "signup" %}</h2>
                     <p id="signup_note" class="white-text" style="word-wrap: break-word;" align="justify">
                         {% if email_verified %}
                         {% translate language, "common", "your_registration_request_submitted" %}
@@ -29,10 +31,14 @@
                         {% translate language, "common", "signup_note" %}
                         {% endif %}
                     </p>
+                    <br/>
+                    <a id="go_back" class="btn btn-wizard" href="/customers/signin" style="display: none;">
+                        {% translate language, "common", "okay-i-got-it" %}
+                    </a>
                 </div>
                 {% if not email_verified %}
                 <div id="signup_box" class="span12 white-box">
-                    <form id="signup_form" class="form-horizontal">
+                    <form id="signup_form" class="form-horizontal" autocomplete="off">
                         <div id="tab0">
                             <div class="control-group">
                                 <div class="controls">
@@ -183,8 +189,7 @@
                         <div class="clearfix"></div>
                     </form>
 
-                    <script src="/static/js/public/signup.js"></script>
-                </div>
-                {% endif %}
             </div>
+        {% endif %}
+    </div>
 {% endblock %}

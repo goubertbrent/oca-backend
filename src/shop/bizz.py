@@ -24,12 +24,14 @@ import logging
 import os
 import sys
 import urllib
+import urlparse
 from collections import OrderedDict
 from contextlib import closing
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from functools import partial
 from types import NoneType
 
 from apiclient.discovery import build
@@ -62,6 +64,7 @@ from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, Ser
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
+from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -284,7 +287,8 @@ def re_index_customer(customer_key):
     fields = [search.AtomField(name='customer_key', value=str(customer_key)),
               search.TextField(name='customer_id', value=str(customer_key.id())),
               search.TextField(name='customer_name', value=customer.name),
-              search.TextField(name='customer_address', value=" ".join([customer.address1 or '', customer.address2 or ''])),
+              search.TextField(name='customer_address', value=" ".join(
+                  [customer.address1 or '', customer.address2 or ''])),
               search.TextField(name='customer_zip_code', value=customer.zip_code),
               search.TextField(name='customer_city', value=customer.city),
               search.TextField(name='customer_team_id', value=unicode(customer.team_id))
@@ -808,19 +812,28 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 if path.startswith('/customers/signin'):
                     login_url = 'https://' + url
 
+            parsed_login_url = urlparse.urlparse(login_url)
+            action = shop_translate(customer.language, 'password_reset')
+            url_params = get_reset_password_url_params(customer.name, users.User(user_email), action=action)
+            reset_password_link = '%s://%s%s?%s' % (parsed_login_url.scheme, parsed_login_url.netloc,
+                                                    '/customers/setpassword', url_params)
+
             # TODO: email with OSA style in header, footer
             with closing(StringIO()) as sb:
-                sb.write(shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
+                sb.write(
+                    shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'your_service_created').encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=login_url,
                                         login=user_email, password=r.password).encode('utf-8'))
+                sb.write('\n')
+                sb.write(shop_translate(customer.language, 'do_you_want_another_password', link=reset_password_link))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
                 sb.write('\n\n')
                 sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-                body = sb.getvalue()
+                body = sb.getvalue().replace('\n', '<br/>')
 
             # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
 
@@ -833,7 +846,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             msg['Subject'] = subject
             msg['From'] = from_email
             msg['To'] = user_email
-            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            msg.attach(MIMEText(body, 'html', 'utf-8'))
             send_mail_via_mime(from_email, [user_email], msg, transactional=True)
         if to_put:
             db.put(to_put)
@@ -989,7 +1002,8 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
             sub_order = None
             if extra_months > 0:
                 sub_order = Order.get_by_order_number(customer_id, customer.subscription_order_number)
-                next_charge_datetime = datetime.datetime.utcfromtimestamp(sub_order.next_charge_date) + relativedelta(months=extra_months)
+                next_charge_datetime = datetime.datetime.utcfromtimestamp(
+                    sub_order.next_charge_date) + relativedelta(months=extra_months)
                 sub_order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
                 sub_order.put()
 
@@ -1249,7 +1263,8 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
     # TODO: email with OSA styling (header, footer)
 
     with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name', name="%s %s" % (contact.first_name, contact.last_name)).encode('utf-8'))
+        sb.write(shop_translate(customer.language, 'dear_name', name="%s %s" %
+                                (contact.first_name, contact.last_name)).encode('utf-8'))
         sb.write('\n\n')
         sb.write(
             shop_translate(customer.language, 'invoice_is_available', invoice=invoice.invoice_number).encode('utf-8'))
@@ -1390,10 +1405,10 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
                     raise BusinessException('Charge with id %s not found' % charge_id)
                 if charge.status == Charge.STATUS_EXECUTED:
                     raise BusinessException(
-                            'Charge with id %s has already been executed so it cannot be canceled' % charge_id)
+                        'Charge with id %s has already been executed so it cannot be canceled' % charge_id)
                 if charge.invoice_number != '':
                     raise BusinessException(
-                            'Charge with id %s already has an invoice so it cannot be canceled' % charge_id)
+                        'Charge with id %s already has an invoice so it cannot be canceled' % charge_id)
                 charge.status = Charge.STATUS_CANCELLED
                 charge.date_cancelled = now()
                 to_put.append(charge)
@@ -1526,7 +1541,8 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
     msg["Reply-To"] = solution_server_settings.shop_reply_to_email
 
     with closing(StringIO()) as sb:
-        sb.write(shop_translate(customer.language, 'dear_name', name=(contact.first_name + ' ' + contact.last_name)).encode('utf-8'))
+        sb.write(shop_translate(customer.language, 'dear_name', name=(
+            contact.first_name + ' ' + contact.last_name)).encode('utf-8'))
         sb.write('\n\n')
         sb.write(shop_translate(customer.language, 'pro_forma_in_attachment').encode('utf-8'))
         sb.write('\n')
@@ -1761,7 +1777,7 @@ def put_prospect(current_user, prospect_id, name, phone, address, email, website
         db.put(to_put)
 
         deferred.defer(broadcast_prospect_update if is_update else broadcast_prospect_creation,
-                   current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
+                       current_user, prospect, _transactional=True, _queue=FAST_QUEUE)
         from shop.business.prospect import re_index_prospect
         deferred.defer(re_index_prospect, prospect, _transactional=True, _queue=FAST_QUEUE)
         return prospect
@@ -2049,6 +2065,7 @@ def create_task(created_by, prospect_or_key, assignee, execution_time, task_type
                     subscription=subscription,
                     app_id=app_id)
 
+
 @returns()
 @arguments(assignees=[unicode])
 def broadcast_task_updates(assignees):
@@ -2080,6 +2097,7 @@ def broadcast_prospect_creation(current_user, prospect):
     channel.send_message(target_users, 'shop.prospect.created',
                          prospect=serialize_complex_value(ProspectTO.from_model(prospect), ProspectTO, False))
 
+
 @returns(RegioManagerTeam)
 @arguments(team_id=(int, long, NoneType), name=unicode, legal_entity_id=(int, long, NoneType),
            app_ids=[unicode])
@@ -2106,6 +2124,7 @@ def put_regio_manager_team(team_id, name, legal_entity_id, app_ids):
         return rmt
 
     return db.run_in_transaction(trans)
+
 
 @returns(RegioManager)
 @arguments(current_user=users.User, email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO],
@@ -2360,7 +2379,8 @@ def get_payed(customer_id, order_or_number, charge_or_id):
 
         # Check if we can find a payment with this description
         stripe_charge_match = None
-        stripe_charges = stripe.Charge.all(api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
+        stripe_charges = stripe.Charge.all(
+            api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
         for stripe_charge in stripe_charges.data:
             if stripe_charge.metadata.osa_charge_id and long(
                     stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
@@ -2605,7 +2625,8 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
                 if service.email != customer.user_email:
                     email_has_changed = True
 
-            update_contact(customer.id, Contact.get_one(customer.key()).id, customer.name, u'', service.email, service.phone_number)
+            update_contact(customer.id, Contact.get_one(customer.key()).id,
+                           customer.name, u'', service.email, service.phone_number)
         else:
             is_new = True
             # create a new service. Name of the customer, contact, and service will all be the same.
@@ -2633,7 +2654,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
     return customer, email_changed, is_new_association
 
 
-def get_signup_summary(lang, customer_signup, app_id):
+def get_signup_summary(lang, customer_signup):
     """Get a translated signup summary.
 
     Args:
@@ -2644,7 +2665,9 @@ def get_signup_summary(lang, customer_signup, app_id):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
-    org_type_name = ServiceProfile.localized_singular_organization_type(org_type, lang, app_id)
+    org_type_name = ServiceProfile.localized_singular_organization_type(
+        org_type, lang, customer_signup.city_customer.app_id)
+
     sector_title = u''
     if customer_signup.company_sector:
         sector = ServiceSector.get_by_name(customer_signup.company_sector)
@@ -2659,7 +2682,7 @@ def get_signup_summary(lang, customer_signup, app_id):
     summary += u'\n{}\n'.format(org_type_name)
     summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
     summary += u'{}: {}\n'.format(trans('sector'), sector_title)
-    summary += u'{}: {}\n'.format(trans('organization_type'), sector_title)
+    summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
     summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.company_name)
     summary += u'{}: {}\n'.format(trans('address'), customer_signup.company_address1)
     summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.company_zip_code)
@@ -2711,8 +2734,9 @@ def calculate_signup_url_digest(data):
     return alg.hexdigest()
 
 
-def send_signup_verification_email(city_customer, signup):
+def send_signup_verification_email(city_customer, signup, host=None):
     from solutions.common.bizz import send_email
+    from solutions.common.handlers import JINJA_ENVIRONMENT
 
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
@@ -2720,17 +2744,25 @@ def send_signup_verification_email(city_customer, signup):
     data = encrypt(user, json.dumps(data))
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.encodestring(data)})
 
-    link = '{}/customers/signup?{}'.format(get_server_settings().baseUrl, url_params)
     lang = city_customer.language
-    subject = city_customer.name + ' - ' + common_translate(lang, SOLUTION_COMMON, 'signup')
-    message = common_translate(lang, SOLUTION_COMMON, 'signup_verification_email',
-                               name=signup.customer_name, link=link)
-    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message)
+    translate = partial(common_translate, lang, SOLUTION_COMMON)
+
+    link = '{}/customers/signup?{}'.format(host or get_server_settings().baseUrl, url_params)
+    subject = city_customer.name + ' - ' + translate('signup')
+    params = {
+        'language': lang,
+        'name': signup.customer_name,
+        'link_text': translate('verify'),
+        'link': link
+    }
+    message = JINJA_ENVIRONMENT.get_template('emails/signup_verification.tmpl').render(params)
+    html_message = JINJA_ENVIRONMENT.get_template('emails/signup_verification_html.tmpl').render(params)
+    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message, html_body=html_message)
 
 
 @returns()
-@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
-def create_customer_signup(city_customer_id, company, customer, recaptcha_token):
+@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode, domain=unicode)
+def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None):
     if not recaptcha_verify(recaptcha_token):
         raise BusinessException('Cannot verify recaptcha response')
 
@@ -2763,7 +2795,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
 
     signup.timestamp = now()
     signup.put()
-    send_signup_verification_email(city_customer, signup)
+    send_signup_verification_email(city_customer, signup, domain)
 
 
 @returns()
@@ -2771,8 +2803,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token)
 def complete_customer_signup(email, data):
     try:
         user = users.User(email)
-        data = base64.decodestring(decrypt(user, data))
-        data = json.loads(data)
+        data = base64.decodestring(data)
+        data = json.loads(decrypt(user, data))
         azzert(data['d'] == calculate_signup_url_digest(data))
     except:
         raise InvalidUrlException
@@ -2884,3 +2916,12 @@ def get_customer_charges(user, paid, limit=50, cursor=None):
     result.customer_charges = customer_charges
     result.cursor = unicode(cursor)
     return result
+
+
+@returns([tuple])
+@arguments(customer=Customer, language=unicode)
+def get_organization_types(customer, language):
+    if not customer:
+        return []
+    return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, language, customer.app_id))
+            for org_type in customer.editable_organization_types]

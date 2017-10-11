@@ -67,7 +67,8 @@ $(function() {
 
         $.each(data.customer_charges, function(i, customer_charge) {
             var charge = customer_charge.charge;
-            if(loadedCharges.indexOf(charge.id) === -1) {
+            var cacheKey = customer_charge.customer.id + "." + charge.id;
+            if(loadedCharges.indexOf(cacheKey) === -1) {
                 var chargeRow = $.tmpl(JS_TEMPLATES.charge, {
                     customer: customer_charge.customer,
                     charge: charge,
@@ -76,7 +77,7 @@ $(function() {
                     is_reseller: is_reseller
                 });
                 chargesTable.append(chargeRow);
-                loadedCharges.push(charge.id);
+                loadedCharges.push(cacheKey);
             }
         });
 

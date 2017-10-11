@@ -66,3 +66,8 @@ function validateInputs(parent) {
 
     return allValid;
 }
+
+
+function isDigit(str) {
+    return !isNaN(parseInt(str));
+}

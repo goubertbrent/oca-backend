@@ -15,8 +15,6 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
-
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -35,9 +33,10 @@ import solutions.common.restapi.statistics
 import solutions.common.restapi.store
 import solutions.djmatic.restapi
 from mcfw.restapi import rest_functions
+from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
-    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetTmpSolutionImageHandler, \
-    UploadSolutionLogoHandler, UploadSolutionAvatarHandler, GetSolutionAvatarHandler, FlowStatisticsExportHandler
+    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
+    FlowStatisticsExportHandler
 from solutions.common.handlers.broadcast import UploadAttachmentHandler
 from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
     ExportVoucherHandler
@@ -45,6 +44,7 @@ from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandl
 from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
 from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
     LoyaltySlideOverlayHandler, ExportLoyaltyHandler
+from solutions.common.handlers.menu import ExportMenuHandler
 from solutions.common.handlers.service import LoginAsServiceHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler
@@ -56,10 +56,7 @@ handlers = [
     ('/common/login_as', LoginAsServiceHandler),
     ('/common/broadcast/attachment/upload', UploadAttachmentHandler),
     ('/common/settings/my_logo', GetSolutionLogoHandler),
-    ('/common/settings/tmp_blob', GetTmpSolutionImageHandler),
-    ('/common/settings/logo/post', UploadSolutionLogoHandler),
     ('/common/settings/my_avatar', GetSolutionAvatarHandler),
-    ('/common/settings/avatar/post', UploadSolutionAvatarHandler),
     ('/common/image_viewer', ImageViewerHandler),
     ('/common/main_branding/(.*)', SolutionMainBrandingHandler),
     ('/common/order/pdf', OrderPdfHandler),
@@ -75,6 +72,7 @@ handlers = [
     ('/common/discussion_groups/(\d+)/pdf', DiscussionGroupsPdfHandler),
     ('/common/city/vouchers/qr/download/(\d+)', CityVouchersDownloadHandler),
     ('/common/city_vouchers/export', CityVoucherExportHandler),
+    ('/common/restaurant/menu/export', ExportMenuHandler),
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi))

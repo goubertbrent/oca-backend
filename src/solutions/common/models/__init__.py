@@ -274,6 +274,7 @@ class SolutionSettings(SolutionIdentitySettings):
     bic = db.StringProperty(indexed=False)
 
     search_enabled = db.BooleanProperty(indexed=False, default=False)
+    search_enabled_check = db.BooleanProperty(indexed=False, default=True)
 
     menu_item_color = db.StringProperty(indexed=False)
 
@@ -606,11 +607,6 @@ class SolutionNewsPublisher(db.Model):
         return db.Key.from_path(SolutionNewsPublisher.kind(),
                                 app_user.email(),
                                 parent=parent_key(service_user, solution))
-
-
-class SolutionTempBlob(db.Model):
-    timeout = db.IntegerProperty(indexed=True)
-    blob_key = db.StringProperty(indexed=False)
 
 
 class SolutionEmailSettings(CachedModelMixIn, db.Model):

@@ -925,9 +925,6 @@ $(function () {
             url: '/common/get_menu',
             type: 'GET',
             success: function (serviceMenu) {
-                serviceMenu.items = serviceMenu.items.filter(function (item) {
-                    return item.roles.length === 0 && item.tag.indexOf('__rt__.') === -1;
-                });
                 LocalCache.serviceMenu = serviceMenu;
                 renderNewsPage(serviceMenu, newsItem);
             }
@@ -1255,6 +1252,7 @@ $(function () {
             }
             return actionButton.action.split('://')[1];
         }
+
         function render(broadcastOptions, appStatistics, menu, sandwichSettings) {
             var actionButtonId, actionButton, actionButtonLabel, flowParams, canOrderApps, result,
                 restaurantReservationDate, selectedSandwich, actionButtonValue;
@@ -1358,7 +1356,8 @@ $(function () {
                 sandwichSettings: sandwichSettings,
                 selectedSandwich: selectedSandwich || {},
                 isFlagSet: sln.isFlagSet,
-                allowedButtonActions: allowedButtonActions
+                allowedButtonActions: allowedButtonActions,
+                roles: broadcastOptions.roles,
             };
             var html = $.tmpl(templates['broadcast/broadcast_news'], params);
             $('#broadcast_page_news').html(html);
@@ -1458,6 +1457,7 @@ $(function () {
             elemNewsActionAttachmentCaption = $('#news_action_attachment_caption'),
             elemNewsActionAttachmentValue = $('#news_action_attachment_value'),
             elemCheckboxesApps = elemForm.find('input[name=news_checkbox_apps]'),
+            elemCheckboxesRoles = elemForm.find('#roles').find('input[type=checkbox]'),
             elemNewsActionRestaurantDatepicker = $('#news_action_restaurant_reservation_datepicker'),
             elemNewsActionRestaurantTimepicker = $('#news_action_restaurant_reservation_timepicker'),
             elemNewsActionSandwichType = $('#news_action_sandwich_bar_types'),
@@ -1918,9 +1918,14 @@ $(function () {
                 data.target_audience = {
                     min_age: parseInt($('#age_min').val()),
                     max_age: parseInt($('#age_max').val()),
-                    gender: parseInt($('#gender').val())
+                    gender: parseInt($('#gender').val()),
+                    connected_users_only: $('#connected_users_only').is(':checked')
                 };
             }
+            data.role_ids = []
+            elemCheckboxesRoles.filter(':checked').each(function() {
+                data.role_ids.push(parseInt($(this).val()));
+            });
             return data;
         }
 
@@ -2327,6 +2332,21 @@ $(function () {
             modules.loyalty.requestLoyaltyDevice('News coupons');
         }
 
+        function autoRequireActionButtonRoles() {
+            var tag = elemSelectButton.val();
+            var menuItem = LocalCache.serviceMenu.items.filter(function(item) {
+                return item.tag === tag;
+            })[0];
+
+            if (!menuItem) {
+                return;
+            }
+
+            $.each(menuItem.roles, function() {
+                elemCheckboxesRoles.parent().find('input[type=checkbox][value=' + this + ']').prop('required', true);
+            });
+        }
+
         function nextStep() {
             if (elemButtonNext.attr('disabled')) {
                 return;
@@ -2364,11 +2384,19 @@ $(function () {
             // check if the attachment is provided
             // the attachment url is hidden
             if(currentStep === 4) {
-                if(data.action_button && data.action_button.id === 'attachment') {
-                    var attachmentUrl = $('#news_action_attachment_value').val().trim();
-                    if(attachmentUrl === '') {
-                        sln.alert(T('please_add_attachment'), null, CommonTranslations.ERROR);
-                        return;
+                elemCheckboxesRoles.prop('required', false);
+
+                if(data.action_button) {
+                    if(data.action_button.id === 'attachment') {
+                        var attachmentUrl = $('#news_action_attachment_value').val().trim();
+                        if(attachmentUrl === '') {
+                            sln.alert(T('please_add_attachment'), null, CommonTranslations.ERROR);
+                            return;
+                        }
+                    }
+
+                    if(data.action_button.action.startsWith('smi')) {
+                        autoRequireActionButtonRoles();
                     }
                 }
             }

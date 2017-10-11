@@ -45,7 +45,7 @@ class SandwichSettings(db.Model):
     status_days = db.IntegerProperty(default=31)
     time_from = db.IntegerProperty(default=28800)
     time_until = db.IntegerProperty(default=46800)
-    broadcast_days = db.IntegerProperty(default=31)
+    broadcast_days = db.IntegerProperty(default=0)
     reminder_broadcast_message = db.TextProperty()
     remind_at = db.IntegerProperty(default=39600)
     show_prices = db.BooleanProperty(default=True)

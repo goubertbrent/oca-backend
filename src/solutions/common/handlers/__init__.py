@@ -16,27 +16,21 @@
 # @@license_version:1.2@@
 
 import base64
-from contextlib import closing
-import imghdr
 import logging
 import os
+from contextlib import closing
 from zipfile import ZipFile
 
-from lxml import html, etree
+import jinja2
+import webapp2
+from google.appengine.ext import webapp, db
 
 from PyPDF2.pdf import PdfFileReader
-from google.appengine.api import images
-from google.appengine.api.images import BadRequestError
-from google.appengine.ext import webapp, db
-from google.appengine.runtime.apiproxy_errors import RequestTooLargeError
-import jinja2
-from mcfw.properties import azzert
+from lxml import html, etree
 from rogerthat.consts import MAX_BRANDING_PDF_SIZE
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.rpc import users
-from rogerthat.rpc.models import TempBlob
 from rogerthat.service.api import system
-from rogerthat.utils import now, correct_base64_padding_if_needed
 from rogerthat.utils.channel import broadcast_via_iframe_result, send_message
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Order
@@ -48,8 +42,6 @@ from solutions.common.models import SolutionLogo, SolutionAvatar
 from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
-import webapp2
-
 
 try:
     from cStringIO import StringIO
@@ -83,81 +75,6 @@ class GetSolutionAvatarHandler(GetSolutionLogoHandler):
     def not_found(self):
         from rogerthat.bizz.profile import UNKNOWN_AVATAR
         return UNKNOWN_AVATAR
-
-
-class GetTmpSolutionImageHandler(webapp.RequestHandler):
-    def get(self):
-        user = users.get_current_user()
-        key = self.request.GET['key']
-        if "?" in key:
-            key = key.split("?", 1)[0]
-        key = correct_base64_padding_if_needed(key)
-        tb = TempBlob.get(key)
-        azzert(tb.parent_key() == parent_key(user))
-        self.response.headers['Content-Type'] = "image/png"
-        self.response.out.write(tb.blob)
-
-
-class UploadSolutionLogoHandler(webapp.RequestHandler):
-    IMAGE_TYPE = 'logo'
-
-    def post(self):
-        service_user = users.get_current_user()
-        sln_settings = get_solution_settings(service_user)
-        try:
-            tb = TempBlob(parent=parent_key(service_user))
-            tb.timeout = now() + 24 * 60 * 60
-            image = self.request.get("newAvatar")
-            image_type = imghdr.what(None, image)
-            try:
-                img = images.Image(image)
-                img.horizontal_flip()
-                img.horizontal_flip()
-                orig_width = img.width
-                orig_height = img.height
-                orig_image = image
-                size = min(100, 100 * 4000 / max(orig_width, orig_height))  # max 4000 wide/high
-                while len(image) > (1024 * 1024 - 100 * 1024):
-                    size -= size / 10
-                    img = images.Image(orig_image)
-                    img.resize(orig_width * size / 100, orig_height * size / 100)
-                    image = img.execute_transforms(images.JPEG if image_type == 'jpeg' else images.PNG)
-                tb.blob = db.Blob(image)
-            except images.NotImageError:
-                logging.info("Sending failure to the logged on users (%s) channel" % service_user.email())
-                self.response.out.write(broadcast_via_iframe_result(u"solutions.common.settings.%s_upload_failed" % self.IMAGE_TYPE,
-                                                                    error=translate(sln_settings.main_language, SOLUTION_COMMON, 'uploaded-file-not-an-image')))
-                return
-            except IOError, e:
-                logging.info("Sending failure to the logged on users (%s) channel" % service_user.email())
-                self.response.out.write(broadcast_via_iframe_result(u"solutions.common.settings.%s_upload_failed" % self.IMAGE_TYPE,
-                                                                    error=e.message))
-                return
-            except BadRequestError, e:
-                logging.info("Sending failure to the logged on users (%s) channel" % service_user.email())
-                self.response.out.write(broadcast_via_iframe_result(u"solutions.common.settings.%s_upload_failed" % self.IMAGE_TYPE,
-                                                                    error=e.message))
-                return
-
-            try:
-                tb.put()
-            except RequestTooLargeError:
-                logging.info("Sending failure to the logged on users (%s) channel" % service_user.email())
-                self.response.out.write(broadcast_via_iframe_result(u"solutions.common.settings.%s_upload_failed" % self.IMAGE_TYPE,
-                                                                    error=translate(sln_settings.main_language, SOLUTION_COMMON, 'picture-size-too-large')))
-                return
-            logging.info("Sending result to the logged on users (%s) channel" % service_user.email())
-            self.response.out.write(broadcast_via_iframe_result(u"solutions.common.settings.%s_uploaded" % self.IMAGE_TYPE,
-                                                                key=str(tb.key())))
-        except:
-            logging.exception("Sending failure to the logged on users (%s) channel" % service_user.email())
-            self.response.out.write(broadcast_via_iframe_result(u"solutions.common.settings.%s_upload_failed" % self.IMAGE_TYPE,
-                                                                error=u"Imaging system failed for indeterminable reasons."))
-            return
-
-
-class UploadSolutionAvatarHandler(UploadSolutionLogoHandler):
-    IMAGE_TYPE = 'avatar'
 
 
 class ImageViewerHandler(webapp2.RequestHandler):

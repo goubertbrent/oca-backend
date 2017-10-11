@@ -61,7 +61,7 @@ class GetOSALaucherAppHandler(webapp.RequestHandler):
             try:
                 gae_filename = '%s/oca/launcher/apps/%s.apk' % (ROGERTHAT_ATTACHMENTS_BUCKET, app_id)
                 self.response.headers['Content-Type'] = "application/vnd.android.package-archive"
-                self.response.headers['Content-Disposition'] = 'attachment; filename=%s' % filename
+                self.response.headers['Content-Disposition'] = str('attachment; filename=%s' % filename)
                 with cloudstorage.open(gae_filename, 'r') as gcs_file:
                     self.response.write(gcs_file.read())
 

@@ -20,59 +20,54 @@
 (function() {
     'use strict';
 
-    var mainForm = $('#reset_password_form')[0];
     var form = $('form[class=white-box]');
 
     $('form').submit(function(event){
-      event.preventDefault();
+        event.preventDefault();
     });
 
     init();
 
     function init() {
-        $('#reset_password_button').click(submit);
+        $('#send_instructions').click(submit);
     }
 
     function submit() {
-        if(validateInputs(form) && checkPasswordMatching()) {
-            $('#password').val($('#password1').val());
-            mainForm.submit();
+        if(validateInputs(form)) {
+            sendInstructions();
         }
     }
-
-    function checkPasswordMatching() {
-        var password1, password2;
-        password1 = $('#password1').val();
-        password2 = $('#password2').val();
-
-        $('#errors').text('');
-        if(password1 && password2) {
-            if(password1 === password2) {
-                return true;
-            }
-        }
-
-        $('#errors').text(SetPasswordTranslations.MISMATCH);
-        return false;
-    }
-
-    $(document).ready(function() {
-        $('#password1').focus();
-    });
-
-    $('#password1').keydown(function(event) {
-        if(event.keyCode == 13) {
-            if(validateInput(event.target)) {
-                $('#password2').focus();
-            }
-        }
-    });
-
 
     $(window).keydown(function(event) {
         if(event.keyCode == 13) {
             submit();
         }
     });
+
+    function sendInstructions() {
+        var value = $('#email').val();
+        if(!value.trim()) {
+            return;
+        }
+        sln.call({
+            url: '/mobi/rest/user/reset_password',
+            type: 'post',
+            data: {
+                email: value,
+                sender_name: 'OCA',
+                set_password_route: '/customers/setpassword'
+            },
+            success: function(result) {
+                if(result) {
+                    form.hide();
+                    $('#reset_password_note').text(ResetPasswordTranslations.RESET_INSTRUCTIONS_SENT);
+                    $('#go_back').show();
+                } else {
+                    $('#errors').text(ResetPasswordTranslations.RESET_PASSWORD_FAILED);
+                }
+            },
+            error: sln.showAjaxError
+        });
+    }
 
 })();

@@ -87,7 +87,7 @@ SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
 ASSOCIATION_BROADCAST_TYPES = [u'News', u'Events']
 MERCHANT_BROADCAST_TYPES = [u'Coupons', u'Daily specials', u'Info sessions'] + CITY_APP_BROADCAST_TYPES \
-                           + ASSOCIATION_BROADCAST_TYPES
+    + ASSOCIATION_BROADCAST_TYPES
 DEFAULT_BROADCAST_TYPES = [item for item in MERCHANT_BROADCAST_TYPES if item not in CITY_APP_BROADCAST_TYPES]
 
 try:
@@ -143,7 +143,8 @@ class SolutionModule(Enum):
         RATING: 'rating'
     }
 
-    INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE)
+    INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
+                     PHARMACY_ORDER)
     FACEBOOK_MODULES = (BROADCAST,)
     TWITTER_MODULES = (BROADCAST,)
     PROVISION_ORDER = defaultdict(lambda: 10, {BROADCAST: 20})  # Broadcast should be last for auto broadcast types
@@ -167,7 +168,8 @@ class SolutionModule(Enum):
     }
 
     #TODO add rating module here
-    FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA}
+    FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
+                             PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION}
 
     @classmethod
     def all(cls):
@@ -249,6 +251,7 @@ BASE_CODE = ServiceApiException.BASE_CODE_SOLUTIONS
 
 
 class BrandingNotFoundException(ServiceApiException):
+
     def __init__(self):
         ServiceApiException.__init__(self,
                                      BASE_CODE,
@@ -256,6 +259,7 @@ class BrandingNotFoundException(ServiceApiException):
 
 
 class InvalidMenuItemColorException(ServiceApiException):
+
     def __init__(self):
         ServiceApiException.__init__(self,
                                      BASE_CODE + 1,
@@ -263,6 +267,7 @@ class InvalidMenuItemColorException(ServiceApiException):
 
 
 class InvalidAddressException(ServiceApiException):
+
     def __init__(self):
         ServiceApiException.__init__(self,
                                      BASE_CODE + 2,
@@ -270,6 +275,7 @@ class InvalidAddressException(ServiceApiException):
 
 
 class GoogleMapsException(ServiceApiException):
+
     def __init__(self, status):
         ServiceApiException.__init__(self,
                                      BASE_CODE + 3,
@@ -789,24 +795,31 @@ def create_pdf(src, path, default_css=None):
 
 
 def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachments=None,
-               attachment_types=None, attachment_names=None):
-    msg = MIMEMultipart('mixed')
-    msg['Subject'] = subject
-    msg['From'] = from_email
-    msg['To'] = ','.join(to_emails)
-    msg['Bcc'] = ','.join(bcc_emails)
-    msg["Reply-To"] = reply_to
+               attachment_types=None, attachment_names=None, html_body=None):
+    msg_root = MIMEMultipart('mixed')
+    msg_root['Subject'] = subject
+    msg_root['From'] = from_email
+    msg_root['To'] = ','.join(to_emails)
+    msg_root['Bcc'] = ','.join(bcc_emails)
+    msg_root["Reply-To"] = reply_to
+    msg = MIMEMultipart('alternative')
+    msg_root.attach(msg)
     body = MIMEText(body_text.encode('utf-8'), 'plain', 'utf-8')
     msg.attach(body)
+
+    if html_body:
+        html_part = MIMEMultipart('related')
+        msg.attach(html_part)
+        html_part.attach(MIMEText(html_body.encode('utf-8'), 'html', 'utf-8'))
 
     if attachments:
         for attachment, attachment_type, name, in zip(attachments, attachment_types, attachment_names):
             att = MIMEApplication(attachment, _subtype=attachment_type)
             att.add_header('Content-Disposition', 'attachment', filename=name)
-            msg.attach(att)
+            msg_root.attach(att)
 
     settings = get_server_settings()
-    send_mail_via_mime(settings.senderEmail, to_emails, msg)
+    send_mail_via_mime(settings.senderEmail, to_emails, msg_root)
 
 
 @returns(FileBlob)
@@ -825,39 +838,44 @@ def delete_file_blob(service_user, file_id):
     if file_to_delete:
         if file_to_delete.service_user_email != service_user.email():
             logging.warning(
-                    '%s tried to delete a file from %s!' % (service_user.email(), file_to_delete.service_user_email))
+                '%s tried to delete a file from %s!' % (service_user.email(), file_to_delete.service_user_email))
         else:
             file_to_delete.delete()
     else:
         logging.info('FileBlob with id %s has already been deleted' % file_id)
 
 
+@returns(unicode)
+@arguments(key=unicode, language=unicode)
+def try_to_translate(key, language):
+    try:
+        return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
+    except:
+        return key
+
+
+@returns(dict)
+@arguments(sln_settings=SolutionSettings)
+def get_translated_broadcast_types(sln_settings):
+    translated_broadcast_types = {}
+    for bt in sln_settings.broadcast_types:
+        bt_trans = try_to_translate(bt, sln_settings.main_language)
+        translated_broadcast_types[bt_trans] = bt
+    return translated_broadcast_types
+
+
 @returns()
 @arguments(service_user=users.User, broadcast_types=[unicode])
 def save_broadcast_types_order(service_user, broadcast_types):
-    def transl(key, language):
-        try:
-            return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
-        except:
-            return key
-
     def trans():
         sln_settings = get_solution_settings(service_user)
 
-        broadcastTypesMapCUSTOM_EN = {}
-        for bt in sln_settings.broadcast_types:
-            bt_trans = transl(bt, sln_settings.main_language)
-            broadcastTypesMapCUSTOM_EN[bt_trans] = bt
+        translated_broadcast_types = get_translated_broadcast_types(sln_settings)
+        diff = set(translated_broadcast_types).symmetric_difference(broadcast_types)
+        if diff:
+            raise InvalidBroadcastTypeException(diff.pop())
 
-        for bt in broadcast_types:
-            if bt not in broadcastTypesMapCUSTOM_EN:
-                raise InvalidBroadcastTypeException(bt)
-
-        for bt in broadcastTypesMapCUSTOM_EN:
-            if bt not in broadcast_types:
-                raise InvalidBroadcastTypeException(bt)
-
-        sln_settings.broadcast_types = [broadcastTypesMapCUSTOM_EN[bt] for bt in broadcast_types]
+        sln_settings.broadcast_types = [translated_broadcast_types[bt] for bt in broadcast_types]
         sln_settings.updates_pending = True
         put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
@@ -933,6 +951,16 @@ def create_news_publisher(app_user, service_user, solution):
 
     assign_app_user_role(app_user, POKE_TAG_BROADCAST_CREATE_NEWS)
     return publisher
+
+
+def get_user_defined_roles():
+    from solutions.common.bizz.messaging import POKE_TAG_BROADCAST_CREATE_NEWS, \
+        POKE_TAG_NEW_EVENT
+
+    def is_user_defined(role):
+        return role.name not in [POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_NEW_EVENT]
+
+    return filter(is_user_defined, list_roles())
 
 
 @returns()
@@ -1019,6 +1047,11 @@ def enable_or_disable_solution_module(service_user, module, enabled):
             order_settings = set_advanced_order_settings(sln_settings)
             if order_settings:
                 to_put.append(order_settings)
+        elif module == SolutionModule.HIDDEN_CITY_WIDE_LOTTERY:
+            deactivate_solution_module(sln_settings, SolutionModule.LOYALTY)
+        # don't enable loyalty if this is a city service
+        if module == SolutionModule.LOYALTY and SolutionModule.CITY_APP in sln_settings.modules:
+            return
     else:
         deactivate_solution_module(sln_settings, module)
 
