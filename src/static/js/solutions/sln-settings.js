@@ -1476,6 +1476,9 @@ $(function () {
                 moveElementInArray(broadcastOptions.editable_broadcast_types, oldIndex, newIndex);
                 renderBroadcastSettings();
             });
+            listElem.find('button[data-action=delete]').click(function() {
+                addOrRemoveBroadcastType($(this).data('value'), true);
+            });
             $('#btn-save-broadcast-settings').click(saveBroadcastSettings);
         });
     }
@@ -1484,23 +1487,44 @@ $(function () {
         var broadcastTypeInput = $('#settings_extra_broadcast_type');
         var broadcastType = broadcastTypeInput.val().trim();
 
-        if(broadcastType) {
-            sln.call({
-                url: '/common/settings/broadcast/add_type',
-                type: 'POST',
-                data: {
-                    broadcast_type: broadcastType
-                },
-                success: function(data) {
-                    if(data.success) {
-                        broadcastTypeInput.val('');
-                        $('#settings_add_extra_broadcast_type').attr('disabled', true);
-                        LocalCache.broadcastOptions = null;
-                        renderBroadcastSettings();
-                    }
-                },
-                error: sln.showAjaxError
-            });
+        addOrRemoveBroadcastType(broadcastType, false, function() {
+            broadcastTypeInput.val('');
+            $('#settings_add_extra_broadcast_type').attr('disabled', true);
+        });
+    }
+
+    function addOrRemoveBroadcastType(broadcastType, shouldDelete, callback) {
+        function doAddOrRemove() {
+            if (broadcastType) {
+                sln.call({
+                    url: '/common/settings/broadcast/add_or_remove_type',
+                    type: 'POST',
+                    showProcessing: true,
+                    data: {
+                        broadcast_type: broadcastType,
+                        delete: !!shouldDelete
+                    },
+                    success: function(data) {
+                        if(data.success) {
+                            if(typeof callback === 'function') {
+                                callback();
+                            }
+                            LocalCache.broadcastOptions = null;
+                            renderBroadcastSettings();
+                        } else {
+                            sln.alert(T[sln.errormsg]);
+                        }
+                    },
+                    error: sln.showAjaxError
+                });
+            }
+        }
+
+        if (shouldDelete) {
+            var confirmMessage = CommonTranslations.confirm_delete_x.replace('%(x)s', broadcastType);
+            sln.confirm(confirmMessage, doAddOrRemove);
+        } else {
+            doAddOrRemove();
         }
     }
 

@@ -835,32 +835,37 @@ def delete_file_blob(service_user, file_id):
         logging.info('FileBlob with id %s has already been deleted' % file_id)
 
 
+@returns(unicode)
+@arguments(key=unicode, language=unicode)
+def try_to_translate(key, language):
+    try:
+        return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
+    except:
+        return key
+
+
+@returns(dict)
+@arguments(sln_settings=SolutionSettings)
+def get_translated_broadcast_types(sln_settings):
+    translated_broadcast_types = {}
+    for bt in sln_settings.broadcast_types:
+        bt_trans = try_to_translate(bt, sln_settings.main_language)
+        translated_broadcast_types[bt_trans] = bt
+    return translated_broadcast_types
+
+
 @returns()
 @arguments(service_user=users.User, broadcast_types=[unicode])
 def save_broadcast_types_order(service_user, broadcast_types):
-    def transl(key, language):
-        try:
-            return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
-        except:
-            return key
-
     def trans():
         sln_settings = get_solution_settings(service_user)
 
-        broadcastTypesMapCUSTOM_EN = {}
-        for bt in sln_settings.broadcast_types:
-            bt_trans = transl(bt, sln_settings.main_language)
-            broadcastTypesMapCUSTOM_EN[bt_trans] = bt
+        translated_broadcast_types = get_translated_broadcast_types(sln_settings)
+        diff = set(translated_broadcast_types).symmetric_difference(broadcast_types)
+        if diff:
+            raise InvalidBroadcastTypeException(diff.pop())
 
-        for bt in broadcast_types:
-            if bt not in broadcastTypesMapCUSTOM_EN:
-                raise InvalidBroadcastTypeException(bt)
-
-        for bt in broadcastTypesMapCUSTOM_EN:
-            if bt not in broadcast_types:
-                raise InvalidBroadcastTypeException(bt)
-
-        sln_settings.broadcast_types = [broadcastTypesMapCUSTOM_EN[bt] for bt in broadcast_types]
+        sln_settings.broadcast_types = [translated_broadcast_types[bt] for bt in broadcast_types]
         sln_settings.updates_pending = True
         put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
