@@ -636,8 +636,8 @@ def get_app_data_city_vouchers(sln_settings, service_identity, default_app_id):
 
 
 @returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode)
-def get_app_data_rating(sln_settings, service_identity):
+@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
+def get_app_data_rating(sln_settings, service_identity, default_app_id):
     def get_translation(language, translations):
         for translation in translations:
             if translation.language == language:
