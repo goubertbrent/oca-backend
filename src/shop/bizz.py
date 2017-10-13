@@ -2735,7 +2735,7 @@ def send_signup_verification_email(city_customer, signup, host=None):
     user = users.User(signup.customer_email)
     data['d'] = calculate_signup_url_digest(data)
     data = encrypt(user, json.dumps(data))
-    url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.encodestring(data)})
+    url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.b64encode(data)})
 
     lang = city_customer.language
     translate = partial(common_translate, lang, SOLUTION_COMMON)
