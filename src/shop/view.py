@@ -179,7 +179,7 @@ def _get_default_organization_types():
 
 
 def _get_service_sectors():
-    return ((sector.name, sector.title('en')) for sector in get_service_sectors() if sector.name != u'users')
+    return [(sector.name, sector.title('en')) for sector in get_service_sectors() if sector.name != u'users']
 
 def authorize_manager():
     user = gusers.get_current_user()
