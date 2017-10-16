@@ -2764,7 +2764,11 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup.company_address1 = company.address1
     signup.company_zip_code = company.zip_code
     signup.company_city = company.city
-    signup.company_vat = company.vat
+
+    try:
+        signup.company_vat = company.vat and normalize_vat(city_customer.country, company.vat)
+    except BusinessException:
+        raise BusinessException('vat_invalid')
 
     signup.customer_name = customer.name
     signup.customer_address1 = customer.address1
