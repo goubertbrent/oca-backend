@@ -221,7 +221,8 @@ def import_menu_from_excel(service_user, file_contents):
                 cat_index += 1
                 last_category = category
 
-            if not all(name, unit, price):
+            if '' in (name, unit, price):
+                logging.info((name, unit, price))
                 raise BusinessException(translate('please_check_missing_product_details'))
 
             item = make_item(name, desc, price, unit, image_url=image_url)
