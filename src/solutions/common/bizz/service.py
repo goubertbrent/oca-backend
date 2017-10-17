@@ -23,7 +23,7 @@ from google.appengine.ext.deferred import deferred
 from mcfw.rpc import serialize_complex_value
 
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.consts import DAY, DEBUG, SCHEDULED_QUEUE
+from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, now
