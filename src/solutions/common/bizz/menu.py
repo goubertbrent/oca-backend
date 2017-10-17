@@ -183,6 +183,7 @@ def import_menu_from_excel(service_user, file_contents):
         raise BusinessException(translate('make_sure_excel_format'))
 
     categories = OrderedDict()
+    category_item_names = dict()
     last_category = None
     cat_index = 0
     for sheet in xl.sheets():
@@ -204,7 +205,7 @@ def import_menu_from_excel(service_user, file_contents):
             try:
                 cat_name, name, desc, unit, price, image_url = [cell.value for cell in sheet.row(r)]
             except ValueError:
-                raise BusinessException(translate('please_check_missing_product_details'))
+                raise BusinessException(translate('please_check_missing_product_details', row_number=r+1))
 
             cat_name, name, unit = map(unicode.strip, [cat_name, name, unit])
             if not cat_name:
@@ -220,12 +221,17 @@ def import_menu_from_excel(service_user, file_contents):
                 categories[cat_name] = category
                 cat_index += 1
                 last_category = category
+                category_item_names[cat_name] = []
 
             if '' in (name, unit, price):
                 logging.info((name, unit, price))
-                raise BusinessException(translate('please_check_missing_product_details'))
+                raise BusinessException(translate('please_check_missing_product_details', row_number=r+1))
 
             item = make_item(name, desc, price, unit, image_url=image_url)
+            if name in category_item_names[category.name]:
+                raise BusinessException(translate('product_duplicate_name_at_row', name=name, row_number=r+1))
+            
+            category_item_names[category.name].append(name)
             category.items.append(item)
 
         menu = MenuTO()
