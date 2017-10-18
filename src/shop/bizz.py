@@ -742,6 +742,10 @@ def auto_connect_city_service(service_email, app_id):
     service_identity_email = create_service_identity_user(service_user).email()
     app = App.get_by_key_name(app_id)
     if app.type != App.APP_TYPE_CITY_APP:
+        logging.debug('Not auto-connecting %s because "%s" is not a city app', service_email, app_id)
+        return
+    if app.demo:
+        logging.debug('Not auto-connecting %s because "%s" is a demo app', service_email, app_id)
         return
     connected_services = app.auto_connected_services
     if not connected_services.get(service_identity_email):
@@ -2711,7 +2715,7 @@ def _send_new_customer_signup_message(service_user, customer_signup):
 
     lang = sln_settings.main_language
     si = get_default_service_identity(service_user)
-    summary = get_signup_summary(lang, customer_signup, si.app_id)
+    summary = get_signup_summary(lang, customer_signup)
 
     user_details = UserDetailsTO.create(service_user.email(), si.name, lang, si.avatarUrl, si.app_id)
     message = create_solution_inbox_message(service_user, service_identity,
@@ -2742,7 +2746,7 @@ def send_signup_verification_email(city_customer, signup, host=None):
     user = users.User(signup.customer_email)
     data['d'] = calculate_signup_url_digest(data)
     data = encrypt(user, json.dumps(data))
-    url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.encodestring(data)})
+    url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.b64encode(data)})
 
     lang = city_customer.language
     translate = partial(common_translate, lang, SOLUTION_COMMON)
@@ -2775,8 +2779,12 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup.company_address1 = company.address1
     signup.company_zip_code = company.zip_code
     signup.company_city = company.city
-    signup.company_vat = company.vat
     signup.company_sector = company.sector
+
+    try:
+        signup.company_vat = company.vat and normalize_vat(city_customer.country, company.vat)
+    except BusinessException:
+        raise BusinessException('vat_invalid')
 
     signup.customer_name = customer.name
     signup.customer_address1 = customer.address1

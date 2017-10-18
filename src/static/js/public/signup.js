@@ -208,7 +208,7 @@ $(function() {
 
         $('#' + divName + ' input').each(function(i, el) {
             var fieldName = $(el).attr('id').replace(divName + '_', '');
-            result[fieldName] = $(el).val();
+            result[fieldName] = $(el).val().trim();
         });
 
         return result;
@@ -245,7 +245,8 @@ $(function() {
             success: function(result) {
                 sln.hideProcessing();
                 if(!result.success) {
-                    sln.alert(result.errormsg, null, CommonTranslations.ERROR);
+                    var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
+                    sln.alert(message, null, CommonTranslations.ERROR);
                 } else {
                     var email = gatherFromInputs('entrepreneur').user_email;
                     $('#signup_note').removeClass('white-text').parent().addClass('white-box');
