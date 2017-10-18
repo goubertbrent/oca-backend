@@ -39,7 +39,7 @@ from rogerthat.models.news import NewsItem
 from rogerthat.models.properties.forms import FormResult, Form
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from rogerthat.service.api import messaging, system
+from rogerthat.service.api import messaging, system, ratings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.messaging import AttachmentTO, BroadcastTargetAudienceTO, MemberTO, AnswerTO, KeyValueTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
@@ -451,6 +451,29 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
 
 
 FMR_POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS] = broadcast_create_news_item
+
+
+@returns(FlowMemberResultCallbackResultTO)
+@arguments(service_user=users.User, message_flow_run_id=unicode, member=unicode,
+           steps=[object_factory("step_type", FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
+           parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def rating_rate_service(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id,
+                        parent_message_key, tag, result_key, flush_id, flush_message_flow_id,
+                        service_identity, user_details):
+    logging.debug('rate service from the rate_review flow result')
+
+    rating_step, review_step = steps
+    author = user_details[0]
+    with users.set_user(service_user):
+        # result is RatingWidgetResult
+        for topic in rating_step.form_result.result.topics:
+            ratings.rate(author, topic.name, topic.score)
+
+    # TODO: reviews/review approval...
+
+
+FMR_POKE_TAG_MAPPING[POKE_TAG_RATING] = rating_rate_service
 
 
 @returns()
