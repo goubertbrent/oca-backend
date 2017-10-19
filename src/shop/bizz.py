@@ -16,34 +16,33 @@
 # @@license_version:1.2@@
 
 import base64
-import csv
-import datetime
-import hashlib
-import json
-import logging
-import os
-import sys
-import urllib
-import urlparse
 from collections import OrderedDict
 from contextlib import closing
+import csv
+import datetime
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import partial
+import hashlib
+import json
+import logging
+import os
+import sys
 from types import NoneType
+import urllib
+import urlparse
+
+from PIL.Image import Image
+from dateutil.relativedelta import relativedelta
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
+from babel.dates import format_datetime, get_timezone, format_date
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
-
 import httplib2
-import stripe
-from PIL.Image import Image
-from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -62,13 +61,14 @@ from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
 from rogerthat.models.properties.app import AutoConnectedService
+from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
-from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, now, send_mail_via_mime, channel, get_epoch_from_datetime, send_mail
+from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
     address_to_coordinates, GeoCodeException
@@ -99,6 +99,7 @@ from solutions.common.bizz import SolutionModule, common_provision, Organization
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.jobs import delete_solution
+from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.models import SolutionInboxMessage
@@ -107,7 +108,9 @@ from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO, SolutionInboxMessageTO
 from solutions.flex.bizz import create_flex_service
+import stripe
 from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -2711,12 +2714,18 @@ def _send_new_customer_signup_message(service_user, customer_signup):
                                             SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP,
                                             signup_key, True, [user_details], now(), summary, False)
 
+    app_user = create_app_user_by_email(user_details.email, user_details.app_id)
+    send_inbox_forwarders_message(service_user, service_identity, app_user, summary, {
+        'if_name': customer_signup.customer_name,
+        'if_email': customer_signup.customer_email
+    }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
+
     message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
     sm_data = [{u'type': u'solutions.common.customer.signup.update'},
                {u'type': u'solutions.common.messaging.update',
                 u'message': serialize_complex_value(message_to, SolutionInboxMessageTO, False)}]
-
     channel.send_message(service_user, sm_data, service_identity=service_identity)
+
     return message.solution_inbox_message_key
 
 
