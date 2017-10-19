@@ -16,22 +16,21 @@
 # @@license_version:1.2@@
 
 import base64
+from contextlib import closing
+from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
+import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import jinja2
-from google.appengine.ext import db
-
-import solutions
 from babel import dates
-from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time
+from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
+
+from google.appengine.ext import db
+import jinja2
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.features import Features
@@ -47,6 +46,7 @@ from rogerthat.to.qr import QRDetailsTO
 from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding
@@ -94,6 +94,7 @@ from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, Loyalt
 from solutions.common.utils import is_default_service_identity
 from solutions.djmatic import SOLUTION_DJMATIC
 from solutions.jinja_extensions import TranslateExtension
+
 
 try:
     from cStringIO import StringIO
@@ -457,10 +458,10 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
             holiday_dates_str.append(common_translate(sln_settings.main_language,
                                                       SOLUTION_COMMON,
                                                       'date_until_date',
-                                                      from_date=format_date(datetime.fromtimestamp(d1),
+                                                      from_date=format_date(datetime.fromtimestamp(d1, tz=get_timezone(sln_settings.timezone)),
                                                                             format='medium',
                                                                             locale=sln_settings.main_language),
-                                                      until_date=format_date(datetime.fromtimestamp(d2),
+                                                      until_date=format_date(datetime.fromtimestamp(d2, tz=get_timezone(sln_settings.timezone)),
                                                                              format='medium',
                                                                              locale=sln_settings.main_language)))
 
@@ -1300,8 +1301,12 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
                 })
                 holiday_dates_str.append(
                     common_translate(lang, SOLUTION_COMMON, 'date_until_date') % {
-                        'from_date': format_date(datetime.fromtimestamp(d1), format='medium', locale=lang),
-                        'until_date': format_date(datetime.fromtimestamp(d2), format='medium', locale=lang)
+                        'from_date': format_date(datetime.fromtimestamp(d1, tz=get_timezone(sln_settings.timezone)),
+                                                 format='medium',
+                                                 locale=lang),
+                        'until_date': format_date(datetime.fromtimestamp(d2, tz=get_timezone(sln_settings.timezone)),
+                                                  format='medium',
+                                                  locale=lang)
                     }
                 )
 
