@@ -233,6 +233,7 @@ translations = \
          u'Redeeming stamps': u'Redeeming stamps',
          u'Redeeming voucher': u'Redeeming voucher',
          u'Region': u'Region',
+         u'Regions': u'Regions',
          u'Remaining value': u'Remaining value',
          u'Remove': u'Remove',
          u'Reservations of table': u'Reservations of table',
