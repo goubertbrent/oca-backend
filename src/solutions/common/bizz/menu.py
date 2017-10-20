@@ -179,7 +179,7 @@ def import_menu_from_excel(service_user, file_contents):
 
     try:
         xl = xlrd.open_workbook(file_contents=base64.b64decode(file_contents), use_mmap=False)
-    except xlrd.biffh.XLRDError:
+    except xlrd.biffh.XLRDError:  # @UndefinedVariable
         raise BusinessException(translate('make_sure_excel_format'))
 
     categories = OrderedDict()
