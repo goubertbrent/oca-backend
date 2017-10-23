@@ -20,10 +20,6 @@ from collections import OrderedDict
 from contextlib import closing
 import csv
 import datetime
-from email.mime.application import MIMEApplication
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from functools import partial
 import hashlib
 import json
@@ -67,7 +63,7 @@ from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import bizz_check, now, send_mail_via_mime, channel, get_epoch_from_datetime, send_mail
+from rogerthat.utils import bizz_check, now, channel, get_epoch_from_datetime, send_mail
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
@@ -847,12 +843,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             app = get_app_by_id(customer.app_id)
             from_email = '%s <%s>' % (app.name, app.get_contact_email_address())
 
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = from_email
-            msg['To'] = user_email
-            msg.attach(MIMEText(body, 'html', 'utf-8'))
-            send_mail_via_mime(from_email, [user_email], msg, transactional=True)
+            send_mail(from_email, user_email, subject, body)
         if to_put:
             db.put(to_put)
         return customer
@@ -1074,17 +1065,10 @@ def send_order_email(order_key, google_user):
         deferred.defer(send_order_email, order_key, google_user, _countdown=60, _queue=SCHEDULED_QUEUE)
         return
 
-    server_settings = get_server_settings()
     solution_server_settings = get_solution_server_settings()
     contact = order.contact
 
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = shop_translate(customer.language, 'osa_order_email_subject', order_number=order.order_number)
-    msg['From'] = solution_server_settings.shop_billing_email
-    msg['To'] = contact.email
-    msg["Reply-To"] = solution_server_settings.shop_reply_to_email
-    if google_user:
-        msg["Cc"] = google_user.email()
+    subject = shop_translate(customer.language, 'osa_order_email_subject', order_number=order.order_number)
 
     # TODO: (?) Email with OSA styling (header, footer)
     with closing(StringIO()) as sb:
@@ -1105,13 +1089,11 @@ def send_order_email(order_key, google_user):
         sb.write('\n\n')
         sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
         body = sb.getvalue()
-    body = MIMEText(body, 'plain', 'utf-8')
-    msg.attach(body)
 
     to_ = [contact.email]
     if google_user:
         to_.append(google_user.email())
-    send_mail_via_mime(server_settings.senderEmail, to_, msg)
+    send_mail(solution_server_settings.shop_billing_email, to_, subject, body)
 
 
 @returns()
@@ -1254,12 +1236,7 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
 
     solution_server_settings = get_solution_server_settings()
 
-    msg = MIMEMultipart('mixed')
-    msg['Subject'] = shop_translate(customer.language, 'osa_new_invoice')
-    msg['From'] = solution_server_settings.shop_billing_email
-    msg['To'] = contact.email.encode('utf-8')
-    msg['Bcc'] = ', '.join(solution_server_settings.shop_payment_admin_emails)
-    msg["Reply-To"] = solution_server_settings.shop_reply_to_email
+    subject = shop_translate(customer.language, 'osa_new_invoice')
     if payment_type != Invoice.PAYMENT_MANUAL_AFTER:
         payment_notice = shop_translate(customer.language, 'payment_already_satisfied')
     else:
@@ -1294,50 +1271,23 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
         sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
         body = sb.getvalue()
 
-    body = MIMEText(body, 'plain', 'utf-8')
-    msg.attach(body)
-
+    attachments = None
     if payment_type in (Invoice.PAYMENT_STRIPE, Invoice.PAYMENT_ON_SITE, Invoice.PAYMENT_MANUAL):
         pass
     elif payment_type == Invoice.PAYMENT_MANUAL_AFTER:
-        invoice_att = MIMEApplication(invoice.pdf, _subtype="pdf")
-        invoice_att.add_header('Content-Disposition', 'attachment', filename="invoice-%s.pdf" % invoice.invoice_number)
-        msg.attach(invoice_att)
+        attachments = []
+        attachments.append(("invoice-%s.pdf" % invoice.invoice_number,
+                            invoice.pdf))
+        
         if customer.legal_entity.is_mobicage:
-            img = MIMEImage(transfer_doc_png)
-            img.add_header('Content-Disposition', 'attachment', filename="payment.png")
-            msg.attach(img)
+            attachments.append(("payment.png",
+                                transfer_doc_png))
     else:
         raise ValueError("Unknown payment_type received.")
 
-    settings = get_server_settings()
     to = [contact.email]
     to.extend(solution_server_settings.shop_payment_admin_emails)
-    send_mail_via_mime(settings.senderEmail, to, msg)
-
-
-def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachment=None, attachment_type=None,
-               attachment_name=None, send_in_deferred=True):
-    """
-    Args:
-        attachment_type(str): Must only contain the MIME subtype (e.g. pdf, png)
-    """
-    msg = MIMEMultipart('mixed')
-    msg['Subject'] = subject
-    msg['From'] = from_email
-    msg['To'] = ','.join(to_emails)
-    msg['Bcc'] = ','.join(bcc_emails)
-    msg["Reply-To"] = reply_to
-    body = MIMEText(body_text.encode('utf-8'), 'plain', 'utf-8')
-    msg.attach(body)
-
-    if attachment:
-        att = MIMEApplication(attachment, _subtype=attachment_type)
-        att.add_header('Content-Disposition', 'attachment', filename=attachment_name)
-        msg.attach(att)
-
-    settings = get_server_settings()
-    send_mail_via_mime(settings.senderEmail, to_emails, msg, send_in_deferred=send_in_deferred)
+    send_mail(solution_server_settings.shop_billing_emaill, to, subject, body, attachments=attachments)
 
 
 def vacuum_service_modules_by_subscription(customer_id):
@@ -1528,7 +1478,6 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
 
     transfer_doc_png = buf.getvalue()
 
-    settings = get_server_settings()
     order, customer = db.get((Order.create_key(customer_id, order_number), Customer.create_key(customer_id)))
     contact = order.contact
     to = contact.email
@@ -1538,12 +1487,6 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
                                  subject=subject)
 
     solution_server_settings = get_solution_server_settings()
-
-    msg = MIMEMultipart('mixed')
-    msg['Subject'] = subject
-    msg['From'] = solution_server_settings.shop_billing_email
-    msg['To'] = to
-    msg["Reply-To"] = solution_server_settings.shop_reply_to_email
 
     with closing(StringIO()) as sb:
         sb.write(shop_translate(customer.language, 'dear_name', name=(
@@ -1572,21 +1515,18 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
         sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
         body = sb.getvalue()
 
-    body = MIMEText(body, 'plain', 'utf-8')
-    msg.attach(body)
+    attachments = []
     with closing(StringIO()) as pdf_stream:
         generate_order_or_invoice_pdf(pdf_stream, customer, order, None, True,
                                       "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
                                       charge=charge)
-        pro_forma_invoice = MIMEApplication(pdf_stream.getvalue(), _subtype="pdf")
+        attachments.append(("pro-forma-invoice.pdf",
+                            pdf_stream.getvalue()))
 
-    pro_forma_invoice.add_header('Content-Disposition', 'attachment', filename="pro-forma-invoice.pdf")
-    msg.attach(pro_forma_invoice)
-    img = MIMEImage(transfer_doc_png)
-    img.add_header('Content-Disposition', 'attachment', filename="payment.png")
-    msg.attach(img)
+    attachments.append(("payment.png",
+                        transfer_doc_png))
 
-    send_mail_via_mime(settings.senderEmail, to, msg)
+    send_mail(solution_server_settings.shop_billing_emaill, to, subject, body, attachments=attachments)
 
 
 def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, pro_forma=False,
@@ -2542,10 +2482,15 @@ def export_customers_csv(google_user):
         current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
 
         solution_server_settings = get_solution_server_settings()
-        send_email('Customers export %s' % current_date, solution_server_settings.shop_export_email,
-                   [google_user.email()], [], solution_server_settings.shop_no_reply_email,
-                   u'The exported customer list of %s can be found in the attachment of this email.' % current_date,
-                   csv_string.getvalue(), 'csv', 'Customers export %s.csv' % current_date)
+        subject = 'Customers export %s' % current_date
+        message = u'The exported customer list of %s can be found in the attachment of this email.' % current_date
+
+        attachments = []
+        attachments.append(('Customers export %s.csv' % current_date,
+                            csv_string.getvalue()))
+
+        send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message,
+                  attachments=attachments)
         if DEBUG:
             logging.info(csv_string.getvalue())
 
@@ -2737,7 +2682,6 @@ def calculate_signup_url_digest(data):
 
 
 def send_signup_verification_email(city_customer, signup, host=None):
-    from solutions.common.bizz import send_email
     from solutions.common.handlers import JINJA_ENVIRONMENT
 
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
@@ -2759,7 +2703,8 @@ def send_signup_verification_email(city_customer, signup, host=None):
     }
     message = JINJA_ENVIRONMENT.get_template('emails/signup_verification.tmpl').render(params)
     html_message = JINJA_ENVIRONMENT.get_template('emails/signup_verification_html.tmpl').render(params)
-    send_email(subject, city_customer.user_email, [signup.customer_email], [], None, message, html_body=html_message)
+    city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
+    send_mail(city_from, signup.customer_email, subject, message, html=html_message)
 
 
 @returns()

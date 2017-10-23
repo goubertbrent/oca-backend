@@ -16,28 +16,24 @@
 # @@license_version:1.2@@
 
 from datetime import date, datetime
-from dateutil.relativedelta import relativedelta
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import logging
 import time
 
 from babel.dates import format_datetime, get_timezone
+from dateutil.relativedelta import relativedelta
 
 from google.appengine.ext import webapp, deferred
 from rogerthat.rpc import users
 from rogerthat.service.api import system
-from rogerthat.settings import get_server_settings
-from rogerthat.utils import send_mail_via_mime
+from rogerthat.utils import send_mail
 from shop.models import Customer
+from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.models.city_vouchers import SolutionCityVoucherTransaction, \
     SolutionCityVoucher, SolutionCityVoucherExport, SolutionCityVoucherExportMerchant
 import xlwt
-from solution_server_settings import get_solution_server_settings
 
 
 try:
@@ -232,20 +228,13 @@ def create_voucher_statistics_for_city_service(service_user, first_day_of_last_m
     to_emails = sln_settings.inbox_mail_forwarders
     if to_emails:
         solution_server_settings = get_solution_server_settings()
-        msg = MIMEMultipart('mixed')
-        msg['Subject'] = 'Waardebonnen export'
-        msg['From'] = solution_server_settings.shop_export_email
-        msg['To'] = ','.join(to_emails)
-        msg["Reply-To"] = solution_server_settings.shop_no_reply_email
-        body = MIMEText('Zie bijlage om de waardebonnen export te bekijken.', 'plain', 'utf-8')
-        msg.attach(body)
-     
-        att = MIMEApplication(excel_string, _subtype='vnd.ms-excel')
-        att.add_header('Content-Disposition', 'attachment', filename='Waardebonnen %s-%s.xls' % (d.year, d.month))
-        msg.attach(att)
-     
-        server_settings = get_server_settings()
-        send_mail_via_mime(server_settings.senderEmail, to_emails, msg)
+        
+        attachments = []
+        attachments.append(('Waardebonnen %s-%s.xls' % (d.year, d.month),
+                            excel_string))
+        subject = 'Waardebonnen export'
+        message = 'Zie bijlage om de waardebonnen export te bekijken.'
+        send_mail(solution_server_settings.shop_export_email, to_emails, subject, message, attachments=attachments)
 
 
 def create_voucher_statistics_for_service(sln_settings, app_id, language, transaction_keys, year, month):

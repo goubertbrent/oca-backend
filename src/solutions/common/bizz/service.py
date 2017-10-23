@@ -19,21 +19,17 @@ import logging
 
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
-
 from mcfw.rpc import serialize_complex_value
-
-from rogerthat.dal.service import get_default_service_identity
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
+from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import channel, now
+from rogerthat.utils import channel, now, send_mail
 from rogerthat.utils.transactions import run_in_xg_transaction
-
 from shop.bizz import put_customer_with_service, put_service
 from shop.models import Product, RegioManagerTeam
-
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, send_email
+from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.bizz.createsend import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
@@ -172,7 +168,7 @@ def _send_approved_signup_email(city_customer, signup, lang):
     message = trans('signup_approval_email_message', name=signup.customer_name, city_name=city_customer.name)
 
     city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
-    send_email(subject, city_from, [signup.customer_email], [], None, message)
+    send_mail(city_from, signup.customer_email, subject, message)
     if signup.parent().language == 'nl':
         _schedule_signup_smart_emails(signup.customer_email)
 
@@ -184,7 +180,7 @@ def _send_denied_signup_email(city_customer, signup, lang, reason):
                                u'signup_request_denial_reason', reason=reason)
 
     city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
-    send_email(subject, city_from, [signup.customer_email], [], None, message)
+    send_mail(city_from, signup.customer_email, subject, message)
 
 
 def set_customer_signup_status(city_customer, signup, approved, reason=None):
