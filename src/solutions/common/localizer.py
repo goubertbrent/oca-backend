@@ -2247,7 +2247,7 @@ translations = \
          u'please-enter-a-message': u'Por favor, introduce un mensaje.',
          u'please-enter-the-winnings': u'Por favor, introduce las ganancias.',
          u'please_add_attachment': u'Por favor, a\xf1ade un archivo adjunto',
-         u'please_check_missing_product_details': u'Comprueba si falta alg\xfan detalle del producto',
+         u'please_check_missing_product_details': u'Comprueba si falta alg\xfan detalle del producto (fila %(row_number)s)',
          u'please_enter_a_valid_phone_number': u'Por favor, introduce un n\xfamero telef\xf3nico v\xe1lido',
          u'please_enter_at_least_x_characters': u'Por favor, introduce al menos %(characters)s car\xe1cteres',
          u'please_enter_no_more_than_x_characters': u'Por favor, introduce no m\xe1s de %(characters)s car\xe1cteres',
