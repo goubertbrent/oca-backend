@@ -61,8 +61,7 @@ def _delete_solution_models(service_user, service_identity, solutions, delete_sv
         else:
             if solutions:
                 deferred.defer(_delete_solution_models, service_user, service_identity, solutions, delete_svc, _transactional=True)
-            else:
-                if delete_svc:
+            elif delete_svc and service_identity is None:
                     deferred.defer(delete_service.job, service_user, service_user, _transactional=True)
             return False
     while db.run_in_transaction(trans):
