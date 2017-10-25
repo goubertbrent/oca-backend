@@ -826,7 +826,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             app = get_app_by_id(customer.app_id)
             from_email = '%s <%s>' % (app.name, app.get_contact_email_address())
 
-            send_mail(from_email, user_email, subject, body)
+            send_mail(from_email, user_email, subject, body, html=body)
         if to_put:
             db.put(to_put)
 
@@ -1258,7 +1258,7 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
         attachments = []
         attachments.append(("invoice-%s.pdf" % invoice.invoice_number,
                             invoice.pdf))
-        
+
         if customer.legal_entity.is_mobicage:
             attachments.append(("payment.png",
                                 transfer_doc_png))
