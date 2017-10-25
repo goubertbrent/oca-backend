@@ -803,21 +803,17 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                                                     '/customers/setpassword', url_params)
 
             # TODO: email with OSA style in header, footer
-            with closing(StringIO()) as sb:
-                sb.write(
-                    shop_translate(customer.language, 'dear_name', name=contact.first_name + ' ' + contact.last_name).encode('utf-8'))
-                sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'your_service_created').encode('utf-8'))
-                sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'login_with_credentials', login_url=login_url,
-                                        login=user_email, password=r.password).encode('utf-8'))
-                sb.write('\n')
-                sb.write(shop_translate(customer.language, 'do_you_want_another_password', link=reset_password_link))
-                sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
-                sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-                body = sb.getvalue().replace('\n', '<br/>')
+            params = {
+                'language': customer.language,
+                'name': contact.first_name + ' ' + contact.last_name,
+                'login_url': login_url,
+                'user_email': user_email,
+                'password': r.password,
+                'reset_password_link': reset_password_link
+            }
+
+            text_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email.tmpl').render(params)
+            html_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email_html.tmpl').render(params)
 
             # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
 
@@ -826,7 +822,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             app = get_app_by_id(customer.app_id)
             from_email = '%s <%s>' % (app.name, app.get_contact_email_address())
 
-            send_mail(from_email, user_email, subject, body, html=body)
+            send_mail(from_email, user_email, subject, text_body, html=html_body)
         if to_put:
             db.put(to_put)
 
