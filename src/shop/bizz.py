@@ -1257,11 +1257,11 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
     elif payment_type == Invoice.PAYMENT_MANUAL_AFTER:
         attachments = []
         attachments.append(("invoice-%s.pdf" % invoice.invoice_number,
-                            invoice.pdf))
+                            base64.b64encode(invoice.pdf)))
 
         if customer.legal_entity.is_mobicage:
             attachments.append(("payment.png",
-                                transfer_doc_png))
+                                base64.b64encode(transfer_doc_png)))
     else:
         raise ValueError("Unknown payment_type received.")
 
@@ -1501,10 +1501,10 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
                                       "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
                                       charge=charge)
         attachments.append(("pro-forma-invoice.pdf",
-                            pdf_stream.getvalue()))
+                             base64.b64encode(pdf_stream.getvalue())))
 
     attachments.append(("payment.png",
-                        transfer_doc_png))
+                        base64.b64encode(transfer_doc_png)))
 
     send_mail(solution_server_settings.shop_billing_emaill, to, subject, body, attachments=attachments)
 
@@ -2467,7 +2467,7 @@ def export_customers_csv(google_user):
 
         attachments = []
         attachments.append(('Customers export %s.csv' % current_date,
-                            csv_string.getvalue()))
+                            base64.b64encode(csv_string.getvalue())))
 
         send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message,
                   attachments=attachments)

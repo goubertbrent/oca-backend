@@ -16,22 +16,23 @@
 # @@license_version:1.2@@
 
 from _collections import defaultdict
+import base64
 import datetime
-from dateutil.relativedelta import relativedelta
 import urllib
 
 from babel.dates import format_datetime
-import xlwt
+from dateutil.relativedelta import relativedelta
 
+from google.appengine.ext import db
+from mcfw.utils import chunks
 from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile
 from rogerthat.settings import get_server_settings
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import get_epoch_from_datetime, months_between, send_mail, now
-from google.appengine.ext import db
-from mcfw.utils import chunks
 from shop.models import Order
 from solution_server_settings import get_solution_server_settings
+import xlwt
 
 
 try:
@@ -101,7 +102,7 @@ def job():
 
         attachments = []
         attachments.append(('Prospects %s.xls' % current_date,
-                            excel_string))
+                            base64.b64encode(excel_string)))
         subject = 'Customers in need of extention'
         message ='See attachment to help the customers in need'
         send_mail(solution_server_settings.shop_export_email, to_emails, subject,  message, attachments=attachments)

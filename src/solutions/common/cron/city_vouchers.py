@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+import base64
 from datetime import date, datetime
 import logging
 import time
@@ -231,7 +232,7 @@ def create_voucher_statistics_for_city_service(service_user, first_day_of_last_m
         
         attachments = []
         attachments.append(('Waardebonnen %s-%s.xls' % (d.year, d.month),
-                            excel_string))
+                            base64.b64encode(excel_string)))
         subject = 'Waardebonnen export'
         message = 'Zie bijlage om de waardebonnen export te bekijken.'
         send_mail(solution_server_settings.shop_export_email, to_emails, subject, message, attachments=attachments)

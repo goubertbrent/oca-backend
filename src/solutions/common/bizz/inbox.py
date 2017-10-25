@@ -461,12 +461,12 @@ def _deferred_statistics_email_export(service_user, service_identity, lang, emai
     
     attachments = []
     attachments.append((attachment_name_pdf,
-                        messages_pdf))
+                        base64.b64encode(messages_pdf)))
     attachments.append((attachment_name_inbox_excel,
-                        message_statistics_excel))
+                        base64.b64encode(message_statistics_excel)))
     attachments.append((attachment_name_broadcast_statistics,
-                        broadcast_statistics))
+                        base64.b64encode(broadcast_statistics)))
     attachments.append((attachment_name_flow_statistics_excel,
-                        flow_statistics_excel))
+                        base64.b64encode(flow_statistics_excel)))
     
     send_mail(MC_DASHBOARD.email(), email, subject, body_text, attachments=attachments)

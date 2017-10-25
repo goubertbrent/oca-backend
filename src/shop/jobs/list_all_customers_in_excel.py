@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+import base64
 from collections import defaultdict
 import datetime
 
@@ -60,7 +61,7 @@ def job():
     
     attachments = []
     attachments.append(('Customers %s.xls' % current_date,
-                        excel_string))
+                        base64.b64encode(excel_string)))
 
     subject = 'List of all customers'
     message = 'See attachment.'

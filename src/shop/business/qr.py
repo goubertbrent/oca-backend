@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+import base64
 import datetime
 import logging
 import zipfile
@@ -82,7 +83,7 @@ def _generate_unassigned_qr_codes_excel_for_app(app_id, amount, user_email):
     body_text = 'See attachment for the requested links to the QR codes.'
     attachments = []
     attachments.append(('%s generated QR codes(%d) %s.xls' % (str(app_id), amount, current_date),
-                        excel_file.getvalue()))
+                        base64.b64encode(excel_file.getvalue())))
     send_mail(from_email, to_emails, subject, body_text, attachments=attachments)
     
     
@@ -114,5 +115,5 @@ def _generate_unassigned_qr_codes_svgs_for_app(app_id, amount, user_email):
         body_text = 'See attachment for the QR codes in SVG format.'
         attachments = []
         attachments.append(('%s generated QR codes(%d) %s.xls' % (str(app_id), amount, current_date),
-                            zip_content))
+                            base64.b64encode(zip_content)))
         send_mail(from_email, to_emails, subject, body_text, attachments=attachments)

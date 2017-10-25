@@ -525,7 +525,7 @@ def solution_add_to_calender_event(service_user, email, method, params, tag, ser
 
     attachments = []
     attachments.append(("event.ics",
-                        icall))
+                        base64.b64encode(icall)))
 
     from_ = rogerthat_settings.senderEmail if app.type == App.APP_TYPE_ROGERTHAT else ("%s <%s>" % (app.name, app.dashboard_email_address))
     send_mail(from_, email, emailSubject, emailBody, attachments=attachments)

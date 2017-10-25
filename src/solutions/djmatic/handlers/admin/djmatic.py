@@ -15,27 +15,28 @@
 #
 # @@license_version:1.2@@
 
+import base64
 import calendar
 import csv
 import datetime
-from dateutil.relativedelta import relativedelta
 import os
 import time
 from types import NoneType
 
 from babel.dates import get_timezone, format_datetime
+from dateutil.relativedelta import relativedelta
 
-from rogerthat.models import ServiceIdentityStatistic, ServiceIdentity
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.utils import get_epoch_from_datetime, now, send_mail
-from rogerthat.utils.service import create_service_identity_user
 from google.appengine.ext import webapp, deferred, db
 from google.appengine.ext.webapp import template
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.models import ServiceIdentityStatistic, ServiceIdentity
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.utils import get_epoch_from_datetime, now, send_mail
+from rogerthat.utils.service import create_service_identity_user
+from solution_server_settings import get_solution_server_settings
 from solutions.djmatic.dal import get_djmatic_overview_log
 from solutions.djmatic.models import DjMaticProfile
-from solution_server_settings import get_solution_server_settings
 
 
 try:
@@ -118,7 +119,7 @@ def _djmatic_export(email):
 
     attachments = []
     attachments.append((u'djmatic_export %s.csv' % current_date_str,
-                        csv_string.getvalue()))
+                        base64.b64encode(csv_string.getvalue())))
 
     send_mail(solution_server_settings.shop_export_email, [email], subject, body_text, attachments=attachments)
 

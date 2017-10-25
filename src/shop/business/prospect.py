@@ -15,6 +15,7 @@
 #
 # @@license_version:1.2@@
 
+import base64
 import datetime
 import logging
 import string
@@ -275,7 +276,7 @@ def generate_prospect_export_excel(prospect_ids, do_send_email=True, recipients=
         
         attachments = []
         attachments.append(('Prospects %s %s.xls' % (app.name, current_date),
-                            excel_string))
+                            base64.b64encode(excel_string)))
         
         send_mail(from_email, to_emails, subject, body_text, attachments=attachments)
     return excel_string
