@@ -33,10 +33,12 @@ from google.appengine.ext import db
 import jinja2
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
+from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DAY
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, ServiceProfile
+from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.settings import get_server_settings
@@ -44,12 +46,14 @@ from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.profile import ProfileLocationTO
 from rogerthat.to.qr import QRDetailsTO
 from rogerthat.utils import now, is_flag_set, xml_escape
+from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
-    get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding
+    get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding,\
+    OrganizationType
 from solutions.common.bizz.events import provision_events_branding
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
@@ -429,6 +433,36 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
         app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id)
         identity.app_data = json.dumps(app_data).decode('utf8')
         system.put_identity(identity)
+        
+        handle_auto_connected_service(sln_settings.service_user, sln_settings.search_enabled)
+
+
+def handle_auto_connected_service(service_user, visible):
+    from shop.models import Customer
+
+    customer = Customer.get_by_service_email(service_user.email())
+    if not customer:
+        return
+    if customer.organization_type != OrganizationType.CITY:
+        return
+
+    service_user = users.User(customer.service_email)
+    service_identity_email = create_service_identity_user(service_user).email()
+    app = App.get_by_key_name(customer.app_id)
+    if app.type != App.APP_TYPE_CITY_APP:
+        logging.debug('Not auto-connecting %s because "%s" is not a city app', customer.service_email, customer.app_id)
+        return
+    if app.demo:
+        logging.debug('Not auto-connecting %s because "%s" is a demo app', customer.service_email, customer.app_id)
+        return
+
+    if visible:
+        connected_services = app.auto_connected_services
+        if not connected_services.get(service_identity_email):
+            auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
+            add_auto_connected_services(customer.app_id, [auto_connected_service])
+    else:
+        delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
 
 
 def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id):

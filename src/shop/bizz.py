@@ -45,7 +45,7 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
-from rogerthat.bizz.app import add_auto_connected_services, get_app
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
@@ -56,7 +56,6 @@ from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
-from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
@@ -91,7 +90,7 @@ from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, A
 from solution_server_settings import get_solution_server_settings
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import SolutionModule, common_provision, OrganizationType
+from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.jobs import delete_solution
@@ -734,22 +733,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     return r
 
 
-def auto_connect_city_service(service_email, app_id):
-    service_user = users.User(service_email)
-    service_identity_email = create_service_identity_user(service_user).email()
-    app = App.get_by_key_name(app_id)
-    if app.type != App.APP_TYPE_CITY_APP:
-        logging.debug('Not auto-connecting %s because "%s" is not a city app', service_email, app_id)
-        return
-    if app.demo:
-        logging.debug('Not auto-connecting %s because "%s" is a demo app', service_email, app_id)
-        return
-    connected_services = app.auto_connected_services
-    if not connected_services.get(service_identity_email):
-        auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
-        add_auto_connected_services(app_id, [auto_connected_service])
-
-
 @arguments(customer_key=db.Key, user_email=unicode, r=ProvisionResponseTO, is_redeploy=bool, app_ids=[unicode],
            broadcast_to_users=[users.User])
 def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users):
@@ -846,11 +829,8 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             send_mail(from_email, user_email, subject, body)
         if to_put:
             db.put(to_put)
-        return customer
 
-    customer = run_in_xg_transaction(trans)
-    if customer.organization_type == OrganizationType.CITY:
-        auto_connect_city_service(customer.service_email, customer.app_id)
+    run_in_xg_transaction(trans)
 
 
 @returns([Invoice])
