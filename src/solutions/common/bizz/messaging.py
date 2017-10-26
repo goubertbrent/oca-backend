@@ -46,7 +46,7 @@ from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
     FormCallbackResultTypeTO, FormAcknowledgedCallbackResultTO, PokeCallbackResultTO, \
-    FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO, FlowCallbackResultTypeTO
+    FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO, FlowCallbackResultTypeTO, TYPE_FLOW
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, try_or_defer
@@ -89,6 +89,7 @@ from solutions.common.bizz.sandwich import order_sandwich_received, \
 from solutions.common.bizz.twitter import post_to_twitter
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
+from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
     SolutionLogo, SolutionSettings, SolutionMainBranding
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
@@ -463,17 +464,46 @@ def rating_rate_service(service_user, message_flow_run_id, member, steps, end_id
                         service_identity, user_details):
     logging.debug('rate service from the rate_review flow result')
 
-    rating_step, review_step = steps
+    result_step, rating_step = steps
     author = user_details[0]
     with users.set_user(service_user):
         # result is RatingWidgetResult
         for topic in rating_step.form_result.result.topics:
             ratings.rate(author, topic.name, topic.score)
 
-    # TODO: reviews/review approval...
-
 
 FMR_POKE_TAG_MAPPING[POKE_TAG_RATING] = rating_rate_service
+
+
+@returns(PokeCallbackResultTO)
+@arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def poke_get_ratings(service_user, email, tag, result_key, context, service_identity, user_details):
+    result = PokeCallbackResultTO()
+    result.type = TYPE_FLOW
+    result.value = FlowCallbackResultTypeTO()
+
+    sln_settings = get_solution_settings(service_user)
+    language = sln_settings.main_language
+    main_branding = get_solution_main_branding(service_user)
+
+    with users.set_user(service_user):
+        service_ratings = ratings.get_total_ratings()
+        topics = ratings.get_topics()
+
+    flow_params = dict(language=language,
+                       branding_key=main_branding.branding_key,
+                       ratings=service_ratings,
+                       topics=topics)
+    flow = JINJA_ENVIRONMENT.get_template('flows/rate_review.xml').render(flow_params)
+
+    result.value.flow = flow
+    result.value.force_language = None
+    result.value.tag = POKE_TAG_RATING
+    return result
+
+
+POKE_TAG_MAPPING[POKE_TAG_RATING] = poke_get_ratings
 
 
 @returns()

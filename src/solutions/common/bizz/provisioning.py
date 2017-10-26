@@ -1837,17 +1837,10 @@ def put_rating(sln_settings, current_coords, main_branding, default_lang, tag):
                 system.delete_menu_item(current_coords)
             return []
 
-    logging.info('Creating Rate & Review message flow')
-    flow_params = dict(branding_key=main_branding.branding_key,
-                        language=default_lang)
-    flow = JINJA_ENVIRONMENT.get_template('flows/rate_review.xml').render(flow_params)
-    rate_review_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
-
     ssmi = SolutionServiceMenuItem(u'fa-star',
                                     sln_settings.menu_item_color,
-                                    common_translate(default_lang, SOLUTION_COMMON, u'rate_review'),
+                                    common_translate(default_lang, SOLUTION_COMMON, u'rating'),
                                     tag,
-                                    static_flow=rate_review_flow.identifier,
                                     action=SolutionModule.action_order(SolutionModule.RATING))
     return [ssmi]
 
