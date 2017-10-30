@@ -1263,7 +1263,7 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
 
     to = [contact.email]
     to.extend(solution_server_settings.shop_payment_admin_emails)
-    send_mail(solution_server_settings.shop_billing_emaill, to, subject, body, attachments=attachments)
+    send_mail(solution_server_settings.shop_billing_email, to, subject, body, attachments=attachments)
 
 
 def vacuum_service_modules_by_subscription(customer_id):
@@ -1502,7 +1502,7 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
     attachments.append(("payment.png",
                         base64.b64encode(transfer_doc_png)))
 
-    send_mail(solution_server_settings.shop_billing_emaill, to, subject, body, attachments=attachments)
+    send_mail(solution_server_settings.shop_billing_email, to, subject, body, attachments=attachments)
 
 
 def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, pro_forma=False,
