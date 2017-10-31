@@ -92,8 +92,8 @@ from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLI
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.grecaptcha import recaptcha_verify
-from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.jobs import delete_solution
+from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.dal.hints import get_solution_hints
@@ -2579,7 +2579,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
     return customer, email_changed, is_new_association
 
 
-def get_signup_summary(lang, customer_signup, app_id):
+def get_signup_summary(lang, customer_signup):
     """Get a translated signup summary.
 
     Args:
@@ -2621,32 +2621,20 @@ def get_signup_summary(lang, customer_signup, app_id):
 
 def _send_new_customer_signup_message(service_user, customer_signup):
     signup_key = unicode(customer_signup.key())
-
-    service_identity = ServiceIdentity.DEFAULT
     sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    summary = get_signup_summary(sln_settings.main_language, customer_signup)
 
-    lang = sln_settings.main_language
-    si = get_default_service_identity(service_user)
-    summary = get_signup_summary(lang, customer_signup, si.app_id)
+    message = new_inbox_message(sln_settings, summary,
+                                category=SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP,
+                                category_key=signup_key)
 
-    user_details = UserDetailsTO.create(service_user.email(), si.name, lang, si.avatarUrl, si.app_id)
-    message = create_solution_inbox_message(service_user, service_identity,
-                                            SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP,
-                                            signup_key, True, [user_details], now(), summary, False)
-
-    app_user = create_app_user_by_email(user_details.email, user_details.app_id)
-    send_inbox_forwarders_message(service_user, service_identity, app_user, summary, {
+    app_user = create_app_user_by_email(service_user.email(), customer_signup.city_customer.app_id)
+    send_inbox_forwarders_message(service_user, ServiceIdentity.DEFAULT, app_user, summary, {
         'if_name': customer_signup.customer_name,
         'if_email': customer_signup.customer_email
     }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
 
-    message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
-    sm_data = [{u'type': u'solutions.common.customer.signup.update'},
-               {u'type': u'solutions.common.messaging.update',
-                u'message': serialize_complex_value(message_to, SolutionInboxMessageTO, False)}]
-    channel.send_message(service_user, sm_data, service_identity=service_identity)
-
+    send_signup_update_messages(sln_settings, message)
     return message.solution_inbox_message_key
 
 
