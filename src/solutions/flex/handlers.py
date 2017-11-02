@@ -323,7 +323,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             functionality_modules, functionality_info = map(json.dumps, get_functionalities(sln_settings))
 
         vouchers_settings = None
-        if SolutionModule.CITY_VOUCHERS in sln_settings.modules:
+        if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
             vouchers_settings = get_city_vouchers_settings(city_app_id)
 
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
