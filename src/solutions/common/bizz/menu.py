@@ -229,7 +229,8 @@ def import_menu_from_excel(service_user, file_contents):
 
             item = make_item(name, desc, price, unit, image_url=image_url)
             if name in category_item_names[category.name]:
-                raise BusinessException(translate('product_duplicate_name_at_row', name=name, row_number=r + 1))
+                raise BusinessException('%s\n%s' % (translate('product_duplicate_name', name=name),
+                                                    translate('product_at_row', row_number=r + 1)))
 
             category_item_names[category.name].append(name)
             category.items.append(item)
