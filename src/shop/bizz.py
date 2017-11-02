@@ -2682,10 +2682,12 @@ def get_signup_summary(lang, customer_signup, app_id):
     summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.company_name)
     summary += u'{}: {}\n'.format(trans('address'), customer_signup.company_address1)
     summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.company_zip_code)
+    summary += u'{}: {}\n'.format(trans('Email'), customer_signup.company_email)
+    summary += u'{}: {}\n'.format(trans('Phone number'), customer_signup.company_telephone)
     summary += u'{}: {}\n'.format(trans('city'), customer_signup.company_city)
     summary += u'{}: {}\n'.format(trans('vat'), customer_signup.company_vat)
-    summary += u'{}: {}\n'.format(trans('Website'), customer_signup.customer_website)
-    summary += u'{}: {}\n'.format(trans('Facebook page'), customer_signup.customer_facebook_page)
+    summary += u'{}: {}\n'.format(trans('Website'), customer_signup.company_website)
+    summary += u'{}: {}\n'.format(trans('Facebook page'), customer_signup.company_facebook_page)
 
     summary += u'\n{}\n'.format(trans('business-manager'))
     summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.customer_name)
@@ -2769,7 +2771,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
         raise BusinessException('Cannot verify recaptcha response')
 
     city_customer = Customer.get_by_id(city_customer_id)
-    user_email = customer.user_email.strip().lower()
+    user_email = company.user_email.strip().lower()
     signup = CustomerSignup(parent=city_customer)
 
     signup.company_name = company.name
@@ -2777,6 +2779,10 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup.company_address1 = company.address1
     signup.company_zip_code = company.zip_code
     signup.company_city = company.city
+    signup.company_email = user_email
+    signup.company_telephone = company.telephone
+    signup.company_website = company.website
+    signup.company_facebook_page = company.facebook_page
 
     try:
         signup.company_vat = company.vat and normalize_vat(city_customer.country, company.vat)
@@ -2787,10 +2793,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup.customer_address1 = customer.address1
     signup.customer_zip_code = customer.zip_code
     signup.customer_city = customer.city
-    signup.customer_email = user_email
+    signup.customer_email = customer.user_email.strip().lower()
     signup.customer_telephone = customer.telephone
-    signup.customer_website = customer.website
-    signup.customer_facebook_page = customer.facebook_page
 
     for other_signup in CustomerSignup.list_pending_by_customer_email(user_email):
         # check if the same information has been used in a pending signup
