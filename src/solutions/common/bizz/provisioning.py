@@ -433,7 +433,7 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
         app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id)
         identity.app_data = json.dumps(app_data).decode('utf8')
         system.put_identity(identity)
-        
+
         handle_auto_connected_service(sln_settings.service_user, sln_settings.search_enabled)
 
 
@@ -1407,7 +1407,8 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         leap_time_message=leap_time_message,
         leap_time_str=leap_time_str,
         timezone_offsets=json.dumps(timezone_offsets),
-        Features=Features
+        Features=Features,
+        manual_confirmation=sln_order_settings.manual_confirmation
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier
@@ -1422,7 +1423,8 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
     order_type = sln_order_settings.order_type
 
     if order_type == ORDER_TYPE_SIMPLE:
-        flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, text_1=sln_order_settings.text_1)
+        flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, text_1=sln_order_settings.text_1,
+                           manual_confirmation=sln_order_settings.manual_confirmation, name=sln_settings.name)
         order_flow = JINJA_ENVIRONMENT.get_template('flows/order.xml').render(flow_params)
         static_flow_hash = system.put_flow(order_flow.encode('utf-8'), multilanguage=False).identifier
     elif order_type == ORDER_TYPE_ADVANCED:
