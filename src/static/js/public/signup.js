@@ -21,12 +21,8 @@ var signupCallback;
 $(function() {
     'use strict';
 
-    var TMPL_ORG_TYPE = '<div class="radio">'
-        + '<label><input type="radio" name="organization_type" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
-        + '</div>';
-
-    var TMPL_SERVICE_SECTOR = '<div class="radio">'
-        + '<label><input type="radio" name="service_sector" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
+    var TMPL_RADIO_ITEM = '<div class="radio">'
+        + '<label><input type="radio" name="${name}" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
         + '</div>';
 
     var formElem = $('#signup_form')[0];
@@ -70,7 +66,8 @@ $(function() {
         var selectFirstType = true;
         $.each(types, function(type, label) {
             $('#organization_types > div[class=controls]').append(
-                $.tmpl(TMPL_ORG_TYPE, {
+                $.tmpl(TMPL_RADIO_ITEM, {
+                    name: 'organization_type',
                     value: type,
                     label: label,
                     checked: selectFirstType
@@ -91,7 +88,8 @@ $(function() {
         var selectFirstType = true;
         $.each(sectors, function(name, title) {
             $('#service_sectors > div[class=controls]').append(
-                $.tmpl(TMPL_SERVICE_SECTOR, {
+                $.tmpl(TMPL_RADIO_ITEM, {
+                    name: 'service_sector',
                     value: name,
                     label: title,
                     checked: selectFirstType
