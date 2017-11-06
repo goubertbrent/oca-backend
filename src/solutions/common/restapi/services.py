@@ -304,7 +304,7 @@ def _fill_signup_data(signup, *prop_names):
 
 def _update_signup_contact(customer, signup):
     contact = Contact.get_one(customer.key())
-    first_name, last_name = signup.customer_name.split(' ', 1)
+    first_name, _, last_name = signup.customer_name.partition(' ')
     update_contact(customer.id, contact.id, first_name, last_name, signup.customer_email,
                    signup.customer_telephone)
 
