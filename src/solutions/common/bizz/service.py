@@ -21,12 +21,8 @@ from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 from mcfw.rpc import serialize_complex_value
 
-<<<<<<< HEAD
 from rogerthat.dal.app import get_service_sectors as get_app_sectors
-from rogerthat.dal.service import get_default_service_identity
-=======
 from rogerthat.dal.service import get_service_identity
->>>>>>> staging
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO

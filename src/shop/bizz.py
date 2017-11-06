@@ -2610,7 +2610,6 @@ def get_signup_summary(lang, customer_signup):
     summary += u'\n{}\n'.format(org_type_name)
     summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
     summary += u'{}: {}\n'.format(trans('sector'), sector_title)
-    summary += u'{}: {}\n'.format(trans('organization_type'), org_type_name)
     summary += u'{}: {}\n'.format(trans('reservation-name'), customer_signup.company_name)
     summary += u'{}: {}\n'.format(trans('address'), customer_signup.company_address1)
     summary += u'{}: {}\n'.format(trans('zip_code'), customer_signup.company_zip_code)
