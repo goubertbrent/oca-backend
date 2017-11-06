@@ -306,6 +306,17 @@ var createLib = function() {
             return r + MONTHS_SHORT[date.getUTCMonth()] + ' ' + date.getUTCDate() + " " + date.getUTCFullYear()
                 + (time ? " " + sln.intToTime(timestamp % sln.day, includeSeconds) : "");
         },
+        toWireFormat: function(date) {
+            // used with the input with type date
+            // to set the value, it must be in wire format yyyy-mm-dd
+            if (typeof date === 'number') {
+                date = new Date(date * 1000);
+            }
+            dateStr = '' + date.getFullYear();
+            dateStr += '-' + sln.padLeft(date.getMonth() + 1, 2, '0');
+            dateStr += '-' + sln.padLeft(date.getDate(), 2, '0');
+            return dateStr;
+        },
         utcDate: function(timestamp) {
             var date = new Date(timestamp * 1000);
             return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes());

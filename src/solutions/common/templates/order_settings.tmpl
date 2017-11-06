@@ -13,6 +13,20 @@
         }
     </style>
 
+    <h3>{% translate language, 'common', 'confirming_incoming_orders' %}</h3>
+    <div id="confirmation_container">
+        <label for="automatic_confirmation" class="radio">
+            <input type="radio" name="auto_or_manual_confirmation" id="automatic_confirmation"
+                   value="automatic"></input>
+            {% translate language, 'common', 'automatic' %}
+        </label>
+        <label for="manual_confirmation" class="radio">
+            <input type="radio" name="auto_or_manual_confirmation" id="manual_confirmation"
+                value="manual"> </input>
+            {% translate language, 'common', 'manual' %}
+        </label>
+    </div>
+
     <h3>{% translate language, 'common', 'order_type' %}</h3>
 
     <p>{% translate language, 'common', 'order_type_explanation_1' %}</p>
@@ -112,5 +126,11 @@
                 "common", "Save" %}
             </button>
         </div>
+    </div>
+
+    <h3>{% translate language, 'common', 'order_is_ready_default_message' %}</h3>
+    <div id="order_ready_message_container">
+        <textarea id="order_ready_default_message" class="span6" rows="3"
+                  placeholder="{% translate language, 'common', 'enter-dot-dot-dot' %}"></textarea>
     </div>
 </section>

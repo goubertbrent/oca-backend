@@ -143,6 +143,11 @@ $(function() {
         }
     }
 
+    function copyInput(inputIdFrom, inputIdTo) {
+        var value = $('#' + inputIdFrom).val();
+        fillInput(inputIdTo, value);
+    }
+
     function clearErrors(input) {
         input.next('p[class=text-error], [class=text-warning]').remove();
     }
@@ -221,7 +226,7 @@ $(function() {
         args.company = gatherFromInputs('enterprise');
         args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
         args.company.sector = $('input[name=service_sector]:checked').val();
-        args.customer = gatherFromInputs('entrepreneur');
+        args.customer = gatherFromInputs('contact');
         args.customer.language = getBrowserLanguage();
         args.recaptcha_token = recaptchaToken;
 
@@ -248,7 +253,7 @@ $(function() {
                     var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
                     sln.alert(message, null, CommonTranslations.ERROR);
                 } else {
-                    var email = gatherFromInputs('entrepreneur').user_email;
+                    var email = gatherFromInputs('contact').user_email;
                     $('#signup_note').removeClass('white-text').parent().addClass('white-box');
                     $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
                     $('#signup_box').hide();
@@ -274,7 +279,7 @@ $(function() {
     }
 
     function nextStep() {
-        if(currentStep == 2) {
+        if(currentStep === 2) {
             var vatError = $('#enterprise_vat').next('p[class=text-error]');
             if(vatError.length) {
                 return;
@@ -314,15 +319,13 @@ $(function() {
         /* refill some info from the previous one */
         if(currentStep === 2) {
             var city = $('#app option:selected').attr('city');
-            if(!$('#enterprise_city').val()) {
-                $('#enterprise_city').val(city);
-            }
+            fillInput('enterprise_city', city);
+            fillInput('contact_city', city)
         }
+
         if(currentStep === 3) {
-            var city = $('#enterprise_city').val();
-            if(!$('#entrepreneur_city').val()) {
-                $('#entrepreneur_city').val(city);
-            }
+            copyInput('enterprise_user_email', 'contact_user_email');
+            copyInput('enterprise_telephone', 'contact_telephone');
         }
     }
 

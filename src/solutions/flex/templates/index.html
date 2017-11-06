@@ -402,6 +402,9 @@ var modules = {};
                             {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
                                 <li section="section_settings_loyalty"><a href="#">{% translate language, "common", "loyalty" %}</a></li>
                             {% endif %}
+                            {% if SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
+                                <li section="section_settings_city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
+                            {% endif %}
                             {% if not is_layout_user and SolutionModule.QR_CODES in sln_settings.modules %}
                                 <li section="section_qr_codes"><a href="#" help="plfF98FLpxI">{% translate language, "common", "settings-qr-codes" %}</a></li>
                             {% endif %}
@@ -473,7 +476,7 @@ var modules = {};
                         {% endif %}
 						{% if not is_layout_user and SolutionModule.AGENDA in sln_settings.modules %}
 						    {%- include 'events_settings.tmpl' %}
-						{% endif %}
+                        {% endif %}
 
         {% if not is_layout_user and SolutionModule.APPOINTMENT in sln_settings.modules %}
             {%- include 'appointment_settings.tmpl' %}
@@ -507,8 +510,10 @@ var modules = {};
 
         {% if not is_layout_user and SolutionModule.QR_CODES in sln_settings.modules %}
 						    {%- include 'qr_codes.tmpl' %}
-						{% endif %}
-
+                        {% endif %}
+        {% if SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
+                        {%- include 'city_vouchers/city_vouchers_settings.tmpl' %}
+        {% endif %}
         {% if not is_layout_user and SolutionModule.BULK_INVITE in sln_settings.modules %}
 						    {%- include 'bulk_invite.tmpl' %}
 						{% endif %}

@@ -44,12 +44,16 @@ class CompanyTO(object):
     country = unicode_property('6')
     vat = unicode_property('7')
     organization_type = long_property('8')
-    sector = unicode_property('9')
+    user_email = unicode_property('9')
+    telephone = unicode_property('10')
+    website = unicode_property('11')
+    facebook_page = unicode_property('12')
+    sector = unicode_property('13')
+
 
 class CustomerTO(CompanyTO):
     id = long_property('51')
     service_email = unicode_property('52')
-    user_email = unicode_property('53')
     auto_login_url = unicode_property('54')
     stripe_valid = bool_property('55')
     migration_job = unicode_property('56')
@@ -69,9 +73,6 @@ class CustomerTO(CompanyTO):
     service_disabled_reason_int = long_property('70')
     subscription_cancel_pending_date = long_property('71')
     cancelling_on_date = long_property('72')  # Customer his subscription will be disabled on this date
-    website = unicode_property('73')
-    facebook_page = unicode_property('74')
-    telephone = unicode_property('75')
 
     @staticmethod
     def fromCustomerModel(customer, can_edit, is_admin):

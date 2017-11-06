@@ -62,7 +62,7 @@ from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, send_mail_via_mime
+from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import run_in_transaction
@@ -792,34 +792,6 @@ def create_pdf(src, path, default_css=None):
     if orig_to_bytes is None:
         delattr(Image, 'tobytes')
     return output_stream.getvalue()
-
-
-def send_email(subject, from_email, to_emails, bcc_emails, reply_to, body_text, attachments=None,
-               attachment_types=None, attachment_names=None, html_body=None):
-    msg_root = MIMEMultipart('mixed')
-    msg_root['Subject'] = subject
-    msg_root['From'] = from_email
-    msg_root['To'] = ','.join(to_emails)
-    msg_root['Bcc'] = ','.join(bcc_emails)
-    msg_root["Reply-To"] = reply_to
-    msg = MIMEMultipart('alternative')
-    msg_root.attach(msg)
-    body = MIMEText(body_text.encode('utf-8'), 'plain', 'utf-8')
-    msg.attach(body)
-
-    if html_body:
-        html_part = MIMEMultipart('related')
-        msg.attach(html_part)
-        html_part.attach(MIMEText(html_body.encode('utf-8'), 'html', 'utf-8'))
-
-    if attachments:
-        for attachment, attachment_type, name, in zip(attachments, attachment_types, attachment_names):
-            att = MIMEApplication(attachment, _subtype=attachment_type)
-            att.add_header('Content-Disposition', 'attachment', filename=name)
-            msg_root.attach(att)
-
-    settings = get_server_settings()
-    send_mail_via_mime(settings.senderEmail, to_emails, msg_root)
 
 
 @returns(FileBlob)
