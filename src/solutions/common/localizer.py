@@ -1058,7 +1058,7 @@ translations = \
          u'question-tag-modules': u'Tag relevant modules to your question',
          u'rating': u'Rating',
          u'Rate this service': u'Rate this service',
-         u'rated_by_n_users': u'Rated by %(users)d user(s)',
+         u'total_ratings': u'Total ratings for each topic',
          u'rate_review': u'Rate & Review',
          u'reached': u'Reached',
          u'read_more': u'Read more',

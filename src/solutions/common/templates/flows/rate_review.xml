@@ -15,7 +15,7 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_cancel">
-            <content></content>
+            <content>{% translate language, "common", "total_ratings" %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
                   positiveButtonCaption="{% translate language, 'common', 'Rate this service' %}"
@@ -23,7 +23,7 @@
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="RatingWidget">
                     {% for rating in ratings %}
-                    <topic id="{{ rating.topic.name }}" score="{{ rating.score }}">
+                    <topic id="{{ rating.topic.name }}" score="{{ rating.score }}" total_count="{{ rating.total_count }}">
                         <title>{{ rating.topic.title }}</title>
                         <question></question>
                     </topic>
@@ -48,7 +48,7 @@
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="RatingWidget">
                     {% for topic in topics %}
-                    <topic id="{{ topic.name }}" score="2.5">
+                    <topic id="{{ topic.name }}" score="2.5" total_count="0">
                         <title>{{ topic.title }}</title>
                         <question>{{ topic.question }}</question>
                     </topic>
