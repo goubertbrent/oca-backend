@@ -139,7 +139,7 @@ def create_xcty_product(legal_entity_id, code_prefix=''):
                                                              Product.PRODUCT_FREE_PRESENCE,
                                                              Product.PRODUCT_FREE_SUBSCRIPTION)])]
     p.picture_url = ""
-    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
+    p.visible = True
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
