@@ -326,17 +326,18 @@ def schedule_post_to_social_media(service_user, host, on_facebook, on_twitter,
     if scheduled_broadcast.timestamp == scheduled_at:
         return
 
-    if not facebook_access_token:
-        if scheduled_broadcast.facebook_access_token:
-            facebook_access_token = scheduled_broadcast.facebook_access_token
-        else:
-            raise ValueError('facebook access token is not provided, %s, news id: %d' % (service_user, news_id))
+    if on_facebook:
+        if not facebook_access_token:
+            if scheduled_broadcast.facebook_access_token:
+                facebook_access_token = scheduled_broadcast.facebook_access_token
+            else:
+                raise ValueError('facebook access token is not provided, %s, news id: %d' % (service_user, news_id))
 
-    # try to extend facebook access token first
-    try:
-        facebook_access_token = facebook.extend_access_token(host, facebook_access_token)
-    except:
-        logging.error('Cannot get an extended facebook access token', exc_info=True)
+        # try to extend facebook access token first
+        try:
+            facebook_access_token = facebook.extend_access_token(host, facebook_access_token)
+        except:
+            logging.error('Cannot get an extended facebook access token', exc_info=True)
 
     if scheduled_broadcast.scheduled_task_name:
         # remove the old scheduled task
