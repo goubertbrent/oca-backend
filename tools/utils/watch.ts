@@ -5,10 +5,12 @@ import { config } from '../config/config';
 
 import { changeFileManager } from './code_change_tools';
 
-try {
-  require('fsevents');
-} catch (err) {
-  throw new Error('Could not require fsevents, please execute `npm install` again.');
+if (process.platform === 'darwin') {
+  try {
+    require('fsevents');
+  } catch (err) {
+    throw new Error('Could not require fsevents, please execute `npm install` again.');
+  }
 }
 
 /**

@@ -876,6 +876,13 @@ def new_event_received(service_user, message_flow_run_id, member, steps, end_id,
     return None
 
 
+def get_branding_resource(filename):
+    path = os.path.join(os.path.dirname(solutions.__file__),
+                        'common', 'templates', 'brandings',
+                        filename)
+    return file_get_contents(path)
+
+
 def provision_events_branding(solution_settings, main_branding, language):
     """
     Args:
@@ -890,13 +897,10 @@ def provision_events_branding(solution_settings, main_branding, language):
             new_zip_stream = StringIO()
             zip_ = ZipFile(new_zip_stream, 'w', compression=ZIP_DEFLATED)
             try:
-                path = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/app_jquery.tmpl.js')
-                zip_.writestr("jquery.tmpl.min.js", file_get_contents(path))
-                path = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/moment-with-locales.min.js')
-                zip_.writestr("moment-with-locales.min.js", file_get_contents(path))
+                zip_.writestr("jquery.tmpl.min.js", get_branding_resource("app_jquery.tmpl.js"))
+                zip_.writestr("moment-with-locales.min.js", get_branding_resource("moment-with-locales.min.js"))
                 zip_.writestr("app-translations.js", JINJA_ENVIRONMENT.get_template("brandings/app_events_translations.js").render({'language': language}).encode("utf-8"))
-                path = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/app_events.js')
-                zip_.writestr("app.js", file_get_contents(path))
+                zip_.writestr("app.js", '\n\n'.join(map(get_branding_resource, ["app_polyfills.js", "app_events.js"])))
 
                 for file_name in set(stream.namelist()):
                     str_ = stream.read(file_name)
