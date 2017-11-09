@@ -464,7 +464,11 @@ def rating_rate_service(service_user, message_flow_run_id, member, steps, end_id
                         service_identity, user_details):
     logging.debug('rate service from the rate_review flow result')
 
-    result_step, rating_step = steps
+    if len(steps) == 2:
+        _, rating_step = steps
+    else:
+        rating_step = steps[0]
+
     author = user_details[0]
     with users.set_user(service_user):
         # result is RatingWidgetResult

@@ -2,11 +2,12 @@
 <messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
     <definition name="rate_review"
                 language="{{ language }}"
-                startReference="message_total_ratings">
+                startReference="{%if ratings%}message_total_ratings{% else %}message_rate{% endif %}">
 
         <end id="end_cancel" waitForFollowUpMessage="false"/>
         <end id="end_sent" waitForFollowUpMessage="true"/>
 
+        {% if ratings %}
         <formMessage id="message_total_ratings"
                      alertIntervalType="NONE"
                      alertType="SILENT"
@@ -31,6 +32,7 @@
                 </widget>
             </form>
         </formMessage>
+        {% endif %}
 
         <formMessage id="message_rate"
                      alertIntervalType="NONE"
