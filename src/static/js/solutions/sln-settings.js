@@ -1252,12 +1252,16 @@ $(function () {
         }
     }
 
-    function uploadImage(popupHeader, updateUrl, width, height, successCallback) {
+    function uploadImage(popupHeader, updateUrl, width, height, successCallback, circle_preview) {
         var html = $.tmpl(templates['settings/upload_image'], {
-            header: popupHeader
+            header: popupHeader,
+            width: width,
+            height: height,
+            circle_preview: circle_preview,
         });
         var modal = sln.createModal(html);
         var imageElem = $('#avatarUpload', modal);
+        var imagePreview = $('.cropped_image_preview img', modal);
         var selectedFile = null;
         $('#newAvatar', modal).change(fileSelected);
 
@@ -1269,9 +1273,12 @@ $(function () {
                 autoCropArea: 1.0,
                 minContainerWidth: width,
                 minContainerHeight: height,
-                aspectRatio: width / height
+                aspectRatio: width / height,
+                preview: '.cropped_image_preview'
             };
             sln.readFile(this, imageElem, 'dataURL', function () {
+                imagePreview.parent().show();
+                imagePreview.attr('src', imageElem.attr('src'));
                 imageElem.cropper('destroy');
                 imageElem.cropper(CROP_OPTIONS);
             });
@@ -1401,9 +1408,8 @@ $(function () {
         if (url) {
             updateUrl = url;
         }
-        uploadImage(popupHeader, updateUrl, previewWidth, previewHeight, null);
+        uploadImage(popupHeader, updateUrl, previewWidth, previewHeight, null, true);
     }
-
 
     function moveElementInArray(array, old_index, new_index) {
         if (new_index >= array.length) {
