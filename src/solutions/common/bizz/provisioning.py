@@ -106,33 +106,34 @@ except ImportError:
     from StringIO import StringIO
 
 
-POKE_TAGS = { SolutionModule.AGENDA:        POKE_TAG_EVENTS,
-              SolutionModule.APPOINTMENT:   POKE_TAG_APPOINTMENT,
-              SolutionModule.ASK_QUESTION:  POKE_TAG_ASK_QUESTION,
-              SolutionModule.BROADCAST:     ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
-              SolutionModule.BILLING:       None,
-              SolutionModule.BULK_INVITE:   None,
-              SolutionModule.CITY_APP:      None,
-              SolutionModule.CITY_VOUCHERS: None,
-              SolutionModule.DISCUSSION_GROUPS: POKE_TAG_DISCUSSION_GROUPS,
-              SolutionModule.GROUP_PURCHASE:POKE_TAG_GROUP_PURCHASE,
-              SolutionModule.LOYALTY:       POKE_TAG_LOYALTY,
-              SolutionModule.MENU:          POKE_TAG_MENU,
-              SolutionModule.ORDER:         POKE_TAG_ORDER,
-              SolutionModule.PHARMACY_ORDER:POKE_TAG_PHARMACY_ORDER,
-              SolutionModule.QR_CODES:      None,
-              SolutionModule.REPAIR:        POKE_TAG_REPAIR,
-              SolutionModule.RESTAURANT_RESERVATION: None,
-              SolutionModule.SANDWICH_BAR:  POKE_TAG_SANDWICH_BAR,
-              SolutionModule.STATIC_CONTENT:None,
-              SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
-              SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
-              }
+POKE_TAGS = {SolutionModule.AGENDA:        POKE_TAG_EVENTS,
+             SolutionModule.APPOINTMENT:   POKE_TAG_APPOINTMENT,
+             SolutionModule.ASK_QUESTION:  POKE_TAG_ASK_QUESTION,
+             SolutionModule.BROADCAST:     ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
+             SolutionModule.BILLING:       None,
+             SolutionModule.BULK_INVITE:   None,
+             SolutionModule.CITY_APP:      None,
+             SolutionModule.CITY_VOUCHERS: None,
+             SolutionModule.DISCUSSION_GROUPS: POKE_TAG_DISCUSSION_GROUPS,
+             SolutionModule.GROUP_PURCHASE: POKE_TAG_GROUP_PURCHASE,
+             SolutionModule.LOYALTY:       POKE_TAG_LOYALTY,
+             SolutionModule.MENU:          POKE_TAG_MENU,
+             SolutionModule.ORDER:         POKE_TAG_ORDER,
+             SolutionModule.PHARMACY_ORDER: POKE_TAG_PHARMACY_ORDER,
+             SolutionModule.QR_CODES:      None,
+             SolutionModule.REPAIR:        POKE_TAG_REPAIR,
+             SolutionModule.RESTAURANT_RESERVATION: None,
+             SolutionModule.SANDWICH_BAR:  POKE_TAG_SANDWICH_BAR,
+             SolutionModule.STATIC_CONTENT: None,
+             SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
+             SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
+             }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
 
 COLOR_WHITE = '#FFFFFF'
 COLOR_BLACK = '#000000'
+
 
 @returns(unicode)
 @arguments()
@@ -275,7 +276,8 @@ def get_and_store_content_branding(service_user, language):
                                     content = f.read()
                                 if f_name == "js":
                                     if f_name_in_map == "app_translations.js":
-                                        content = JINJA_ENVIRONMENT.get_template("content_branding/%s/%s" % (f_name, f_name_in_map)).render({'language': language}).encode("utf-8")
+                                        content = JINJA_ENVIRONMENT.get_template(
+                                            "content_branding/%s/%s" % (f_name, f_name_in_map)).render({'language': language}).encode("utf-8")
                                 zip_.writestr("%s/%s" % (f_name, f_name_in_map), content)
                             content = None
                         else:
@@ -320,11 +322,13 @@ def _render_branding_html(main_branding_dir, file_name, color_scheme, background
 
     return jinja_environment.get_template(file_name).render(params)
 
+
 def create_inbox_forwarding_flow(main_branding_key, main_language):
     flow_params = dict(branding_key=main_branding_key, language=main_language)
     flow = JINJA_ENVIRONMENT.get_template('flows/connect-inbox-via-scan.xml').render(flow_params)
     connect_inbox_via_scan_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
     return connect_inbox_via_scan_flow.identifier
+
 
 def create_inbox_forwarding_qr_code(service_identity, identifier):
     return qr.create("Receive inbox messages", POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, None, service_identity, identifier)
@@ -388,7 +392,8 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
 
     content_branding_hash = None
     if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
-        solution_loyalty_settings = get_and_store_content_branding(sln_settings.service_user, sln_settings.main_language)
+        solution_loyalty_settings = get_and_store_content_branding(
+            sln_settings.service_user, sln_settings.main_language)
         content_branding_hash = solution_loyalty_settings.branding_key
 
     logging.info('Updating identities')  # idempotent
@@ -428,11 +433,11 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
         identity.search_config.locations = search_config_locations
         identity.qualified_identifier = sln_i_settings.qualified_identifier
         identity.content_branding_hash = content_branding_hash
-        default_app_id = identity.app_ids[0]
-
-        app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id)
-        identity.app_data = json.dumps(app_data).decode('utf8')
         system.put_identity(identity)
+
+        default_app_id = identity.app_ids[0]
+        app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id)
+        system.put_service_data(json.dumps(app_data).decode('utf8'), service_identity)
 
         handle_auto_connected_service(sln_settings.service_user, sln_settings.search_enabled)
 
@@ -486,9 +491,9 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
     holiday_dates_str = list()
     cur_date = now()
     for d1, d2 in sln_i_settings.holiday_tuples:
-    # don't include holidays in the past
+        # don't include holidays in the past
         if cur_date < d2:
-            holiday_dates.append({'from':d1, 'to':d2})
+            holiday_dates.append({'from': d1, 'to': d2})
             holiday_dates_str.append(common_translate(sln_settings.main_language,
                                                       SOLUTION_COMMON,
                                                       'date_until_date',
@@ -505,7 +510,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
         if isinstance(address, unicode):
             address = address.encode('utf-8')
         params = urllib.urlencode(dict(q=address,
-                t=u"d"))
+                                       t=u"d"))
         address_url = u"https://maps.google.com/maps?%s" % params
     app_data['settings'] = {}
     app_data['settings']['app_name'] = default_app_name
@@ -522,7 +527,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
     app_data['settings']['holidays']['dates_str'] = holiday_dates_str
     if not sln_i_settings.holiday_out_of_office_message:
         sln_i_settings.holiday_out_of_office_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
-            'holiday-out-of-office')
+                                                                        'holiday-out-of-office')
     app_data['settings']['holidays']['out_of_office_message'] = xml_escape(sln_i_settings.holiday_out_of_office_message)
     app_data['settings']['modules'] = sln_settings.modules
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
@@ -547,7 +552,8 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_agenda(sln_settings, service_identity, default_app_id):
-    events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution), key=lambda e: e.get_first_event_date())
+    events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution),
+                    key=lambda e: e.get_first_event_date())
     event_items = []
     size = 0
     for i in xrange(len(events)):
@@ -622,9 +628,11 @@ def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_group_purchase(sln_settings, service_identity, default_app_id):
-    group_purchases = [SolutionGroupPurchaseTO.fromModel(m) for m in SolutionGroupPurchase.list(sln_settings.service_user, service_identity, sln_settings.solution)]
+    group_purchases = [SolutionGroupPurchaseTO.fromModel(m) for m in SolutionGroupPurchase.list(
+        sln_settings.service_user, service_identity, sln_settings.solution)]
     return dict(currency=sln_settings.currency,
                 solutionGroupPurchases=serialize_complex_value(group_purchases, SolutionGroupPurchaseTO, True))
+
 
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
@@ -632,7 +640,8 @@ def get_app_data_loyalty(sln_settings, service_identity, default_app_id):
     app_data = dict(currency=sln_settings.currency)
     loyalty_settings = SolutionLoyaltySettings.get_by_user(sln_settings.service_user)
     if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
-        app_data["loyalty"] = {"settings": serialize_complex_value(loyalty_settings, LoyaltyRevenueDiscountSettingsTO, False)}
+        app_data["loyalty"] = {"settings": serialize_complex_value(
+            loyalty_settings, LoyaltyRevenueDiscountSettingsTO, False)}
     elif loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_LOTTERY:
         app_data["loyalty_2"] = {"dates": list()}
         ll_info = SolutionLoyaltyLottery.load_pending(sln_settings.service_user, service_identity)
@@ -845,7 +854,8 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
         sc = db.run_in_transaction_options(xg_on, trans)
 
         if db.is_in_transaction():
-            on_trans_committed(_configure_calendar_admin_qr_code, sc, main_branding.branding_key, sln_settings.main_language)
+            on_trans_committed(
+                _configure_calendar_admin_qr_code, sc, main_branding.branding_key, sln_settings.main_language)
         else:
             _configure_calendar_admin_qr_code(sc, main_branding.branding_key, sln_settings.main_language)
 
@@ -855,8 +865,10 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
         # Configure automatic broadcast types
         broadcast_types = list()
         for c in get_solution_calendars(sln_settings.service_user, sln_settings.solution, True):
-            broadcast_types.append(common_translate(default_lang, SOLUTION_COMMON, u'calendar-broadcast-type') % dict(name=c.name))
-        SolutionAutoBroadcastTypes(key_name=SolutionModule.AGENDA, parent=sln_settings, broadcast_types=broadcast_types).put()
+            broadcast_types.append(
+                common_translate(default_lang, SOLUTION_COMMON, u'calendar-broadcast-type') % dict(name=c.name))
+        SolutionAutoBroadcastTypes(
+            key_name=SolutionModule.AGENDA, parent=sln_settings, broadcast_types=broadcast_types).put()
 
         if default_lang == "nl" and SolutionModule.CITY_APP in sln_settings.modules:
             icon = u"uit"
@@ -885,6 +897,7 @@ def delete_agenda_item(sln_settings, current_coords, service_menu):
     _default_delete(sln_settings, current_coords, service_menu)
     SolutionAutoBroadcastTypes(key_name=SolutionModule.AGENDA, parent=sln_settings, broadcast_types=list()).put()
 
+
 @returns(NoneType)
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
 def delete_qr_codes(sln_settings, current_coords, service_menu):
@@ -893,6 +906,7 @@ def delete_qr_codes(sln_settings, current_coords, service_menu):
         identities.extend(sln_settings.identities)
     for service_identity in identities:
         db.delete(SolutionQR.list_by_user(sln_settings.service_user, service_identity, sln_settings.solution))
+
 
 @returns(NoneType)
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
@@ -1067,6 +1081,7 @@ def put_ask_question(sln_settings, current_coords, main_branding, default_lang, 
 @arguments(service_user=users.User, service_identity=unicode, flow_identifier=unicode)
 def _configure_inbox_forwarding_qr_code(service_user, service_identity, flow_identifier):
     qrcode = create_inbox_forwarding_qr_code(service_identity, flow_identifier)
+
     def trans():
         if is_default_service_identity(service_identity):
             sln_i_settings = get_solution_settings(service_user)
@@ -1143,10 +1158,11 @@ def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, 
     create_news_flow_template = JINJA_ENVIRONMENT.get_template('flows/publish_news.xml').render(flow_params)
     create_news_flow = system.put_flow(create_news_flow_template.encode('utf-8'))
 
-    qr_connect_template = JINJA_ENVIRONMENT.get_template('flows/news_publisher_connect_via_scan.xml').render(flow_params)
+    qr_connect_template = JINJA_ENVIRONMENT.get_template(
+        'flows/news_publisher_connect_via_scan.xml').render(flow_params)
     qr_connect_flow = system.put_flow(qr_connect_template.encode('utf-8'))
     roles = filter(lambda r: r.name == POKE_TAG_BROADCAST_CREATE_NEWS,
-                  system.list_roles())
+                   system.list_roles())
     if roles:
         role_id = roles[0].id
     else:
@@ -1170,6 +1186,7 @@ def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, 
 
     return ssmi
 
+
 @returns([SolutionServiceMenuItem])
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
@@ -1190,6 +1207,7 @@ def put_group_purchase(sln_settings, current_coords, main_branding, default_lang
     else:
         _default_delete(sln_settings, current_coords)
         return []
+
 
 @returns([SolutionServiceMenuItem])
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
@@ -1222,7 +1240,8 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
             if not sln_li_settings:
                 logging.debug('Creating new SolutionLoyaltyIdentitySettings')
                 should_put = True
-                sln_li_settings = SolutionLoyaltyIdentitySettings(key=SolutionLoyaltyIdentitySettings.create_key(service_user, service_identity))
+                sln_li_settings = SolutionLoyaltyIdentitySettings(
+                    key=SolutionLoyaltyIdentitySettings.create_key(service_user, service_identity))
             if not sln_li_settings.image_uri:
                 qr_code = create_loyalty_admin_qr_code(service_identity)
                 should_put = True
@@ -1231,7 +1250,6 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
                 sln_li_settings.put()
             if should_put:
                 sln_li_settings.put()
-
 
     if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY:
         logging.info("Clearing LOYALTY icon")
@@ -1249,6 +1267,7 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
                                    action=SolutionModule.action_order(SolutionModule.LOYALTY))
 
     return [ssmi]
+
 
 @returns([SolutionServiceMenuItem])
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
@@ -1304,22 +1323,26 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
 
     if sln_order_settings.leap_time_type == SECONDS_IN_MINUTE:
         if sln_order_settings.leap_time > 1:
-            leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_minutes_x', minutes=sln_order_settings.leap_time)
+            leap_time_message = common_translate(
+                lang, SOLUTION_COMMON, 'advanced_order_leaptime_minutes_x', minutes=sln_order_settings.leap_time)
         else:
             leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_minutes_1')
     elif sln_order_settings.leap_time_type == SECONDS_IN_HOUR:
         if sln_order_settings.leap_time > 1:
-            leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_hours_x', hours=sln_order_settings.leap_time)
+            leap_time_message = common_translate(
+                lang, SOLUTION_COMMON, 'advanced_order_leaptime_hours_x', hours=sln_order_settings.leap_time)
         else:
             leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_hours_1')
     elif sln_order_settings.leap_time_type == SECONDS_IN_DAY:
         if sln_order_settings.leap_time > 1:
-            leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_days_x', days=sln_order_settings.leap_time)
+            leap_time_message = common_translate(
+                lang, SOLUTION_COMMON, 'advanced_order_leaptime_days_x', days=sln_order_settings.leap_time)
         else:
             leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_days_1')
     else:
         if sln_order_settings.leap_time > 1:
-            leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_weeks_x', weeks=sln_order_settings.leap_time)
+            leap_time_message = common_translate(
+                lang, SOLUTION_COMMON, 'advanced_order_leaptime_weeks_x', weeks=sln_order_settings.leap_time)
         else:
             leap_time_message = common_translate(lang, SOLUTION_COMMON, 'advanced_order_leaptime_weeks_1')
 
@@ -1401,7 +1424,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         holiday_dates_str=xml_escape(json.dumps(holiday_dates_str)),
         holiday_dates=xml_escape(json.dumps(holiday_dates)),
         orderable_times=xml_escape(json.dumps(
-            [{'time_from': o.time_from, 'time_until': o.time_until, 'day': (o.day + 8) % 7 } for o in orderable_times])),
+            [{'time_from': o.time_from, 'time_until': o.time_until, 'day': (o.day + 8) % 7} for o in orderable_times])),
         orderable_times_str=orderable_times_str.getvalue().decode('utf-8'),
         leap_time=leap_time,
         leap_time_message=leap_time_message,
@@ -1443,6 +1466,7 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
                                    action=SolutionModule.action_order(SolutionModule.ORDER))
 
     return [ssmi]
+
 
 @returns([SolutionServiceMenuItem])
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
@@ -1488,7 +1512,8 @@ def _configure_connect_qr_code(sln_settings, welcome_flow_identifier):
     if sln_settings.identities:
         identities.extend(sln_settings.identities)
     for service_identity in identities:
-        connect_qr = SolutionQR.get_by_name('Connect', sln_settings.service_user, service_identity, sln_settings.solution)
+        connect_qr = SolutionQR.get_by_name(
+            'Connect', sln_settings.service_user, service_identity, sln_settings.solution)
         if not connect_qr:
             connect_qr = SolutionQR(key=SolutionQR.create_key('Connect', sln_settings.service_user, service_identity, sln_settings.solution),
                                     description=common_translate(sln_settings.main_language, SOLUTION_COMMON,
@@ -1497,7 +1522,8 @@ def _configure_connect_qr_code(sln_settings, welcome_flow_identifier):
         if not connect_qr.image_url:
             qr_templates = qr.list_templates().templates
             qr_template_id = qr_templates[0].id if qr_templates else None
-            qr_code = qr.create(connect_qr.description, 'connect', qr_template_id, service_identity, welcome_flow_identifier)
+            qr_code = qr.create(
+                connect_qr.description, 'connect', qr_template_id, service_identity, welcome_flow_identifier)
             connect_qr.image_url = qr_code.image_uri
             connect_qr.put()
 
@@ -1567,11 +1593,11 @@ def put_restaurant_reservation(sln_settings, current_coords, main_branding, defa
                                     POKE_TAG_RESERVE_PART1,
                                     static_flow=reserve_flow_part1.identifier,
                                     action=SolutionModule.action_order(SolutionModule.RESTAURANT_RESERVATION)),
-             SolutionServiceMenuItem(u'fa-calendar',
-                                     sln_settings.menu_item_color,
-                                     common_translate(default_lang, SOLUTION_COMMON, 'My reservations'),
-                                     POKE_TAG_MY_RESERVATIONS,
-                                     action=0)]
+            SolutionServiceMenuItem(u'fa-calendar',
+                                    sln_settings.menu_item_color,
+                                    common_translate(default_lang, SOLUTION_COMMON, 'My reservations'),
+                                    POKE_TAG_MY_RESERVATIONS,
+                                    action=0)]
 
 
 @returns(NoneType)
@@ -1847,7 +1873,7 @@ def _dummy_put(*args, **kwargs):
 
 
 @returns(NoneType)
-@arguments(sln_settings=SolutionSettings, current_coords=[(int , long)], service_menu=ServiceMenuDetailTO)
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
 def _default_delete(sln_settings, current_coords, service_menu=None):
     if current_coords:
         system.delete_menu_item(current_coords)
