@@ -209,7 +209,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
 
     try:
         modules = filter_modules(city_customer, modules, broadcast_types)
-        service = create_customer_service_to(name, address1, address1, city, zip_code, user_email, language, city_sln_settings.currency,
+        service = create_customer_service_to(name, address1, address2, city, zip_code, user_email, language, city_sln_settings.currency,
                                              telephone, organization_type, city_customer.app_id, broadcast_types, modules)
         (customer, email_changed, is_new_service) \
             = create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code, city,
