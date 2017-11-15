@@ -71,7 +71,7 @@ def save_cityapp_settings(gather_events, uitdatabank_secret=None, uitdatabank_ke
     from solutions.common.bizz.cityapp import save_cityapp_settings as save_cityapp_settings_bizz
     try:
         service_user = users.get_current_user()
-        save_cityapp_settings_bizz(service_user, gather_events, uitdatabank_secret, uitdatabank_key, uitdatabank_regions)
+        save_cityapp_settings_bizz(service_user, gather_events, uitdatabank_secret, uitdatabank_key, uitdatabank_regions or [])
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
@@ -106,4 +106,5 @@ def uitdatabank_check_cityapp_settings():
         cap.uitdatabank_enabled = False
         cap.put()
         return ReturnStatusTO.create(False, result)
+
     return db.run_in_transaction(trans)
