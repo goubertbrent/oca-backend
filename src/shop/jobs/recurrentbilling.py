@@ -92,16 +92,9 @@ def _create_charge(order_key, today, products):
                                              .filter('is_subscription_extension_order =', True)
                                              .filter("status =", Order.STATUS_SIGNED))
         subscription_extension_order_keys = [o.key() for o in subscription_extension_orders]
-
-        charge = Charge(parent=order_key)
-        charge.date = now()
-        charge.type = Charge.TYPE_RECURRING_SUBSCRIPTION
-        charge.subscription_extension_length = 1
-        charge.subscription_extension_order_item_keys = list()
-        charge.currency_code = customer.team.legal_entity.currency_code
-        charge.team_id = customer.team_id
         order_item_qry = OrderItem.all().ancestor(customer if subscription_extension_order_keys else order)
 
+        subscription_extension_order_item_keys = []
         total_amount = 0
         subscription_length = 0
         for order_item in order_item_qry:
@@ -114,7 +107,7 @@ def _create_charge(order_key, today, products):
             elif order_item.parent().key() in subscription_extension_order_keys:
                 if product.is_subscription_extension:
                     total_amount += order_item.price
-                    charge.subscription_extension_order_item_keys.append(order_item.key())
+                    subscription_extension_order_item_keys.append(order_item.key())
 
         if total_amount == 0:
             order.next_charge_date = Order.default_next_charge_date()
@@ -165,6 +158,17 @@ def _create_charge(order_key, today, products):
         else:
             cleanup_expired_subscription(customer)
 
+        @db.non_transactional  # prevent contention on entity group RegioManagerTeam
+        def get_currency_code():
+            return customer.team.legal_entity.currency_code
+
+        charge = Charge(parent=order_key)
+        charge.date = now()
+        charge.type = Charge.TYPE_RECURRING_SUBSCRIPTION
+        charge.subscription_extension_length = 1
+        charge.subscription_extension_order_item_keys = subscription_extension_order_item_keys
+        charge.currency_code = get_currency_code()
+        charge.team_id = customer.team_id
         charge.amount = total_amount
         charge.vat_pct = order.vat_pct
         charge.vat = int(total_amount * order.vat_pct / 100)
