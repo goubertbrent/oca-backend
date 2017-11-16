@@ -38,7 +38,7 @@ from shop.constants import MAPS_QUEUE
 from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
-from solutions.common.models.agenda import  Event
+from solutions.common.models.agenda import Event
 from solutions.common.models.cityapp import CityAppProfile
 import webapp2
 
@@ -46,7 +46,8 @@ import webapp2
 class CityAppSolutionEventsUitdatabank(webapp2.RequestHandler):
 
     def get(self):
-        run_job(_get_cityapp_uitdatabank_enabled_query, [], _process_cityapp_uitdatabank_events, [1], worker_queue=MAPS_QUEUE)
+        run_job(_get_cityapp_uitdatabank_enabled_query, [],
+                _process_cityapp_uitdatabank_events, [1], worker_queue=MAPS_QUEUE)
 
 
 def _get_cityapp_uitdatabank_enabled_query():
@@ -82,7 +83,8 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
         updated_events_count = 0
         for r in result:
             result_count += 1
-            updated_events = _populate_uit_events(sln_settings, cap.uitdatabank_secret, cap.uitdatabank_key, r['cdbid'], uitdatabank_actors, cap.uitdatabank_last_query or None)
+            updated_events = _populate_uit_events(sln_settings, cap.uitdatabank_secret, cap.uitdatabank_key,
+                                                  r['cdbid'], uitdatabank_actors, cap.uitdatabank_last_query or None)
             if updated_events:
                 services_to_update.update((event.service_user for event in updated_events))
                 updated_events_count += 1
@@ -166,7 +168,6 @@ def get_event_start_and_end_dates(timestamps, v2=False):
         event_start_dates.append(start_date)
         event_end_dates.append(end_date)
 
-
     r_timestamp = timestamps["timestamp"]
     if isinstance(r_timestamp, dict):
         logging.debug("dict timestamp: %s", r_timestamp)
@@ -199,7 +200,8 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
         logging.warn("detail result: %s", detail_result)
 
     event_parent_key = parent_key(sln_settings.service_user, sln_settings.solution)
-    event = Event.all().ancestor(event_parent_key).filter("source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
+    event = Event.all().ancestor(event_parent_key).filter(
+        "source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
     if not event:
         event = Event(parent=event_parent_key,
                       source=Event.SOURCE_UITDATABANK_BE,
@@ -227,12 +229,14 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
         logging.debug("len(origanizer_settings): %s", len(origanizer_settings))
         for organizer_sln_settings in origanizer_settings:
-            organizer_event_parent_key = parent_key(organizer_sln_settings.service_user, organizer_sln_settings.solution)
-            organizer_event = Event.all().ancestor(organizer_event_parent_key).filter("source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
+            organizer_event_parent_key = parent_key(organizer_sln_settings.service_user,
+                                                    organizer_sln_settings.solution)
+            organizer_event = Event.all().ancestor(organizer_event_parent_key).filter(
+                "source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
             if not organizer_event:
                 organizer_event = Event(parent=organizer_event_parent_key,
-                                    source=Event.SOURCE_UITDATABANK_BE,
-                                    external_id=external_id)
+                                        source=Event.SOURCE_UITDATABANK_BE,
+                                        external_id=external_id)
 
             organizer_event.calendar_id = organizer_sln_settings.default_calendar
             events.append(organizer_event)
@@ -257,9 +261,15 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
         location = detail_result["location"]["address"]["physical"]
         if location.get("street", None):
             if uitdatabank_secret:
-                event_place = "%s %s, %s %s" % (location["street"]["value"], location.get("housenr", ""), location["zipcode"], location["city"]["value"])
+                event_place = "%s %s, %s %s" % (location["street"]["value"],
+                                                location.get("housenr", ""),
+                                                location["zipcode"],
+                                                location["city"]["value"])
             else:
-                event_place = "%s %s, %s %s" % (location["street"], location.get("housenr", ""), location["zipcode"], location["city"])
+                event_place = "%s %s, %s %s" % (location["street"],
+                                                location.get("housenr", ""),
+                                                location["zipcode"],
+                                                location["city"])
         else:
             if uitdatabank_secret:
                 event_place = "%s %s" % (location["zipcode"], location["city"]["value"])
@@ -277,12 +287,12 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     r_timestamps = detail_result["calendar"].get("timestamps")
     if not r_timestamps:
-        logging.debug("skipping event because we could not determine starttime")
+        logging.debug("skipping event because we could not determine starttime for %s", detail_result)
         return None
 
     event_start_dates, event_end_dates = get_event_start_and_end_dates(r_timestamps, v2=uitdatabank_secret)
     if not event_start_dates:
-        logging.info("Skipping event because it had no starttime (list)")
+        logging.info("Skipping event because it had no starttime (list) for %s", detail_result)
         return None
 
     for event in events:
@@ -296,10 +306,11 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
         event.first_start_date = event.get_first_event_date()
     return events
 
+
 def _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz):
     time_diff = int((dt_with_tz - pytz.UTC.localize(dt_without_tz)).total_seconds())
     if time_diff == -7200:
-        return -3600 # Thre json response from uitdatabank is incorrect
+        return -3600  # Thre json response from uitdatabank is incorrect
     return time_diff
 
 
@@ -311,8 +322,8 @@ def _get_uitdatabank_events_detail(uitdatabank_secret, uitdatabank_key, cbd_id):
 
 def _get_uitdatabank_events_detail_old(uitdatabank_key, cbd_id):
     url = "http://build.uitdatabank.be/api/event/%s?" % cbd_id
-    values = {'key' : uitdatabank_key,
-              'format' : "json" }
+    values = {'key': uitdatabank_key,
+              'format': "json"}
     data = urllib.urlencode(values)
     result = urlfetch.fetch(url + data, deadline=60)
     r = json.loads(result.content)
@@ -350,7 +361,7 @@ def _get_uitdatabank_events_detail_v2(uitdatabank_secret, uitdatabank_key, cbd_i
             params[k] = v.encode('utf8')
 
     params_str = "&".join(["%s=%s" % (encode(k), encode(params[k]))
-                                                 for k in sorted(params)])
+                           for k in sorted(params)])
 
     base_string = "&".join(["GET", encode(url), encode(params_str)])
 
@@ -359,11 +370,11 @@ def _get_uitdatabank_events_detail_v2(uitdatabank_secret, uitdatabank_key, cbd_i
     params["oauth_signature"] = encode(digest_base64)
     headers['Accept'] = "application/json"
     headers['Authorization'] = 'OAuth oauth_consumer_key="%s",oauth_signature_method="%s",oauth_timestamp="%s",oauth_nonce="%s",oauth_version="1.0",oauth_signature="%s"' % (
-         encode(params['oauth_consumer_key']),
-         encode(params['oauth_signature_method']),
-         encode(params['oauth_timestamp']),
-         encode(params['oauth_nonce']),
-         params["oauth_signature"])
+        encode(params['oauth_consumer_key']),
+        encode(params['oauth_signature_method']),
+        encode(params['oauth_timestamp']),
+        encode(params['oauth_nonce']),
+        params["oauth_signature"])
 
     result = urlfetch.fetch(url, headers=headers, deadline=60)
 
