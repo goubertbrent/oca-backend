@@ -13,13 +13,14 @@
 <script src="/static/js/jquery.tmpl.min.js"></script>
 
 <script src="/static/js/stacktrace.js"></script>
+<script src="/static/js/solutions/sln-errors.js"></script>
 <script src="/static/js/solutions/sln-utils.js"></script>
 <script language="javascript">
 <!--
 $(function() {
     $(window).resize(sln.resize_header);
     sln.resize_header();
-    
+
     var angle = 0, img = document.getElementById('order_image');
     document.getElementById('rotate_right').onclick = function() {
         angle = (angle+90)%360;

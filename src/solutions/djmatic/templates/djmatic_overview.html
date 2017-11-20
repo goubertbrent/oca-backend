@@ -3,17 +3,18 @@
   <style type="text/css"></style>
   <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
   <link href="/static/css/solutions/djm-style.css" rel="stylesheet" media="screen">
-  
+
   <script src="/static/js/jquery-1.10.0.min.js"></script>
   <script src="/static/bootstrap/js/bootstrap.min.js"></script>
   <script src="/static/js/jquery.tmpl.min.js"></script>
   <script src="/static/js/stacktrace.js"></script>
+  <script src="/static/js/solutions/sln-errors.js"></script>
   <script src="/static/js/solutions/sln-utils.js"></script>
   <script language="javascript">
   <!--
   var templates = {{ templates|safe }};
   -->
-  var CommonTranslations = { 
+  var CommonTranslations = {
           CLOSE: "Close",
           CANCEL: "Cancel"
   };
@@ -22,7 +23,7 @@
 	      var updateTotalTrialServices = function(){
               $("#total_trail_services").text(totalTrailServices);
           };
-          
+
           var updatePlayerStatus = function(playerId, status, tableRow){
               $.ajax({
                   url : "/djmatic_overview/update_djmatic_status",
@@ -47,10 +48,10 @@
                   }
               });
           };
-          
+
 	      $("#djmatic_search_btn").click(function(event){
 	          event.preventDefault();
-	          
+
 	          var playerId = $("#djmatic_search_player_id").val();
 	          $.ajax({
                   url : "/djmatic_overview/get_djmatic_status",
@@ -83,10 +84,10 @@
                           for (var i = 0; i < data.history.length ; i++) {
                               var d = new Date(data.history[i].epoch * 1000);
                               status_history += '<tr><td>' + d.toDateString() + '</td><td>' + data.history[i].status_str + '</td></tr>';
-                          } 
+                          }
                        // TODO Ruben
                           sln.confirm('<table class="table table-striped">' +
-                                  ' <thead>' + 
+                                  ' <thead>' +
                                   '     <tr class="header">' +
                                   '         <td class="span2"><b>Date</b></td>' +
                                   '         <td class="span2"><b>Status</b></td>' +
@@ -119,7 +120,7 @@
                   }
               });
 	      });
-	      
+
 	      $(document).on("click", ".djmatic_update", function(event) {
 	          event.preventDefault();
 	          var tableRow = $(this).parent().parent();
@@ -128,7 +129,7 @@
 
 	          updatePlayerStatus(player_id, status, tableRow);
           });
-	      
+
 	      var loadTrialServices = function(cursor){
 	          $.ajax({
 	              url : "/djmatic_overview/load_trials",
@@ -144,7 +145,7 @@
                           djmatic_profiles: data.djmatic_profiles
                       });
                       $("#trials tbody").append(html);
-	                  
+
 	                  if (data.has_more) {
 	                      loadTrialServices(data.cursor);
 	                  } else {
@@ -157,7 +158,7 @@
 	              }
 	          });
           };
-	      
+
           loadTrialServices(null);
 	  });
   </script>
@@ -166,14 +167,14 @@
 <div class="container">
 	<div class="row page" >
 		<div class="span12">
-			
+
 			<div style="margin:10px 0 50px 0;">
-				<div class="pull-right"> 
-				     <input id="djmatic_search_player_id" type="text" style="height: 30px; margin-bottom:0;"placeholder="Customer ID"> 
+				<div class="pull-right">
+				     <input id="djmatic_search_player_id" type="text" style="height: 30px; margin-bottom:0;"placeholder="Customer ID">
 				     <button id="djmatic_search_btn" type="button" class="btn btn-info">Search</button>
 				</div>
 			</div>
-			
+
 			<h2>DJ-Matic trials with more than 30 days (<span id="total_trail_services">Loading...</span>)</h2>
 			<p>Trial period starts as soon as a bar-app has more than 10 connected users.</p>
 			<table id="trials" class="table table-striped">

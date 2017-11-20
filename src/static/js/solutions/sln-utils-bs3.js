@@ -21,7 +21,7 @@ var SLN_CONSTS = {
     PROCESSING_TIMEOUT: 400
 };
 
-var sln;
+var sln, slnErrorsHandler;
 
 var TMPL_PROCESSING = '<div class="modal fade">'
  + '<div class="modal-dialog">'
@@ -94,6 +94,10 @@ var createLib = function() {
                     //window.location.reload();
                 }
             });
+        },
+        logError: function(description, err) {
+            slnErrorsHandler.logToConsole = true;
+            slnErrorsHandler.logError(description, err);
         },
         call : function(options) {
             var method = options.type || options.method;
@@ -193,6 +197,8 @@ var createLib = function() {
 
 $(document).ready(function() {
     sln = createLib();
+    slnErrorsHandler = new SolutionsErrorHandler();
+
     sln.registerMsgCallback(function(data) {
         if (data.type == 'rogerthat.logout') {
             window.location.assign(window.location.origin);
@@ -211,34 +217,9 @@ $(document).ready(function() {
         }
     });
 
-    window.onerror = function(msg, url, line, column, error) {
-        var stack_trace = '';
-        if(column) {
-            column = ':' + column;
-        }
-        if(error) {
-            stack_trace = '\n' + printStackTrace({
-                    guess: true,
-                    e: error
-                }).join('\n');
-        }
-        var errorMsg = msg + '\n in ' + url + ' at line ' + line + column + stack_trace;
-        $.ajax({
-            hideProcessing: true,
-            url: SLN_CONSTS.LOG_ERROR_URL,
-            type: "POST",
-            data: {
-                data: JSON.stringify({
-                    description: 'Caught exception in global scope: ' + msg,
-                    errorMessage: errorMsg,
-                    timestamp: sln.nowUTC(),
-                    user_agent: navigator.userAgent
-                })
-            },
-            success: function(data, textStatus, XMLHttpRequest) {
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-            }
-        });
+    window.onerror = function(msg, sourceUrl, line, column, error) {
+        msg = 'Caught exception in global scope: ' + msg;
+        slnErrorsHandler.logToConsole = false;
+        slnErrorsHandler.logError(msg, error, sourceUrl, line, column);
     };
 });

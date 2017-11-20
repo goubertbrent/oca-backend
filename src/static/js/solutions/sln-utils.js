@@ -86,7 +86,7 @@ var SLN_CONSTS = {
     PROCESSING_TIMEOUT: 400
 };
 
-var sln;
+var sln, slnErrorsHandler;
 
 var TMPL_LOADING_SPINNER = '<svg class="circular" style="margin:0 auto; left: 0;right: 0;">'
     + '<circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />'
@@ -687,32 +687,8 @@ var createLib = function() {
             sln.alert(CommonTranslations.AJAX_ERROR_MESSAGE);
         },
         logError: function(description, err) {
-            var stack_trace = '';
-            try {
-                stack_trace = (err && err instanceof Error) ? err + '\n' + printStackTrace({
-                    guess: true,
-                    e: err
-                }).join('\n') : err;
-            } catch(err) {
-                stack_trace = 'Failed to print stack trace! \nOriginal error: ' + description;
-            }
-            console.log(description + (stack_trace ? ('\n' + stack_trace) : ''));
-            $.ajax({
-                hideProcessing: true,
-                url: SLN_CONSTS.LOG_ERROR_URL,
-                contentType: "application/json; charset=utf-8",
-                type: "POST",
-                data: JSON.stringify({
-                    description: description,
-                    errorMessage: stack_trace,
-                    timestamp: sln.nowUTC(),
-                    user_agent: navigator.userAgent
-                }),
-                success: function(data, textStatus, XMLHttpRequest) {
-                },
-                error: function(XMLHttpRequest, textStatus, errorThrown) {
-                }
-            });
+            slnErrorsHandler.logToConsole = true;
+            slnErrorsHandler.logError(description, err);
         },
         _message_callbacks: [],
         registerMsgCallback: function(f) {
@@ -1036,6 +1012,8 @@ var createLib = function() {
 
 $(document).ready(function() {
     sln = createLib();
+    slnErrorsHandler = new SolutionsErrorHandler();
+
     sln.registerMsgCallback(function(data) {
         if(data.type == 'rogerthat.system.logout') {
             window.location.assign(window.location.origin + '/ourcityapp');
@@ -1054,35 +1032,10 @@ $(document).ready(function() {
         }
     });
 
-    window.onerror = function(msg, url, line, column, error) {
-        var stack_trace = '';
-        if(column) {
-            column = ':' + column;
-        }
-        if(error) {
-            stack_trace = '\n' + printStackTrace({
-                    guess: true,
-                    e: error
-                }).join('\n');
-        }
-        var errorMsg = msg + '\n in ' + url + ' at line ' + line + column + stack_trace;
-        $.ajax({
-            hideProcessing: true,
-            url: SLN_CONSTS.LOG_ERROR_URL,
-            type: "POST",
-            data: {
-                data: JSON.stringify({
-                    description: 'Caught exception in global scope: ' + msg,
-                    errorMessage: errorMsg,
-                    timestamp: sln.nowUTC(),
-                    user_agent: navigator.userAgent
-                })
-            },
-            success: function(data, textStatus, XMLHttpRequest) {
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-            }
-        });
+    window.onerror = function(msg, sourceUrl, line, column, error) {
+        msg = 'Caught exception in global scope: ' + msg;
+        slnErrorsHandler.logToConsole = false;
+        slnErrorsHandler.logError(msg, error, sourceUrl, line, column);
     };
 
     // Monkey patch bootstrap dialogs to allow stacking modals without throwing RangeErrors all over the place
