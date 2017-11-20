@@ -33,6 +33,7 @@ from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 
+from oauth2client.client import HttpAccessTokenRefreshError
 from PIL.Image import Image  # @UnresolvedImport
 from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
@@ -276,7 +277,11 @@ class BizzAdminHandler(BizzManagerHandler):
             calendar_service = build('calendar', 'v3', http=http_auth)
             now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
             calendar_service.events().list(calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
-        except Exception, e:
+        except HttpAccessTokenRefreshError as e:
+            if not self.request.get('retry'):
+                return self.redirect('/internal/shop?retry=false')
+            logging.error('OAuth error, cannot refresh access token: %s', e)
+        except Exception as e:
             logging.error('An error occurred while loading events: %s', e)
 
         user = gusers.get_current_user()
