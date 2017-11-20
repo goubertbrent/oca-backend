@@ -1864,9 +1864,12 @@ def add_or_remove_broadcast_type(broadcast_type, delete):
         sln_settings = get_solution_settings(users.get_current_user())
         translated_broadcast_types = get_translated_broadcast_types(sln_settings)
         if delete:
-            translated_broadcast_type = translated_broadcast_types.get(broadcast_type, broadcast_type)
-            if translated_broadcast_type in sln_settings.broadcast_types:
+            translated_broadcast_type = translated_broadcast_types.get(broadcast_type, None)
+            if translated_broadcast_type and translated_broadcast_type in sln_settings.broadcast_types:
                 sln_settings.broadcast_types.remove(translated_broadcast_type)
+                updated = True
+            elif broadcast_type in sln_settings.broadcast_types:
+                sln_settings.broadcast_types.remove(broadcast_type)
                 updated = True
         else:
             if broadcast_type not in translated_broadcast_types and broadcast_type not in sln_settings.broadcast_types:
