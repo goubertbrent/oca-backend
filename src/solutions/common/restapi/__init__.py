@@ -22,9 +22,10 @@ import logging
 import os
 from types import NoneType
 
+from google.appengine.ext import db, deferred
+
 from babel.dates import format_date
 from babel.numbers import format_currency
-from google.appengine.ext import db, deferred
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
@@ -1863,8 +1864,9 @@ def add_or_remove_broadcast_type(broadcast_type, delete):
         sln_settings = get_solution_settings(users.get_current_user())
         translated_broadcast_types = get_translated_broadcast_types(sln_settings)
         if delete:
-            if translated_broadcast_types[broadcast_type] in sln_settings.broadcast_types:
-                sln_settings.broadcast_types.remove(translated_broadcast_types[broadcast_type])
+            translated_broadcast_type = translated_broadcast_types.get(broadcast_type, broadcast_type)
+            if translated_broadcast_type in sln_settings.broadcast_types:
+                sln_settings.broadcast_types.remove(translated_broadcast_type)
                 updated = True
         else:
             if broadcast_type not in translated_broadcast_types and broadcast_type not in sln_settings.broadcast_types:
