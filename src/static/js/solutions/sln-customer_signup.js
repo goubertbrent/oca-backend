@@ -205,18 +205,22 @@ $(function () {
         }
     };
 
-
-    sln.registerMsgCallback(channelUpdates);
-    loadCustomerSignups();
-
-    sln.registerInboxActionListener("customer_signup", function (chatId) {
+    function newSignupMessage(chatId) {
         var signup = customerSignupMessages[chatId];
         if(signup) {
             addSignupActionsToMessage(chatId, signup);
         } else {
             customerSignupMessageRequests[chatId] = chatId;
         }
-    });
+    }
+
+    sln.registerMsgCallback(channelUpdates);
+    loadCustomerSignups();
+    sln.registerInboxActionListener("registration", newSignupMessage);
+    // for compatibility with the older name of signup message category
+    // so, if there're signup messages with the older category name,
+    // the buttons will appear on them also
+    sln.registerInboxActionListener("customer_signup", newSignupMessage)
 
     // add signup toolbar buttons when opening the message
     // buttons will be added after the details are loaded

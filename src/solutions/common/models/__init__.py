@@ -53,7 +53,7 @@ class SolutionInboxMessage(db.Model):
     CATEGORY_RESTAURANT_RESERVATION = 'restaurant_reservation'
     CATEGORY_SANDWICH_BAR = 'sandwich_bar'
     CATEGORY_AGENDA = 'agenda'
-    CATEGORY_CUSTOMER_SIGNUP = 'customer_signup'
+    CATEGORY_CUSTOMER_SIGNUP = 'registration'
 
     ICON_NAMES = {CATEGORY_APPOINTMENT: u'fa-calendar-plus-o',
                   CATEGORY_ASK_QUESTION: u'fa-comments-o',

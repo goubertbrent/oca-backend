@@ -56,7 +56,6 @@ from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
-from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
@@ -688,7 +687,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     customer.managed_organization_types = service.managed_organization_types
     customer.put()
     redeploy = bool(customer.service_email)
-    user_existed = False
 
     if not customer.extra_apps_count:
         customer.extra_apps_count = 0
@@ -709,9 +707,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     if redeploy:
         if customer.user_email != service.email and not skip_email_check:
             raise InvalidServiceEmailException(customer.user_email)
-    else:
-        p = get_service_or_user_profile(users.User(service.email))
-        user_existed = p and isinstance(p, UserProfile)
 
     modules = service.modules
     if redeploy:
@@ -728,7 +723,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
 
     r.auto_login_url = customer.auto_login_url
 
-    deferred.defer(_after_service_saved, customer.key(), service.email, r, bool(redeploy or user_existed), service.apps,
+    deferred.defer(_after_service_saved, customer.key(), service.email, r, redeploy, service.apps,
                    broadcast_to_users, _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
     return r
 
@@ -798,9 +793,6 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
 
             parsed_login_url = urlparse.urlparse(login_url)
             action = shop_translate(customer.language, 'password_reset')
-            url_params = get_reset_password_url_params(customer.name, users.User(user_email), action=action)
-            reset_password_link = '%s://%s%s?%s' % (parsed_login_url.scheme, parsed_login_url.netloc,
-                                                    '/customers/setpassword', url_params)
 
             # TODO: email with OSA style in header, footer
             params = {
@@ -808,21 +800,18 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 'name': contact.first_name + ' ' + contact.last_name,
                 'login_url': login_url,
                 'user_email': user_email,
-                'password': r.password,
-                'reset_password_link': reset_password_link
             }
 
             text_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email.tmpl').render(params)
             html_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email_html.tmpl').render(params)
 
-            # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
-
             subject = '%s - %s' % (common_translate(customer.language, SOLUTION_COMMON, 'our-city-app'),
                                    common_translate(customer.language, SOLUTION_COMMON, 'login_information'))
             app = get_app_by_id(customer.app_id)
-            from_email = '%s <%s>' % (app.name, app.get_contact_email_address())
+            from_email = '%s <%s>' % (app.name, shop_translate(customer.language, 'oca_info_email_address'))
 
             send_mail(from_email, user_email, subject, text_body, html=html_body)
+
         if to_put:
             db.put(to_put)
 

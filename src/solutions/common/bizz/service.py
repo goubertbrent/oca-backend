@@ -185,15 +185,7 @@ def _schedule_signup_smart_emails(customer_email):
                        _queue=SCHEDULED_QUEUE)
 
 
-def _send_approved_signup_email(city_customer, signup, lang):
-    def trans(term, *args, **kwargs):
-        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
-
-    subject = u'{} - {}'.format(trans('our-city-app'), trans('signup_application'))
-    message = trans('signup_approval_email_message', name=signup.customer_name, city_name=city_customer.name)
-
-    city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
-    send_mail(city_from, signup.customer_email, subject, message)
+def _send_approved_signup_email(signup):
     if signup.parent().language == 'nl':
         _schedule_signup_smart_emails(signup.customer_email)
 
@@ -233,7 +225,7 @@ def set_customer_signup_status(city_customer, signup, approved, reason=None):
         sln_settings = get_solution_settings(service_user)
 
         if approved:
-            _send_approved_signup_email(city_customer, signup, sln_settings.main_language)
+            _send_approved_signup_email(signup)
         else:
             _send_denied_signup_email(city_customer, signup, sln_settings.main_language, reason)
 
