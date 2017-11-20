@@ -21,6 +21,7 @@ from hashlib import sha1
 from hmac import new as hmac
 import json
 import logging
+import pprint
 from random import getrandbits
 import time
 from urllib import quote as urlquote
@@ -287,12 +288,13 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     r_timestamps = detail_result["calendar"].get("timestamps")
     if not r_timestamps:
-        logging.debug("skipping event because we could not determine starttime for %s", detail_result)
+        logging.debug("skipping event because we could not determine starttime for: \n%s",
+                      pprint.pformat(detail_result))
         return None
 
     event_start_dates, event_end_dates = get_event_start_and_end_dates(r_timestamps, v2=uitdatabank_secret)
     if not event_start_dates:
-        logging.info("Skipping event because it had no starttime (list) for %s", detail_result)
+        logging.info("Skipping event because it had no starttime (list) for:\n%s", pprint.pformat(detail_result))
         return None
 
     for event in events:
