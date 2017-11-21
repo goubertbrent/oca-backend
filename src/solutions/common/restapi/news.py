@@ -101,7 +101,10 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
                              role_ids=role_ids, host=host, accept_missing=True)
     except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)
+        try:
+            message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)
+        except ValueError:
+            message = e.message
         return ReturnStatusTO.create(False, message)
 
 
