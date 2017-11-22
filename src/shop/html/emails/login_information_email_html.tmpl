@@ -2,7 +2,15 @@
 <br/><br/>
 {% shop_translate language, 'your_service_created' %}
 <br/><br/>
-{% shop_translate language, 'login_with_credentials', 'login_url=' + login_url, 'login=' + user_email %}
+{% if password and reset_password_link %}
+    {%- shop_translate language, 'login_with_credentials_with_password', 'login_url=' + login_url, 'login=' + user_email, 'password=' + password %}<br/>
+    {%- shop_translate language, 'do_you_want_another_password' %}
+    <a href="{{ reset_password_link }}">
+        {% shop_translate language, 'change_your_password_here' %}
+    </a>
+{% else %}
+    {%- shop_translate language, 'login_with_credentials', 'login_url=' + login_url, 'login=' + user_email %}
+{% endif %}
 <br/><br/>
 {% shop_translate language, 'with_regards' %},
 <br/>
