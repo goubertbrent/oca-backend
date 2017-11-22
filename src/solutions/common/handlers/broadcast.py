@@ -15,11 +15,10 @@
 #
 # @@license_version:1.2@@
 
+from cgi import FieldStorage
 import datetime
 import logging
-from cgi import FieldStorage
-
-import webapp2
+import urllib
 
 from rogerthat.bizz.gcs import upload_to_gcs, get_serving_url
 from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET
@@ -29,9 +28,11 @@ from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import channel
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.dal import get_solution_settings
+import webapp2
 
 
 class UploadAttachmentHandler(webapp2.RequestHandler):
+
     def post(self):
         max_upload_size_mb = 5
         max_upload_size = max_upload_size_mb * 1048576  # 1 MB
@@ -57,6 +58,7 @@ class UploadAttachmentHandler(webapp2.RequestHandler):
                 ROGERTHAT_ATTACHMENTS_BUCKET, service_user.email(), date, uploaded_file.filename)
             blob_key = upload_to_gcs(file_content, content_type, filename)
             logging.debug('blob key: %s', blob_key)
+            filename = '/'.join(map(urllib.quote, filename.split('/')))
             channel.send_message(service_user, 'solutions.common.broadcast.attachment.upload.success',
                                  url=get_serving_url(filename),
                                  name=name)
