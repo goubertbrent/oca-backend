@@ -147,20 +147,31 @@ def import_menu_from_excel(service_user, file_contents):
 
         return cat
 
-    def guess_unit(unit):
-        for u, key in UNITS.iteritems():
+    available_units = map(translate, UNITS.values())
+    def guess_unit(item_name, unit):
+        for unit_no, unit_name in UNITS.iteritems():
             try:
-                if translate(key) == unit:
-                    return u
+                if unit in (unit_name, translate(unit_name)):
+                    return unit_no
             except KeyError:
                 continue
 
-    def make_item(name, description, price, unit, visible_in=None, has_price=True, step=1, image_url=None):
+        units = ', '.join(available_units)
+        raise BusinessException(translate('item_unit_is_not_known', name=item_name, unit=unit, units=units))
+
+    def make_item(name, description, price, unit, visible_in=None, step=1, image_url=None):
         item = MenuItem()
         item.name = name
         item.description = description
+
+        try:
+            price = float(price)
+        except ValueError:
+            raise BusinessException(translate('item_price_is_not_number', name=name))
+
         item.price = long(price * 100)
-        item.unit = guess_unit(unit)
+        item.has_price = bool(item.price)
+        item.unit = guess_unit(name, unit.lower())
 
         if not visible_in:
             item.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
@@ -173,7 +184,6 @@ def import_menu_from_excel(service_user, file_contents):
                 raise BusinessException(translate('download_failed', url=image_url))
             item.image_id = create_file_blob(service_user, response.content).key().id()
 
-        item.has_price = has_price
         item.step = step
         return item
 

@@ -745,6 +745,8 @@ translations = \
          u'item_already_added': u'You already have this item in your shopping cart.',
          u'item_already_deleted': u'This item has already been added.',
          u'item_not_found': u'There is no item with name %(name)s',
+         u'item_unit_is_not_known': 'Item "%(name)s" has an unknown unit "%(unit)s", available units are: %(units)s.',
+         u'item_price_is_not_number': 'Item "%(name)s" price is not a number',
          u'kilogram': u'kilogram',
          u'kitchen-closed': u'The kitchen is not open at your reservation time%(reservation_time)s.',
          u'kitchen-closed-extra-line': u'On %(week_day)s you can make reservations during the following time frames:',
