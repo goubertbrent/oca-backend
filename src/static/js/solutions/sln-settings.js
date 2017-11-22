@@ -139,7 +139,7 @@ $(function () {
         + '        <h3 id="myModalLabel">${header}</h3>'
         + '    </div>'
         + '    <div class="modal-body" style="overflow-y: visible;">'
-        + '        <input id="mobile_inbox_forwarder" type="text" style="width: 514px" placeholder="${placeholder}" value="${value}" />'
+        + '        <input id="mobile_inbox_forwarder" type="text" style="width: 514px" placeholder="${placeholder}..." value="${value}" />'
         + '    </div>'
         + '    <div class="modal-footer">'
         + '        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>'
@@ -805,7 +805,7 @@ $(function () {
             header: CommonTranslations.ADD_MOBILE_INBOX_FORWARDERS,
             cancelBtn: CommonTranslations.CANCEL,
             submitBtn: CommonTranslations.ADD,
-            placeholder: CommonTranslations.ENTER_DOT_DOT_DOT,
+            placeholder: CommonTranslations.follower_name_or_email,
             value: ""
         });
         var modal = sln.createModal(html, function (modal) {
