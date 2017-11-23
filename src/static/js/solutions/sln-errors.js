@@ -16,7 +16,7 @@ SolutionsErrorHandler.prototype = {
 
         if (error instanceof Error) {
             try {
-                errorMsg = error.description;
+                errorMsg = error.description || error.message;
                 stack_trace = '\n' + printStackTrace({
                     guess: true,
                     e: error
