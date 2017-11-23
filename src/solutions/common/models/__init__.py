@@ -81,6 +81,10 @@ class SolutionInboxMessage(db.Model):
               CATEGORY_AGENDA: u'agenda',
               CATEGORY_CUSTOMER_SIGNUP: u'registration'}
 
+    # for compatibility with older category names
+    ICON_NAMES['customer_signup'] = ICON_NAMES[CATEGORY_CUSTOMER_SIGNUP]
+    TOPICS['customer_signup'] = TOPICS[CATEGORY_CUSTOMER_SIGNUP]
+
     category = db.StringProperty(indexed=False)  # only filled in on parent message
     category_key = db.StringProperty(indexed=False)  # only filled in on parent message
 
