@@ -760,6 +760,7 @@ translations = \
          u'loading-dot-dot-dot': u'Loading\u2026',
          u'loading-guests': u'Loading guests\u2026',
          u'loading_coupon': u'Loading coupon...',
+         u'loading_captcha_challenge': u'Loading captcha challenge...',
          u'login_information': u'Login information',
          u'lost': u'Lost',
          u'lottery-not-redeemed': u'Not redeemed yet',

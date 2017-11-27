@@ -1,7 +1,7 @@
 function SolutionsErrorHandler(options) {
     options = options || {};
 
-    this.errors = new Map();
+    this.errors = {};
     this.flushTimestamp = 0;
     this.flushInterval = options.flushInterval || 5000;
     this.logToConsole = options.logToConsole || false;
@@ -42,7 +42,7 @@ SolutionsErrorHandler.prototype = {
     logError: function(description, error, sourcUrl, line, column) {
         var fullErrorMessage = this.getErrorMessage(error, sourcUrl, line, column);
 
-        if (this.errors.has(fullErrorMessage)) {
+        if (this.errors[fullErrorMessage]) {
             return;
         }
 
@@ -55,10 +55,10 @@ SolutionsErrorHandler.prototype = {
             this.flushTimestamp = now;
             this.sendError(description, fullErrorMessage, now);
         } else  {
-            this.errors.set(fullErrorMessage, {
+            this.errors[fullErrorMessage] = {
                 timestamp: now,
                 description: description
-            });
+            };
         }
     },
 
@@ -80,7 +80,7 @@ SolutionsErrorHandler.prototype = {
     },
 
     flushErrors: function() {
-        if (!this.errors.size) {
+        if (!Object.keys(this.errors).length) {
             return;
         }
 
@@ -89,9 +89,10 @@ SolutionsErrorHandler.prototype = {
             return;
         }
 
-        this.errors.forEach(function(value, error) {
+        Object.keys(this.errors).forEach(function(error) {
+            var value = this.errors[error];
             this.sendError(value.description, error, value.timestamp);
-            this.errors.delete(error);
+            delete this.errors[error];
         }.bind(this));
 
         this.flushTimestamp = sln.nowUTC();
