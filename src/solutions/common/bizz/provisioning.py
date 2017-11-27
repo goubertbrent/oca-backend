@@ -420,9 +420,10 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
         identity.description = sln_i_settings.description
         identity.description_use_default = False
         # making sure we don't overwrite a custom description_branding
-        logging.debug('identity.description_branding=%s <> previous_main_branding_key=%s',
-                      identity.description_branding, previous_main_branding_key)
-        if not identity.description_branding or identity.description_branding == previous_main_branding_key:
+        if identity.description_branding and identity.description_branding != previous_main_branding_key:
+            logging.info('identity.description_branding=%s <> previous_main_branding_key=%s',
+                         identity.description_branding, previous_main_branding_key)
+        else:
             identity.description_branding = main_branding_key
         identity.menu_branding = main_branding_key
         identity.phone_number = sln_i_settings.phone_number
