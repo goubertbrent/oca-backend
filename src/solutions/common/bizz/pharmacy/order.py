@@ -63,22 +63,22 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
         picture_url = _get_value(steps[1], u'message_photo_upload_prescription')
         description = None
         if u"positive" == steps[2].answer_id:
-            remarks = _get_value(steps[2], u'message_message_remarks_box')
+            remarks = _get_value(steps[2], u'message_remarks_box')
         else:
             remarks = ""
     else:
         if u"positive" == steps[1].answer_id:
-            picture_url = _get_value(steps[1], u'message_message_photo_upload_box')
+            picture_url = _get_value(steps[1], u'message_photo_upload_box')
             description = None
             if u"positive" == steps[2].answer_id:
-                remarks = _get_value(steps[2], u'message_message_remarks_box')
+                remarks = _get_value(steps[2], u'message_remarks_box')
             else:
                 remarks = ""
         else:
             picture_url = None
-            description = _get_value(steps[2], u'message_message_describe_box')
+            description = _get_value(steps[2], u'message_describe_box')
             if u"positive" == steps[3].answer_id:
-                remarks = _get_value(steps[3], u'message_message_remarks_box')
+                remarks = _get_value(steps[3], u'message_remarks_box')
             else:
                 remarks = ""
 
