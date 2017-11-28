@@ -52,7 +52,7 @@ from solutions.common.utils import create_service_identity_user_wo_default
            parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
 def pharmacy_order_received(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
-                   tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+                            tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
 
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
 
@@ -60,7 +60,7 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
     logging.info("_flow_member_result_pharmacy_order: \n %s" % steps)
 
     if "button_button_yes" == steps[0].answer_id:
-        picture_url = _get_value(steps[1], u'message_message_photo_upload_prescription')
+        picture_url = _get_value(steps[1], u'message_photo_upload_prescription')
         description = None
         if u"positive" == steps[2].answer_id:
             remarks = _get_value(steps[2], u'message_message_remarks_box')
@@ -99,7 +99,10 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
                     remarks=remarks,
                     phone_number="")
 
-    message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_PHARMACY_ORDER, None, False, user_details, steps[2].received_timestamp, msg, True, [picture_url] if picture_url else [])
+    message = create_solution_inbox_message(service_user, service_identity,
+                                            SolutionInboxMessage.CATEGORY_PHARMACY_ORDER, None, False, user_details,
+                                            steps[2].received_timestamp, msg, True,
+                                            [picture_url] if picture_url else [])
     o.solution_inbox_message_key = message.solution_inbox_message_key
     o.put()
     message.category_key = unicode(o.key())
@@ -110,7 +113,7 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
     sm_data = []
     sm_data.append({u"type": u"solutions.common.pharmacy_orders.update"})
     sm_data.append({u"type": u"solutions.common.messaging.update",
-                 u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                    u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
     send_message(service_user, sm_data, service_identity=service_identity)
 
     if picture_url:
@@ -120,16 +123,17 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
         att.name = translate(sln_settings.main_language, SOLUTION_COMMON, u'picture')
         att.size = 0
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
-                'if_name': user_details[0].name,
-                'if_email':user_details[0].email
-            }, message_key=message.solution_inbox_message_key, attachments=[att], reply_enabled=message.reply_enabled)
+            'if_name': user_details[0].name,
+            'if_email': user_details[0].email
+        }, message_key=message.solution_inbox_message_key, attachments=[att], reply_enabled=message.reply_enabled)
     else:
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
-                'if_name': user_details[0].name,
-                'if_email':user_details[0].email
-            }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
+            'if_name': user_details[0].name,
+            'if_email': user_details[0].email
+        }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
 
     return None
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, order_key=unicode, message=unicode)
@@ -147,20 +151,21 @@ def delete_pharmacy_order(service_user, order_key, message):
     sm_data = []
     sm_data.append({u"type": u"solutions.common.pharmacy_orders.update"})
 
-
     sln_settings = get_solution_settings(service_user)
     if message:
         if order.solution_inbox_message_key:
-            sim_parent, _ = add_solution_inbox_message(service_user, order.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True, mark_as_trashed=True)
+            sim_parent, _ = add_solution_inbox_message(service_user, order.solution_inbox_message_key, True, None,
+                                                       now(), message, mark_as_unread=False, mark_as_read=True,
+                                                       mark_as_trashed=True)
             send_inbox_forwarders_message(service_user, sim_parent.service_identity, None, message, {
-                        'if_name': sim_parent.sender.name,
-                        'if_email':sim_parent.sender.email
-                    }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
+                'if_name': sim_parent.sender.name,
+                'if_email': sim_parent.sender.email
+            }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
             sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
 
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
         else:
             branding = get_solution_main_branding(service_user).branding_key
             member = MemberTO()
@@ -186,9 +191,10 @@ def delete_pharmacy_order(service_user, order_key, message):
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, order_key=unicode, order_status=int, message=unicode)
@@ -196,6 +202,7 @@ def send_message_for_pharmacy_order(service_user, order_key, order_status, messa
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
 
     azzert(order_status in SolutionPharmacyOrder.ORDER_STATUSES)
+
     def txn():
         m = SolutionPharmacyOrder.get(order_key)
         azzert(service_user == m.service_user)
@@ -211,14 +218,15 @@ def send_message_for_pharmacy_order(service_user, order_key, order_status, messa
     sln_settings = get_solution_settings(service_user)
     if message:
         if order.solution_inbox_message_key:
-            sim_parent, _ = add_solution_inbox_message(service_user, order.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True)
+            sim_parent, _ = add_solution_inbox_message(
+                service_user, order.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True)
             send_inbox_forwarders_message(service_user, sim_parent.service_identity, None, message, {
-                        'if_name': sim_parent.sender.name,
-                        'if_email':sim_parent.sender.email
-                    }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
+                'if_name': sim_parent.sender.name,
+                'if_email': sim_parent.sender.email
+            }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
             sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
         else:
             sln_main_branding = get_solution_main_branding(service_user)
             branding = sln_main_branding.branding_key if sln_main_branding else None
@@ -246,6 +254,6 @@ def send_message_for_pharmacy_order(service_user, order_key, order_status, messa
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)
