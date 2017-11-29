@@ -56,6 +56,7 @@ except ImportError:
 
 API_METHOD_GROUP_PURCHASE_PURCHASE = "solutions.group_purchase.purchase"
 
+
 @returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode, group_purchase=SolutionGroupPurchaseTO)
 def save_group_purchase(service_user, service_identity, group_purchase):
@@ -86,7 +87,8 @@ def save_group_purchase(service_user, service_identity, group_purchase):
         sln_settings = get_solution_settings(service_user)
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
         if group_purchase.id:
-            sgp = SolutionGroupPurchase.get_by_id(group_purchase.id, parent_key_unsafe(service_identity_user, sln_settings.solution))
+            sgp = SolutionGroupPurchase.get_by_id(
+                group_purchase.id, parent_key_unsafe(service_identity_user, sln_settings.solution))
             if group_purchase.new_picture:
                 sgp.picture_version += 1
         else:
@@ -117,9 +119,11 @@ def save_group_purchase(service_user, service_identity, group_purchase):
 @arguments(service_user=users.User, service_identity=unicode, group_purchase_id=(int, long))
 def delete_group_purchase(service_user, service_identity, group_purchase_id):
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
+
     def txn():
         sln_settings = get_solution_settings(service_user)
-        m = SolutionGroupPurchase.get_by_id(group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
+        m = SolutionGroupPurchase.get_by_id(
+            group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
         azzert(service_user == m.service_user)
         m.deleted = True
         m.put()
@@ -134,7 +138,8 @@ def delete_group_purchase(service_user, service_identity, group_purchase_id):
 def broadcast_group_purchase(service_user, service_identity, group_purchase_id, message):
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     sln_settings = get_solution_settings(service_user)
-    sgp = SolutionGroupPurchase.get_by_id(group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
+    sgp = SolutionGroupPurchase.get_by_id(
+        group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
 
     sln_main_branding = get_solution_main_branding(service_user)
     branding = sln_main_branding.branding_key if sln_main_branding else None
@@ -166,13 +171,15 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
     from solutions.common.bizz.provisioning import populate_identity
     sln_settings = get_solution_settings(service_user)
     if not units > 0:
-        raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-required-at-least-1-unit'))
+        raise BusinessException(
+            translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-required-at-least-1-unit'))
     main_branding = get_solution_main_branding(service_user)
     app_user = user_detail.toAppUser() if user_detail else None
 
     def trans():
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-        sgp = SolutionGroupPurchase.get_by_id(group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
+        sgp = SolutionGroupPurchase.get_by_id(
+            group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
         units_user = 0
         if user_detail:
             for subscription in sgp.subscriptions_for_user(app_user):
@@ -195,7 +202,8 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
 
             units_user += units
         else:
-            raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-insufficient-units'))
+            raise BusinessException(
+                translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-insufficient-units'))
         return sln_settings, sgp, units_user
 
     xg_on = db.create_transaction_options(xg=True)
@@ -203,7 +211,7 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
 
     send_message(service_user, u"solutions.common.group_purchase.update", service_identity=service_identity)
 
-    populate_identity(sln_settings, main_branding.branding_key, main_branding.branding_key)  # update service data
+    populate_identity(sln_settings, main_branding.branding_key)  # update service data
     system.publish_changes()
 
     if user_detail:
@@ -226,12 +234,16 @@ def provision_group_purchase_branding(sln_group_purchase_settings, main_branding
             new_zip_stream = StringIO()
             zip_ = ZipFile(new_zip_stream, 'w', compression=ZIP_DEFLATED)
             try:
-                path = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/app_jquery.tmpl.js')
+                path = os.path.join(
+                    os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/app_jquery.tmpl.js')
                 zip_.writestr("jquery.tmpl.min.js", file_get_contents(path))
-                path = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/moment-with-locales.min.js')
+                path = os.path.join(
+                    os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/moment-with-locales.min.js')
                 zip_.writestr("moment-with-locales.min.js", file_get_contents(path))
-                zip_.writestr("app-translations.js", JINJA_ENVIRONMENT.get_template("brandings/app_group_purchases_translations.js").render({'language': language}).encode("utf-8"))
-                path = os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/app_group_purchases.js')
+                zip_.writestr("app-translations.js", JINJA_ENVIRONMENT.get_template(
+                    "brandings/app_group_purchases_translations.js").render({'language': language}).encode("utf-8"))
+                path = os.path.join(
+                    os.path.dirname(solutions.__file__), 'common', 'templates', 'brandings/app_group_purchases.js')
                 zip_.writestr("app.js", file_get_contents(path).encode("utf-8"))
 
                 for file_name in set(stream.namelist()):
@@ -239,7 +251,8 @@ def provision_group_purchase_branding(sln_group_purchase_settings, main_branding
                     if file_name == 'branding.html':
                         html = str_
                         # Remove previously added dimensions:
-                        html = re.sub("<meta\\s+property=\\\"rt:dimensions\\\"\\s+content=\\\"\\[\\d+,\\d+,\\d+,\\d+\\]\\\"\\s*/>", "", html)
+                        html = re.sub(
+                            "<meta\\s+property=\\\"rt:dimensions\\\"\\s+content=\\\"\\[\\d+,\\d+,\\d+,\\d+\\]\\\"\\s*/>", "", html)
                         html = re.sub('<head>', """<head>
 <link href="jquery/jquery.mobile.inline-png-1.4.2.min.css" rel="stylesheet" media="screen">
 <style type="text/css">
@@ -275,7 +288,8 @@ h2.title { margin: 0;}
             branding_content = new_zip_stream.getvalue()
             new_zip_stream.close()
 
-            sln_group_purchase_settings.branding_hash = put_branding(u"Group Purchase App", base64.b64encode(branding_content)).id
+            sln_group_purchase_settings.branding_hash = put_branding(
+                u"Group Purchase App", base64.b64encode(branding_content)).id
             sln_group_purchase_settings.put()
         except:
             logging.error("Failure while parsing group purchase app branding", exc_info=1)
@@ -297,7 +311,8 @@ def solution_group_purchcase_purchase(service_user, email, method, params, tag, 
     r = SendApiCallCallbackResultTO()
     sln_settings = get_solution_settings(service_user)
     try:
-        sgp = new_group_purchase_subscription(service_user, service_identity, group_purchase_id, user_details[0].name, user_details[0], units)
+        sgp = new_group_purchase_subscription(
+            service_user, service_identity, group_purchase_id, user_details[0].name, user_details[0], units)
         r.result = u"Successfully purchased %s units" % units
         r.error = None
         message = translate(sln_settings.main_language, SOLUTION_COMMON, 'group-subscription-successful-title',
@@ -305,14 +320,16 @@ def solution_group_purchcase_purchase(service_user, email, method, params, tag, 
     except BusinessException, e:
         r.result = e.message
         r.error = None
-        sgp = SolutionGroupPurchase.get_by_id(group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
+        sgp = SolutionGroupPurchase.get_by_id(
+            group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
         message = translate(sln_settings.main_language, SOLUTION_COMMON, 'group-subscription-failure-title-reason',
                             units=units, title=sgp.title, reason=e.message)
     except:
         logging.error("Failure when adding new group_purchase subscription", exc_info=1)
         r.result = None
         r.error = u"An unknown error occurred"
-        sgp = SolutionGroupPurchase.get_by_id(group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
+        sgp = SolutionGroupPurchase.get_by_id(
+            group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
         message = translate(sln_settings.main_language, SOLUTION_COMMON, 'group-subscription-failure-unknown-title',
                             title=sgp.title)
 

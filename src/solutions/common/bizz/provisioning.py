@@ -177,7 +177,6 @@ def get_and_store_main_branding(service_user):
                                                              SolutionMainBranding.create_key(service_user),
                                                              SolutionBrandingSettings.create_key(service_user)])
 
-    main_branding.old_branding_key = main_branding.branding_key
     must_store_branding = not main_branding.branding_key or not main_branding.branding_creation_time
 
     if sln_settings.solution == SOLUTION_DJMATIC:
@@ -374,13 +373,12 @@ def put_avatar_if_needed(service_user):
 
 
 @returns()
-@arguments(sln_settings=SolutionSettings, main_branding_key=unicode, previous_main_branding_key=unicode)
-def populate_identity(sln_settings, main_branding_key, previous_main_branding_key):
+@arguments(sln_settings=SolutionSettings, main_branding_key=unicode)
+def populate_identity(sln_settings, main_branding_key):
     """
     Args:
         sln_settings (SolutionSettings)
         main_branding_key (unicode)
-        previous_main_branding_key (unicode)
     """
     search_config_locations = list()
     if sln_settings.location:
@@ -420,9 +418,9 @@ def populate_identity(sln_settings, main_branding_key, previous_main_branding_ke
         identity.description = sln_i_settings.description
         identity.description_use_default = False
         # making sure we don't overwrite a custom description_branding
-        if identity.description_branding and identity.description_branding != previous_main_branding_key:
-            logging.info('identity.description_branding=%s <> previous_main_branding_key=%s',
-                         identity.description_branding, previous_main_branding_key)
+        if identity.description_branding and identity.description_branding != identity.menu_branding:
+            logging.info('identity.description_branding=%s <> identity.menu_branding=%s',
+                         identity.description_branding, identity.menu_branding)
         else:
             identity.description_branding = main_branding_key
         identity.menu_branding = main_branding_key
@@ -544,7 +542,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
 def populate_identity_and_publish(sln_settings, main_branding_key):
     users.set_user(sln_settings.service_user)
     try:
-        populate_identity(sln_settings, main_branding_key, main_branding_key)
+        populate_identity(sln_settings, main_branding_key)
         system.publish_changes()
     finally:
         users.clear_user()
