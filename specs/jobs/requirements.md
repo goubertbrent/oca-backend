@@ -8,13 +8,13 @@ A separate stream for local job offers, next to the news & actions stream.
 
 Merchants will have to possibility to enable the JOBS functionality in their OCA dashboard. When enabled, merchants will be able to create job offers in their dashboard, similar to creating news articles. When creating a job offer, a region has to be selected. They also have to complete some small surveys. The results will be used to match with Job profiles. Job profiles are discussed later in this document.
 
-Merchants must be able to see how many people are looking for a job in their supported app(s). Merchants must also be able to choose to post and/or handle the screening of incoming job applications themselves, or to let a recruiter (Eg. It's Me) handle posting and/or handling screening of incoming job applications.
+Merchants must be able to see how many people are looking for a job in their region. Merchants must also be able to choose to post and/or handle the screening of incoming job applications themselves, or to let a recruiter (Eg. It's Me) handle posting and/or handling screening of incoming job applications.
 
 ### The jobs stream (City app)
 
 In the city apps we want to add the Jobs stream to the sidebar menu under the News stream.
 
-In this stream the user needs to be able to say "I am looking for a new job". The user will need to complete some little surveys to complete his "Job profile". The surveys will be about his skills, values and personality (who am I, what are my skills, what would I like to do) and will also define which kind of jobs he wants to do. It must be possible for the user to redo the surveys at any time. This will affect the sort order of future job offers. The progress or completeness of the surveys needs to be visible somewhere in the app (TBD: profile page? job stream?)
+In this stream the user needs to be able to say "I am looking for a new job". The user will need to complete some little surveys to complete his "Job profile". The surveys will be about his skills, values and personality (who am I, what are my skills, what would I like to do) and will also define which kind of jobs he wants to do. It must be possible for the user to redo the surveys at any time. This will affect the sort order of future job offers. The progress or completeness of the surveys needs to be visible somewhere in the job stream.
 
 Job offers will be sorted in the job stream based on the user's "Job profile". The job offers that match best with the user's Job profile will be shown on higher in the feed than the jobs that matched less with the user's Job profile.
 
@@ -34,7 +34,7 @@ The merchant/recruiter receives an inbox message with a (possibly anonymous) cit
 
 ### Lifetime of job offers (OCA dashboard)
 
-The merchant/recruiter needs to be able to close a job offer when it isn't relevant anymore or when the position is taken. Then the job offer needs to be greyed out and it should mention that it is closed or already taken.
+The merchant/recruiter needs to be able to close a job offer when it isn't relevant anymore or when the position is taken. Then the job offer needs to be greyed out and it should clearly mention that it is closed or already taken, maybe with an overlay image.
 
 Merchants pay for job posts. The price is defined by region and the time span. When there hasn't been any reaction on a job offer for the selected time span, and the job position is still open, then we extend the job offer for free and give a reduction coupon to increase the region. If there were reactions, but there was no good applicant, then the merchant will have the possibility to pay to make his job offer appear on top on the feed again.
 
@@ -58,7 +58,7 @@ Merchants pay for job posts. The price is defined by region and the time span. W
 - Defining recruiters
 - Choice for merchant to work with recruiters
 - Recruiter dashboard
-- Respond button and chat creation between merchant/recruiter and city app user
+- Respond button and chat creation between merchant/recruiter and (anonymous) city app user
 
 #### 4. Payments
 
@@ -80,3 +80,9 @@ Merchants pay for job posts. The price is defined by region and the time span. W
     - news articles containing the word "bakery"
     - services with the keyword bakery
     - ...
+
+#### 7. Hotmap
+
+- Hotmap showing number of users searching for jobs in a region
+- Eg.
+![hot map](hotmap.png)
