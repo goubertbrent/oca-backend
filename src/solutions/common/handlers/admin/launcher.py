@@ -68,7 +68,7 @@ class PostOSAAppHandler(webapp2.RequestHandler):
             return
 
         filename = '%s/oca/launcher/apps/%s.apk' % (ROGERTHAT_ATTACHMENTS_BUCKET, app_id)
-        upload_to_gcs(uploaded_file.value, uploaded_file.type, filename)
+        upload_to_gcs(uploaded_file.file, uploaded_file.type, filename)
 
         version_code = long(self.request.get("version_code"))
         app = OSALauncherApp.get_by_app_id(app_id)
