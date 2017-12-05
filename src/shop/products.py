@@ -23,7 +23,6 @@ from rogerthat.models import ServiceProfile
 from shop.dal import get_mobicage_legal_entity
 from shop.models import Product
 
-
 # XXX: We really need a better method to obtain these values
 MC_TELECOM_LEGAL_ENTITY_ID = 5789858167521280 if not DEBUG else 5832209105682432
 ACTIVE_S_LEGAL_ENTITY_ID = 5811373693992960 if not DEBUG else 6513025846607872
@@ -79,6 +78,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_free_product(mobicage_legal_entity_id))
     to_put.append(create_fcty_product(mobicage_legal_entity_id))
     to_put.append(create_pres_product(mobicage_legal_entity_id))
+    to_put.append(create_appl_product(mobicage_legal_entity_id))
 
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
@@ -97,6 +97,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_drc_corp_product())
 
     db.put(to_put)
+
 
 """
 Dependency logic explanation:
@@ -178,7 +179,8 @@ def create_a3ct_product(legal_entity_id, code_prefix=''):
     p.is_subscription_extension = True
     p.organization_types = []
     p.product_dependencies = [
-        '%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(code_prefix=code_prefix)]
+        '%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(
+            code_prefix=code_prefix)]
     p.picture_url = ""
     p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
@@ -274,7 +276,8 @@ def create_sx6m_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = [
-        '%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
+        '%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(
+            code_prefix=code_prefix)]
     p.visible = False
     p.extra_subscription_months = 6
     p.legal_entity_id = legal_entity_id
@@ -295,7 +298,8 @@ def create_sxdm_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     p.organization_types = []
     p.product_dependencies = [
-        '%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(code_prefix=code_prefix)]
+        '%(code_prefix)sMSUP|%(code_prefix)sMSSU|%(code_prefix)sSSUP|%(code_prefix)sSSZP' % dict(
+            code_prefix=code_prefix)]
     p.visible = False
     p.extra_subscription_months = 12
     p.legal_entity_id = legal_entity_id
@@ -956,6 +960,26 @@ def create_pres_product(legal_entity_id, code_prefix=''):
     p.default_comment_translation_key = ''
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
+    return p
+
+
+def create_appl_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'APPL')
+    p.price = 10000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.is_subscription_extension = True
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+    p.charge_interval = 12
     return p
 
 
