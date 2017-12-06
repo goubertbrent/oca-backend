@@ -6,10 +6,10 @@
     <link rel="stylesheet" href="/static/css/public/signup.css">
 {% endblock %}
 {% block js %}
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
 
         var SignupTranslations = {
+            LOADING_CAPTCHA_CHALLENGE: '{% translate language, "common", "loading_captcha_challenge" %}',
             SIGNUP_SUCCCESS: {{ signup_success }},
             VAT_INVALID: '{% translate language, "common", "vat_invalid" %}',
             VAT_UNKNOWN: '{% translate language, "common", "vat_unknown" %}',
@@ -189,7 +189,7 @@
                             </div>
                         </div>
                         <hr />
-                        <div style="display: none;" class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="signupCallback" data-size="invisible"></div>
+                        <div id="recaptcha_container" class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="signupCallback" data-size="invisible"></div>
                         <button id="signup" style="display: none;" class="btn btn-wizard pull-right" type="button">{% translate language, "common", "Submit" %} <i class="icon-ok icon-white"></i></button>
                         <button id="next" class="btn btn-wizard pull-right" type="button">{% translate language, "common", "Next" %} <i class="icon-circle-arrow-right icon-white"></i></button>
                         <button id="back" style="display: none;" class="btn btn btn-wizard pull-left" type="button"><i class="icon-circle-arrow-left icon-white"></i> {% translate language, "common", "back" %}</button>

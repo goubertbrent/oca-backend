@@ -249,6 +249,7 @@ def _put_and_invalidate_cache_and_allocate_ids(*models):
     else:
         _allocate()
 
+
 def _1000_disable_old_service(job_key):
     phase = MigrateServiceJob.PHASE_1000_DISABLE_OLD_SERVICE
     next_phase = MigrateServiceJob.PHASE_2000_MIGRATE_USER_DATA
@@ -304,10 +305,12 @@ def _2000_migrate_user_data(job_key):
                     if user_data.data:
                         app_user_datas[user_data.service_identity_user.email()] = user_data.data
                     elif user_data.userData:
-                        app_user_datas[user_data.service_identity_user.email()] = json.dumps(user_data.userData.to_json_dict())
+                        app_user_datas[user_data.service_identity_user.email()] = json.dumps(
+                            user_data.userData.to_json_dict())
 
         if job_user_datas:
             logging.info("Storing job.user_datas: %s", job_user_datas)
+
             def trans_update_user_datas():
                 job = _get_job(job_key)
                 job.set_user_datas(job_user_datas)
@@ -473,7 +476,6 @@ def _migrate_sids(job, old_sids):
                               for qr in old_sids]
         db.delete(old_short_url_keys)
 
-
     new_sids = _migrate_models(job, old_sids, delete_old_models=False, put_new_models=True)
     new_short_urls = put_new_short_urls(new_sids)
 
@@ -499,8 +501,8 @@ def _4500_migrate_qrs(job_key):
     # Do the work
     _log_progress(job)
 
-
     logging.info("1/ Migrate recommendation QR codes")
+
     def trans_migrate_recommend_qrs():
         # Get SIs with recommend enabled
         service_identities = [si for si in get_service_identities_query(job.from_service_user) if si.shareSIDKey]
@@ -522,7 +524,6 @@ def _4500_migrate_qrs(job_key):
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans_migrate_recommend_qrs)
 
-
     logging.info("2/ Migrate all other QR codes")
     qry = ServiceInteractionDef.all().ancestor(parent_key(job.from_service_user))
 
@@ -536,7 +537,6 @@ def _4500_migrate_qrs(job_key):
 
     while db.run_in_transaction_options(xg_on, trans_migrate_other_qrs):
         pass  # run trans until it returns False
-
 
     logging.info("3/ Migrate all ProfilePointers")
     old_pp_keys = list()
@@ -661,10 +661,8 @@ def _6000_migrate_ancestor_models(job_key):
     logging.info("1/ Migrating ServiceTranslationSet")
     _migrate_ancestor_models(job, parent_key(job.from_service_user, u'mc-i18n'))
 
-
     logging.info("2/ Migrating all other ancestor models")
     _migrate_ancestor_models(job, parent_key(job.from_service_user))
-
 
     # Set the next phase
     _set_job_in_next_phase(job_key, phase, next_phase)
@@ -682,6 +680,7 @@ def _7000_migrate_solution(job_key):
 
     if job.solution:
         logging.info('0/ Migrate the solution models without ancestor, but with service_user as key name.')
+
         def trans0():
             new_models = list()
             old_models = list()
@@ -720,7 +719,6 @@ def _7000_migrate_solution(job_key):
                     r.service_user = to_si_user
                 _put_and_invalidate_cache_and_allocate_ids(*reservations)
 
-
         logging.info('2/ Migrate EventReminders')
         for service_identity in identities:
             from_si_user = create_service_identity_user(job.from_service_user)
@@ -733,7 +731,6 @@ def _7000_migrate_solution(job_key):
                     r.service_identity_user = to_si_user
                 _put_and_invalidate_cache_and_allocate_ids(*reminders)
 
-
         logging.info('3/ Migrate RestaurantProfile.reserve_flow_part2')
         restaurant_profile = db.get(RestaurantProfile.create_key(job.from_service_user))
         if restaurant_profile and restaurant_profile.reserve_flow_part2:
@@ -744,12 +741,10 @@ def _7000_migrate_solution(job_key):
             restaurant_profile.reserve_flow_part2 = str(new_part2_key)
             _put_and_invalidate_cache_and_allocate_ids(restaurant_profile)
 
-
         logging.info('4/ Delete all SolutionQRs. They will be recreated when provisioning.')
         for service_identity in identities:
             service_identity_user = create_service_identity_user_wo_default(job.from_service_user, service_identity)
             db.delete(SolutionQR.all(keys_only=True).ancestor(parent_key_unsafe(service_identity_user, job.solution)))
-
 
         logging.info('5/ Delete Loyalty QR. It will be recreated when provisioning.')
         if SolutionModule.LOYALTY in old_sln_settings.modules:
@@ -757,12 +752,12 @@ def _7000_migrate_solution(job_key):
                 if is_default_service_identity(service_identity):
                     loyalty_i_settings = db.get(SolutionLoyaltySettings.create_key(job.from_service_user))
                 else:
-                    loyalty_i_settings = db.get(SolutionLoyaltyIdentitySettings.create_key(job.from_service_user, service_identity))
+                    loyalty_i_settings = db.get(
+                        SolutionLoyaltyIdentitySettings.create_key(job.from_service_user, service_identity))
                 if loyalty_i_settings:
                     loyalty_i_settings.image_uri = None
                     loyalty_i_settings.content_uri = None
                     _put_and_invalidate_cache_and_allocate_ids(loyalty_i_settings)
-
 
         logging.info('6/ Change ancestor keys of solution models.')
         for solution in ['common', job.solution]:
@@ -770,15 +765,15 @@ def _7000_migrate_solution(job_key):
                 if is_default_service_identity(service_identity):
                     _migrate_ancestor_models(job, parent_key(job.from_service_user, solution))
                 else:
-                    service_identity_user = create_service_identity_user_wo_default(job.from_service_user, service_identity)
+                    service_identity_user = create_service_identity_user_wo_default(
+                        job.from_service_user, service_identity)
                     _migrate_ancestor_models(job, parent_key_unsafe(service_identity_user, solution))
-
 
         sln_settings = get_solution_settings(job.to_service_user)
         sln_main_branding = get_solution_main_branding(job.to_service_user)
         users.set_user(job.to_service_user)
         try:
-            populate_identity(sln_settings, sln_main_branding.branding_key, sln_main_branding.branding_key)
+            populate_identity(sln_settings, sln_main_branding.branding_key)
         finally:
             users.clear_user()
 
@@ -809,6 +804,7 @@ def _8000_finish_models(job_key):
                     _re_index_service_identity, [])
 
         logging.info("2/ set solution and enabled on the new ServiceProfile")
+
         def trans2():
             to_service_profile = get_service_profile(job.to_service_user)
             to_service_profile.enabled = job.service_enabled
@@ -875,6 +871,7 @@ def _8000_finish_models(job_key):
                 if sln_settings.identities:
                     for service_identity in sln_settings.identities:
                         qrcode = create_inbox_forwarding_qr_code(service_identity, flow_identifier)
+
                         def trans():
                             sln_i_settings = get_solution_identity_settings(sln_settings.service_user, service_identity)
                             sln_i_settings.inbox_connector_qrcode = qrcode.image_uri
@@ -910,6 +907,7 @@ def _make_friends(job_key, app_user, si_user, fsic_str_key=None):
     profile_info = get_profile_info(app_user)
     if not isinstance(profile_info, UserProfile):
         logging.warn("%s was no UserProfile but %s", app_user.email(), profile_info)
+
         def trans():
             job = db.get(job_key)
             job.fsic_keys.remove(fsic_str_key)
@@ -948,7 +946,7 @@ def _9000_reconnect_friends(job_key, initial_run=True):
             app_user = users.User(fsic_key.parent().name())
             old_si_user = users.User(fsic_key.name())
             new_si_user = create_service_identity_user(job.to_service_user,
-                                                     get_identity_from_service_identity_user(old_si_user))
+                                                       get_identity_from_service_identity_user(old_si_user))
             deferred.defer(_make_friends, job_key, app_user, new_si_user, fsic_str_key, _queue=MIGRATION_QUEUE)
     else:
         # Check the friend count
@@ -990,6 +988,7 @@ def controller(job_key, current_phase=None, retry_interval=0):
     deferred.defer(controller, job_key, job.phase, next_retry_interval,
                    _countdown=next_retry_interval, _queue=HIGH_LOAD_CONTROLLER_QUEUE)
 
+
 @returns(MigrateServiceJob)
 @arguments(executor_user=users.User, from_service_user=users.User, to_user=users.User)
 def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
@@ -1005,7 +1004,8 @@ def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
 
     to_profile = _get_profile_not_cached(to_user)
     if to_profile:
-        bizz_check(isinstance(to_profile, UserProfile), 'Profile %s is not of expected type UserProfile, but of type %s' % (to_user, to_profile.kind()))
+        bizz_check(isinstance(to_profile, UserProfile),
+                   'Profile %s is not of expected type UserProfile, but of type %s' % (to_user, to_profile.kind()))
         if service_email not in to_profile.owningServiceEmails:
             to_profile.owningServiceEmails.append(service_email)
     else:
@@ -1037,6 +1037,7 @@ def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
 
     return migrate(executor_user, from_service_user, users.User(service_email))
 
+
 @returns(MigrateServiceJob)
 @arguments(executor_user=users.User, from_service_user=users.User, to_service_user=users.User)
 def migrate(executor_user, from_service_user, to_service_user):
@@ -1048,6 +1049,7 @@ def migrate(executor_user, from_service_user, to_service_user):
 
     job_key = db.Key.from_path(MigrateServiceJob.kind(), str(uuid.uuid4()),
                                parent=db.Key.from_path(MigrateServiceJob.kind(), MigrateServiceJob.kind()))
+
     def trans():
         job = MigrateServiceJob(key=job_key,
                                 executor_user=executor_user,
@@ -1077,17 +1079,17 @@ def migrate(executor_user, from_service_user, to_service_user):
     return db.run_in_transaction_options(xg_on, trans)
 
 
-PHASES = {MigrateServiceJob.PHASE_1000_DISABLE_OLD_SERVICE : _1000_disable_old_service,
-          MigrateServiceJob.PHASE_2000_MIGRATE_USER_DATA : _2000_migrate_user_data,
+PHASES = {MigrateServiceJob.PHASE_1000_DISABLE_OLD_SERVICE: _1000_disable_old_service,
+          MigrateServiceJob.PHASE_2000_MIGRATE_USER_DATA: _2000_migrate_user_data,
           MigrateServiceJob.PHASE_2250_CLEANUP_USER_DATA: _2250_cleanup_user_data,
-          MigrateServiceJob.PHASE_2500_MIGRATE_SERVICE_DATA : _2500_migrate_service_data,
-          MigrateServiceJob.PHASE_3000_REVOKE_ROLES : _3000_revoke_roles,
-          MigrateServiceJob.PHASE_4000_DISCONNECT_FRIENDS : _4000_disconnect_friends,
-          MigrateServiceJob.PHASE_4500_MIGRATE_QRS : _4500_migrate_qrs,
-          MigrateServiceJob.PHASE_5000_MIGRATE_NON_ANCESTOR_MODELS : _5000_migrate_non_ancestor_models,
-          MigrateServiceJob.PHASE_6000_MIGRATE_ANCESTOR_MODELS : _6000_migrate_ancestor_models,
-          MigrateServiceJob.PHASE_7000_MIGRATE_SOLUTION : _7000_migrate_solution,
-          MigrateServiceJob.PHASE_8000_FINISH_MODELS : _8000_finish_models,
-          MigrateServiceJob.PHASE_9000_RECONNECT_FRIENDS : _9000_reconnect_friends,
-          MigrateServiceJob.PHASE_DONE : None,
+          MigrateServiceJob.PHASE_2500_MIGRATE_SERVICE_DATA: _2500_migrate_service_data,
+          MigrateServiceJob.PHASE_3000_REVOKE_ROLES: _3000_revoke_roles,
+          MigrateServiceJob.PHASE_4000_DISCONNECT_FRIENDS: _4000_disconnect_friends,
+          MigrateServiceJob.PHASE_4500_MIGRATE_QRS: _4500_migrate_qrs,
+          MigrateServiceJob.PHASE_5000_MIGRATE_NON_ANCESTOR_MODELS: _5000_migrate_non_ancestor_models,
+          MigrateServiceJob.PHASE_6000_MIGRATE_ANCESTOR_MODELS: _6000_migrate_ancestor_models,
+          MigrateServiceJob.PHASE_7000_MIGRATE_SOLUTION: _7000_migrate_solution,
+          MigrateServiceJob.PHASE_8000_FINISH_MODELS: _8000_finish_models,
+          MigrateServiceJob.PHASE_9000_RECONNECT_FRIENDS: _9000_reconnect_friends,
+          MigrateServiceJob.PHASE_DONE: None,
           }

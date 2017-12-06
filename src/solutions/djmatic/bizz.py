@@ -69,45 +69,45 @@ POKE_TAG_JUKEBOX = u"jukebox"
 POKE_TAG_QR_CONNECT = u'qr_connect'
 BROADCAST_TYPE_KEYS = ['News', 'Events']
 
-TRANSLATION_MAP = {ServiceTranslation.HOME_TEXT: {'jukebox-configuration' : SOLUTION_DJMATIC,
-                                                  'ask-question' : SOLUTION_COMMON,
-                                                  'when-where' : SOLUTION_COMMON,
-                                                  'menu' : SOLUTION_COMMON,
-                                                  'agenda' : SOLUTION_COMMON,
-                                                  'broadcast-settings' : SOLUTION_COMMON,
-                                                },
-                   ServiceTranslation.SID_BUTTON: {'get-connected' : SOLUTION_COMMON,
-                                                    },
-                   ServiceTranslation.BROADCAST_TYPE: { k: SOLUTION_COMMON for k in BROADCAST_TYPE_KEYS}
+TRANSLATION_MAP = {ServiceTranslation.HOME_TEXT: {'jukebox-configuration': SOLUTION_DJMATIC,
+                                                  'ask-question': SOLUTION_COMMON,
+                                                  'when-where': SOLUTION_COMMON,
+                                                  'menu': SOLUTION_COMMON,
+                                                  'agenda': SOLUTION_COMMON,
+                                                  'broadcast-settings': SOLUTION_COMMON,
+                                                  },
+                   ServiceTranslation.SID_BUTTON: {'get-connected': SOLUTION_COMMON,
+                                                   },
+                   ServiceTranslation.BROADCAST_TYPE: {k: SOLUTION_COMMON for k in BROADCAST_TYPE_KEYS}
                    }
 
 MODULE_COORDS_MAPPING = {MODULE_DJMATIC_JUKEBOX: {POKE_TAG_JUKEBOX: {"preferred_page": 0,
-                                                                     "coords":[0, 1, 0],
-                                                                     "priority":100
+                                                                     "coords": [0, 1, 0],
+                                                                     "priority": 100
                                                                      }},
                          SolutionModule.AGENDA: {POKE_TAG_EVENTS: {"preferred_page": 0,
-                                                                   "coords":[0, 2, 0],
-                                                                   "priority":10},
-                                                 POKE_TAG_NEW_EVENT: {"preferred_page":-1,
-                                                                      "coords" :[0, 0, 1],
+                                                                   "coords": [0, 2, 0],
+                                                                   "priority": 10},
+                                                 POKE_TAG_NEW_EVENT: {"preferred_page": -1,
+                                                                      "coords": [0, 0, 1],
                                                                       "priority": 1}},
                          SolutionModule.ASK_QUESTION: {POKE_TAG_ASK_QUESTION: {"preferred_page": 0,
-                                                                               "coords":[2, 1, 0],
-                                                                               "priority":20}},
+                                                                               "coords": [2, 1, 0],
+                                                                               "priority": 20}},
                          SolutionModule.BROADCAST: {ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS: {"preferred_page": 0,
-                                                                                               "coords":[3, 2, 0],
-                                                                                               "priority":20},
-                                                    POKE_TAG_BROADCAST_CREATE_NEWS: {"preferred_page":-1,
+                                                                                               "coords": [3, 2, 0],
+                                                                                               "priority": 20},
+                                                    POKE_TAG_BROADCAST_CREATE_NEWS: {"preferred_page": -1,
                                                                                      "coords": [-1, -1, -1],
                                                                                      "priority": 1}},
                          SolutionModule.BULK_INVITE: None,
                          SolutionModule.MENU: {POKE_TAG_MENU: {"preferred_page": 0,
-                                                               "coords":[3, 1, 0],
-                                                               "priority":10}},
+                                                               "coords": [3, 1, 0],
+                                                               "priority": 10}},
                          SolutionModule.WHEN_WHERE: {POKE_TAG_WHEN_WHERE: {"preferred_page": 0,
-                                                                           "coords":[1, 1, 0],
-                                                                           "priority":20}},
-                        }
+                                                                           "coords": [1, 1, 0],
+                                                                           "priority": 20}},
+                         }
 
 
 @returns([SolutionServiceMenuItem])
@@ -206,7 +206,7 @@ def provision(service_user, friends=None):
             put_and_invalidate_cache(sln_settings)
 
         main_branding = get_and_store_main_branding(service_user)
-        populate_identity(sln_settings, main_branding.branding_key, main_branding.old_branding_key)
+        populate_identity(sln_settings, main_branding.branding_key)
 
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
@@ -225,10 +225,10 @@ def provision(service_user, friends=None):
 def create_djmatic_service(email, name, branding_url, menu_item_color, secret, player_id, player_type):
     solution_server_settings = get_solution_server_settings()
     password, solution_settings = create_solution_service(email, name, branding_url, menu_item_color, address=None,
-                                                     phone_number=None, solution=SOLUTION_DJMATIC, languages=DEFAULT_LANGUAGES,
-                                                     category_id=solution_server_settings.djmatic_category_id, fail_if_exists=False,
-                                                     modules=MODULE_COORDS_MAPPING.keys(),
-                                                     broadcast_types=BROADCAST_TYPE_KEYS)
+                                                          phone_number=None, solution=SOLUTION_DJMATIC, languages=DEFAULT_LANGUAGES,
+                                                          category_id=solution_server_settings.djmatic_category_id, fail_if_exists=False,
+                                                          modules=MODULE_COORDS_MAPPING.keys(),
+                                                          broadcast_types=BROADCAST_TYPE_KEYS)
     service_user = solution_settings.service_user
 
     def trans():
@@ -299,10 +299,11 @@ def do_jukebox_api_call(payload, method, headers):
             azzert(response.status_code == 200, response.content)
             return response
         except urlfetch_errors.Error, e:
-            logging.info("do_jukebox_api_call: %s (attempt: %s)", e.__class__, attempt , exc_info=True)
+            logging.info("do_jukebox_api_call: %s (attempt: %s)", e.__class__, attempt, exc_info=True)
             if attempt >= 5:
                 raise e
             attempt += 1
+
 
 @returns(NoneType)
 @arguments(branding_url=unicode)
@@ -322,6 +323,7 @@ def add_new_jukebox_app_branding(branding_url):
     jb_branding.put()
 
     run_job(get_all_djmatic_profile_keys_query, [], _reset_jukebox_branding_hash, [])
+
 
 def _reset_jukebox_branding_hash(djmatic_profile_key):
     def trans():

@@ -185,9 +185,11 @@ def add_ids_to_menus():
     run_job(_get_all_restaurant_menu_keys, [], _migrate_menu, [],
             worker_queue=MIGRATION_QUEUE)
 
+
 def clear_qr_url_from_menus():
     # Run this second
     run_job(_get_all_restaurant_menu_keys, [], _clear_qr_url_menu, [], worker_queue=MIGRATION_QUEUE)
+
 
 def re_index_all_services():
     # Run this first
@@ -238,7 +240,7 @@ def _provision_without_publish(sln_settings_key):
         branding_settings.put()
         main_branding = get_and_store_main_branding(service_user)
 
-        populate_identity(sln_settings, main_branding.branding_key, main_branding.old_branding_key)
+        populate_identity(sln_settings, main_branding.branding_key)
 
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))

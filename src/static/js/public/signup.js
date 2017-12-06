@@ -16,8 +16,6 @@
  * @@license_version:1.2@@
  */
 
-var signupCallback;
-
 $(function() {
     'use strict';
 
@@ -29,6 +27,9 @@ $(function() {
     var tabs = [];
     var currentStep = 0;
     var orgTypesCache = {};
+    var recaptchaLoader = new RecaptchaLoader({
+        container: 'recaptcha_container',
+    });
 
     $('form').submit(function(event){
       event.preventDefault();
@@ -204,15 +205,28 @@ $(function() {
         return args;
     }
 
+    function doSignup() {
+        sln.hideProcessing();
+        recaptchaLoader.execute();
+    }
+
+    recaptchaLoader.onLoadCallback = doSignup;
     function signup() {
         // validate first
         nextStep();
-        if(formElem.checkValidity()) {
-            grecaptcha.execute();
+        if (!formElem.checkValidity()) {
+            return;
+        }
+        // load captcha challenge if not loaded
+        if (recaptchaLoader.isLoaded()) {
+            doSignup();
+        } else {
+            sln.showProcessing(SignupTranslations.LOADING_CAPTCHA_CHALLENGE);
+            recaptchaLoader.load();
         }
     }
 
-    signupCallback = function(recaptchaToken) {
+    window.signupCallback = function(recaptchaToken) {
         sln.showProcessing(CommonTranslations.SUBMITTING_DOT_DOT_DOT);
         sln.call({
             url: '/unauthenticated/osa/customer/signup',
@@ -234,7 +248,7 @@ $(function() {
             error: sln.showAjaxError
         });
 
-        grecaptcha.reset();
+        recaptchaLoader.reset();
     };
 
     function getCurrentTab() {

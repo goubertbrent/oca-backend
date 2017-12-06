@@ -16,29 +16,30 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
-from functools import partial
 import hashlib
 import json
 import logging
 import os
 import sys
-from types import NoneType
 import urllib
 import urlparse
-
-from PIL.Image import Image
-from dateutil.relativedelta import relativedelta
+from collections import OrderedDict
+from contextlib import closing
+from functools import partial
+from types import NoneType
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
-from babel.dates import format_datetime, get_timezone, format_date
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
+
 import httplib2
+import stripe
+from PIL.Image import Image
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -60,7 +61,6 @@ from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
-from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, now, channel, get_epoch_from_datetime, send_mail
 from rogerthat.utils.app import create_app_user_by_email
@@ -93,32 +93,28 @@ from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
-from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
+from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
+from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.hints import SolutionHint
 from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
-from solutions.common.to import ProvisionResponseTO, SolutionInboxMessageTO
+from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-import stripe
 from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
 
-
 shopOauthDecorator = OAuth2Decorator(
     client_id=SHOP_OAUTH_CLIENT_ID,
     client_secret=SHOP_OAUTH_CLIENT_SECRET,
     scope=u'https://www.googleapis.com/auth/calendar',
-    callback_path=u'/shop/oauth2callback',)
-
+    callback_path=u'/shop/oauth2callback', )
 
 TROPO_URL = 'https://api.tropo.com/1.0'
 TROPO_SESSIONS_URL = '%s/sessions' % TROPO_URL
@@ -163,7 +159,6 @@ def is_team_admin(user):
 @returns(bool)
 @arguments(user=users.User, team_id=(int, long))
 def user_has_permissions_to_team(user, team_id):
-
     @db.non_transactional
     def _get_regio_manager(email):
         return RegioManager.get(RegioManager.create_key(email))
@@ -567,7 +562,8 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
                 extra_apps_count += 1
             elif has_product(item, Product.PRODUCT_ACTION_3_EXTRA_CITIES):
                 extra_apps_count += 3
-            elif any(has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
+            elif any(
+                has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
             elif any(has_product(item, product_code) for product_code in ('MSUP', 'SUBX')):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
@@ -993,8 +989,13 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
             if is_subscription_extension_order:
                 sub_order = sub_order or Order.get_by_order_number(customer.id, customer.subscription_order_number)
                 order.next_charge_date = sub_order.next_charge_date
-
-        order.put()
+        to_put = [order]
+        for item in order_items:  # type: OrderItem
+            product = products[item.product_code]
+            if product.charge_interval != 1:
+                item.last_charge_timestamp = now()
+                to_put.append(item)
+        db.put(to_put)
 
         if not no_charge:
             deferred.defer(send_order_email, order_key, gusers.get_current_user(), _transactional=True,
@@ -1226,7 +1227,8 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
 
     with closing(StringIO()) as sb:
         sb.write(shop_translate(customer.language, 'dear_name', name="%s %s" %
-                                (contact.first_name, contact.last_name)).encode('utf-8'))
+                                                                     (contact.first_name, contact.last_name)).encode(
+            'utf-8'))
         sb.write('\n\n')
         sb.write(
             shop_translate(customer.language, 'invoice_is_available', invoice=invoice.invoice_number).encode('utf-8'))
@@ -1242,7 +1244,8 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
         sb.write(shop_translate(customer.language, 'select_billing').encode('utf-8'))
         sb.write('\n')
         sb.write(
-            shop_translate(customer.language, 'for_questions_contact_us', contact_email=solution_server_settings.shop_reply_to_email).encode('utf-8'))
+            shop_translate(customer.language, 'for_questions_contact_us',
+                           contact_email=solution_server_settings.shop_reply_to_email).encode('utf-8'))
         sb.write('\n\n')
         sb.write(shop_translate(customer.language, 'thx_for_doing_business').encode('utf-8'))
         sb.write('\n\n')
@@ -1302,7 +1305,6 @@ def vacuum_service_modules_by_subscription(customer_id):
 @arguments(customer_or_id=(int, long, Customer), order_number=unicode, confirm=bool, delete_service=bool,
            charge_id=(int, long))
 def cancel_order(customer_or_id, order_number, confirm=False, delete_service=False, charge_id=None):
-
     def trans():
         logging.info('Canceling order %s', order_number)
         service_deleted = False
@@ -1364,7 +1366,7 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
                     sub_order = Order.get_by_order_number(customer.id, customer.subscription_order_number)
                     next_charge_datetime = datetime.datetime.utcfromtimestamp(
                         sub_order.next_charge_date) - relativedelta(
-                            months=extra_months)
+                        months=extra_months)
                     sub_order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
                     to_put.append(sub_order)
 
@@ -1501,7 +1503,7 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
                                       "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
                                       charge=charge)
         attachments.append(("pro-forma-invoice.pdf",
-                             base64.b64encode(pdf_stream.getvalue())))
+                            base64.b64encode(pdf_stream.getvalue())))
 
     attachments.append(("payment.png",
                         base64.b64encode(transfer_doc_png)))
@@ -2272,9 +2274,9 @@ def get_payed(customer_id, order_or_number, charge_or_id):
 
         # Check if we need to add CRED product
         if charge.type == Charge.TYPE_ORDER_DELIVERY \
-                and order.is_subscription_order \
-                and invoice is None \
-                and customer.team.legal_entity.is_mobicage:
+            and order.is_subscription_order \
+            and invoice is None \
+            and customer.team.legal_entity.is_mobicage:
             discount = None
             max_number = 0
             for item in OrderItem.all().ancestor(order):
@@ -2308,7 +2310,7 @@ def get_payed(customer_id, order_or_number, charge_or_id):
             api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
         for stripe_charge in stripe_charges.data:
             if stripe_charge.metadata.osa_charge_id and long(
-                    stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
+                stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
                 stripe_charge_match = stripe_charge
                 break
 
@@ -2375,6 +2377,7 @@ def put_app_signup_enabled(app_id, enabled):
                                                name=get_app_by_id(app_id).name)
         shop_app.signup_enabled = enabled
         shop_app.put()
+
     run_in_transaction(trans, xg=True)
 
 
@@ -2590,6 +2593,7 @@ def get_signup_summary(lang, customer_signup):
         lang (unicode)
         customer_signup(CustomerSignup)
     """
+
     def trans(term, *args, **kwargs):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 

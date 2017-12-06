@@ -23,13 +23,13 @@ import re
 import time
 import urllib
 
+from google.appengine.api import users as gusers, images
+from google.appengine.ext import db, blobstore
+
 from babel import Locale
 from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from dateutil.relativedelta import relativedelta
-
-from google.appengine.api import users as gusers, images
-from google.appengine.ext import db, blobstore
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
@@ -94,6 +94,7 @@ def _normalize_vat_es(vat):
     vat = country_code + vat
     bizz_check(len(vat) == 11, "This vat number could not be validated for Spain (ES99 999999999).")
     return vat
+
 
 _vat_validators = dict(BE=_normalize_vat_be,
                        NL=_normalize_vat_nl,
@@ -258,6 +259,7 @@ class Product(db.Model):
     # Same as above
     description_translation_key = db.StringProperty(indexed=False)
     legal_entity_id = db.IntegerProperty()
+    charge_interval = db.IntegerProperty(default=1, indexed=False)
 
     @property
     def code(self):
@@ -776,9 +778,9 @@ class Order(db.Model):
 
     @staticmethod
     def list_unsigned(customer):
-        return Order.all()\
-            .ancestor(customer)\
-            .filter('status', Order.STATUS_UNSIGNED)\
+        return Order.all() \
+            .ancestor(customer) \
+            .filter('status', Order.STATUS_UNSIGNED) \
             .order('date')
 
     @staticmethod
@@ -808,6 +810,7 @@ class OrderItem(db.Expando):
     count = db.IntegerProperty()
     comment = db.TextProperty()
     price = db.IntegerProperty()  # In euro cents
+    last_charge_timestamp = db.IntegerProperty()
     # app_id : only for orderItems with product code XCTY and NEWS
     # news_item_id: for orderItems with product code NEWS
 

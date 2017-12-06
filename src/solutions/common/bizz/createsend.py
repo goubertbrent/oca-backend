@@ -34,7 +34,7 @@ def send_smart_email(email_id, to, add_recipients_to_list=True):
     """Send a smart email"""
     if DEBUG:
         logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, to)
-        return
+        return False
 
     solution_server_settings = get_solution_server_settings()
     credentials = base64.b64encode('%s:' % solution_server_settings.createsend_api_key)

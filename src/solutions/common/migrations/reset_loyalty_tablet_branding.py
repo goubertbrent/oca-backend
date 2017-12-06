@@ -37,8 +37,10 @@ from solutions.common.utils import is_default_service_identity
 def job():
     run_job(_get_loyalty_settings, [], _migrate, [])
 
+
 def _get_loyalty_settings():
     return SolutionLoyaltySettings.all(keys_only=True)
+
 
 def _migrate(sls_key):
     def trans():
@@ -50,11 +52,12 @@ def _migrate(sls_key):
             deferred.defer(_set_content_branding, sln_settings, _transactional=True)
     db.run_in_transaction(trans)
 
+
 def _set_content_branding(sln_settings):
     users.set_user(sln_settings.service_user)
     try:
         sln_main_branding = get_solution_main_branding(sln_settings.service_user)
-        populate_identity(sln_settings, sln_main_branding.branding_key, sln_main_branding.branding_key)
+        populate_identity(sln_settings, sln_main_branding.branding_key)
 
         identities = [None]
         if sln_settings.identities:
@@ -67,6 +70,7 @@ def _set_content_branding(sln_settings):
             deferred.defer(_update_tablets, service_identity_user, None, _queue=HIGH_LOAD_CONTROLLER_QUEUE)
     finally:
         users.clear_user()
+
 
 def _update_tablets(service_identity_user, cursor):
     start = time.time()
@@ -84,7 +88,8 @@ def _update_tablets(service_identity_user, cursor):
             if app_id != App.APP_ID_OSA_LOYALTY:
                 continue
 
-            deferred.defer(schedule_update_a_friend_of_a_service_identity_user, service_identity_user, app_user, force=True)
+            deferred.defer(schedule_update_a_friend_of_a_service_identity_user,
+                           service_identity_user, app_user, force=True)
 
         if time.time() - start > 500:
             deferred.defer(_update_tablets, service_identity_user, cursor, _queue=HIGH_LOAD_CONTROLLER_QUEUE)

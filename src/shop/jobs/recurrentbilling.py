@@ -18,9 +18,9 @@
 import datetime
 import logging
 
-from dateutil.relativedelta import relativedelta
 from google.appengine.ext import db, deferred
 
+from dateutil.relativedelta import relativedelta
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.utils import now
@@ -45,14 +45,13 @@ def _recurrent_billing():
 
 def _qry(today):
     # next_charge_date is unset for free subscriptions
-    return Order.all(keys_only=True)\
-        .filter("is_subscription_order =", True)\
-        .filter("next_charge_date <", today)\
+    return Order.all(keys_only=True) \
+        .filter("is_subscription_order =", True) \
+        .filter("next_charge_date <", today) \
         .filter("status =", Order.STATUS_SIGNED)
 
 
 def _create_charge(order_key, today, products):
-
     def cleanup_expired_subscription(customer):
         expired_subscription = ExpiredSubscription.get_by_customer_id(customer.id)
         if expired_subscription:
@@ -90,25 +89,37 @@ def _create_charge(order_key, today, products):
                                              .filter("next_charge_date <", today)
                                              .filter("is_subscription_order =", False)
                                              .filter('is_subscription_extension_order =', True)
-                                             .filter("status =", Order.STATUS_SIGNED))
+                                             .filter("status =", Order.STATUS_SIGNED))  # type: list[Order]
         subscription_extension_order_keys = [o.key() for o in subscription_extension_orders]
         order_item_qry = OrderItem.all().ancestor(customer if subscription_extension_order_keys else order)
 
         subscription_extension_order_item_keys = []
         total_amount = 0
         subscription_length = 0
-        for order_item in order_item_qry:
+        current_date = datetime.datetime.utcnow()
+        to_put = []
+        for order_item in order_item_qry:  # type: OrderItem
             product = products[order_item.product_code]
             if order_item.order_number == order.order_number:
                 if product.is_subscription:
                     subscription_length = order_item.count
                 if product.is_subscription or product.is_subscription_discount or product.is_subscription_extension:
-                    total_amount += order_item.price
+                    if product.charge_interval != 1:
+                        last_charge_date = datetime.datetime.utcfromtimestamp(order_item.last_charge_timestamp)
+                        new_charge_date = last_charge_date + relativedelta(months=product.charge_interval)
+                        if new_charge_date < current_date:
+                            logging.debug('new_charge_date %s < current_date %s, adding %s to total_amount',
+                                          new_charge_date, current_date, order_item.price)
+                            total_amount += order_item.price
+                            order_item.last_charge_timestamp = now()
+                            to_put.append(order_item)
+                    else:
+                        total_amount += order_item.price
+
             elif order_item.parent().key() in subscription_extension_order_keys:
                 if product.is_subscription_extension:
                     total_amount += order_item.price
                     subscription_extension_order_item_keys.append(order_item.key())
-
         if total_amount == 0:
             order.next_charge_date = Order.default_next_charge_date()
             order.put()
@@ -118,8 +129,6 @@ def _create_charge(order_key, today, products):
 
         if subscription_length == 0:
             raise Exception('subscription_length is 0')
-
-        to_put = list()
 
         if not (customer.stripe_id and customer.stripe_credit_card_id) and subscription_length != 1:
             logging.debug('Tried to bill customer, but no credit card info was found')
