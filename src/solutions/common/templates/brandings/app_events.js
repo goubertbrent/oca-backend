@@ -779,18 +779,6 @@
 
         var eventsListview = $("#events-listview");
         eventsListview.empty();
-        if (events.length === 0) {
-            $("#events-empty").show();
-            return;
-        }
-        $("#events-empty").hide();
-
-        var colorSchemeTag = $("meta[property='rt:style:color-scheme']")[0];
-        var colorscheme = "light";
-        if (colorSchemeTag !== undefined) {
-            colorscheme = colorSchemeTag.content;
-        }
-        console.log("Colorscheme: " + colorscheme);
 
         var eventsPerDay = {};
         var days = [];
@@ -821,6 +809,12 @@
                 });
             }
         });
+
+        if (Object.keys(eventsDict).length === 0) {
+            $("#events-empty").show();
+            return;
+        }
+        $("#events-empty").hide();
 
         var sortedEvents = new Map();
         Object.keys(eventsPerDay).sort().map(function(date) {
