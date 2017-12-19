@@ -21,7 +21,7 @@ bash install.sh
 
 if [ ${deploy_type} = "google" ]; then
     echo -e "${LOG_COLOR}* Deploying to Google Cloud${NO_COLOR}"
-    gcloud app deploy build/app.yaml build/index.yaml build/queue.yaml build/cron.yaml --quiet --project rogerthat-server
+    gcloud app deploy build/app.yaml build/index.yaml build/queue.yaml build/cron.yaml --quiet --no-promote --project rogerthat-server
 
 elif [ ${deploy_type} = "appscale" ]; then
     pushd build
