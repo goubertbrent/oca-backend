@@ -71,6 +71,12 @@ class Functionality(object):
             return self.translate('reservations-menu')
         elif self.name == SolutionModule.MENU:
             return self.translate('menu-card')
+        elif self.name == SolutionModule.APPOINTMENT:
+            return self.translate('appointments')
+        elif self.name == SolutionModule.REPAIR:
+            return self.translate('repairs')
+        elif self.name == SolutionModule.DISCUSSION_GROUPS:
+            return self.translate('group-chat')
         else:
             translation = self.translate(self.name)
             if translation == self.name:
@@ -83,7 +89,10 @@ class Functionality(object):
 
     @property
     def screenshot_image(self):
-        return '/static/images/solutions/func_%s.jpg' % self.name
+        name = self.name
+        if name == SolutionModule.DISCUSSION_GROUPS:
+           name = SolutionModule.ASK_QUESTION
+        return '/static/images/solutions/func_%s.jpg' % name
 
     @property
     def settings_section(self):
