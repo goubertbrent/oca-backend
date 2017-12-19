@@ -15,13 +15,14 @@
 #
 # @@license_version:1.2@@
 
-from contextlib import closing
 import datetime
 import logging
+from contextlib import closing
 
-from babel.dates import format_date
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
+
+from babel.dates import format_date
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
@@ -50,7 +51,6 @@ from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatus
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings
-
 
 try:
     from cStringIO import StringIO
@@ -106,9 +106,7 @@ def get_order_items():
 def get_products():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-    keys = [Product.create_key('BEAC'),
-            Product.create_key('POSM'),
-            Product.create_key(Product.PRODUCT_CARDS)]
+    keys = []
     if SolutionModule.CITY_APP not in sln_settings.modules:  # city apps cannot order more city apps
         keys.append(Product.create_key(Product.PRODUCT_EXTRA_CITY))
     else:
