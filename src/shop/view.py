@@ -33,7 +33,6 @@ from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 
-from oauth2client.client import HttpAccessTokenRefreshError
 from PIL.Image import Image  # @UnresolvedImport
 from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
@@ -44,6 +43,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
@@ -1805,7 +1805,9 @@ def check_only_one_city_service(customer_id, service):
         invalidate_service_user_for_city(service.apps[0])
         city_service_user = get_service_user_for_city(service.apps[0])
         if city_service_user and city_service_user.email() != customer.service_email:
-            raise BusinessException('City app module cannot be enabled for more than one service per app')
+            raise BusinessException('City app module cannot be enabled for more than one service per app.'
+                                    ' %s currently has the city app module enabled for app %s' % (
+                                        city_service_user.email(), service.apps[0]))
 
 
 @rest("/internal/shop/rest/service/put", "post")

@@ -56,11 +56,13 @@ from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
-from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile
+from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile, Message
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
+from rogerthat.to.messaging import AnswerTO
+from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, now, channel, get_epoch_from_datetime, send_mail
 from rogerthat.utils.app import create_app_user_by_email
@@ -2639,10 +2641,21 @@ def _send_new_customer_signup_message(service_user, customer_signup):
                                 category_key=signup_key)
 
     app_user = create_app_user_by_email(service_user.email(), customer_signup.city_customer.app_id)
-    send_inbox_forwarders_message(service_user, ServiceIdentity.DEFAULT, app_user, summary, {
-        'if_name': customer_signup.customer_name,
-        'if_email': customer_signup.customer_email
-    }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
+    btn_accept = AnswerTO()
+    btn_accept.id = u'approve'
+    btn_accept.type = u'button'
+    btn_accept.caption = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'reservation-approve')
+    btn_accept.ui_flags = 0
+    btn_deny = AnswerTO()
+    btn_deny.id = u'decline'
+    btn_deny.type = u'button'
+    btn_deny.caption = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'reservation-decline')
+    btn_deny.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
+    answers = [btn_accept, btn_deny]
+    msg_params = {'if_name': customer_signup.customer_name, 'if_email': customer_signup.customer_email}
+    send_inbox_forwarders_message(service_user, ServiceIdentity.DEFAULT, app_user, summary, msg_params,
+                                  message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled,
+                                  answers=answers, flags=Message.FLAG_AUTO_LOCK | Message.FLAG_ALLOW_DISMISS)
 
     send_signup_update_messages(sln_settings, message)
     return message.solution_inbox_message_key

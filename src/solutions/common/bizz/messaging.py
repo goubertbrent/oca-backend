@@ -61,6 +61,7 @@ from solutions.common.bizz.city_vouchers import solution_voucher_resolve, soluti
     solution_voucher_redeem, solution_voucher_confirm_redeem, solution_voucher_pin_activate
 from solutions.common.bizz.coupons import API_METHOD_SOLUTION_COUPON_REDEEM, solution_coupon_redeem, \
     solution_coupon_resolve, API_METHOD_SOLUTION_COUPON_RESOLVE
+from solutions.common.bizz.customer_signups import deny_signup
 from solutions.common.bizz.discussion_groups import poke_discussion_groups, follow_discussion_groups
 from solutions.common.bizz.events import new_event_received, poke_new_event, API_METHOD_SOLUTION_EVENTS_REMIND, \
     solution_remind_event, API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, solution_add_to_calender_event, \
@@ -133,6 +134,7 @@ MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW = u'my-reservations-overview'
 MESSAGE_TAG_MY_RESERVATIONS_DETAIL = u'my-reservations-detail'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT = u'my-reservations-edit-comment'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE = u'my-reservations-edit-people'
+MESSAGE_TAG_DENY_SIGNUP = u'deny-signup'
 
 FMR_POKE_TAG_MAPPING = dict()
 FMR_POKE_TAG_MAPPING[POKE_TAG_SANDWICH_BAR] = order_sandwich_received
@@ -153,6 +155,7 @@ MESSAGE_TAG_MAPPING = dict()
 MESSAGE_TAG_MAPPING[MESSAGE_TAG_SANDWICH_ORDER_NOW] = sandwich_order_from_broadcast_pressed
 MESSAGE_TAG_MAPPING[MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW] = my_reservations_overview_updated
 MESSAGE_TAG_MAPPING[MESSAGE_TAG_MY_RESERVATIONS_DETAIL] = my_reservations_detail_updated
+MESSAGE_TAG_MAPPING[MESSAGE_TAG_DENY_SIGNUP] = deny_signup
 MESSAGE_TAG_MAPPING[POKE_TAG_LOYALTY_REMINDERS] = stop_loyalty_reminders
 MESSAGE_TAG_MAPPING[POKE_TAG_DISCUSSION_GROUPS] = follow_discussion_groups
 
@@ -848,6 +851,7 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     members = [MemberTO.from_user(users.User(f)) for f in sln_i_settings.inbox_forwarders]
     inbox_forwarders = list(members)
+    tag = POKE_TAG_INBOX_FORWARDING_REPLY + json.dumps({'message_key': message_key})
     if not reply_enabled:
         while inbox_forwarders:
             users.set_user(service_user)
@@ -859,7 +863,7 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                                flags=flags,
                                members=inbox_forwarders,
                                branding=get_solution_main_branding(service_user).branding_key,
-                               tag=POKE_TAG_INBOX_FORWARDING_REPLY,
+                               tag=tag,
                                service_identity=service_identity,
                                attachments=attachments)
                 break
@@ -889,8 +893,6 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
         message = SolutionInboxMessage.get(message_key)
         users.set_user(service_user)
         try:
-            tag = POKE_TAG_INBOX_FORWARDING_REPLY + json.dumps({'message_key': message_key})
-
             if app_user and app_user.email() not in sln_i_settings.inbox_forwarders:
                 sender_member = MemberTO.from_user(app_user)
             else:

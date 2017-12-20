@@ -16,26 +16,27 @@
 # @@license_version:1.2@@
 
 import base64
-from datetime import datetime
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import json
 import logging
 import os
 import re
 import time
-from types import NoneType
 import uuid
+from datetime import datetime
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+from google.appengine.ext import deferred, db
+
+import pytz
+import solutions
 from PIL.Image import Image
 from babel import Locale
 from babel.dates import format_date, format_datetime, get_timezone
 from lxml import etree, html
-import pytz
-
-from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
@@ -60,14 +61,14 @@ from shop.constants import LOGO_LANGUAGES, STORE_MANAGER
 from shop.dal import get_shop_loyalty_slides, get_customer
 from shop.models import ShopLoyaltySlideNewOrder, Customer, Contact, RegioManagerTeam, Prospect, ShopTask
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import render_common_content, SolutionModule, put_branding
-from solutions.common.dal import get_solution_main_branding, get_solution_settings, count_unread_solution_inbox_messages, \
+from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
+    count_unread_solution_inbox_messages, \
     get_solution_settings_or_identity_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
     get_solution_loyalty_visits_for_stamps, get_solution_loyalty_settings_or_identity_settings
-from solutions.common.models import SolutionBrandingSettings, SolutionInboxMessage
+from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyaltySettings, \
     SolutionLoyaltyVisitRevenueDiscount, SolutionUserLoyaltySettings, SolutionLoyaltyScan, SolutionLoyaltyVisitLottery, \
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
@@ -80,7 +81,6 @@ from solutions.common.to import TimestampTO, SolutionInboxMessageTO
 from solutions.common.to.loyalty import LoyaltySlideTO, SolutionLoyaltyVisitTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -1376,72 +1376,55 @@ def get_loyalty_slide_footer():
     with open(os.path.join(os.path.dirname(__file__), '..', 'templates', 'osa-loyalty-slide-footer.png'), 'r') as f:
         return str(f.read())
 
-@returns()
-@arguments(service_user=users.User, service_identity=unicode, tag=unicode, user_details=[UserDetailsTO], status=int)
-def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status):
-    from solutions.common.bizz.messaging import POKE_TAG_INBOX_FORWARDING_REPLY
-    from rogerthat.models.properties.messaging import MemberStatus
 
-    if not is_flag_set(MemberStatus.STATUS_ACKED, status):
-        return
-
-    info_dict_str = tag[len(POKE_TAG_INBOX_FORWARDING_REPLY):]
-    if not info_dict_str:
-        return  # there is no info dict
-
-    info = json.loads(info_dict_str)
-    app_user = user_details[0].toAppUser()
-    redeem_lottery_winner(service_user, service_identity, info['message_key'], app_user, user_details[0].name)
-
-@returns(bool)
-@arguments(service_user=users.User, service_identity=unicode, message_key=unicode, app_user=users.User, name=unicode)
-def redeem_lottery_winner(service_user, service_identity, message_key, app_user, name):
+def redeem_lottery_winners(service_user, service_identity, app_user, name, sim_parent):
     from solutions.common.bizz.inbox import add_solution_inbox_message
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
-    sim_parent = SolutionInboxMessage.get(message_key)
-    if sim_parent.category == SolutionInboxMessage.CATEGORY_LOYALTY:
-        sln_loyalty_lottery = db.get(sim_parent.category_key)
-        if sln_loyalty_lottery and not(sln_loyalty_lottery.claimed or sln_loyalty_lottery.redeemed or sln_loyalty_lottery.deleted):
-            if sln_loyalty_lottery.winner != app_user:
-                return False
+    sln_loyalty_lottery = db.get(sim_parent.category_key)
+    if sln_loyalty_lottery and not (
+        sln_loyalty_lottery.claimed or sln_loyalty_lottery.redeemed or sln_loyalty_lottery.deleted):
+        if sln_loyalty_lottery.winner != app_user:
+            return False
 
-            if sim_parent.message_key_by_tag:
-                message_key_by_tag = json.loads(sim_parent.message_key_by_tag)
-                if message_key_by_tag.get(u"loyalty_lottery_loot", None):
-                    with users.set_user(service_user):
-                        messaging.seal(message_key_by_tag[u"loyalty_lottery_loot"], sim_parent.message_key, sim_parent.message_key, 1)
+        if sim_parent.message_key_by_tag:
+            message_key_by_tag = json.loads(sim_parent.message_key_by_tag)
+            if message_key_by_tag.get(u"loyalty_lottery_loot", None):
+                with users.set_user(service_user):
+                    messaging.seal(message_key_by_tag[u"loyalty_lottery_loot"], sim_parent.message_key,
+                                   sim_parent.message_key, 1)
 
-            sln_loyalty_lottery.claimed = True
-            sln_loyalty_lottery.put()
+        sln_loyalty_lottery.claimed = True
+        sln_loyalty_lottery.put()
 
-            now_ = now()
-            sln_settings = get_solution_settings(service_user)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        now_ = now()
+        sln_settings = get_solution_settings(service_user)
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
-            msg_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-receive')
-            if sln_i_settings.opening_hours:
-                msg_2 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'opening-hours')
-                msg = u"%s\n\n%s:\n%s" % (msg_1, msg_2, sln_i_settings.opening_hours)
-            else:
-                msg = msg_1
+        msg_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-receive')
+        if sln_i_settings.opening_hours:
+            msg_2 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'opening-hours')
+            msg = u"%s\n\n%s:\n%s" % (msg_1, msg_2, sln_i_settings.opening_hours)
+        else:
+            msg = msg_1
 
-            sim_parent, _ = add_solution_inbox_message(service_user, sln_loyalty_lottery.solution_inbox_message_key, True, None, now_, msg, mark_as_read=True)
-            send_inbox_forwarders_message(service_user, service_identity, None, msg, {
-                    'if_name': name,
-                    'if_email':get_human_user_from_app_user(app_user).email()
-            }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled, send_reminder=False)
+        sim_parent, _ = add_solution_inbox_message(service_user, sln_loyalty_lottery.solution_inbox_message_key, True,
+                                                   None, now_, msg, mark_as_read=True)
+        send_inbox_forwarders_message(service_user, service_identity, None, msg, {
+            'if_name': name,
+            'if_email': get_human_user_from_app_user(app_user).email()
+        }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled,
+                                      send_reminder=False)
 
-            sm_data = []
-            sm_data.append({u"type": u"solutions.common.loyalty.lottery.update"})
+        sm_data = []
+        sm_data.append({u"type": u"solutions.common.loyalty.lottery.update"})
+        sm_data.append({u"type": u"solutions.common.messaging.update",
+                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
 
-            sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+        send_message(service_user, sm_data, service_identity=service_identity)
 
-            send_message(service_user, sm_data, service_identity=service_identity)
+        deferred.defer(redeem_loyalty_lottery_visits, service_user, sim_parent.category_key, now_)
+        return True
 
-            deferred.defer(redeem_loyalty_lottery_visits, service_user, sim_parent.category_key, now_)
-            return True
-    return False
 
 @returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode, user_detail=UserDetailsTO)

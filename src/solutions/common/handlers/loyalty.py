@@ -38,9 +38,10 @@ from rogerthat.utils.service import get_service_identity_tuple, create_service_i
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.loyalty import put_loyalty_slide, get_loyalty_slide_footer, redeem_lottery_winner
+from solutions.common.bizz.loyalty import put_loyalty_slide, get_loyalty_slide_footer, redeem_lottery_winners
 from solutions.common.dal import get_solution_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
+from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyaltyExport, SolutionUserLoyaltySettings
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default, \
     get_extension_for_content_type
@@ -260,7 +261,8 @@ class LoyaltyLotteryConfirmWinnerHandler(LoyaltyNoMobilesUnsubscribeEmailHandler
             user_profile = db.get(UserProfile.createKey(app_user))
             if user_profile:
                 language = self.request.get("language", user_profile.language)
-                if redeem_lottery_winner(service_user, service_identity, data_dict['mk'], app_user, user_profile.name):
+                inbox_message = SolutionInboxMessage.get(data_dict['mk'])
+                if redeem_lottery_winners(service_user, service_identity, app_user, user_profile.name, inbox_message):
                     title = common_translate(language, SOLUTION_COMMON, u'Success')
                     text = common_translate(language, SOLUTION_COMMON, u'loyalty-lottery-loot-receive')
                 else:

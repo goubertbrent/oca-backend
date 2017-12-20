@@ -158,7 +158,6 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
             sln_loyalty_lottery.deleted = True
             sln_loyalty_lottery.put()
         return
-
     else:
         winner = random.choice(possible_winners)
         logging.debug("new winner: %s", winner)
@@ -194,7 +193,7 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
     msg_ok = translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-ok',
                        name=user_detail.name,
                        date_loot=loot_date_str,
-                       price=sln_loyalty_lottery.winnings,
+                       prize=sln_loyalty_lottery.winnings,
                        date=next_date_str)
     msg_sorry = translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-nok')
 
@@ -256,10 +255,10 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
         send_message(service_user, sm_data, service_identity=service_identity)
 
         deferred.defer(_continue, service_user, service_identity, sln_loyalty_lottery_key, _transactional=True)
+        return sim_parent
 
     xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
-
+    return db.run_in_transaction_options(xg_on, trans), sln_loyalty_lottery
 
 def _continue(service_user, service_identity, sln_loyalty_lottery_key):
     def trans():

@@ -20,9 +20,11 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db
+
 from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.friends import ACCEPT_ID
+from rogerthat.bizz.messaging import parse_to_human_readable_tag
 from rogerthat.models.properties.forms import FormResult
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
@@ -31,25 +33,26 @@ from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import FlowMemberResultCallbackResultTO, \
     FormAcknowledgedCallbackResultTO, MessageAcknowledgedCallbackResultTO, PokeCallbackResultTO
 from rogerthat.to.service import UserDetailsTO, SendApiCallCallbackResultTO
+from rogerthat.utils import is_flag_set, try_or_defer
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.models import reconstruct_key
 from solutions.common.bizz.bulk_invite import bulk_invite_result
+from solutions.common.bizz.customer_signups import process_updated_customer_signup_message
 from solutions.common.bizz.discussion_groups import discussion_group_deleted
 from solutions.common.bizz.events import solution_add_admin_to_calendar
 from solutions.common.bizz.inbox import add_solution_inbox_message
-from solutions.common.bizz.loyalty import loyalty_qr_register, loyalty_qr_register_result, \
-    messaging_update_inbox_forwaring_reply
+from solutions.common.bizz.loyalty import loyalty_qr_register, loyalty_qr_register_result, redeem_lottery_winners
 from solutions.common.bizz.messaging import API_METHOD_MAPPING, POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX, \
     reply_on_inbox_forwarding, MESSAGE_TAG_MAPPING, POKE_TAG_MAPPING, POKE_TAG_EVENTS_CONNECT_VIA_SCAN, \
     MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT, MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, POKE_TAG_RESERVE_PART2, \
     POKE_TAG_INBOX_FORWARDING_REPLY, POKE_TAG_DISCUSSION_GROUPS
+from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
 from solutions.common.bizz.reservation import my_reservations_edit_comment_updated, my_reservations_edit_people_updated, \
     reservation_part2
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.to import SolutionInboxMessageTO
-from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
 
 
 # XXX TODO
@@ -136,7 +139,7 @@ def common_messaging_update(status, answer_id, received_timestamp, member, messa
                      parent_message_key, result_key, service_identity, user_details):
     service_user = users.get_current_user()
     if tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):
-        messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status)
+        messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status, answer_id)
         return None
     elif tag in MESSAGE_TAG_MAPPING:
         handler = MESSAGE_TAG_MAPPING[tag]
@@ -153,16 +156,17 @@ def common_messaging_update(status, answer_id, received_timestamp, member, messa
            service_identity=unicode, user_details=[UserDetailsTO])
 def common_messaging_form_update(status, form_result, answer_id, member, message_key, tag, received_timestamp,
                                  acked_timestamp, parent_message_key, result_key, service_identity, user_details):
-    if tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX):
+    readable_tag = parse_to_human_readable_tag(tag)
+    if readable_tag and readable_tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX):
         handler = reply_on_inbox_forwarding
-    elif tag and tag.startswith(MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT):
+    elif readable_tag and readable_tag.startswith(MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT):
         handler = my_reservations_edit_comment_updated
-    elif tag and tag.startswith(MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE):
+    elif readable_tag and readable_tag.startswith(MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE):
         handler = my_reservations_edit_people_updated
-    elif tag in MESSAGE_TAG_MAPPING:
-        handler = MESSAGE_TAG_MAPPING[tag]
+    elif readable_tag in MESSAGE_TAG_MAPPING:
+        handler = MESSAGE_TAG_MAPPING[readable_tag]
     else:
-        logging.info("Unconfigured messaging.form_update tag: %s" % tag)
+        logging.info("Unconfigured messaging.form_update readable_tag: %s" % readable_tag)
         raise NotImplementedError()
     return handler(users.get_current_user(), status, form_result, answer_id, member, message_key, tag,
                    received_timestamp, acked_timestamp, parent_message_key, result_key, service_identity, user_details)
@@ -249,3 +253,27 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
                 users.clear_user()
     else:
         raise NotImplementedError()
+
+
+@returns()
+@arguments(service_user=users.User, service_identity=unicode, tag=unicode, user_details=[UserDetailsTO], status=int,
+           answer_id=unicode)
+def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status, answer_id):
+    from solutions.common.bizz.messaging import POKE_TAG_INBOX_FORWARDING_REPLY
+    from rogerthat.models.properties.messaging import MemberStatus
+
+    if not is_flag_set(MemberStatus.STATUS_ACKED, status):
+        return
+
+    info_dict_str = tag[len(POKE_TAG_INBOX_FORWARDING_REPLY):]
+    if not info_dict_str:
+        return  # there is no info dict
+
+    info = json.loads(info_dict_str)
+    app_user = user_details[0].toAppUser()
+    sim_parent = SolutionInboxMessage.get(info['message_key'])
+    if sim_parent.category == SolutionInboxMessage.CATEGORY_LOYALTY:
+        redeem_lottery_winners(service_user, service_identity, app_user, user_details[0].name, sim_parent)
+    elif sim_parent.category == SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP:
+        try_or_defer(process_updated_customer_signup_message, service_user, service_identity, info['message_key'],
+                     app_user, user_details[0].name, answer_id, sim_parent)

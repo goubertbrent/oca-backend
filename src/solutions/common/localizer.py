@@ -776,7 +776,7 @@ translations = \
          u'loyalty-lottery-configure-text': u'Configure this so that your customers see when the lottery ends and what they can win.',
          u'loyalty-lottery-configure-title': u'No lottery configured',
          u'loyalty-lottery-loot-nok': u'Unfortunately you have not confirmed on time and lost your chance. Another winner will be chosen.',
-         u'loyalty-lottery-loot-ok': u'Congratulations %(name)s,\nOur automatic lottery system has just identified you as the winner of the lottery on %(date_loot)s.\n\nWe have the following price for you:\n%(price)s\n\nPlease confirm before %(date)s by clicking the button below this message.\nIf you do not confirm on time, the automatic lottery system will select a new winner.',
+         u'loyalty-lottery-loot-ok': u'Congratulations %(name)s,\nOur automatic lottery system has just identified you as the winner of the lottery on %(date_loot)s.\n\nWe have the following prize for you:\n%(prize)s\n\nPlease confirm before %(date)s by clicking the button below this message.\nIf you do not confirm on time, the automatic lottery system will select a new winner.',
          u'loyalty-lottery-loot-receive': u'Please come and collect your winnings as soon as possible. A scan of your loyalty card is required.',
          u'loyalty-lottery-redeem-price': u'Inform the person in charge to redeem your price.',
          u'loyalty-lottery-visit-only-once': u'You can only participate once a day in this competition',
