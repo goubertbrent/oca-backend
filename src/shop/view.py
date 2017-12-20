@@ -209,7 +209,8 @@ def get_shop_context(**kwargs):
         team_admin = manager and manager.admin
         regio_manager_team = manager.team
         current_user_apps_unfiltered = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
-        current_user_apps = sorted([app for app in current_user_apps_unfiltered if app.visible], key=lambda app: app.name)
+        current_user_apps = sorted(
+            [app for app in current_user_apps_unfiltered if app.visible], key=lambda app: app.name)
 
     # These are the variables used in base.html
     js_templates = kwargs.pop('js_templates', dict())
@@ -261,6 +262,7 @@ def render_js_templates(tmpl_names, is_folders=False):
 
 
 class BizzManagerHandler(webapp2.RequestHandler):
+
     def dispatch(self):
         if not authorize_manager():
             self.abort(401)
@@ -268,6 +270,7 @@ class BizzManagerHandler(webapp2.RequestHandler):
 
 
 class BizzAdminHandler(BizzManagerHandler):
+
     @shopOauthDecorator.oauth_required
     def get(self, *args, **kwargs):
         credentials = shopOauthDecorator.credentials  # type: Credentials
@@ -276,7 +279,8 @@ class BizzAdminHandler(BizzManagerHandler):
             http_auth = credentials.authorize(shopOauthDecorator.http())
             calendar_service = build('calendar', 'v3', http=http_auth)
             now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-            calendar_service.events().list(calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
+            calendar_service.events().list(
+                calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
         except HttpAccessTokenRefreshError as e:
             if not self.request.get('retry'):
                 return self.redirect('/internal/shop?retry=false')
@@ -304,12 +308,15 @@ class BizzAdminHandler(BizzManagerHandler):
             context = get_shop_context()
         self.response.out.write(template.render(path, context))
 
+
 class ShopLogoutHandler(webapp2.RequestHandler):
 
     def get(self):
         self.redirect(gusers.create_logout_url("/internal/shop"))
 
+
 class OrdersHandler(BizzManagerHandler):
+
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'orders.html')
         user = gusers.get_current_user()
@@ -331,14 +338,25 @@ class OrdersHandler(BizzManagerHandler):
         self.response.out.write(template.render(path, context))
 
 
+class FlandersHandler(BizzManagerHandler):
+
+    def get(self):
+        path = os.path.join(os.path.dirname(__file__), 'html', 'apps-map-flanders.html')
+        app_names = [app.name for app in get_apps([App.APP_TYPE_CITY_APP])
+                     if app.ios_app_id not in (None, "-1") and app.app_id.startswith('be-')]
+        self.response.write(template.render(path, get_shop_context(app_names=json.dumps(app_names))))
+
+
 class OrderPdfHandler(BizzManagerHandler):
+
     def get(self):
         customer_id = long(self.request.get("customer_id"))
         order_number = self.request.get("order_number")
         download = self.request.get("download", "false") == "true"
 
         self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers['Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
+        self.response.headers[
+            'Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
 
         customer = Customer.get_by_id(customer_id)
         order = Order.get_by_key_name(order_number, parent=customer)
@@ -356,6 +374,7 @@ class OrderPdfHandler(BizzManagerHandler):
 
 
 class ChargesHandler(BizzManagerHandler):
+
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'charges.html')
         context = get_shop_context(js_templates=render_js_templates(['charge']))
@@ -363,6 +382,7 @@ class ChargesHandler(BizzManagerHandler):
 
 
 class InvoicePdfHandler(BizzManagerHandler):
+
     def get(self):
         customer_id = long(self.request.get("customer_id"))
         order_number = self.request.get("order_number")
@@ -371,7 +391,8 @@ class InvoicePdfHandler(BizzManagerHandler):
         download = self.request.get("download", "false") == "true"
 
         self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers['Content-Disposition'] = str('%s; filename=invoice_%s.pdf' % ("attachment" if download else "inline", invoice_number))
+        self.response.headers[
+            'Content-Disposition'] = str('%s; filename=invoice_%s.pdf' % ("attachment" if download else "inline", invoice_number))
 
         # Audit
         if download:
@@ -379,10 +400,11 @@ class InvoicePdfHandler(BizzManagerHandler):
         else:
             audit_log(customer_id, "Viewed invoice")
 
+        customer, order, charge = db.get([Customer.create_key(customer_id), Order.create_key(
+            customer_id, order_number), Charge.create_key(charge_id, order_number, customer_id)])
 
-        customer, order, charge = db.get([Customer.create_key(customer_id), Order.create_key(customer_id, order_number), Charge.create_key(charge_id, order_number, customer_id)])
-
-        invoice = db.get(Invoice.create_key(customer_id, order_number, charge_id, invoice_number)) if invoice_number else None
+        invoice = db.get(Invoice.create_key(
+            customer_id, order_number, charge_id, invoice_number)) if invoice_number else None
 
         if invoice:
             logging.info("Invoice found, serving existing invoice.")
@@ -400,11 +422,13 @@ class InvoicePdfHandler(BizzManagerHandler):
 
 
 class OpenInvoicesHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
             self.abort(403)
-        invoices = list(Invoice.all().filter("payment_type =", Invoice.PAYMENT_MANUAL_AFTER).filter("paid =", False).order("-date"))
+        invoices = list(Invoice.all().filter(
+            "payment_type =", Invoice.PAYMENT_MANUAL_AFTER).filter("paid =", False).order("-date"))
         charges = db.get([i.parent_key() for i in invoices])
         orders = db.get([c.parent_key() for c in charges])
         customers = db.get([o.parent_key() for o in orders])
@@ -446,6 +470,7 @@ class OpenInvoicesHandler(BizzManagerHandler):
 
 
 class QuestionsHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         manager = RegioManager.get(RegioManager.create_key(current_user.email()))
@@ -481,6 +506,7 @@ class QuestionsHandler(BizzManagerHandler):
 
 
 class QuestionsDetailHandler(BizzManagerHandler):
+
     def get(self, question_id):
         current_user = gusers.get_current_user()
         question = Question.get_by_id(long(question_id))
@@ -493,6 +519,7 @@ class QuestionsDetailHandler(BizzManagerHandler):
 
 
 class RegioManagersHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -506,6 +533,7 @@ class RegioManagersHandler(BizzManagerHandler):
 
 
 class TasksHandler(BizzManagerHandler):
+
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'tasks.html')
         prospect_reasons = sorted((x.reason for x in ProspectRejectionReason.all()),
@@ -526,6 +554,7 @@ class TasksHandler(BizzManagerHandler):
 
 
 class HistoryTasksHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -536,6 +565,7 @@ class HistoryTasksHandler(BizzManagerHandler):
 
 
 class ProspectsHandler(BizzManagerHandler):
+
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'prospects.html')
         prospect_reasons = sorted((x.reason for x in ProspectRejectionReason.all()),
@@ -559,6 +589,7 @@ class ProspectsHandler(BizzManagerHandler):
 
 
 class FindProspectsHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -570,6 +601,7 @@ class FindProspectsHandler(BizzManagerHandler):
 
 
 class LoginAsCustomerHandler(BizzManagerHandler):
+
     def get(self):
         google_user = gusers.get_current_user()
         customer_id = int(self.request.get("customer_id"))
@@ -612,6 +644,7 @@ class LoginAsCustomerHandler(BizzManagerHandler):
 
 
 class ProspectsUploadHandler(BizzManagerHandler):
+
     def post(self):
         app_id = self.request.get("appId")
         logging.info("uploading new prospect for app_id: %s", app_id)
@@ -637,13 +670,15 @@ class ProspectsUploadHandler(BizzManagerHandler):
                     p.website = website
                     new_prospects.append(p)
             except:
-                logging.warning('Error occurred while validating row %s "%s" in csv prospects list' % (len(new_prospects), row), exc_info=True)
+                logging.warning('Error occurred while validating row %s "%s" in csv prospects list' %
+                                (len(new_prospects), row), exc_info=True)
         logging.info("added %s new prospects" % len(new_prospects))
         if new_prospects:
             db.put(new_prospects)
 
 
 class ExportEmailAddressesHandler(BizzManagerHandler):
+
     def get(self):
         azzert(is_admin(gusers.get_current_user()))
 
@@ -667,6 +702,7 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
 
 
 class ExpiredSubscriptionsHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -683,6 +719,7 @@ class ExpiredSubscriptionsHandler(BizzManagerHandler):
 
 
 class LegalEntityHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -773,6 +810,7 @@ def rest_delete_expired_subscription(customer_id):
 
 
 class CustomersHandler(BizzManagerHandler):
+
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'customers.html')
         cur_user = gusers.get_current_user()
@@ -781,12 +819,14 @@ class CustomersHandler(BizzManagerHandler):
 
 
 class SalesStatisticsHandler(BizzManagerHandler):
+
     def get(self):
         path = os.path.join(os.path.dirname(__file__), 'html', 'sales_stats.html')
         self.response.out.write(template.render(path, get_shop_context()))
 
 
 class HintsHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -797,6 +837,7 @@ class HintsHandler(BizzManagerHandler):
 
 
 class OrderableAppsHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -808,6 +849,7 @@ class OrderableAppsHandler(BizzManagerHandler):
 
 
 class SignupAppsHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -971,7 +1013,7 @@ def prospects_map(app_id, category, cursor=None):
     all_prospects = ProspectsMapTO.from_model(new_cursor, prospects, regio_managers)
     logging.info(
         'Took %s seconds to load prospects filtered on app %s and category %s' % (
-        time.time() - start, app_id, category))
+            time.time() - start, app_id, category))
     return all_prospects
 
 
@@ -1180,6 +1222,7 @@ def regio_manager_apps():
         current_user_apps = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
     return [AppInfoTO.fromModel(app) for app in current_user_apps]
 
+
 @rest('/internal/shop/rest/regio_manager/put', 'post')
 @returns(RegioManagerReturnStatusTO)
 @arguments(email=unicode, name=unicode, phone=unicode, app_rights=[AppRightsTO], show_in_stats=bool, is_support=bool, team_id=(int, long), admin=bool)
@@ -1268,6 +1311,7 @@ def set_question_title(question_id, title):
     question = Question.get_by_id(question_id)
     user = gusers.get_current_user()
     azzert(user_has_permissions_to_question(user, question))
+
     def trans(q):
         q.title = title
         q.put()
@@ -1283,6 +1327,7 @@ def set_question_modules(question_id, modules):
     question = Question.get_by_id(question_id)
     user = gusers.get_current_user()
     azzert(user_has_permissions_to_question(user, question))
+
     def trans(q):
         q.modules = modules
         q.put()
@@ -1298,6 +1343,7 @@ def set_question_visible(question_id, question_reply_id, visible):
     question = Question.get_by_id(question_id)
     user = gusers.get_current_user()
     azzert(user_has_permissions_to_question(user, question))
+
     def trans(q):
         if not question_reply_id:
             q.visible = visible
@@ -1367,6 +1413,7 @@ def assign_team_to_question(question_id, team_id):
     azzert(user_has_permissions_to_question(user, question))
     team = RegioManagerTeam.get_by_id(team_id)
     settings = get_server_settings()
+
     def trans(q, t):
         q.team_id = t.id
         q.put()
@@ -1434,6 +1481,7 @@ def find_customer(search_string, find_all=False):
         admin = has_admin_permissions or (team_id == c.team_id and regio_manager.admin)
         customers.append(CustomerTO.fromCustomerModel(c, can_edit, admin))
     return sorted(customers, key=lambda c: c.name.lower())
+
 
 @rest("/internal/shop/rest/customer", "get")
 @returns(CustomerReturnStatusTO)
@@ -1934,6 +1982,7 @@ def delete_loyalty_slide_new_order(slide_id):
 
 
 class LoyaltySlidesHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -1945,6 +1994,7 @@ class LoyaltySlidesHandler(BizzManagerHandler):
 
 
 class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -1956,6 +2006,7 @@ class LoyaltySlidesNewOrderHandler(BizzManagerHandler):
 
 
 class UploadLoyaltySlideHandler(BizzManagerHandler):
+
     def post(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -1966,7 +2017,7 @@ class UploadLoyaltySlideHandler(BizzManagerHandler):
             slide_time = long(self.request.get("slide_time", 10))
         except:
             self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
-                                                                    error=u"Please fill in valid time!"))
+                                                                error=u"Please fill in valid time!"))
             return
         slide_function_dependencies = long(self.request.get("slide_function_dependencies", 0))
         slide_apps = self.request.get("slide_apps", "[]")
@@ -1981,7 +2032,7 @@ class UploadLoyaltySlideHandler(BizzManagerHandler):
         uploaded_file = self.request.POST.get('slide_file')  # type: FieldStorage
         if not slide_id and not isinstance(uploaded_file, FieldStorage):
             self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
-                                                                    error=u"Please select a picture!"))
+                                                                error=u"Please select a picture!"))
             return
 
         gcs_filename = None
@@ -1990,7 +2041,7 @@ class UploadLoyaltySlideHandler(BizzManagerHandler):
             content_type = uploaded_file.type
             if not content_type.startswith("image/"):
                 self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
-                                                                        error=u"The uploaded file is not an image!"))
+                                                                    error=u"The uploaded file is not an image!"))
                 return
 
             date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
@@ -2029,6 +2080,7 @@ class UploadLoyaltySlideHandler(BizzManagerHandler):
 
 
 class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
+
     def post(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -2038,7 +2090,7 @@ class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
             slide_time = long(self.request.get("slide_time", 10))
         except:
             self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.new_order.post_result",
-                                                                    error=u"Please fill in valid time!"))
+                                                                error=u"Please fill in valid time!"))
             return
         slide_app_id = self.request.get("slide_app", "")
         if slide_app_id == "":
@@ -2050,7 +2102,7 @@ class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
         uploaded_file = self.request.POST.get('slide_file')  # type: FieldStorage
         if not slide_id and not isinstance(uploaded_file, FieldStorage):
             self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.new_order.post_result",
-                                                                    error=u"Please select a picture!"))
+                                                                error=u"Please select a picture!"))
             return
 
         gcs_filename = None
@@ -2059,7 +2111,7 @@ class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
             content_type = uploaded_file.type
             if not content_type.startswith("image/"):
                 self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.post_result",
-                                                                        error=u"The uploaded file is not an image!"))
+                                                                    error=u"The uploaded file is not an image!"))
                 return
 
             date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
@@ -2090,9 +2142,12 @@ class UploadLoyaltySlideNewOrderHandler(BizzManagerHandler):
 
         db.run_in_transaction(trans)
 
-        self.response.out.write(broadcast_via_iframe_result(u"rogerthat.internal.shop.loyalty.slide.new_order.post_result"))
+        self.response.out.write(broadcast_via_iframe_result(
+            u"rogerthat.internal.shop.loyalty.slide.new_order.post_result"))
+
 
 class CityVouchersHandler(BizzManagerHandler):
+
     def get(self):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
@@ -2142,6 +2197,7 @@ def rest_delete_city_vouchers_user(app_id, username):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, exception:
         return ReturnStatusTO.create(False, exception.message)
+
 
 @rest("/internal/shop/log_error", "post")
 @returns(NoneType)

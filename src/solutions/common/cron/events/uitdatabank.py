@@ -258,8 +258,8 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     event_title = r_event_detail["title"]
     event_description = r_event_detail.get("shortdescription", r_event_detail.get("longdescription", u""))
 
-    if "physical" in detail_result["location"]["address"]:
-        location = detail_result["location"]["address"]["physical"]
+    location = detail_result["location"]["address"].get("physical")
+    if location:
         if location.get("street", None):
             if uitdatabank_secret:
                 event_place = "%s %s, %s %s" % (location["street"]["value"],

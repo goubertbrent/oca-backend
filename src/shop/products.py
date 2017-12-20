@@ -976,9 +976,9 @@ def create_appl_product(legal_entity_id, code_prefix=''):
     p.product_dependencies = []
     p.visible = True
     p.legal_entity_id = legal_entity_id
-    p.default_comment_translation_key = ''
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     p.charge_interval = 12
     return p
 

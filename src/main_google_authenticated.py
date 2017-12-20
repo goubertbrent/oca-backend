@@ -26,7 +26,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     OpenInvoicesHandler, TasksHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
     SalesStatisticsHandler, OrderableAppsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
-    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler
+    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, FlandersHandler
 from solutions.djmatic import restapi_overview
 from solutions.djmatic.handlers import DJMaticOverviewHandler
 
@@ -64,9 +64,11 @@ handlers = [
     ('/internal/shop/stat/(.*)', StaticFileHandler),
     ('/internal/shop/customers/generate-qr', GenerateQRCodesHandler),
     ('/internal/shop/customers/app-broadcast', AppBroadcastHandler),
+    ('/internal/shop/flanders', FlandersHandler),
     (shopOauthDecorator.callback_path, shopOauthDecorator.callback_handler())  # /shop/oauth2callback
 ]
 handlers.extend(rest_functions(restapi_overview))
 handlers.extend(rest_functions(view, authorized_function=authorize_manager))
 
-app = RogerthatWSGIApplication(handlers, uses_session=False, name="main_google_authenticated", google_authenticated=True)
+app = RogerthatWSGIApplication(
+    handlers, uses_session=False, name="main_google_authenticated", google_authenticated=True)
