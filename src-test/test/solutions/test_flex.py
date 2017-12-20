@@ -38,16 +38,16 @@ class FlexTestCase(mc_unittest.TestCase):
         print 'Test service creation with static modules'
         email = u'test1.flex.foo.com'
         r = create_flex_service(email,
-                            name="test",
-                            address="Antwerpsesteenweg 19\n9080 Lochristi",
-                            phone_number="+32 9 324 25 64",
-                            languages=["en", "nl"],
-                            currency=u"€",
-                            modules=list(SolutionModule.STATIC_MODULES),
-                            broadcast_types=['test1', 'test2', 'test3'],
-                            apps=[a.app_id for a in App.all()],
-                            allow_redeploy=False,
-                            organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
+                                name="test",
+                                address="Antwerpsesteenweg 19\n9080 Lochristi",
+                                phone_number="+32 9 324 25 64",
+                                languages=["en", "nl"],
+                                currency=u"€",
+                                modules=list(SolutionModule.STATIC_MODULES),
+                                broadcast_types=['test1', 'test2', 'test3'],
+                                apps=[a.app_id for a in App.all()],
+                                allow_redeploy=False,
+                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
 
         service_user = users.User(r.login)
         set_current_user(service_user)
@@ -76,16 +76,16 @@ class FlexTestCase(mc_unittest.TestCase):
         print 'Test %s service creation with all modules' % language
         email = u'test2.flex@foo.com'
         r = create_flex_service(email,
-                            name="test",
-                            address="Antwerpsesteenweg 19\n9080 Lochristi",
-                            phone_number="+32 9 324 25 64",
-                            languages=[language],
-                            currency=u"€",
-                            modules=SolutionModule.visible_modules(),
-                            broadcast_types=['test1', 'test2', 'test3'],
-                            apps=[a.app_id for a in App.all()],
-                            allow_redeploy=False,
-                            organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
+                                name="test",
+                                address="Antwerpsesteenweg 19\n9080 Lochristi",
+                                phone_number="+32 9 324 25 64",
+                                languages=[language],
+                                currency=u"€",
+                                modules=SolutionModule.visible_modules(),
+                                broadcast_types=['test1', 'test2', 'test3'],
+                                apps=[a.app_id for a in App.all()],
+                                allow_redeploy=False,
+                                organization_type=random.choice([x for x in OrganizationType.all() if x > 0]))
 
         service_user = users.User(r.login)
         set_current_user(service_user)

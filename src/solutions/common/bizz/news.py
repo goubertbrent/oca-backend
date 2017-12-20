@@ -73,7 +73,6 @@ def get_news(cursor=None, service_identity=None):
         if scheduled_item:
             on_facebook = scheduled_item.broadcast_on_facebook
             on_twitter = scheduled_item.broadcast_on_twitter
-            facebook_access_token = scheduled_item.facebook_access_token
             result_item = NewsBroadcastItemTO.from_news_item_to(news_item, on_facebook, on_twitter)
         else:
             result_item = NewsBroadcastItemTO.from_news_item_to(news_item)
@@ -106,7 +105,7 @@ def _app_uses_custom_organization_types(language):
     }
 
     if translations:
-        for translation_key in OrganizationType.TRANSLATION_KEYS.values():
+        for translation_key in OrganizationType.get_translation_keys().values():
             if translations.get(translation_key):
                 return True
 

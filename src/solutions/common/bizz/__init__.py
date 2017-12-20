@@ -208,13 +208,15 @@ class OrganizationType(Enum):
     CITY = 3
     EMERGENCY = 4
 
-    TRANSLATION_KEYS = {
-        UNSPECIFIED: 'Services',
-        NON_PROFIT: 'Associations',
-        PROFIT: 'Merchants',
-        CITY: 'Community Services',
-        EMERGENCY: 'Care',
-    }
+    @classmethod
+    def get_translation_keys(cls):
+        return {
+            cls.UNSPECIFIED: 'Services',
+            cls.NON_PROFIT: 'Associations',
+            cls.PROFIT: 'Merchants',
+            cls.CITY: 'Community Services',
+            cls.EMERGENCY: 'Care',
+        }
 
 
 class SolutionServiceMenuItem(object):
