@@ -537,7 +537,11 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
         settings.holidays = []
         settings.holiday_out_of_office_message = common_translate(settings.main_language, SOLUTION_COMMON,
                                                                   'holiday-out-of-office')
-
+        try:
+            lat, lon = _get_location(settings.address)
+            settings.location = db.GeoPt(lat, lon)
+        except (GoogleMapsException, InvalidAddressException):
+            pass
         to_be_put.append(settings)
 
     main_branding = SolutionMainBranding(key=SolutionMainBranding.create_key(new_service_user))
