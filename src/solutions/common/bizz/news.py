@@ -241,7 +241,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                     not _app_uses_custom_organization_types(customer.language):
                 sticky = True
                 if kwargs['sticky_until'] is None:
-                    kwargs['sticky_until'] = now() + 21 * 86400
+                    kwargs['sticky_until'] = now()
             else:
                 sticky = False
 
