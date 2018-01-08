@@ -641,6 +641,7 @@ translations = \
          u'followed': u'Followed',
          u'follower_name_or_email': u'Follower name or email',
          u'for_example': u'for example',
+         u'forward_message_to_service': 'Forward to a service',
          u'forgot-password': u'Forgot password?',
          u'four_hours_before': u'Four hours before',
          u'from': u'from',

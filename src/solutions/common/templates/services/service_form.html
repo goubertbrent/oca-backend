@@ -20,9 +20,9 @@
             <div class="controls">
                 <select type="text" id="organization_type" name="organization_type" value="${organizationType}"
                         required>
-                    {{each(i, type) organizationTypes}}
-                    <option value="${type.key}" {{if organizationType == type.key }}selected{{/if}}>
-                        ${type.value}
+                    {{each(type, label) organizationTypes}}
+                    <option value="${type}" {{if organizationType == type }}selected{{/if}}>
+                        ${label}
                     </option>
                     {{/each}}
                 </select>

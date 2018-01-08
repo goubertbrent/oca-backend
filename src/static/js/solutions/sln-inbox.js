@@ -50,7 +50,8 @@ $(function() {
             messages: [message],
             CommonTranslations: CommonTranslations,
             showEmails: EMAIL_SETTINGS["inbox"] === true,
-            formatHtml: sln.formatHtml
+            formatHtml: sln.formatHtml,
+            canForward: MODULES.indexOf('city_app') !== -1 /* city service only */
         });
     }
 
@@ -166,7 +167,8 @@ $(function() {
             messages : tmp_messages,
             CommonTranslations : CommonTranslations,
             showEmails: EMAIL_SETTINGS["inbox"] === true,
-            formatHtml: sln.formatHtml
+            formatHtml: sln.formatHtml,
+            canForward: MODULES.indexOf('city_app') !== -1 /* city service only */
         });
 
         switch(inboxName) {
@@ -325,6 +327,42 @@ $(function() {
         inboxReply.show();
         currentReplyMessageKey = messageKey;
         loadMessageDetail(false);
+    });
+
+    $(document).on('click', '.inbox-message-action-forward', function(event) {
+        event.stopPropagation();
+        var messageKey = $(this).attr("message_key");
+        var html = $.tmpl(templates['services/service_search'], {
+            title: CommonTranslations.forward_message_to_service,
+            placeholder: CommonTranslations.service_name,
+        });
+
+        var modal = sln.createModal(html, function(modal) {
+            $('#service_name_input', modal).focus();
+        });
+
+        var input = $('#service_name_input', modal);
+        function serviceSelected(serviceEmail) {
+            sln.call({
+                url: '/common/inbox/message/forward',
+                showProcessing: true,
+                type: 'post',
+                data: {
+                    key: messageKey,
+                    to_email: serviceEmail,
+                },
+                success: function(status) {
+                    if (!status.success) {
+                        sln.alert(CommonTranslations[status.errormsg]);
+                    }
+                },
+                error: sln.showAjaxError
+            });
+            modal.modal('hide');
+        }
+
+        sln.serviceSearch(input, ORGANIZATION_TYPES, CONSTS.ORGANIZATION_TYPES.CITY,
+                          serviceSelected);
     });
 
     $(document).on("click", '.inbox-message-action-starred', function(event) {

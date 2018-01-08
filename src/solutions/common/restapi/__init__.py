@@ -76,7 +76,7 @@ from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, 
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
-from solutions.common.bizz.service import set_customer_signup_status
+from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
@@ -323,6 +323,27 @@ def inbox_message_update_reply(key, message):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/inbox/message/forward", "post")
+@returns(ReturnStatusTO)
+@arguments(key=unicode, to_email=unicode)
+def inbox_message_forward(key, to_email):
+    """Only city service to community service"""
+    try:
+        sim = SolutionInboxMessage.get(key)
+        to_service_user = users.User(to_email)
+        to_sln_settings = get_solution_settings(to_service_user)
+        new_sim = new_inbox_message(to_sln_settings, sim.message,
+                                    user_details=sim.sender.to_user_details(),
+                                    category=sim.category,
+                                    category_key=sim.category_key,
+                                    reply_enabled=sim.reply_enabled,
+                                    send_to_forwarders=True)
+        send_inbox_message_update(to_sln_settings, new_sim)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as ex:
+        return ReturnStatusTO.create(False, ex.message)
 
 
 @rest("/common/inbox/message/update/starred", "post")
