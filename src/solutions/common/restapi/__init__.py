@@ -1930,11 +1930,11 @@ def rest_get_customer_signups():
 @returns(ReturnStatusTO)
 @arguments(signup_key=unicode, message=unicode)
 def rest_customer_signup_reply(signup_key, message):
-    service_user = users.get_current_user()
-    city_customer = get_customer(service_user)
-
     signup = db.get(signup_key)
-    if signup:
+
+    if signup and not signup.done:
+        service_user = users.get_current_user()
+        city_customer = get_customer(service_user)
         set_customer_signup_status(city_customer, signup, approved=False, reason=message)
 
     return RETURNSTATUS_TO_SUCCESS

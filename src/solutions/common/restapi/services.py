@@ -310,6 +310,8 @@ def _update_signup_contact(customer, signup):
 @arguments(signup_key=unicode, modules=[unicode], broadcast_types=[unicode], force=bool)
 def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=None, force=False):
     signup = db.get(signup_key)
+    if signup.done:
+        return CreateServiceStatusTO.create(success=True)
 
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)

@@ -2655,7 +2655,7 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     msg_params = {'if_name': customer_signup.customer_name, 'if_email': customer_signup.customer_email}
     send_inbox_forwarders_message(service_user, ServiceIdentity.DEFAULT, app_user, summary, msg_params,
                                   message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled,
-                                  answers=answers, flags=Message.FLAG_AUTO_LOCK | Message.FLAG_ALLOW_DISMISS)
+                                  answers=answers, flags=Message.FLAG_SHARED_MEMBERS | Message.FLAG_ALLOW_DISMISS)
 
     send_signup_update_messages(sln_settings, message)
     return message.solution_inbox_message_key
