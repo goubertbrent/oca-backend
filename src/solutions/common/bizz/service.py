@@ -34,6 +34,7 @@ from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.bizz.createsend import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
+from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.to import SolutionInboxMessageTO
 
@@ -141,18 +142,29 @@ def new_inbox_message(sln_settings, message, parent_chat_key=None, service_ident
     service_identity = service_identity or ServiceIdentity.DEFAULT
     service_user = sln_settings.service_user
     language = sln_settings.main_language
-    si = get_service_identity(create_service_identity_user(service_user, service_identity))
-    user_details = UserDetailsTO.create(service_user.email(), si.name, language, si.avatarUrl, si.app_id)
+
+    user_details = kwargs.get('user_details')
+    sent_by_service = user_details is None
+    if not user_details:  # sent by the service itself
+        si = get_service_identity(create_service_identity_user(service_user, service_identity))
+        user_details = UserDetailsTO.create(service_user.email(), si.name, language, si.avatarUrl, si.app_id)
 
     if not parent_chat_key:
         category = kwargs.get('category')
         category_key = kwargs.get('category_key')
         reply_enabled = kwargs.get('reply_enabled', False)
         message = create_solution_inbox_message(service_user, service_identity, category, category_key,
-                                                True, [user_details], now(), message, reply_enabled)
+                                                sent_by_service, [user_details], now(), message, reply_enabled)
     else:
         message, _ = add_solution_inbox_message(service_user, parent_chat_key, False, [user_details], now(),
                                                 message, **kwargs)
+
+    if kwargs.get('send_to_forwarders'):
+        send_inbox_forwarders_message(service_user, service_identity, user_details.toAppUser(), message.message, {
+            'if_name': user_details.name,
+            'if_email': user_details.email
+        }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
+
     return message
 
 

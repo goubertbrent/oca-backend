@@ -24,7 +24,10 @@
 		  <div class="btn-group">
 	      {{if m.reply_enabled }}
 		    <button message_key="${m.key}" class="btn btn-large inbox-message-action-reply"><i class="fa fa-comment"></i></button>
-	      {{/if}}
+          {{/if}}
+          {{if canForward}}
+            <button message_key="${m.key}" class="btn btn-large inbox-message-action-forward"><i class="fa fa-arrow-right"></i></button>
+          {{/if}}
 		    <button message_key="${m.key}" class="btn btn-large inbox-message-action-starred"><i class="fa {{if m.starred}}fa-star{{else}}fa-star-o{{/if}}"></i></button>
 	        <button message_key="${m.key}" class="btn btn-large inbox-message-action-read"><i class="fa {{if m.read}}fa-eye-slash{{else}}fa-eye{{/if}}"></i></button>
 	        <button message_key="${m.key}" class="btn btn-large inbox-message-action-trash"><i class="fa fa-trash"></i></button>

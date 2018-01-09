@@ -135,8 +135,7 @@
         }
 
         getServiceConfiguration(function (config) {
-            var broadcastTypes = config.broadcast_types,
-                organizationTypes = config.organization_types;
+            var broadcastTypes = config.broadcast_types;
             if (mode === 'edit') {
                 broadcastTypes = currentService.broadcast_types;
             }
@@ -145,7 +144,7 @@
                 edit: mode === 'edit',
                 modules: config.modules,
                 organizationType: organizationType,
-                organizationTypes: organizationTypes,
+                organizationTypes: ORGANIZATION_TYPES,
                 broadcastTypes: broadcastTypes,
                 languages: supportedLanguages,
                 t: CommonTranslations
@@ -316,11 +315,10 @@
     }
 
     function searchServices() {
-        getServiceConfiguration(showSearchModal);
-    }
-
-    function showSearchModal(config) {
-        var html = $.tmpl(templates['services/service_search']);
+        var html = $.tmpl(templates['services/service_search'], {
+            title: CommonTranslations.Search,
+            placeholder: CommonTranslations.ENTER_DOT_DOT_DOT
+        });
         var modal = sln.createModal(html, function(modal) {
             $('#service_name_input', modal).focus();
         });
@@ -332,83 +330,7 @@
             window.location.hash = '#/services/edit/' + service_email;
         }
 
-        function getLabel(customer) {
-            var label = customer.name;
-
-            if(customer.address1) {
-                label += ', ' + customer.address1;
-            }
-            if(customer.address2) {
-                label += ', ' + customer.address2;
-            }
-            if(customer.zip_code) {
-                label += ', ' + customer.zip_code;
-            }
-
-            return label;
-        }
-
-        var timeout;
-        input.typeahead({
-            source : function(query, process) {
-                if(timeout) {
-                    clearTimeout(timeout);
-                }
-
-                timeout = setTimeout(function() {
-                    sln.call({
-                        url : "/common/services/search",
-                        type : "POST",
-                        data : {
-                            data : JSON.stringify({
-                                search_string : query
-                            })
-                        },
-                        success : function(data) {
-                            var serviceKeys = [];
-                            searchDict = {};
-                            $.each(data, function(i, customer) {
-                                var serviceKey = customer.service_email;
-                                var organizationType = config.organization_types.filter(function(t) {
-                                    return customer.organization_type === parseInt(t.key);
-                                })[0].value;
-
-                                serviceKeys.push(serviceKey);
-
-                                searchDict[serviceKey] = {
-                                    label: getLabel(customer),
-                                    sublabel: organizationType
-                                };
-                            });
-                            process(serviceKeys);
-                        },
-                        error : sln.showAjaxError
-                    });
-                },
-                500);
-            },
-            matcher : function() {
-                return true;
-            },
-            highlighter : function(key) {
-                var p = searchDict[key];
-
-                var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
-                var typeahead_labels = $('<div class="typeahead_labels"></div>');
-                var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.label);
-                typeahead_labels.append(typeahead_primary);
-                var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.sublabel);
-                typeahead_labels.append(typeahead_secondary);
-                typeahead_wrapper.append(typeahead_labels);
-
-                return typeahead_wrapper;
-            },
-            updater : function(key) {
-                var p = searchDict[key];
-                serviceSelected(key);
-                return p.label;
-            }
-        });
+        sln.serviceSearch(input, ORGANIZATION_TYPES, null, serviceSelected);
     }
 
     function servicesChannelUpdates(data) {

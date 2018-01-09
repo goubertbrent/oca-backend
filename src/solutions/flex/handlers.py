@@ -43,7 +43,7 @@ from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps
 from solution_server_settings import get_solution_server_settings
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import SolutionModule
+from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
@@ -306,7 +306,13 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'ORDER_TYPE_SIMPLE': ORDER_TYPE_SIMPLE,
             'ORDER_TYPE_ADVANCED': ORDER_TYPE_ADVANCED,
             'ORDER_ITEM_VISIBLE_IN_MENU': MenuItem.VISIBLE_IN_MENU,
-            'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItem.VISIBLE_IN_ORDER
+            'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItem.VISIBLE_IN_ORDER,
+            'ORGANIZATION_TYPES': {
+                'CITY': OrganizationType.CITY,
+                'EMERGENCY': OrganizationType.EMERGENCY,
+                'PROFIT': OrganizationType.PROFIT,
+                'NON_PROFIT': OrganizationType.NON_PROFIT,
+            }
         }
         if not customer:
             mobicage_legal_entity = get_mobicage_legal_entity()
@@ -326,6 +332,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
             vouchers_settings = get_city_vouchers_settings(city_app_id)
 
+        organization_types = get_organization_types(customer, sln_settings.main_language)
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
                   'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                   'logo_languages': LOGO_LANGUAGES,
@@ -379,7 +386,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
                   'translations': json.dumps(all_translations),
-                  'organization_types': get_organization_types(customer, sln_settings.main_language),
+                  'organization_types': organization_types,
+                  'organization_types_json': json.dumps(dict(organization_types)),
                   'vouchers_settings': vouchers_settings
                   }
 

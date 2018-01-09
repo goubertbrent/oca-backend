@@ -129,10 +129,6 @@ $(function () {
         + '</li>' //
         + '{{/each}}';
 
-    var mobileInboxForwardsSearch = {};
-    var appUserRolesSearch = {};
-    var tryPublishChangesUserSearch = {};
-
     var TMPL_MOBILE_INBOX_FORWARDER_INPUT = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">'
         + '    <div class="modal-header">'
         + '        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>'
@@ -223,7 +219,7 @@ $(function () {
 
         var publishButton = $('#try_publish', modal);
         var searchInput = $('#app_user_email', modal);
-        sln.userSearch(searchInput, tryPublishChangesUserSearch, function(userKey) {
+        sln.userSearch(searchInput, function(userKey) {
             var addedKeys = getUserKeys();
             if(addedKeys.indexOf(userKey) === -1) {
                 addUser(userKey);
@@ -820,7 +816,7 @@ $(function () {
         $('button[action="submit"]', modal).hide();
 
         var searchInput = $('#mobile_inbox_forwarder', html);
-        sln.userSearch(searchInput, mobileInboxForwardsSearch, function(user_key) {
+        sln.userSearch(searchInput, function(user_key) {
             $('button[action="submit"]', modal).attr("user_key", user_key);
             $('button[action="submit"]', modal).show();
         });
@@ -1665,7 +1661,7 @@ $(function () {
             // search the existing users
             // just like events add admin or add inbox forwarer
             var searchInput = $('#app_user_email_input', modal);
-            sln.userSearch(searchInput, appUserRolesSearch,
+            sln.userSearch(searchInput,
             function(user_key) {
                 $('button[action="submit"]', modal).attr("user_key", user_key);
             },

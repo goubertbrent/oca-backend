@@ -23,6 +23,7 @@ from mcfw.serialization import s_long, s_unicode, ds_long, ds_unicode, get_list_
     s_bool, ds_bool
 from rogerthat.models import App
 from rogerthat.models.properties.messaging import SpecializedList
+from rogerthat.to.service import UserDetailsTO
 from solutions.common.consts import UNIT_PIECE
 
 
@@ -76,6 +77,9 @@ class SolutionUser(object):
         u.language = to.language
         u.app_id = to.app_id
         return u
+
+    def to_user_details(self):
+        return UserDetailsTO.create(self.email, self.name, self.language, self.avatar_url, self.app_id)
 
 
 class SolutionUserProperty(db.UnindexedProperty):

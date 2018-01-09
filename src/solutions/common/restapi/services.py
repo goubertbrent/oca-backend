@@ -62,10 +62,7 @@ def get_modules_and_broadcast_types():
     modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
                get_allowed_modules(city_customer)]
     broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in get_allowed_broadcast_types(city_customer)]
-    organization_types = [
-        KeyValueTO(unicode(t), ServiceProfile.localized_singular_organization_type(t, lang, city_customer.app_id))
-        for t in city_customer.editable_organization_types]
-    return ModuleAndBroadcastTypesTO(modules, broadcast_types, organization_types)
+    return ModuleAndBroadcastTypesTO(modules, broadcast_types)
 
 
 @rest('/common/customer/signup/get_defaults', 'get')
@@ -89,8 +86,8 @@ def rest_signup_get_modules_and_broadcast_types(signup_key):
 
 @rest("/common/services/search", "post")
 @returns([CustomerTO])
-@arguments(search_string=unicode)
-def search_services(search_string):
+@arguments(search_string=unicode, organization_type=(NoneType, int))
+def search_services(search_string, organization_type=None):
     city_service_user = users.get_current_user()
     city_sln_settings = get_solution_settings(city_service_user)
     si = system.get_identity()
@@ -103,6 +100,8 @@ def search_services(search_string):
     for c in search_customer(search_string, [app_id], None):
         # exclude own service and disabled services
         if c.service_email == city_service_user.email() or c.service_disabled_at:
+            continue
+        if organization_type and c.organization_type != organization_type:
             continue
         customers.append(CustomerTO.fromCustomerModel(c, False, False))
 
@@ -310,6 +309,8 @@ def _update_signup_contact(customer, signup):
 @arguments(signup_key=unicode, modules=[unicode], broadcast_types=[unicode], force=bool)
 def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=None, force=False):
     signup = db.get(signup_key)
+    if signup.done:
+        return CreateServiceStatusTO.create(success=True)
 
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
