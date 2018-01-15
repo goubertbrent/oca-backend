@@ -59,26 +59,29 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
     sln_settings = get_solution_settings(service_user)
     logging.info("_flow_member_result_pharmacy_order: \n %s" % steps)
 
+    def get_value(step_idx):
+        return _get_value(steps[step_idx], steps[step_idx].step_id)
+
     if "button_button_yes" == steps[0].answer_id:
-        picture_url = _get_value(steps[1], u'message_photo_upload_prescription')
+        picture_url = get_value(1)  # message_photo_upload_prescription
         description = None
         if u"positive" == steps[2].answer_id:
-            remarks = _get_value(steps[2], u'message_remarks_box')
+            remarks = get_value(2)  # message_remarks_box
         else:
             remarks = ""
     else:
         if u"positive" == steps[1].answer_id:
-            picture_url = _get_value(steps[1], u'message_photo_upload_box')
+            picture_url = get_value(1)  # message_photo_upload_box
             description = None
             if u"positive" == steps[2].answer_id:
-                remarks = _get_value(steps[2], u'message_remarks_box')
+                remarks = get_value(2)  # message_remarks_box
             else:
                 remarks = ""
         else:
             picture_url = None
-            description = _get_value(steps[2], u'message_describe_box')
+            description = get_value(2)  # message_describe_box
             if u"positive" == steps[3].answer_id:
-                remarks = _get_value(steps[3], u'message_remarks_box')
+                remarks = get_value(3)  # message_remarks_box
             else:
                 remarks = ""
 
