@@ -1028,6 +1028,14 @@ def enable_or_disable_solution_module(service_user, module, enabled):
     else:
         deactivate_solution_module(sln_settings, module)
 
+    # set customer has_loyalty if the module is loyalty
+    if module == SolutionModule.LOYALTY:
+        from shop.models import Customer
+        customer = Customer.get_by_service_email(service_user.email())
+        if customer:
+            customer.has_loyalty = enabled
+            to_put.append(customer)
+
     sln_settings.updates_pending = True
     to_put.append(sln_settings)
     put_and_invalidate_cache(*to_put)
