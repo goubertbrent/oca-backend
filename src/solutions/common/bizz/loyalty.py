@@ -42,7 +42,7 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.rtemail import generate_user_specific_link, EMAIL_REGEX
-from rogerthat.bizz.service import get_and_validate_service_identity_user
+from rogerthat.bizz.service import get_and_validate_service_identity_user, FriendNotFoundException
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_profile_infos, get_user_profile
@@ -244,11 +244,12 @@ def update_user_data_user_loyalty(service_user, service_identity, email, app_id,
     slvs_3 = get_solution_loyalty_visits_for_stamps(service_user, service_identity, app_user)
     user_data["loyalty_3"]["visits"] = serialize_complex_value([SolutionLoyaltyVisitTO.fromModel(s) for s in slvs_3], SolutionLoyaltyVisitTO, True)
 
-    users.set_user(service_user)
-    try:
-        system.put_user_data(email, json.dumps(user_data), service_identity, app_id)
-    finally:
-        users.clear_user()
+    with users.set_user(service_user):
+        try:
+            system.put_user_data(email, json.dumps(user_data), service_identity, app_id)
+        except FriendNotFoundException:
+            logging.warning('user %s is not a friend of %s', email, service_user.email())
+
 
 @returns()
 @arguments(service_user=users.User, service_identity=unicode, slide_id=(int, long, NoneType), slide_name=unicode, slide_time=(int, long), gcs_filename=unicode, content_type=unicode)
