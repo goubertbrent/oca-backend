@@ -1046,12 +1046,12 @@ $(function () {
               and values are amounts
     */
     function groupTimeStatsByDay(timeStats) {
-        // map for ensuring the insertion order
-        var group = new Map();
+        var group = {};
 
         for(var i = 0; i < timeStats.length; i++) {
-            var date = new Date(timeStats[i].timestamp * 1000);
-            date.setHours(0, 0, 0, 0);
+            // remove time part from the timestamp
+            // so date would be only the day timestamp
+            var date = new Date(timeStats[i].timestamp * 1000).setHours(0, 0, 0, 0);
             if(group[date] !== undefined) {
                 group[date] += timeStats[i].amount;
             } else {
@@ -1134,20 +1134,24 @@ $(function () {
 
                 j = 0;
                 var timeByDayDate = groupTimeStatsByDay(stats.time);
-                for(var dateStr in timeByDayDate) {
+                var dayTimestamps = Object.keys(timeByDayDate).sort().map(function(key) {
+                    return parseInt(key);
+                });
+                for(var ts = 0; ts < dayTimestamps.length; ts++) {
+                    var dayTimestamp = dayTimestamps[ts];
                     if(timeData[j + 1]  === undefined) {
                         timeData[j + 1] = {
                             // must be date object in annotation charts
-                            0: new Date(dateStr)
+                            0: new Date(dayTimestamp)
                         };
                     }
                     // set amount
                     if(j > 0) {
                         // sum with previous amount if not the first
                         var prev = timeData[j][appCounter + 1];
-                        timeData[j + 1][appCounter + 1] = prev + timeByDayDate[dateStr];
+                        timeData[j + 1][appCounter + 1] = prev + timeByDayDate[dayTimestamp];
                     } else {
-                        timeData[j + 1][appCounter + 1] = timeByDayDate[dateStr];
+                        timeData[j + 1][appCounter + 1] = timeByDayDate[dayTimestamp];
                     }
                     j++;
                 }
