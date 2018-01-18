@@ -743,7 +743,7 @@
     function loadEvents() {
         if (rogerthat.service.data.solutionCalendars === undefined)
             return;
-        
+
         if (rogerthat.user.data.calendar.disabled === undefined) {
         	rogerthat.user.data.calendar.disabled = [];
         }
@@ -816,15 +816,10 @@
         }
         $("#events-empty").hide();
 
-        var sortedEvents = new Map();
-        Object.keys(eventsPerDay).sort().map(function(date) {
-            sortedEvents[date] = eventsPerDay[date];
-        });
-
-        $.each(sortedEvents, function(dayDate, events) {
+        Object.keys(eventsPerDay).sort().map(function(dayDate) {
             days.push({
                 "date": parseDateToEventDate(new Date(parseInt(dayDate))),
-                "events": events
+                "events": eventsPerDay[dayDate]
             });
         });
 
