@@ -71,19 +71,7 @@
                     value="message_topping"/>
             <javascriptCode>
                 function run(rogerthat, mfr) {
-                    'use strict';
-                    var flowParams = {},
-                        defaultValue = {};
-                    if (mfr.flow_params) {
-                        flowParams = JSON.parse(mfr.flow_params);
-                    }
-                    if (flowParams.sandwichTopping) {
-                        defaultValue = flowParams.sandwichTopping;
-                    }
-                    return {
-                        outlet: 'message_topping',
-                        defaultValue: defaultValue
-                    }
+                    return {outlet: 'message_topping', defaultValue: mfr.flow_params.sandwichTopping};
                 }
             </javascriptCode>
         </flowCode>
@@ -128,16 +116,7 @@
                     value="message_customize"/>
             <javascriptCode>
                 function run(rogerthat, mfr) {
-                    'use strict';
-                    var flowParams = {},
-                        defaultValue = {};
-                    if (mfr.flow_params) {
-                        flowParams = JSON.parse(mfr.flow_params);
-                    }
-                    return {
-                        outlet: 'message_customize',
-                        defaultValue: flowParams.sandwichOptions
-                    }
+                    return {outlet: 'message_customize', defaultValue: mfr.flow_params.sandwichOptions};
                 }
             </javascriptCode>
         </flowCode>
@@ -279,10 +258,7 @@
                     value="message_cannot_order_now"/>
             <javascriptCode>
                 function run(rogerthat, messageFlowRun) {
-                    var flowParams = {};
-                    if (messageFlowRun.flow_params) {
-                        flowParams = JSON.parse(messageFlowRun.flow_params);
-                    }
+                    var flowParams = messageFlowRun.flow_params;
                     var timezoneOffsets = rogerthat.service.data.settings.timezoneOffsets;
                     var currentDateTimeSeconds = new Date().getTime() / 1000;
                     var timezoneOffset = 0;
