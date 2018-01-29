@@ -15,14 +15,13 @@
 #
 # @@license_version:1.2@@
 
+from contextlib import closing
 import json
 import logging
-import uuid
-from contextlib import closing
 from types import NoneType
+import uuid
 
 from google.appengine.ext import db, deferred
-
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
@@ -40,7 +39,7 @@ from rogerthat.models import ServiceProfile, App, ServiceIdentity, UserData, Tri
     MessageFlowRunRecord, SIKKey, APIKey, Branding, ServiceInteractionDef, ShortURL, ProfilePointer, Avatar, \
     UserProfile
 from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore, KVBucket, KVBlobBucket
-from rogerthat.models.utils import copy_model_properties
+from rogerthat.models.utils import copy_model_properties, replace_name_in_key
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Session
 from rogerthat.rpc.service import BusinessException
@@ -59,6 +58,7 @@ from solutions.common.models.agenda import EventReminder, SolutionCalendar
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyIdentitySettings
 from solutions.common.models.reservation import RestaurantReservation, RestaurantProfile
 from solutions.common.utils import create_service_identity_user_wo_default, is_default_service_identity
+
 
 try:
     from cStringIO import StringIO
@@ -591,24 +591,7 @@ def _5000_migrate_non_ancestor_models(job_key):
 
 
 def _create_new_key(job, old_key):
-    old_parent_key = old_key.parent()
-    if old_parent_key:
-        new_parent_key = _create_new_key(job, old_parent_key)
-    else:
-        new_parent_key = None
-
-    old_key_name = old_key.name()
-    if old_key_name:
-        if old_key_name == job.from_service_user.email():
-            new_key_id_or_name = job.to_service_user.email()
-        elif old_key_name.startswith(job.from_service_user.email() + '/'):
-            new_key_id_or_name = job.to_service_user.email() + old_key_name[len(job.from_service_user.email()):]
-        else:
-            new_key_id_or_name = old_key_name
-    else:
-        new_key_id_or_name = old_key.id_or_name()
-
-    return db.Key.from_path(old_key.kind(), new_key_id_or_name, parent=new_parent_key)
+    return replace_name_in_key(old_key, job.from_service_user.email(), job.to_service_user.email())
 
 
 def _migrate_models(job, old_models, delete_old_models=True, put_new_models=True):
