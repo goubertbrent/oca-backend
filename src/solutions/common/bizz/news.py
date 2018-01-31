@@ -234,16 +234,17 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
 
     with users.set_user(service_user):
         try:
-            customer = get_customer(service_user)
             if sponsored:
                 sticky = True
-            elif customer.organization_type == OrganizationType.CITY and \
-                    not _app_uses_custom_organization_types(customer.language):
-                sticky = True
-                if kwargs['sticky_until'] is None:
-                    kwargs['sticky_until'] = now()
             else:
-                sticky = False
+                customer = get_customer(service_user)
+                if customer and customer.organization_type == OrganizationType.CITY and \
+                        not _app_uses_custom_organization_types(customer.language):
+                    sticky = True
+                    if kwargs['sticky_until'] is None:
+                        kwargs['sticky_until'] = now()
+                else:
+                    sticky = False
 
             def trans():
                 news_item = news.publish(accept_missing=True, sticky=sticky, **kwargs)
