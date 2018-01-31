@@ -15,11 +15,10 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.models import RogerthatBackendErrors
+from google.appengine.api import taskqueue
+
 from rogerthat.rpc.models import ClientError
 from rogerthat.utils import now
-from google.appengine.api import taskqueue, logservice
-from google.appengine.ext import db
 from shop.admin.dal import get_monitored_services_in_trouble_qry
 
 
@@ -29,14 +28,12 @@ def analyze_status():
     services_in_trouble = get_monitored_services_in_trouble_qry().run()
 
     # Asynchronously fetch rogerthat backend status
-    rbe_rpc = db.get_async(RogerthatBackendErrors.get_key())
 
     # Fetch queue statusses
     default, controller, worker, fast, broadcast = taskqueue.QueueStatistics.fetch(
             ["default", "highload-controller-queue", "highload-worker-queue", 'fast', 'broadcast-queue'])
-    rbe = rbe_rpc.get_result()
-    logs = logservice.fetch(request_ids=rbe.requestIds[:LOG_LIMIT]) if rbe else None
-    total_error_count = len(rbe.requestIds) if rbe else 0
+    logs = None
+    total_error_count = 0
     skipped_error_count = max(0, total_error_count - LOG_LIMIT)
     services = list(services_in_trouble)
     five_min_ago = (now() - 300) * 1000000
