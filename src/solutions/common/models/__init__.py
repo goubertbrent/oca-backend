@@ -18,8 +18,9 @@
 import json
 import logging
 
-from babel.dates import get_timezone
 from google.appengine.ext import db
+
+from babel.dates import get_timezone
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
@@ -288,6 +289,7 @@ class SolutionSettings(SolutionIdentitySettings):
     timezone = db.StringProperty(indexed=False, default=u"Europe/Brussels")
     main_language = db.StringProperty(indexed=False)
 
+    last_publish = db.IntegerProperty()
     updates_pending = db.BooleanProperty(indexed=False, default=False)
     publish_changes_users = db.StringListProperty(indexed=False)
     put_identity_pending = db.BooleanProperty(indexed=True, default=False)

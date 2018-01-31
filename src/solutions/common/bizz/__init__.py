@@ -26,19 +26,19 @@ import os
 import time
 from types import NoneType
 
-from PIL.Image import Image
-from babel.dates import format_date, format_time
-import pytz
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+
+from PIL.Image import Image
+from babel.dates import format_date, format_time, format_datetime, get_timezone
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
     azzert, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
+import pytz
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
@@ -611,15 +611,37 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
         cur_user = users.get_current_user() or users.get_current_deferred_user()
         must_send_updates_to_flex = cur_user not in (None, MISSING) and (cur_user != service_user)
         try:
-            if settings_was_none:
-                sln_settings = get_solution_settings(service_user)
-            else:
+            if not settings_was_none:
                 azzert(db.is_in_transaction())
+
+            def trans_timer():
+                if settings_was_none:
+                    settings = get_solution_settings(service_user)
+                else:
+                    settings = sln_settings
+
+                if friends:
+                    pass # no check needed
+                else:
+                    now_ = now()
+                    if settings.last_publish and (settings.last_publish + 15 * 60) > now_:
+                        time_str = format_datetime(settings.last_publish, 'HH:mm',
+                                     tzinfo=get_timezone(settings.timezone), locale=settings.main_language)
+                        raise BusinessException(common_translate(settings.main_language, SOLUTION_COMMON, 'you-can-only-publish-every-15-min', time_str=time_str))
+                    settings.last_publish = now_
+                    settings.put()
+
+                return settings
+
+            sln_settings = run_in_transaction(trans_timer)
+
             bizz = importlib.import_module("solutions.%s.bizz" % sln_settings.solution)
             needs_reload = bizz.provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
         except:
+            if not sln_settings:
+                sln_settings = get_solution_settings(service_user)
             if must_send_updates_to_flex:
                 channel.send_message(cur_user, 'common.provision.failed',
                                      errormsg=common_translate(sln_settings.main_language, SOLUTION_COMMON,
@@ -649,8 +671,12 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
         logging.debug('Provisioning took %s seconds', time.time() - start)
     except (AvatarImageNotSquareException, TranslatedException):
         raise
+    except BusinessException:
+        raise
     except Exception:
         logging.exception('Failure in common_provision', _suppress=False)
+        if not sln_settings:
+            sln_settings = get_solution_settings(service_user)
         raise BusinessException(
             common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
 
