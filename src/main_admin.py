@@ -17,7 +17,6 @@
 
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
-from shop.admin import restapi as restapi_admin
 from shop.cron import RecurrentBilling, ReportOnSitePaymentsHandler, NotifyExtentionNeededHandler, \
     ExportResellerInvoicesHandler, CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
@@ -69,7 +68,6 @@ handlers = [
     ('/admin/settings', SolutionServerSettingsHandler),
 ]
 
-handlers.extend(rest_functions(restapi_admin))
 handlers.extend(rest_functions(djmatic))
 
 app = RogerthatWSGIApplication(handlers, True, name="main_admin", google_authenticated=True)
