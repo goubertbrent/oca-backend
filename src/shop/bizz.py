@@ -62,7 +62,6 @@ from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
-from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, now, channel, get_epoch_from_datetime, send_mail
 from rogerthat.utils.app import create_app_user_by_email
@@ -565,7 +564,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             elif has_product(item, Product.PRODUCT_ACTION_3_EXTRA_CITIES):
                 extra_apps_count += 3
             elif any(
-                has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
+                    has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
             elif any(has_product(item, product_code) for product_code in ('MSUP', 'SUBX')):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
@@ -799,7 +798,8 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             action = shop_translate(customer.language, 'password_reset')
             reset_password_link = password = None
             if not user_exists:
-                # TODO: Change the new customer password handling, sending passwords via email is a serious security issue.
+                # TODO: Change the new customer password handling, sending passwords via
+                # email is a serious security issue.
                 url_params = get_reset_password_url_params(customer.name, users.User(user_email), action=action)
                 reset_password_link = '%s://%s%s?%s' % (parsed_login_url.scheme, parsed_login_url.netloc,
                                                         '/customers/setpassword', url_params)
@@ -2276,9 +2276,9 @@ def get_payed(customer_id, order_or_number, charge_or_id):
 
         # Check if we need to add CRED product
         if charge.type == Charge.TYPE_ORDER_DELIVERY \
-            and order.is_subscription_order \
-            and invoice is None \
-            and customer.team.legal_entity.is_mobicage:
+                and order.is_subscription_order \
+                and invoice is None \
+                and customer.team.legal_entity.is_mobicage:
             discount = None
             max_number = 0
             for item in OrderItem.all().ancestor(order):
@@ -2312,7 +2312,7 @@ def get_payed(customer_id, order_or_number, charge_or_id):
             api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
         for stripe_charge in stripe_charges.data:
             if stripe_charge.metadata.osa_charge_id and long(
-                stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
+                    stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
                 stripe_charge_match = stripe_charge
                 break
 

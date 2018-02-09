@@ -91,7 +91,7 @@ class Functionality(object):
     def screenshot_image(self):
         name = self.name
         if name == SolutionModule.DISCUSSION_GROUPS:
-           name = SolutionModule.ASK_QUESTION
+            name = SolutionModule.ASK_QUESTION
         return '/static/images/solutions/func_%s.jpg' % name
 
     @property

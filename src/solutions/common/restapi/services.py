@@ -23,12 +23,10 @@ from google.appengine.ext import db
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.to.messaging import KeyValueTO
 from rogerthat.utils.channel import send_message_to_session
 from shop.bizz import create_customer_service_to, audit_log, dict_str_for_audit_log, search_customer, \
     update_contact

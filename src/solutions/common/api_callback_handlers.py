@@ -136,7 +136,7 @@ def common_system_api_call(email, method, params, tag, service_identity, user_de
            acked_timestamp=int, parent_message_key=unicode, result_key=unicode, service_identity=unicode,
            user_details=[UserDetailsTO])
 def common_messaging_update(status, answer_id, received_timestamp, member, message_key, tag, acked_timestamp,
-                     parent_message_key, result_key, service_identity, user_details):
+                            parent_message_key, result_key, service_identity, user_details):
     service_user = users.get_current_user()
     if tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):
         messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status, answer_id)
@@ -181,10 +181,12 @@ def common_friend_invite_result(email, result, tag, origin, service_identity, us
     else:
         raise NotImplementedError()
 
+
 @returns(unicode)
 @arguments(service_identity=unicode, user_details=[UserDetailsTO], origin=unicode, data=unicode)
 def common_friend_register(service_identity, user_details, origin, data):
     return loyalty_qr_register(users.get_current_user(), user_details, origin, data)
+
 
 @returns(NoneType)
 @arguments(service_identity=unicode, user_details=[UserDetailsTO], origin=unicode)
@@ -231,9 +233,11 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
                     video_attachments.append(a.download_url)
 
             if sent_by_service:
-                sim_parent, _ = add_solution_inbox_message(service_user, message_key, sent_by_service, [sender], timestamp, message, picture_attachments, video_attachments, mark_as_unread=False, mark_as_read=True)
+                sim_parent, _ = add_solution_inbox_message(service_user, message_key, sent_by_service, [
+                                                           sender], timestamp, message, picture_attachments, video_attachments, mark_as_unread=False, mark_as_read=True)
             else:
-                sim_parent, _ = add_solution_inbox_message(service_user, message_key, sent_by_service, [sender], timestamp, message, picture_attachments, video_attachments)
+                sim_parent, _ = add_solution_inbox_message(
+                    service_user, message_key, sent_by_service, [sender], timestamp, message, picture_attachments, video_attachments)
 
             sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
             send_message(service_user, u"solutions.common.messaging.update",
@@ -259,7 +263,6 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
 @arguments(service_user=users.User, service_identity=unicode, tag=unicode, user_details=[UserDetailsTO], status=int,
            answer_id=unicode)
 def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, user_details, status, answer_id):
-    from solutions.common.bizz.messaging import POKE_TAG_INBOX_FORWARDING_REPLY
     from rogerthat.models.properties.messaging import MemberStatus
 
     if not is_flag_set(MemberStatus.STATUS_ACKED, status):

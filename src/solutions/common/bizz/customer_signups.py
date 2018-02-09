@@ -28,7 +28,6 @@ from rogerthat.utils.app import get_app_user_tuple
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models import SolutionInboxMessage
-from solutions.common.to.services import CreateServiceStatusTO
 
 
 @arguments(service_user=users.User, service_identity=unicode, message_key=unicode, app_user=users.User, name=unicode,

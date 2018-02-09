@@ -16,7 +16,6 @@
 # @@license_version:1.2@@
 
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property
-from rogerthat.utils import today
 from solutions.common.to.loyalty import SolutionLoyaltyExportTO
 
 
@@ -100,6 +99,7 @@ class SolutionCityVoucherQRCodeExportTO(object):
         to.created = obj.created
         to.ready = obj.ready
         return to
+
 
 class SolutionCityVoucherQRCodeExportsTO(object):
     cursor = unicode_property('1')

@@ -19,7 +19,6 @@ from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments, NoneType
 from rogerthat.rpc import users
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.utils import now
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.city_vouchers import create_city_voucher_qr_codes
 from solutions.common.dal import get_solution_settings
