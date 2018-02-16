@@ -82,6 +82,7 @@ class Event(db.Model):
         else:
             return self.start_dates[0]
 
+
 class EventReminder(db.Model):
     STATUS_PENDING = 1
     STATUS_REMINDED = 2
@@ -114,12 +115,14 @@ class SolutionCalendarAdmin(db.Model):
     def createKey(app_user, solutions_calendar_key):
         return db.Key.from_path(SolutionCalendarAdmin.kind(), app_user.email(), parent=solutions_calendar_key)
 
+
 class SolutionCalendarGoogleSync(db.Model):
     google_calendar_keys = db.StringListProperty(indexed=False)
 
     @property
     def service_user(self):
         return users.User(self.key().name())
+
 
 class SolutionGoogleCredentials(db.Model):
     email = db.StringProperty(indexed=False)
@@ -135,6 +138,7 @@ class SolutionGoogleCredentials(db.Model):
     @staticmethod
     def createKey(google_id):
         return db.Key.from_path(SolutionGoogleCredentials.kind(), google_id)
+
 
 class SolutionCalendar(db.Model):
     name = db.StringProperty(indexed=False)
@@ -159,6 +163,10 @@ class SolutionCalendar(db.Model):
     def calendar_id(self):
         return self.key().id()
 
+    @classmethod
+    def create_key(cls, calendar_id, service_user, solution):
+        return db.Key.from_path(cls.kind(), calendar_id, parent=parent_key(service_user, solution))
+
     def get_admins(self):
         return SolutionCalendarAdmin.all().ancestor(self.key())
 
@@ -167,7 +175,8 @@ class SolutionCalendar(db.Model):
         return Event.all().ancestor(parent_key(self.service_user, self.solution)).filter("calendar_id =", self.calendar_id).filter("deleted =", False)
 
     def events_with_cursor(self, cursor, count):
-        qry = Event.all().with_cursor(cursor).ancestor(parent_key(self.service_user, self.solution)).filter("calendar_id =", self.calendar_id).filter("deleted =", False).order("first_start_date")
+        qry = Event.all().with_cursor(cursor).ancestor(parent_key(self.service_user, self.solution)).filter(
+            "calendar_id =", self.calendar_id).filter("deleted =", False).order("first_start_date")
         events = qry.fetch(count)
         cursor_ = qry.cursor()
         has_more = False

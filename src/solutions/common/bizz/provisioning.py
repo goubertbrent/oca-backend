@@ -28,7 +28,6 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
-
 from google.appengine.ext import db
 import jinja2
 from mcfw.properties import azzert
@@ -39,6 +38,7 @@ from rogerthat.consts import DAY
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, ServiceProfile
 from rogerthat.models.properties.app import AutoConnectedService
+from rogerthat.models.utils import allocate_id
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.settings import get_server_settings
@@ -840,13 +840,14 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
     ssmis.append(ssmi)
 
     if not sln_settings.default_calendar:
+        sc_id = allocate_id(SolutionCalendar, parent=parent_key(sln_settings.service_user, sln_settings.solution))
+
         def trans():
-            sc = SolutionCalendar(parent=parent_key(sln_settings.service_user, sln_settings.solution),
+            sc = SolutionCalendar(key=SolutionCalendar.create_key(sc_id, sln_settings.service_user, sln_settings.solution),
                                   name="Default",
                                   deleted=False)
-            sc.put()
-            sln_settings.default_calendar = sc.calendar_id
-            put_and_invalidate_cache(sln_settings)
+            sln_settings.default_calendar = sc_id
+            put_and_invalidate_cache(sln_settings, sc)
             return sc
 
         xg_on = db.create_transaction_options(xg=True)
