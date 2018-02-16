@@ -45,6 +45,7 @@ def save_cityapp_settings(service_user, gather_events, uitdatabank_secret, uitda
         cap.put()
     run_in_transaction(trans, False)
 
+
 @returns(tuple)
 @arguments(city_app_profile=CityAppProfile, page=(int, long), pagelength=(int, long), changed_since=(int, long, NoneType))
 def get_uitdatabank_events(city_app_profile, page, pagelength, changed_since=None):
@@ -60,14 +61,14 @@ def _get_uitdatabank_events_old(city_app_profile, page, pagelength, changed_sinc
         return False, "Not all fields are provided"
 
     url = "http://build.uitdatabank.be/api/events/search?"
-    values = {'key' : city_app_profile.uitdatabank_key,
-              'format' : "json",
-              'regio' : city_app_profile.uitdatabank_regions[0],
-              'changedsince' : time.strftime('%Y-%m-%dT%H.%M', time.gmtime(changed_since)) if changed_since else "",
-              'page' : page,
-              'pagelength' : pagelength }
+    values = {'key': city_app_profile.uitdatabank_key,
+              'format': "json",
+              'regio': city_app_profile.uitdatabank_regions[0],
+              'changedsince': time.strftime('%Y-%m-%dT%H.%M', time.gmtime(changed_since)) if changed_since else "",
+              'page': page,
+              'pagelength': pagelength}
     data = urllib.urlencode(values)
-    logging.debug(url + data);
+    logging.debug(url + data)
     result = urlfetch.fetch(url + data, deadline=60)
     r = json.loads(result.content)
 
@@ -116,7 +117,7 @@ def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
             params[k] = v.encode('utf8')
 
     params_str = "&".join(["%s=%s" % (encode(k), encode(params[k]))
-                                                 for k in sorted(params)])
+                           for k in sorted(params)])
 
     base_string = "&".join(["GET", encode(url), encode(params_str)])
 
@@ -125,16 +126,20 @@ def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
     params["oauth_signature"] = encode(digest_base64)
     headers['Accept'] = "application/json"
     headers['Authorization'] = 'OAuth oauth_consumer_key="%s",oauth_signature_method="%s",oauth_timestamp="%s",oauth_nonce="%s",oauth_version="1.0",oauth_signature="%s"' % (
-         encode(params['oauth_consumer_key']),
-         encode(params['oauth_signature_method']),
-         encode(params['oauth_timestamp']),
-         encode(params['oauth_nonce']),
-         params["oauth_signature"])
+        encode(params['oauth_consumer_key']),
+        encode(params['oauth_signature_method']),
+        encode(params['oauth_timestamp']),
+        encode(params['oauth_nonce']),
+        params["oauth_signature"])
 
     data = urllib.urlencode(url_params)
     url = "%s?%s" % (url, data)
-    logging.debug(url);
-    result = urlfetch.fetch(url, headers=headers, deadline=30)
+    logging.debug(url)
+    try:
+        result = urlfetch.fetch(url, headers=headers, deadline=30)
+    except urlfetch.DownloadError as e:
+        logging.debug('Caught %s. Retrying....', e.__class__.__name__)
+        result = urlfetch.fetch(url, headers=headers, deadline=30)
     if result.status_code != 200:
         return False, "Make sure your credentials are correct."
 
