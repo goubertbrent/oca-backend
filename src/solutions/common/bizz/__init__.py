@@ -26,24 +26,24 @@ import os
 import time
 from types import NoneType
 
+from PIL.Image import Image
+import pytz
+
+from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
-
-from PIL.Image import Image
-from babel.dates import format_date, format_time, format_datetime, get_timezone
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
     azzert, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
-import pytz
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
     InvalidBroadcastTypeException, RoleNotFoundException, AvatarImageNotSquareException
-from rogerthat.consts import FAST_QUEUE
+from rogerthat.consts import FAST_QUEUE, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
@@ -620,14 +620,18 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                 else:
                     settings = sln_settings
 
-                if friends:
-                    pass # no check needed
+                if DEBUG or friends:
+                    pass  # no check needed
                 else:
                     now_ = now()
                     if settings.last_publish and (settings.last_publish + 15 * 60) > now_:
                         time_str = format_datetime(settings.last_publish, 'HH:mm',
-                                     tzinfo=get_timezone(settings.timezone), locale=settings.main_language)
-                        raise BusinessException(common_translate(settings.main_language, SOLUTION_COMMON, 'you-can-only-publish-every-15-min', time_str=time_str))
+                                                   tzinfo=get_timezone(settings.timezone),
+                                                   locale=settings.main_language)
+                        raise BusinessException(common_translate(settings.main_language,
+                                                                 SOLUTION_COMMON,
+                                                                 'you-can-only-publish-every-15-min',
+                                                                 time_str=time_str))
                     settings.last_publish = now_
                     settings.put()
 
