@@ -285,14 +285,14 @@
         if (modules && modules.indexOf('broadcast') === -1) {
             $('#broadcast-to-calendar').remove();
         }
-        rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
-        rogerthat.callbacks.serviceDataUpdated(loadEvents);
 
         rogerthat.user.data.agenda = null;
         if (!rogerthat.user.data.calendar) {
             rogerthat.user.data.calendar = {};
         }
 
+        rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
+        rogerthat.callbacks.serviceDataUpdated(loadEvents);
 
         loadEvents();
 
@@ -743,6 +743,10 @@
     function loadEvents() {
         if (rogerthat.service.data.solutionCalendars === undefined)
             return;
+
+        if (!rogerthat.user.data.calendar) {
+            rogerthat.user.data.calendar = {};
+        }
 
         if (rogerthat.user.data.calendar.disabled === undefined) {
         	rogerthat.user.data.calendar.disabled = [];
