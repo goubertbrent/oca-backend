@@ -643,13 +643,16 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             needs_reload = bizz.provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
-        except:
+        except Exception as e:
             if not sln_settings:
                 sln_settings = get_solution_settings(service_user)
             if must_send_updates_to_flex:
+                if isinstance(e, BusinessException):
+                    errormsg = e.message
+                else:
+                    errormsg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'failed_to_create_service')
                 channel.send_message(cur_user, 'common.provision.failed',
-                                     errormsg=common_translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                               'failed_to_create_service'))
+                                     errormsg=errormsg)
             if broadcast_to_users:
                 channel.send_message(broadcast_to_users, 'shop.provision.failed')
             raise
@@ -673,12 +676,11 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             broadcast_updates_pending(sln_settings)
 
         logging.debug('Provisioning took %s seconds', time.time() - start)
-    except (AvatarImageNotSquareException, TranslatedException):
-        raise
-    except BusinessException:
+    except (AvatarImageNotSquareException, TranslatedException, BusinessException):
         raise
     except Exception:
         logging.exception('Failure in common_provision', _suppress=False)
+
         if not sln_settings:
             sln_settings = get_solution_settings(service_user)
         raise BusinessException(
