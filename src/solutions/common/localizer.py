@@ -4937,7 +4937,7 @@ translations = \
          u'signup_congrats': u'Uw eigen app is bijna een feit, proficiat!',
          u'signup_inbox_message_header': u'Beste,\n\n%(name)s wenst zich te registreren als %(org_type_name)s.\n\nAccepteer of weiger deze %(org_type_name)s.',
          u'signup_more_steps': u'We moeten nog wel een paar zaken doen, opgelet dit is belangrijk:',
-         u'signup_more_steps_application_ready': u'Wanneer u op de "Verifi\xebren" knop in de e-mail geklikt hebt, zal uw stad/gemeente op de hoogte gebracht worden van uw registratie.',
+         u'signup_more_steps_application_ready': u'Wanneer de stad/gemeente uw registratie aanvaardt, zal u een e-mail ontvangen met uw login en wachtwoord. U kan nu uw eigen invulling geven aan uw applicatie. Veel success en welkom!',
          u'signup_more_steps_click_verify': u'Wanneer u op de "Verifi\xebren" knop in de e-mail geklikt hebt, zal uw stad/gemeente op de hoogte gebracht worden van uw registratie.',
          u'signup_more_steps_email': u'Om zeker te zijn dat het e-mailadres correct is ingevuld en wel degelijk van u is, hebben we zonet een e-mail verstuurd met een "Verifi\xebren" knop. Vergeet niet te kijken in uw Spam of Ongewenste E-mail map.',
          u'signup_not_found': u'De registratiegegevens voor deze app konden niet gevonden worden.',
