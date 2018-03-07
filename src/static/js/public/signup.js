@@ -65,8 +65,9 @@ $(function() {
         $('#organization_types').show();
 
         var selectFirstType = true;
+        var controlsContainer = $('#organization_types > div[class=controls]');
         $.each(types, function(type, label) {
-            $('#organization_types > div[class=controls]').append(
+            controlsContainer.append(
                 $.tmpl(TMPL_ORG_TYPE, {
                     value: type,
                     label: label,
@@ -238,7 +239,6 @@ $(function() {
                     var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
                     sln.alert(message, null, CommonTranslations.ERROR);
                 } else {
-                    var email = gatherFromInputs('contact').user_email;
                     $('#signup_note').removeClass('white-text').parent().addClass('white-box');
                     $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
                     $('#signup_box').hide();
@@ -252,7 +252,7 @@ $(function() {
     };
 
     function getCurrentTab() {
-        return  tabs[currentStep];
+        return tabs[currentStep];
     }
 
     function isLastStep() {

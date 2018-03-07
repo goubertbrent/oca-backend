@@ -31,6 +31,7 @@ from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterH
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
+from solutions.common.handlers.map import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
@@ -48,6 +49,7 @@ handlers = [
     ('/unauthenticated/osa/launcher/apps', GetOSALaucherAppsHandler),
     ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
     ('/unauthenticated/osa/callback/twitter', SolutionsCallbackTwitterHandler),
+    ('/unauthenticated/osa/flanders', FlandersHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/solutions/djmatic/api/1', solutions.djmatic.api.DJMaticApiHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),

@@ -338,15 +338,6 @@ class OrdersHandler(BizzManagerHandler):
         self.response.out.write(template.render(path, context))
 
 
-class FlandersHandler(BizzManagerHandler):
-
-    def get(self):
-        path = os.path.join(os.path.dirname(__file__), 'html', 'apps-map-flanders.html')
-        app_names = [app.name for app in get_apps([App.APP_TYPE_CITY_APP])
-                     if app.ios_app_id not in (None, "-1") and app.app_id.startswith('be-')]
-        self.response.write(template.render(path, get_shop_context(app_names=json.dumps(app_names))))
-
-
 class OrderPdfHandler(BizzManagerHandler):
 
     def get(self):
