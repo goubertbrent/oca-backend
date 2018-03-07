@@ -1,16 +1,27 @@
 # create default calendars
 import logging
+
 from google.appengine.ext import db
-
 from rogerthat.bizz.job import run_job
+from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache
-
 from solutions.common.bizz import SolutionModule
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import SolutionCalendar
 
 
-# provisioning.put_agenda
+def _put_calendar_model(sln_settings, key=None):
+    kwargs = dict(name='Default', deleted=False)
+    if key is None:
+        kwargs['parent'] = parent_key(sln_settings.service_user, sln_settings.solution)
+    else:
+        kwargs['key'] = key
+    sc = SolutionCalendar(**kwargs)
+    sc.put()
+    return sc
+
+
+# partly copy/pasted from provisioning.put_agenda
 def _create_default_calendar(sln_settings_key):
     sln_settings = db.get(sln_settings_key)
 
@@ -20,17 +31,21 @@ def _create_default_calendar(sln_settings_key):
     if SolutionModule.AGENDA not in sln_settings.modules:
         return
 
-    if not sln_settings.default_calendar:
+    if sln_settings.default_calendar:
+        key = db.Key.from_path(SolutionCalendar.kind(), sln_settings.default_calendar,
+                               parent=parent_key(sln_settings.service_user, sln_settings.solution))
+        if not db.get(key):
+            logging.debug('Default calendar of %s (%s) did not exist', sln_settings.name, sln_settings.service_user)
+            _put_calendar_model(sln_settings, key).put()
+
+    else:
         def trans():
-            sc = SolutionCalendar(parent=parent_key(sln_settings.service_user, sln_settings.solution),
-                                    name="Default",
-                                    deleted=False)
-            sc.put()
+            sc = _put_calendar_model(sln_settings, None)
             sln_settings.default_calendar = sc.calendar_id
             put_and_invalidate_cache(sln_settings)
             return sc
 
-        logging.debug('Creating default calendar for: %s', sln_settings.service_user)
+        logging.debug('Creating default calendar for: %s (%s)', sln_settings.name, sln_settings.service_user)
         xg_on = db.create_transaction_options(xg=True)
         db.run_in_transaction_options(xg_on, trans)
 
@@ -40,4 +55,4 @@ def _all_solution_settings():
 
 
 def job():
-    run_job(_all_solution_settings, [], _create_default_calendar, [])
+    run_job(_all_solution_settings, [], _create_default_calendar, [], worker_queue=MIGRATION_QUEUE)
