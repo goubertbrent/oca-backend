@@ -16,10 +16,9 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import defaultdict
 import datetime
 import logging
-import os
+from collections import defaultdict
 from types import NoneType
 
 from google.appengine.ext import db, deferred
@@ -33,13 +32,14 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
+from rogerthat.dal.app import get_apps
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
-from rogerthat.models import ServiceIdentity
+from rogerthat.models import ServiceIdentity, App
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.service.api.friends import get_broadcast_reach
-from rogerthat.service.api.system import get_flow_statistics, list_roles
+from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
@@ -56,7 +56,6 @@ from shop.exceptions import InvalidEmailFormatException
 from shop.models import Product, Order
 from shop.to import ProductTO
 from shop.view import get_current_http_host
-from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
@@ -1989,3 +1988,11 @@ def rest_enable_or_disable_module(name, enabled):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest('/unauthenticated/osa/apps/flanders', 'get', read_only_access=True, authenticated=False)
+@returns([dict])
+@arguments()
+def api_get_app_names():
+    return [{'name': app.name, 'app_id': app.app_id} for app in get_apps([App.APP_TYPE_CITY_APP]) if
+            app.ios_app_id not in (None, '-1') and app.app_id.startswith('be-')]

@@ -26,7 +26,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     OpenInvoicesHandler, TasksHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
     SalesStatisticsHandler, OrderableAppsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
-    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, FlandersHandler
+    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler
 from solutions.djmatic import restapi_overview
 from solutions.djmatic.handlers import DJMaticOverviewHandler
 
@@ -64,7 +64,6 @@ handlers = [
     ('/internal/shop/stat/(.*)', StaticFileHandler),
     ('/internal/shop/customers/generate-qr', GenerateQRCodesHandler),
     ('/internal/shop/customers/app-broadcast', AppBroadcastHandler),
-    ('/internal/shop/flanders', FlandersHandler),
     (shopOauthDecorator.callback_path, shopOauthDecorator.callback_handler())  # /shop/oauth2callback
 ]
 handlers.extend(rest_functions(restapi_overview))
