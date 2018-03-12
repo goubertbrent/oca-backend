@@ -31,7 +31,7 @@ from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterH
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
-from solutions.common.handlers.map import FlandersHandler
+from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
