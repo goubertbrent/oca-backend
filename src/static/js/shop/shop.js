@@ -216,10 +216,9 @@ function getRegioManagerTeam (teamId) {
     })[0];
 }
 
+var customerMap = {};
 var type_ahead_options = {
     source: function (query, resultHandler) {
-        var thizz = $(this.$element);
-
         // Only send the ajax request after the user stopped typing
         if (type_ahead_timeout) {
             clearTimeout(type_ahead_timeout);
@@ -239,34 +238,49 @@ var type_ahead_options = {
                     data.sort(function (a, b) {
                         return a.id - b.id;
                     });
-                    var customerMap = {};
+                    data.sort(function(a, b) {
+                        return a.service_disabled_at - b.service_disabled_at;
+                    });
+                    customerMap = {};
                     var customers = [];
                     $.each(data, function (i, o) {
-                        var item = [o.name, o.address1, o.address2, o.zip_code, o.city].join(', ');
-
-                        var origItem = item;
-                        var dupCount = 1;
-                        while (customerMap[item]) {
-                            dupCount++;
-                            item = origItem + ' (' + dupCount + ')';
-                        }
-                        customerMap[item] = o;
-                        customers.push(item);
+                        customerMap[o.id] =  o
+                        // sorting is done by typeahead
+                        // keys of customerMap are strings
+                        customers.push('' + o.id);
                     });
                     resultHandler(customers);
-                    thizz.data('customerMap', customerMap);
                 }
             });
         }, 333);
     },
-    matcher: function (item) {
+    matcher: function (key) {
         return true; // accept everything returned by the source function
     },
     items: 20,
-    updater: function (item) {
+    highlighter: function(key) {
+        var customer = customerMap[key];
+
+        var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
+        var typeahead_labels = $('<div class="typeahead_labels"></div>');
+
+        var nameContainer = customer.service_disabled_at ? $('<b style="color: red;"></b>') : $('<b></b>');
+        var typeahead_primary = $('<div class="typeahead_primary"></div>').append(nameContainer.text(customer.name));
+        typeahead_labels.append(typeahead_primary);
+
+        var subtitle = [customer.address1, customer.address2, customer.zip_code, customer.city].filter(function(text) {
+            return typeof text === 'string' ? text.trim() : text;
+        }).join(', ');
+        var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(subtitle);
+        typeahead_labels.append(typeahead_secondary);
+
+        typeahead_wrapper.append(typeahead_labels);
+
+        return typeahead_wrapper;
+    },
+    updater: function (key) {
         var thizz = $(this.$element);
-        var customerMap = thizz.data('customerMap');
-        var customer = customerMap[item];
+        var customer = customerMap[key];
         thizz.data('customer', customer).addClass('success');
         $.each(customer_selected, function (i, f) {
             f(thizz, customer);
