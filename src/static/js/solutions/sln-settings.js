@@ -32,7 +32,7 @@ $(function () {
         + '</label><div id="avatar_div"><img src="/common/settings/my_avatar" class="settings_avatar"></div>';
     var TMPL_SET_LOGO = '<label>' + CommonTranslations.LOGO + ': ' + CommonTranslations.CLICK_TO_CHANGE
         + '</label><div id="logo_div"><img src="/common/settings/my_logo"></div>';
-    var TMPL_SET_NAME = '<label>' + CommonTranslations.NAME + ':</label><input type="text" placeholder="'
+    var TMPL_SET_NAME = '<label>' + CommonTranslations.NAME + ':</label><input type="text" maxlength="50" required minlength="2" placeholder="'
         + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
     var TMPL_SET_PHONE_NUMBER = '<label>' + CommonTranslations.PHONE_NUMBER
         + ':</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '">';

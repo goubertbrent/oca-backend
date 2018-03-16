@@ -21,8 +21,10 @@ from types import NoneType
 from google.appengine.ext import db, deferred
 
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.service import _validate_service_identity, InvalidNameException
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
+from rogerthat.to.service import ServiceIdentityDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.transactions import run_in_transaction
@@ -40,6 +42,13 @@ SLN_LOGO_MAX_SIZE = 102400  # 100 kB
 SLN_AVATAR_WIDTH = 150
 SLN_AVATAR_HEIGHT = 150
 SLN_AVATAR_MAX_SIZE = 51200  # 50 kB
+
+
+def validate_sln_settings(sln_settings):
+    # type: (SolutionSettings) -> None
+    for identity in sln_settings.identities:
+        to = ServiceIdentityDetailsTO(identifier=identity, name=sln_settings.name)
+        _validate_service_identity(to, False)
 
 
 @returns(bool)
@@ -99,6 +108,7 @@ def save_settings(service_user, service_identity, name, description=None, openin
     sln_settings.bic = bic
 
     sln_settings.updates_pending = True
+    validate_sln_settings(sln_settings)
     if not is_default_service_identity(service_identity):
         sln_i_settings.put()
     sln_settings.put()

@@ -30,7 +30,7 @@ from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.rtemail import EMAIL_REGEX
-from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
+from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException, InvalidNameException
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
 from rogerthat.dal.app import get_apps
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
@@ -586,7 +586,7 @@ def settings_save(name, description=None, opening_hours=None, address=None, phon
         r = SaveSettingsResultTO()
         r.address_geocoded = address_geocoded
         return SaveSettingsReturnStatusTO.create(True, None, r)
-    except BusinessException, e:
+    except BusinessException as e:
         return SaveSettingsReturnStatusTO.create(False, e.message, None)
 
 
