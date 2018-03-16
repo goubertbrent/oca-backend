@@ -613,36 +613,36 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
         try:
             if not settings_was_none:
                 azzert(db.is_in_transaction())
+            else:
+                sln_settings = get_solution_settings(service_user)
 
-            def trans_timer():
-                if settings_was_none:
-                    settings = get_solution_settings(service_user)
-                else:
-                    settings = sln_settings
-
-                if DEBUG or friends:
-                    pass  # no check needed
-                else:
-                    now_ = now()
-                    if settings.last_publish and (settings.last_publish + 15 * 60) > now_:
-                        time_str = format_datetime(settings.last_publish, 'HH:mm',
-                                                   tzinfo=get_timezone(settings.timezone),
-                                                   locale=settings.main_language)
-                        raise BusinessException(common_translate(settings.main_language,
-                                                                 SOLUTION_COMMON,
-                                                                 'you-can-only-publish-every-15-min',
-                                                                 time_str=time_str))
-                    settings.last_publish = now_
-                    settings.put()
-
-                return settings
-
-            sln_settings = run_in_transaction(trans_timer)
+            last_publish = 0
+            if DEBUG or friends:
+                pass  # no check needed
+            else:
+                now_ = now()
+                if sln_settings.last_publish and (sln_settings.last_publish + 15 * 60) > now_:
+                    time_str = format_datetime(sln_settings.last_publish, 'HH:mm',
+                                               tzinfo=get_timezone(sln_settings.timezone),
+                                               locale=sln_settings.main_language)
+                    raise BusinessException(common_translate(sln_settings.main_language,
+                                                             SOLUTION_COMMON,
+                                                             'you-can-only-publish-every-15-min',
+                                                             time_str=time_str))
+                last_publish = now_
 
             bizz = importlib.import_module("solutions.%s.bizz" % sln_settings.solution)
             needs_reload = bizz.provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
+
+            def trans_timer():
+                settings = sln_settings or get_solution_settings(service_user)
+                settings.last_publish = last_publish
+                settings.put()
+
+            if last_publish:
+                run_in_transaction(trans_timer)
         except Exception as e:
             if not sln_settings:
                 sln_settings = get_solution_settings(service_user)

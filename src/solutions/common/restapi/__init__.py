@@ -614,7 +614,7 @@ def get_all_defaults():
                                          SolutionAvatar.create_key(service_user)])
     defaults = []
 
-    if not sln_settings.broadcast_types:
+    if SolutionModule.BROADCAST in sln_settings.modules and not sln_settings.broadcast_types:
         defaults.append(u'broadcast_types')
 
     if not logo or logo.is_default:

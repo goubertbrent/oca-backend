@@ -26,6 +26,7 @@ $(function () {
     var eventsEnabled = true;
     var eventNotificationsEnabled = false;
     var inboxEmailRemindersEnabled = true;
+    var isPublishing = false;
     var fbAccessToken;
     var TMPL_SET_AVATAR = '<label>' + CommonTranslations.AVATAR + ': ' + CommonTranslations.CLICK_TO_CHANGE
         + '</label><div id="avatar_div"><img src="/common/settings/my_avatar" class="settings_avatar"></div>';
@@ -279,6 +280,12 @@ $(function () {
     var publishChangesToUsers = function (friends) {
         function publish() {
             validateDefaultSettings(function() {
+                if (isPublishing) {
+                    console.debug('Publishing in progress...')
+                    // do nothing
+                    return;
+                }
+                isPublishing = true;
                 var args = {};
                 if(friends && friends.length) {
                     args.friends = friends;
@@ -295,10 +302,12 @@ $(function () {
                         } else if(!data.success){
                             sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
                         }
+                        isPublishing = false;
                     },
                     error: function (XMLHttpRequest, textStatus, errorThrown) {
                         sln.hideProcessing();
                         sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
+                        isPublishing = false;
                     }
                 });
             });
