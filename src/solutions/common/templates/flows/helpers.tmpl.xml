@@ -1,0 +1,50 @@
+{% macro check_feature_flow_code(name, supported_outlet, not_supported_outlet, exception_reference, feature, default_value, major_version) -%}
+    <flowCode
+        id="flowcode_check_feature_{{ name }}"
+        exceptionReference="{{ exception_reference }}">
+        <outlet
+            reference="{{ supported_outlet }}"
+            name="supported"
+            value="supported" />
+        <outlet
+            reference="{{ not_supported_outlet }}"
+            name="not_suported"
+            value="not_supported" />
+        <javascriptCode>
+            var notSupported = function() {
+                return { outlet: &quot;not_supported&quot; };
+            };
+            function run(rogerthat, mfr){
+                if (!rogerthat.system || !rogerthat.system.appVersion) {
+                    return notSupported();
+                }
+                var appVersion = rogerthat.system.appVersion.split(&quot;.&quot;).map(function(x) {
+                    return parseInt(x);
+                });
+
+                var androidMajor, androidMinor, iosMajor, iosMinor, androidPatch, iosPatch;
+                androidMajor = {{ major_version }};
+                androidMinor = {{ feature.android.major }};
+                androidPatch = {{ feature.android.minor }};
+                iosMajor = {{ major_version }};
+                iosMinor = {{ feature.ios.major }};
+                iosPatch = {{ feature.ios.minor }};
+
+                if (rogerthat.system.os == &quot;android&quot;) {
+                    if (!(appVersion[0] &gt; androidMajor
+                            || appVersion[1] &gt; androidMinor
+                            || appVersion[2] &gt;= androidPatch)) {
+                        return notSupported();
+                    }
+                } else if (rogerthat.system.os == &quot;ios&quot;) {
+                    if (!(appVersion[0] &gt; iosMajor
+                            || appVersion[1] &gt; iosMinor
+                            || appVersion[2] &gt;= iosPatch)) {
+                        return notSupported();
+                    }
+                }
+                return {outlet: &quot;supported&quot;, defaultValue: {{ default_value }} };
+            }
+        </javascriptCode>
+    </flowCode>
+{%- endmacro %}

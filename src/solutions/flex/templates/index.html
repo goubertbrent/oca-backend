@@ -401,6 +401,9 @@ var ORGANIZATION_TYPES = {{ organization_types_json }};
                             {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
 							    <li class="" section="section_settings_order"><a href="#">{% translate language, "common", "orders" %}</a></li>
                             {% endif %}
+                            {% if sln_settings.payment_enabled and not is_layout_user and SolutionModule.ORDER in sln_settings.modules and customer.payment_possible %}
+                                <li class="" section="section_settings_mobile_payments"><a href="#">{% translate language, "common", "mobile_payments" %}</a></li>
+                            {% endif %}
                             {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
                                 <li section="section_settings_loyalty"><a href="#">{% translate language, "common", "loyalty" %}</a></li>
                             {% endif %}
@@ -504,6 +507,7 @@ var ORGANIZATION_TYPES = {{ organization_types_json }};
 
         {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
                             {%- include 'order_settings.tmpl' %}
+                            {%- include 'mobile_payments.tmpl' %}
                         {% endif %}
 
 						{% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}

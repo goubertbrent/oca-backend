@@ -23,12 +23,15 @@ import traceback
 import unittest
 
 from google.appengine.ext import db
+
 from mcfw.cache import _tlocal
+from rogerthat.bizz.payment import create_payment_provider
 from rogerthat.bizz.qrtemplate import store_template
 from rogerthat.bizz.service import create_qr_template_key_name
 from rogerthat.bizz.system import DEFAULT_QR_CODE_OVERLAY, DEFAULT_QR_CODE_COLOR, HAND_ONLY_QR_CODE_OVERLAY
 from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
+from rogerthat.to.payment import PaymentProviderTO
 from rogerthat.utils import now, guid
 from shop.bizz import put_app_signup_enabled
 from shop.models import RegioManagerTeam, RegioManager, LegalEntity
@@ -163,6 +166,17 @@ class TestCase(unittest.TestCase):
 
         to_put = apps.values() + [ss, sss, regio_manager, regio_manager_team]
         put_and_invalidate_cache(*to_put)
+
+        data = PaymentProviderTO()
+        data.id = u"payconiq"
+        data.name = u"Payconiq"
+        data.logo = None
+        data.version = 1
+        data.description = u"payconiq descripion is markdown"
+        data.oauth_settings = None
+        data.settings = u"{'a': 1}"
+
+        create_payment_provider(data)
 
         for app_id in apps:
             self.setup_qr_templates(app_id)

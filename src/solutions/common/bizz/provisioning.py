@@ -16,20 +16,19 @@
 # @@license_version:1.2@@
 
 import base64
+from contextlib import closing
+from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
+import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import jinja2
 from google.appengine.ext import db
+import jinja2
 
-import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from mcfw.properties import azzert
@@ -51,6 +50,7 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -529,6 +529,11 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
                                                                         'holiday-out-of-office')
     app_data['settings']['holidays']['out_of_office_message'] = xml_escape(sln_i_settings.holiday_out_of_office_message)
     app_data['settings']['modules'] = sln_settings.modules
+    app_data['settings']['payment'] = dict()
+    app_data['settings']['payment']['enabled'] = sln_i_settings.payment_enabled or False
+    app_data['settings']['payment']['optional'] = True if sln_i_settings.payment_optional is None else sln_i_settings.payment_optional
+    app_data['settings']['payment']['test_mode'] = sln_i_settings.payment_test_mode or False
+
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
         if module in sln_settings.modules:
             get_app_data_func = MODULES_GET_APP_DATA_FUNCS[module]
@@ -1313,6 +1318,16 @@ def put_menu_item_image_upload_flow(main_branding_key, language):
 
 
 def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, lang):
+    payment_enabled = False
+    identities = [None]
+    if sln_settings.identities:
+        identities.extend(sln_settings.identities)
+    for service_identity in identities:
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        if sln_i_settings.payment_enabled:
+            payment_enabled = True
+            break
+    
     menu = MenuTO.fromMenuObject(RestaurantMenu.get(RestaurantMenu.create_key(sln_settings.service_user,
                                                                               sln_settings.solution)))
     holiday_dates_str = list()
@@ -1375,16 +1390,11 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
 
     server_settings = get_server_settings()
     category_count = 0
+    category_with_pay_count = 0
     for cat in menu.categories:
         cat.has_visible = False
+        cat.has_visible_with_pay = False
         for item in cat.items:
-            if is_flag_set(MenuItem.VISIBLE_IN_ORDER, item.visible_in):
-                item.visible = True
-                if not cat.has_visible:
-                    cat.has_visible = True
-                    category_count += 1
-            else:
-                item.visible = False
             item.unit_str = solutions.translate_unit_symbol(lang, item.unit)
             item.step_unit = None
             item.step_unit_conversion = 0
@@ -1397,7 +1407,27 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
             else:
                 item.image_url = None
 
+            if is_flag_set(MenuItem.VISIBLE_IN_ORDER, item.visible_in):
+                item.visible = True
+                if not cat.has_visible:
+                    cat.has_visible = True
+                    category_count += 1
+
+                if item.has_price and not item.step_unit:
+                    item.visible_with_pay = True
+                    if not cat.has_visible_with_pay:
+                        cat.has_visible_with_pay = True
+                        category_with_pay_count += 1
+                else:
+                    item.visible_with_pay = False
+
+            else:
+                item.visible = False
+                item.visible_with_pay = False
+
     if category_count == 0:
+        return None
+    if payment_enabled and category_with_pay_count == 0:
         return None
 
     start = datetime.now()
@@ -1431,7 +1461,8 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         leap_time_str=leap_time_str,
         timezone_offsets=json.dumps(timezone_offsets),
         Features=Features,
-        manual_confirmation=sln_order_settings.manual_confirmation
+        manual_confirmation=sln_order_settings.manual_confirmation,
+        payment_enabled=payment_enabled
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier

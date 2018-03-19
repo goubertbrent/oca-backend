@@ -66,6 +66,8 @@ class SolutionOrder(db.Model):
 
     # advanced orders only
     takeaway_time = db.IntegerProperty(indexed=False, default=0)
+    transaction_id = db.StringProperty()
+    payment_provider = db.StringProperty()
 
     @property
     def service_identity_user(self):

@@ -227,6 +227,10 @@ class SolutionIdentitySettings(db.Model):
     # List of epochs defining the start, end of holidays (start1, end1, start2, end2, ...)
     holidays = db.ListProperty(int)
     holiday_out_of_office_message = db.TextProperty()
+    
+    payment_enabled = db.BooleanProperty(default=False)
+    payment_optional = db.BooleanProperty(default=True)
+    payment_test_mode = db.BooleanProperty(default=False)
 
     @staticmethod
     def create_key(service_user, service_identity):
@@ -322,7 +326,7 @@ class SolutionSettings(SolutionIdentitySettings):
     # Branding
     events_branding_hash = db.StringProperty(indexed=False)
     loyalty_branding_hash = db.StringProperty(indexed=False)
-
+    
     service_disabled = db.BooleanProperty(default=False)
 
     @staticmethod

@@ -1,0 +1,50 @@
+<section id="section_settings_mobile_payments" style="display: none;">
+    <div id="mobile_payments_container" class="clearfix">
+        <h2>{% translate language, "common", "mobile_payments" %}</h2>
+        <div id="mobile_payments_available">
+            <div class="payment-enabled">
+                <div class="btn-group">
+                    <button class="btn" id="paymentEnabledYes">&nbsp;</button>
+                    <button class="btn btn-danger" id="paymentEnabledNo">
+                        {% translate language, 'common', 'Disabled' %}
+                    </button>
+                </div>
+            </div>
+            <span class="help-block">{% translate language, 'common', 'mobile_payments_explanation' %}</span>
+
+            <div class="payment-optional">
+                <div class="btn-group">
+                    <button class="btn btn-success" id="paymentOptionalYes">
+                        {% translate language, 'common', 'Optional' %}
+                    </button>
+                    <button class="btn" id="paymentOptionalNo">&nbsp;</button>
+                </div>
+            </div>
+            <span class="help-block">{% translate language, 'common', 'payments_optional_explanation' %}</span>
+
+            <h3>Payconiq</h3>
+            {%- include 'payconiq_nl.tmpl' %}
+            <form class="form-horizontal">
+                <fieldset class="span12" style="margin-left: 0px;">
+                    <div class="control-group">
+                        <label class="control-label" for="payconicMerchantId" style="text-align: left;">Merchant ID</label>
+                        <div class="controls">
+                            <input id="payconicMerchantId" type="text" style="width: 95%;"/>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label" for="payconiqAccessToken" style="text-align: left;">Account Key</label>
+                        <div class="controls">
+                            <textarea id="payconiqAccessToken" type="text" rows="5" style="width: 95%;"></textarea>
+                        </div>
+                    </div>
+                </fieldset>
+            </form>
+
+        </div>
+        <div id="mobile_payments_unavailable" style="display: none;">
+            {% translate language, 'common', 'mobile_payments_only_available_with_adv_order' %}
+        </div>
+        <hr>
+    </div>
+</section>
