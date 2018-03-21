@@ -379,6 +379,11 @@
                         });
                         return a;
                     };
+                    
+                    var nextPossitiveButton = '{% translate language, 'common', 'Send' %}';
+                    if (steps[0]['step_id'] === 'message_advanced_order_with_pay') {
+                        nextPossitiveButton = '{% translate language, 'common', 'Next' %}';
+                    }
 
                     var applyLeapTime = true;
                     var d = new Date();
@@ -415,8 +420,15 @@
                                 break;
                             }
                         }
-                        if (!inHoliday)
-                            return { outlet: 'message_takeaway_time', defaultValue: ept.getTime() / 1000 - 60 * d.getTimezoneOffset()};
+                        if (!inHoliday) {
+                            return {
+                            		outlet: 'message_takeaway_time',
+                            		form: {
+			                          positive_button: nextPossitiveButton
+			                     },
+                            		defaultValue: ept.getTime() / 1000 - 60 * d.getTimezoneOffset()
+                            	};
+                        }
                     }
                 };
             </javascriptCode>
@@ -487,7 +499,7 @@
 
             <content/>
             <form positiveButtonConfirmation="" negativeButtonConfirmation=""
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Send' %}"
                   negativeButtonCaption="{% translate language, 'common', 'skip' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
                     <method>
@@ -509,7 +521,7 @@
 
             <content/>
             <form positiveButtonConfirmation="" negativeButtonConfirmation=""
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  positiveButtonCaption="{% translate language, 'common', 'Send' %}"
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
                     <method>
