@@ -531,7 +531,7 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
     app_data['settings']['modules'] = sln_settings.modules
     app_data['settings']['payment'] = dict()
     app_data['settings']['payment']['enabled'] = sln_i_settings.payment_enabled or False
-    app_data['settings']['payment']['optional'] = True if sln_i_settings.payment_optional is None else sln_i_settings.payment_optional
+    app_data['settings']['payment']['optional'] = sln_i_settings.payment_optional in (None, True)
     app_data['settings']['payment']['test_mode'] = sln_i_settings.payment_test_mode or False
 
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
@@ -731,6 +731,7 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
     ssmi_modules = {}
     for module in sorted(sln_settings.modules, key=lambda m: SolutionModule.PROVISION_ORDER[m]):
         current_coords = get_coords_of_service_menu_item(service_menu, POKE_TAGS[module])
+        logging.debug("Provisioning module: %s", module)
         put_func = MODULES_PUT_FUNCS[module]
         if module == SolutionModule.BROADCAST:
             auto_broadcast_types = list()
@@ -743,6 +744,8 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
             ssmi_modules[module] = put_func(sln_settings, current_coords, main_branding, default_lang,
                                             POKE_TAGS[module])
         sln_settings.provisioned_modules.append(module)
+
+    logging.debug('Provisioned modules: %s', sln_settings.provisioned_modules)
 
     ssmi_to_put = []
     for module in ssmi_modules:
@@ -1327,7 +1330,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         if sln_i_settings.payment_enabled:
             payment_enabled = True
             break
-    
+
     menu = MenuTO.fromMenuObject(RestaurantMenu.get(RestaurantMenu.create_key(sln_settings.service_user,
                                                                               sln_settings.solution)))
     holiday_dates_str = list()
