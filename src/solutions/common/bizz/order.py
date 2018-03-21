@@ -70,7 +70,7 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                     tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
     for step in steps:
-        if step.step_id == u'message_advanced_order' or step.step_id == u'message_advanced_order_with_pay':
+        if step.step_id in (u'message_advanced_order', u'message_advanced_order_with_pay'):
             order_type = ORDER_TYPE_ADVANCED
             break
     else:
@@ -135,7 +135,7 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                         phone = step.get_value()
                     elif step.step_id == u'message_comment':
                         comment = step.get_value()
-                    elif step.step_id == u'message_advanced_order':
+                    elif step.step_id in (u'message_advanced_order', u'message_advanced_order_with_pay'):
                         step_value = step.display_value.encode('utf-8')
                         if step_value:
                             has_order_items = True
