@@ -381,7 +381,7 @@
                     };
                     
                     var nextPossitiveButton = '{% translate language, 'common', 'Send' %}';
-                    if (steps[0]['step_id'] === 'message_advanced_order_with_pay') {
+                    if (messageFlowRun.steps[0]['step_id'] === 'message_advanced_order_with_pay') {
                         nextPossitiveButton = '{% translate language, 'common', 'Next' %}';
                     }
 
