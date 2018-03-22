@@ -62,7 +62,7 @@ from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now
+from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_queue
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import run_in_transaction
@@ -617,7 +617,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                 sln_settings = get_solution_settings(service_user)
 
             last_publish = 0
-            if DEBUG or friends:
+            if DEBUG or friends or get_current_queue():
                 pass  # no check needed
             else:
                 now_ = now()
