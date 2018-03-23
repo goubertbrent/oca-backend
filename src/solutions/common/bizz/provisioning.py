@@ -16,19 +16,20 @@
 # @@license_version:1.2@@
 
 import base64
-from contextlib import closing
-from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-from types import NoneType
 import urllib
+from contextlib import closing
+from datetime import timedelta, datetime
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from google.appengine.ext import db
 import jinja2
+from google.appengine.ext import db
 
+import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from mcfw.properties import azzert
@@ -50,7 +51,6 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -699,7 +699,7 @@ def _configure_inbox_qr_code_if_needed(sln_settings, main_branding):
                 _configure_inbox_forwarding_qr_code(sln_settings.service_user, service_identity, flow_identifier)
 
 
-@returns()
+@returns(SolutionSettings)
 @arguments(sln_settings=SolutionSettings, coords_dict=dict, main_branding=SolutionMainBranding, default_lang=unicode)
 def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang):
     for module in sln_settings.modules:
@@ -822,6 +822,7 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
             all_taken_coords.append(coords)
 
     put_and_invalidate_cache(sln_settings)
+    return sln_settings
 
 
 @returns([SolutionServiceMenuItem])

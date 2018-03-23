@@ -67,7 +67,7 @@ $(function () {
         + '    <button id="try_publish_changes" type="button" class="btn btn-warning pull-right" style="margin-right: 5px;">'
         + CommonTranslations.TRY //
         + '    </button>' //
-        + '    <h4>' + CommonTranslations.WARNING + '</h4>' + CommonTranslations.UNPERSISTED_CHANGES //
+        + '    <h4>' + CommonTranslations.WARNING + '</h4>' + CommonTranslations["unpersisted-changes"]
         + '</div>';
 
     var TMPL_USER_ROW = '<tr user_key=${user_key}>'

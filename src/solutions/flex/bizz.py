@@ -38,7 +38,6 @@ from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
 
-
 # [column, row, page]
 DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_page": 0,
                                                                    "coords": [0, 2, 0],
@@ -102,7 +101,7 @@ DEFAULT_COORDS = {SolutionModule.AGENDA:        {POKE_TAG_EVENTS: {"preferred_pa
                   }
 
 
-@returns(bool)
+@returns(tuple)
 @arguments(service_user=users.User, friends=[BaseMemberTO], transactional=bool)
 def provision(service_user, friends=None, transactional=True):
     needs_reload = False
@@ -127,16 +126,16 @@ def provision(service_user, friends=None, transactional=True):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
 
         if transactional:
-            allow_transaction_propagation(run_in_xg_transaction, provision_all_modules, sln_settings, DEFAULT_COORDS,
-                                          main_branding, default_lang)
+            sln_settings = allow_transaction_propagation(run_in_xg_transaction, provision_all_modules, sln_settings,
+                                                         DEFAULT_COORDS, main_branding, default_lang)
         else:
-            provision_all_modules(sln_settings, DEFAULT_COORDS, main_branding, default_lang)
+            sln_settings = provision_all_modules(sln_settings, DEFAULT_COORDS, main_branding, default_lang)
 
         populate_identity(sln_settings, main_branding.branding_key)
 
         system.publish_changes(friends)
         logging.info('Service populated!')
-    return needs_reload
+    return needs_reload, sln_settings
 
 
 @returns(ProvisionResponseTO)

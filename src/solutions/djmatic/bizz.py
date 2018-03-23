@@ -175,12 +175,11 @@ def get_app_data_jukebox(settings, service_identity=None, default_app_id=None):
                 description=settings.description)
 
 
-@returns(NoneType)
+@returns(tuple)
 @arguments(service_user=users.User, friends=[BaseMemberTO])
 def provision(service_user, friends=None):
     logging.debug("Provisioning %s" % service_user)
-    users.set_user(service_user)
-    try:
+    with users.set_user(service_user):
         default_lang, _ = get_default_translations(TRANSLATION_MAP)
         sln_settings = get_and_complete_solution_settings(service_user, SOLUTION_DJMATIC)
 
@@ -211,13 +210,12 @@ def provision(service_user, friends=None):
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
 
-        provision_all_modules(sln_settings, MODULE_COORDS_MAPPING, main_branding, default_lang)
+        sln_settings = provision_all_modules(sln_settings, MODULE_COORDS_MAPPING, main_branding, default_lang)
 
         system.put_callback(u"system.api_call", True)
         system.publish_changes(friends)
         logging.info('Service populated!')
-    finally:
-        users.clear_user()
+        return False, sln_settings
 
 
 @returns(ProvisionResponseTO)

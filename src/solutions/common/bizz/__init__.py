@@ -632,17 +632,13 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                 last_publish = now_
 
             bizz = importlib.import_module("solutions.%s.bizz" % sln_settings.solution)
-            needs_reload = bizz.provision(service_user, friends)
+            needs_reload, sln_settings = bizz.provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
 
-            def trans_timer():
-                settings = sln_settings or get_solution_settings(service_user)
-                settings.last_publish = last_publish
-                settings.put()
-
             if last_publish:
-                run_in_transaction(trans_timer)
+                sln_settings.last_publish = last_publish
+                sln_settings.put()
         except Exception as e:
             if not sln_settings:
                 sln_settings = get_solution_settings(service_user)
