@@ -167,16 +167,21 @@ class TestCase(unittest.TestCase):
         to_put = apps.values() + [ss, sss, regio_manager, regio_manager_team]
         put_and_invalidate_cache(*to_put)
 
-        data = PaymentProviderTO()
-        data.id = u"payconiq"
-        data.name = u"Payconiq"
-        data.logo = None
-        data.version = 1
-        data.description = u"payconiq descripion is markdown"
-        data.oauth_settings = None
-        data.settings = u"{'a': 1}"
-
-        create_payment_provider(data)
+        create_payment_provider(PaymentProviderTO(id=u"payconiq",
+                                                  name=u"Payconiq",
+                                                  logo=None,
+                                                  version=1,
+                                                  description=u"payconiq descripion is markdown",
+                                                  oauth_settings=None,
+                                                  background_color=None,
+                                                  text_color=None,
+                                                  button_color=None,
+                                                  black_white_logo=None,
+                                                  asset_types=[],
+                                                  currencies=[u'EUR'],
+                                                  settings=u"{'a': 1}",
+                                                  embedded_application=None,
+                                                  app_ids=[]))
 
         for app_id in apps:
             self.setup_qr_templates(app_id)
