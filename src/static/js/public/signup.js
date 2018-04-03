@@ -78,35 +78,44 @@ $(function() {
         });
     }
 
-    function customerSelected() {
-        var customerId = $('#app option:selected').attr('customer_id');
-        if(customerId) {
-            $('#signup_form').attr('customer', customerId);
+    function getSelectedApp() {
+        var appElem = $('#app option:selected');
+        return {
+            app_id: appElem.val().trim(),
+            name: appElem.text().trim(),
+            customer_id: parseInt(appElem.attr('customer_id')),
+            country: appElem.attr('country')
+        };
+    }
 
+    function customerSelected() {
+        var app = getSelectedApp();
+
+        if(app.customer_id) {
             // get editable organization types
-            if(orgTypesCache[customerId]) {
-                setEditableOrganizationTypes(orgTypesCache[customerId]);
+            if(orgTypesCache[app.customer_id]) {
+                setEditableOrganizationTypes(orgTypesCache[app.customer_id]);
             } else {
                 $('#next').attr('disabled', true);
                 sln.call({
                     url: '/unauthenticated/osa/customer/org/types',
                     type: 'GET',
                     data: {
-                        customer_id: parseInt(customerId)
+                        customer_id: app.customer_id
                     },
                     success: function(data) {
                         setEditableOrganizationTypes(data);
-                        orgTypesCache[customerId] = data;
+                        orgTypesCache[app.customer_id] = data;
                         $('#next').attr('disabled', false);
                     },
-                    error: function() {
-                        $('#next').attr('disabled', false);
+                    error: function(req, status, error) {
                         sln.showAjaxError();
+                        throw new Error('Status: ' + status + '\n' + error);
                     }
                 });
             }
         } else {
-            $('#organization_types').hide();
+            throw new Error('Invalid customer id: ' + app.customer_id + ' for: ' + app.name);
         }
     }
 
@@ -134,7 +143,7 @@ $(function() {
             return;
         }
 
-        var country = $('#app option:selected').attr('country');
+        var country = getSelectedApp().country;
         if(isDigit(vat[0])) {
             vat = country + vat;
         }
@@ -195,8 +204,14 @@ $(function() {
 
     function getSignupDetails(recaptchaToken) {
         var args = {};
+        var app = getSelectedApp();
 
-        args.city_customer_id = parseInt($('#signup_form').attr('customer'));
+        if (!app.customer_id) {
+            sln.showAjaxError();
+            throw new Error('Customer id is not set for ' + app.app_id + ' (' + app.name + ')');
+        }
+
+        args.city_customer_id = app.customer_id;
         args.company = gatherFromInputs('enterprise');
         args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
         args.customer = gatherFromInputs('contact');
@@ -303,7 +318,7 @@ $(function() {
 
         /* refill some info from the previous one */
         if(currentStep === 2) {
-            var city = $('#app option:selected').attr('city');
+            var city = getSelectedApp().name;
             fillInput('enterprise_city', city);
             fillInput('contact_city', city)
         }
