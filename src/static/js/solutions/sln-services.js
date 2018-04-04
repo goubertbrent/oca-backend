@@ -347,7 +347,7 @@
             case 'common.provision.failed':
                 isWaitingForProvisionUpdate = false;
                 sln.hideProcessing();
-                sln.alert(CommonTranslations.ERROR, null, data.errormsg);
+                sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 break;
             case 'solutions.common.services.deleted':
                 var organizationType = data.service_organization_type;
