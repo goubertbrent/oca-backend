@@ -610,13 +610,14 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
         settings_was_none = not bool(sln_settings)
         cur_user = users.get_current_user() or users.get_current_deferred_user()
         must_send_updates_to_flex = cur_user not in (None, MISSING) and (cur_user != service_user)
+
+        last_publish = 0
         try:
             if not settings_was_none:
                 azzert(db.is_in_transaction())
             else:
                 sln_settings = get_solution_settings(service_user)
 
-            last_publish = 0
             if DEBUG or friends or get_current_queue():
                 pass  # no check needed
             else:
@@ -635,10 +636,6 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             needs_reload, sln_settings = bizz.provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
-
-            if last_publish:
-                sln_settings.last_publish = last_publish
-                sln_settings.put()
         except Exception as e:
             if not sln_settings:
                 sln_settings = get_solution_settings(service_user)
@@ -659,6 +656,9 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 # sln_settings is not None when it is just created in the transaction started before calling this method
                 settings = sln_settings
+
+            if last_publish:
+                settings.last_publish = last_publish
             settings.updates_pending = False
             settings.put()
             return settings

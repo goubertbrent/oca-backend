@@ -1136,6 +1136,13 @@ def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag
 @arguments(sln_settings=SolutionSettings, flow_identifier=unicode)
 def _configure_create_news_qr_code(sln_settings, flow_identifier):
     """ the same as _configure_connect_qr_code """
+    azzert(not db.is_in_transaction())
+
+    def set_qr_image_uri(settings_key, image_uri):
+        settings = db.get(settings_key)
+        settings.broadcast_create_news_qrcode = qr_code.image_uri
+        settings.put()
+
     identities = [None]
     if sln_settings.identities:
         identities.extend(sln_settings.identities)
@@ -1151,8 +1158,8 @@ def _configure_create_news_qr_code(sln_settings, flow_identifier):
                                                'create-news-from-mobile')
                 qr_code = qr.create(description, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT,
                                     None, service_identity, flow_identifier)
-                sln_i_settings.broadcast_create_news_qrcode = qr_code.image_uri
-                sln_i_settings.put()
+
+                db.run_in_transaction(set_qr_image_uri, sln_i_settings.key(), qr_code.image_uri)
 
 
 @returns(SolutionServiceMenuItem)

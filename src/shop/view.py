@@ -1397,7 +1397,7 @@ The Rogerthat team.""" % (sln_settings.login.email() if sln_settings.login else 
 
 @rest("/internal/shop/rest/question/assign", "post")
 @returns(ReturnStatusTO)
-@arguments(question_id=int, team_id=int)
+@arguments(question_id=(int, long), team_id=(int, long))
 def assign_team_to_question(question_id, team_id):
     question = Question.get_by_id(question_id)
     user = gusers.get_current_user()
