@@ -30,6 +30,7 @@ from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderS
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
+from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 from solutions.common.handlers.admin.services import ServiceTools, NewJukeboxAppBranding
@@ -56,6 +57,7 @@ handlers = [
     ('/admin/cron/rpc/city_association_statistics', CreateNonProfitStatistics),
     ('/admin/cron/rpc/solution_events_scraper', SolutionEventsScraper),
     ('/admin/cron/rpc/solution_news_scraper', SolutionNewsScraper),
+    ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),

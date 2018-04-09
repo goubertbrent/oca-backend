@@ -18,10 +18,10 @@
 import logging
 from xml.dom import minidom
 
-from lxml import html
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
+
+from lxml import html
 from solutions.common.cron.news import BROADCAST_TYPE_NEWS, transl, create_news_item
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionNewsScraperSettings
@@ -30,18 +30,22 @@ from solutions.common.models import SolutionNewsScraperSettings
 def check_for_news(service_user):
     deferred.defer(_check_for_news, service_user)
 
-def _check_for_news(service_user):
+
+def _check_for_news(service_user, rss_url=None):
+    if not rss_url:
+        rss_url = u"http://www.dendermonde.be/rssout.aspx?cat=N"
+
     sln_settings = get_solution_settings(service_user)
     if BROADCAST_TYPE_NEWS not in sln_settings.broadcast_types:
-        logging.error("check_for_news_in_be_dendermonde failed no broadcast type found with name '%s'", BROADCAST_TYPE_NEWS)
+        logging.info(sln_settings.broadcast_types)
+        logging.error("check_for_news_in_be_dendermonde failed no broadcast type found with name '%s' for service %s", BROADCAST_TYPE_NEWS, service_user)
         return
 
     broadcast_type = transl(BROADCAST_TYPE_NEWS, sln_settings.main_language)
 
-    url = u"http://www.dendermonde.be/rssout.aspx?cat=N"
-    response = urlfetch.fetch(url, deadline=60)
+    response = urlfetch.fetch(rss_url, deadline=60)
     if response.status_code != 200:
-        logging.error("Could not check for news in be_dendermonde.\n%s" % response.content)
+        logging.error("Could not check news for url %s in be_dendermonde.\n%s", rss_url, response.content)
         return
 
     sln_news_scraper_settings_key = SolutionNewsScraperSettings.create_key(service_user)
@@ -73,7 +77,7 @@ def _check_for_news(service_user):
             tree = html.fromstring(response.content.decode("utf8"))
             div = tree.xpath('//div[@class="short box"]')
             if not div:
-                logging.error('News scraper for dendermonde needs to be updated')
+                logging.error('News scraper for dendermonde needs to be updated rss url %s', rss_url)
                 continue
             message = u'%s' % div[0].text
         except Exception:

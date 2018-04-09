@@ -19,9 +19,11 @@ import json
 import logging
 import os
 
-from babel import dates
 from google.appengine.api import users as gae_users
 import jinja2
+import webapp2
+
+from babel import dates
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.consts import DEBUG
@@ -42,7 +44,6 @@ from solutions.common.to import SolutionEmailSettingsTO
 from solutions.djmatic import JUKEBOX_SERVER_API_URL, SOLUTION_DJMATIC
 from solutions.djmatic.dal import get_djmatic_profile
 from solutions.jinja_extensions import TranslateExtension
-import webapp2
 
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates'),
@@ -82,7 +83,7 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
                      'inbox_messages', 'inbox_detail_messages',
                      'events_add', 'events_add_dates', 'events', 'events_events', 'events_settings', 'events_calendar_settings', 'events_guests_modal',
                      'events_guests_table', 'events_uitcalendar_settings',
-                     'broadcast_types', 'broadcast_schedule', 'broadcast_schedule_items', 'addattachment',
+                     'broadcast_types', 'broadcast_schedule', 'broadcast_schedule_items', 'broadcast_rss_settings', 'addattachment',
                      'settings/try_publish_changes', 'settings/settings_branding', 'settings/settings_branding_preview', 'settings/upload_image'):
             templates[tmpl] = JINJA_ENVIRONMENT.get_template(tmpl + '.html').render(tmpl_params)
         templates = json.dumps(templates)

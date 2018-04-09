@@ -140,24 +140,24 @@ $(function() {
     };
     
     var deleteRegion = function() {
-    	var region = $(this).attr('region');
-    	var regionElem = $('.sln-set-events-regions');
-    	var index = regionElem.data('regions').indexOf(region);
-    	if (index >= 0) {
-	    	regionElem.data('regions').splice(index, 1);
-	    	renderRegions(regionElem.data('regions'));
-            saveCityAppSettings();
-	    }
+	    	var region = $(this).attr('region');
+	    	var regionElem = $('.sln-set-events-regions');
+	    	var index = regionElem.data('regions').indexOf(region);
+	    	if (index >= 0) {
+		    	regionElem.data('regions').splice(index, 1);
+		    	renderRegions(regionElem.data('regions'));
+		    	saveCityAppSettings();
+		}
     };
     
     var renderRegions = function(regions) {
-    	var htmlElement = $('.sln-set-events-regions table tbody');
-    	htmlElement.empty();
-    	var html = $.tmpl(templates.events_uitcalendar_settings, {
-            regions : regions
-        });
-    	htmlElement.append(html);
-    	htmlElement.find('button[action="deleteRegion"]').click(deleteRegion);
+	    	var htmlElement = $('.sln-set-events-regions table tbody');
+	    	htmlElement.empty();
+	    	var html = $.tmpl(templates.events_uitcalendar_settings, {
+	            regions : regions
+	        });
+	    	htmlElement.append(html);
+	    	htmlElement.find('button[action="deleteRegion"]').click(deleteRegion);
     };
 
     $(".sln-set-events-status").html(TMPL_SET_EVENTS_STATUS);
@@ -173,7 +173,7 @@ $(function() {
     });
     
     $('#sln-set-events-add-region').click(function() {
-    	sln.input(function (value) {
+    		sln.input(function (value) {
             if (!value.trim())
                 return false;
 

@@ -14,6 +14,10 @@ cron:
 - description: Solution Loyalty lottery loot
   url: /admin/cron/rpc/solution_loyalty_lottery_loot
   schedule: every 1 hours
+  
+- description: Solution rss scraper
+  url: /admin/cron/rpc/solution_rss_scraper
+  schedule: every 1 hours
 
 - description: Solution sync google calendar events
   url: /admin/cron/rpc/solution_sync_google_calendar_events

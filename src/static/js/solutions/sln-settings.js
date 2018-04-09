@@ -1425,6 +1425,21 @@ $(function () {
         }
         array.splice(new_index, 0, array.splice(old_index, 1)[0]);
     }
+    
+    function getbroadcastRssUrls(callback) {
+        if (LocalCache.broadcastRssUrls) {
+            callback(LocalCache.broadcastRssUrls);
+        } else {
+            sln.call({
+                url: "/common/broadcast/rss_feeds",
+                type: "GET",
+                success: function (data) {
+                    LocalCache.broadcastRssUrls = data;
+                    callback(data);
+                }
+            });
+        }
+    }
 
     function getbroadcastOptions(callback) {
         if (LocalCache.broadcastOptions) {
@@ -1447,7 +1462,7 @@ $(function () {
         // show the add roles dialog with only news publisher option
         addRoles(false, false, true);
     }
-
+    $('#sln-set-broadcast-add-rss').click(addRssUrl);
     // add broadcast news publisher
     $('#broadcast_add_news_publisher').click(addBroadcastNewsPublisher);
     // add broadcast type
@@ -1466,6 +1481,11 @@ $(function () {
     });
 
     function renderBroadcastSettings() {
+    		getbroadcastRssUrls(function (rssFeeds) {
+    			 var htmlElement = $('.sln-set-broadcast-rss-urls');
+    	         htmlElement.data('rss_urls', rssFeeds);
+    	         renderRssUrls(rssFeeds);
+        });
         getbroadcastOptions(function (broadcastOptions) {
             var html = $.tmpl(templates.broadcast_settings_list, {
                 broadcastTypes: broadcastOptions.editable_broadcast_types,
@@ -1493,6 +1513,63 @@ $(function () {
             $('#btn-save-broadcast-settings').click(saveBroadcastSettings);
         });
     }
+    
+    function addRssUrl() {
+    		sln.input(function (value) {
+            if (!value.trim())
+                return false;
+
+            var htmlElement = $('.sln-set-broadcast-rss-urls');
+            htmlElement.data('rss_urls').push(value);
+            renderRssUrls(htmlElement.data('rss_urls'));
+            saveRssUrls();
+            
+        }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT);
+    };
+    
+    var renderRssUrls = function(urls) {
+	    	var htmlElement = $('.sln-set-broadcast-rss-urls table tbody');
+	    	htmlElement.empty();
+	    	var html = $.tmpl(templates.broadcast_rss_settings, {
+	    		rss_urls : urls
+	    });
+	    	htmlElement.append(html);
+	    	htmlElement.find('button[action="deleteRssUrl"]').click(deleteRssUrl);
+	};
+	
+	var deleteRssUrl = function() {
+	    	var url = $(this).attr('rss_url');
+	    	var htmlElement = $('.sln-set-broadcast-rss-urls');
+	    	var index = htmlElement.data('rss_urls').indexOf(url);
+	    	if (index >= 0) {
+	    		htmlElement.data('rss_urls').splice(index, 1);
+	    		renderRssUrls(htmlElement.data('rss_urls'));
+	        saveRssUrls();
+		}
+	};
+	
+	var saveRssUrls = function() {
+		var htmlElement = $('.sln-set-broadcast-rss-urls');
+		var data = JSON.stringify({
+            rss_feeds : htmlElement.data('rss_urls')
+        });
+		
+		sln.call({
+            url : "/common/broadcast/rss_feeds",
+            type : "POST",
+            data : {
+                data : data
+            },
+            success : function(data) {
+                if (data.success) {
+	                	LocalCache.broadcastRssUrls = null;
+                } else {
+	                	sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                }
+            },
+            error : sln.showAjaxError
+        });
+	};
 
     function addBroadcastType() {
         var broadcastTypeInput = $('#settings_extra_broadcast_type');

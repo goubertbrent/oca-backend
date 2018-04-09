@@ -18,7 +18,7 @@
 import json
 import logging
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 
 from babel.dates import get_timezone
 from mcfw.cache import invalidate_cache, CachedModelMixIn
@@ -26,6 +26,8 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from rogerthat.dal import parent_key, parent_key_unsafe
+from rogerthat.models import ServiceIdentity
+from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import now
@@ -310,7 +312,6 @@ class SolutionSettings(SolutionIdentitySettings):
 
     # Broadcast
     broadcast_types = db.StringListProperty(indexed=False)
-
     broadcast_on_facebook = db.BooleanProperty(indexed=False, default=False)
     broadcast_on_twitter = db.BooleanProperty(indexed=False, default=False)
     broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
@@ -648,10 +649,59 @@ class FileBlob(db.Model):
 
 
 class SolutionNewsScraperSettings(db.Model):
-
     urls = db.StringListProperty(indexed=False)
 
     @staticmethod
     def create_key(service_user):
         return db.Key.from_path(SolutionNewsScraperSettings.kind(), service_user.email(),
                                 parent=parent_key(service_user, SOLUTION_COMMON))
+
+
+class SolutionRssLink(NdbModel):
+    url = ndb.StringProperty()
+    dry_runned = ndb.BooleanProperty(default=False)
+
+
+class SolutionRssScraperSettings(NdbModel):
+    rss_links = ndb.LocalStructuredProperty(SolutionRssLink, repeated=True)
+
+    @property
+    def service_user_email(self):
+        return self.key.parent().string_id().decode('utf-8')
+
+    @property
+    def service_user(self):
+        return users.User(self.service_user_email)
+
+    @property
+    def service_identity(self):
+        return self.key.string_id().decode('utf-8')
+
+    @classmethod
+    def create_parent_key(cls, service_user):
+        return ndb.Key(cls,
+                       service_user.email())
+
+    @classmethod
+    def create_key(cls, service_user, service_identity):
+        if not service_identity:
+            service_identity = ServiceIdentity.DEFAULT
+        return ndb.Key(cls,
+                       service_identity,
+                       parent=SolutionRssScraperSettings.create_parent_key(service_user))
+
+
+class SolutionRssScraperItem(NdbModel):
+
+    timestamp = ndb.IntegerProperty(indexed=True)
+    dry_run = ndb.BooleanProperty(indexed=True)
+
+    @property
+    def url(self):
+        return self.key.string_id().decode('utf-8')
+
+    @classmethod
+    def create_key(cls, service_user, service_identity, url):
+        return ndb.Key(cls,
+                       url,
+                       parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
