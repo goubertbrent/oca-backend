@@ -1016,7 +1016,7 @@ $(function () {
 
     $(".sln-required-warning").html(TMPL_REQUIRED_PENDING).hide();
 
-    $("#settings").find("> ul > li > a").click(settingTabPress);
+    $("#settings").find("ul > li > a").click(settingTabPress);
     $(".sln-set-visibility").html(TMPL_SET_VISIBLE);
     $(".sln-set-search-keywords").html(TMPL_SET_SEARCH_KEYWORDS);
     $('.sln-set-search-keywords a[data-toggle="tooltip"]').tooltip();
