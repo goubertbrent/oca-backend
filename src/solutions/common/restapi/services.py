@@ -381,4 +381,5 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
                     return CreateServiceStatusTO.create(False, error_msg)
                 else:
                     set_customer_signup_status(city_customer, signup, approved=True)
+                    logging.debug('Service created from signup: %s, with modules of %s', signup_key, modules)
                     return CreateServiceStatusTO.create(success=True)
