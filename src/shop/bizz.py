@@ -2748,20 +2748,23 @@ def complete_customer_signup(email, data):
     except:
         raise InvalidUrlException
 
-    signup = CustomerSignup.get(data['s'])
-    if not signup:
-        raise InvalidUrlException
+    def update_signup():
+        signup = CustomerSignup.get(data['s'])
+        if not signup:
+            raise InvalidUrlException
 
-    timestamp = signup.timestamp
-    if not (timestamp < now() < timestamp + 24 * 3600):
-        raise ExpiredUrlException
+        timestamp = signup.timestamp
+        if not (timestamp < now() < timestamp + 24 * 3600):
+            raise ExpiredUrlException
 
-    if signup.inbox_message_key:
-        raise AlreadyUsedUrlException
+        if signup.inbox_message_key:
+            raise AlreadyUsedUrlException
 
-    service_user = users.User(data['c'])
-    signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
-    signup.put()
+        service_user = users.User(data['c'])
+        signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
+        signup.put()
+
+    run_in_xg_transaction(update_signup)
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):
