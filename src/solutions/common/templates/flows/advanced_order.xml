@@ -577,7 +577,7 @@
             autoLock="true">
             <content>
                 {%- if manual_confirmation -%}
-                    {% translate language, 'common', 'order-flow-manual-confirm', 'name=' + settings.name %}
+                    {% translate language, 'common', 'order-flow-manual-confirm', 'name=' + settings.name|escape %}
                 {%- else -%}
                     {% translate language, 'common', 'order-flow-tnx' %}
                 {%- endif -%}
