@@ -112,7 +112,9 @@ class Functionality(object):
     @property
     def screenshot_image(self):
         name = self.name
-        if name == SolutionModule.DISCUSSION_GROUPS:
+        if self.is_oca_terminal():
+            name = 'terminal'
+        elif name == SolutionModule.DISCUSSION_GROUPS:
             name = SolutionModule.ASK_QUESTION
         return '/static/images/solutions/func_%s.jpg' % name
 
