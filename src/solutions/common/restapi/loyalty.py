@@ -52,7 +52,8 @@ from solutions.common.to.loyalty import LoyaltySettingsTO, LoyaltySlideTO, Exten
     LoyaltyScanTO, LOYALTY_SETTINGS_MAPPING, SolutionLoyaltyVisitTO, LoyaltyRevenueDiscountSettingsTO, \
     LoyaltyLotterySettingsTO, LoyaltyCustomersTO, LoyaltyCustomerPointsTO, LoyaltyLotteryInfoTO, LoyaltyLotteryChanceTO, \
     LoyaltyStampsSettingsTO, SolutionLoyaltyExportTO, SolutionLoyaltyExportListTO, BaseLoyaltyCustomersTO, \
-    CityWideLotteryInfoTO, LoyaltyCityWideLotterySettingsTO
+    CityWideLotteryInfoTO, LoyaltyCityWideLotterySettingsTO, \
+    LoyaltySlidesOnlySettingsTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 
 
@@ -108,7 +109,8 @@ def load_specific_loyalty_settings(loyalty_type):
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
+    if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules or \
+            SolutionModule.JOYN in sln_settings.modules:
         loyalty_type = None
 
     def trans():
@@ -133,6 +135,8 @@ def put_loyalty_settings(loyalty_type, loyalty_settings, loyalty_website):
             sln_settings = get_solution_settings(service_user)
             if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
                 loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY
+            if SolutionModule.JOYN in sln_settings.modules:
+                loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY
             sln_settings.updates_pending = True
 
             sln_loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
@@ -257,6 +261,8 @@ def load_customer_points(loyalty_type=None, cursor=None):
         r.loyalty_settings = LoyaltyStampsSettingsTO.fromModel(loyalty_settings)
     elif loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY:
         r.loyalty_settings = LoyaltyCityWideLotterySettingsTO.fromModel(loyalty_settings)
+    elif loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
+        r.loyalty_settings = LoyaltySlidesOnlySettingsTO.fromModel(loyalty_settings)
     else:
         r.loyalty_settings = None
     r.customers = sorted(result_dict.itervalues(),

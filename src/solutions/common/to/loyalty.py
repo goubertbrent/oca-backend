@@ -17,13 +17,12 @@
 
 from datetime import datetime, date
 import json
-import pytz
 
 from babel.dates import format_date
-
 from mcfw.properties import unicode_list_property, unicode_property, long_property, typed_property, bool_property, \
     long_list_property, object_factory, float_property
 from mcfw.rpc import parse_complex_value
+import pytz
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import today
 from rogerthat.utils.app import create_app_user_by_email
@@ -122,10 +121,22 @@ class LoyaltyCityWideLotterySettingsTO(object):
         to = LoyaltyCityWideLotterySettingsTO()
         return to
 
+
+class LoyaltySlidesOnlySettingsTO(object):
+    loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY
+
+    @staticmethod
+    def fromModel(obj):
+        to = LoyaltySlidesOnlySettingsTO()
+        return to
+
+
 LOYALTY_SETTINGS_MAPPING = {SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT: LoyaltyRevenueDiscountSettingsTO,
                             SolutionLoyaltySettings.LOYALTY_TYPE_LOTTERY: LoyaltyLotterySettingsTO,
                             SolutionLoyaltySettings.LOYALTY_TYPE_STAMPS: LoyaltyStampsSettingsTO,
-                            SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY: LoyaltyCityWideLotterySettingsTO}
+                            SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY: LoyaltyCityWideLotterySettingsTO,
+                            SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY: LoyaltySlidesOnlySettingsTO}
+
 
 class LoyaltySettingsTO(object):
     image_uri = unicode_property('1')

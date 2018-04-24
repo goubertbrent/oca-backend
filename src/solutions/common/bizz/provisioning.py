@@ -16,20 +16,19 @@
 # @@license_version:1.2@@
 
 import base64
+from contextlib import closing
+from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
+import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
+from google.appengine.ext import db, deferred
 import jinja2
-from google.appengine.ext import db
 
-import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from mcfw.properties import azzert
@@ -51,6 +50,7 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -90,7 +90,8 @@ from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
     SolutionLoyaltyIdentitySettings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe
-from solutions.common.models.properties import MenuItem
+from solutions.common.models.properties import MenuItem, ActivatedModules, \
+    ActivatedModule
 from solutions.common.models.reservation import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
 from solutions.common.models.static_content import SolutionStaticContent
@@ -105,29 +106,32 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+POKE_TAGS = {
+    SolutionModule.AGENDA:        POKE_TAG_EVENTS,
+    SolutionModule.APPOINTMENT:   POKE_TAG_APPOINTMENT,
+    SolutionModule.ASK_QUESTION:  POKE_TAG_ASK_QUESTION,
+    SolutionModule.BROADCAST:     ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
+    SolutionModule.BILLING:       None,
+    SolutionModule.BULK_INVITE:   None,
+    SolutionModule.CITY_APP:      None,
+    SolutionModule.CITY_VOUCHERS: None,
+    SolutionModule.DISCUSSION_GROUPS: POKE_TAG_DISCUSSION_GROUPS,
+    SolutionModule.GROUP_PURCHASE: POKE_TAG_GROUP_PURCHASE,
+    SolutionModule.LOYALTY:       POKE_TAG_LOYALTY,
+    SolutionModule.MENU:          POKE_TAG_MENU,
+    SolutionModule.ORDER:         POKE_TAG_ORDER,
+    SolutionModule.PHARMACY_ORDER: POKE_TAG_PHARMACY_ORDER,
+    SolutionModule.QR_CODES:      None,
+    SolutionModule.REPAIR:        POKE_TAG_REPAIR,
+    SolutionModule.RESTAURANT_RESERVATION: None,
+    SolutionModule.SANDWICH_BAR:  POKE_TAG_SANDWICH_BAR,
+    SolutionModule.STATIC_CONTENT: None,
+    SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
 
-POKE_TAGS = {SolutionModule.AGENDA:        POKE_TAG_EVENTS,
-             SolutionModule.APPOINTMENT:   POKE_TAG_APPOINTMENT,
-             SolutionModule.ASK_QUESTION:  POKE_TAG_ASK_QUESTION,
-             SolutionModule.BROADCAST:     ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
-             SolutionModule.BILLING:       None,
-             SolutionModule.BULK_INVITE:   None,
-             SolutionModule.CITY_APP:      None,
-             SolutionModule.CITY_VOUCHERS: None,
-             SolutionModule.DISCUSSION_GROUPS: POKE_TAG_DISCUSSION_GROUPS,
-             SolutionModule.GROUP_PURCHASE: POKE_TAG_GROUP_PURCHASE,
-             SolutionModule.LOYALTY:       POKE_TAG_LOYALTY,
-             SolutionModule.MENU:          POKE_TAG_MENU,
-             SolutionModule.ORDER:         POKE_TAG_ORDER,
-             SolutionModule.PHARMACY_ORDER: POKE_TAG_PHARMACY_ORDER,
-             SolutionModule.QR_CODES:      None,
-             SolutionModule.REPAIR:        POKE_TAG_REPAIR,
-             SolutionModule.RESTAURANT_RESERVATION: None,
-             SolutionModule.SANDWICH_BAR:  POKE_TAG_SANDWICH_BAR,
-             SolutionModule.STATIC_CONTENT: None,
-             SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
-             SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
-             }
+    SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
+
+    SolutionModule.JOYN: None,
+}
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
 
@@ -389,7 +393,8 @@ def populate_identity(sln_settings, main_branding_key):
         search_config_locations.append(location_to)
 
     content_branding_hash = None
-    if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
+    if SolutionModule.LOYALTY in sln_settings.modules or \
+            SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
         solution_loyalty_settings = get_and_store_content_branding(
             sln_settings.service_user, sln_settings.main_language)
         content_branding_hash = solution_loyalty_settings.branding_key
@@ -711,11 +716,14 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
     if not sln_settings.provisioned_modules:
         sln_settings.provisioned_modules = []
+    if not sln_settings.activated_modules:
+        sln_settings.activated_modules = ActivatedModules()
 
     service_menu = system.get_menu()
     for provisioned_module in sln_settings.provisioned_modules:
         if provisioned_module not in sln_settings.modules:
             logging.info("should remove module: %s", provisioned_module)
+            sln_settings.activated_modules.remove(provisioned_module)
             current_coords = get_coords_of_service_menu_item(service_menu, POKE_TAGS[provisioned_module])
             delete_func = MODULES_DELETE_FUNCS[provisioned_module]
             delete_func(sln_settings, current_coords, service_menu)
@@ -725,6 +733,15 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
                 if coords_dict[provisioned_module][tag]["preferred_page"] == -1:
                     current_coords = get_coords_of_service_menu_item(service_menu, tag)
                     _default_delete(sln_settings, current_coords, service_menu)
+
+    now_ = now()
+    for module in sln_settings.modules:
+        if module not in sln_settings.activated_modules:
+            activated_module = ActivatedModule()
+            activated_module.name = module
+            activated_module.timestamp = now_
+            sln_settings.activated_modules.add(activated_module)
+
     sln_settings.provisioned_modules = []
 
     _configure_inbox_qr_code_if_needed(sln_settings, main_branding)
@@ -845,7 +862,7 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
                                    common_translate(default_lang, SOLUTION_COMMON, 'create-event'),
                                    POKE_TAG_NEW_EVENT,
                                    roles=[role_id],
-                                   action=SolutionModule.action_order(SolutionModule.AGENDA))
+                                   action=0)
     ssmis.append(ssmi)
 
     if not sln_settings.default_calendar:
@@ -1191,7 +1208,7 @@ def _configure_broadcast_create_news(sln_settings, main_branding, default_lang, 
                                    tag=tag,
                                    roles=[role_id],
                                    static_flow=create_news_flow.identifier,
-                                   action=SolutionModule.action_order(SolutionModule.BROADCAST))
+                                   action=0)
 
     # add qr code to identities
     # wait until transactions are done first
@@ -1231,13 +1248,21 @@ def put_group_purchase(sln_settings, current_coords, main_branding, default_lang
 def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
     service_user = sln_settings.service_user
 
+    @db.non_transactional
+    def get_customer():
+        from shop.models import Customer
+        return Customer.get_by_service_email(service_user.email())
+
+    customer = get_customer()
+
     identities = [None]
     if sln_settings.identities:
         identities.extend(sln_settings.identities)
+    loyalty_type = None
     for service_identity in identities:
+        should_put = False
         if is_default_service_identity(service_identity):
             loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
-            should_put = False
             if not loyalty_settings:
                 logging.debug('Creating new SolutionLoyaltySettings')
                 should_put = True
@@ -1249,25 +1274,48 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
                 should_put = True
                 loyalty_settings.image_uri = qr_code.image_uri
                 loyalty_settings.content_uri = qr_code.content_uri
-            if should_put:
-                loyalty_settings.put()
+
+            limited = False
+            if SolutionModule.JOYN in sln_settings.modules:
+                limited = True
+            elif customer and customer.country == "BE":
+                if sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
+                    limited = True
+
+            if limited and loyalty_settings.loyalty_type != SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
+                should_put = True
+                loyalty_settings.loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY
+
+            loyalty_type = loyalty_settings.loyalty_type
+
         else:
-            sln_li_settings = SolutionLoyaltyIdentitySettings.get_by_user(service_user, service_identity)
-            if not sln_li_settings:
+            loyalty_settings = SolutionLoyaltyIdentitySettings.get_by_user(service_user, service_identity)
+            if not loyalty_settings:
                 logging.debug('Creating new SolutionLoyaltyIdentitySettings')
                 should_put = True
-                sln_li_settings = SolutionLoyaltyIdentitySettings(
+                loyalty_settings = SolutionLoyaltyIdentitySettings(
                     key=SolutionLoyaltyIdentitySettings.create_key(service_user, service_identity))
-            if not sln_li_settings.image_uri:
+            if not loyalty_settings.image_uri:
                 qr_code = create_loyalty_admin_qr_code(service_identity)
                 should_put = True
-                sln_li_settings.image_uri = qr_code.image_uri
-                sln_li_settings.content_uri = qr_code.content_uri
-                sln_li_settings.put()
-            if should_put:
-                sln_li_settings.put()
+                loyalty_settings.image_uri = qr_code.image_uri
+                loyalty_settings.content_uri = qr_code.content_uri
+                loyalty_settings.put()
 
-    if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY:
+        if loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
+            from solutions.common.bizz.loyalty import _update_user_data_admin
+            for i, functions in enumerate(loyalty_settings.functions):
+                if functions != SolutionLoyaltySettings.FUNCTION_SLIDESHOW:
+                    should_put = True
+                    loyalty_settings.functions[i] = SolutionLoyaltySettings.FUNCTION_SLIDESHOW
+                    deferred.defer(_update_user_data_admin, service_user, service_identity, loyalty_settings.admins[i],
+                                   loyalty_settings.app_ids[i], _transactional=db.is_in_transaction())
+
+        if should_put:
+            loyalty_settings.put()
+
+    if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY or \
+            loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
         logging.info("Clearing LOYALTY icon")
         _default_delete(sln_settings, current_coords)
         return []
@@ -1883,7 +1931,7 @@ def delete_discussion_groups(sln_settings, current_coords, service_menu):
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, default_lang, tag):
-    if SolutionModule.LOYALTY in sln_settings.modules:
+    if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.JOYN in sln_settings.modules:
         raise Exception(u"hidden_city_wide_lottery and loyalty should not be used together")
 
     service_user = sln_settings.service_user
@@ -1925,56 +1973,65 @@ def _default_delete(sln_settings, current_coords, service_menu=None):
                 service_menu.items.remove(item)
 
 
-MODULES_GET_APP_DATA_FUNCS = {SolutionModule.AGENDA: get_app_data_agenda,
-                              SolutionModule.BROADCAST: get_app_data_broadcast,
-                              SolutionModule.CITY_VOUCHERS: get_app_data_city_vouchers,
-                              SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
-                              SolutionModule.LOYALTY: get_app_data_loyalty,
-                              SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
-                              }
+MODULES_GET_APP_DATA_FUNCS = {
+    SolutionModule.AGENDA: get_app_data_agenda,
+    SolutionModule.BROADCAST: get_app_data_broadcast,
+    SolutionModule.CITY_VOUCHERS: get_app_data_city_vouchers,
+    SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
+    SolutionModule.LOYALTY: get_app_data_loyalty,
+    SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
+}
 
-MODULES_PUT_FUNCS = {SolutionModule.AGENDA: put_agenda,
-                     SolutionModule.APPOINTMENT: put_appointment,
-                     SolutionModule.ASK_QUESTION: put_ask_question,
-                     SolutionModule.BILLING: _dummy_put,
-                     SolutionModule.BROADCAST: put_broadcast,
-                     SolutionModule.BULK_INVITE: _dummy_put,
-                     SolutionModule.DISCUSSION_GROUPS: put_discussion_groups,
-                     SolutionModule.CITY_APP: _dummy_put,
-                     SolutionModule.CITY_VOUCHERS: _dummy_put,
-                     SolutionModule.GROUP_PURCHASE: put_group_purchase,
-                     SolutionModule.LOYALTY: put_loyalty,
-                     SolutionModule.MENU: put_menu,
-                     SolutionModule.ORDER: put_order,
-                     SolutionModule.PHARMACY_ORDER: put_pharmacy_order,
-                     SolutionModule.QR_CODES: put_qr_codes,
-                     SolutionModule.REPAIR: put_repair,
-                     SolutionModule.RESTAURANT_RESERVATION: put_restaurant_reservation,
-                     SolutionModule.SANDWICH_BAR: put_sandwich_bar,
-                     SolutionModule.STATIC_CONTENT: put_static_content,
-                     SolutionModule.WHEN_WHERE: put_when_where,
-                     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
-                     }
+MODULES_PUT_FUNCS = {
+    SolutionModule.AGENDA: put_agenda,
+    SolutionModule.APPOINTMENT: put_appointment,
+    SolutionModule.ASK_QUESTION: put_ask_question,
+    SolutionModule.BILLING: _dummy_put,
+    SolutionModule.BROADCAST: put_broadcast,
+    SolutionModule.BULK_INVITE: _dummy_put,
+    SolutionModule.DISCUSSION_GROUPS: put_discussion_groups,
+    SolutionModule.CITY_APP: _dummy_put,
+    SolutionModule.CITY_VOUCHERS: _dummy_put,
+    SolutionModule.GROUP_PURCHASE: put_group_purchase,
+    SolutionModule.LOYALTY: put_loyalty,
+    SolutionModule.MENU: put_menu,
+    SolutionModule.ORDER: put_order,
+    SolutionModule.PHARMACY_ORDER: put_pharmacy_order,
+    SolutionModule.QR_CODES: put_qr_codes,
+    SolutionModule.REPAIR: put_repair,
+    SolutionModule.RESTAURANT_RESERVATION: put_restaurant_reservation,
+    SolutionModule.SANDWICH_BAR: put_sandwich_bar,
+    SolutionModule.STATIC_CONTENT: put_static_content,
+    SolutionModule.WHEN_WHERE: put_when_where,
 
-MODULES_DELETE_FUNCS = {SolutionModule.AGENDA: delete_agenda,
-                        SolutionModule.APPOINTMENT: _default_delete,
-                        SolutionModule.ASK_QUESTION: _default_delete,
-                        SolutionModule.BILLING: _default_delete,
-                        SolutionModule.BROADCAST: delete_broadcast,
-                        SolutionModule.BULK_INVITE: _default_delete,
-                        SolutionModule.CITY_APP: _default_delete,
-                        SolutionModule.CITY_VOUCHERS: _default_delete,
-                        SolutionModule.DISCUSSION_GROUPS: delete_discussion_groups,
-                        SolutionModule.GROUP_PURCHASE: _default_delete,
-                        SolutionModule.LOYALTY: _default_delete,
-                        SolutionModule.MENU: _default_delete,
-                        SolutionModule.ORDER: _default_delete,
-                        SolutionModule.PHARMACY_ORDER: _default_delete,
-                        SolutionModule.QR_CODES: delete_qr_codes,
-                        SolutionModule.REPAIR: _default_delete,
-                        SolutionModule.RESTAURANT_RESERVATION: delete_restaurant_reservation,
-                        SolutionModule.SANDWICH_BAR: _default_delete,
-                        SolutionModule.STATIC_CONTENT: delete_static_content,
-                        SolutionModule.WHEN_WHERE: _default_delete,
-                        SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
-                        }
+    SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
+
+    SolutionModule.JOYN: _dummy_put,
+}
+
+MODULES_DELETE_FUNCS = {
+    SolutionModule.AGENDA: delete_agenda,
+    SolutionModule.APPOINTMENT: _default_delete,
+    SolutionModule.ASK_QUESTION: _default_delete,
+    SolutionModule.BILLING: _default_delete,
+    SolutionModule.BROADCAST: delete_broadcast,
+    SolutionModule.BULK_INVITE: _default_delete,
+    SolutionModule.CITY_APP: _default_delete,
+    SolutionModule.CITY_VOUCHERS: _default_delete,
+    SolutionModule.DISCUSSION_GROUPS: delete_discussion_groups,
+    SolutionModule.GROUP_PURCHASE: _default_delete,
+    SolutionModule.LOYALTY: _default_delete,
+    SolutionModule.MENU: _default_delete,
+    SolutionModule.ORDER: _default_delete,
+    SolutionModule.PHARMACY_ORDER: _default_delete,
+    SolutionModule.QR_CODES: delete_qr_codes,
+    SolutionModule.REPAIR: _default_delete,
+    SolutionModule.RESTAURANT_RESERVATION: delete_restaurant_reservation,
+    SolutionModule.SANDWICH_BAR: _default_delete,
+    SolutionModule.STATIC_CONTENT: delete_static_content,
+    SolutionModule.WHEN_WHERE: _default_delete,
+
+    SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
+
+    SolutionModule.JOYN: _default_delete,
+}

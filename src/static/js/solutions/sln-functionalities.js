@@ -15,14 +15,13 @@
  *
  * @@license_version:1.2@@
  */
-$(function () {
+$(function() {
     'use strict';
 
     var TEMPL_SWITCH_BUTTON = '<div class="btn-group switch-button "> \
         <button class="btn {{if state}}btn-success{{/if}}" action="on" name="${name}">{{if state}}${onLabel}{{else}}&nbsp;{{/if}}</button> \
         <button class="btn {{if !state}}btn-danger{{/if}}" action="off" name="${name}">{{if !state}}${offLabel}{{else}}&nbsp;{{/if}}</button> \
         </div>';
-
     var isLoadingModules = false;
     var activatedModules = [];
 
@@ -36,7 +35,7 @@ $(function () {
     }
 
     function router() {
-        if(!isLoadingModules) {
+        if (!isLoadingModules) {
             loadFunctionalities();
         }
     }
@@ -72,7 +71,7 @@ $(function () {
         isLoadingModules = true;
         clear();
 
-        if(activatedModules.length) {
+        if (activatedModules.length) {
             renderFunctionalities(activatedModules);
             return;
         }
@@ -98,12 +97,11 @@ $(function () {
         $.each(FUNCTIONALITY_MODULES, function(i, module) {
             var enabled = activatedModules.indexOf(module) !== -1;
             var info = FUNCTIONALITY_INFO[module];
-            var tile = functionalityTile(info, getCurrentLanguageMedia(info.name), enabled,
-                                         module === 'broadcast' && enabled,
-                                         PROVISIONED_MODULES.indexOf(module) !== -1);
+            var tile = functionalityTile(info, getCurrentLanguageMedia(info.name), enabled, module === 'broadcast'
+                    && enabled, PROVISIONED_MODULES.indexOf(module) !== -1);
 
             setVideoPlaybackHandler(tile, info.title);
-            if(enabled) {
+            if (enabled) {
                 activeCount++;
                 $('#enabled_functionalities').append(tile);
             } else {
@@ -129,19 +127,19 @@ $(function () {
         var info = FUNCTIONALITY_INFO[module];
         var settingsLink;
 
-        if(info.settings_section) {
+        if (info.settings_section) {
             settingsLink = $('li[section=section_settings_' + info.settings_section + '] a');
         } else {
             settingsLink = $('li[section=section_settings_' + module + '] a');
         }
 
-        if(settingsLink.length) {
+        if (settingsLink.length) {
             // got to settings page first
             $('li[menu=settings] a').click();
             ROUTES.settings(['settings', module]);
             settingsLink.click();
         } else {
-            if(typeof ROUTES[module] === 'function') {
+            if (typeof ROUTES[module] === 'function') {
                 ROUTES[module]();
             }
             $('li[menu=' + module + '] a').click();
@@ -151,12 +149,12 @@ $(function () {
 
     function setModuleState(moduleName, enabled) {
         var index = activatedModules.indexOf(moduleName);
-        if(enabled) {
-            if(index === -1) {
+        if (enabled) {
+            if (index === -1) {
                 activatedModules.push(moduleName);
             }
         } else {
-            if(index !== -1) {
+            if (index !== -1) {
                 activatedModules.splice(index, 1);
             }
         }
@@ -164,20 +162,27 @@ $(function () {
         loadFunctionalities();
     }
 
-    function enableOrDisbleModule(moduleName, enabled) {
+    function enableOrDisbleModule(moduleName, enabled, force) {
         sln.call({
             url: '/common/functionalities/modules/enable',
             type: 'post',
             data: {
                 name: moduleName,
-                enabled: enabled
+                enabled: enabled,
+                force: force
             },
             success: function(data) {
-                if(!data.success) {
-                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                    return;
+                if (data.success) {
+                    setModuleState(moduleName, enabled);
+                } else {
+                    if (data.errormsg) {
+                        sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                    } else if (data.warningmsg) {
+                        sln.confirm(data.warningmsg, function() {
+                            enableOrDisbleModule(moduleName, enabled, true);
+                        });
+                    }
                 }
-                setModuleState(moduleName, enabled);
             },
             error: sln.showAjaxError
         });
@@ -191,7 +196,7 @@ $(function () {
             return media.en; // fallback to EN media
         }
 
-        if(!languageMedia.screenshot_image && LANGUAGE != 'en') {
+        if (!languageMedia.screenshot_image && LANGUAGE != 'en') {
             languageMedia.screenshot_image = media.en.screenshot_image;
         }
         return languageMedia;
@@ -206,7 +211,7 @@ $(function () {
             showConfig: showConfig,
         });
 
-        if(!hideSwitchButton) {
+        if (!hideSwitchButton) {
             var btn = switchButton(info.name, enabled, enableOrDisbleModule,
                                    CommonTranslations.active, CommonTranslations.inactive);
             tile.append(btn);
@@ -215,15 +220,15 @@ $(function () {
     }
 
     function switchButton(name, initState, callback, onLabel, offLabel) {
-        onLabel = onLabel ? onLabel : CommonTranslations.Enabled;
-        offLabel = offLabel ? offLabel : CommonTranslations.Disabled;
-        initState = initState ? initState : false;
+        onLabel = onLabel || CommonTranslations.Enabled;
+        offLabel = offLabel || CommonTranslations.Disabled;
+        initState = initState || false;
 
         var switchButton = $.tmpl(TEMPL_SWITCH_BUTTON, {
             name: name,
             state: initState,
             onLabel: onLabel,
-            offLabel: offLabel,
+            offLabel: offLabel
         });
 
         var onButton = $('button[action=on]', switchButton);
@@ -232,11 +237,11 @@ $(function () {
         offButton.click(stateChanged);
 
         function getCurrentState(button) {
-            if(button.hasClass('btn-success')) {
+            if (button.hasClass('btn-success')) {
                 return true;
-            } else if(button.hasClass('btn-danger')){
+            } else if (button.hasClass('btn-danger')) {
                 return false;
-            } else if(button.attr('action') === 'on') {
+            } else if (button.attr('action') === 'on') {
                 return false;
             } else {
                 return true;
@@ -247,7 +252,7 @@ $(function () {
             var button = $(this);
             var nextState = !getCurrentState(button);
 
-            if(nextState) {
+            if (nextState) {
                 onButton.addClass('btn-success').text(onLabel);
                 offButton.removeClass('btn-danger').html('&nbsp;');
             } else {
@@ -255,7 +260,7 @@ $(function () {
                 offButton.addClass('btn-danger').text(offLabel);
             }
 
-            if(callback) {
+            if (callback) {
                 callback(name, nextState);
             }
         }
@@ -267,27 +272,25 @@ $(function () {
         var player = $('.youtube-player', tile);
         var videoId = player.attr('data-yt-id');
 
-        if(!videoId) {
+        if (!videoId) {
             return;
         }
 
-        player.click(function () {
+        player.click(function() {
             $('.video-title').text(videoTitle);
             // open popup with this video
             var iframe = $('<iframe height="100%" frameborder="0" allowfullscreen>');
             iframe.attr('src', '//www.youtube.com/embed/' + videoId + '?autoplay=1&showinfo=1&fs=1');
             $('#video-yt-container').html(iframe);
-            $("#video-popup").show()
-                .modal('show')
-                .on('hidden', function () {
-                    $('#video-yt-container').empty();
-                });
+            $("#video-popup").show().modal('show').on('hidden', function() {
+                $('#video-yt-container').empty();
+            });
         });
     }
 
     function channelUpdates(data) {
-        if(data.type === 'common.provision.success') {
-            if(data.needs_reload) {
+        if (data.type === 'common.provision.success') {
+            if (data.needs_reload) {
                 window.location.reload();
             }
         }

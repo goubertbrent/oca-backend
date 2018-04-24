@@ -15,7 +15,10 @@
 #
 # @@license_version:1.2@@
 
+from contextlib import closing
+
 from google.appengine.ext import db
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.properties import unicode_property, typed_property, long_property, bool_property
@@ -230,6 +233,80 @@ class MenuCategoriesProperty(db.UnindexedProperty):
         if value is not None and not isinstance(value, MenuCategories):
             raise ValueError('Property %s must be convertible to a MenuCategories instance (%s)' % (self.name, value))
         return super(MenuCategoriesProperty, self).validate(value)
+
+    def empty(self, value):
+        return not value
+
+
+class ActivatedModule(object):
+    name = unicode_property('1')
+    timestamp = long_property('2')
+
+    def __init__(self, name=None, timestamp=0):
+        self.name = name
+        self.timestamp = timestamp
+
+
+def _serialize_activated_module(stream, m):
+    s_unicode(stream, m.name)
+    s_long(stream, m.timestamp)
+
+
+def _deserialize_activated_module(stream, version):
+    m = ActivatedModule()
+    m.name = ds_unicode(stream)
+    m.timestamp = ds_long(stream)
+    return m
+
+
+def _serialize_activated_modules(stream, modules):
+    s_long(stream, 1)  # version
+    _serialize_activated_module_list(stream, modules)
+
+
+def _deserialize_activated_modules(stream):
+    version = ds_long(stream)
+    modules = ActivatedModules()
+    for m in _deserialize_activated_module_list(stream, version) or []:
+        modules.add(m)
+    return modules
+
+
+_serialize_activated_module_list = get_list_serializer(_serialize_activated_module)
+_deserialize_activated_module_list = get_list_deserializer(_deserialize_activated_module, True)
+
+
+class ActivatedModules(SpecializedList):
+
+    def add(self, m):
+        self._table[m.name] = m
+
+    def remove(self, name):
+        if name in self._table:
+            del self._table[name]
+
+
+class ActivatedModulesProperty(db.UnindexedProperty):
+
+    # Tell what the user type is.
+    data_type = ActivatedModules
+
+    # For writing to datastore.
+    def get_value_for_datastore(self, model_instance):
+        with closing(StringIO.StringIO()) as stream:
+            _serialize_activated_modules(stream, super(ActivatedModulesProperty, self).get_value_for_datastore(model_instance))
+            return db.Blob(stream.getvalue())
+
+    # For reading from datastore.
+    def make_value_from_datastore(self, value):
+        if value is None:
+            return None
+        return _deserialize_activated_modules(StringIO.StringIO(value))
+
+    def validate(self, value):
+        if value is not None and not isinstance(value, ActivatedModules):
+            raise ValueError('Property %s must be convertible to a ActivatedModules instance (%s)' % (self.name, value))
+        return super(ActivatedModulesProperty, self).validate(value)
 
     def empty(self, value):
         return not value

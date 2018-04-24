@@ -65,9 +65,7 @@
 }
 
 #news_form_buttons {
-    position: absolute;
-    right: 0;
-    bottom: 0;
+    float: right;
 }
 
 #form_broadcast_news input:not([type=radio]):not([type=checkbox]), #form_broadcast_news select, #form_broadcast_news textarea {

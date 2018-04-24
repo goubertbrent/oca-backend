@@ -26,19 +26,19 @@ import os
 import time
 from types import NoneType
 
-from PIL.Image import Image
-import pytz
-
-from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+
+from PIL.Image import Image
+from babel.dates import format_date, format_time, format_datetime, get_timezone
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
     azzert, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
+import pytz
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
@@ -120,6 +120,8 @@ class SolutionModule(Enum):
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
+    JOYN = u'joyn'
+
     MODULES_TRANSLATION_KEYS = {
         AGENDA: 'agenda',
         APPOINTMENT: 'appointment',
@@ -138,7 +140,9 @@ class SolutionModule(Enum):
         RESTAURANT_RESERVATION: 'restaurant_reservation',
         STATIC_CONTENT: 'static-content',
         QR_CODES: 'settings-qr-codes',
-        WHEN_WHERE: 'when-where'
+        WHEN_WHERE: 'when-where',
+
+        JOYN: 'joyn',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
@@ -153,7 +157,7 @@ class SolutionModule(Enum):
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
-                        STATIC_CONTENT}
+                        STATIC_CONTENT, JOYN}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
@@ -165,9 +169,9 @@ class SolutionModule(Enum):
         PHARMACY_ORDER: 5,
     }
 
-    FUNCTIONALITY_MODUELS = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
+    FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT}
+                             APPOINTMENT, JOYN}
 
     @classmethod
     def all(cls):
@@ -1026,13 +1030,26 @@ def deactivate_solution_module(sln_settings, module):
         modules_to_remove.append(module)
 
 
+@returns(tuple)
+@arguments(service_user=users.User, module=unicode, enabled=bool, force=bool)
+def validate_enable_or_disable_solution_module(service_user, module, enabled, force):
+    if module not in SolutionModule.FUNCTIONALITY_MODULES:
+        return False, None
+
+    if not enabled or force:
+        return True, None
+
+    if module == SolutionModule.JOYN:
+        sln_settings = get_solution_settings(service_user)
+        if SolutionModule.LOYALTY in sln_settings.modules:
+            return True, common_translate(sln_settings.main_language, SOLUTION_COMMON, u'activating_joyn_will_disable_your_current_loyalty')
+
+    return True, None
+
+
 @returns()
 @arguments(service_user=users.User, module=unicode, enabled=bool)
 def enable_or_disable_solution_module(service_user, module, enabled):
-    """Add or remove the module from solution settings"""
-    if module not in SolutionModule.FUNCTIONALITY_MODUELS:
-        return
-
     sln_settings = get_solution_settings(service_user)
     # for broadcast module, it can be enabled only
     if module == SolutionModule.BROADCAST:
@@ -1050,14 +1067,21 @@ def enable_or_disable_solution_module(service_user, module, enabled):
                 to_put.append(order_settings)
         elif module == SolutionModule.HIDDEN_CITY_WIDE_LOTTERY:
             deactivate_solution_module(sln_settings, SolutionModule.LOYALTY)
+            deactivate_solution_module(sln_settings, SolutionModule.JOYN)
+        elif module == SolutionModule.LOYALTY:
+            deactivate_solution_module(sln_settings, SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
+        elif module == SolutionModule.JOYN:
+            deactivate_solution_module(sln_settings, SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
+            
         # don't enable loyalty if this is a city service
-        if module == SolutionModule.LOYALTY and SolutionModule.CITY_APP in sln_settings.modules:
-            return
+        if SolutionModule.CITY_APP in sln_settings.modules:
+            if module == SolutionModule.LOYALTY or module == SolutionModule.JOYN:
+                return
     else:
         deactivate_solution_module(sln_settings, module)
 
     # set customer has_loyalty if the module is loyalty
-    if module == SolutionModule.LOYALTY:
+    if module == SolutionModule.LOYALTY or module == SolutionModule.JOYN:
         from shop.models import Customer
         customer = Customer.get_by_service_email(service_user.email())
         if customer:

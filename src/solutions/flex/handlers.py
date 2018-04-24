@@ -45,6 +45,7 @@ from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.functionalities import get_functionalities
+from solutions.common.bizz.loyalty import joyn_supported
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
@@ -59,122 +60,159 @@ from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
 
+
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
                                     os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
     extensions=[TranslateExtension])
 
-DEFAULT_JS_TEMPLATES = ['inbox_messages',
-                        'inbox_detail_messages',
-                        'holiday_addholiday',
-                        'holiday_holiday',
-                        'qanda_question_table',
-                        'qanda_question_modules',
-                        'qanda_question_detail',
-                        'hints_modal',
-                        'shop/apps',
-                        'shop/shopping_cart',
-                        'shop/product',
-                        'settings/settings_branding',
-                        'settings/settings_branding_preview',
-                        'settings/app_user_roles',
-                        'settings/app_user_add_roles',
-                        'settings/try_publish_changes',
-                        'settings/upload_image',
-                        'functionalities/functionality'
-                        ]
+DEFAULT_JS_TEMPLATES = [
+    'inbox_messages',
+    'inbox_detail_messages',
+    'holiday_addholiday',
+    'holiday_holiday',
+    'qanda_question_table',
+    'qanda_question_modules',
+    'qanda_question_detail',
+    'hints_modal',
+    'shop/apps',
+    'shop/shopping_cart',
+    'shop/product',
+    'settings/settings_branding',
+    'settings/settings_branding_preview',
+    'settings/app_user_roles',
+    'settings/app_user_add_roles',
+    'settings/try_publish_changes',
+    'settings/upload_image',
+    'functionalities/functionality'
+]
 
-MODULES_JS_TEMPLATE_MAPPING = {SolutionModule.AGENDA:           ['events_add',
-                                                                 'events_add_dates',
-                                                                 'events',
-                                                                 'events_events',
-                                                                 'events_settings',
-                                                                 'events_calendar_settings',
-                                                                 'events_guests_modal',
-                                                                 'events_guests_table',
-                                                                 'events_uitcalendar_settings'],
-                               SolutionModule.APPOINTMENT: ['timeframe_template'],
-                               SolutionModule.ASK_QUESTION:     [],
-                               SolutionModule.BILLING:          ['billing_manage_credit_card',
-                                                                 'billing_view_invoice',
-                                                                 'billing_settings_unsigned_orders_table',
-                                                                 'billing_settings_orders_table',
-                                                                 'billing_settings_invoices_table'],
-                               SolutionModule.BROADCAST:        ['addattachment',
-                                                                 'broadcast_types',
-                                                                 'broadcast_schedule',
-                                                                 'broadcast_schedule_items',
-                                                                 'broadcast_settings_list',
-                                                                 'broadcast_rss_settings',
-                                                                 'broadcast/broadcast_news',
-                                                                 'broadcast/broadcast_news_overview',
-                                                                 'broadcast/broadcast_news_preview',
-                                                                 'broadcast/news_stats_row'],
-                               SolutionModule.CITY_APP: ['services/service',
-                                                         'services/service_form',
-                                                         'services/modules_list',
-                                                         'services/service_search',
-                                                         'settings/app_settings'],
-                               SolutionModule.CITY_VOUCHERS: ['city_vouchers/city_vouchers_list',
-                                                              'city_vouchers/city_vouchers_transactions',
-                                                              'city_vouchers/city_vouchers_qrcode_export_list',
-                                                              'city_vouchers/city_vouchers_export_list'],
-                               SolutionModule.DISCUSSION_GROUPS: ['discussion_groups/discussion_groups_list',
-                                                                  'discussion_groups/discussion_groups_put'],
-                               SolutionModule.GROUP_PURCHASE:   ['group_purchase',
-                                                                 'group_purchase_subscriptions'],
-                               SolutionModule.LOYALTY:          ['loyalty_slides',
-                                                                 'loyalty_slide_add',
-                                                                 'loyalty_tablets',
-                                                                 'loyalty_tablet_modal',
-                                                                 'loyalty_scans',
-                                                                 'loyalty_scans_redeem_stamps_modal',
-                                                                 'loyalty_lottery_add_modal',
-                                                                 'loyalty_customer_visits_detail_modal',
-                                                                 'loyalty_customer_visits_detail',
-                                                                 'loyalty_customer_visit',
-                                                                 'loyalty_lottery_history',
-                                                                 'loyalty_export',
-                                                                 'voucher_export'],
-                               SolutionModule.MENU:             ['menu',
-                                                                 'menu_additem',
-                                                                 'menu_editdescription',
-                                                                 'menu_edit_image',
-                                                                 'menu_import'],
-                               SolutionModule.ORDER: ['order',
-                                                      'order_list',
-                                                      'timeframe_template',
-                                                      'menu',
-                                                      'menu_import',
-                                                      'menu_additem',
-                                                      'menu_editdescription',
-                                                      'menu_edit_image'],
-                               SolutionModule.PHARMACY_ORDER: ['pharmacy_order',
-                                                               'pharmacy_order_list'],
-                               SolutionModule.RESTAURANT_RESERVATION: ['reservation_addshift',
-                                                                       'reservation_addtable',
-                                                                       'reservation_broken_reservations',
-                                                                       'reservation_delete_table_confirmation',
-                                                                       'reservation_editreservation',
-                                                                       'reservation_edittables',
-                                                                       'reservation_no_shift_found',
-                                                                       'reservation_shiftcontents',
-                                                                       'reservation_tablecontents',
-                                                                       'reservation_update_reservation_tables',
-                                                                       'reservations'],
-                               SolutionModule.REPAIR:           ['repair_order'],
-                               SolutionModule.SANDWICH_BAR: ['sandwiches_order_inbox_detail',
-                                                             'sandwiches_list_item'],
-                               SolutionModule.STATIC_CONTENT:   ['static_content/static_content_select_icon',
-                                                                 'static_content/static_content'],
-                               SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: ['loyalty_lottery_add_modal',
-                                                                         'loyalty_customer_visits_detail_modal',
-                                                                         'loyalty_customer_visits_detail',
-                                                                         'loyalty_customer_visit',
-                                                                         'loyalty_lottery_history',
-                                                                         'loyalty_slides',
-                                                                         'loyalty_slide_add'],
-                               }
+MODULES_JS_TEMPLATE_MAPPING = {
+    SolutionModule.AGENDA: [
+        'events_add',
+        'events_add_dates',
+        'events',
+        'events_events',
+        'events_settings',
+        'events_calendar_settings',
+        'events_guests_modal',
+        'events_guests_table',
+        'events_uitcalendar_settings'
+    ],
+    SolutionModule.APPOINTMENT: [
+        'timeframe_template'
+    ],
+    SolutionModule.BILLING: [
+        'billing_manage_credit_card',
+        'billing_view_invoice',
+        'billing_settings_unsigned_orders_table',
+        'billing_settings_orders_table',
+        'billing_settings_invoices_table'
+    ],
+    SolutionModule.BROADCAST: [
+        'addattachment',
+        'broadcast_types',
+        'broadcast_schedule',
+        'broadcast_schedule_items',
+        'broadcast_settings_list',
+        'broadcast_rss_settings',
+        'broadcast/broadcast_news',
+        'broadcast/broadcast_news_overview',
+        'broadcast/broadcast_news_preview',
+        'broadcast/news_stats_row'
+    ],
+    SolutionModule.CITY_APP: [
+        'services/service',
+        'services/service_form',
+        'services/modules_list',
+        'services/service_search',
+        'settings/app_settings'
+    ],
+    SolutionModule.CITY_VOUCHERS: [
+        'city_vouchers/city_vouchers_list',
+        'city_vouchers/city_vouchers_transactions',
+        'city_vouchers/city_vouchers_qrcode_export_list',
+        'city_vouchers/city_vouchers_export_list'
+    ],
+    SolutionModule.DISCUSSION_GROUPS: [
+        'discussion_groups/discussion_groups_list',
+        'discussion_groups/discussion_groups_put'
+    ],
+    SolutionModule.GROUP_PURCHASE: [
+        'group_purchase',
+        'group_purchase_subscriptions'
+    ],
+    SolutionModule.LOYALTY: [
+        'loyalty_slides',
+        'loyalty_slide_add',
+        'loyalty_tablets',
+        'loyalty_tablet_modal',
+        'loyalty_scans',
+        'loyalty_scans_redeem_stamps_modal',
+        'loyalty_lottery_add_modal',
+        'loyalty_customer_visits_detail_modal',
+        'loyalty_customer_visits_detail',
+        'loyalty_customer_visit',
+        'loyalty_lottery_history',
+        'loyalty_export',
+        'voucher_export'
+    ],
+    SolutionModule.MENU: [
+        'menu',
+        'menu_additem',
+        'menu_editdescription',
+        'menu_edit_image',
+        'menu_import'
+    ],
+    SolutionModule.ORDER: [
+        'order',
+        'order_list',
+        'timeframe_template',
+        'menu',
+        'menu_import',
+        'menu_additem',
+        'menu_editdescription',
+        'menu_edit_image'
+    ],
+    SolutionModule.PHARMACY_ORDER: [
+        'pharmacy_order',
+        'pharmacy_order_list'
+    ],
+    SolutionModule.RESTAURANT_RESERVATION: [
+        'reservation_addshift',
+        'reservation_addtable',
+        'reservation_broken_reservations',
+        'reservation_delete_table_confirmation',
+        'reservation_editreservation',
+        'reservation_edittables',
+        'reservation_no_shift_found',
+        'reservation_shiftcontents',
+        'reservation_tablecontents',
+        'reservation_update_reservation_tables',
+        'reservations'
+    ],
+    SolutionModule.REPAIR: [
+        'repair_order'
+    ],
+    SolutionModule.SANDWICH_BAR: [
+        'sandwiches_order_inbox_detail',
+        'sandwiches_list_item'
+    ],
+    SolutionModule.STATIC_CONTENT: [
+        'static_content/static_content_select_icon',
+        'static_content/static_content'
+    ],
+
+    SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: [
+        'loyalty_lottery_add_modal',
+        'loyalty_customer_visits_detail_modal',
+        'loyalty_customer_visits_detail',
+        'loyalty_customer_visit',
+        'loyalty_lottery_history',
+        'loyalty_slides',
+        'loyalty_slide_add'
+    ],
+}
 
 
 class FlexHomeHandler(webapp2.RequestHandler):
@@ -204,7 +242,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         for tmpl in DEFAULT_JS_TEMPLATES:
             templates_to_get.add(tmpl)
         for module in sln_settings.modules:
-            for tmpl in MODULES_JS_TEMPLATE_MAPPING.get(module, tuple()):
+            for tmpl in MODULES_JS_TEMPLATE_MAPPING.get(module, []):
                 templates_to_get.add(tmpl)
         for tmpl in templates_to_get:
             templates[tmpl] = JINJA_ENVIRONMENT.get_template(tmpl + '.html').render(tmpl_params)
@@ -325,17 +363,30 @@ class FlexHomeHandler(webapp2.RequestHandler):
             is_mobicage = customer.team.legal_entity.is_mobicage
             legal_entity_currency = customer.team.legal_entity.currency
 
+        country = customer and customer.country
         functionality_modules = functionality_info = None
         if city_app_id and is_signup_enabled(city_app_id):
-            functionality_modules, functionality_info = map(json.dumps, get_functionalities(sln_settings))
+            functionality_modules, functionality_info = map(json.dumps, get_functionalities(country,
+                                                                                            sln_settings.main_language,
+                                                                                            sln_settings.modules,
+                                                                                            sln_settings.activated_modules,
+                                                                                            active_app_ids))
 
         vouchers_settings = None
         if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
             vouchers_settings = get_city_vouchers_settings(city_app_id)
 
+        oca_loyalty_limited = False
+        if SolutionModule.JOYN in sln_settings.modules:
+            oca_loyalty_limited = True
+        elif country == "BE" and sln_settings.activated_modules and SolutionModule.LOYALTY in sln_settings.activated_modules:
+            if sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
+                oca_loyalty_limited = True
+
         organization_types = get_organization_types(customer, sln_settings.main_language)
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
                   'language': sln_settings.main_language or DEFAULT_LANGUAGE,
+                  'country': country,
                   'logo_languages': LOGO_LANGUAGES,
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
@@ -357,6 +408,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'week_days': week_days,
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
+                  'oca_loyalty_limited': oca_loyalty_limited,
+                  'joyn_supported': joyn_supported(country, sln_settings.modules, active_app_ids),
                   'city_app_id': city_app_id,
                   'is_demo_app': is_demo_app,
                   'functionality_modules': functionality_modules,
@@ -366,6 +419,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'is_layout_user': session_.layout_only if session_ else False,
                   'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
                   'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
+                  'active_app_ids': active_app_ids,
                   'active_apps': json.dumps(active_app_ids),
                   'all_apps': json.dumps([dict(id=a.app_id, name=a.name) for a in available_apps]),
                   'UNITS': json.dumps(UNITS),

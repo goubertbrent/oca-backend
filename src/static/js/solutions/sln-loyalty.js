@@ -26,6 +26,7 @@ var LOYALTY_TYPE_REVENUE_DISCOUNT = 1;
 var LOYALTY_TYPE_LOTTERY = 2;
 var LOYALTY_TYPE_STAMPS = 3;
 var LOYALTY_TYPE_CITY_WIDE_LOTTERY = 4;
+var LOYALTY_TYPE_SLIDES_ONLY = 5;
 var currentLoyaltyType = -1;
 
 $(function() {
@@ -181,6 +182,9 @@ $(function() {
                         CommonTranslations : CommonTranslations
                     });
                     container.append(html);
+                } else if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY){
+                    return;
+                    
                 } else {
                     console.log("Unknown loyalty type");
                     return;
@@ -297,10 +301,12 @@ $(function() {
                             $(".sln-loyalty-scans").show();
                         }
                     }  else if (data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
-                    	$('#topmenu').find('li[menu="loyalty"]').hide();
+                        $('#topmenu').find('li[menu="loyalty"]').hide();
+                            
                     } else if (data.loyalty_type == LOYALTY_TYPE_LOTTERY || data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
                         $("#section_settings_loyalty .loyalty-type-2").show();
                         $(".sln-loyalty-scans").hide();
+                        
                     } else if (data.loyalty_type == LOYALTY_TYPE_STAMPS) {
                         $("#section_settings_loyalty #stamps-count").val(data.loyalty_settings.x_stamps);
                         $("#section_settings_loyalty #stamps-type").val(data.loyalty_settings.stamps_type);
@@ -310,6 +316,9 @@ $(function() {
                         if (loadLoyaltyScansCount > 0) {
                             $(".sln-loyalty-scans").show();
                         }
+                    } else if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY) {
+                        $('#topmenu').find('li[menu="loyalty"]').hide();
+                            
                     } else {
                         console.log("ERROR: Unknown loyalty type");
                         $(".sln-loyalty-scans").hide();
@@ -453,6 +462,7 @@ $(function() {
             }
             loyaltySettings["x_visits"] = x_visits_f;
             loyaltySettings["x_discount"] = x_discount_f;
+            
         } else if (loyaltyType == LOYALTY_TYPE_LOTTERY || loyaltyType == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
         } else if (loyaltyType == LOYALTY_TYPE_STAMPS) {
             var x_stamps = $("#section_settings_loyalty #stamps-count").val();
@@ -478,7 +488,8 @@ $(function() {
             loyaltySettings["stamps_type"] = stamps_type;
             loyaltySettings["stamps_winnings"] = $("#section_settings_loyalty #stamps-winnings").val();
             loyaltySettings["stamps_auto_redeem"] = $("#section_settings_loyalty #stamps-auto-redeem").prop('checked');
-        } else {
+            
+        } else if (loyaltyType != LOYALTY_TYPE_SLIDES_ONLY) { 
             sln.alert(CommonTranslations.ERROR_OCCURED_UNKNOWN, null, CommonTranslations.ERROR);
             return;
         }
@@ -533,12 +544,12 @@ $(function() {
         $('button[action="submit"]', loyaltySlideAddModal).click(function() {
             var slideFile = document.getElementById('slide_file', html);
             if (slideFile.files.length > 0 || slide != null) {
-            	if (slideFile.files.length > 0) {
-            		if (slideFile.files[0].size > (20 * 1024 * 1024)) {
-            			sln.alert(CommonTranslations.PICTURE_SIZE_TOO_LARGE_20MB, null, CommonTranslations.ERROR);
-            			return;
-            		}
-            	}
+                if (slideFile.files.length > 0) {
+                    if (slideFile.files[0].size > (20 * 1024 * 1024)) {
+                        sln.alert(CommonTranslations.PICTURE_SIZE_TOO_LARGE_20MB, null, CommonTranslations.ERROR);
+                        return;
+                    }
+                }
 
                 sln.showProcessing(CommonTranslations.UPLOADING_TAKE_A_FEW_SECONDS);
                 $("#slide_form", html).submit();
@@ -566,11 +577,11 @@ $(function() {
             success : function(data) {
                 sln.hideProcessing();
                 if (data) {
-                	if (data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
-                		$('#topmenu').find('li[menu="loyalty"]').hide();
-                	} else {
-                    	$('#topmenu').find('li[menu="loyalty"]').show();
-                	}
+                    if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY || data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
+                        $('#topmenu').find('li[menu="loyalty"]').hide();
+                    } else {
+                        $('#topmenu').find('li[menu="loyalty"]').show();
+                    }
 
                     currentLoyaltyType = data.loyalty_type;
                     $("#section_settings_loyalty #loyalty-type").val(data.loyalty_type);
@@ -583,11 +594,13 @@ $(function() {
                         $("#section_settings_loyalty #revenue-discount-discount").val(data.loyalty_settings.x_discount);
                         $("#section_settings_loyalty .loyalty-type-1").show();
                         loadLoyaltyScans();
+                        
                     } else if (data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
                     } else if (data.loyalty_type == LOYALTY_TYPE_LOTTERY || data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
                         $("#section_settings_loyalty .loyalty-type-2").show();
                         $(".sln-loyalty-scans").hide();
                         loadLotteryInfo();
+                        
                     } else if (data.loyalty_type == LOYALTY_TYPE_STAMPS) {
                         $("#section_settings_loyalty #stamps-count").val(data.loyalty_settings.x_stamps);
                         $("#section_settings_loyalty #stamps-type").val(data.loyalty_settings.stamps_type);
@@ -595,6 +608,8 @@ $(function() {
                         $("#section_settings_loyalty #stamps-auto-redeem").prop('checked', data.loyalty_settings.stamps_auto_redeem);
                         $("#section_settings_loyalty .loyalty-type-3").show();
                         loadLoyaltyScans();
+                        
+                    } else if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY) {
                     } else {
                         console.log("ERROR: Unknown loyalty type");
                         $(".sln-loyalty-scans").hide();
@@ -1401,7 +1416,7 @@ function loadLoyaltyExportList() {
 
 function renderLoyaltyExportList(hasMore) {
     var html = $.tmpl(templates['loyalty_export'], {
-    	exports: loyaltyExports,
+        exports: loyaltyExports,
         t: CommonTranslations
     });
     $('#loyalty_export').show();
@@ -1425,15 +1440,15 @@ function loadMoreLoyaltyExports() {
 }
 
 function loadVoucherExportList() {
-	renderVoucherExportList(false);
-	if (!voucherExports.length) {
+    renderVoucherExportList(false);
+    if (!voucherExports.length) {
         $('#voucher-export-list').html(TMPL_LOADING_SPINNER);
         sln.call({
             url: '/common/vouchers/export/list',
             success: function (data) {
-            	voucherExports = data.list;
-            	voucherExportsCursor = data.cursor;
-            	renderVoucherExportList(data.list.length === 10);
+                voucherExports = data.list;
+                voucherExportsCursor = data.cursor;
+                renderVoucherExportList(data.list.length === 10);
             },
             error: function () {
                 window.location.hash = '#/loyalty';
@@ -1443,29 +1458,29 @@ function loadVoucherExportList() {
 }
 
 function renderVoucherExportList(hasMore) {
-	if (voucherExports.length == 0) {
-		$("#loyalty_export_vouchers").hide();
-	} else {
-		$("#loyalty_export_vouchers").show();
-		var html = $.tmpl(templates['voucher_export'], {
-			exports: voucherExports,
-			t: CommonTranslations
-		});
-		$('#voucher-export-list').html(html);
-		$('#load-more-voucher-exports').toggle(hasMore).unbind('click').click(loadMoreVoucherExports);
-	}
+    if (voucherExports.length == 0) {
+        $("#loyalty_export_vouchers").hide();
+    } else {
+        $("#loyalty_export_vouchers").show();
+        var html = $.tmpl(templates['voucher_export'], {
+            exports: voucherExports,
+            t: CommonTranslations
+        });
+        $('#voucher-export-list').html(html);
+        $('#load-more-voucher-exports').toggle(hasMore).unbind('click').click(loadMoreVoucherExports);
+    }
 }
 
 function loadMoreVoucherExports() {
-	sln.call({
+    sln.call({
         url: '/common/vouchers/export/list',
         data: {
             cursor: voucherExportsCursor
         },
         success: function (data) {
-        	voucherExportsCursor = data.cursor;
-        	voucherExports.push.apply(voucherExports, data.list);
-        	renderVoucherExportList(data.list.length === 10);
+            voucherExportsCursor = data.cursor;
+            voucherExports.push.apply(voucherExports, data.list);
+            renderVoucherExportList(data.list.length === 10);
         }
     });
 }
@@ -1473,7 +1488,7 @@ function loadMoreVoucherExports() {
 function renderLoyaltyPage() {
     $('#loyalty_export').hide();
     if (HAS_LOYALTY || HAS_CITY_WIDE_LOTTERY) {
-    	$('#loyalty_order_now').hide();
+        $('#loyalty_order_now').hide();
         if (HAS_LOYALTY) {
             $('#customer_loyalty_visits, #loyalty_export_btn').show();
         } else if (HAS_CITY_WIDE_LOTTERY) {

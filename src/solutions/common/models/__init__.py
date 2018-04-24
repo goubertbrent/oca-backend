@@ -34,7 +34,8 @@ from rogerthat.utils import now
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
 from solutions.common import SOLUTION_COMMON
-from solutions.common.models.properties import SolutionUserProperty, MenuCategoriesProperty
+from solutions.common.models.properties import SolutionUserProperty, MenuCategoriesProperty, \
+    ActivatedModulesProperty
 from solutions.common.utils import create_service_identity_user_wo_default
 
 
@@ -303,6 +304,7 @@ class SolutionSettings(SolutionIdentitySettings):
     modules = db.StringListProperty()
     modules_to_put = db.StringListProperty(default=[])
     modules_to_remove = db.StringListProperty(default=[])
+    activated_modules = ActivatedModulesProperty()
 
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)

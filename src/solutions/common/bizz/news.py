@@ -117,11 +117,12 @@ def _app_uses_custom_organization_types(language):
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
-           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode)
+           facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode,
+           qr_code_content=unicode)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
                   broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
-                  host=None):
+                  host=None, qr_code_content=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -146,6 +147,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         target_audience (NewsTargetAudienceTO)
         role_ids (list of long) the list of role ids to filter sending the news to their members
         host (unicode): host of the api request (used for social media apps)
+        qr_code_content (unicode)
 
     Returns:
         news_item (NewsBroadcastItemTO)
@@ -156,7 +158,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         sln_settings = get_solution_settings(get_service_user_from_service_identity_user(service_identity_user))
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
     sponsored_until = None
-    should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id
+    should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id and qr_code_content is None
     sponsored_app_ids = set()
     extra_app_ids = []
     si = get_service_identity(service_identity_user)
@@ -210,6 +212,9 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         kwargs['news_type'] = news_type
 
     if news_type == NewsItem.TYPE_QR_CODE:
+        if qr_code_content is not None:
+            kwargs['qr_code_content'] = qr_code_content
+
         if should_save_coupon:
             def trans():
                 coupon = NewsCoupon(

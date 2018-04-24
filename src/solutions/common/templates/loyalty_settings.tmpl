@@ -10,10 +10,10 @@
         </div>
     </div>
     <div class="span12">
-    	<div style="{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}display: none;{% endif %}">
-	       <legend>{% translate language, "common", "loyalty-admins" %}</legend>
-	       <p id="no-loyalty-admins" style="display: none;">{% translate language, "common", "loyalty-no-tablets" %}</p>
-	       <table id="loyalty-admins" class="table table-striped table-bordered">
+        <div style="{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules or oca_loyalty_limited %}display: none;{% endif %}">
+	        <legend>{% translate language, "common", "loyalty-admins" %}</legend>
+	        <p id="no-loyalty-admins" style="display: none;">{% translate language, "common", "loyalty-no-tablets" %}</p>
+	        <table id="loyalty-admins" class="table table-striped table-bordered">
 	            <thead>
 	            </thead>
 	            <tbody>
@@ -23,11 +23,12 @@
 
        <legend>{% translate language, "common", "Settings" %}</legend>
 
-       <select id="loyalty-type" style="{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}display: none;{% endif %}">
+       <select id="loyalty-type" style="{% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules or oca_loyalty_limited %}display: none;{% endif %}">
             <option value="1">{% translate language, "common", "Revenue discount" %}</option>
             <option value="2">{% translate language, "common", "Lottery" %}</option>
             <option value="3">{% translate language, "common", "Stamp card" %}</option>
             <option value="4">{% translate language, "common", "City wide lottery" %}</option>
+            <option value="5">{% translate language, "common", "Slides only" %}</option>
        </select>
 
        <div class="loyalty-type-1" style="display: none;">

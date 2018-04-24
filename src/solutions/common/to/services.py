@@ -73,12 +73,3 @@ class ServicesTO(object):
         self.generated_on = generated_on
         self.cursor = cursor
 
-
-class CreateServiceStatusTO(ReturnStatusTO):
-    warningmsg = unicode_property('10')
-
-    @classmethod
-    def create(cls, success=True, errormsg=None, warningmsg=None):
-        r = super(CreateServiceStatusTO, cls).create(success, errormsg=errormsg)
-        r.warningmsg = warningmsg
-        return r

@@ -40,7 +40,8 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.service.api.friends import get_broadcast_reach
 from rogerthat.service.api.system import get_flow_statistics
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
+    WarningReturnStatusTO
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
 from rogerthat.to.service import UserDetailsTO
@@ -62,7 +63,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
     OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types
+    twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types, \
+    validate_enable_or_disable_solution_module
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
@@ -2031,15 +2033,23 @@ def rest_get_activated_modules():
 
 
 @rest('/common/functionalities/modules/enable', 'post')
-@returns(ReturnStatusTO)
-@arguments(name=unicode, enabled=bool)
-def rest_enable_or_disable_module(name, enabled):
+@returns(WarningReturnStatusTO)
+@arguments(name=unicode, enabled=bool, force=bool)
+def rest_enable_or_disable_module(name, enabled, force=False):
     try:
         service_user = users.get_current_user()
+        can_continue, warning_msg = validate_enable_or_disable_solution_module(service_user, name, enabled, force)
+        if not can_continue:
+            return WarningReturnStatusTO.create()
+
+        if warning_msg:
+            return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
+
         enable_or_disable_solution_module(service_user, name, enabled)
-        return RETURNSTATUS_TO_SUCCESS
+
+        return WarningReturnStatusTO.create()
     except BusinessException as e:
-        return ReturnStatusTO.create(False, e.message)
+        return WarningReturnStatusTO.create(False, e.message)
 
 
 @rest('/unauthenticated/osa/apps/flanders', 'get', read_only_access=True, authenticated=False)

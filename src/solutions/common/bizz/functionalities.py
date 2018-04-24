@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 from solutions import translate as common_translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
+from solutions.common.bizz.loyalty import joyn_supported
 
 
 OTHER_LANGUAGES = ['nl']
@@ -49,8 +50,10 @@ MEDIA = {
 
 class Functionality(object):
 
-    def __init__(self, language, name):
+    def __init__(self, country, language, activated_modules, name):
+        self.country = country
         self.language = language
+        self.activated_modules = activated_modules
         self.name = name
 
     def translate(self, key, fallback=None):
@@ -77,14 +80,33 @@ class Functionality(object):
             return self.translate('repairs')
         elif self.name == SolutionModule.DISCUSSION_GROUPS:
             return self.translate('group-chat')
+        elif self.name == SolutionModule.JOYN:
+            return self.translate('joyn-loyalty')
+        elif self.name == SolutionModule.LOYALTY:
+            if self.is_oca_terminal():
+                return self.translate('oca-terminal')
+            return self.translate('oca-loyalty')
         else:
             translation = self.translate(self.name)
             if translation == self.name:
                 return self.translate(self.name.replace('_', '-'))
             return translation
 
+    def is_oca_terminal(self):
+        if self.name == SolutionModule.LOYALTY:
+            if self.activated_modules:
+                if SolutionModule.JOYN in self.activated_modules:
+                    return True
+                if self.country == "BE":
+                    if SolutionModule.LOYALTY not in self.activated_modules \
+                            or self.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
+                        return True
+        return False
+
     @property
     def description(self):
+        if self.is_oca_terminal():
+            return self.translate('oca-terminal-description')
         return self.translate('module-description-%s' % self.name)
 
     @property
@@ -108,12 +130,13 @@ class Functionality(object):
                 'screenshot_image': self.screenshot_image
             }}
 
-        for language in OTHER_LANGUAGES:
-            default_media = MEDIA.get(language)
-            if default_media:
-                module_media = default_media.get(self.name)
-                if module_media:
-                    languages_media[language] = module_media
+        if not self.is_oca_terminal():
+            for language in OTHER_LANGUAGES:
+                default_media = MEDIA.get(language)
+                if default_media:
+                    module_media = default_media.get(self.name)
+                    if module_media:
+                        languages_media[language] = module_media
 
         return languages_media
 
@@ -133,21 +156,26 @@ def sort_modules(name):
     return name
 
 
-def get_functionalities(sln_settings):
+def get_functionalities(country, language, my_modules, activated_modules, app_ids):
     # we need the broadcast module to be the first
-    modules = sorted(SolutionModule.FUNCTIONALITY_MODUELS, key=sort_modules)
-    language = sln_settings.main_language
-    functionalities = [Functionality(language, module) for module in modules]
+    modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
+    functionalities = [Functionality(country, language, activated_modules, module) for module in modules]
     info = {
         func.name: func.to_dict() for func in functionalities
     }
 
-    if SolutionModule.CITY_APP in sln_settings.modules:
+    if SolutionModule.CITY_APP in my_modules:
         modules.remove(SolutionModule.LOYALTY)
-        city_loyalty_module = SolutionModule.HIDDEN_CITY_WIDE_LOTTERY
         del info[SolutionModule.LOYALTY]
-        info[city_loyalty_module] = Functionality(language, city_loyalty_module).to_dict()
+        modules.remove(SolutionModule.JOYN)
+        del info[SolutionModule.JOYN]
+
     elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
+        del info[SolutionModule.HIDDEN_CITY_WIDE_LOTTERY]
+
+    if not joyn_supported(country, modules, app_ids):
+        modules.remove(SolutionModule.JOYN)
+        del info[SolutionModule.JOYN]
 
     return modules, info

@@ -16,30 +16,29 @@
 # @@license_version:1.2@@
 
 import base64
+from collections import OrderedDict
+from contextlib import closing
 import csv
 import datetime
+from functools import partial
 import hashlib
 import json
 import logging
 import os
 import sys
+from types import NoneType
 import urllib
 import urlparse
-from collections import OrderedDict
-from contextlib import closing
-from functools import partial
-from types import NoneType
 
-from apiclient.discovery import build
-from apiclient.errors import HttpError
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 
-import httplib2
-import stripe
 from PIL.Image import Image
+from apiclient.discovery import build
+from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
 from dateutil.relativedelta import relativedelta
+import httplib2
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -104,7 +103,9 @@ from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
+import stripe
 from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -678,8 +679,8 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             service_modules = set(service.modules)
             if not service_modules.issubset(module_set):
                 raise ModulesNotAllowedException(sorted([m for m in service_modules if m not in module_set]))
-
-    has_loyalty = True if SolutionModule.LOYALTY in service.modules else False
+    
+    has_loyalty = any([m in service.modules for m in [SolutionModule.LOYALTY, SolutionModule.JOYN]])
     if customer.has_loyalty != has_loyalty:
         customer.has_loyalty = has_loyalty
     customer.managed_organization_types = service.managed_organization_types

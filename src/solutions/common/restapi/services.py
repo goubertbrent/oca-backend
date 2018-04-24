@@ -26,7 +26,8 @@ from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
+    WarningReturnStatusTO
 from rogerthat.utils.channel import send_message_to_session
 from shop.bizz import create_customer_service_to, audit_log, dict_str_for_audit_log, search_customer, \
     update_contact
@@ -45,7 +46,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
 from solutions.common.to.qanda import ModuleTO
-from solutions.common.to.services import CreateServiceStatusTO, ModuleAndBroadcastTypesTO, ServiceStatisticTO, \
+from solutions.common.to.services import ModuleAndBroadcastTypesTO, ServiceStatisticTO, \
     ServicesTO, ServiceListTO
 from solutions.flex.bizz import get_services_statistics
 
@@ -182,7 +183,7 @@ def get_service(service_email):
 
 
 @rest("/common/services/put", "post", read_only_access=False)
-@returns(CreateServiceStatusTO)
+@returns(WarningReturnStatusTO)
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
            telephone=unicode, language=unicode, modules=[unicode], broadcast_types=[unicode],
            customer_id=(int, long, NoneType), organization_type=(int, long), vat=unicode, website=unicode,
@@ -198,7 +199,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     # check if the current user is in fact a city app
     if customer and not city_customer.can_edit_service(customer):
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
-        return CreateServiceStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
+        return WarningReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
 
     error_msg = warning_msg = None
     email_changed = False
@@ -232,9 +233,9 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
         error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
     finally:
         if error_msg:
-            return CreateServiceStatusTO.create(False, error_msg)
+            return WarningReturnStatusTO.create(False, error_msg)
         elif warning_msg:
-            return CreateServiceStatusTO.create(False, warningmsg=warning_msg)
+            return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
 
     try:
         put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
@@ -249,7 +250,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
         if error_msg:
             if is_new_service:
                 logging.warn('Failed to save new service service information, changes would be reverted...')
-            return CreateServiceStatusTO.create(False, error_msg)
+            return WarningReturnStatusTO.create(False, error_msg)
         else:
             if email_changed:
                 migrate_user(users.User(customer.user_email), users.User(customer.user_email), users.User(user_email),
@@ -261,7 +262,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
                 'modules': modules,
             })
             audit_log(customer_id, 'put_service', variables, city_service_user)
-            return CreateServiceStatusTO.create()
+            return WarningReturnStatusTO.create()
 
 
 @rest('/common/services/delete', 'post', read_only_access=False)
@@ -303,12 +304,12 @@ def _update_signup_contact(customer, signup):
 
 
 @rest('/common/signup/services/create', 'post', read_only_access=False)
-@returns(CreateServiceStatusTO)
+@returns(WarningReturnStatusTO)
 @arguments(signup_key=unicode, modules=[unicode], broadcast_types=[unicode], force=bool)
 def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=None, force=False):
     signup = db.get(signup_key)
     if signup.done:
-        return CreateServiceStatusTO.create(success=True)
+        return WarningReturnStatusTO.create(success=True)
 
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
@@ -317,7 +318,7 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
 
     azzert(city_sln_settings.can_edit_services(city_customer))
     if not signup:
-        return CreateServiceStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'signup_not_found'))
+        return WarningReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'signup_not_found'))
 
     error_msg = warning_msg = None
     try:
@@ -363,9 +364,9 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
         error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
     finally:
         if error_msg:
-            return CreateServiceStatusTO.create(False, error_msg)
+            return WarningReturnStatusTO.create(False, error_msg)
         elif warning_msg:
-            return CreateServiceStatusTO.create(False, warningmsg=warning_msg)
+            return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
         else:
             try:
                 put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
@@ -378,8 +379,8 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
                 error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
             finally:
                 if error_msg:
-                    return CreateServiceStatusTO.create(False, error_msg)
+                    return WarningReturnStatusTO.create(False, error_msg)
                 else:
                     set_customer_signup_status(city_customer, signup, approved=True)
                     logging.debug('Service created from signup: %s, with modules of %s', signup_key, modules)
-                    return CreateServiceStatusTO.create(success=True)
+                    return WarningReturnStatusTO.create(success=True)

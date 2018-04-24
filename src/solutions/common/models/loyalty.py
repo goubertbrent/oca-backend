@@ -268,6 +268,8 @@ class SolutionLoyaltySettings(SolutionLoyaltyIdentitySettings):
     LOYALTY_TYPE_LOTTERY = 2
     LOYALTY_TYPE_STAMPS = 3
     LOYALTY_TYPE_CITY_WIDE_LOTTERY = 4
+    LOYALTY_TYPE_SLIDES_ONLY = 5
+
     LOYALTY_TYPE_MAPPING = {LOYALTY_TYPE_REVENUE_DISCOUNT : SolutionLoyaltyVisitRevenueDiscount,
                             LOYALTY_TYPE_LOTTERY : SolutionLoyaltyVisitLottery,
                             LOYALTY_TYPE_STAMPS: SolutionLoyaltyVisitStamps}

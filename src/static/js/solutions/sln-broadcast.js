@@ -1222,7 +1222,7 @@ $(function () {
             if (!response.success) {
                 sln.alert(response.error || T('error-occured-unknown-try-again'));
             } else {
-            	dis.remove();
+                dis.remove();
                 $('#news_item_' + newsId).remove();
                 // remove the news item from cache
                 var newsItemIndex = $.inArray(newsItem, LocalCache.newsItems.result);
@@ -1253,6 +1253,10 @@ $(function () {
             }
             if (actionButton.id === 'url') {
                 return actionButton.action;
+            }
+            if (actionButton.id === 'joyn_coupon') {
+            	var params = JSON.parse(actionButton.action.split('open://')[1]);
+            	return params.original_url;
             }
             return actionButton.action.split('://')[1];
         }
@@ -1322,8 +1326,16 @@ $(function () {
                 type: 'url',
                 translation: T('Attachment'),
                 defaultLabel:T('Attachment')
+            }];
+            if (MODULES.includes('joyn')) {
+            	allowedButtonActions.push({
+                    value: 'joyn_coupon',
+                    type: 'url',
+                    translation: T('joyn-coupon'),
+                    defaultLabel:T('activate')
+                });
             }
-            ];
+            
             actionButton = {
                 id: actionButtonId,
                 value: actionButtonValue,
@@ -1413,7 +1425,7 @@ $(function () {
             if (stats) {
                 app.visible = true;
                 if (isDemoApp) {
-                	app.total_user_count = randomReachCount;
+                    app.total_user_count = randomReachCount;
                 } else {
                     app.total_user_count = stats.total_user_count;
                 }
@@ -1436,6 +1448,7 @@ $(function () {
 
     function newsEventHandlers(originalNewsItem, appStatistics, broadcastOptions) {
         var elemRadioNewsType = $('input[name=news_select_type]'),
+            elemInputCouponUrl = $('#news_input_coupon_url'),
             elemInputTitle = $('#news_input_title'),
             elemInputMessage = $('#news_input_message'),
             elemSelectBroadcastType = $('#news_select_broadcast_type'),
@@ -1653,7 +1666,7 @@ $(function () {
         function actionButtonChanged() {
             var selectedAction = (elemSelectButton.val() || '').split('.');
             $('.news_action').hide();
-            var defaultActions = ['url', 'email', 'phone', 'attachment'];
+            var defaultActions = ['url', 'email', 'phone', 'attachment', 'joyn_coupon'];
             var isDefaultAction = defaultActions.includes(selectedAction[0]);
             if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
                 var showElem = true;
@@ -1761,6 +1774,9 @@ $(function () {
             }
 
             if (data.type === NEWS_TYPE_QR) {
+                if (MODULES.includes('joyn')) {
+                    data.qr_code_content = elemInputCouponUrl.val().trim() || '';
+                }
                 data.qr_code_caption = data.title;
                 data.title = null;
             }
@@ -1782,7 +1798,7 @@ $(function () {
                             actionPrefix = isHttps ? 'https' : 'http';
                             actionValue = splitAction[1];
                         } catch (e) {
-                            console.warn(e);
+                            console.info(e);
                             actionValue = elemValue.val();
                             actionPrefix = 'http';
                         }
@@ -1796,6 +1812,25 @@ $(function () {
                         actionPrefix = 'tel';
                         actionValue = $('#news_action_phone_value').val();
                         actionCaption = $('#news_action_phone_caption').val();
+                        break;
+                    case 'joyn_coupon':
+                        actionPrefix = 'open';
+                        var url = $('#news_action_joyn_coupon_value').val();
+                        var scheme = "joyn://collect-coupon/";
+                        if (url.startsWith("https://my.acc.joyn")) {
+                            scheme = "joyn-acc://collect-coupon/";
+                        }
+                        scheme += url.split('/collect-coupon/')[1];
+                        actionValue = JSON.stringify({
+                        	original_url: url,
+                        	action_type: "open",
+                        	action: "app",
+                        	android_app_id: "com.thanksys.joyn.user",
+                        	android_scheme: scheme,
+                        	ios_app_id: "id1157594279",
+                        	ios_scheme: scheme
+                        });
+                        actionCaption = $('#news_action_joyn_coupon_caption').val();
                         break;
                 }
                 var actionButton = {
@@ -2345,17 +2380,35 @@ $(function () {
             }
             if (currentStep === 0) {
                 // type step (normal/coupon)
-                if (data.type === NEWS_TYPE_QR && !MODULES.includes('loyalty')) {
-                    var message = T('contact_support_to_order_tablet_for_news_coupons');
-                    var positiveCaption = T('request_loyalty_device');
-                    var negativeCaption = T('CLOSE');
-                    var title = T('ERROR');
-                    sln.confirm(message, requestLoyaltyDevice, null, positiveCaption, negativeCaption, title);
-                    return;
+                if (data.type === NEWS_TYPE_QR) {
+                    if (COUNTRY === 'BE') {
+                        if (!MODULES.includes('loyalty') && !MODULES.includes('joyn')) {
+                            var joynUrl = 'https://www.joyn.be/for-merchants';
+                            if (LANGUAGE == 'nl') {
+                                joynUrl = 'https://www.joyn.be/nl/for-merchants'
+                            } else if (LANGUAGE == 'fr') {
+                                joynUrl = 'https://www.joyn.be/fr/for-merchants'
+                            } else if (LANGUAGE == 'en') {
+                                joynUrl = 'https://www.joyn.be/en/for-merchants'
+                            }
+                            var message = T('joyn_enable_via_coupon').replace('%(joyn_url)s',
+                                    '<a href="' + joynUrl + '" target="_blank">' + joynUrl + '</a>');
+
+                            sln.alert(message, null, CommonTranslations.ERROR);
+                            return;
+                        }
+                    } else if (!MODULES.includes('loyalty')) {
+                        var message = T('contact_support_to_order_tablet_for_news_coupons');
+                        var positiveCaption = T('request_loyalty_device');
+                        var negativeCaption = T('CLOSE');
+                        var title = T('ERROR');
+                        sln.confirm(message, requestLoyaltyDevice, null, positiveCaption, negativeCaption, title);
+                        return;
+                    }
                 }
                 // do not show post to social media if news type is coupon
                 var elemPostToSocialMedia = $('#post_to_social_media');
-                if(data.type === NEWS_TYPE_QR) {
+                if (data.type === NEWS_TYPE_QR) {
                     elemCheckPostToFacebook.attr('checked', false);
                     elemCheckPostToTwitter.attr('checked', false);
                     elemPostToSocialMedia.hide();
@@ -2405,6 +2458,10 @@ $(function () {
         }
 
         function stepChanged(data) {
+        	if (currentStep === 0 && MODULES.includes('joyn')) {
+        		nextStep();
+        		return;
+        	}
             var LAST_STEP = steps.length - 1;
             var step = steps[currentStep];
             var isLastStep = currentStep === LAST_STEP;
@@ -2427,7 +2484,13 @@ $(function () {
             } else {
                 elemNewsFormContainer.removeClass('span12').addClass('span6');
             }
-            elemButtonPrevious.attr('disabled', 0 === currentStep).toggle(!isLastStep);
+            if (currentStep === 0) {
+            	elemButtonPrevious.attr('disabled', true);
+            } else if (currentStep === 1 && MODULES.includes('joyn')) {
+            	elemButtonPrevious.attr('disabled', true);
+            } else {
+            	elemButtonPrevious.attr('disabled', false).toggle(!isLastStep);
+            }
             $('.tab-pane').removeClass('active');
             $('#tab' + currentStep).addClass('active');
             elemStepTitle.text(step.text);
@@ -2436,9 +2499,15 @@ $(function () {
             elemButtonSubmit.text(geSubmitButtonText(data));
             renderPreview();
             LocalCache.temporaryNewsItem = data;
-
-            if(currentStep === 1) {
-                elemInputTitle.focus();
+            
+            if (currentStep === 1) {
+                if (data.type == NEWS_TYPE_QR && MODULES.includes('joyn')) {
+                    elemInputCouponUrl.parent().parent().show();
+                    elemInputCouponUrl.focus();
+                } else {
+                    elemInputCouponUrl.parent().parent().hide();
+                    elemInputTitle.focus();
+                }
             }
         }
 
