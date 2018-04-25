@@ -32,6 +32,7 @@ from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyalt
 from solutions.common.cron.news import SolutionNewsScraper
 from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
+from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 from solutions.common.handlers.admin.services import ServiceTools, NewJukeboxAppBranding
 from solutions.djmatic.cron import CheckDjmaticTrialMode
@@ -61,6 +62,7 @@ handlers = [
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
+    ('/admin/cron/daily_statistics', DailyStatisticsHandler),
     ('/admin/services', ServiceTools),
     ('/admin/new_jukebox_app_branding', NewJukeboxAppBranding),
     ('/admin/djmatic_overview_logs', DjmaticOverviewLogsHandler),

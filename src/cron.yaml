@@ -86,3 +86,7 @@ cron:
 - description: Clean unverified signup requests
   url: /admin/cron/shop/clean_unverified_signup_requests
   schedule: every day 00:00
+
+- description: Daily OCA statistics
+  url: /admin/cron/daily_statistics
+  schedule: every day 04:30
