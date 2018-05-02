@@ -77,8 +77,7 @@ def rest_signup_get_modules_and_broadcast_types(signup_key):
 
     if preselected_modules:
         for module in modules_and_broadcast_types.modules:
-            if module.key in preselected_modules:
-                module.is_default = True
+            module.is_default = module.key in preselected_modules
 
     return modules_and_broadcast_types
 
