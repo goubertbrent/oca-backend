@@ -17,17 +17,16 @@
 
 import logging
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-from mcfw.rpc import serialize_complex_value
 
-from rogerthat.dal.service import get_service_identity
+from mcfw.rpc import serialize_complex_value
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils.service import create_service_identity_user
-
 from rogerthat.utils import channel, now, send_mail
+from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
 from solutions import SOLUTION_COMMON, translate as common_translate
@@ -36,6 +35,7 @@ from solutions.common.bizz.createsend import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
+from solutions.common.models import SolutionConsent, SolutionConsentHistory
 from solutions.common.to import SolutionInboxMessageTO
 
 
@@ -257,3 +257,30 @@ def send_signup_update_messages(sln_settings, *messages):
         })
 
     channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)
+
+
+def add_consent(email, type_, data):
+    data['consent_type'] = 'add'
+    update_consent(email, True, type_, data)
+
+
+def remove_consent(email, type_, data):
+    data['consent_type'] = 'remove'
+    update_consent(email, False, type_, data)
+
+@ndb.transactional(xg=True)
+def update_consent(email, grant, type_, data):
+    sec_key = SolutionConsent.create_key(email)
+    sec = sec_key.get()
+    if not sec:
+        sec = SolutionConsent(key=sec_key)
+
+    if grant:
+        if type_ not in sec.types:
+            sec.types.append(type_)
+            sec.put()
+    elif type_ in sec.types:
+        sec.types.remove(type_)
+        sec.put()
+
+    SolutionConsentHistory(type=type, data=data, parent=sec_key).put()

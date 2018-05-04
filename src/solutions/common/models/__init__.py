@@ -709,3 +709,27 @@ class SolutionRssScraperItem(NdbModel):
         return ndb.Key(cls,
                        url,
                        parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
+
+
+class SolutionConsent(NdbModel):
+    TYPE_EMAIL_MARKETING = u'email_marketing'
+
+    types = ndb.StringProperty(repeated=True)
+
+    @classmethod
+    def create_parent_key(cls, email):
+        return ndb.Key(cls, email)
+
+    @classmethod
+    def create_key(cls, email):
+        return ndb.Key(cls,
+                       email,
+                       parent=cls.create_parent_key(email))
+
+
+class SolutionConsentHistory(NdbModel):
+
+    timestamp = ndb.DateTimeProperty(auto_now_add=True)
+    type = ndb.StringProperty()
+    data = ndb.JsonProperty(compressed=True)
+
