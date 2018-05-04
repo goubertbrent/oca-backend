@@ -35,7 +35,7 @@ from solutions.common.bizz.createsend import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
-from solutions.common.models import SolutionConsent, SolutionConsentHistory
+from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO
 
 
@@ -259,21 +259,22 @@ def send_signup_update_messages(sln_settings, *messages):
     channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)
 
 
-def add_consent(email, type_, data):
+def add_service_consent(email, type_, data):
     data['consent_type'] = 'add'
-    update_consent(email, True, type_, data)
+    update_service_consent(email, True, type_, data)
 
 
-def remove_consent(email, type_, data):
+def remove_service_consent(email, type_, data):
     data['consent_type'] = 'remove'
-    update_consent(email, False, type_, data)
+    update_service_consent(email, False, type_, data)
+
 
 @ndb.transactional(xg=True)
-def update_consent(email, grant, type_, data):
-    sec_key = SolutionConsent.create_key(email)
+def update_service_consent(email, grant, type_, data):
+    sec_key = SolutionServiceConsent.create_key(email)
     sec = sec_key.get()
     if not sec:
-        sec = SolutionConsent(key=sec_key)
+        sec = SolutionServiceConsent(key=sec_key)
 
     if grant:
         if type_ not in sec.types:
@@ -283,4 +284,4 @@ def update_consent(email, grant, type_, data):
         sec.types.remove(type_)
         sec.put()
 
-    SolutionConsentHistory(type=type, data=data, parent=sec_key).put()
+    SolutionServiceConsentHistory(type=type, data=data, parent=sec_key).put()

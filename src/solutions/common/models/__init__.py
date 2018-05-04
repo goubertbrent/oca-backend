@@ -711,7 +711,7 @@ class SolutionRssScraperItem(NdbModel):
                        parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
 
 
-class SolutionConsent(NdbModel):
+class SolutionServiceConsent(NdbModel):
     TYPE_EMAIL_MARKETING = u'email_marketing'
 
     types = ndb.StringProperty(repeated=True)
@@ -727,7 +727,7 @@ class SolutionConsent(NdbModel):
                        parent=cls.create_parent_key(email))
 
 
-class SolutionConsentHistory(NdbModel):
+class SolutionServiceConsentHistory(NdbModel):
 
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     type = ndb.StringProperty()
