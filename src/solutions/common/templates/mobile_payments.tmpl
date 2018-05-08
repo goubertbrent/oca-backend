@@ -3,6 +3,7 @@
         <h2>{% translate language, "common", "mobile_payments" %}</h2>
         <div id="mobile_payments_available">
             <div class="payment-enabled">
+            	<span class="help-block">{% translate language, 'common', 'mobile_payments_explanation' %}</span>
                 <div class="btn-group">
                     <button class="btn" id="paymentEnabledYes">&nbsp;</button>
                     <button class="btn btn-danger" id="paymentEnabledNo">
@@ -10,9 +11,9 @@
                     </button>
                 </div>
             </div>
-            <span class="help-block">{% translate language, 'common', 'mobile_payments_explanation' %}</span>
-
+            <hr>
             <div class="payment-optional">
+                <span class="help-block">{% translate language, 'common', 'payments_optional_explanation', '_html=true' %}</span>
                 <div class="btn-group">
                     <button class="btn btn-success" id="paymentOptionalYes">
                         {% translate language, 'common', 'Optional' %}
@@ -20,8 +21,14 @@
                     <button class="btn" id="paymentOptionalNo">&nbsp;</button>
                 </div>
             </div>
-            <span class="help-block">{% translate language, 'common', 'payments_optional_explanation' %}</span>
-
+            <hr>
+            <span class="help-block">{% translate language, 'common', 'payments_fee_min_amount_explanation' %}</span>
+            <div class="input-prepend">
+                <span class="add-on">€</span>
+				<input type="number" id="payment_min_amount_for_fee" value="0" min="0" step="0.01" class="span2">
+            </div>
+            <span class="help-block">{% translate language, 'common', 'payments_fee_min_amount_zero_cost' %}</span>
+			<hr>
             <h3>Payconiq</h3>
             {%- include 'payconiq_nl.tmpl' %}
             <form class="form-horizontal">

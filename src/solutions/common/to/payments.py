@@ -23,6 +23,7 @@ from mcfw.properties import unicode_property, bool_property, long_property
 class PaymentSettingsTO(object):
     enabled = bool_property('1')
     optional = bool_property('2')
+    min_amount_for_fee = long_property('3')
 
 
 class PayconiqProviderTO(object):

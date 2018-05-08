@@ -28,6 +28,7 @@ $(function () {
 
     var paymentEnabled = false;
     var paymentOptional = true;
+    var paymentMinAmountForFee = 0;
 
     var channelUpdates = function (data) {
         switch (data.type) {
@@ -478,6 +479,7 @@ $(function () {
             success: function (data) {
                 setPaymentEnabled(data.enabled);
                 setPaymentOptional(data.optional);
+                setPaymentMinAmountForFee(data.min_amount_for_fee)
             },
             error: sln.showAjaxError
         });
@@ -490,7 +492,8 @@ $(function () {
             data: {
                 data: JSON.stringify({
                     enabled: paymentEnabled,
-                    optional: paymentOptional
+                    optional: paymentOptional,
+                    min_amount_for_fee: paymentMinAmountForFee
                 })
             },
             success: function (data) {
@@ -569,6 +572,16 @@ $(function () {
             $('#paymentOptionalNo').addClass("btn-danger").text(CommonTranslations.REQUIRED_LOWER.capitalize());
         }
     }
+    
+    function changePaymentMinAmountForFee() {
+    	paymentMinAmountForFee = parseInt(parseFloat($('#payment_min_amount_for_fee').val()) * 100);
+        savePaymentSettings();
+    }
+    
+    function setPaymentMinAmountForFee(newPaymentMinAmountForFee) {
+    	paymentMinAmountForFee = newPaymentMinAmountForFee;
+    	$('#payment_min_amount_for_fee').val(newPaymentMinAmountForFee / 100);
+    }
 
     sln.registerMsgCallback(channelUpdates);
     loadOrders();
@@ -579,6 +592,7 @@ $(function () {
 
     $('#paymentEnabledYes, #paymentEnabledNo').click(togglePaymentEnabled);
     $('#paymentOptionalYes, #paymentOptionalNo').click(togglePaymentOptional);
+    sln.configureDelayedInput($('#payment_min_amount_for_fee'), changePaymentMinAmountForFee);
 
     sln.registerInboxActionListener("order", function (chatId) {
         var o = solutionInboxMessageOrders[chatId];

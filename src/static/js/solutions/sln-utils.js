@@ -892,6 +892,9 @@ var createLib = function() {
             if((tagName === "INPUT" && (editableInputTypes.indexOf(inputType) !== -1)) || tagName === "TEXTAREA") {
                 input.keyup(event_handler);
                 input.bind('paste', event_handler);
+                if (inputType === 'number') {
+                	input.mouseup(event_handler);
+                }
             } else if (tagName === "SELECT" || tagName === 'INPUT' && inputType === 'number') {
                 input.change(event_handler);
             } else {

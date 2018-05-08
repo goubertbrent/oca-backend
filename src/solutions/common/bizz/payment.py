@@ -39,24 +39,25 @@ def is_in_test_mode(service_user, service_identity):
 
 
 def get_payment_settings(service_user, service_identity):
+    sln_settings = get_solution_settings(service_user)
     if is_default_service_identity(service_identity):
-        sln_i_settings = get_solution_settings(service_user)
+        sln_i_settings = sln_settings
     else:
         sln_i_settings = get_solution_identity_settings(service_user, service_identity)
     if sln_i_settings.payment_enabled is None:
-        return False, True
-    return sln_i_settings.payment_enabled, sln_i_settings.payment_optional
+        return False, True, 0
+    return sln_i_settings.payment_enabled, sln_i_settings.payment_optional, sln_settings.payment_min_amount_for_fee
 
 
-def save_payment_settings(service_user, service_identity, enabled, optional):
+def save_payment_settings(service_user, service_identity, enabled, optional, min_amount_for_fee):
     def trans():
+        sln_settings = get_solution_settings(service_user)
+        sln_settings.updates_pending = True
+        sln_settings.payment_min_amount_for_fee = min_amount_for_fee
+
         if is_default_service_identity(service_identity):
-            sln_settings = get_solution_settings(service_user)
-            sln_settings.updates_pending = True
             sln_i_settings = sln_settings
         else:
-            sln_settings = get_solution_settings(service_user)
-            sln_settings.updates_pending = True
             sln_settings.put()
             sln_i_settings = get_solution_identity_settings(service_user, service_identity)
 
