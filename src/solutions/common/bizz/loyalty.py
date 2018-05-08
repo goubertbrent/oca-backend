@@ -2028,8 +2028,8 @@ def joyn_supported(country, modules, app_ids):
     if country != 'BE':
         return False
 
-    # Temporarily show Joyn only in be-nazareth, be-bree, osa-demo, osa-demo2 and osa-demo-3
-    if {'be-nazareth', 'be-bree', 'osa-demo', 'osa-demo2', 'osa-demo-3'}.intersection(set(app_ids)):
+    # Temporarily show Joyn only in be-bree, osa-demo, osa-demo2 and osa-demo-3 and new city apps
+    if {'be-nazareth', 'be-bree', 'be-bocholt2', 'osa-demo', 'osa-demo2', 'osa-demo-3'}.intersection(app_ids):
         return True
 
     return False
