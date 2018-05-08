@@ -26,11 +26,12 @@ from types import NoneType
 import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from google.appengine.ext import db, deferred
-import jinja2
-
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
+from babel.numbers import format_currency
+
+from google.appengine.ext import db, deferred
+import jinja2
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -100,6 +101,7 @@ from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, Loyalt
 from solutions.common.utils import is_default_service_identity
 from solutions.djmatic import SOLUTION_DJMATIC
 from solutions.jinja_extensions import TranslateExtension
+
 
 try:
     from cStringIO import StringIO
@@ -1504,6 +1506,12 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
                                  int(t.from_offset)])
         start = t.activates
 
+    min_amount_for_fee_message = None
+    if sln_settings.payment_min_amount_for_fee > 0:
+        amount = format_currency(sln_settings.payment_min_amount_for_fee / 100.0, sln_settings.currency,
+                                 locale=lang)
+        min_amount_for_fee_message = common_translate(lang, SOLUTION_COMMON, 'payments_fee_min_amount', amount=amount)
+
     flow_params = dict(
         branding_key=main_branding.branding_key,
         language=lang,
@@ -1521,7 +1529,8 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         timezone_offsets=json.dumps(timezone_offsets),
         Features=Features,
         manual_confirmation=sln_order_settings.manual_confirmation,
-        payment_enabled=payment_enabled
+        payment_enabled=payment_enabled,
+        min_amount_for_fee_message=min_amount_for_fee_message
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier

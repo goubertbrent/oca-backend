@@ -37,18 +37,18 @@ def rest_get_payment_settings():
     service_user = users.get_current_user()
     service_identity = users.get_current_session().service_identity
     to = PaymentSettingsTO()
-    to.enabled, to.optional = get_payment_settings(service_user, service_identity)
+    to.enabled, to.optional, to.min_amount_for_fee = get_payment_settings(service_user, service_identity)
     return to
 
 
 @rest('/common/payments/settings', 'post')
 @returns(ReturnStatusTO)
-@arguments(enabled=bool, optional=bool)
-def rest_put_payment_settings(enabled, optional):
+@arguments(enabled=bool, optional=bool, min_amount_for_fee=(int, long))
+def rest_put_payment_settings(enabled, optional, min_amount_for_fee):
     service_user = users.get_current_user()
     service_identity = users.get_current_session().service_identity
     try:
-        save_payment_settings(service_user, service_identity, enabled, optional)
+        save_payment_settings(service_user, service_identity, enabled, optional, min_amount_for_fee)
         return RETURNSTATUS_TO_SUCCESS
     except ServiceApiException as e:
         logging.exception(e)

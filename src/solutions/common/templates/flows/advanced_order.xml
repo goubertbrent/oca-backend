@@ -161,7 +161,10 @@
                      negativeReference="end_advanced_order">
             <content>{% translate language, 'common', 'enter_your_order' %}
 
-{{ leap_time_message }}</content>
+{{ leap_time_message }}{% if min_amount_for_fee_message %}
+
+{{ min_amount_for_fee_message }}
+{% endif %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
@@ -464,6 +467,10 @@
 
                     if (amount &lt;= 0) {
                         return {outlet: 'flush_advanced_order_processing'};
+                    }
+                    
+                    if (amount &lt; {{ settings.payment_min_amount_for_fee }}) {
+                    	amount += 15;
                     }
 
                     var amountStr = (amount / 100).toFixed(2);

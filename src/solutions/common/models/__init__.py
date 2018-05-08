@@ -233,6 +233,7 @@ class SolutionIdentitySettings(db.Model):
     
     payment_enabled = db.BooleanProperty(default=False)
     payment_optional = db.BooleanProperty(default=True)
+    payment_min_amount_for_fee = db.IntegerProperty(default=0)
     payment_test_mode = db.BooleanProperty(default=False)
 
     @staticmethod

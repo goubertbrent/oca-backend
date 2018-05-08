@@ -66,7 +66,7 @@ def process_updated_customer_signup_message(service_user, service_identity, mess
                                 alert_flags=Message.ALERT_FLAG_VIBRATE)
         elif answer_id == 'approve':
             modules_and_broadcast_types = rest_signup_get_modules_and_broadcast_types(parent_inbox_message.category_key)
-            modules = [m.key for m in modules_and_broadcast_types.modules]
+            modules = [m.key for m in modules_and_broadcast_types.modules if m.is_default]
             result = rest_create_service_from_signup(parent_inbox_message.category_key, modules,
                                                      broadcast_types=modules_and_broadcast_types.broadcast_types,
                                                      force=True)  # type: CreateServiceStatusTO
