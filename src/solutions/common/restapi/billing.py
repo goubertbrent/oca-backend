@@ -18,21 +18,23 @@
 import logging
 from types import NoneType
 
+import stripe
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from solution_server_settings import get_solution_server_settings
+from rogerthat.rpc.users import get_current_user
 from shop.bizz import get_invoices
 from shop.business.creditcard import link_stripe_to_customer
 from shop.dal import get_customer
 from shop.exceptions import NoPermissionException
 from shop.models import Order
 from shop.to import OrderTO, InvoiceTO, ContactTO
+from solution_server_settings import get_solution_server_settings
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.dal import get_solution_settings
+from solutions.common.models.budget import Budget, BudgetTransaction
 from solutions.common.to import CreditCardTO
-import stripe
 
 
 @rest("/common/billing/contacts", "get", read_only_access=True)
@@ -132,5 +134,20 @@ def sign_order(customer_id, order_number, signature):
         from shop.bizz import sign_order as bizz_sign_order
         bizz_sign_order(customer_id, order_number, signature)
         return None
-    except BusinessException, be:
+    except BusinessException as be:
         return be.message
+
+
+@rest('/common/billing/budget', 'get')
+@returns(dict)
+@arguments()
+def api_get_budget():
+    budget = Budget.create_key(get_current_user()).get()
+    return budget.to_dict() if budget else {'balance': 0}
+
+
+@rest('/common/billing/budget/transactions', 'get')
+@returns([dict])
+@arguments()
+def api_list_budget_transactions():
+    return [t.to_dict() for t in BudgetTransaction.list_by_user(get_current_user())]

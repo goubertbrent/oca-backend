@@ -79,6 +79,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_fcty_product(mobicage_legal_entity_id))
     to_put.append(create_pres_product(mobicage_legal_entity_id))
     to_put.append(create_appl_product(mobicage_legal_entity_id))
+    to_put.append(create_bdgt_product(mobicage_legal_entity_id))
 
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
@@ -980,6 +981,25 @@ def create_appl_product(legal_entity_id, code_prefix=''):
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     p.charge_interval = 12
+    return p
+
+
+def create_bdgt_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'BDGT')
+    p.price = 5000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 6)
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.is_subscription_extension = False
+    p.organization_types = []
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 

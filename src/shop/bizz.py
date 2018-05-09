@@ -48,8 +48,7 @@ from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
-from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
-    OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD, DEBUG
+from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
@@ -1021,17 +1020,6 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
                 # Update the regio manager statistics
                 deferred.defer(update_regiomanager_statistic, gained_value=order.amount / 100, manager=order.manager,
                                _transactional=True)
-                channel_data = {
-                    'customer': customer.name,
-                    'manager': order.manager.nickname() if order.manager else 'unknown',
-                    'amount': charge.amount / 100,
-                    'currency': charge.currency
-                }
-                server_settings = get_server_settings()
-                send_to = server_settings.supportWorkers
-                send_to.append(MC_DASHBOARD.email())
-                channel.send_message(map(users.User, server_settings.supportWorkers), 'shop.monitoring.signed_order',
-                                     info=channel_data, skip_dashboard_user=False)
                 return customer, charge
 
         return None, None

@@ -1,0 +1,39 @@
+/* MODAL */
+.modal-fullscreen {
+	background: transparent;
+	border: none;
+	-webkit-border-radius: 0;
+	-moz-border-radius: 0;
+	border-radius: 0;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+	box-shadow: none;
+	margin-left: -50%;
+	width: 100%;
+	background-color: #fff;
+}
+.modal-fullscreen.fade.in {
+	bottom: 0;
+	top: 0;
+}
+
+.modal-fullscreen .modal-header [data-dismiss="modal"] {
+	float: right;
+}
+.modal-fullscreen .modal-body {
+	overflow-y: auto;
+}
+.modal-fullscreen .modal-body > * {
+	margin-bottom: 0;
+	margin-top: 0;
+}
+
+@media (max-width: 767px) {
+	.modal-fullscreen {
+		margin-left: 0;
+	}
+	.modal-fullscreen.fade.in {
+		left: 0;
+		right: 0;
+	}
+}

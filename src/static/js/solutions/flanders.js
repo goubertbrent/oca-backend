@@ -1,82 +1,54 @@
-$.getJSON('/unauthenticated/osa/apps/flanders').done(function (apps) {
-    $.getJSON('/static/js/shop/libraries/flanders.json').done(function (maps) {
-        createMap(apps, maps);
-    });
-});
+/*
+ * Copyright 2017 Mobicage NV
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * @@license_version:1.2@@
+ */
 
-function createMap(apps, data) {
-    $.extend(true, $.mapael,
-        {
-            maps: {
-                cities: {
-                    width: 1024,
-                    height: 401.680185916,
-                    getCoords: function (lat, lon) {
-                        // Convert latitude,longitude to x,y here
-                        return {x: 1, y: 1};
-                    },
-                    elems: data.cities
-                },
-                provinces: {
-                    width: 1024,
-                    height: 401.680185916,
-                    getCoords: function (lat, lon) {
-                        // Convert latitude,longitude to x,y here
-                        return {x: 1, y: 1};
-                    },
-                    elems: data.provinces
-                }
+$(function() {
+    'use strict';
+
+    $.getJSON('/unauthenticated/osa/apps/flanders').done(function (apps) {
+        $.getJSON('/static/js/shop/libraries/flanders.json').done(function (maps) {
+            createMap(apps, maps);
+        });
+    });
+
+    function createMap(apps, data) {
+        function tooltip(city) {
+            if (apps[city]) {
+                return '<b>' + city + '</b>';
+            } else {
+                return city;
             }
         }
-    );
 
-    // These are the apps in which we currently are active - show them in a different colour on the map
-    // key: city name, value: options
-    var areas = apps.reduce(function (result, value) {
-        result[value.name] = {
-            attrs: {
-                fill: '#5bc4bf',
-                stroke: '#fff',
-                cursor: 'pointer',
-            },
-            href: '/install/' + value.app_id,
-            target: '_blank',
-            tooltip: {content: value.name}
-        };
-        return result;
-    }, {});
-    for (var appName in data.cities) {
-        if (data.cities.hasOwnProperty(appName) && !(appName in areas)) {
-            areas[appName] = {
-                tooltip: {content: appName}
-            };
+        function areaClicked(city) {
+            window.open('/install/' + apps[city], '_blank');
         }
+
+        var enabledCities = Object.keys(apps);
+        var flandersMap = new VectorMap('cities', data.cities, enabledCities, $('#flanders'), {
+            tooltip: tooltip,
+            areaClicked: areaClicked,
+            width: data.width,
+            height: data.height
+        });
+
+        flandersMap.colors.default = '#f4f4e8';
+        flandersMap.colors.unselected = flandersMap.colors.selected;
+        flandersMap.render();
     }
 
-    $('#flanders').mapael({
-        map: {
-            name: 'cities',
-            defaultArea: {
-                attrs: {
-                    fill: '#f4f4e8',
-                    stroke: "#ced8d0"
-                },
-                attrsHover: {
-                    animDuration: 0,
-                    fill: "#a4e100"
-                },
-                text: {
-                    attrs: {
-                        cursor: "pointer",
-                        "font-size": 10,
-                        fill: "#000"
-                    },
-                    attrsHover: {
-                        animDuration: 0
-                    }
-                }
-            },
-        },
-        areas: areas
-    });
-}
+});

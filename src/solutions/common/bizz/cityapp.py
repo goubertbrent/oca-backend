@@ -27,6 +27,9 @@ import urllib
 
 from google.appengine.api import urlfetch
 from mcfw.rpc import returns, arguments
+from rogerthat.dal.app import get_apps
+from rogerthat.consts import DEBUG
+from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.utils.transactions import run_in_transaction
 from solutions.common.dal.cityapp import get_cityapp_profile
@@ -154,3 +157,27 @@ def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
             return True, []
         return False, "0 upcoming events. Make sure your region is correct."
     return True, [e["event"] for e in r[1:]]
+
+
+@returns(dict)
+@arguments(country=unicode, live=bool)
+def get_country_apps(country, live=True):
+    """
+    Args:
+        country (unicode): country code e.g. be
+        live (bool): has a live published build
+
+    Returns:
+        apps (dict): a dict with app name (city) as key and app_id as value
+    """
+    apps = get_apps([App.APP_TYPE_CITY_APP])
+
+    def should_include(app):
+        # check if the ios_app_id is set (has a live build)
+        if not DEBUG and live and app.ios_app_id in (None, '-1'):
+            return False
+        return app.demo or app.app_id.lower().startswith('%s-' % country.lower())
+
+    return {
+        app.name: app.app_id for app in apps if should_include(app)
+    }

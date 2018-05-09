@@ -15,10 +15,13 @@
 #
 # @@license_version:1.2@@
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 
-from rogerthat.dal import parent_key_unsafe
+from mcfw.utils import Enum
+from rogerthat.dal import parent_key_unsafe, parent_ndb_key
 from rogerthat.models import KeyValueProperty
+from rogerthat.models.common import NdbModel
+from rogerthat.rpc import users
 from solutions import SOLUTION_COMMON
 
 
@@ -46,3 +49,36 @@ class NewsCoupon(db.Model):
     @classmethod
     def get_by_news_id(cls, service_identity_user, news_id):
         return cls.list_by_service(service_identity_user).filter('news_id', news_id).get()
+
+
+class SolutionNewsItem(NdbModel):
+    paid = ndb.BooleanProperty(default=False)
+    publish_time = ndb.IntegerProperty()
+    reach = ndb.IntegerProperty(default=0, indexed=False)
+    app_ids = ndb.StringProperty(indexed=False, repeated=True)  # contains only regional apps (not rogerthat/main app)
+    service_identity = ndb.StringProperty()
+
+    @property
+    def service_user(self):
+        return users.User(self.key.parent().id())
+
+    @classmethod
+    def create_key(cls, news_id, user):
+        return ndb.Key(cls, news_id, parent=parent_ndb_key(user, SOLUTION_COMMON))
+
+
+class NewsSettingsTags(Enum):
+    FREE_REGIONAL_NEWS = 'free_regional_news'
+
+
+class NewsSettings(NdbModel):
+    tags = ndb.StringProperty(repeated=True, choices=NewsSettingsTags.all())
+
+    @classmethod
+    def create_key(cls, service_user, service_identity):
+        return ndb.Key(cls, service_identity, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
+
+    @classmethod
+    def get_by_user(cls, service_user, service_identity):
+        key = cls.create_key(service_user, service_identity)
+        return key.get() or cls(key=key)

@@ -226,6 +226,7 @@ class RegioManager(db.Model):
 
 
 class Product(db.Model):
+    PRODUCT_BUDGET = u'BDGT'
     PRODUCT_EXTRA_CITY = u'XCTY'
     PRODUCT_ACTION_3_EXTRA_CITIES = u'A3CT'
     PRODUCT_SUBSCRIPTION_ASSOCIATION = u'SJUP'

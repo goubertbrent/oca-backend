@@ -108,6 +108,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+
 POKE_TAGS = {
     SolutionModule.AGENDA:        POKE_TAG_EVENTS,
     SolutionModule.APPOINTMENT:   POKE_TAG_APPOINTMENT,
@@ -129,10 +130,9 @@ POKE_TAGS = {
     SolutionModule.SANDWICH_BAR:  POKE_TAG_SANDWICH_BAR,
     SolutionModule.STATIC_CONTENT: None,
     SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
-
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
-
     SolutionModule.JOYN: None,
+    SolutionModule.JOBS: None,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -2012,10 +2012,9 @@ MODULES_PUT_FUNCS = {
     SolutionModule.SANDWICH_BAR: put_sandwich_bar,
     SolutionModule.STATIC_CONTENT: put_static_content,
     SolutionModule.WHEN_WHERE: put_when_where,
-
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
-
     SolutionModule.JOYN: _dummy_put,
+    SolutionModule.JOBS: _dummy_put
 }
 
 MODULES_DELETE_FUNCS = {
@@ -2039,8 +2038,7 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.SANDWICH_BAR: _default_delete,
     SolutionModule.STATIC_CONTENT: delete_static_content,
     SolutionModule.WHEN_WHERE: _default_delete,
-
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
-
     SolutionModule.JOYN: _default_delete,
+    SolutionModule.JOBS: _default_delete,
 }

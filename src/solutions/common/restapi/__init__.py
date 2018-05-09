@@ -32,9 +32,8 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
-from rogerthat.dal.app import get_apps
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
-from rogerthat.models import ServiceIdentity, App
+from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
@@ -66,6 +65,7 @@ from solutions.common.bizz import get_next_free_spots_in_service_menu, common_pr
     twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types, \
     validate_enable_or_disable_solution_module
 from solutions.common.bizz.branding_settings import save_branding_settings
+from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
 from solutions.common.bizz.facebook import get_facebook_app_info
@@ -93,6 +93,7 @@ from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadc
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
+from solutions.common.models.news import NewsSettings
 from solutions.common.models.repair import SolutionRepairSettings
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichOption, SandwichSettings, \
     SandwichOrder
@@ -460,11 +461,13 @@ def export_inbox_messages(email=''):
 @arguments()
 def rest_get_broadcast_options():
     service_user = users.get_current_user()
+    service_identity = users.get_current_session().service_identity or ServiceIdentity.DEFAULT
     sln_settings_key = SolutionSettings.create_key(service_user)
     news_promotion_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
     extra_city_product_key = Product.create_key(Product.PRODUCT_EXTRA_CITY)
     to_get = (sln_settings_key, news_promotion_product_key, extra_city_product_key)
     sln_settings, news_promotion_product, extra_city_product = db.get(to_get)
+    news_settings = NewsSettings.get_by_user(service_user, service_identity)
 
     def transl(key):
         try:
@@ -507,7 +510,7 @@ def rest_get_broadcast_options():
     roles = get_user_defined_roles()
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
                               extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps,
-                              roles)
+                              roles, news_settings)
 
 
 @rest("/common/broadcast/rss_feeds", "get", read_only_access=True)
@@ -2053,8 +2056,18 @@ def rest_enable_or_disable_module(name, enabled, force=False):
 
 
 @rest('/unauthenticated/osa/apps/flanders', 'get', read_only_access=True, authenticated=False)
-@returns([dict])
+@returns(dict)
 @arguments()
 def api_get_app_names():
-    return [{'name': app.name, 'app_id': app.app_id} for app in get_apps([App.APP_TYPE_CITY_APP]) if
-            app.ios_app_id not in (None, '-1') and app.app_id.startswith('be-')]
+    return get_country_apps(u'be')
+
+
+@rest('/common/osa/apps', 'get')
+@returns(dict)
+@arguments()
+def rest_get_country_apps():
+    service_user = users.get_current_user()
+    customer = get_customer(service_user)
+    if not customer:
+        return {}
+    return get_country_apps(customer.country)

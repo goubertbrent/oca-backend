@@ -855,3 +855,13 @@ indexes:
   properties:
   - name: expiration_date
     direction: desc
+
+- kind: SolutionNewsItem
+  properties:
+  - name: paid
+  - name: publish_time
+
+- kind: BudgetTransaction
+  ancestor: yes
+  properties:
+  - name: timestamp

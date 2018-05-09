@@ -16,6 +16,7 @@
 # @@license_version:1.2@@
 
 from mcfw.properties import unicode_property, typed_property, bool_property, long_property, unicode_list_property
+from rogerthat.to import TO
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.to.roles import RoleTO
 from shop.to import ProductTO
@@ -61,7 +62,7 @@ class SubscriptionInfoTO(object):
         self.has_signed = has_signed
 
 
-class BroadcastOptionsTO(object):
+class BroadcastOptionsTO(TO):
     broadcast_types = unicode_list_property('1')
     editable_broadcast_types = unicode_list_property('2')
     news_promotion_product = typed_property('3', ProductTO, False)
@@ -70,10 +71,11 @@ class BroadcastOptionsTO(object):
     subscription_info = typed_property('6', SubscriptionInfoTO, False)
     can_order_extra_apps = bool_property('7')
     roles = typed_property('8', RoleTO, True)
+    news_settings = typed_property('9', dict)
 
     def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
                  extra_city_product=None, news_enabled=False, subscription_info=None, can_order_extra_apps=True,
-                 roles=None):
+                 roles=None, news_settings=None):
         if editable_broadcast_types is None:
             editable_broadcast_types = []
         if broadcast_types is None:
@@ -89,3 +91,4 @@ class BroadcastOptionsTO(object):
         self.subscription_info = subscription_info
         self.can_order_extra_apps = can_order_extra_apps
         self.roles = roles
+        self.news_settings = news_settings.to_dict() if news_settings else {}

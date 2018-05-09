@@ -5,6 +5,9 @@
         <div class="span5">
             <div class="shop-product-info-container">
                 <p>${product.default_comment}</p>
+                {{if budget}}
+                <p>${T('current_budget')}: ${budget.balance * CONSTS.BUDGET_RATE}</p>
+                {{/if}}
                 <div class="shop-to-cart">
 
                     <select type="number" id="product-amount">

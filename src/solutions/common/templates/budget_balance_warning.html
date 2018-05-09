@@ -1,0 +1,17 @@
+{% raw %}
+<div id="budget_balance_warning" class="modal {{if mapEnabled}}modal-large{{/if}} hide fade" tabindex="-1" role="dialog" aria-labelledby="budgetBalanceWarningModal" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 id="budgetBalanceWarningModal">${T('warning')}</h3>
+    </div>
+    <div class="modal-body" style="overflow-y: visible; max-height: 100%;">
+        <p>
+            ${warning}
+        </p>
+    </div>
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${T('CANCEL')}</button>
+        <button action="submit" class="btn btn-primary">${T('order')}</button>
+    </div>
+</div>
+{%- endraw %}

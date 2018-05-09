@@ -16,14 +16,11 @@
  * @@license_version:1.2@@
  */
 
-var SHOP_PAGES = {
-    cart: renderCart,
-    product: renderItem,
-    checkout: renderCart
-};
 var STORE_PRODUCTS = []; // loaded via ajax call
+var BUDGET = null;
 var PRODUCT_SHORT_NAMES = {
     BEAC: CommonTranslations.beacon,
+    BDGT: T('budget'),
     XCTY: CommonTranslations.apps,
     POSM: CommonTranslations.flyers,
     BNNR: CommonTranslations.rollup_banner,
@@ -31,6 +28,28 @@ var PRODUCT_SHORT_NAMES = {
 };
 var EXTRA_CITY_CODE = 'XCTY', EXTRA_CITY_PRICE = 0;
 var cart = [], ccInfo, callBackAfterCCLinked;
+
+ROUTES.shop = shopRouter;
+
+function shopRouter(urlHash) {
+    $('#shoplink').click();
+    var page = urlHash[1];
+    getStoreProducts(function () {
+        switch (page) {
+            case 'cart':
+                renderCart(urlHash[2]);
+                break;
+            case 'product':
+                renderItem(urlHash[2]);
+                break;
+            case 'checkout':
+                renderCart(true);
+                break;
+            default:
+                renderItem('');
+        }
+    });
+}
 
 function renderItem(productCode){
     var tabs = $('#shop-tabs');
@@ -62,21 +81,33 @@ function renderProduct(argument) {
     var product = STORE_PRODUCTS.filter(function(p){
         return p.code === productCode;
     })[0];
-    var html = $.tmpl(templates['shop/product'], {
-        product: product,
-        error: argument.error,
-        success: argument.success,
-        loading: argument.loading,
-        t: CommonTranslations,
-        LEGAL_ENTITY_CURRENCY: LEGAL_ENTITY_CURRENCY
-    });
-    $('#store-current-page').html(html);
-    $('#add-to-cart').click(function(){
-        var code = $(this).attr('data-product-code');
-        var count = parseInt($('#product-amount').val());
-        addItemToCart({code: code, count: count, loading: true}, renderProduct, code);
-    });
-    renderGlobals();
+
+    if(productCode === 'BDGT'){
+        getBudget(function(budget){
+            render(budget);
+        });
+    }else {
+        render(null);
+    }
+
+    function render(budget) {
+        var html = $.tmpl(templates['shop/product'], {
+            product: product,
+            error: argument.error,
+            success: argument.success,
+            loading: argument.loading,
+            t: CommonTranslations,
+            LEGAL_ENTITY_CURRENCY: LEGAL_ENTITY_CURRENCY,
+            budget: budget
+        });
+        $('#store-current-page').html(html);
+        $('#add-to-cart').click(function () {
+            var code = $(this).attr('data-product-code');
+            var count = parseInt($('#product-amount').val());
+            addItemToCart({code: code, count: count, loading: true}, renderProduct, code);
+        });
+        renderGlobals();
+    }
 }
 
 function renderGlobals(){
@@ -189,7 +220,7 @@ function renderCartInternal(checkout) {
                 });
                 if (data.success) {
                     modal.find('.modal-header h3').text(CommonTranslations.order_complete);
-                    modal.find('.modal-body').html('<p>' + CommonTranslations.process_asap + '</p>');
+                    modal.find('.modal-body').html('<p>' + CommonTranslations.thank_you_for_your_order + '</p>');
                     modal.find('#link-cc').hide();
                     modal.on('hide.bs.modal', function(e){
                         // Move the current user's cart items to the active apps variable
@@ -390,6 +421,20 @@ function getStoreProducts(callback) {
             error: sln.showAjaxError
         };
         sln.call(options);
+    }
+}
+
+function getBudget(callback) {
+    if (BUDGET) {
+        callback(BUDGET);
+    } else {
+        sln.call({
+            url: '/common/billing/budget',
+            success: function (data) {
+                BUDGET = data;
+                callback(BUDGET);
+            }
+        });
     }
 }
 

@@ -21,7 +21,7 @@ from types import NoneType
 from google.appengine.ext import db, deferred
 
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.service import _validate_service_identity, InvalidNameException
+from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
 from rogerthat.to.service import ServiceIdentityDetailsTO

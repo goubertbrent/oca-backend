@@ -147,8 +147,10 @@ $(function () {
     init();
 
     function init() {
-        ROUTES['settings'] = router;
+        ROUTES.settings = router;
         modules.settings = {
+            getSettings: getSettings,
+            getBroadcastOptions: getBroadcastOptions,
             renderBroadcastSettings: renderBroadcastSettings
         };
         LocalCache.settings = {};
@@ -360,6 +362,21 @@ $(function () {
             $(".sln-updates-pending-warning").fadeOut('fast');
         }
     };
+
+    function getSettings(callback) {
+        if (LocalCache.settings) {
+            callback(LocalCache.settings);
+        } else {
+            sln.call({
+                url: "/common/settings/load",
+                type: "GET",
+                success: function (settings) {
+                    LocalCache.settings = settings;
+                    callback(LocalCache.settings);
+                }
+            });
+        }
+    }
 
     var loadSettings = function () {
         sln.call({
@@ -1441,8 +1458,8 @@ $(function () {
         }
     }
 
-    function getbroadcastOptions(callback) {
-        if (LocalCache.broadcastOptions) {
+    function getBroadcastOptions(callback, force) {
+        if (LocalCache.broadcastOptions && !force) {
             callback(LocalCache.broadcastOptions);
         } else {
             sln.call({
@@ -1450,7 +1467,9 @@ $(function () {
                 type: "GET",
                 success: function (data) {
                     LocalCache.broadcastOptions = data;
-                    callback(data);
+                    if (callback) {
+                        callback(LocalCache.broadcastOptions);
+                    }
                 }
             });
         }
@@ -1486,6 +1505,8 @@ $(function () {
     	         htmlElement.data('rss_urls', rssFeeds);
     	         renderRssUrls(rssFeeds);
         });
+
+
         getbroadcastOptions(function (broadcastOptions) {
             var html = $.tmpl(templates.broadcast_settings_list, {
                 broadcastTypes: broadcastOptions.editable_broadcast_types,

@@ -11,6 +11,7 @@
 <link href="/static/bootstrap/timepicker/css/bootstrap-timepicker.min.css" rel="stylesheet" media="screen">
 <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet">
 <link href="/static/bootstrap/colorpicker/css/bootstrap-colorpicker.min.css" rel="stylesheet" media="screen">
+<link href="/static/bootstrap/modal-fullscreen/css/bootstrap-modal-fullscreen.css" rel="stylesheet" media="screen">
 {% if SolutionModule.BILLING in sln_settings.modules %}
 <link href="/static/css/solutions/flex/shop.css" rel="stylesheet">
 {% endif %}
@@ -38,6 +39,7 @@
 <script src="/static/bootstrap/datepicker/js/bootstrap-datepicker.js"></script>
 <script src="/static/bootstrap/timepicker/js/bootstrap-timepicker.min.js"></script>
 <script src="/static/bootstrap/colorpicker/js/bootstrap-colorpicker.min.js"></script>
+<script src="/static/bootstrap/modal-fullscreen/js/bootstrap-modal-fullscreen.js"></script>
 <script src="/static/js/jquery.tmpl.min.js"></script>
 <script src="/static/js/modernizr.custom.62420.js"></script>
 <script src="/static/js/jquery-validate.min.js"></script>
@@ -86,7 +88,15 @@ var templates = {{ templates|safe }};
 {% endif %}
 <script src="/static/js/solutions/sln-loyalty.js"></script>
 
+{%- include 'vector-map-assets.tmpl' %}
+
 {%- include 'settings_header.tmpl' %}
+
+{% if not layout_uer and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in sln_settings.modules) %}
+<script src="/static/js/solutions/sln-city-select.js"></script>
+<script src="/static/js/solutions/sln-news-list.js"></script>
+<script src="/static/js/solutions/sln-news-wizard.js"></script>
+{% endif %}
 
 </head>
 
@@ -144,7 +154,14 @@ var templates = {{ templates|safe }};
                         <li menu="events"><a href="#" help="dafoHacdVAU">{% translate language, "common", "agenda" %}</a></li>
     {% endif %}
     {% if SolutionModule.BROADCAST in sln_settings.modules %}
-                        <li menu="broadcast"><a href="#/broadcast" help="MMvE7paS59k">{% if news_enabled %}{% translate language, "common", "News & actions" %}{% else %}{% translate language, "common", "Broadcast" %}{% endif %}</a></li>
+        {% if news_enabled %}
+                        <li menu="news"><a href="#/news" help="MMvE7paS59k">{% translate language, "common", "News & actions" %}</a></li>
+        {% else %}
+                        <li menu="broadcast"><a href="#/broadcast" help="MMvE7paS59k">{% translate language, "common", "Broadcast" %}</a></li>
+        {% endif %}
+    {% endif %}
+    {% if SolutionModule.JOBS in sln_settings.modules %}
+                        <li menu="jobs"><a href="#/jobs">{% translate language, "common", "jobs" %} </a></li>
     {% endif %}
 {% endif %}
 
@@ -194,7 +211,7 @@ var templates = {{ templates|safe }};
     {% endif %}
     {% if not loyalty %}
     <!-- show loyalty tab if there is no "Functionalities" page or in case loyalty is enabled -->
-        {% if not oca_loyalty_limited and (not functionality_modules or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
+        {% if not oca_loyalty_limited and not joyn_supported and (not functionality_modules or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "oca-loyalty" %}<span
                                class="badge badge-important sln-loyalty-badge"></span></a></li>
         {% endif %}
@@ -309,14 +326,17 @@ var templates = {{ templates|safe }};
 {% endif %}
 
 {% if not is_layout_user %}
-    {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
-        {%- include 'sandwiches.tmpl' %}
+	{% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+	    {%- include 'sandwiches.tmpl' %}
+	{% endif %}
+	{% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
+	    {%- include 'events.tmpl' %}
+	{% endif %}
+	{% if SolutionModule.BROADCAST in sln_settings.modules %}
+	    {%- include 'broadcast.tmpl' %}
     {% endif %}
-    {% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
-        {%- include 'events.tmpl' %}
-    {% endif %}
-    {% if SolutionModule.BROADCAST in sln_settings.modules %}
-        {%- include 'broadcast.tmpl' %}
+    {% if SolutionModule.JOBS in sln_settings.modules %}
+        {%- include 'jobs.tmpl' %}
     {% endif %}
 {% endif %}
 
@@ -497,7 +517,6 @@ var templates = {{ templates|safe }};
         {% if not is_layout_user and SolutionModule.BROADCAST in sln_settings.modules %}
             {%- include 'broadcast_settings.tmpl' %}
         {% endif %}
-
         {% if not is_layout_user and SolutionModule.SANDWICH_BAR in sln_settings.modules %}
             {%- include 'sandwiches_settings.tmpl' %}
         {% endif %}

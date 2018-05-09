@@ -47,7 +47,7 @@ DEFAULT_COORDS = {
             "priority": 10
         },
         POKE_TAG_NEW_EVENT: {
-            "preferred_page":-1,
+            "preferred_page": -1,
             "coords": [-1, -1, -1],
             "priority": 1
         }

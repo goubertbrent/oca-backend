@@ -1,16 +1,16 @@
 {% raw %}
     <div class="layout-row layout-align-space-between-center" style="margin-left: 8px;">
-        <h2>${T('previous_news_items')}</h2>
-        <a href="#/broadcast/add" class="md-button md-raised md-primary">
-            <i class="fa fa-plus"></i> ${T('create_news')}
+        <h2>${title}</h2>
+        <a href="${baseLink}/add" class="md-button md-raised md-primary">
+            <i class="fa fa-plus"></i> ${T('create')}
         </a>
     </div>
     <div class="layout-column">
         {{if !newsItems.length}}
-        <p>${T('no_previous_news_items')}</p>
+        <p>${T('no_previous_items')}</p>
         {{else}}
         {{each(i, newsItem) newsItems}}
-        <md-card class="news-card" id="news_item_${newsItem.id}">
+        <md-card class="news-card news_item_${newsItem.id}">
             <md-card-title>
                 <md-card-title-text class="card-title-text">
                     <span class="md-headline">${newsItem.title || newsItem.qr_code_caption}</span>
@@ -41,7 +41,7 @@
                     </div>
                     {{/if}}
                     <div class="layout-align-end-center">
-                        <a href="#/broadcast/edit/${newsItem.id}" class="md-button md-raised">
+                        <a href="${baseLink}/edit/${newsItem.id}" class="md-button md-raised">
                             <i class="fa fa-pencil-square-o"></i> ${T('EDIT')}
                         </a>
                         {{if !newsItem.published}}
@@ -51,14 +51,14 @@
                         {{/if}}
                     </div>
                 </div>
-                <div class="news_more_stats layout-column" id="show_more_stats_${newsItem.id}"
+                <div class="news_more_stats layout-column show_more_stats_${newsItem.id}"
                      style="display:none;"></div>
             </md-card-content>
         </md-card>
     </div>
     {{/each}}
     <div class="text_align_center">
-        <button type="button" id="load_more_news" class="md-button md-primary">${T('Load more')}</button>
+        <button type="button" class="md-button md-primary load_more_news">${T('Load more')}</button>
     </div>
     {{/if}}
 {% endraw %}

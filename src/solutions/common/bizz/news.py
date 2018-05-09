@@ -21,7 +21,7 @@ import logging
 from types import NoneType
 
 from google.appengine.api import taskqueue
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
 from mcfw.consts import MISSING
@@ -29,15 +29,14 @@ from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.service import re_index
-from rogerthat.consts import MC_DASHBOARD, SCHEDULED_QUEUE
+from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
 from rogerthat.models import App
 from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import app, news
-from rogerthat.settings import get_server_settings
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -51,7 +50,8 @@ from shop.to import OrderItemTO
 from solutions.common.bizz import SolutionModule, OrganizationType, facebook, twitter
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionScheduledBroadcast
-from solutions.common.models.news import NewsCoupon
+from solutions.common.models.budget import Budget
+from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags
 from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO
 from solutions.flex import SOLUTION_FLEX
@@ -61,9 +61,11 @@ SPONSOR_DAYS = 7
 
 
 @returns(NewsBroadcastItemListTO)
-@arguments(cursor=unicode, service_identity=unicode)
-def get_news(cursor=None, service_identity=None):
-    news_list = news.list_news(cursor, 5, service_identity)
+@arguments(cursor=unicode, service_identity=unicode, tag=unicode)
+def get_news(cursor=None, service_identity=None, tag=None):
+    if not tag or tag is MISSING:
+        tag = u'news'
+    news_list = news.list_news(cursor, 5, service_identity, tag=tag)
     result = NewsBroadcastItemListTO()
     result.result = []
     result.cursor = news_list.cursor
@@ -112,17 +114,56 @@ def _app_uses_custom_organization_types(language):
     return False
 
 
+def get_regional_apps_of_item(news_item, default_app_id):
+    """Returns a list of regional apps of a news item if found"""
+    regional_apps = []
+    for app_id in news_item.app_ids:
+        if app_id in (App.APP_ID_OSA_LOYALTY, App.APP_ID_ROGERTHAT, default_app_id):
+            continue
+        regional_apps.append(app_id)
+    return regional_apps
+
+
+@ndb.transactional()
+def create_regional_news_item(news_item, regional_apps, service_user, service_identity):
+    sln_item_key = SolutionNewsItem.create_key(news_item.id, service_user)
+    settings_key = NewsSettings.create_key(service_user, service_identity)
+    sln_item, news_settings = ndb.get_multi([sln_item_key, settings_key])  # type: tuple[SolutionNewsItem, NewsSettings]
+    if not sln_item:
+        sln_item = SolutionNewsItem(key=sln_item_key)
+
+    if news_item.scheduled_at:
+        publish_time = news_item.scheduled_at
+    else:
+        publish_time = news_item.timestamp
+
+    sln_item.publish_time = publish_time
+    sln_item.app_ids = regional_apps
+    sln_item.service_identity = service_identity
+    if news_settings and NewsSettingsTags.FREE_REGIONAL_NEWS in news_settings.tags:
+        sln_item.paid = True
+    sln_item.put()
+
+
+def check_budget(service_user, service_identity):
+    keys = [Budget.create_key(service_user), NewsSettings.create_key(service_user, service_identity)]
+    budget, news_settings = ndb.get_multi(keys)  # type: tuple[Budget, NewsSettings]
+    if not news_settings or NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
+        if not budget or budget.balance <= 0:
+            raise BusinessException('insufficient_budget')
+
+
 @returns(NewsBroadcastItemTO)
 @arguments(service_identity_user=users.User, title=unicode, message=unicode, broadcast_type=unicode, sponsored=bool,
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
            facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode,
-           qr_code_content=unicode)
+           qr_code_content=unicode, tag=unicode)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
                   broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
-                  host=None, qr_code_content=None):
+                  host=None, qr_code_content=None, tag=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -148,12 +189,15 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         role_ids (list of long) the list of role ids to filter sending the news to their members
         host (unicode): host of the api request (used for social media apps)
         qr_code_content (unicode)
+        tag(unicode)
 
     Returns:
         news_item (NewsBroadcastItemTO)
     """
     if not order_items or order_items is MISSING:
         order_items = []
+    if not tag or tag is MISSING:
+        tag = u'news'
     if news_type == NewsItem.TYPE_QR_CODE:
         sln_settings = get_solution_settings(get_service_user_from_service_identity_user(service_identity_user))
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
@@ -196,6 +240,16 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     if default_app.demo and App.APP_ID_ROGERTHAT in app_ids:
         app_ids.remove(App.APP_ID_ROGERTHAT)
 
+    feed_names = []
+    if tag == u'news':
+        if not default_app.demo:
+            for app_id in app_ids:
+                if app_id != si.app_id:
+                    feed_names.append(NewsFeedNameTO(app_id, u'regional_news'))
+    else:
+        for app_id in app_ids:
+            feed_names.append(NewsFeedNameTO(app_id, tag))
+
     kwargs = {
         'sticky_until': sponsored_until,
         'message': message,
@@ -206,7 +260,9 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         'image': image,
         'scheduled_at': scheduled_at,
         'target_audience': target_audience,
-        'role_ids': role_ids
+        'role_ids': role_ids,
+        'tags': [tag],
+        'feed_names': feed_names
     }
     if not news_id:
         kwargs['news_type'] = news_type
@@ -265,6 +321,13 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                                      news_id)
                 if order_items:
                     create_and_pay_news_order(service_user, news_item.id, order_items)
+                regional_apps = get_regional_apps_of_item(news_item, si.app_id)
+                if regional_apps:
+                    if not news_id:
+                        # check for budget on creation only
+                        check_budget(service_user, identity)
+                    deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
+                                   _transactional=True)
                 return news_item
 
             news_item = run_in_xg_transaction(trans)
@@ -527,16 +590,6 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     # charge the credit card
     if charge.total_amount > 0:
         get_payed(customer.id, order, charge)
-        server_settings = get_server_settings()
-        send_to = server_settings.supportWorkers
-        send_to.append(MC_DASHBOARD.email())
-        channel_data = {
-            'customer': customer.name,
-            'no_manager': True,
-            'amount': charge.amount / 100,
-            'currency': charge.currency
-        }
-        channel.send_message(map(users.User, send_to), 'shop.monitoring.signed_order', info=channel_data)
     else:
         charge.status = Charge.STATUS_EXECUTED
         charge.date_executed = now()

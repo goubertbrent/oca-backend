@@ -277,7 +277,7 @@ def broadcast_send(service_user, service_identity, broadcast_type, message, broa
             logging.info(error_msgs)
             return ReturnStatusTO.create(False, "\n".join(error_msgs))
 
-        send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled, \
+        send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled,
                        target_audience_min_age, target_audience_max_age, target_audience_gender, attachments, msg_urls,
                        broadcast_date, broadcast_on_twitter, broadcast_to_all_locations)
 
@@ -446,7 +446,12 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
                                    SOLUTION_COMMON, u'news_item_published')
         result = result_message(message)
     except BusinessException as e:
-        result = result_message(e.message)
+        sln_settings = get_solution_settings(service_user)
+        try:
+            message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)
+        except ValueError:
+            message = e.message
+        result = result_message(message)
 
     return result
 

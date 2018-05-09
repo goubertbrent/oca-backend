@@ -59,6 +59,10 @@ cron:
   url: /admin/cron/rpc/solution_news_scraper
   schedule: every day 18:00
 
+- description: Solution regional news budget check/update
+  url: /admin/cron/rpc/solutions_news_budget_updater
+  schedule: every day 00:00
+
 - description: Shop export reseller invoices
   url: /admin/cron/rpc/shop_export_reseller_invoices
   schedule: every monday 14:00

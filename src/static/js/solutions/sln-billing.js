@@ -23,6 +23,8 @@ if (LOGO_LANGUAGES.indexOf(LANGUAGE) === -1) {
 var manageCreditCardModal;
 
 $(function() {
+    modules.billing = {};
+
     handler = StripeCheckout.configure({
         key: STRIPE_PUBLIC_KEY,
         image: logoUrl,
@@ -148,7 +150,7 @@ $(function() {
             success : function(data) {
                 var orders = data;
                 if (orders.length > 0) {
-                    $("#billing_unsigned_orders").show();
+                    $("#billing_unsigned_orders").parents('.accordion-group').show();
                     var html = $.tmpl(templates.billing_settings_unsigned_orders_table, {
                         unsigned_orders : orders,
                         CommonTranslations : CommonTranslations
@@ -170,7 +172,7 @@ $(function() {
                                         order_number);
                             });
                 } else {
-                    $("#billing_unsigned_orders").hide();
+                    $("#billing_unsigned_orders").parents('.accordion-group').hide();
                 }
             }
         });
@@ -185,7 +187,7 @@ $(function() {
                     orders : data,
                     CommonTranslations : CommonTranslations
                 });
-                $("#billing_orders tbody").empty().append(html);
+                $("#billing_orders tbody").html(html);
             }
         });
     };
@@ -237,6 +239,42 @@ $(function() {
         });
     };
 
+    function loadBudget(callback) {
+        sln.call({
+            url: '/common/billing/budget',
+            success: function (budget) {
+                callback(budget);
+            }
+        });
+    }
+    modules.billing.loadBudget = loadBudget;
+
+    function loadBudgetTransactions() {
+        loadBudget(function (budget) {
+            sln.call({
+                url: '/common/billing/budget/transactions',
+                success: function (transactions) {
+                    renderBudgetTransactions(budget, transactions);
+                }
+            });
+        });
+    }
+
+    function renderBudgetTransactions(budget, transactions) {
+        var html = $.tmpl(templates.billing_budget, {
+            budget: budget,
+            transactions: transactions.map(function (t) {
+                return Object.assign({}, t, {
+                    timestamp: sln.format(new Date(t.timestamp)),
+                    amount: t.amount * CONSTS.BUDGET_RATE
+                });
+            }),
+            T: T,
+            LEGAL_ENTITY_CURRENCY: LEGAL_ENTITY_CURRENCY
+        });
+        $("#billing_budget").html(html);
+    }
+
 
     function channelUpdates(data){
         if(data.type === 'common.billing.orders.update'){
@@ -244,6 +282,7 @@ $(function() {
         }
         else if(data.type === 'common.billing.invoices.update'){
             loadInvoices();
+            loadBudgetTransactions();
         }
     }
 
@@ -252,6 +291,7 @@ $(function() {
     loadUnsignedOrders();
     loadOrders();
     loadInvoices();
+    loadBudgetTransactions();
 
     sln.registerMsgCallback(channelUpdates);
 });

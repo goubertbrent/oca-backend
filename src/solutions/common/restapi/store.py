@@ -28,13 +28,12 @@ from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import re_index
-from rogerthat.consts import MC_DASHBOARD
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import App
 from rogerthat.models.utils import copy_model_properties
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from rogerthat.settings import get_server_settings
 from rogerthat.to import RETURNSTATUS_TO_SUCCESS, ReturnStatusTO
 from rogerthat.utils import now, channel, today, format_price
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -50,6 +49,7 @@ from shop.models import Order, OrderItem, Product, Charge, OrderNumber, ShopTask
 from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatusTO, BoolReturnStatusTO
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
+from solutions.common.bizz.budget import update_budget
 from solutions.common.dal import get_solution_settings
 
 try:
@@ -106,9 +106,9 @@ def get_order_items():
 def get_products():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-    keys = []
+    keys = [Product.create_key(Product.PRODUCT_BUDGET)]
     if SolutionModule.CITY_APP not in sln_settings.modules:  # city apps cannot order more city apps
-        keys.append(Product.create_key(Product.PRODUCT_EXTRA_CITY))
+        pass  # keys.append(Product.create_key(Product.PRODUCT_EXTRA_CITY))
     else:
         keys.append(Product.create_key(Product.PRODUCT_ROLLUP_BANNER))
     return [ProductTO.create(p, sln_settings.main_language) for p in Product.get(keys)]
@@ -180,7 +180,7 @@ def add_item_to_order(item):
         # Should never happen unless the user manually recreates the ajax request..
         azzert(
             not product.possible_counts or item.count in product.possible_counts or item.code == Product.PRODUCT_EXTRA_CITY,
-               u'Invalid amount of items supplied')
+            u'Invalid amount of items supplied')
         number = 0
         existing_order_items = list()
         vat_pct = get_vat_pct(customer, team)
@@ -211,7 +211,7 @@ def add_item_to_order(item):
                     # If so, add the count of this new item to the existing item.
                     for it in order_items:
                         if it.product_code == item.code and it.product_code not in (
-                        Product.PRODUCT_EXTRA_CITY, Product.PRODUCT_NEWS_PROMOTION):
+                                Product.PRODUCT_EXTRA_CITY, Product.PRODUCT_NEWS_PROMOTION):
                             if (it.count + item.count) in product.possible_counts or not product.possible_counts:
                                 it.count += item.count
                                 item_already_added = True
@@ -219,8 +219,8 @@ def add_item_to_order(item):
                                 order_item = it
                             elif len(product.possible_counts) != 0:
                                 raise BusinessException(
-                                        translate(lang, SOLUTION_COMMON, u'cant_order_more_than_specified',
-                                                  allowed_items=max(product.possible_counts)))
+                                    translate(lang, SOLUTION_COMMON, u'cant_order_more_than_specified',
+                                              allowed_items=max(product.possible_counts)))
 
         if item.app_id is not MISSING:
             remaining_length, _ = get_subscription_order_remaining_length(customer.id,
@@ -263,24 +263,24 @@ def add_item_to_order(item):
     try:
         order_item, service_visible_in_translation = run_in_xg_transaction(trans)
         return OrderItemReturnStatusTO.create(True, None, order_item, service_visible_in_translation)
-    except BusinessException, exception:
+    except BusinessException as exception:
         return OrderItemReturnStatusTO.create(False, exception.message, None)
+
 
 @rest("/common/store/order/pay", "post", read_only_access=False)
 @returns(BoolReturnStatusTO)
 @arguments()
 def pay_order():
     service_user = users.get_current_user()
+    language = get_solution_settings(service_user).main_language
     customer = get_customer(service_user)
     azzert(customer)
 
-    if not customer.stripe_valid:
-        # Create a shoptask after 1 hour
-        deferred.defer(create_task_if_not_order, customer.id, _countdown=3600)
+    app = get_app_by_id(customer.app_id)
+    is_demo = app and app.demo
+    if not is_demo and not customer.stripe_valid:
         return BoolReturnStatusTO.create(False,
-                                         translate(get_solution_settings(service_user).main_language,
-                                                   SOLUTION_COMMON,
-                                                   u'no_credit_card_contact_support'),
+                                         translate(language, SOLUTION_COMMON, u'link_cc_now'),
                                          True)
 
     # create a new order with the exact same order items.
@@ -290,15 +290,11 @@ def pay_order():
         old_order, team = db.get((old_order_key, RegioManagerTeam.create_key(customer.team_id)))
 
         if not old_order:
-            return BoolReturnStatusTO.create(False,
-                                             translate(get_solution_settings(service_user).main_language,
-                                                       SOLUTION_COMMON,
-                                                       u'cart_empty'),
-                                             False)
+            return BoolReturnStatusTO.create(False, translate(language, SOLUTION_COMMON, u'cart_empty'), False)
 
         # Duplicate the order
-        to_put = list()
-        to_delete = list()
+        to_put = []
+        to_delete = []
         properties = copy_model_properties(old_order)
         properties['status'] = Order.STATUS_SIGNED
         properties['date_signed'] = now()
@@ -308,10 +304,11 @@ def pay_order():
         to_delete.append(old_order)
 
         # duplicate all of the order items
-        old_order_items = OrderItem.list_by_order(old_order_key)
-        all_products = db.get([Product.create_key(item.product_code) for item in old_order_items])
+        old_order_items = OrderItem.list_by_order(old_order_key)  # type: list[OrderItem]
+        all_products = {product.code: product for product in db.get([Product.create_key(item.product_code)
+                                                                     for item in old_order_items])}
         is_subscription_extension_order = False
-        for product in all_products:
+        for product in all_products.itervalues():
             if product.is_subscription_extension:
                 is_subscription_extension_order = True
                 break
@@ -319,8 +316,10 @@ def pay_order():
         if is_subscription_extension_order:
             subscription_order = Order.get_by_order_number(customer.id, customer.subscription_order_number)
             new_order.next_charge_date = subscription_order.next_charge_date
-        added_apps = list()
-        should_create_shoptask = False
+        added_apps = []
+        should_create_shoptask = not is_demo
+        added_budget = 0
+        budget_description = None
         for old_item in old_order_items:
             properties = copy_model_properties(old_item)
             new_item = OrderItem(parent=new_order_key, **properties)
@@ -330,6 +329,12 @@ def pay_order():
                 added_apps.append(old_item.app_id)
             else:
                 should_create_shoptask = True
+            if old_item.clean_product_code == Product.PRODUCT_BUDGET:
+                budget_description = all_products[old_item.product_code].description(language)
+                added_budget += all_products[old_item.product_code].price * old_item.count
+        if added_budget:
+            deferred.defer(update_budget, service_user, added_budget, service_identity=None, context_type=None,
+                           context_key=None, memo=budget_description, _transactional=True)
         to_put.append(new_order)
         db.put(to_put)
         db.delete(to_delete)
@@ -339,19 +344,20 @@ def pay_order():
 
         # No need for signing here, immediately create a charge.
         azzert(new_order.total_amount > 0)
-        charge = Charge(parent=new_order_key)
-        charge.date = now()
-        charge.type = Charge.TYPE_ORDER_DELIVERY
-        charge.amount = new_order.amount
-        charge.vat_pct = new_order.vat_pct
-        charge.vat = new_order.vat
-        charge.total_amount = new_order.total_amount
-        charge.manager = new_order.manager
-        charge.team_id = new_order.team_id
-        charge.status = Charge.STATUS_PENDING
-        charge.date_executed = now()
-        charge.currency_code = team.legal_entity.currency_code
-        charge.put()
+        if not is_demo:
+            charge = Charge(parent=new_order_key)
+            charge.date = now()
+            charge.type = Charge.TYPE_ORDER_DELIVERY
+            charge.amount = new_order.amount
+            charge.vat_pct = new_order.vat_pct
+            charge.vat = new_order.vat
+            charge.total_amount = new_order.total_amount
+            charge.manager = new_order.manager
+            charge.team_id = new_order.team_id
+            charge.status = Charge.STATUS_PENDING
+            charge.date_executed = now()
+            charge.currency_code = team.legal_entity.currency_code
+            charge.put()
 
         # Update the regiomanager statistics so these kind of orders show up in the monthly statistics
         deferred.defer(update_regiomanager_statistic, gained_value=new_order.amount / 100,
@@ -361,27 +367,18 @@ def pay_order():
         si = get_default_service_identity(users.User(customer.service_email))
         si.appIds.extend(added_apps)
         si.put()
-        deferred.defer(re_index, si.user, _transactional=True)
+        deferred.defer(re_index, si.user)
 
         # Update the customer object so the newly added apps are added.
         customer.app_ids.extend(added_apps)
         customer.extra_apps_count += len(added_apps)
         customer.put()
 
-        get_payed(customer.id, new_order, charge)
-        # charge the credit card
+        if not is_demo:
+            # charge the credit card
+            get_payed(customer.id, new_order, charge)
+
         channel.send_message(service_user, 'common.billing.orders.update')
-        channel_data = {
-            'customer': customer.name,
-            'no_manager': True,
-            'amount': charge.amount / 100,
-            'currency': charge.currency
-        }
-        server_settings = get_server_settings()
-        send_to = server_settings.supportWorkers
-        send_to.append(MC_DASHBOARD.email())
-        channel.send_message(map(users.User, send_to), 'shop.monitoring.signed_order',
-                             info=channel_data)
         if should_create_shoptask:
             prospect_id = customer.prospect_id
             if prospect_id is None:
@@ -426,6 +423,7 @@ def create_task_for_order(customer_team_id, prospect_id, order_number):
     )
     task.put()
     broadcast_task_updates([team.support_manager])
+
 
 def create_task_if_not_order(customer_id):
     customer = Customer.get_by_id(customer_id)

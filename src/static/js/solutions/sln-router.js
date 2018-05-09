@@ -45,21 +45,6 @@ function routingHandler(hash) {
     var topMenuElement = $('#topmenu');
     if (hash.length) {
         switch (hash[0]) {
-            case 'shop':
-                $('#shoplink').click();
-                var page = SHOP_PAGES[hash[1]];
-                getStoreProducts(function () {
-                    // Show Extra city product by default.
-                    if (!hash[1]) {
-                        window.location.hash = '/shop/product/' + EXTRA_CITY_CODE;
-                    }
-                    else if (SHOP_PAGES[hash[1]]) {
-                        SHOP_PAGES[hash[1]](hash[2]);
-                    } else {
-                        SHOP_PAGES['product'](EXTRA_CITY_CODE);
-                    }
-                });
-                break;
             case 'loyalty':
             	if (currentLoyaltyType > 0) {
             		if (currentLoyaltyType == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {

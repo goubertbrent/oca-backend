@@ -1,6 +1,13 @@
+<!-- common between old broadcast and news -->
+<script src="/static/js/solutions/sln-broadcast.js"></script>
+{% if news_enabled %}
+<div id="news" class="page" style="display: none;">
+    <div id="page_news"></div>
+    <script src="/static/js/solutions/sln-news.js"></script>
+</div>
+{% else %}
 <div id="broadcast" class="page" style="display: none;">
     <div class="sln-broadcast-hint"></div>
-    <div id="broadcast_page_news" style="display: none;"></div>
     <div id="broadcast_page_message" style="display:none;">
         <h2>Broadcast message</h2>
         <legend>
@@ -153,5 +160,5 @@
             </tbody>
         </table>
     </div>
-    <script src="/static/js/solutions/sln-broadcast.js"></script>
 </div>
+{% endif %}

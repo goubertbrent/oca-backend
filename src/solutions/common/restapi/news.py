@@ -39,10 +39,10 @@ from solutions.common.utils import is_default_service_identity
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)
 @returns(NewsBroadcastItemListTO)
-@arguments(cursor=unicode)
-def rest_get_news(cursor=None):
+@arguments(tag=unicode, cursor=unicode)
+def rest_get_news(tag=None, cursor=None):
     service_identity = users.get_current_session().service_identity
-    return get_news(cursor, service_identity)
+    return get_news(cursor, service_identity, tag)
 
 
 @rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
@@ -60,11 +60,12 @@ def rest_get_news_statistics(news_id):
            type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)),
            app_ids=[unicode], scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
            broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO,
-           role_ids=[(int, long)], qr_code_content=unicode)
+           role_ids=[(int, long)], qr_code_content=unicode, tag=unicode)
 def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
                        type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
                        scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
-                       facebook_access_token=None, target_audience=None, role_ids=None, qr_code_content=None):
+                       facebook_access_token=None, target_audience=None, role_ids=None, qr_code_content=None,
+                       tag=None):
     """
     Args:
         title (unicode)
@@ -85,6 +86,8 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         facebook_access_token (unicode): user or page access token
         target_audience (NewsTargetAudienceTO)
         role_ids (list of long)
+        qr_code_content (unicode)
+        tag (unicode)
     """
     service_user = users.get_current_user()
     session_ = users.get_current_session()
@@ -96,10 +99,11 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
 
     try:
         host = get_current_http_host()
-        return put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
-                             order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
-                             broadcast_on_twitter, facebook_access_token, target_audience=target_audience,
-                             role_ids=role_ids, host=host, qr_code_content=qr_code_content, accept_missing=True)
+        return put_news_item(
+            service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
+            order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
+            broadcast_on_twitter, facebook_access_token, target_audience=target_audience, role_ids=role_ids,
+            host=host, qr_code_content=qr_code_content, tag=tag, accept_missing=True)
     except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
         try:

@@ -21,6 +21,7 @@ from shop.cron import RecurrentBilling, ReportOnSitePaymentsHandler, NotifyExten
     ExportResellerInvoicesHandler, CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.cron.associations import CreateNonProfitStatistics
+from solutions.common.cron.budget import BudgetCheckHandler
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler, \
     SolutionCityVoucherExpiredReminderHandler
 from solutions.common.cron.events import SolutionEventsScraper
@@ -55,11 +56,13 @@ handlers = [
     ('/admin/cron/rpc/solution_loyalty_lottery_loot', LootLotteryCronHandler),
     ('/admin/cron/rpc/solution_loyalty_export', SolutionLoyaltyExportHandler),
     ('/admin/cron/rpc/solution_expired_vouchers_reminder', SolutionCityVoucherExpiredReminderHandler),
+    ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/rpc/city_association_statistics', CreateNonProfitStatistics),
     ('/admin/cron/rpc/solution_events_scraper', SolutionEventsScraper),
     ('/admin/cron/rpc/solution_news_scraper', SolutionNewsScraper),
     ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
+    ('/admin/cron/rpc/solutions_news_budget_updater', BudgetCheckHandler),
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),

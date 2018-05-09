@@ -1,11 +1,11 @@
 {% raw %}
     <ul class="breadcrumb">
-        <li><a href="#/broadcast/overview">${T('news_items')}</a> <span class="divider">/</span></li>
-        <li class="active">${T(newsItem.id ? 'update_news': 'create_news')}</li>
+        <li><a href="${baseLink}/overview">${title}</a> <span class="divider">/</span></li>
+        <li class="active">${T(newsItem.id ? 'Update': 'create')}</li>
     </ul>
     <div class="span6" id="news_form_container">
         <form id="form_broadcast_news" autocomplete="off" class="row">
-            <h2>${T(newsItem.id ? 'update_news': 'create_news')}</h2>
+            <h2>${T(newsItem.id ? 'Update': 'create')}</h2>
             <h3 id="step_title"></h3>
             <p id="step_content_explanation"></p>
             <div class="tab-content" style="height: auto;">
@@ -225,7 +225,7 @@
                             </select>
                             <h3>${T('Options')}</h3>
                             {{each(i, option) sandwichSettings.options}}
-                            <label class="checkbox" for="news_action_sandwich_bar_options_${option.id}">
+                            <label class="checkbox">
                                 <input type="checkbox" name="news_action_sandwich_bar_options"
                                        id="news_action_sandwich_bar_options_${option.id}" value="${option.id}" required
                                        {{if selectedSandwich.options && selectedSandwich.options.includes('option_' + option.id)}}checked
@@ -242,7 +242,7 @@
                 <div class="tab-pane" id="tab5">
                     <div class="control-group">
                         <div class="controls">
-                            <label class="checkbox" for="news_send_later">${T('publish_news_item_later')}
+                            <label class="checkbox">${T('publish_later')}
                                 <input type="checkbox" id="news_send_later" {{if newsItem.scheduled_at}}checked{{/if}}
                                        {{if newsItem.scheduled_at || newsItem.published }}disabled{{/if}}>
                             </label>
@@ -269,32 +269,13 @@
                     </div>
                 </div>
                 <div class="tab-pane" id="tab6" style="margin-bottom: 50px;">
-                    <div class="control-group" {{if !canPromote }}style="display:none"{{/if}}>
-                        <div class="controls">
-                            <label for="checkbox_promote" class="checkbox">
-                                <input type="checkbox" id="checkbox_promote" name="checkbox_promote"
-                                       {{if newsItem.sticky}}checked disabled{{/if}}>
-                                ${T('promote')}
-                            </label>
-                            <span class="help-block">${T('promote_news_post_explanation')}</span>
-                        </div>
+                    <div id="app_select_preview">
                     </div>
-                    <div class="control-group">
-                        <label>${T('target_audience')}</label>
-                        <div class="controls">
-                            {{each(i, app) apps}}
-                            {{if app.visible}}
-                            <label class="checkbox">
-                                <input type="checkbox" name="news_checkbox_apps" value="${app.id}" ${app.checked} ${app.disabled}>
-                                ${app.name} - ${T('users_count').replace('%(amount)s', app.total_user_count)}
-                                <span class="free_promoted_text" id="free_promoted_${app.id}"></span>
-                            </label>
-                            {{/if}}
-                            {{/each}}
-                        </div>
-                    </div>
+                    {{if hasMap}}
+                    <div class="help-block">${T('city_select_extra_apps')}</div>
+                    {{/if}}
                     <div>
-                        <p>${T('broadcast-reach')}: <b><span id="news_total_reach">${totalReach}</span></b></p>
+                        <p>${T('broadcast-estimated-reach')}: <b><span id="news_total_reach">${modules.news.getEstimatedReach(totalReach)}</span></b></p>
                     </div>
                     {{if !newsItem.published}}
                     <div id="post_to_social_media" class="form-inline">
@@ -303,15 +284,19 @@
                             <label>
                                 <input id="post_to_facebook" type="checkbox"
                                        {{if newsItem.broadcast_on_facebook}}checked{{/if}}
-                                       {{if (newsItem.broadcast_on_facebook || newsItem.broadcast_on_twitter) && newsItem.scheduled_at}}disabled{{/if}}/>${T('put-on-facebook')}
+                                       {{if (newsItem.broadcast_on_facebook || newsItem.broadcast_on_twitter) && newsItem.scheduled_at}}disabled{{/if}}/>
+                                &nbsp;${T('put-on-facebook')}
                                 <select id="facebook_page" class="selectpicker form-control" style="display: none; width: auto;"></select>
                             </label>
                         </div>
                         <div class="clearfix"/>
                         <div class="checkbox">
-                            <label><input id="post_to_twitter" type="checkbox"
-                                          {{if newsItem.broadcast_on_twitter}}checked{{/if}}
-                                          {{if (newsItem.broadcast_on_facebook || newsItem.broadcast_on_twitter) && newsItem.scheduled_at}}disabled{{/if}}/>${T('put-on-twitter')}</label>
+                            <label>
+                                <input id="post_to_twitter" type="checkbox"
+                                       {{if newsItem.broadcast_on_twitter}}checked{{/if}}
+                                       {{if (newsItem.broadcast_on_facebook || newsItem.broadcast_on_twitter) && newsItem.scheduled_at}}disabled{{/if}}/>
+                                &nbsp;${T('put-on-twitter')}
+                            </label>
                         </div>
                     </div>
                     {{/if}}

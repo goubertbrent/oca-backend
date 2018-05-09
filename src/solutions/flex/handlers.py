@@ -39,11 +39,13 @@ from rogerthat.utils.service import create_service_identity_user
 from shop.bizz import get_organization_types, is_signup_enabled
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
-from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
+from shop.dal import get_customer, get_mobicage_legal_entity
 from solution_server_settings import get_solution_server_settings
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
+from solutions.common.bizz.budget import BUDGET_RATE
+from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.loyalty import joyn_supported
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
@@ -66,6 +68,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
                                     os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
     extensions=[TranslateExtension])
 
+
 DEFAULT_JS_TEMPLATES = [
     'inbox_messages',
     'inbox_detail_messages',
@@ -84,8 +87,14 @@ DEFAULT_JS_TEMPLATES = [
     'settings/app_user_add_roles',
     'settings/try_publish_changes',
     'settings/upload_image',
-    'functionalities/functionality'
+    'functionalities/functionality',
+    'city_select',
+    'budget_balance_warning',
 ]
+
+VECTOR_MAPS = {
+    'BE': 'flanders.json'
+}
 
 MODULES_JS_TEMPLATE_MAPPING = {
     SolutionModule.AGENDA: [
@@ -103,6 +112,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'timeframe_template'
     ],
     SolutionModule.BILLING: [
+        'billing_budget',
         'billing_manage_credit_card',
         'billing_view_invoice',
         'billing_settings_unsigned_orders_table',
@@ -119,7 +129,8 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'broadcast/broadcast_news',
         'broadcast/broadcast_news_overview',
         'broadcast/broadcast_news_preview',
-        'broadcast/news_stats_row'
+        'broadcast/news_stats_row',
+        'broadcast/news_app_check_list'
     ],
     SolutionModule.CITY_APP: [
         'services/service',
@@ -315,16 +326,15 @@ class FlexHomeHandler(webapp2.RequestHandler):
             city_app_id = customer.app_id
             default_app = get_app(customer.app_id)
             is_demo_app = default_app.demo
-            available_apps = get_available_apps_for_customer(customer)
             active_app_ids = customer.sorted_app_ids
         else:
             city_app_id = None
             is_demo_app = False
             logging.info('Getting app ids from service identity since no customer exists for user %s', service_user)
             service_identity_user = create_service_identity_user(service_user, service_identity)
-            app_ids = get_service_identity(service_identity_user).appIds
-            available_apps = App.get([App.create_key(app_id) for app_id in app_ids])
-            active_app_ids = app_ids
+            active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
+
+        available_apps = App.get([App.create_key(app_id) for app_id in active_app_ids])
 
         if SolutionModule.ORDER or SolutionModule.MENU in sln_settings.modules:
             order_settings = get_solution_order_settings(sln_settings)
@@ -351,7 +361,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 'EMERGENCY': OrganizationType.EMERGENCY,
                 'PROFIT': OrganizationType.PROFIT,
                 'NON_PROFIT': OrganizationType.NON_PROFIT,
-            }
+            },
+            'MAP_FILE': VECTOR_MAPS[customer.country] if customer else None,
+            'CITY_APPS': get_country_apps(customer.country) if customer else {},
+            'BUDGET_RATE': BUDGET_RATE,
         }
         if not customer:
             mobicage_legal_entity = get_mobicage_legal_entity()
@@ -426,6 +439,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
                   'CONSTS': consts,
                   'CONSTS_JSON': json.dumps(consts),
+                  'COUNTRY': customer and customer.country or u'',
                   'order_settings': order_settings,
                   'order_settings_json': json.dumps(
                       serialize_complex_value(

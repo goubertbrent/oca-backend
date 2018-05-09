@@ -117,6 +117,7 @@ class SolutionModule(Enum):
     SANDWICH_BAR = u'sandwich_bar'
     STATIC_CONTENT = u'static_content'
     WHEN_WHERE = u'when_where'
+    JOBS = u'jobs'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -141,8 +142,8 @@ class SolutionModule(Enum):
         STATIC_CONTENT: 'static-content',
         QR_CODES: 'settings-qr-codes',
         WHEN_WHERE: 'when-where',
-
         JOYN: 'joyn',
+        JOBS: 'jobs',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
@@ -1072,7 +1073,7 @@ def enable_or_disable_solution_module(service_user, module, enabled):
             deactivate_solution_module(sln_settings, SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
         elif module == SolutionModule.JOYN:
             deactivate_solution_module(sln_settings, SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
-            
+
         # don't enable loyalty if this is a city service
         if SolutionModule.CITY_APP in sln_settings.modules:
             if module == SolutionModule.LOYALTY or module == SolutionModule.JOYN:

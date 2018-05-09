@@ -25,10 +25,10 @@
                         <span class="user_info">${settings.name} - ${currentDatetime}</span>
                     </div>
                 </div>
-                <div class="news_content" id="news_content">
+                <div class="news_content">
                     <p class="news_message">{{html htmlize(newsItem.message)}}</p>
                 </div>
-                <div class="news_read_more_text" id="news_read_more_text" style="display: none;">
+                <div class="news_read_more_text" style="display: none;">
                     <label class="read_more_trigger">
                         <i class="read_more_text">${T('read_more')}</i>
                         <i class="read_less_text">${T('show_less')}</i>
@@ -39,8 +39,9 @@
                     <div class="news_label">[${newsItem.broadcast_type}]</div>
                 </div>
                 <div class="news_bottom_row">
-                    <span class="news_button">${T('Roger that')}</span>
-                    <span class="news_button">${T('follow')}</span>
+                    {{each(i, button) defaultButtons}}
+                    <span class="news_button {{if button.is_action}}news_button_action{{/if}}">${button.label}</span>
+                    {{/each}}
                     {{if newsItem.action_button}}
                     <span class="news_button news_button_action">${newsItem.action_button.caption}</span>
                     {{/if}}
@@ -66,8 +67,9 @@
                     <div class="news_label">[${T('inbox-message')}]</div>
                 </div>
                 <div class="news_bottom_row">
-                    <span class="news_button">${T('Roger that')}</span>
-                    <span class="news_button">${T('follow')}</span>
+                    {{each(i, button) defaultButtons}}
+                    <span class="news_button {{if button.is_action}}news_button_action{{/if}}">${button.label}</span>
+                    {{/each}}
                 </div>
             </article>
             {{else}}
@@ -93,8 +95,9 @@
                     <div class="news_label">[${T('promotions')}]</div>
                 </div>
                 <div class="news_bottom_row">
-                    <span class="news_button">${T('Roger that')}</span>
-                    <span class="news_button">${T('follow')}</span>
+                    {{each(i, button) defaultButtons}}
+                    <span class="news_button {{if button.is_action}}news_button_action{{/if}}">${button.label}</span>
+                    {{/each}}
                 </div>
             </article>
             {{/if}}

@@ -5,53 +5,94 @@
 		<h4>{% translate language, "common", "warning" %}</h4>
 		{% translate language, "common", "You still need to configure your credit-card." %}<br>
 		{% translate language, "common", "Don't risk your application of being disabled!." %}<br>
-		{% translate language, "common", "For more information contact" %} <a href="mailto:info@onzestadapp.be">info@onzestadapp.be</a>. 
+        {% translate language, "common", "For more information contact" %} <a href="mailto:info@onzestadapp.be">info@onzestadapp.be</a>.
 	</div>
     {% endif %}
     <button id="manage_credit_card" class="btn btn-primary">{% translate language, "common", "manage-credit-card" %}</button>
     <br><br>
     <div class="sln-set-iban"><label>IBAN</label><input type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></div>
     <div class="sln-set-bic"><label>BIC</label><input type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></div>
-    <div id="billing_unsigned_orders" style="display: none;">
-        <h3>{% translate language, "common", "orders-unsigned" %}</h3>
-        <table class="table table-striped table-hover table-bordered">
-            <thead>
-                <tr>
-                    <th>{% translate language, "common", "Date" %}</th>
-                    <th>{% translate language, "common", "Order NR" %}</th>
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    <div class="accordion" id="billing-accordion">
+        <div class="accordion-group">
+            <div class="accordion-heading">
+                <a class="accordion-toggle" data-toggle="collapse" data-parent="#billing-accordion"
+                   href="#collapse-unsigned-orders">
+                    <h3>{% translate language, 'common', 'orders-unsigned' %}</h3>
+                </a>
+            </div>
+            <div id="collapse-unsigned-orders" class="accordion-body collapse">
+                <div class="accordion-inner" id="billing_unsigned_orders">
+                    <table class="table table-striped table-hover table-bordered">
+                        <thead>
+                        <tr>
+                            <th>{% translate language, "common", "Date" %}</th>
+                            <th>{% translate language, "common", "Order NR" %}</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-group">
+            <div class="accordion-heading">
+                <a class="accordion-toggle" data-toggle="collapse" data-parent="#billing-accordion"
+                   href="#collapse-orders">
+                    <h3>{% translate language, 'common', 'orders-signed' %}</h3>
+                </a>
+            </div>
+            <div id="collapse-orders" class="accordion-body collapse">
+                <div class="accordion-inner" id="billing_orders">
+                    <table class="table table-striped table-hover table-bordered">
+                        <thead>
+                        <tr>
+                            <th>{% translate language, "common", "Date" %}</th>
+                            <th>{% translate language, "common", "Order NR" %}</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-group">
+            <div class="accordion-heading">
+                <a class="accordion-toggle" data-toggle="collapse" data-parent="#billing-accordion"
+                   href="#collapse-invoices">
+                    <h3>{% translate language, 'common', 'Invoices' %}</h3>
+                </a>
+            </div>
+            <div id="collapse-invoices" class="accordion-body collapse">
+                <div class="accordion-inner" id="billing_invoices">
+                    <table class="table table-striped table-hover table-bordered">
+                        <thead>
+                        <tr>
+                            <th>{% translate language, "common", "Date" %}</th>
+                            <th>{% translate language, "common", "Invoice NR" %}</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-group">
+            <div class="accordion-heading">
+                <a class="accordion-toggle" data-toggle="collapse" data-parent="#billing-accordion"
+                   href="#collapse-budget">
+                    <h3>{% translate language, 'common', 'budget' %}</h3>
+                </a>
+            </div>
+            <div id="collapse-budget" class="accordion-body collapse">
+                <div class="accordion-inner" id="billing_budget">
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="billing_orders">
-        <h3>{% translate language, "common", "orders-signed" %}</h3>
-        <table class="table table-striped table-hover table-bordered">
-            <thead>
-                <tr>
-                    <th>{% translate language, "common", "Date" %}</th>
-                    <th>{% translate language, "common", "Order NR" %}</th>
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-    <div id="billing_invoices">
-        <h3>{% translate language, "common", "Invoices" %}</h3>
-        <table class="table table-striped table-hover table-bordered">
-            <thead>
-                <tr>
-                    <th>{% translate language, "common", "Date" %}</th>
-                    <th>{% translate language, "common", "Invoice NR" %}</th>
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-    
+
     <div id="sign_order" class="modal hide fade fullscreen-pdf-modal">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -66,7 +107,7 @@
             <a href="#" class="btn btn-success" id="button_sign_order">{% translate language, "common", "Sign" %}</a>
         </div>
     </div>
-    
+
     <div class="modal hide fade" id="sign_order_form" style="width: 832px; margin-left: -416px;">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>

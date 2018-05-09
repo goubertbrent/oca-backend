@@ -24,7 +24,6 @@ from solutions.common.bizz.statistics import get_app_statistics
 
 @rest('/common/statistics/apps', 'get', read_only_access=True)
 @returns([AppServiceStatisticsTO])
-@arguments()
-def rest_get_app_statistics():
-    service_identity = users.get_current_session().service_identity
-    return get_app_statistics(service_identity)
+@arguments(all_apps=bool)
+def rest_get_app_statistics(all_apps=True):
+    return get_app_statistics(users.get_current_user(), all_apps=all_apps)
