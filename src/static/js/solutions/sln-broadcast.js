@@ -1332,7 +1332,8 @@ $(function () {
                     value: 'joyn_coupon',
                     type: 'url',
                     translation: T('joyn-coupon'),
-                    defaultLabel:T('activate')
+                    defaultLabel:T('activate'),
+                    help: T('joyn-coupon-url-help')
                 });
             }
             
@@ -1377,6 +1378,7 @@ $(function () {
             };
             var html = $.tmpl(templates['broadcast/broadcast_news'], params);
             $('#broadcast_page_news').html(html);
+            $('#broadcast_page_news a[data-toggle="tooltip"]').tooltip();
             newsEventHandlers(newsItem, appStatistics, broadcastOptions);
         }
     }

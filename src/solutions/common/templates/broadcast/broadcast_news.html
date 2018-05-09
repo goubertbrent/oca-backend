@@ -159,7 +159,11 @@
                                    required>
                         </div>
                         {{if action.value !== 'attachment'}}
-                        <label class="control-label" for="news_action_${action.value}_field">${action.translation}</label>
+                        <label class="control-label" for="news_action_${action.value}_field">${action.translation}
+                        	{{if action.help }}
+                        	<a data-toggle="tooltip" data-placement="right" data-title="${action.help}"><i class="icon-info-sign"></i></a>
+                        	{{/if}}
+                        </label>
                         {{/if}}
                         <div class="controls">
                             <input type="${action.value === 'attachment' ? 'hidden' : action.type}"
