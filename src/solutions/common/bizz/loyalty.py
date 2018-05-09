@@ -29,15 +29,16 @@ from types import NoneType
 import uuid
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from google.appengine.ext import deferred, db
-
 from PIL.Image import Image
 from babel import Locale
 from babel.dates import format_date, format_datetime, get_timezone
 from lxml import etree, html
+import pytz
+from xhtml2pdf import pisa
+
+from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-import pytz
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.rtemail import generate_user_specific_link, EMAIL_REGEX
@@ -68,7 +69,7 @@ from solutions.common.dal import get_solution_main_branding, get_solution_settin
     get_solution_settings_or_identity_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
     get_solution_loyalty_visits_for_stamps, get_solution_loyalty_settings_or_identity_settings
-from solutions.common.models import SolutionBrandingSettings
+from solutions.common.models import SolutionBrandingSettings, SolutionSettings
 from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyaltySettings, \
     SolutionLoyaltyVisitRevenueDiscount, SolutionUserLoyaltySettings, SolutionLoyaltyScan, SolutionLoyaltyVisitLottery, \
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
@@ -80,7 +81,7 @@ from solutions.common.models.properties import SolutionUser
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
 from solutions.common.to.loyalty import LoyaltySlideTO, SolutionLoyaltyVisitTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
-from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -2021,7 +2022,7 @@ def remove_city_postal_code(app_id, postal_code):
 
 @returns(bool)
 @arguments(country=unicode, modules=[unicode], app_ids=[unicode])
-def joyn_supported(country, modules, app_ids):
+def is_joyn_available(country, modules, app_ids):
     if SolutionModule.JOYN in modules:
         return True
 
@@ -2033,3 +2034,18 @@ def joyn_supported(country, modules, app_ids):
         return True
 
     return False
+
+
+@returns(bool)
+@arguments(joyn_available=bool, sln_settings=SolutionSettings)
+def is_oca_loyalty_limited(joyn_available, sln_settings):
+    if SolutionModule.JOYN in sln_settings.modules:
+        return True
+
+    if sln_settings.activated_modules \
+            and SolutionModule.LOYALTY in sln_settings.activated_modules \
+            and sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp <= 0:
+        # LOYALTY was enabled before JOYN was available --> full OSA Loyalty functionality
+        return False
+
+    return joyn_available

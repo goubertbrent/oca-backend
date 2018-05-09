@@ -19,7 +19,7 @@ from __future__ import unicode_literals
 
 from solutions import translate as common_translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.loyalty import joyn_supported
+from solutions.common.bizz.loyalty import is_joyn_available
 
 
 OTHER_LANGUAGES = ['nl']
@@ -176,7 +176,7 @@ def get_functionalities(country, language, my_modules, activated_modules, app_id
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
         del info[SolutionModule.HIDDEN_CITY_WIDE_LOTTERY]
 
-    if SolutionModule.JOYN in modules and not joyn_supported(country, my_modules, app_ids):
+    if SolutionModule.JOYN in modules and not is_joyn_available(country, my_modules, app_ids):
         modules.remove(SolutionModule.JOYN)
         del info[SolutionModule.JOYN]
 

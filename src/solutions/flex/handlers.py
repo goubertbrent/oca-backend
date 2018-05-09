@@ -47,7 +47,7 @@ from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.functionalities import get_functionalities
-from solutions.common.bizz.loyalty import joyn_supported
+from solutions.common.bizz.loyalty import is_joyn_available, is_oca_loyalty_limited
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
@@ -389,12 +389,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
         if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
             vouchers_settings = get_city_vouchers_settings(city_app_id)
 
-        oca_loyalty_limited = False
-        if SolutionModule.JOYN in sln_settings.modules:
-            oca_loyalty_limited = True
-        elif country == "BE" and sln_settings.activated_modules and SolutionModule.LOYALTY in sln_settings.activated_modules:
-            if sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
-                oca_loyalty_limited = True
+        joyn_available = is_joyn_available(country, sln_settings.modules, active_app_ids)
+        oca_loyalty_limited = is_oca_loyalty_limited(joyn_available, sln_settings)
 
         organization_types = get_organization_types(customer, sln_settings.main_language)
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
@@ -422,7 +418,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
                   'oca_loyalty_limited': oca_loyalty_limited,
-                  'joyn_supported': joyn_supported(country, sln_settings.modules, active_app_ids),
+                  'joyn_supported': joyn_available,
                   'city_app_id': city_app_id,
                   'is_demo_app': is_demo_app,
                   'functionality_modules': functionality_modules,
