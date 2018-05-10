@@ -32,7 +32,7 @@ from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
-from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET
+from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message, ServiceIdentity, ServiceInteractionDef
 from rogerthat.models.news import NewsItem
@@ -789,7 +789,7 @@ def send_inbox_forwarders_message(service_user, service_identity, app_user, body
                                   answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
     deferred.defer(_send_inbox_forwarders_message, service_user, service_identity, app_user, body, msg_params, solution,
                    message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags,
-                   _transactional=db.is_in_transaction())
+                   _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
 
 
 @returns(NoneType)
@@ -801,11 +801,11 @@ def _send_inbox_forwarders_message(service_user, service_identity, app_user, bod
                                    message_key=None, attachments=None, reply_enabled=False, send_reminder=True,
                                    answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
     try_or_defer(_send_inbox_forwarders_message_by_email, service_user, service_identity, app_user, body, msg_params,
-                 solution,
-                 message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags)
+                 solution, message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags,
+                 _queue=FAST_QUEUE)
     try_or_defer(_send_inbox_forwarders_message_by_app, service_user, service_identity, app_user, body, msg_params,
-                 solution, message_key,
-                 attachments, reply_enabled, send_reminder, answers, store_tag, flags)
+                 solution, message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags,
+                 _queue=FAST_QUEUE)
 
 
 @returns(NoneType)
