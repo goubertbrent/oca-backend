@@ -714,14 +714,6 @@ NewsWizard.prototype = {
                 // delete image
                 data.image = null;
             }
-
-           if (data.type === NEWS_TYPE_QR) {
-                if (MODULES.includes('joyn')) {
-                    data.qr_code_content = elemInputCouponUrl.val().trim() || '';
-                }
-                data.qr_code_caption = data.title;
-                data.title = null;
-            }
             var selectedActionButtonId = elemSelectButton.val() || '';
             if (selectedActionButtonId) {
                 var actionPrefix = 'smi',
@@ -1440,33 +1432,6 @@ NewsWizard.prototype = {
 
             var step = self.steps[currentStep];
             if (step.tab === 0) {
-                // type step (normal/coupon)
-                if (data.type === NEWS_TYPE_QR) {
-                    if (COUNTRY === 'BE') {
-                        if (!MODULES.includes('loyalty') && !MODULES.includes('joyn')) {
-                            var joynUrl = 'https://www.joyn.be/for-merchants';
-                            if (LANGUAGE == 'nl') {
-                                joynUrl = 'https://www.joyn.be/nl/for-merchants'
-                            } else if (LANGUAGE == 'fr') {
-                                joynUrl = 'https://www.joyn.be/fr/for-merchants'
-                            } else if (LANGUAGE == 'en') {
-                                joynUrl = 'https://www.joyn.be/en/for-merchants'
-                            }
-                            var message = T('joyn_enable_via_coupon').replace('%(joyn_url)s',
-                                    '<a href="' + joynUrl + '" target="_blank">' + joynUrl + '</a>');
-
-                            sln.alert(message, null, CommonTranslations.ERROR);
-                            return;
-                        }
-                    } else if (!MODULES.includes('loyalty')) {
-                        var message = T('contact_support_to_order_tablet_for_news_coupons');
-                        var positiveCaption = T('request_loyalty_device');
-                        var negativeCaption = T('CLOSE');
-                        var title = T('ERROR');
-                        sln.confirm(message, requestLoyaltyDevice, null, positiveCaption, negativeCaption, title);
-                        return;
-                    }
-                }
                 // do not show post to social media if news type is coupon
                 var elemPostToSocialMedia = self.$('#post_to_social_media');
                 if(data.type === NEWS_TYPE_QR) {
@@ -1521,7 +1486,7 @@ NewsWizard.prototype = {
         function stepChanged(data) {
             var step = self.steps[currentStep];
 
-            if (step.tab === 0 && MODULES.includes('joyn')) {
+            if (step.tab === 0 && (MODULES.indexOf('loyalty') === -1 || ocaLoyaltyLimited)) {
                 nextStep();
                 return;
         	}
@@ -1561,16 +1526,6 @@ NewsWizard.prototype = {
             elemNewsPreview.toggle(!isLastStep);
             elemButtonSubmit.text(geSubmitButtonText(data));
             renderPreview();
-
-            if (step.tab === 1) {
-                if (data.type == NEWS_TYPE_QR && MODULES.includes('joyn')) {
-                    elemInputCouponUrl.parent().parent().show();
-                    elemInputCouponUrl.focus();
-                } else {
-                    elemInputCouponUrl.parent().parent().hide();
-                    elemInputTitle.focus();
-                }
-            }
 
             // target audience step
             if (step.tab === 6) {
