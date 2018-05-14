@@ -25,7 +25,7 @@ from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import channel, now, send_mail
+from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
@@ -52,6 +52,7 @@ SMART_EMAILS = {
 LIST_CONSENT = {
     '628e03c09c313744683c79fdf473e723': SolutionServiceConsent.TYPE_EMAIL_MARKETING,
     '65bd31a73ce990da06d7312dca3eb458': SolutionServiceConsent.TYPE_NEWSLETTER,
+    'a2d5ad4ef57e7600f9e549175e035b68': SolutionServiceConsent.TYPE_NEWSLETTER
 }
 
 
@@ -266,13 +267,11 @@ def send_signup_update_messages(sln_settings, *messages):
     channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)
 
 
-def add_service_consent(email, type_, data):
-    data['consent_type'] = 'add'
+def add_service_consent(email, type_, **data):
     update_service_consent(email, True, type_, data)
 
 
-def remove_service_consent(email, type_, data):
-    data['consent_type'] = 'remove'
+def remove_service_consent(email, type_, **data):
     update_service_consent(email, False, type_, data)
 
 
@@ -291,7 +290,14 @@ def update_service_consent(email, grant, type_, data):
         sec.types.remove(type_)
         sec.put()
 
-    SolutionServiceConsentHistory(type=type, data=data, parent=sec_key).put()
+    SolutionServiceConsentHistory(consent_type=type_, data=data, parent=sec_key).put()
+    request_data = {
+        'email': email,
+        'grant': grant,
+        'type': type_,
+        'data': data
+    }
+    log_offload.create_log(email, 'oca.service_consents', request_data, None)
 
 
 def new_list_event(list_id, events):
@@ -304,10 +310,10 @@ def new_list_event(list_id, events):
         logging.warning('Cannot find email consent type of campaignmonitor list %s', list_id)
         return
 
-    # only handle deactivated for now, as adding subscribers
-    # will be via the api
     for event in events:
+        if event.Type == ListEvents.SUBSCRIBE:
+            add_service_consent(event.EmailAddress, consent_type,
+                context="User subscribed via campaignmonitor")
         if event.Type == ListEvents.DEACTIVATE:
             remove_service_consent(event.EmailAddress, consent_type,
-                u'User unsubscribed to %s via campaignmonitor' % consent_type
-            )
+                context=u'User unsubscribed via campaignmonitor')

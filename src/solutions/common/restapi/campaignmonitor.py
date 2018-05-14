@@ -15,7 +15,7 @@
 #
 # @@license_version:1.2@@
 
-from mcfw.restapi import GenericRESTRequestHandler, rest, REST_FLAVOR_NORMAL
+from mcfw.restapi import GenericRESTRequestHandler, rest
 from mcfw.rpc import arguments, returns
 from createsend.utils import json_to_py
 
@@ -23,11 +23,13 @@ from solutions.common.bizz.campaignmonitor import LIST_CALLBACK_PATH
 from solutions.common.bizz.service import new_list_event
 
 
-@rest(LIST_CALLBACK_PATH, "post", read_only_access=True, authenticated=False, flavor=REST_FLAVOR_NORMAL)
-@returns()
+@rest(LIST_CALLBACK_PATH, "post", read_only_access=True, authenticated=False)
+@returns(dict)
 @arguments()
 def api_list_webhook_callback():
     """A generic handler for campaignmonitor subscriber list web hooks"""
     # FIXME: how to verify this callback is from campaignmonitor?
     list_events = json_to_py(GenericRESTRequestHandler.getCurrentRequest().body)
     new_list_event(list_events.ListID, list_events.Events)
+    # just to make sure the status code is 200
+    return {}

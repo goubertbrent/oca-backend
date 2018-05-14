@@ -731,6 +731,6 @@ class SolutionServiceConsent(NdbModel):
 class SolutionServiceConsentHistory(NdbModel):
 
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
-    type = ndb.StringProperty()
+    consent_type = ndb.StringProperty()
     data = ndb.JsonProperty(compressed=True)
 
