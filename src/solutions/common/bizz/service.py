@@ -81,10 +81,8 @@ class ListConsentMapping(object):
 
 
 LIST_CONSENT = ListConsentMapping()
-# LIST_CONSENT.add('628e03c09c313744683c79fdf473e723', SolutionServiceConsent.TYPE_EMAIL_MARKETING)
-# LIST_CONSENT.add('65bd31a73ce990da06d7312dca3eb458', SolutionServiceConsent.TYPE_NEWSLETTER)
-LIST_CONSENT.add('a2d5ad4ef57e7600f9e549175e035b68', SolutionServiceConsent.TYPE_EMAIL_MARKETING)
-LIST_CONSENT.add('4e13be11b45bd714f1ef1d8b1e1d6729', SolutionServiceConsent.TYPE_NEWSLETTER)
+LIST_CONSENT.add('628e03c09c313744683c79fdf473e723', SolutionServiceConsent.TYPE_EMAIL_MARKETING)
+LIST_CONSENT.add('65bd31a73ce990da06d7312dca3eb458', SolutionServiceConsent.TYPE_NEWSLETTER)
 
 
 def register_lists_webhooks():

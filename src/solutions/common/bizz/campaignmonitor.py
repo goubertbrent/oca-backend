@@ -39,9 +39,6 @@ class ListEvents(object):
 
 
 def get_list_callback_url():
-    if DEBUG:
-        # FIXME: this is a public ip to test the hooks, can be removed later
-        return urlparse.urljoin('http://151fdc2e.ngrok.io', LIST_CALLBACK_PATH)
     return urlparse.urljoin(get_server_settings().baseUrl, LIST_CALLBACK_PATH)
 
 
