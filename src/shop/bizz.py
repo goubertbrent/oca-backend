@@ -2450,6 +2450,7 @@ def export_customers_csv(google_user):
             else:
                 d['App'] = ''
             d['Language'] = customer.language
+            d['Email Consent URL'] = get_customer_email_consent_url(customer)
 
             for p, v in d.items():
                 if v and isinstance(v, unicode):
@@ -2459,7 +2460,7 @@ def export_customers_csv(google_user):
     result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language']
+                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language', 'Email Consent URL']
     with closing(StringIO()) as csv_string:
         writer = csv.DictWriter(csv_string, dialect='excel', fieldnames=fieldnames)
         writer.writeheader()
@@ -2778,6 +2779,9 @@ def complete_customer_signup(email, data):
 @returns(unicode)
 @arguments(customer=Customer)
 def get_customer_email_consent_url(customer):
+    if not customer.user_email:
+        return ''
+
     from shop.view import get_current_http_host
 
     data = dict(c=customer.user_email, s=unicode(customer.key()))
