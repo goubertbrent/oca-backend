@@ -314,6 +314,6 @@ def new_list_event(list_id, events):
         if event.Type == ListEvents.SUBSCRIBE:
             add_service_consent(event.EmailAddress, consent_type,
                 context="User subscribed via campaignmonitor")
-        if event.Type == ListEvents.DEACTIVATE:
+        elif event.Type == ListEvents.DEACTIVATE:
             remove_service_consent(event.EmailAddress, consent_type,
                 context=u'User unsubscribed via campaignmonitor')

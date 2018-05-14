@@ -18,7 +18,7 @@
 import logging
 import urlparse
 
-from createsend import List, Transactional, Subscriber
+from createsend import BadRequest, List, Transactional, Subscriber
 
 from mcfw.rpc import arguments, returns
 from rogerthat.consts import DEBUG
@@ -120,4 +120,9 @@ def subscribe(list_id, email, name=None, custom_fields=None):
 @returns()
 @arguments(list_id=unicode, email=unicode)
 def unsubscribe(list_id, email):
-    get_subscriber(list_id, email).unsubscribe()
+    try:
+        get_subscriber(list_id, email).unsubscribe()
+    except BadRequest as exception:
+        # pass if it's already unsubscribed (203)
+        if exception.data.Code != 203:
+            raise
