@@ -17,6 +17,7 @@
 
 import shop.handlers
 import solutions.common.restapi
+import solutions.common.restapi.campaignmonitor
 import solutions.djmatic.api
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
@@ -35,7 +36,6 @@ from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-
 from webapp2_extras.routes import RedirectRoute
 
 from version.handler import VersionsHandler
@@ -70,6 +70,7 @@ handlers = [
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))
+handlers.extend(rest_functions(solutions.common.restapi.campaignmonitor, authentication=NOT_AUTHENTICATED))
 handlers.extend(rest_functions(shop.handlers, authentication=NOT_AUTHENTICATED))
 
 app = RogerthatWSGIApplication(handlers, name="main_unauthenticated")

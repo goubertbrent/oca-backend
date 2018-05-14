@@ -31,7 +31,7 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
-from solutions.common.bizz.createsend import send_smart_email
+from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
@@ -45,6 +45,13 @@ SMART_EMAILS = {
     '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 2 * 60,
     'e6b456af-a811-4540-903c-5135cd6e4802': 2 * DAY,
     'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY,
+}
+
+# TODO: create a modal to store this?
+# a mapping between list and SolutionServiceConsent type
+LIST_CONSENT = {
+    '628e03c09c313744683c79fdf473e723': SolutionServiceConsent.TYPE_EMAIL_MARKETING,
+    '65bd31a73ce990da06d7312dca3eb458': SolutionServiceConsent.TYPE_NEWSLETTER,
 }
 
 
@@ -285,3 +292,22 @@ def update_service_consent(email, grant, type_, data):
         sec.put()
 
     SolutionServiceConsentHistory(type=type, data=data, parent=sec_key).put()
+
+
+def new_list_event(list_id, events):
+    """A new subscribers list event triggered by webhooks"""
+    logging.debug('Got some subscriber list events %s, %s',
+        list_id, [(event.Type, event.EmailAddress) for event in events])
+
+    consent_type = LIST_CONSENT.get(list_id)
+    if not consent_type:
+        logging.warning('Cannot find email consent type of campaignmonitor list %s', list_id)
+        return
+
+    # only handle deactivated for now, as adding subscribers
+    # will be via the api
+    for event in events:
+        if event.Type == ListEvents.DEACTIVATE:
+            remove_service_consent(event.EmailAddress, consent_type,
+                u'User unsubscribed to %s via campaignmonitor' % consent_type
+            )
