@@ -31,7 +31,7 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
-from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email
+from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email, register_webhook
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
@@ -48,12 +48,48 @@ SMART_EMAILS = {
 }
 
 # TODO: create a modal to store this?
-# a mapping between list and SolutionServiceConsent type
-LIST_CONSENT = {
-    '628e03c09c313744683c79fdf473e723': SolutionServiceConsent.TYPE_EMAIL_MARKETING,
-    '65bd31a73ce990da06d7312dca3eb458': SolutionServiceConsent.TYPE_NEWSLETTER,
-    'a2d5ad4ef57e7600f9e549175e035b68': SolutionServiceConsent.TYPE_NEWSLETTER
-}
+class ListConsentMapping(object):
+
+    def __init__(self):
+        self.lists = dict()
+        self.consents = dict()
+
+    def add(self, list_id, consent_type):
+        self.lists[list_id] = consent_type
+        self.consents[consent_type] = list_id
+
+    def get(self, list_id_or_consent):
+        if list_id_or_consent in self.lists:
+            return self.lists[list_id_or_consent]
+        return self.consents[list_id_or_consent]
+
+    def get_keys(self):
+        return set(self.lists.keys() + self.consents.keys())
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.add(key, value)
+
+    def __iter__(self):
+        for key in self.get_keys():
+            yield self.get(key)
+
+    def __len__(self):
+        return len(self.get_keys())
+
+
+LIST_CONSENT = ListConsentMapping()
+# LIST_CONSENT.add('628e03c09c313744683c79fdf473e723', SolutionServiceConsent.TYPE_EMAIL_MARKETING)
+# LIST_CONSENT.add('65bd31a73ce990da06d7312dca3eb458', SolutionServiceConsent.TYPE_NEWSLETTER)
+LIST_CONSENT.add('a2d5ad4ef57e7600f9e549175e035b68', SolutionServiceConsent.TYPE_EMAIL_MARKETING)
+LIST_CONSENT.add('4e13be11b45bd714f1ef1d8b1e1d6729', SolutionServiceConsent.TYPE_NEWSLETTER)
+
+
+def register_lists_webhooks():
+    for list_id in LIST_CONSENT.lists.keys():
+        register_webhook(list_id, ListEvents.ALL)
 
 
 def get_allowed_broadcast_types(city_customer):

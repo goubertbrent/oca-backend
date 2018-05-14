@@ -90,14 +90,14 @@ from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, A
 from solution_server_settings import get_solution_server_settings
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import SolutionModule, common_provision
+from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
+from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, LIST_CONSENT
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
 from solutions.common.models.hints import SolutionHint
 from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
@@ -679,7 +679,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             service_modules = set(service.modules)
             if not service_modules.issubset(module_set):
                 raise ModulesNotAllowedException(sorted([m for m in service_modules if m not in module_set]))
-    
+
     has_loyalty = any([m in service.modules for m in [SolutionModule.LOYALTY, SolutionModule.JOYN]])
     if customer.has_loyalty != has_loyalty:
         customer.has_loyalty = has_loyalty
@@ -2662,7 +2662,7 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     return message.solution_inbox_message_key
 
 
-def calculate_signup_url_digest(data):
+def calculate_customer_url_digest(data):
     alg = hashlib.sha256()
     alg.update(data['c'].encode('utf-8'))
     alg.update(data['s'].encode('utf-8'))
@@ -2674,7 +2674,7 @@ def send_signup_verification_email(city_customer, signup, host=None):
 
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
-    data['d'] = calculate_signup_url_digest(data)
+    data['d'] = calculate_customer_url_digest(data)
     data = encrypt(user, json.dumps(data))
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.b64encode(data)})
 
@@ -2738,16 +2738,23 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     send_signup_verification_email(city_customer, signup, domain)
 
 
-@returns()
-@arguments(email=unicode, data=str)
-def complete_customer_signup(email, data):
+@returns(dict)
+@arguments(email=unicode, data=unicode)
+def validate_customer_url_data(email, data):
     try:
         user = users.User(email)
         data = base64.decodestring(data)
         data = json.loads(decrypt(user, data))
-        azzert(data['d'] == calculate_signup_url_digest(data))
+        azzert(data['d'] == calculate_customer_url_digest(data))
+        return data
     except:
         raise InvalidUrlException
+
+
+@returns()
+@arguments(email=unicode, data=str)
+def complete_customer_signup(email, data):
+    data = validate_customer_url_data(email, data)
 
     def update_signup():
         signup = CustomerSignup.get(data['s'])
@@ -2766,6 +2773,42 @@ def complete_customer_signup(email, data):
         signup.put()
 
     run_in_xg_transaction(update_signup)
+
+
+@returns(unicode)
+@arguments(customer=Customer)
+def get_customer_email_consent_url(customer):
+    from shop.view import get_current_http_host
+
+    data = dict(c=customer.user_email, s=unicode(customer.key()))
+    data['d'] = calculate_customer_url_digest(data)
+    data = encrypt(users.User(customer.user_email), json.dumps(data))
+    url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
+    host = get_current_http_host(True) or get_server_settings().baseUrl
+    return '{}/customers/email_consent?{}'.format(host, url_params)
+
+
+@returns(dict)
+@arguments(email=unicode)
+def get_customer_consents(email):
+    key = SolutionServiceConsent.create_key(email)
+    service_consent = key.get()
+    if not service_consent:
+        return {}
+    return service_consent.consents
+
+
+@returns()
+@arguments(email=unicode, consents=dict)
+def update_customer_consents(email, consents):
+    current_consents = get_customer_consents(email)
+    for consent, granted in consents.iteritems():
+        list_id = LIST_CONSENT[consent]
+        if granted:
+            if not current_consents.get(consent):
+                campaignmonitor.subscribe(list_id, email)
+        elif current_consents.get(consent):
+            campaignmonitor.unsubscribe(list_id, email)
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):

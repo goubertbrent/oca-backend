@@ -727,6 +727,12 @@ class SolutionServiceConsent(NdbModel):
                        email,
                        parent=cls.create_parent_key(email))
 
+    @property
+    def consents(self):
+        return {
+            type_: (type_ in self.types) for type_ in [self.TYPE_EMAIL_MARKETING, self.TYPE_NEWSLETTER]
+        }
+
 
 class SolutionServiceConsentHistory(NdbModel):
 

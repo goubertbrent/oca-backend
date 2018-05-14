@@ -55,7 +55,8 @@ from rogerthat.utils import get_epoch_from_datetime, bizz_check
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from shop import SHOP_JINJA_ENVIRONMENT
-from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin
+from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin, \
+    validate_customer_url_data, get_customer_consents, update_customer_consents
 from shop.business.i18n import shop_translate
 from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
@@ -585,6 +586,33 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
         }
 
         self.response.out.write(self.render('set_password', **params))
+
+
+class CustomerEmailConsentHandler(PublicPageHandler):
+
+    def get(self):
+        email = self.request.get('email')
+        data = self.request.get('data')
+
+        try:
+            data = validate_customer_url_data(email, data)
+        except InvalidUrlException:
+            return self.return_error('invalid_url')
+
+        customer = db.get(data['s'])
+        if not customer:
+            return self.abort(404)
+
+        consents = get_customer_consents(email)
+        return self.response.out.write(
+            self.render('service_email_consent', email=email, name=customer.name, consents=consents))
+
+    def post(self):
+        update_customer_consents(self.request.get('email'), {
+            'newsletter': bool(self.request.get('newsletter')),
+            'email_marketing': bool( self.request.get('email_marketing'))
+        })
+        self.redirect('/customers/signin')
 
 
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)

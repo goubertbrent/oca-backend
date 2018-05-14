@@ -27,7 +27,7 @@ from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
-    CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler
+    CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
@@ -61,6 +61,7 @@ handlers = [
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
     ('/customers/setpassword', CustomerSetPasswordHandler),
     ('/customers/resetpassword', CustomerResetPasswordHandler),
+    ('/customers/email_consent', CustomerEmailConsentHandler),
     RedirectRoute('/customers/signin', name='customers_login', handler=CustomerSigninHandler, strict_slash=True),
     RedirectRoute('/customers/signup', name='signup', handler=CustomerSignupHandler, strict_slash=True),
     RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='customers_login', strict_slash=True),

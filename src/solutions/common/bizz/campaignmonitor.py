@@ -114,7 +114,7 @@ def register_webhook(list_id, events):
 def subscribe(list_id, email, name=None, custom_fields=None):
     if not name:
         name = email
-    get_subscriber().add(list_id, email, name, custom_fields, resubscribe=True)
+    get_subscriber(list_id, email).add(list_id, email, name, custom_fields, resubscribe=True)
 
 
 @returns()
