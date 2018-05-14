@@ -3850,6 +3850,8 @@ translations = \
          u'E-mail address': u'E-mailadres',
          u'Edit': u'Wijzigen',
          u'Email': u'E-mail',
+         u'email_consent_newsletter': u'Ja, ik wil e-mails ontvangen met nieuws en info over nieuwe functionaliteiten van Onze Stad App.',
+         u'email_consent_marketing': u'Ja, ik wil e-mails ontvangen met digitale marketing van Onze Stad App.',
          u'Email reminders disabled': u'E-mail herinneringen uitgeschakeld',
          u'Email reminders enabled': u'E-mail herinneringen ingeschakeld',
          u'Emergency': u'Noodgevallen',
