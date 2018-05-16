@@ -244,7 +244,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     if tag == u'news':
         if not default_app.demo:
             for app_id in app_ids:
-                if app_id != si.app_id:
+                if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
                     feed_names.append(NewsFeedNameTO(app_id, u'regional_news'))
     else:
         for app_id in app_ids:
