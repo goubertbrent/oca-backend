@@ -43,13 +43,13 @@ def _qry():
 
 
 def _worker(rss_settings_key):
-    rss_settings = rss_settings_key.get()
+    rss_settings = rss_settings_key.get()  # type: SolutionRssScraperSettings
     if not rss_settings.rss_links:
         return
 
     service_user = rss_settings.service_user
     service_identity = rss_settings.service_identity
-    
+
     sln_settings = get_solution_settings(service_user)
     if BROADCAST_TYPE_NEWS not in sln_settings.broadcast_types:
         logging.info(sln_settings.broadcast_types)
@@ -57,7 +57,6 @@ def _worker(rss_settings_key):
                       service_user,
                       BROADCAST_TYPE_NEWS)
         return
-
     broadcast_type = transl(BROADCAST_TYPE_NEWS, sln_settings.main_language)
 
     for rss_link in rss_settings.rss_links:
@@ -104,7 +103,7 @@ def _worker(rss_settings_key):
 
                     if not dry_run:
                         deferred.defer(create_news_item, sln_settings, broadcast_type, message, title, url,
-                                       _transactional=True)
+                                       rss_settings.notify, _transactional=True)
                 return False
 
             should_break = run_in_transaction(trans_send_news)

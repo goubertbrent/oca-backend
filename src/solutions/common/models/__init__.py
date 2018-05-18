@@ -667,6 +667,7 @@ class SolutionRssLink(NdbModel):
 
 class SolutionRssScraperSettings(NdbModel):
     rss_links = ndb.LocalStructuredProperty(SolutionRssLink, repeated=True)
+    notify = ndb.BooleanProperty(default=True, indexed=False)
 
     @property
     def service_user_email(self):

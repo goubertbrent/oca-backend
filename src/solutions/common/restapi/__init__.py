@@ -16,16 +16,16 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import defaultdict
 import datetime
 import logging
+from collections import defaultdict
 from types import NoneType
 
 from google.appengine.ext import db, deferred
 
 from babel.dates import format_date
 from babel.numbers import format_currency
-from mcfw.consts import MISSING
+from mcfw.consts import MISSING, REST_FLAVOR_TO
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -106,7 +106,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
-    SaveSettingsReturnStatusTO, AppUserRolesTO, CustomerSignupTO
+    SaveSettingsReturnStatusTO, AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -510,27 +510,22 @@ def rest_get_broadcast_options():
                               roles)
 
 
-@rest("/common/broadcast/rss_feeds", "get", read_only_access=True)
-@returns([unicode])
+@rest("/common/broadcast/rss", "get", read_only_access=True)
+@returns(SolutionRssSettingsTO)
 @arguments()
 def rest_get_broadcast_rss_feeds():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-
     rss_settings = SolutionRssScraperSettings.create_key(service_user, service_identity).get()
-    rss_feeds = []
-    if rss_settings:
-        for rss_link in rss_settings.rss_links:
-            rss_feeds.append(rss_link.url)
-
-    return rss_feeds
+    return SolutionRssSettingsTO.from_model(rss_settings)
 
 
-@rest("/common/broadcast/rss_feeds", "post")
-@returns(ReturnStatusTO)
-@arguments(rss_feeds=[unicode])
-def rest_save_broadcast_rss_feeds(rss_feeds):
+@rest("/common/broadcast/rss", "post", flavor=REST_FLAVOR_TO)
+@returns(SolutionRssSettingsTO)
+@arguments(data=SolutionRssSettingsTO)
+def rest_save_broadcast_rss_feeds(data):
+    # type: (SolutionRssSettingsTO) -> SolutionRssSettingsTO
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
@@ -541,23 +536,18 @@ def rest_save_broadcast_rss_feeds(rss_feeds):
         current_dict = {}
         if not rss_settings:
             rss_settings = SolutionRssScraperSettings(key=rss_settings_key)
-            rss_settings.rss_links = []
         else:
             for rss_links in rss_settings.rss_links:
                 if not current_dict.get(rss_links.url, False):
                     current_dict[rss_links.url] = rss_links.dry_runned
 
-        rss_settings.rss_links = []
-        for url in set(rss_feeds):
-            rss_link = SolutionRssLink()
-            rss_link.url = url
-            rss_link.dry_runned = current_dict.get(url, False)
-            rss_settings.rss_links.append(rss_link)
+        rss_settings.notify = data.notify
+        rss_settings.rss_links = [SolutionRssLink(url=url, dry_runned=current_dict.get(url, False))
+                                  for url in set(data.rss_urls)]
         rss_settings.put()
+        return rss_settings
 
-    run_in_transaction(trans)
-
-    return RETURNSTATUS_TO_SUCCESS
+    return SolutionRssSettingsTO.from_model(run_in_transaction(trans))
 
 
 @rest("/common/broadcast/scheduled/load", "get", read_only_access=True)
