@@ -30,26 +30,30 @@ from types import NoneType
 import urllib
 import urlparse
 
-from google.appengine.api import search, images, users as gusers
-from google.appengine.ext import deferred, db
-
 from PIL.Image import Image
-from apiclient.discovery import build
-from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
 from dateutil.relativedelta import relativedelta
 import httplib2
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
+import stripe
+from xhtml2pdf import pisa
+
+from apiclient.discovery import build
+from apiclient.errors import HttpError
+from google.appengine.api import search, images, users as gusers
+from google.appengine.ext import deferred, db
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, \
-    OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD, DEBUG
+    OFFICIALLY_SUPPORTED_COUNTRIES, MC_DASHBOARD, DEBUG, EXPORTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
@@ -103,8 +107,6 @@ from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-import stripe
-from xhtml2pdf import pisa
 
 
 try:
@@ -2461,25 +2463,25 @@ def export_customers_csv(google_user):
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
                   'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language', 'Email Consent URL']
-    with closing(StringIO()) as csv_string:
-        writer = csv.DictWriter(csv_string, dialect='excel', fieldnames=fieldnames)
+
+    date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
+    gcs_path = '/%s/customers/export-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
+    with cloudstorage.open(gcs_path, 'w') as gcs_file:
+        writer = csv.DictWriter(gcs_file, dialect='excel', fieldnames=fieldnames)
         writer.writeheader()
         for row in result:
             writer.writerow(row)
-        current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
 
-        solution_server_settings = get_solution_server_settings()
-        subject = 'Customers export %s' % current_date
-        message = u'The exported customer list of %s can be found in the attachment of this email.' % current_date
+    current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
 
-        attachments = []
-        attachments.append(('Customers export %s.csv' % current_date,
-                            base64.b64encode(csv_string.getvalue())))
+    solution_server_settings = get_solution_server_settings()
+    subject = 'Customers export %s' % current_date
+    message = u'The exported customer list of %s can be found at %s' % (current_date, get_serving_url(gcs_path))
 
-        send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message,
-                  attachments=attachments)
-        if DEBUG:
-            logging.info(csv_string.getvalue())
+    send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message)
+    if DEBUG:
+        with cloudstorage.open(gcs_path, 'r') as gcs_file:
+            logging.info(gcs_file.read())
 
 
 @returns([RegioManager])
