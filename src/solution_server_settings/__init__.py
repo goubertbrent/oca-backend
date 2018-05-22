@@ -20,7 +20,7 @@ from google.appengine.ext import db, ndb
 from mcfw.cache import CachedModelMixIn, cached
 from mcfw.rpc import returns, arguments
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
-from rogerthat.models import NdbModel
+from rogerthat.models.common import NdbModel
 from rogerthat.models.utils import add_meta
 
 import logging
