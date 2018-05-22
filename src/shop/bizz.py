@@ -91,14 +91,14 @@ from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Ord
     ShopApp
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
     CustomerServiceTO, OrderItemTO, CompanyTO, CustomerTO
-from solution_server_settings import get_solution_server_settings
+from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, LIST_CONSENT
+from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
@@ -2799,17 +2799,18 @@ def get_customer_email_consent_url(customer):
 def get_customer_consents(email):
     key = SolutionServiceConsent.create_key(email)
     service_consent = key.get()
-    if not service_consent:
-        return {}
-    return service_consent.consents
+    return SolutionServiceConsent.consents(service_consent)
 
 
 @returns()
 @arguments(email=unicode, consents=dict)
 def update_customer_consents(email, consents):
     current_consents = get_customer_consents(email)
+    campaignmonitor_lists = {webhook.consent_type: webhook.list_id for webhook in CampaignMonitorWebhook.query()}
     for consent, granted in consents.iteritems():
-        list_id = LIST_CONSENT[consent]
+        list_id = campaignmonitor_lists.get(consent)
+        if not list_id:
+            raise Exception('No webhook configured for consent %s', consent)
         if granted:
             if not current_consents.get(consent):
                 campaignmonitor.subscribe(list_id, email)

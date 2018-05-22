@@ -718,20 +718,18 @@ class SolutionServiceConsent(NdbModel):
 
     types = ndb.StringProperty(repeated=True)
 
-    @classmethod
-    def create_parent_key(cls, email):
-        return ndb.Key(cls, email)
+    @property
+    def email(self):
+        return self.key().decode('utf-8')
 
     @classmethod
     def create_key(cls, email):
-        return ndb.Key(cls,
-                       email,
-                       parent=cls.create_parent_key(email))
+        return ndb.Key(cls, email)
 
-    @property
-    def consents(self):
+    @staticmethod
+    def consents(model):
         return {
-            type_: (type_ in self.types) for type_ in [self.TYPE_EMAIL_MARKETING, self.TYPE_NEWSLETTER]
+            type_: (type_ in model.types if model else False) for type_ in SolutionServiceConsent.TYPES
         }
 
 

@@ -18,11 +18,14 @@
 import logging
 import urlparse
 
+from google.appengine.ext import ndb
+
 from createsend import BadRequest, List, Transactional, Subscriber
 from mcfw.rpc import arguments, returns
 from rogerthat.consts import DEBUG
 from rogerthat.settings import get_server_settings
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
+from solutions.common.models import SolutionServiceConsent
 
 LIST_CALLBACK_PATH = '/unauthenticated/osa/campaignmonitor/callback'
 
@@ -53,18 +56,25 @@ def get_auth_parameters():
 @arguments(email_id=unicode, to=[unicode], add_recipients_to_list=bool)
 def send_smart_email(email_id, to, add_recipients_to_list=True):
     """Send a smart email"""
+    consent_keys = [SolutionServiceConsent.create_key(email) for email in to]
+    consents = ndb.get_multi(consent_keys)  # type: list[SolutionServiceConsent]
+    allowed_to = []
+    for email, consent in zip(to, consents):
+        if SolutionServiceConsent.consents(consent)[SolutionServiceConsent.TYPE_EMAIL_MARKETING]:
+            allowed_to.append(consent.email)
+        else:
+            logging.info('Not sending email to %s because no consent was given to send marketing emails', email)
     if DEBUG:
-        logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, to)
+        logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, allowed_to)
         return
-
     try:
         cs = Transactional(get_auth_parameters())
-        results = cs.smart_email_send(email_id, to, add_recipients_to_list=add_recipients_to_list)
-        rejected = [res.Recipient for res in results if res.Recipient not in to]
+        results = cs.smart_email_send(email_id, allowed_to, add_recipients_to_list=add_recipients_to_list)
+        rejected = [res.Recipient for res in results if res.Recipient not in allowed_to]
         if rejected:
             raise Exception('Sending smart email of %s is rejected for %s' % (email_id, rejected))
     except:
-        logging.error('Cannot send smart email to %s', to, exc_info=True, _suppress=False)
+        logging.error('Cannot send smart email to %s', allowed_to, exc_info=True, _suppress=False)
 
 
 @returns(List)
