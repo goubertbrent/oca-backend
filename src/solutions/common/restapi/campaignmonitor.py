@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
+import json
 import logging
 
-from createsend.utils import json_to_py
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.restapi import GenericRESTRequestHandler, rest
 from mcfw.rpc import arguments, returns
@@ -36,11 +36,13 @@ def api_list_webhook_callback(webhook_id):
     if not webhook:
         raise HttpBadRequestException()
     current_request = GenericRESTRequestHandler.getCurrentRequest()
-    list_events = json_to_py(current_request.body)
-    if webhook.list_id != list_events.ListID:
-        logging.warn('Invalid list id %s, expected %s', list_events.ListID, webhook.list_id)
+    list_events = json.loads(current_request.body)
+    list_id = list_events['ListID']
+    events = list_events['Events']
+    if webhook.list_id != list_id:
+        logging.warn('Invalid list id %s, expected %s', list_id, webhook.list_id)
         raise HttpBadRequestException()
     headers = get_headers_for_consent(current_request)
-    try_or_defer(new_list_event, list_events.ListID, list_events.Events, headers, webhook.consent_type)
+    try_or_defer(new_list_event, list_id, events, headers, webhook.consent_type)
     # just to make sure the status code is 200
     return {}

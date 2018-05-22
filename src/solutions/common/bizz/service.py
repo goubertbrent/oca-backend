@@ -293,18 +293,18 @@ def update_service_consent(email, grant, type_, data):
 
 def new_list_event(list_id, events, headers, consent_type):
     """A new subscribers list event triggered by webhooks"""
-    logging.debug('Got some subscriber list events %s, %s', list_id,
-                  [(event.Type, event.EmailAddress) for event in events])
-
+    logging.debug('Got some subscriber list events %s, %s', list_id, events)
     for event in events:
+        event_type = event['Type']
+        event_email = event['EmailAddress']
         data = {
-            'context': u'User %ssubscribed via campaignmonitor' % ('un' if event.Type == ListEvents.DEACTIVATE else ''),
+            'context': u'User %ssubscribed via campaignmonitor' % ('un' if event_type == ListEvents.DEACTIVATE else ''),
             'headers': headers,
-            'name': event.Name,
-            'ip': event.SignupIPAddress,
-            'date': event.Date
+            'name': event['Name'],
+            'ip': event.get('SignupIPAddress'),
+            'date': event['Date']
         }
-        if event.Type == ListEvents.SUBSCRIBE:
-            add_service_consent(event.EmailAddress, consent_type, data)
-        elif event.Type == ListEvents.DEACTIVATE:
-            remove_service_consent(event.EmailAddress, consent_type, data)
+        if event_type == ListEvents.SUBSCRIBE:
+            add_service_consent(event_email, consent_type, data)
+        elif event_type== ListEvents.DEACTIVATE:
+            remove_service_consent(event_email, consent_type, data)
