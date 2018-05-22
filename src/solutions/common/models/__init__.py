@@ -714,6 +714,7 @@ class SolutionRssScraperItem(NdbModel):
 class SolutionServiceConsent(NdbModel):
     TYPE_EMAIL_MARKETING = u'email_marketing'
     TYPE_NEWSLETTER = u'newsletter'
+    TYPES = [TYPE_EMAIL_MARKETING, TYPE_NEWSLETTER]
 
     types = ndb.StringProperty(repeated=True)
 

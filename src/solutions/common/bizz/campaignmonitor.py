@@ -19,13 +19,10 @@ import logging
 import urlparse
 
 from createsend import BadRequest, List, Transactional, Subscriber
-
 from mcfw.rpc import arguments, returns
 from rogerthat.consts import DEBUG
 from rogerthat.settings import get_server_settings
-
-from solution_server_settings import get_solution_server_settings
-
+from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 
 LIST_CALLBACK_PATH = '/unauthenticated/osa/campaignmonitor/callback'
 
@@ -38,8 +35,8 @@ class ListEvents(object):
     ALL = [SUBSCRIBE, DEACTIVATE, UPDATE]
 
 
-def get_list_callback_url():
-    return urlparse.urljoin(get_server_settings().baseUrl, LIST_CALLBACK_PATH)
+def get_list_callback_url(webhook_id):
+    return urlparse.urljoin(get_server_settings().baseUrl, LIST_CALLBACK_PATH, webhook_id)
 
 
 def get_api_key():
@@ -50,6 +47,7 @@ def get_auth_parameters():
     return {
         'api_key': get_api_key()
     }
+
 
 @returns()
 @arguments(email_id=unicode, to=[unicode], add_recipients_to_list=bool)
@@ -81,29 +79,30 @@ def get_subscriber(list_id=None, email=None):
     return Subscriber(get_auth_parameters(), list_id, email)
 
 
-@returns(unicode)
-@arguments(list_id=unicode, events=[unicode])
-def register_webhook(list_id, events):
+@returns(CampaignMonitorWebhook)
+@arguments(list_id=unicode, events=[unicode], consent_type=unicode)
+def register_webhook(list_id, events, consent_type):
     """Register or activate a webhook for `events` of `list_id`
 
     Args:
         list_id (unicode)
         events (list of unicode)
+        consent_type (SolutionServiceConsent)
 
     Returns:
-        unicode: webhook id
+        CampaignMonitorWebhook
     """
     ls = get_list(list_id)
-    callback_url = get_list_callback_url()
-    # first get all hooks and check if the events and callback url already exist
-    # if so, activate the hook if not activated, and return its id
-    hooks = ls.webhooks()
-    for hook in hooks:
-        if hook.Url == callback_url and set(hook.Events).issubset(events):
-            if not hook.Status == 'Active':
-                ls.activate_webhook(hook.WebhookID)
-            return hook.WebhookID
-    return ls.create_webhook(events, callback_url, 'json')
+    # Check if a webhook for this list_id already exists
+    existing_webhook = CampaignMonitorWebhook.list_by_list_id(list_id).get()
+    if existing_webhook:
+        return existing_webhook
+    datastore_id = CampaignMonitorWebhook.allocate_ids(1)[0]
+    callback_url = get_list_callback_url(datastore_id)
+    ls.create_webhook(events, callback_url, 'json')  # returns list id, not very useful
+    webhook = CampaignMonitorWebhook(id=datastore_id, list_id=list_id, consent_type=consent_type)
+    webhook.put()
+    return webhook
 
 
 @returns()

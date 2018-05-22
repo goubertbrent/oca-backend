@@ -31,13 +31,12 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
-from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email, register_webhook
+from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO
-
 
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
@@ -46,48 +45,6 @@ SMART_EMAILS = {
     'e6b456af-a811-4540-903c-5135cd6e4802': 2 * DAY,
     'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY,
 }
-
-# TODO: create a modal to store this?
-class ListConsentMapping(object):
-
-    def __init__(self):
-        self.lists = dict()
-        self.consents = dict()
-
-    def add(self, list_id, consent_type):
-        self.lists[list_id] = consent_type
-        self.consents[consent_type] = list_id
-
-    def get(self, list_id_or_consent):
-        if list_id_or_consent in self.lists:
-            return self.lists[list_id_or_consent]
-        return self.consents[list_id_or_consent]
-
-    def get_keys(self):
-        return set(self.lists.keys() + self.consents.keys())
-
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def __setitem__(self, key, value):
-        self.add(key, value)
-
-    def __iter__(self):
-        for key in self.get_keys():
-            yield self.get(key)
-
-    def __len__(self):
-        return len(self.get_keys())
-
-
-LIST_CONSENT = ListConsentMapping()
-LIST_CONSENT.add('628e03c09c313744683c79fdf473e723', SolutionServiceConsent.TYPE_EMAIL_MARKETING)
-LIST_CONSENT.add('65bd31a73ce990da06d7312dca3eb458', SolutionServiceConsent.TYPE_NEWSLETTER)
-
-
-def register_lists_webhooks():
-    for list_id in LIST_CONSENT.lists.keys():
-        register_webhook(list_id, ListEvents.ALL)
 
 
 def get_allowed_broadcast_types(city_customer):
@@ -118,7 +75,7 @@ def filter_modules(city_customer, modules, broadcast_types):
     Args:
         city_customer (Customer): city customer
         modules (list of unicode)
-        broadcast_type (list of unicode)
+        broadcast_types (list of unicode)
     """
     mods = [m for m in SolutionModule.MANDATORY_MODULES]
     mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
@@ -244,9 +201,9 @@ def _send_approved_signup_email(signup):
 
 
 def _send_denied_signup_email(city_customer, signup, lang, reason):
-    subject = common_translate(city_customer.language, SOLUTION_COMMON,
+    subject = common_translate(lang, SOLUTION_COMMON,
                                u'signup_request_denied_by_city', city=city_customer.name)
-    message = common_translate(city_customer.language, SOLUTION_COMMON,
+    message = common_translate(lang, SOLUTION_COMMON,
                                u'signup_request_denial_reason', reason=reason)
 
     city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
@@ -301,11 +258,11 @@ def send_signup_update_messages(sln_settings, *messages):
     channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)
 
 
-def add_service_consent(email, type_, **data):
+def add_service_consent(email, type_, data):
     update_service_consent(email, True, type_, data)
 
 
-def remove_service_consent(email, type_, **data):
+def remove_service_consent(email, type_, data):
     update_service_consent(email, False, type_, data)
 
 
@@ -329,25 +286,25 @@ def update_service_consent(email, grant, type_, data):
         'email': email,
         'grant': grant,
         'type': type_,
-        'data': data
+        'data': data,
     }
     log_offload.create_log(email, 'oca.service_consents', request_data, None)
 
 
-def new_list_event(list_id, events):
+def new_list_event(list_id, events, headers, consent_type):
     """A new subscribers list event triggered by webhooks"""
-    logging.debug('Got some subscriber list events %s, %s',
-        list_id, [(event.Type, event.EmailAddress) for event in events])
-
-    consent_type = LIST_CONSENT.get(list_id)
-    if not consent_type:
-        logging.warning('Cannot find email consent type of campaignmonitor list %s', list_id)
-        return
+    logging.debug('Got some subscriber list events %s, %s', list_id,
+                  [(event.Type, event.EmailAddress) for event in events])
 
     for event in events:
+        data = {
+            'context': u'User %ssubscribed via campaignmonitor' % ('un' if event.Type == ListEvents.DEACTIVATE else ''),
+            'headers': headers,
+            'name': event.Name,
+            'ip': event.SignupIPAddress,
+            'date': event.Date
+        }
         if event.Type == ListEvents.SUBSCRIBE:
-            add_service_consent(event.EmailAddress, consent_type,
-                context="User subscribed via campaignmonitor")
+            add_service_consent(event.EmailAddress, consent_type, data)
         elif event.Type == ListEvents.DEACTIVATE:
-            remove_service_consent(event.EmailAddress, consent_type,
-                context=u'User unsubscribed via campaignmonitor')
+            remove_service_consent(event.EmailAddress, consent_type, data)

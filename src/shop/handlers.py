@@ -590,6 +590,10 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
 
 class CustomerEmailConsentHandler(PublicPageHandler):
 
+    def dispatch(self):
+        # Don't redirect to dashboard when logged in
+        return super(PublicPageHandler, self).dispatch()
+
     def get(self):
         email = self.request.get('email')
         data = self.request.get('data')
