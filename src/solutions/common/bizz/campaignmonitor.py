@@ -16,6 +16,7 @@
 # @@license_version:1.2@@
 
 import logging
+import os
 import urlparse
 
 from google.appengine.ext import ndb
@@ -39,7 +40,8 @@ class ListEvents(object):
 
 
 def get_list_callback_url(webhook_id):
-    return urlparse.urljoin(get_server_settings().baseUrl, LIST_CALLBACK_PATH, webhook_id)
+    path = os.path.join(LIST_CALLBACK_PATH, str(webhook_id))
+    return urlparse.urljoin(get_server_settings().baseUrl, path)
 
 
 def get_api_key():
