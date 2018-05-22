@@ -720,7 +720,7 @@ class SolutionServiceConsent(NdbModel):
 
     @property
     def email(self):
-        return self.key().decode('utf-8')
+        return self.key.id().decode('utf-8')
 
     @classmethod
     def create_key(cls, email):
