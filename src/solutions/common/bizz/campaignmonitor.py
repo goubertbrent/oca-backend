@@ -16,7 +16,6 @@
 # @@license_version:1.2@@
 
 import logging
-import os
 import urlparse
 
 from google.appengine.ext import ndb
@@ -27,6 +26,7 @@ from rogerthat.consts import DEBUG
 from rogerthat.settings import get_server_settings
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solutions.common.models import SolutionServiceConsent
+
 
 LIST_CALLBACK_PATH = '/unauthenticated/osa/campaignmonitor/callback'
 
@@ -40,7 +40,7 @@ class ListEvents(object):
 
 
 def get_list_callback_url(webhook_id):
-    path = os.path.join(LIST_CALLBACK_PATH, str(webhook_id))
+    path = '/'.join([LIST_CALLBACK_PATH, str(webhook_id)])
     return urlparse.urljoin(get_server_settings().baseUrl, path)
 
 
