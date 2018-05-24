@@ -26,17 +26,20 @@ from babel import dates
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, App
+from rogerthat.pages.legal import get_version_content, DOC_TERMS_SERVICE, get_current_document_version
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.service import create_service_identity_user
-from shop.bizz import get_organization_types, is_signup_enabled
+from shop.bizz import get_organization_types, is_signup_enabled, update_customer_consents
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
@@ -53,13 +56,12 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu, get
     get_solution_settings_or_identity_settings
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
 from solutions.common.dal.order import get_solution_order_settings
-from solutions.common.models import SolutionQR
+from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -273,7 +275,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
         if not sln_settings or sln_settings.solution != SOLUTION_FLEX:
             self.redirect("/ourcityapp")
             return
-
         session_ = users.get_current_session()
         all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
                             translations[SOLUTION_COMMON]['en']}
@@ -298,6 +299,13 @@ class FlexHomeHandler(webapp2.RequestHandler):
         elif session_.service_identity:
             session_ = set_service_identity(session_, None)
 
+        must_check_tos = not session_.layout_only and not session_.shop
+        if must_check_tos:
+            lastest_tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+            if get_service_profile(service_user).tos_version != lastest_tos_version:
+                self.redirect('/terms')
+                return
+
         service_identity = session_.service_identity if session_.service_identity else ServiceIdentity.DEFAULT
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         customer = get_customer(service_user)
@@ -309,7 +317,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
         months = self._get_months(sln_settings, 'wide')
         months_short = self._get_months(sln_settings, 'abbreviated')
         week_days = self._get_week_days(sln_settings)
-
         loyalty_version = self.request.get("loyalty")
         if customer:
             city_app_id = customer.app_id
@@ -474,3 +481,45 @@ class FlexLogoutHandler(SessionHandler):
 
         send_message_to_session(service_user, session_, u"solutions.common.locations.update", si=None)
         self.redirect('/ourcityapp')
+
+
+class TermsAndConditionsHandler(SessionHandler):
+    def get(self):
+        service_user = users.get_current_user()
+        if not service_user:
+            self.redirect('/ourcityapp')
+            return
+        sln_settings = get_solution_settings(service_user)
+        if not sln_settings:
+            self.stop_session()
+            return self.redirect('/ourcityapp')
+        lang = sln_settings.main_language
+        version = get_current_document_version(DOC_TERMS_SERVICE)
+        params = {
+            'tac': get_version_content(lang, DOC_TERMS_SERVICE, version),
+            'tac_version': version,
+        }
+        jinja_template = JINJA_ENVIRONMENT.get_template('terms.html')
+        self.response.out.write(jinja_template.render(params))
+
+    def post(self):
+        service_user = users.get_current_user()
+        if not service_user:
+            self.redirect('/ourcityapp')
+            return
+        sln_settings = get_solution_settings(service_user)
+        if not sln_settings:
+            self.stop_session()
+            return self.redirect('/ourcityapp')
+        version = long(self.request.get('version')) or get_current_document_version(DOC_TERMS_SERVICE)
+
+        customer = get_customer(service_user)
+        context = u'User terms'
+        update_customer_consents(customer.user_email, {
+            SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
+            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
+        }, get_headers_for_consent(self.request), context)
+        service_profile = get_service_profile(service_user)
+        service_profile.tos_version = version
+        service_profile.put()
+        self.redirect('/')

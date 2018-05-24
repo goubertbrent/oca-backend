@@ -1990,7 +1990,7 @@ def rest_get_customer_signups():
     return [CustomerSignupTO.from_model(s) for s in get_customer_signups(city_customer)]
 
 
-@rest('/common/customer/singup/reply', 'post')
+@rest('/common/customer/signup/reply', 'post')
 @returns(ReturnStatusTO)
 @arguments(signup_key=unicode, message=unicode)
 def rest_customer_signup_reply(signup_key, message):

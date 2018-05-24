@@ -32,16 +32,16 @@ function getBrowserLanguage() {
 }
 
 function validateInput(e) {
-    var valid = true;
-
     if(e.target) {
         e = e.target;
     }
 
-    $(e).next('p[class=text-error]').remove();
-    if(!e.checkValidity()) {
-        $('<p class="text-error">' + e.validationMessage + '</p>').insertAfter($(e));
-        valid = false;
+    var valid = e.checkValidity();
+    var msg = e.validationMessage;
+    var elem = $(e);
+    elem.next('p[class=text-error]').remove();
+    if (!valid) {
+        $('<p class="text-error">' + msg + '</p>').insertAfter(elem);
     }
 
     return valid;

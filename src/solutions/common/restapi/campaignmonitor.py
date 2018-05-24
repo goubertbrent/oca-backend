@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
+
 import json
 import logging
 

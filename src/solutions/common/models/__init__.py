@@ -716,7 +716,7 @@ class SolutionServiceConsent(NdbModel):
     TYPE_NEWSLETTER = u'newsletter'
     TYPES = [TYPE_EMAIL_MARKETING, TYPE_NEWSLETTER]
 
-    types = ndb.StringProperty(repeated=True)
+    types = ndb.StringProperty(repeated=True, choices=TYPES)  # type: list[str]
 
     @property
     def email(self):

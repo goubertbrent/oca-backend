@@ -76,7 +76,7 @@ $(function () {
 
     var signupCustomer = function(signupKey, force) {
         if(force) {
-            createService()
+            createService();
         } else {
             sln.confirm(CommonTranslations.create_service_for_signup_request, createService);
         }
@@ -129,7 +129,7 @@ $(function () {
     var sendReply = function(signupKey) {
         function sendMessage(message) {
             sln.call({
-                url: '/common/customer/singup/reply',
+                url: '/common/customer/signup/reply',
                 type: 'post',
                 data: {
                     signup_key: signupKey,

@@ -55,9 +55,18 @@ $(function() {
             validateVat(vatInput);
         }, null, false, 3000, true);
 
-        for(var i = 0; i <= 3; i++) {
+        for (var i = 0; i <= 4; i++) {
             tabs.push($('#tab' + i));
         }
+        // Enable the 'I agree to TOC' checkbox when user has scrolled at bottom of the TOC
+        var tosElem = $('#terms-of-use');
+        tosElem.on('scroll', function () {
+            if (tosElem[0].scrollHeight - tosElem.scrollTop() <= tosElem.outerHeight()) {
+                $('#agree-to-toc').prop('disabled', false);
+                $('#read-toc-to-continue').remove();
+                tosElem.off('scroll');
+            }
+        });
     }
 
     function setEditableOrganizationTypes(types) {
@@ -186,7 +195,7 @@ $(function() {
             },
             error: function() {
                 $('#next').attr('disabled', false);
-                sln.showAjaxError()
+                sln.showAjaxError();
             }
         });
     }
@@ -217,7 +226,10 @@ $(function() {
         args.customer = gatherFromInputs('contact');
         args.customer.language = getBrowserLanguage();
         args.recaptcha_token = recaptchaToken;
-
+        args.email_consents = {
+            email_marketing: $('#email_consents_email_marketing').prop('checked'),
+            newsletter: $('#email_consents_newsletter').prop('checked'),
+        };
         return args;
     }
 
@@ -232,6 +244,13 @@ $(function() {
         nextStep();
         if (!formElem.checkValidity()) {
             return;
+        }
+        if (isLastStep()) {
+            var elem = $('#agree-to-toc');
+            if (elem.prop('disabled') || !elem[0].checkValidity()) {
+                $('<p class="text-error">' + SignupTranslations.PLEASE_AGREE_TO_TOC + '</p>').insertAfter(elem);
+                return;
+            }
         }
         // load captcha challenge if not loaded
         if (recaptchaLoader.isLoaded()) {
@@ -320,7 +339,7 @@ $(function() {
         if(currentStep === 2) {
             var city = getSelectedApp().name;
             fillInput('enterprise_city', city);
-            fillInput('contact_city', city)
+            fillInput('contact_city', city);
         }
 
         if(currentStep === 3) {

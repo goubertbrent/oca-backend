@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% translate language, 'common', 'terms_and_conditions' %}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #terms-of-use {
+            height: calc(100vh - 280px);
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">{% translate language, 'common', 'terms_and_conditions' %}</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="/logout?continue=ourcityapp">{% translate language, 'common', 'Log out' %}</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <h4>{% translate language, 'common', 'please_review_updated_tac' %}</h4>
+    <div id="terms-of-use">{{ tac }}</div>
+    <hr>
+    <div>
+        <form id="terms-form" method="post">
+            <input type="hidden" name="version" value="{{ tac_version }}">
+            <div class="checkbox">
+                <label for="newsletter-checkbox">
+                    <input type="checkbox" name="newsletter" id="newsletter-checkbox">
+                    {% translate language, 'common', 'email_consent_newsletter' %}
+                </label>
+            </div>
+            <div class="checkbox">
+                <label for="email_marketing-checkbox">
+                    <input type="checkbox" name="email_marketing" id="email_marketing-checkbox">
+                    {% translate language, 'common', 'email_consent_marketing' %}
+                </label>
+            </div>
+            <div class="checkbox" id="checkbox-container">
+                <label>
+                    <input type="checkbox" name="accept" id="accept-checkbox" required disabled>
+                    {% translate language, 'common', 'i_agree_to_toc' %}
+                </label>
+                <div class="help-block" style="display: none;">
+                    {% translate language, 'common', 'please_agree_to_toc' %}
+                </div>
+            </div>
+            <button class="btn btn-default" id="submit-button">{% translate language, 'common', 'continue' %}</button>
+        </form>
+    </div>
+</div>
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+<script src="/static/js/solutions/sln-terms.js"></script>
+</body>
+</html>

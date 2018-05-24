@@ -119,16 +119,17 @@ def create_customer_with_service(city_customer, customer, service, name, address
 
 
 def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False):
-    """Put the service, if rolllback is set, it will remove the customer in case of failure."""
+    # type: (customer, CustomerServiceTO, bool, bool, bool, bool) -> ProvisionResponseTO
+    """Put the service, if rollback is set, it will remove the customer in case of failure."""
     from shop.bizz import put_service
     customer_key = customer.key()
 
     def trans():
-        put_service(customer, service, skip_module_check=skip_module_check, search_enabled=search_enabled,
-                    skip_email_check=skip_email_check)
+        return put_service(customer, service, skip_module_check=skip_module_check, search_enabled=search_enabled,
+                           skip_email_check=skip_email_check)
 
     try:
-        run_in_xg_transaction(trans)
+        return run_in_xg_transaction(trans)
     except Exception as e:
         if rollback:
             db.delete(db.GqlQuery("SELECT __key__ WHERE ANCESTOR IS KEY('%s')" % customer_key).fetch(None))
@@ -282,6 +283,7 @@ def update_service_consent(email, grant, type_, data):
         sec.put()
 
     SolutionServiceConsentHistory(consent_type=type_, data=data, parent=sec_key).put()
+
     request_data = {
         'email': email,
         'grant': grant,
@@ -306,5 +308,5 @@ def new_list_event(list_id, events, headers, consent_type):
         }
         if event_type == ListEvents.SUBSCRIBE:
             add_service_consent(event_email, consent_type, data)
-        elif event_type== ListEvents.DEACTIVATE:
+        elif event_type == ListEvents.DEACTIVATE:
             remove_service_consent(event_email, consent_type, data)

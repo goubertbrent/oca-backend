@@ -30,24 +30,23 @@ from types import NoneType
 import urllib
 import urlparse
 
-from PIL.Image import Image
-from babel.dates import format_datetime, get_timezone, format_date
-import cloudstorage
 from dateutil.relativedelta import relativedelta
-import httplib2
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
-import stripe
-from xhtml2pdf import pisa
-
-from apiclient.discovery import build
-from apiclient.errors import HttpError
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
+from google.appengine.ext import ndb
+
+from PIL.Image import Image
+from apiclient.discovery import build
+from apiclient.errors import HttpError
+from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
+import httplib2
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -60,6 +59,7 @@ from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile, Message
+from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
@@ -88,7 +88,7 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
-    ShopApp
+    ShopApp, LegalDocumentAcceptance, LegalDocumentType
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
     CustomerServiceTO, OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
@@ -98,7 +98,8 @@ from solutions.common.bizz import SolutionModule, common_provision, campaignmoni
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
+from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
+    add_service_consent, remove_service_consent
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
@@ -107,7 +108,8 @@ from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-
+import stripe
+from xhtml2pdf import pisa
 
 try:
     from cStringIO import StringIO
@@ -727,6 +729,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
                             search_enabled, qualified_identifier=service.email, broadcast_to_users=broadcast_to_users)
 
     r.auto_login_url = customer.auto_login_url
+    r.service_email = customer.service_email
 
     deferred.defer(_after_service_saved, customer.key(), service.email, r, redeploy, service.apps,
                    broadcast_to_users, bool(user_existed), _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
@@ -2699,8 +2702,9 @@ def send_signup_verification_email(city_customer, signup, host=None):
 
 
 @returns()
-@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode, domain=unicode)
-def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None):
+@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode, domain=unicode,
+           headers=dict)
+def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None, headers=None):
     if not recaptcha_verify(recaptcha_token):
         raise BusinessException('Cannot verify recaptcha response')
 
@@ -2739,6 +2743,15 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup.timestamp = now()
     signup.put()
     send_signup_verification_email(city_customer, signup, domain)
+    # Save accepted terms of use in a separate modal so we can save it to the ServiceProfile later
+    tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+    customer_signup_ndb_key = ndb.Key(signup.kind(), signup.id, parent=ndb.Key(Customer.kind(), city_customer_id))
+    key = LegalDocumentAcceptance.create_key(customer_signup_ndb_key, LegalDocumentType.TERMS_AND_CONDITIONS)
+    LegalDocumentAcceptance(
+        key=key,
+        version=tos_version,
+        headers=headers,
+    ).put()
 
 
 @returns(dict)
@@ -2794,28 +2807,39 @@ def get_customer_email_consent_url(customer):
     return '{}/customers/email_consent?{}'.format(host, url_params)
 
 
-@returns(dict)
+@returns(SolutionServiceConsent)
 @arguments(email=unicode)
 def get_customer_consents(email):
+    # type: (unicode) -> SolutionServiceConsent
     key = SolutionServiceConsent.create_key(email)
-    service_consent = key.get()
-    return SolutionServiceConsent.consents(service_consent)
+    return key.get() or SolutionServiceConsent(key=key)
 
 
 @returns()
-@arguments(email=unicode, consents=dict)
-def update_customer_consents(email, consents):
-    current_consents = get_customer_consents(email)
+@arguments(email=unicode, consents=dict, headers=dict, context=unicode)
+def update_customer_consents(email, consents, headers, context):
+    current_consent_settings = get_customer_consents(email)
     campaignmonitor_lists = {webhook.consent_type: webhook.list_id for webhook in CampaignMonitorWebhook.query()}
     for consent, granted in consents.iteritems():
         list_id = campaignmonitor_lists.get(consent)
         if not list_id:
             raise Exception('No webhook configured for consent %s', consent)
+        data = {
+            'context': context,
+            'headers': headers,
+            'date': datetime.datetime.now().isoformat() + 'Z'
+        }
         if granted:
-            if not current_consents.get(consent):
+            if consent not in current_consent_settings.types:
+                current_consent_settings.types.append(consent)
+                add_service_consent(email, consent, data)
                 campaignmonitor.subscribe(list_id, email)
-        elif current_consents.get(consent):
-            campaignmonitor.unsubscribe(list_id, email)
+        else:
+            if consent in current_consent_settings.types:
+                current_consent_settings.types.remove(consent)
+                remove_service_consent(email, consent, data)
+                campaignmonitor.unsubscribe(list_id, email)
+    current_consent_settings.put()
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):

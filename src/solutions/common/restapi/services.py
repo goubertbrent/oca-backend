@@ -18,11 +18,13 @@
 import logging
 from types import NoneType
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
+from google.appengine.ext.deferred import deferred
 
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
@@ -36,7 +38,7 @@ from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException, NotOperatingInCountryException, EmptyValueException, \
     InvalidEmailFormatException, NoPermissionException, ServiceNameTooBigException
 from shop.jobs.migrate_user import migrate as migrate_user
-from shop.models import Customer, Contact
+from shop.models import Customer, Contact, LegalDocumentAcceptance, LegalDocumentType
 from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
@@ -368,8 +370,9 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
             return WarningReturnStatusTO.create(False, warningmsg=warning_msg)
         else:
             try:
-                put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
-                                     skip_email_check=True, rollback=True)
+                result = put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
+                                              skip_email_check=True, rollback=True)
+                deferred.defer(copy_accepted_terms_of_use, signup_key, users.User(result.service_email), _countdown=5)
             except EmptyValueException as ex:
                 val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
                 error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
@@ -383,3 +386,15 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
                     set_customer_signup_status(city_customer, signup, approved=True)
                     logging.debug('Service created from signup: %s, with modules of %s', signup_key, modules)
                     return WarningReturnStatusTO.create(success=True)
+
+
+def copy_accepted_terms_of_use(signup_key, service_user):
+    # type: (db.Key, users.User) -> None
+    original_key = LegalDocumentAcceptance.create_key(ndb.Key.from_old_key(signup_key),
+                                                      LegalDocumentType.TERMS_AND_CONDITIONS)
+    doc = original_key.get()  # type: LegalDocumentAcceptance
+    if doc:
+        service_profile = get_service_profile(service_user)
+        logging.debug('Copying accepted terms of use to service profile: %s -> %s', original_key, service_profile.key())
+        service_profile.tos_version = doc.version
+        service_profile.put()

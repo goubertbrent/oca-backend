@@ -48,7 +48,7 @@ from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, Loyalty
 from solutions.common.handlers.menu import ExportMenuHandler
 from solutions.common.handlers.service import LoginAsServiceHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
-from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler
+from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler, TermsAndConditionsHandler
 
 handlers = [
     ('/djmatic/', DJMaticHomeHandler),
@@ -74,6 +74,7 @@ handlers = [
     ('/common/city/vouchers/qr/download/(\d+)', CityVouchersDownloadHandler),
     ('/common/city_vouchers/export', CityVoucherExportHandler),
     ('/common/restaurant/menu/export', ExportMenuHandler),
+    ('/terms', TermsAndConditionsHandler),
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi))

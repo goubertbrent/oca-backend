@@ -14,6 +14,7 @@
             VAT_INVALID: '{% translate language, "common", "vat_invalid" %}',
             VAT_UNKNOWN: '{% translate language, "common", "vat_unknown" %}',
             VAT_INCORRECT_COUNTRY: '{% translate language, "common", "vat_incorrect_country" %}',
+            PLEASE_AGREE_TO_TOC: '{% translate language, "common", "please_agree_to_toc" %}'
         };
 
     </script>
@@ -183,9 +184,31 @@
                                 <div class="control-group">
                                     <label for="contact_telephone" class="control-label">{% translate language, "common", "Phone number" %}</label>
                                     <div class="controls">
-                                        <input id="contact_telephone" type="tel" pattern="^[0-9\-\+\s\(\)]*$" class="input-block-level" required/>
+                                        <input id="contact_telephone" type="tel" pattern="^[0-9\-\+\s\(\)]*$"
+                                               class="input-block-level" required>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        <div id="tab4" style="display: none;">
+                            <div class="terms-of-use" id="terms-of-use">
+                            {{ toc_content }}
+                            </div>
+                            <hr>
+                            <div class="control-group" id="email_consents">
+                                <label class="checkbox" for="email_consents_newsletter">
+                                    <input type="checkbox" name="newsletter" id="email_consents_newsletter">
+                                    {% translate language, 'common', 'email_consent_newsletter' %}
+                                </label>
+                                <label class="checkbox" for="email_consents_email_marketing">
+                                    <input type="checkbox" name="email_marketing" id="email_consents_email_marketing">
+                                    {% translate language, 'common', 'email_consent_marketing' %}
+                                </label>
+                                <label class="checkbox" for="agree-to-toc">
+                                    <input type="checkbox" id="agree-to-toc" name="agree-to-toc" required disabled>
+                                    {% translate language, 'common', 'i_agree_to_toc' %}
+                                </label>
+                                <p id="read-toc-to-continue"><i>{% translate language, 'common', 'read_the_toc_to_continue' %}</i></p>
                             </div>
                         </div>
                         <hr />

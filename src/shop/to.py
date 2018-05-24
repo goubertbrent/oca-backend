@@ -19,7 +19,7 @@ from mcfw.properties import unicode_property, long_property, bool_property, unic
     float_property, long_list_property
 from mcfw.rpc import serialize_complex_value
 from rogerthat.models import App
-from rogerthat.to import ReturnStatusTO
+from rogerthat.to import ReturnStatusTO, TO
 from rogerthat.to.app import AppInfoTO
 from shop.model_properties import ProspectComment
 from shop.models import Order
@@ -113,6 +113,11 @@ class CustomerTO(CompanyTO):
         c.website = customer.website
         c.facebook_page = customer.facebook_page
         return c
+
+
+class EmailConsentTO(TO):
+    newsletter = bool_property('newsletter')
+    email_marketing = bool_property('email_marketing')
 
 
 class CustomerReturnStatusTO(ReturnStatusTO):
