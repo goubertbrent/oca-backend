@@ -484,6 +484,7 @@ class FlexLogoutHandler(SessionHandler):
 
 
 class TermsAndConditionsHandler(SessionHandler):
+
     def get(self):
         service_user = users.get_current_user()
         if not service_user:
@@ -498,6 +499,7 @@ class TermsAndConditionsHandler(SessionHandler):
         params = {
             'tac': get_version_content(lang, DOC_TERMS_SERVICE, version),
             'tac_version': version,
+            'language': lang
         }
         jinja_template = JINJA_ENVIRONMENT.get_template('terms.html')
         self.response.out.write(jinja_template.render(params))
