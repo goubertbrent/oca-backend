@@ -69,6 +69,8 @@ def send_smart_email(email_id, to, add_recipients_to_list=True):
     if DEBUG:
         logging.debug('Not sending out smart email %s to %s because DEBUG=True', email_id, allowed_to)
         return
+    if not allowed_to:
+        return
     try:
         cs = Transactional(get_auth_parameters())
         results = cs.smart_email_send(email_id, allowed_to, add_recipients_to_list=add_recipients_to_list)
