@@ -58,15 +58,6 @@ $(function() {
         for (var i = 0; i <= 4; i++) {
             tabs.push($('#tab' + i));
         }
-        // Enable the 'I agree to TOC' checkbox when user has scrolled at bottom of the TOC
-        var tosElem = $('#terms-of-use');
-        tosElem.on('scroll', function () {
-            if (tosElem[0].scrollHeight - tosElem.scrollTop() <= tosElem.outerHeight()) {
-                $('#agree-to-toc').prop('disabled', false);
-                $('#read-toc-to-continue').remove();
-                tosElem.off('scroll');
-            }
-        });
     }
 
     function setEditableOrganizationTypes(types) {

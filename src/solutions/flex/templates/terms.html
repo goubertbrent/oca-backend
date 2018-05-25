@@ -58,14 +58,13 @@
             {% endif %}
             <div class="checkbox" id="checkbox-container">
                 <label>
-                    <input type="checkbox" name="accept" id="accept-checkbox" required disabled>
+                    <input type="checkbox" name="accept" id="accept-checkbox" required>
                     {% translate language, 'common', 'i_agree_to_toc' %}
                 </label>
                 <div class="help-block" style="display: none;">
                     {% translate language, 'common', 'please_agree_to_toc' %}
                 </div>
             </div>
-            <p id="read-toc-to-continue"><i>{% translate language, 'common', 'read_the_toc_to_continue' %}</i></p>
             <button class="btn btn-default" id="submit-button">{% translate language, 'common', 'continue' %}</button>
         </form>
     </div>
