@@ -372,7 +372,7 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
             try:
                 result = put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
                                               skip_email_check=True, rollback=True)
-                deferred.defer(copy_accepted_terms_of_use, signup_key, users.User(result.service_email), _countdown=5)
+                deferred.defer(copy_accepted_terms_of_use, signup_key, users.User(result.login), _countdown=5)
             except EmptyValueException as ex:
                 val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
                 error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)

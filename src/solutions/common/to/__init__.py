@@ -216,7 +216,6 @@ class ProvisionResponseTO(object):
     login = unicode_property('1')
     password = unicode_property('2')
     auto_login_url = unicode_property('3')
-    service_email = unicode_property('4')
 
 
 class ProvisionReturnStatusTO(ReturnStatusTO):

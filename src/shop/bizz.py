@@ -723,14 +723,12 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             if m in hidden_modules and m not in modules:
                 modules.append(m)
 
-    service_email = customer.service_email if redeploy else service.email
-    r = create_flex_service(service_email, service.name, service.address,
+    r = create_flex_service(customer.service_email if redeploy else service.email, service.name, service.address,
                             service.phone_number, [service.language], service.currency, modules,
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
                             search_enabled, qualified_identifier=service.email, broadcast_to_users=broadcast_to_users)
 
     r.auto_login_url = customer.auto_login_url
-    r.service_email = service_email
 
     deferred.defer(_after_service_saved, customer.key(), service.email, r, redeploy, service.apps,
                    broadcast_to_users, bool(user_existed), _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
