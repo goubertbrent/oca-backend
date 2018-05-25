@@ -42,6 +42,7 @@
     <div>
         <form id="terms-form" method="post">
             <input type="hidden" name="version" value="{{ tac_version }}">
+            {% if show_email_checkboxes %}
             <div class="checkbox">
                 <label for="newsletter-checkbox">
                     <input type="checkbox" name="newsletter" id="newsletter-checkbox">
@@ -54,6 +55,7 @@
                     {% translate language, 'common', 'email_consent_marketing' %}
                 </label>
             </div>
+            {% endif %}
             <div class="checkbox" id="checkbox-container">
                 <label>
                     <input type="checkbox" name="accept" id="accept-checkbox" required disabled>

@@ -499,7 +499,8 @@ class TermsAndConditionsHandler(SessionHandler):
         params = {
             'tac': get_version_content(lang, DOC_TERMS_SERVICE, version),
             'tac_version': version,
-            'language': lang
+            'language': lang,
+            'show_email_checkboxes': get_customer(service_user) is not None,
         }
         jinja_template = JINJA_ENVIRONMENT.get_template('terms.html')
         self.response.out.write(jinja_template.render(params))
@@ -514,13 +515,15 @@ class TermsAndConditionsHandler(SessionHandler):
             self.stop_session()
             return self.redirect('/ourcityapp')
         version = long(self.request.get('version')) or get_current_document_version(DOC_TERMS_SERVICE)
-
         customer = get_customer(service_user)
-        context = u'User terms'
-        update_customer_consents(customer.user_email, {
-            SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
-            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
-        }, get_headers_for_consent(self.request), context)
+        if customer:
+            context = u'User terms'
+            update_customer_consents(customer.user_email, {
+                SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(
+                    SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
+                SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(
+                    SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
+            }, get_headers_for_consent(self.request), context)
         service_profile = get_service_profile(service_user)
         service_profile.tos_version = version
         service_profile.put()
