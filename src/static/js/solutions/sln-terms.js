@@ -9,6 +9,7 @@
         if (tosElem[0].scrollHeight - tosElem.scrollTop() <= tosElem.outerHeight()) {
             acceptCheckbox.prop('disabled', false);
             tosElem.off('scroll');
+            $('#read-toc-to-continue').remove();
         }
     });
     $('#terms-form').on('submit', function (e) {

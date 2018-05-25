@@ -7,7 +7,7 @@
     <link href="/static/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         #terms-of-use {
-            height: calc(100vh - 280px);
+            height: calc(100vh - 310px);
             overflow: auto;
         }
     </style>
@@ -63,6 +63,7 @@
                     {% translate language, 'common', 'please_agree_to_toc' %}
                 </div>
             </div>
+            <p id="read-toc-to-continue"><i>{% translate language, 'common', 'read_the_toc_to_continue' %}</i></p>
             <button class="btn btn-default" id="submit-button">{% translate language, 'common', 'continue' %}</button>
         </form>
     </div>
