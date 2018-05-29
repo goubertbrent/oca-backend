@@ -30,14 +30,16 @@ from types import NoneType
 import urllib
 import urlparse
 
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
+from google.appengine.ext import ndb
 
 from PIL.Image import Image
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
+import cloudstorage
 import httplib2
 from mcfw.cache import cached
 from mcfw.properties import azzert
@@ -46,15 +48,17 @@ from mcfw.utils import normalize_search_string, chunks
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.rtemail import EMAIL_REGEX
-from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG
+from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG, EXPORTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile, Message
+from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
@@ -83,20 +87,21 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
 from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
-    ShopApp
+    ShopApp, LegalDocumentAcceptance, LegalDocumentType
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
     CustomerServiceTO, OrderItemTO, CompanyTO, CustomerTO
-from solution_server_settings import get_solution_server_settings
+from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import SolutionModule, common_provision
+from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages
+from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
+    add_service_consent, remove_service_consent
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
 from solutions.common.models.hints import SolutionHint
 from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
@@ -104,7 +109,6 @@ from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
 import stripe
 from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -678,7 +682,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             service_modules = set(service.modules)
             if not service_modules.issubset(module_set):
                 raise ModulesNotAllowedException(sorted([m for m in service_modules if m not in module_set]))
-    
+
     has_loyalty = any([m in service.modules for m in [SolutionModule.LOYALTY, SolutionModule.JOYN]])
     if customer.has_loyalty != has_loyalty:
         customer.has_loyalty = has_loyalty
@@ -2438,6 +2442,7 @@ def export_customers_csv(google_user):
             else:
                 d['App'] = ''
             d['Language'] = customer.language
+            d['Email Consent URL'] = get_customer_email_consent_url(customer)
 
             for p, v in d.items():
                 if v and isinstance(v, unicode):
@@ -2447,26 +2452,26 @@ def export_customers_csv(google_user):
     result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language']
-    with closing(StringIO()) as csv_string:
-        writer = csv.DictWriter(csv_string, dialect='excel', fieldnames=fieldnames)
+                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language', 'Email Consent URL']
+
+    date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
+    gcs_path = '/%s/customers/export-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
+    with cloudstorage.open(gcs_path, 'w') as gcs_file:
+        writer = csv.DictWriter(gcs_file, dialect='excel', fieldnames=fieldnames)
         writer.writeheader()
         for row in result:
             writer.writerow(row)
-        current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
 
-        solution_server_settings = get_solution_server_settings()
-        subject = 'Customers export %s' % current_date
-        message = u'The exported customer list of %s can be found in the attachment of this email.' % current_date
+    current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
 
-        attachments = []
-        attachments.append(('Customers export %s.csv' % current_date,
-                            base64.b64encode(csv_string.getvalue())))
+    solution_server_settings = get_solution_server_settings()
+    subject = 'Customers export %s' % current_date
+    message = u'The exported customer list of %s can be found at %s' % (current_date, get_serving_url(gcs_path))
 
-        send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message,
-                  attachments=attachments)
-        if DEBUG:
-            logging.info(csv_string.getvalue())
+    send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message)
+    if DEBUG:
+        with cloudstorage.open(gcs_path, 'r') as gcs_file:
+            logging.info(gcs_file.read())
 
 
 @returns([RegioManager])
@@ -2650,7 +2655,7 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     return message.solution_inbox_message_key
 
 
-def calculate_signup_url_digest(data):
+def calculate_customer_url_digest(data):
     alg = hashlib.sha256()
     alg.update(data['c'].encode('utf-8'))
     alg.update(data['s'].encode('utf-8'))
@@ -2662,7 +2667,7 @@ def send_signup_verification_email(city_customer, signup, host=None):
 
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
-    data['d'] = calculate_signup_url_digest(data)
+    data['d'] = calculate_customer_url_digest(data)
     data = encrypt(user, json.dumps(data))
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.b64encode(data)})
 
@@ -2684,8 +2689,9 @@ def send_signup_verification_email(city_customer, signup, host=None):
 
 
 @returns()
-@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode, domain=unicode)
-def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None):
+@arguments(city_customer_id=int, company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode, domain=unicode,
+           headers=dict)
+def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None, headers=None):
     if not recaptcha_verify(recaptcha_token):
         raise BusinessException('Cannot verify recaptcha response')
 
@@ -2724,18 +2730,34 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup.timestamp = now()
     signup.put()
     send_signup_verification_email(city_customer, signup, domain)
+    # Save accepted terms of use in a separate modal so we can save it to the ServiceProfile later
+    tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+    customer_signup_ndb_key = ndb.Key(signup.kind(), signup.id, parent=ndb.Key(Customer.kind(), city_customer_id))
+    key = LegalDocumentAcceptance.create_key(customer_signup_ndb_key, LegalDocumentType.TERMS_AND_CONDITIONS)
+    LegalDocumentAcceptance(
+        key=key,
+        version=tos_version,
+        headers=headers,
+    ).put()
+
+
+@returns(dict)
+@arguments(email=unicode, data=unicode)
+def validate_customer_url_data(email, data):
+    try:
+        user = users.User(email)
+        data = base64.decodestring(data)
+        data = json.loads(decrypt(user, data))
+        azzert(data['d'] == calculate_customer_url_digest(data))
+        return data
+    except:
+        raise InvalidUrlException
 
 
 @returns()
 @arguments(email=unicode, data=str)
 def complete_customer_signup(email, data):
-    try:
-        user = users.User(email)
-        data = base64.decodestring(data)
-        data = json.loads(decrypt(user, data))
-        azzert(data['d'] == calculate_signup_url_digest(data))
-    except:
-        raise InvalidUrlException
+    data = validate_customer_url_data(email, data)
 
     def update_signup():
         signup = CustomerSignup.get(data['s'])
@@ -2754,6 +2776,62 @@ def complete_customer_signup(email, data):
         signup.put()
 
     run_in_xg_transaction(update_signup)
+
+
+@returns(unicode)
+@arguments(customer=Customer)
+def get_customer_email_consent_url(customer):
+    if not customer.user_email:
+        return ''
+
+    from shop.view import get_current_http_host
+
+    data = dict(c=customer.user_email, s=unicode(customer.key()))
+    data['d'] = calculate_customer_url_digest(data)
+    data = encrypt(users.User(customer.user_email), json.dumps(data))
+    url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
+    host = get_current_http_host(True) or get_server_settings().baseUrl
+    return '{}/customers/email_consent?{}'.format(host, url_params)
+
+
+@returns(SolutionServiceConsent)
+@arguments(email=unicode)
+def get_customer_consents(email):
+    # type: (unicode) -> SolutionServiceConsent
+    key = SolutionServiceConsent.create_key(email)
+    return key.get() or SolutionServiceConsent(key=key)
+
+
+@returns()
+@arguments(email=unicode, consents=dict, headers=dict, context=unicode)
+def update_customer_consents(email, consents, headers, context):
+    current_consent_settings = get_customer_consents(email)
+    campaignmonitor_lists = {webhook.consent_type: webhook.list_id for webhook in CampaignMonitorWebhook.query()}
+    for consent, granted in consents.iteritems():
+        list_id = campaignmonitor_lists.get(consent)
+        if not list_id:
+            if DEBUG:
+                logging.error('No webhook configured for consent %s', consent)
+            else:
+                raise Exception('No webhook configured for consent %s', consent)
+        data = {
+            'context': context,
+            'headers': headers,
+            'date': datetime.datetime.now().isoformat() + 'Z'
+        }
+        if granted:
+            if consent not in current_consent_settings.types:
+                current_consent_settings.types.append(consent)
+                add_service_consent(email, consent, data)
+                if list_id:
+                    campaignmonitor.subscribe(list_id, email)
+        else:
+            if consent in current_consent_settings.types:
+                current_consent_settings.types.remove(consent)
+                remove_service_consent(email, consent, data)
+                if list_id:
+                    campaignmonitor.unsubscribe(list_id, email)
+    current_consent_settings.put()
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):

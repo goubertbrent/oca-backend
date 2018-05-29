@@ -1,0 +1,32 @@
+{% extends 'public/base.html' %}
+
+{% block title %}{% translate language, "common", "email_consent" %}{% endblock %}
+
+{% block js %}
+{% endblock %}
+
+{% block content %}
+    <div id="email_consent_box" class="span6 box-small-width" style="float: none; margin: 0 auto;">
+        <h1 class="white-text">{% translate language, "common", "email_consent" %}</h1>
+        <p  class="white-text" style="word-wrap: break-word;" align="justify">
+            {% translate language, "common", "dear_name", "name=" + name %},<br/>
+        </p>
+
+        <form method="post" class="white-box">
+            <input name="email" type="hidden" value="{{ email }}">
+            <label class="checkbox">
+                <input name="newsletter" type="checkbox" {% if consents['newsletter'] %}checked{% endif %}>
+                {% translate language, "common", "email_consent_newsletter" %}
+            </label>
+            <label class="checkbox">
+                <input name="email_marketing" type="checkbox" {% if consents['email_marketing'] %}checked{% endif %}>
+                {% translate language, "common", "email_consent_marketing" %}
+            </label>
+            <button id="submit" class="btn btn-wizard pull-right" type="submit">
+                {% translate language, "common", "Submit" %}
+            </button>
+            <div class="clearfix"></div>
+        </form>
+
+    </div>
+{% endblock %}

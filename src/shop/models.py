@@ -24,7 +24,7 @@ import time
 import urllib
 
 from google.appengine.api import users as gusers, images
-from google.appengine.ext import db, blobstore
+from google.appengine.ext import db, blobstore, ndb
 
 from babel import Locale
 from babel.dates import format_date, get_timezone
@@ -37,6 +37,7 @@ from mcfw.utils import chunks
 from oauth2client.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.models import ServiceProfile
+from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
 from rogerthat.utils import bizz_check, get_epoch_from_datetime, now
 from shop.business.i18n import SHOP_DEFAULT_LANGUAGE, shop_translate
@@ -1702,3 +1703,18 @@ def s_legal_entity(stream, model):
 
 
 register(LegalEntity, s_legal_entity, ds_legal_entity)
+
+
+class LegalDocumentType(object):
+    TERMS_AND_CONDITIONS = 'terms-and-conditions'
+
+
+class LegalDocumentAcceptance(NdbModel):
+    date = ndb.DateTimeProperty(auto_now=True, indexed=False)
+    version = ndb.IntegerProperty()
+    headers = ndb.JsonProperty()
+
+    @classmethod
+    def create_key(cls, parent_key, type):
+        # type: (ndb.Key, unicode) -> ndb.Key
+        return ndb.Key(cls._get_kind(), type, parent=parent_key)

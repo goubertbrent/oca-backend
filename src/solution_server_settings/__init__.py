@@ -15,14 +15,17 @@
 #
 # @@license_version:1.1@@
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 
 from mcfw.cache import CachedModelMixIn, cached
 from mcfw.rpc import returns, arguments
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
+from rogerthat.models.common import NdbModel
 from rogerthat.models.utils import add_meta
 
 import logging
+
+from solutions.common.models import SolutionServiceConsent
 
 
 class SolutionServerSettings(CachedModelMixIn, db.Model):
@@ -180,3 +183,17 @@ def get_solution_server_settings():
 
 del ds_ss
 del s_ss
+
+
+class CampaignMonitorWebhook(NdbModel):
+    create_date = ndb.DateTimeProperty(indexed=False, auto_now_add=True)
+    list_id = ndb.StringProperty()
+    consent_type = ndb.StringProperty(choices=SolutionServiceConsent.TYPES)
+
+    @property
+    def id(self):
+        return self.key.id()
+
+    @classmethod
+    def list_by_list_id(cls, list_id):
+        return cls.query().filter(cls.list_id == list_id)

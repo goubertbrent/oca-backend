@@ -24,13 +24,13 @@ import os
 import re
 import urllib
 
-import webapp2
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, urlfetch, users as gusers
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
+import webapp2
 
-from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import unicode_property
@@ -39,31 +39,35 @@ from mcfw.rpc import serialize_complex_value, arguments, returns
 from mcfw.serialization import s_ushort
 from rogerthat.bizz.beacon import add_new_beacon
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
+from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.service import get_service_interaction_def, get_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import Beacon, App, ProfilePointer, ServiceProfile
+from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content
 from rogerthat.pages.login import SetPasswordHandler
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.utils import get_epoch_from_datetime, bizz_check
+from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.crypto import md5_hex
 from shop import SHOP_JINJA_ENVIRONMENT
-from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin
+from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin, \
+    validate_customer_url_data, get_customer_consents, update_customer_consents
 from shop.business.i18n import shop_translate
 from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
     normalize_vat
-from shop.to import CompanyTO, CustomerTO, CustomerLocationTO
+from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
+from solutions.common.models import SolutionServiceConsent
 
 try:
     from cStringIO import StringIO
@@ -545,10 +549,12 @@ class CustomerSignupHandler(PublicPageHandler):
         else:
             apps = get_all_signup_enabled_apps()
             solution_server_settings = get_solution_server_settings()
+            version = get_current_document_version(DOC_TERMS_SERVICE)
             params = {
                 'apps': apps,
                 'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
                 'email_verified': False,
+                'toc_content': get_version_content(self.language, DOC_TERMS_SERVICE, version)
             }
 
         params['signup_success'] = json.dumps(self.render('signup_success'))
@@ -587,13 +593,51 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
         self.response.out.write(self.render('set_password', **params))
 
 
+class CustomerEmailConsentHandler(PublicPageHandler):
+
+    def dispatch(self):
+        # Don't redirect to dashboard when logged in
+        return super(PublicPageHandler, self).dispatch()
+
+    def get(self):
+        email = self.request.get('email')
+        data = self.request.get('data')
+
+        try:
+            data = validate_customer_url_data(email, data)
+        except InvalidUrlException:
+            return self.return_error('invalid_url')
+
+        customer = db.get(data['s'])
+        if not customer:
+            return self.abort(404)
+
+        consents = get_customer_consents(email)
+        return self.response.out.write(
+            self.render('service_email_consent', email=email, name=customer.name, consents=consents))
+
+    def post(self):
+        context = u'User email preferences'
+        update_customer_consents(self.request.get('email'), {
+            SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
+            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
+        }, get_headers_for_consent(self.request), context)
+        self.redirect('/customers/signin')
+
+
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)
 @returns(ReturnStatusTO)
-@arguments(city_customer_id=(int, long), company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode)
-def customer_signup(city_customer_id, company, customer, recaptcha_token):
+@arguments(city_customer_id=(int, long), company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode,
+           email_consents=EmailConsentTO)
+def customer_signup(city_customer_id, company, customer, recaptcha_token, email_consents=None):
     try:
+        headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
         create_customer_signup(city_customer_id, company, customer, recaptcha_token,
-                               domain=get_current_http_host(with_protocol=True), accept_missing=True)
+                               domain=get_current_http_host(with_protocol=True), headers=headers, accept_missing=True)
+        headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
+        consents = email_consents.to_dict() if email_consents else {}
+        context = u'User signup'
+        try_or_defer(update_customer_consents, customer.user_email, consents, headers, context)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)

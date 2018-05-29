@@ -57,6 +57,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_sx6m_product(mobicage_legal_entity_id))
     to_put.append(create_sxdm_product(mobicage_legal_entity_id))
     to_put.append(create_posm_product(mobicage_legal_entity_id))
+    to_put.append(create_posc_product(mobicage_legal_entity_id))
     to_put.append(create_csub_product(mobicage_legal_entity_id))
     to_put.append(create_csux_product(mobicage_legal_entity_id))
     to_put.append(create_loya_product(mobicage_legal_entity_id))
@@ -78,6 +79,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_free_product(mobicage_legal_entity_id))
     to_put.append(create_fcty_product(mobicage_legal_entity_id))
     to_put.append(create_pres_product(mobicage_legal_entity_id))
+    to_put.append(create_pre2_product(mobicage_legal_entity_id))
     to_put.append(create_appl_product(mobicage_legal_entity_id))
     to_put.append(create_bdgt_product(mobicage_legal_entity_id))
 
@@ -666,6 +668,25 @@ def create_posm_product(legal_entity_id, code_prefix=''):
     return p
 
 
+def create_posc_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'POSC')
+    p.price = 52500
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1, 2, 3, 4, 5]
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.module_set = 'ALL'
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
 def create_csub_product(legal_entity_id, code_prefix=''):
     p = Product(key_name=code_prefix + 'CSUB')
     p.price = 0
@@ -961,6 +982,24 @@ def create_pres_product(legal_entity_id, code_prefix=''):
     p.default_comment_translation_key = ''
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
+    return p
+
+
+def create_pre2_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'PRE2')
+    p.price = 37500
+    p.default_count = 4
+    p.default = False
+    p.possible_counts = range(1, 101)
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.module_set = 'ALL'
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    p.default_comment_translation_key = ''
+    p.description_translation_key = 'PRES.description'
     return p
 
 

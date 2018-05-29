@@ -144,6 +144,7 @@ def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
         logging.debug('Caught %s. Retrying....', e.__class__.__name__)
         result = urlfetch.fetch(url, headers=headers, deadline=30)
     if result.status_code != 200:
+        logging.info("_get_uitdatabank_events_v2 failed with status_code %s and content:\n%s" % (result.status_code, result.content))
         return False, "Make sure your credentials are correct."
 
     r = json.loads(result.content)["rootObject"]

@@ -10,6 +10,10 @@
                         {% translate language, 'common', 'Disabled' %}
                     </button>
                 </div>
+                <div id="paymentEnabledWarning" style="display: none">
+                    <i class="fa fa-warning" style="color: orange;"></i>
+                    <i>{% translate language, 'common', 'payments-disabled-because-cfg-missing' %}</i>
+                </div>
             </div>
             <hr>
             <div class="payment-optional">

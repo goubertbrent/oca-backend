@@ -17,6 +17,7 @@
 
 import shop.handlers
 import solutions.common.restapi
+import solutions.common.restapi.campaignmonitor
 import solutions.djmatic.api
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
@@ -26,7 +27,7 @@ from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
-    CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler
+    CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
@@ -35,7 +36,6 @@ from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-
 from webapp2_extras.routes import RedirectRoute
 
 from version.handler import VersionsHandler
@@ -61,6 +61,7 @@ handlers = [
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
     ('/customers/setpassword', CustomerSetPasswordHandler),
     ('/customers/resetpassword', CustomerResetPasswordHandler),
+    ('/customers/email_consent', CustomerEmailConsentHandler),
     RedirectRoute('/customers/signin', name='customers_login', handler=CustomerSigninHandler, strict_slash=True),
     RedirectRoute('/customers/signup', name='signup', handler=CustomerSignupHandler, strict_slash=True),
     RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='customers_login', strict_slash=True),
@@ -70,6 +71,7 @@ handlers = [
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))
+handlers.extend(rest_functions(solutions.common.restapi.campaignmonitor, authentication=NOT_AUTHENTICATED))
 handlers.extend(rest_functions(shop.handlers, authentication=NOT_AUTHENTICATED))
 
 app = RogerthatWSGIApplication(handlers, name="main_unauthenticated")

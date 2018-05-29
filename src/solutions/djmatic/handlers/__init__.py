@@ -27,6 +27,8 @@ from babel import dates
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.consts import DEBUG
+from rogerthat.dal.profile import get_service_profile
+from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
@@ -44,7 +46,6 @@ from solutions.common.to import SolutionEmailSettingsTO
 from solutions.djmatic import JUKEBOX_SERVER_API_URL, SOLUTION_DJMATIC
 from solutions.djmatic.dal import get_djmatic_profile
 from solutions.jinja_extensions import TranslateExtension
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates'),
                                                                        os.path.join(os.path.dirname(__file__), '..', '..', 'common', 'templates')]),
@@ -73,6 +74,13 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
         if not sln_settings or sln_settings.solution != SOLUTION_DJMATIC:
             self.redirect("/")
             return
+        session_ = users.get_current_session()
+        must_check_tos = not session_.layout_only and not session_.shop
+        if must_check_tos:
+            lastest_tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+            if get_service_profile(service_user).tos_version != lastest_tos_version:
+                self.redirect('/terms')
+                return
 
         tmpl_params = {'language': DEFAULT_LANGUAGE,
                        'debug': DEBUG,
@@ -149,7 +157,8 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'CONSTS': consts,
             'CONSTS_JSON': json.dumps(consts),
             'modules': json.dumps(sln_settings.modules),
-            'translations': json.dumps(all_translations)
+            'translations': json.dumps(all_translations),
+            'show_email_checkboxes': False
         }
 
         channel.append_firebase_params(params)

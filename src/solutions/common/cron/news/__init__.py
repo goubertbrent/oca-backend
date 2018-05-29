@@ -15,13 +15,13 @@
 #
 # @@license_version:1.2@@
 
-from htmlentitydefs import name2codepoint
 import importlib
 import logging
 import re
+from htmlentitydefs import name2codepoint
 
 from google.appengine.ext import webapp
-from google.appengine.ext.deferred import deferred
+
 import html2text
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
@@ -35,7 +35,6 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
-
 
 BROADCAST_TYPE_NEWS = u"News"
 
@@ -60,11 +59,12 @@ def transl(key, language):
 
 
 @returns()
-@arguments(sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode, permalink=unicode)
-def create_news_item(sln_settings, broadcast_type, message, title, permalink):
+@arguments(sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode, permalink=unicode,
+           notify=bool)
+def create_news_item(sln_settings, broadcast_type, message, title, permalink, notify=False):
     service_user = sln_settings.service_user
-    logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s', service_user, message, title, broadcast_type,
-                 permalink)
+    logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s - Notification: %s', service_user, message, title,
+                 broadcast_type, permalink, notify)
 
     with users.set_user(service_user):
         sticky = False
@@ -79,13 +79,16 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink):
         app_ids = si.appIds
 
         title = limit_string(title, NewsItem.MAX_TITLE_LENGTH)
+        flags = NewsItem.DEFAULT_FLAGS
+        if not notify:
+            flags = flags | NewsItem.FLAG_SILENT
         news.publish(sticky=sticky,
                      sticky_until=sticky_until,
                      title=title,
                      message=message,
                      image=image,
                      news_type=news_type,
-                     flags=NewsItem.DEFAULT_FLAGS | NewsItem.FLAG_SILENT,
+                     flags=flags,
                      broadcast_type=broadcast_type,
                      action_buttons=[action_button],
                      qr_code_content=qr_code_content,

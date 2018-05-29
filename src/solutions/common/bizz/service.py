@@ -17,27 +17,26 @@
 
 import logging
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-from mcfw.rpc import serialize_complex_value
 
-from rogerthat.dal.service import get_service_identity
+from mcfw.rpc import serialize_complex_value
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
+from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
-
-from rogerthat.utils import channel, now, send_mail
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
-from solutions.common.bizz.createsend import send_smart_email
+from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
+from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO
-
 
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
@@ -76,7 +75,7 @@ def filter_modules(city_customer, modules, broadcast_types):
     Args:
         city_customer (Customer): city customer
         modules (list of unicode)
-        broadcast_type (list of unicode)
+        broadcast_types (list of unicode)
     """
     mods = [m for m in SolutionModule.MANDATORY_MODULES]
     mods.extend([m for m in modules if m in get_allowed_modules(city_customer)])
@@ -120,16 +119,17 @@ def create_customer_with_service(city_customer, customer, service, name, address
 
 
 def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False):
-    """Put the service, if rolllback is set, it will remove the customer in case of failure."""
+    # type: (customer, CustomerServiceTO, bool, bool, bool, bool) -> ProvisionResponseTO
+    """Put the service, if rollback is set, it will remove the customer in case of failure."""
     from shop.bizz import put_service
     customer_key = customer.key()
 
     def trans():
-        put_service(customer, service, skip_module_check=skip_module_check, search_enabled=search_enabled,
-                    skip_email_check=skip_email_check)
+        return put_service(customer, service, skip_module_check=skip_module_check, search_enabled=search_enabled,
+                           skip_email_check=skip_email_check)
 
     try:
-        run_in_xg_transaction(trans)
+        return run_in_xg_transaction(trans)
     except Exception as e:
         if rollback:
             db.delete(db.GqlQuery("SELECT __key__ WHERE ANCESTOR IS KEY('%s')" % customer_key).fetch(None))
@@ -202,9 +202,9 @@ def _send_approved_signup_email(signup):
 
 
 def _send_denied_signup_email(city_customer, signup, lang, reason):
-    subject = common_translate(city_customer.language, SOLUTION_COMMON,
+    subject = common_translate(lang, SOLUTION_COMMON,
                                u'signup_request_denied_by_city', city=city_customer.name)
-    message = common_translate(city_customer.language, SOLUTION_COMMON,
+    message = common_translate(lang, SOLUTION_COMMON,
                                u'signup_request_denial_reason', reason=reason)
 
     city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
@@ -257,3 +257,56 @@ def send_signup_update_messages(sln_settings, *messages):
         })
 
     channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)
+
+
+def add_service_consent(email, type_, data):
+    update_service_consent(email, True, type_, data)
+
+
+def remove_service_consent(email, type_, data):
+    update_service_consent(email, False, type_, data)
+
+
+@ndb.transactional(xg=True)
+def update_service_consent(email, grant, type_, data):
+    sec_key = SolutionServiceConsent.create_key(email)
+    sec = sec_key.get()
+    if not sec:
+        sec = SolutionServiceConsent(key=sec_key)
+
+    if grant:
+        if type_ not in sec.types:
+            sec.types.append(type_)
+            sec.put()
+    elif type_ in sec.types:
+        sec.types.remove(type_)
+        sec.put()
+
+    SolutionServiceConsentHistory(consent_type=type_, data=data, parent=sec_key).put()
+
+    request_data = {
+        'email': email,
+        'grant': grant,
+        'type': type_,
+        'data': data,
+    }
+    log_offload.create_log(email, 'oca.service_consents', request_data, None)
+
+
+def new_list_event(list_id, events, headers, consent_type):
+    """A new subscribers list event triggered by webhooks"""
+    logging.debug('Got some subscriber list events %s, %s', list_id, events)
+    for event in events:
+        event_type = event['Type']
+        event_email = event['EmailAddress']
+        data = {
+            'context': u'User %ssubscribed via campaignmonitor' % ('un' if event_type == ListEvents.DEACTIVATE else ''),
+            'headers': headers,
+            'name': event['Name'],
+            'ip': event.get('SignupIPAddress'),
+            'date': event['Date']
+        }
+        if event_type == ListEvents.SUBSCRIBE:
+            add_service_consent(event_email, consent_type, data)
+        elif event_type == ListEvents.DEACTIVATE:
+            remove_service_consent(event_email, consent_type, data)

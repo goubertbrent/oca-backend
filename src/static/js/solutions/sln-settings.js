@@ -1056,6 +1056,15 @@ $(function () {
     sln.configureDelayedInput($('.sln-set-timezone select'), saveSettings, null, false);
     sln.configureDelayedInput($('.sln-set-search-keywords textarea'), saveSettings);
     sln.configureDelayedInput($('.sln-set-email-address input'), saveSettings);
+    
+    $('#newsletter-checkbox').change(function() {
+        saveConsent('newsletter', $(this).prop('checked'));
+    });
+    
+    $('#email_marketing-checkbox').change(function() {
+    	saveConsent('email_marketing', $(this).prop('checked'));
+    });
+    
     // billing tab
     sln.configureDelayedInput($('.sln-set-iban input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-bic input'), saveSettings);
@@ -1432,6 +1441,22 @@ $(function () {
         }
         uploadImage(popupHeader, updateUrl, previewWidth, previewHeight, null, true);
     }
+    
+    function saveConsent(consent_type, enabled) {
+    	sln.call({
+            url: "/common/settings/consent",
+            type: "POST",
+            data: {
+            	consent_type: consent_type,
+            	enabled: enabled
+            },
+            success: function (data) {
+                if (!data.success) {
+                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                }
+            }
+        });
+    }
 
     function moveElementInArray(array, old_index, new_index) {
         if (new_index >= array.length) {
@@ -1442,16 +1467,16 @@ $(function () {
         }
         array.splice(new_index, 0, array.splice(old_index, 1)[0]);
     }
-    
-    function getbroadcastRssUrls(callback) {
-        if (LocalCache.broadcastRssUrls) {
-            callback(LocalCache.broadcastRssUrls);
+
+    function getbroadcastRssSettings(callback) {
+        if (LocalCache.broadcastRssSettings) {
+            callback(LocalCache.broadcastRssSettings);
         } else {
             sln.call({
-                url: "/common/broadcast/rss_feeds",
+                url: "/common/broadcast/rss",
                 type: "GET",
                 success: function (data) {
-                    LocalCache.broadcastRssUrls = data;
+                    LocalCache.broadcastRssSettings = data;
                     callback(data);
                 }
             });
@@ -1500,10 +1525,8 @@ $(function () {
     });
 
     function renderBroadcastSettings() {
-    		getbroadcastRssUrls(function (rssFeeds) {
-    			 var htmlElement = $('.sln-set-broadcast-rss-urls');
-    	         htmlElement.data('rss_urls', rssFeeds);
-    	         renderRssUrls(rssFeeds);
+        getbroadcastRssSettings(function (settings) {
+            renderRssSettings(settings);
         });
 
 
@@ -1534,63 +1557,58 @@ $(function () {
             $('#btn-save-broadcast-settings').click(saveBroadcastSettings);
         });
     }
-    
+
     function addRssUrl() {
-    		sln.input(function (value) {
+        sln.input(function (value) {
             if (!value.trim())
                 return false;
-
-            var htmlElement = $('.sln-set-broadcast-rss-urls');
-            htmlElement.data('rss_urls').push(value);
-            renderRssUrls(htmlElement.data('rss_urls'));
-            saveRssUrls();
-            
+            getbroadcastRssSettings(function (settings) {
+                settings.rss_urls.push(value);
+                saveRssSettings(settings);
+            });
         }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT);
-    };
-    
-    var renderRssUrls = function(urls) {
-	    	var htmlElement = $('.sln-set-broadcast-rss-urls table tbody');
-	    	htmlElement.empty();
-	    	var html = $.tmpl(templates.broadcast_rss_settings, {
-	    		rss_urls : urls
+    }
+
+    function renderRssSettings(settings) {
+        var htmlElement = $('#sln-set-broadcast-rss-urls');
+        var html = $.tmpl(templates.broadcast_rss_settings, {
+            rss_urls: settings.rss_urls,
+            notify: settings.notify,
+            T: T,
 	    });
-	    	htmlElement.append(html);
-	    	htmlElement.find('button[action="deleteRssUrl"]').click(deleteRssUrl);
-	};
-	
-	var deleteRssUrl = function() {
-	    	var url = $(this).attr('rss_url');
-	    	var htmlElement = $('.sln-set-broadcast-rss-urls');
-	    	var index = htmlElement.data('rss_urls').indexOf(url);
-	    	if (index >= 0) {
-	    		htmlElement.data('rss_urls').splice(index, 1);
-	    		renderRssUrls(htmlElement.data('rss_urls'));
-	        saveRssUrls();
-		}
-	};
-	
-	var saveRssUrls = function() {
-		var htmlElement = $('.sln-set-broadcast-rss-urls');
-		var data = JSON.stringify({
-            rss_feeds : htmlElement.data('rss_urls')
+        htmlElement.html(html);
+        htmlElement.find('button[action="deleteRssUrl"]').click(deleteRssUrl);
+        var notifyCheckbox = htmlElement.find('#send-rss-notifications');
+        notifyCheckbox.change(function () {
+            getbroadcastRssSettings(function (settings) {
+                settings.notify = notifyCheckbox.prop('checked');
+                saveRssSettings(settings);
+            });
         });
-		
-		sln.call({
-            url : "/common/broadcast/rss_feeds",
-            type : "POST",
-            data : {
-                data : data
-            },
+    }
+
+    function deleteRssUrl() {
+        var url = $(this).attr('rss_url');
+        getbroadcastRssSettings(function (settings) {
+            settings.rss_urls = settings.rss_urls.filter(function (u) {
+                return u !== url;
+            });
+            saveRssSettings(settings);
+        });
+    }
+
+    function saveRssSettings(settings) {
+        sln.call({
+            url: '/common/broadcast/rss',
+            type: 'POST',
+            data: JSON.stringify(settings),
             success : function(data) {
-                if (data.success) {
-	                	LocalCache.broadcastRssUrls = null;
-                } else {
-	                	sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
+                LocalCache.broadcastRssSettings = data;
+                renderRssSettings(data);
             },
             error : sln.showAjaxError
         });
-	};
+    }
 
     function addBroadcastType() {
         var broadcastTypeInput = $('#settings_extra_broadcast_type');

@@ -504,14 +504,23 @@ $(function () {
             error: sln.showAjaxError
         });
     };
+    
+    var showPaymentEnabledWarningIfNeeded = function() {
+        if (!paymentEnabled || $('#payconicMerchantId').val().trim() && $('#payconiqAccessToken').val().trim()) {
+            $('#paymentEnabledWarning').hide();
+        } else {
+            $('#paymentEnabledWarning').show();
+        }
+    }
 
     var loadPayconiq = function () {
         sln.call({
             url: "/common/payments/payconiq",
             type: "GET",
             success: function (data) {
-                $("#payconicMerchantId").val(data.merchant_id ? data.merchant_id : '');
-                $("#payconiqAccessToken").val(data.jwt ? data.jwt : '');
+                $("#payconicMerchantId").val(data.merchant_id || '');
+                $("#payconiqAccessToken").val(data.jwt || '');
+                showPaymentEnabledWarningIfNeeded();
             }
         });
     };
@@ -521,6 +530,8 @@ $(function () {
             merchant_id : $("#payconicMerchantId").val().trim(),
             jwt : $("#payconiqAccessToken").val().trim()
         };
+
+        showPaymentEnabledWarningIfNeeded();
 
         if (!data.merchant_id || !data.jwt) {
             return;
@@ -555,6 +566,7 @@ $(function () {
             $('#paymentEnabledYes').removeClass("btn-success").html('&nbsp;');
             $('#paymentEnabledNo').addClass("btn-danger").text(CommonTranslations.DISABLED);
         }
+        showPaymentEnabledWarningIfNeeded();
     }
 
     function togglePaymentOptional() {

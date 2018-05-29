@@ -548,6 +548,21 @@
             <div class="sln-set-openinghours"></div>
             <div class="sln-set-address"></div>
             <div class="sln-set-search-keywords"></div>
+            {% if show_email_checkboxes %}
+            <label>{% translate language, 'common', 'email_consent' %}</label>
+            <div class="checkbox">
+                <label for="newsletter-checkbox">
+                    <input type="checkbox" name="newsletter" id="newsletter-checkbox" {% if 'newsletter' in service_consent.types %}checked{% endif %} >
+                    {% translate language, 'common', 'email_consent_newsletter' %}
+                </label>
+            </div>
+            <div class="checkbox">
+                <label for="email_marketing-checkbox">
+                    <input type="checkbox" name="email_marketing" id="email_marketing-checkbox" {% if 'email_marketing' in service_consent.types %}checked{% endif %}>
+                    {% translate language, 'common', 'email_consent_marketing' %}
+                </label>
+            </div>
+            {% endif %}
         </fieldset>
     </form>
 </div>

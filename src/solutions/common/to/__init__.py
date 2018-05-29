@@ -24,7 +24,7 @@ from mcfw.properties import unicode_property, long_property, bool_property, type
 from mcfw.rpc import parse_complex_value, serialize_complex_value
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.settings import get_server_settings
-from rogerthat.to import ReturnStatusTO
+from rogerthat.to import ReturnStatusTO, TO
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import get_epoch_from_datetime, urlencode
 from rogerthat.utils.app import get_human_user_from_app_user
@@ -200,6 +200,16 @@ class SolutionSettingsTO(object):
         to.publish_changes_users = sln_settings.publish_changes_users
         to.search_enabled_check = True if sln_settings.search_enabled_check is None else sln_settings.search_enabled_check
         return to
+
+
+class SolutionRssSettingsTO(TO):
+    rss_urls = unicode_list_property('rss_urls')
+    notify = bool_property('notify')
+
+    @classmethod
+    def from_model(cls, model):
+        return cls(rss_urls=[l.url for l in model.rss_links] if model else [],
+                   notify=model.notify if model else False)
 
 
 class ProvisionResponseTO(object):

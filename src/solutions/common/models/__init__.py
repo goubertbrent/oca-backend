@@ -230,7 +230,7 @@ class SolutionIdentitySettings(db.Model):
     # List of epochs defining the start, end of holidays (start1, end1, start2, end2, ...)
     holidays = db.ListProperty(int)
     holiday_out_of_office_message = db.TextProperty()
-    
+
     payment_enabled = db.BooleanProperty(default=False)
     payment_optional = db.BooleanProperty(default=True)
     payment_min_amount_for_fee = db.IntegerProperty(default=0)
@@ -330,7 +330,7 @@ class SolutionSettings(SolutionIdentitySettings):
     # Branding
     events_branding_hash = db.StringProperty(indexed=False)
     loyalty_branding_hash = db.StringProperty(indexed=False)
-    
+
     service_disabled = db.BooleanProperty(default=False)
 
     @staticmethod
@@ -667,6 +667,7 @@ class SolutionRssLink(NdbModel):
 
 class SolutionRssScraperSettings(NdbModel):
     rss_links = ndb.LocalStructuredProperty(SolutionRssLink, repeated=True)
+    notify = ndb.BooleanProperty(default=True, indexed=False)
 
     @property
     def service_user_email(self):
@@ -708,3 +709,33 @@ class SolutionRssScraperItem(NdbModel):
         return ndb.Key(cls,
                        url,
                        parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
+
+
+class SolutionServiceConsent(NdbModel):
+    TYPE_EMAIL_MARKETING = u'email_marketing'
+    TYPE_NEWSLETTER = u'newsletter'
+    TYPES = [TYPE_EMAIL_MARKETING, TYPE_NEWSLETTER]
+
+    types = ndb.StringProperty(repeated=True, choices=TYPES)  # type: list[str]
+
+    @property
+    def email(self):
+        return self.key.id().decode('utf-8')
+
+    @classmethod
+    def create_key(cls, email):
+        return ndb.Key(cls, email)
+
+    @staticmethod
+    def consents(model):
+        return {
+            type_: (type_ in model.types if model else False) for type_ in SolutionServiceConsent.TYPES
+        }
+
+
+class SolutionServiceConsentHistory(NdbModel):
+
+    timestamp = ndb.DateTimeProperty(auto_now_add=True)
+    consent_type = ndb.StringProperty()
+    data = ndb.JsonProperty(compressed=True)
+
