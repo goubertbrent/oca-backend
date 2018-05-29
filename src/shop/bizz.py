@@ -2822,7 +2822,10 @@ def update_customer_consents(email, consents, headers, context):
     for consent, granted in consents.iteritems():
         list_id = campaignmonitor_lists.get(consent)
         if not list_id:
-            raise Exception('No webhook configured for consent %s', consent)
+            if DEBUG:
+                logging.error('No webhook configured for consent %s', consent)
+            else:
+                raise Exception('No webhook configured for consent %s', consent)
         data = {
             'context': context,
             'headers': headers,
@@ -2832,12 +2835,14 @@ def update_customer_consents(email, consents, headers, context):
             if consent not in current_consent_settings.types:
                 current_consent_settings.types.append(consent)
                 add_service_consent(email, consent, data)
-                campaignmonitor.subscribe(list_id, email)
+                if list_id:
+                    campaignmonitor.subscribe(list_id, email)
         else:
             if consent in current_consent_settings.types:
                 current_consent_settings.types.remove(consent)
                 remove_service_consent(email, consent, data)
-                campaignmonitor.unsubscribe(list_id, email)
+                if list_id:
+                    campaignmonitor.unsubscribe(list_id, email)
     current_consent_settings.put()
 
 

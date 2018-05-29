@@ -39,7 +39,8 @@ from rogerthat.service.api import system
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.channel import send_message_to_session
 from rogerthat.utils.service import create_service_identity_user
-from shop.bizz import get_organization_types, is_signup_enabled, update_customer_consents
+from shop.bizz import get_organization_types, is_signup_enabled, update_customer_consents, \
+    get_customer_consents
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity, get_available_apps_for_customer
@@ -450,7 +451,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'translations': json.dumps(all_translations),
                   'organization_types': organization_types,
                   'organization_types_json': json.dumps(dict(organization_types)),
-                  'vouchers_settings': vouchers_settings
+                  'vouchers_settings': vouchers_settings,
+                  'show_email_checkboxes': customer is not None,
+                  'service_consent': get_customer_consents(customer.user_email) if customer else None
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

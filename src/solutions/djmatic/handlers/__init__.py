@@ -19,9 +19,9 @@ import json
 import logging
 import os
 
+from google.appengine.api import users as gae_users
 import jinja2
 import webapp2
-from google.appengine.api import users as gae_users
 
 from babel import dates
 from mcfw.rpc import serialize_complex_value
@@ -157,7 +157,8 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'CONSTS': consts,
             'CONSTS_JSON': json.dumps(consts),
             'modules': json.dumps(sln_settings.modules),
-            'translations': json.dumps(all_translations)
+            'translations': json.dumps(all_translations),
+            'show_email_checkboxes': False
         }
 
         channel.append_firebase_params(params)

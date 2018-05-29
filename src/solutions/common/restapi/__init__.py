@@ -16,9 +16,9 @@
 # @@license_version:1.2@@
 
 import base64
+from collections import defaultdict
 import datetime
 import logging
-from collections import defaultdict
 from types import NoneType
 
 from google.appengine.ext import db, deferred
@@ -29,6 +29,7 @@ from mcfw.consts import MISSING, REST_FLAVOR_TO
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
+from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
@@ -52,6 +53,7 @@ from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user,
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from rogerthat.utils.transactions import run_in_transaction
+from shop.bizz import update_customer_consents
 from shop.business.order import get_subscription_order_remaining_length
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
@@ -733,6 +735,17 @@ def agenda_set_event_notifications(notifications_enabled):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest("/common/settings/consent", "post")
+@returns(ReturnStatusTO)
+@arguments(consent_type=unicode, enabled=bool)
+def save_consent(consent_type, enabled):
+    customer = get_customer(users.get_current_user())
+    context = u'User dashboard'
+    headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
+    update_customer_consents(customer.user_email, {consent_type: enabled}, headers, context)
+    return RETURNSTATUS_TO_SUCCESS
 
 
 @rest("/common/menu/save", "post")
