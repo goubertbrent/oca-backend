@@ -125,12 +125,6 @@ indexes:
   - name: to_service_user
   - name: phase
 
-- kind: News
-  properties:
-  - name: language
-  - name: datetime
-    direction: desc
-
 - kind: Order
   properties:
   - name: date_signed

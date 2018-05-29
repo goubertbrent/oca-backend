@@ -70,3 +70,17 @@ class NewsBroadcastItemListTO(TO):
     """A list of NewsBroadcastItemTO."""
     result = typed_property('1', NewsBroadcastItemTO, True)
     cursor = unicode_property('2')
+
+
+class DashboardNewsTO(TO):
+    title = unicode_property('title')
+    creation_time = unicode_property('creation_time')
+    content = unicode_property('content')
+    id = long_property('id')
+    media = unicode_property('media')
+    media_type = long_property('media_type')
+    language = unicode_property('language')
+
+    @classmethod
+    def from_model(cls, model):
+        return cls.from_dict(model.to_dict())

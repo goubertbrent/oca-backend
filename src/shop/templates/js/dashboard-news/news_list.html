@@ -1,0 +1,18 @@
+<div>
+    <button id="create-news" class="btn btn-success" style="margin-bottom: 20px;"><i class="fa fa-plus"></i> Create</button>
+
+    {{each(i, n) news }}
+    <div class="news-list-item">
+        <div class="span5">${n.title}</div>
+        <div class="span3">${n.creation_time}</div>
+        <div class="span2">
+            <a class="btn btn-primary update-dashboard-news" data-dashboard-news-id="${n.id}">
+                <i class="fa fa-edit"></i>
+            </a>
+            <a class="btn btn-danger delete-dashboard-news" data-dashboard-news-id="${n.id}">
+                <i class="fa fa-remove"></i>
+            </a>
+        </div>
+    </div>
+    {{/each}}
+</div>

@@ -82,3 +82,29 @@ class NewsSettings(NdbModel):
     def get_by_user(cls, service_user, service_identity):
         key = cls.create_key(service_user, service_identity)
         return key.get() or cls(key=key)
+
+
+class DashboardNewsMediaType(Enum):
+    VIDEO_YOUTUBE = 1
+    IMAGE = 2
+
+
+class DashboardNews(NdbModel):
+    title = ndb.StringProperty(indexed=False, required=True)
+    creation_time = ndb.DateTimeProperty(auto_now_add=True)
+    content = ndb.TextProperty(required=True)
+    media = ndb.StringProperty(indexed=False, required=True)  # either an id or an url
+    media_type = ndb.IntegerProperty(indexed=False, required=True, choices=DashboardNewsMediaType.all())
+    language = ndb.StringProperty()
+
+    @property
+    def id(self):
+        return self.key.integer_id()
+
+    @classmethod
+    def create_key(cls, news_id):
+        return ndb.Key(cls, news_id)
+
+    @classmethod
+    def list_by_language(cls, language):
+        return sorted(cls.query(cls.language == language), key=lambda i: i.creation_time, reverse=True)

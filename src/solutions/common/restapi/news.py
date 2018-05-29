@@ -30,11 +30,21 @@ from shop.exceptions import BusinessException
 from shop.to import OrderItemTO
 from shop.view import get_current_http_host
 from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions.common.bizz.dashboard_news import get_dashboard_news_by_language
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
     get_news_statistics
 from solutions.common.dal import get_solution_settings
-from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, NewsStatsTO
+from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
+    NewsStatsTO, DashboardNewsTO
 from solutions.common.utils import is_default_service_identity
+
+
+@rest('/common/dashboard-news', 'get', read_only_access=True, silent_result=True)
+@returns([DashboardNewsTO])
+@arguments()
+def api_load_dashboard_news():
+    settings = get_solution_settings(users.get_current_user())
+    return [DashboardNewsTO.from_model(model) for model in get_dashboard_news_by_language(settings.main_language)]
 
 
 @rest('/common/news', 'get', read_only_access=True, silent_result=True)

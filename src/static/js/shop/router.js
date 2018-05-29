@@ -33,30 +33,6 @@ $(document).ready(function () {
 function routingHandler(hash) {
     if (hash.length) {
         switch (hash[0]) {
-            case 'news':
-                // Show Extra city product by default.
-                loadNews(function () {
-                    if (hash[1]) {
-                        switch (hash[1]) {
-                            case 'new':
-                                renderNewsForm();
-                                break;
-                            case 'edit':
-                                renderNewsForm(hash[2]);
-                                break;
-                            case 'delete':
-                                deleteNews(hash[2]);
-                                break;
-                            default:
-                                renderNewsForm();
-                                break;
-                        }
-                    }
-                    else {
-                        renderNews();
-                    }
-                });
-                break;
             case 'legal_entities':
                 switch (hash[1]) {
                     case 'create':

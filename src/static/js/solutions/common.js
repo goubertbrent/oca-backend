@@ -61,6 +61,7 @@ $(function() {
         userClickedBeforeNewsLoaded = true;
         $("#topmenu li").removeClass("active");
         $("div.page, #newspage").hide();
+        $("#wrap").removeClass().addClass(menu + '-active');
         li.addClass("active");
         $("div#" + menu).show();
         if (event.target.id === "shoplink") {

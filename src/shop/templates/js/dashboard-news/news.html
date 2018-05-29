@@ -1,0 +1,20 @@
+<article class="news-article">
+    <div class="article-media">
+        {{if article.media_type == 1}}
+        <div class="youtube-container">
+            <div class="youtube-player" data-yt-id="${article.media}"></div>
+        </div>
+        {{/if}}
+        {{if article.media_type == 2}}
+        <img src="${article.media}" />
+        {{/if}}
+    </div>
+    <div class="article-content">
+        <h3>${article.title}</h3>
+
+        <div class="article-date"><i>${article.date}</i></div>
+        <div class="article-text">
+            <div>{{html article.text}}</div>
+        </div>
+    </div>
+</article>

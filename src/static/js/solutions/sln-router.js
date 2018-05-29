@@ -24,13 +24,10 @@ $(document).ready(function () {
     });
 
     var hash = window.location.hash.replace('#/', '').split('/');
-    if (SOLUTION != 'djmatic') {
-        var defaultLocation = '#/functionalities';
+    if (SOLUTION !== 'djmatic') {
+        var defaultLocation = '#/dashboard-news';
 
-        if (!hash) {
-            window.location.hash = defaultLocation;
-            return;
-        } else if (hash[0] === '') {
+        if (!hash || hash[0] === '') {
             window.location.hash = defaultLocation;
             return;
         }

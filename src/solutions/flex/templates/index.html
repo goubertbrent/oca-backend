@@ -83,7 +83,6 @@ var templates = {{ templates|safe }};
 {% if not loyalty %}
 <script src="/static/js/solutions/sln-requirements.js"></script>
 <script src="/static/js/solutions/sln-hints.js"></script>
-<script src="/static/js/slick/slick.js"></script>
 {% endif %}
 <script src="/static/js/solutions/sln-loyalty.js"></script>
 
@@ -106,11 +105,15 @@ var templates = {{ templates|safe }};
             <div class="navbar navbar-fixed-top">
                 <div class="navbar-inner" {% if debug %}style="background: #e5ffe5;"{% endif %}>
                     <ul id="topmenu" class="nav">
-
 {% if not is_layout_user %}
+                        <li menu="dashboard-news">
+                            <a href="#/dashboard-news">
+                                {% translate language, 'common', 'news_and_tips' %}
+                            </a>
+                        </li>
     {% if functionality_modules %}
                         <li menu="functionalities">
-                            <a href="#functionalities">
+                            <a href="#/functionalities">
                                 {% translate language, "common", "functionalities" %}
                             </a>
                         </li>
@@ -307,6 +310,7 @@ var templates = {{ templates|safe }};
                 </div>
 
 {% if not is_layout_user %}
+    {% include 'dashboard-news/news.tmpl' %}
     {% if functionality_modules %}
         {% include 'functionalities/functionalities.tmpl' %}
     {% endif %}

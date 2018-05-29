@@ -94,6 +94,7 @@ DEFAULT_JS_TEMPLATES = [
     'functionalities/functionality',
     'city_select',
     'budget_balance_warning',
+    'dashboard-news/news_item',
 ]
 
 VECTOR_MAPS = {

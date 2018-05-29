@@ -39,7 +39,7 @@ from add_1_monkey_patches import DEBUG, APPSCALE
 from babel.dates import format_date, format_datetime
 from googleapiclient.discovery import build
 from mcfw.cache import cached
-from mcfw.consts import MISSING
+from mcfw.consts import MISSING, REST_FLAVOR_TO
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
@@ -111,6 +111,8 @@ from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
+from solutions.common.bizz.dashboard_news import get_all_dashboard_news, create_dashboard_news, update_dashboard_news, \
+    delete_dashboard_news
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
@@ -123,6 +125,7 @@ from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
+from solutions.common.to.news import DashboardNewsTO
 from solutions.common.utils import get_extension_for_content_type
 from xhtml2pdf import pisa
 
@@ -2315,3 +2318,46 @@ def test_app_broadcast(service, app_ids, message, tester):
 def rest_get_customer_charges(paid=False, cursor=None):
     user = gusers.get_current_user()
     return get_customer_charges(user, paid, cursor=cursor)
+
+
+class NewsHandler(BizzManagerHandler):
+    def get(self):
+        current_user = gusers.get_current_user()
+        if not is_admin(current_user):
+            self.abort(403)
+        path = os.path.join(os.path.dirname(__file__), 'html', 'dashboard-news.html')
+        templates = ['dashboard-news/news', 'dashboard-news/news_form', 'dashboard-news/news_list',
+                     'dashboard-news/news_preview']
+        context = get_shop_context(js_templates=render_js_templates(templates))
+        self.response.out.write(template.render(path, context))
+
+
+@rest('/internal/shop/rest/dashboard-news', 'get', flavor=REST_FLAVOR_TO)
+@returns([DashboardNewsTO])
+@arguments()
+def api_load_dashboard_news():
+    return [DashboardNewsTO.from_model(model) for model in get_all_dashboard_news()]
+
+
+@rest('/internal/shop/rest/dashboard-news', 'post', flavor=REST_FLAVOR_TO)
+@returns(DashboardNewsTO)
+@arguments(data=DashboardNewsTO)
+def api_create_dashboard_news(data):
+    azzert(is_admin(gusers.get_current_user()))
+    return DashboardNewsTO.from_model(create_dashboard_news(data))
+
+
+@rest('/internal/shop/rest/dashboard-news/<news_id:[^/]+>', 'put', flavor=REST_FLAVOR_TO)
+@returns(DashboardNewsTO)
+@arguments(news_id=(int, long), data=DashboardNewsTO)
+def api_update_dashboard_news(news_id, data):
+    azzert(is_admin(gusers.get_current_user()))
+    return DashboardNewsTO.from_model(update_dashboard_news(news_id, data))
+
+
+@rest('/internal/shop/rest/dashboard-news/<news_id:[^/]+>', 'delete', flavor=REST_FLAVOR_TO)
+@returns()
+@arguments(news_id=(int, long))
+def api_delete_dashboard_news(news_id=None):
+    azzert(is_admin(gusers.get_current_user()))
+    delete_dashboard_news(news_id)

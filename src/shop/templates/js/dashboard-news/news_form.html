@@ -1,0 +1,65 @@
+<form class="form-horizontal row">
+    <a id="dashboard-news-overview" class="btn btn-default"><i class="fa fa-arrow-left"></i>Back to overview</a>
+    <fieldset>
+        {{if edit}}
+        <legend>Edit dashboard news</legend>
+        {{else}}
+        <legend>Create dashboard news</legend>
+        {{/if}}
+        <div class="control-group">
+            <label for="news-type" class="control-label">Language</label>
+
+            <div class="controls">
+                <select id="news-language">
+                    {{each(i, lang) languages}}
+                    <option value="${lang.code}" {{if article.language == lang.code }} selected{{/if}}>
+                        ${lang.name}
+                    </option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="news-type" class="control-label">Type</label>
+
+            <div class="controls">
+                <select id="news-type">
+                    <option value="1" {{if article.media_type=== 1}}selected{{/if}}>Youtube video</option>
+                    <option value="2" {{if article.media_type=== 2}}selected{{/if}}>Image</option>
+                </select>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="news-title" class="control-label">Title</label>
+
+            <div class="controls">
+                <input type="text" id="news-title" name="news-title" value="${ article.title }">
+            </div>
+        </div>
+        <div class="control-group {{if article.media_type !== 1}}hide{{/if}}" id="news-yt">
+            <label for="news-youtubeUrl" class="control-label">Youtube url</label>
+
+            <div class="controls">
+                <input type="text" id="news-youtubeUrl" name="news-youtubeUrl"
+                       value="{{if article.media}}https://youtu.be/${ article.media }{{/if}}">
+            </div>
+        </div>
+        <div class="control-group {{if article.media_type !== 2}}hide{{/if}}" id="news-image">
+            <label for="news-imageUrl" class="control-label">Image url</label>
+
+            <div class="controls">
+                <input type="text" id="news-imageUrl" name="news-imageUrl" value="${ article.media }">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="news-content" class="control-label">Text content</label>
+
+            <div class="controls">
+                <textarea rows="7" id="news-content" name="news-content">${ article.content }</textarea>
+                <button type="button" id="news-submit"
+                        class="btn btn-success pull-right">{{if edit}}Save{{else}}Create{{/if}}
+                </button>
+            </div>
+        </div>
+    </fieldset>
+</form>
