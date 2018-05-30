@@ -29,7 +29,6 @@ from rogerthat.models.properties.messaging import SpecializedList
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.consts import UNIT_PIECE
 
-
 try:
     import cStringIO as StringIO
 except ImportError:
@@ -46,7 +45,7 @@ def serialize_solution_user(stream, u):
         s_unicode(stream, u.email)
         s_unicode(stream, u.avatar_url)
         s_unicode(stream, u.language)
-        s_unicode(stream, u.app_id)
+        s_unicode(stream, u.app_id if u.app_id is not MISSING else None)
 
 def deserialize_solution_user(stream):
     version = ds_long(stream)  # version

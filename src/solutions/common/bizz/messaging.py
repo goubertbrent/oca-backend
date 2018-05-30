@@ -800,23 +800,18 @@ def send_inbox_forwarders_message(service_user, service_identity, app_user, body
 def _send_inbox_forwarders_message(service_user, service_identity, app_user, body, msg_params, solution=SOLUTION_COMMON,
                                    message_key=None, attachments=None, reply_enabled=False, send_reminder=True,
                                    answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
-    try_or_defer(_send_inbox_forwarders_message_by_email, service_user, service_identity, app_user, body, msg_params,
-                 solution, message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags,
-                 _queue=FAST_QUEUE)
+    try_or_defer(_send_inbox_forwarders_message_by_email, service_user, service_identity, app_user, msg_params,
+                 message_key, send_reminder, _queue=FAST_QUEUE)
     try_or_defer(_send_inbox_forwarders_message_by_app, service_user, service_identity, app_user, body, msg_params,
                  solution, message_key, attachments, reply_enabled, send_reminder, answers, store_tag, flags,
                  _queue=FAST_QUEUE)
 
 
 @returns(NoneType)
-@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, body=unicode, msg_params=dict,
-           solution=unicode,
-           message_key=unicode, attachments=[AttachmentTO], reply_enabled=bool, send_reminder=bool, answers=[AnswerTO],
-           store_tag=unicode, flags=(int, long))
-def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_user, body, msg_params,
-                                            solution=SOLUTION_COMMON,
-                                            message_key=None, attachments=None, reply_enabled=False, send_reminder=True,
-                                            answers=None, store_tag=None, flags=Message.FLAG_ALLOW_DISMISS):
+@arguments(service_user=users.User, service_identity=unicode, app_user=users.User, msg_params=dict, message_key=unicode,
+           send_reminder=bool)
+def _send_inbox_forwarders_message_by_email(service_user, service_identity, app_user, msg_params, message_key=None,
+                                            send_reminder=True):
     if not (send_reminder and app_user and message_key):
         return
 

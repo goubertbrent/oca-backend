@@ -58,6 +58,7 @@ class SolutionInboxMessage(db.Model):
     CATEGORY_SANDWICH_BAR = 'sandwich_bar'
     CATEGORY_AGENDA = 'agenda'
     CATEGORY_CUSTOMER_SIGNUP = 'registration'
+    CATEGORY_OCA_INFO = 'oca_info'
 
     ICON_NAMES = {CATEGORY_APPOINTMENT: u'fa-calendar-plus-o',
                   CATEGORY_ASK_QUESTION: u'fa-comments-o',
@@ -70,7 +71,8 @@ class SolutionInboxMessage(db.Model):
                   CATEGORY_RESTAURANT_RESERVATION: u'fa-cutlery',
                   CATEGORY_SANDWICH_BAR: u'hamburger',
                   CATEGORY_AGENDA: u'fa-book',
-                  CATEGORY_CUSTOMER_SIGNUP: u'fa-sign-in'}
+                  CATEGORY_CUSTOMER_SIGNUP: u'fa-sign-in',
+                  CATEGORY_OCA_INFO: u'fa-info'}
 
     TOPICS = {CATEGORY_APPOINTMENT: u'appointment',
               CATEGORY_ASK_QUESTION: u'ask-question',
@@ -83,7 +85,8 @@ class SolutionInboxMessage(db.Model):
               CATEGORY_RESTAURANT_RESERVATION: u'reserve',
               CATEGORY_SANDWICH_BAR: u'order-sandwich',
               CATEGORY_AGENDA: u'agenda',
-              CATEGORY_CUSTOMER_SIGNUP: u'registration'}
+              CATEGORY_CUSTOMER_SIGNUP: u'registration',
+              CATEGORY_OCA_INFO: u'oca_info'}
 
     # for compatibility with older category names
     ICON_NAMES['customer_signup'] = ICON_NAMES[CATEGORY_CUSTOMER_SIGNUP]

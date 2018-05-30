@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div style="padding: 0; margin:0 auto; line-height: 100%%; overflow: hidden;">
+    <img style="width: 100%;" src="cid:osa-footer"/>
+    <div
+        style="line-height: 130%; color: #614e4e; border: 4px solid #6db59c; margin-top: -5px; padding: 1em; background-color: #9adbc4; font-size: 16px; font-family: Arial; border-radius: 0 0 15px 15px; -webkit-border-radius: 0 0 15px 15px; -moz-border-radius: 0 0 15px 15px;">
+        <p> {{ if_email_body_1 }} </p>
+        {% if category != 'oca_info' %}
+        <p>{{ if_email_body_2 }}</p>
+        <p>{{ if_email_body_3_button }}</p>
+        {% endif %}
+    </div>
+    <div style="line-height: 130%;">
+        <br><br>
+    {{if_email_footer_1}}<br><br>
+    {{if_email_footer_2}}<br>
+    {{if_email_footer_3}}<br>
+    {{if_email_footer_4}}<br>
+    {{if_email_footer_5}}<br>
+    {{if_email_footer_6}}<br>
+    </div>
+</div>
+</body>
+</html>

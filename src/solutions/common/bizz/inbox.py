@@ -15,21 +15,23 @@
 #
 # @@license_version:1.2@@
 
-from StringIO import StringIO
 import base64
 import datetime
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import logging
 import os
 import time
+from StringIO import StringIO
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from types import NoneType
 
-from babel.dates import format_datetime
-
-from google.appengine.ext import deferred, db
 import jinja2
+from google.appengine.ext import deferred, db
+
+import solutions
+import xlwt
+from babel.dates import format_datetime
 from mcfw.properties import long_property
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.rtemail import EMAIL_REGEX
@@ -49,22 +51,20 @@ from rogerthat.utils.transactions import run_in_transaction
 from shop.constants import LOGO_LANGUAGES
 from shop.exceptions import InvalidEmailFormatException
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, create_pdf
 from solutions.common.bizz.broadcast_statistics import get_broadcast_statistics_excel
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.properties import SolutionUser
 from solutions.common.utils import create_service_identity_user_wo_default
 from solutions.jinja_extensions import TranslateExtension
-import xlwt
-
 
 JINJA_ENVIRONMENT = jinja2.Environment(
-        loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
-        extensions=[TranslateExtension, ])
+    loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
+    extensions=[TranslateExtension, ])
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, str_key=unicode, msg_params=dict)
@@ -72,6 +72,7 @@ def _send_styled_inbox_forwarders_email_reminder(service_user, str_key, msg_para
     m = SolutionInboxMessage.get(str_key)
     if m.deleted == False and m.trashed == False and m.starred == False and m.reply_enabled == True and not m.child_messages:
         send_styled_inbox_forwarders_email(service_user, str_key, msg_params, True)
+
 
 @returns(NoneType)
 @arguments(service_user=users.User, str_key=unicode, msg_params=dict, reminder=bool)
@@ -81,13 +82,19 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
-    chat_topic = common_translate(sln_settings.main_language, SOLUTION_COMMON, m.chat_topic_key)
+    def transl(key, **params):
+        return common_translate(sln_settings.main_language, SOLUTION_COMMON, key, **params)
 
-    subject = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-subject', function=chat_topic)
+    chat_topic = transl(m.chat_topic_key)
+
+    if m.category == SolutionInboxMessage.CATEGORY_OCA_INFO:
+        subject = transl('there_is_a_new_message_in_your_inbox', name=m.sender.name)
+    else:
+        subject = transl('if-email-subject', function=chat_topic)
     if reminder:
         if not sln_i_settings.inbox_email_reminders_enabled:
             return
-        subject = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'inbox-forwarding-reminder-text', text=subject)
+        subject = transl('inbox-forwarding-reminder-text', text=subject)
 
     settings = get_server_settings()
 
@@ -101,92 +108,69 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
 
     mimeRoot = MIMEMultipart('related')
     mimeRoot['Subject'] = subject
-    mimeRoot['From'] = settings.senderEmail if app.type == App.APP_TYPE_ROGERTHAT else ("%s <%s>" % (app.name, app.dashboard_email_address))
+    mimeRoot['From'] = settings.senderEmail if app.type == App.APP_TYPE_ROGERTHAT else (
+        "%s <%s>" % (app.name, app.dashboard_email_address))
     mimeRoot['To'] = ', '.join(sln_i_settings.inbox_mail_forwarders)
 
     mime = MIMEMultipart('alternative')
     mimeRoot.attach(mime)
 
-    part_1_css = "line-height: 130%; color: #614e4e; border: 4px solid #6db59c; margin-top: -5px; padding: 1em; background-color: #9adbc4; font-size: 16px; font-family: Arial; border-radius: 0 0 15px 15px; -webkit-border-radius: 0 0 15px 15px; -moz-border-radius: 0 0 15px 15px;"
-    button_css = "display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px; -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 16px; background: #6db59c; padding: 10px 20px 10px 20px; text-decoration: none;"
+    button_css = 'display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px;' \
+                 ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 16px;' \
+                 ' background: #6db59c; padding: 10px 20px 10px 20px; text-decoration: none;'
+    if m.category == SolutionInboxMessage.CATEGORY_OCA_INFO:
+        if_email_body_1 = u'%s %s'% (
+            transl('there_is_a_new_message_in_your_inbox', name=m.sender.name),
+            transl('login_to_dashboard_to_view_message', name=m.sender.name))
+        if_email_body_2 = if_email_body_3_button = if_email_body_3_url = None
+    else:
+        if_email_body_1 = transl('if-email-body-1', if_name=msg_params['if_name'], function=chat_topic,
+                                 app_name=app.name)
+        if_email_body_2 = transl('if-email-body-2')
+        dashboard_trans = transl('dashboard')
+        service_email = sln_settings.login.email() if sln_settings.login else service_user.email()
+        btn = u'<a href="https://rogerth.at?email=%(service_email)s" style="%(button_css)s">%(dashboard)s</a' % {
+            'service_email': service_email,
+            'button_css': button_css,
+            'dashboard': dashboard_trans
+        }
+        if_email_body_3_button = transl('if-email-body-3-button', dashboard_button=btn)
+        if_email_body_3_url = transl('if-email-body-3-url', dashboard_url='https://rogerth.at?email=%s' % service_email)
 
-    if_email_body_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-body-1',
-                                                  if_name=msg_params['if_name'],
-                                                  function=chat_topic,
-                                                  app_name=app.name)
-    if_email_body_2 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-body-2')
-    if_email_body_3_button = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-body-3-button',
-                                                  dashboard_button="<a href='https://rogerth.at?email=%(service_email)s' style='%(button_css)s'>Dashboard</a>" %
-                                                                    {'service_email': sln_settings.login.email() if sln_settings.login else service_user.email(),
-                                                                     'button_css': button_css})
-    if_email_body_3_url = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-body-3-url',
-                                           dashboard_url="https://rogerth.at?email=%(service_email)s" %
-                                                        {'service_email': sln_settings.login.email() if sln_settings.login else service_user.email()})
-    if_email_footer_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-1',
-                                                    service_name=sln_settings.name,
-                                                    app_name=app.name)
-    if_email_footer_2 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-2')
-    if_email_footer_3 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-3')
-    if_email_footer_4 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-4')
-    if_email_footer_5 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-5')
-    if_email_footer_6 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-6')
+    if_email_footer_1 = transl('if-email-footer-1', service_name=sln_settings.name, app_name=app.name)
+    if_email_footer_2 = transl('if-email-footer-2')
+    if_email_footer_3 = transl('if-email-footer-3')
+    if_email_footer_4 = transl('if-email-footer-4')
+    if_email_footer_5 = transl('if-email-footer-5')
+    if_email_footer_6 = transl('if-email-footer-6')
 
+    html_params = {
+        'category': m.category,
+        'if_email_body_1': if_email_body_1,
+        'if_email_body_2': if_email_body_2,
+        'if_email_body_3_button': if_email_body_3_button,
+        'if_email_footer_1': if_email_footer_1,
+        'if_email_footer_2': if_email_footer_2,
+        'if_email_footer_3': if_email_footer_3,
+        'if_email_footer_4': if_email_footer_4,
+        'if_email_footer_5': if_email_footer_5,
+        'if_email_footer_6': if_email_footer_6
+    }
 
-    body_html = """<!DOCTYPE html>
-<html>
-<body>
-<div style="padding: 0; margin:0 auto; line-height: 100%%; overflow: hidden;">
-    <img style="width: 100%%;" src="cid:osa-footer" />
-    <div style="%(part_1_css)s">
-        <p>%(if_email_body_1)s</p>
-        <p>%(if_email_body_2)s</p>
-        <p>%(if_email_body_3_button)s</p>
-    </div>
-    <div style="line-height: 130%%;">
-        <br><br>
-        %(if_email_footer_1)s<br><br>
-        %(if_email_footer_2)s<br>
-        %(if_email_footer_3)s<br>
-        %(if_email_footer_4)s<br>
-        %(if_email_footer_5)s<br>
-        %(if_email_footer_6)s<br>
-    </div>
-</div>
-</body>
-</html>""" % {"part_1_css": part_1_css,
-              'if_email_body_1': if_email_body_1,
-              'if_email_body_2': if_email_body_2,
-              'if_email_body_3_button': if_email_body_3_button,
-              'if_email_footer_1': if_email_footer_1,
-              'if_email_footer_2': if_email_footer_2,
-              'if_email_footer_3': if_email_footer_3,
-              'if_email_footer_4': if_email_footer_4,
-              'if_email_footer_5': if_email_footer_5,
-              'if_email_footer_6': if_email_footer_6
-              }
-
-    body = """%(if_email_body_1)s
-%(if_email_body_2)s
-%(if_email_body_3_url)s
-
---------------------
-
-%(if_email_footer_1)s
-
-%(if_email_footer_2)s
-%(if_email_footer_3)s
-%(if_email_footer_4)s
-%(if_email_footer_5)s
-%(if_email_footer_6)s
-""" % {'if_email_body_1': if_email_body_1,
-       'if_email_body_2': if_email_body_2,
-       'if_email_body_3_url': if_email_body_3_url,
-       'if_email_footer_1': if_email_footer_1,
-       'if_email_footer_2': if_email_footer_2,
-       'if_email_footer_3': if_email_footer_3,
-       'if_email_footer_4': if_email_footer_4,
-       'if_email_footer_5': if_email_footer_5,
-       'if_email_footer_6': if_email_footer_6}
+    text_params = {
+        'category': m.category,
+        'if_email_body_1': if_email_body_1,
+        'if_email_body_2': if_email_body_2,
+        'if_email_body_3_url': if_email_body_3_url,
+        'if_email_footer_1': if_email_footer_1,
+        'if_email_footer_2': if_email_footer_2,
+        'if_email_footer_3': if_email_footer_3,
+        'if_email_footer_4': if_email_footer_4,
+        'if_email_footer_5': if_email_footer_5,
+        'if_email_footer_6': if_email_footer_6
+    }
+    body_html = JINJA_ENVIRONMENT.get_template('emails/inbox_forwarded_message_html.tmpl').render(html_params)
+    body = JINJA_ENVIRONMENT.get_template('emails/inbox_forwarded_message.tmpl').render(text_params)
 
     mime.attach(MIMEText(body.encode('utf-8'), 'plain', 'utf-8'))
     mime.attach(MIMEText(body_html.encode('utf-8'), 'html', 'utf-8'))
@@ -199,7 +183,7 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
     img.add_header("Content-Disposition", "inline", filename="Onze Stad App footer")
     mimeRoot.attach(img)
 
-    send_mail_via_mime(settings.senderEmail, sln_i_settings.inbox_mail_forwarders, mimeRoot) # todo patch
+    send_mail_via_mime(settings.senderEmail, sln_i_settings.inbox_mail_forwarders, mimeRoot)  # todo patch
 
     if not reminder:
         if str_key:
@@ -249,6 +233,24 @@ def create_solution_inbox_message(service_user, service_identity, category, cate
     if not mark_as_read and SolutionModule.LOYALTY in sln_settings.modules:
         deferred.defer(update_user_data_admins, service_user, service_identity)
     return sim_parent
+
+
+def send_inbox_info_messages_to_services(service_users, sender, message):
+    # type: (list[users.User], users.User, unicode) -> None
+    from solutions.common.bizz.service import new_inbox_message
+    sender_settings = get_solution_settings(sender)
+    service_profile = get_service_profile(sender)
+    sender_user_details = UserDetailsTO(email=sender.email(),
+                                        name=sender_settings.name,
+                                        avatar_url=service_profile.avatarUrl,
+                                        language=service_profile.defaultLanguage)
+    sln_settings_cache = {model.service_user: model for model in db.get([SolutionSettings.create_key(user)
+                                                                         for user in service_users])}
+    for user in service_users:
+        sln_settings = sln_settings_cache[user]
+        deferred.defer(new_inbox_message, sln_settings, message, category=SolutionInboxMessage.CATEGORY_OCA_INFO,
+                       reply_enabled=False, send_to_forwarders=True, user_details=sender_user_details)
+
 
 @returns(tuple)
 @arguments(service_user=users.User, key=unicode, sent_by_service=bool, user_details=[UserDetailsTO],
@@ -322,7 +324,8 @@ def export_inbox_messages(service_user, service_identity):
     tmpl_path = 'pdfs/inbox_export.html'
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    all_parent_messages = list(SolutionInboxMessage.get_all_by_service(service_user, service_identity, now() - DAY * 365))
+    all_parent_messages = list(SolutionInboxMessage.get_all_by_service(
+        service_user, service_identity, now() - DAY * 365))
 
     all_messages = list()
     to_get = list()
@@ -458,7 +461,7 @@ def _deferred_statistics_email_export(service_user, service_identity, lang, emai
     attachment_name_inbox_excel = 'Inbox messages ' + cur_date + '.xls'
     attachment_name_broadcast_statistics = common_translate(lang, SOLUTION_COMMON, 'broadcast_statistics') + '.xls'
     attachment_name_flow_statistics_excel = 'Flow statistics ' + cur_date + '.xls'
-    
+
     attachments = []
     attachments.append((attachment_name_pdf,
                         base64.b64encode(messages_pdf)))
@@ -468,5 +471,5 @@ def _deferred_statistics_email_export(service_user, service_identity, lang, emai
                         base64.b64encode(broadcast_statistics)))
     attachments.append((attachment_name_flow_statistics_excel,
                         base64.b64encode(flow_statistics_excel)))
-    
+
     send_mail(MC_DASHBOARD.email(), email, subject, body_text, attachments=attachments)
