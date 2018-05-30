@@ -60,7 +60,7 @@ $(function() {
         var menu = li.attr("menu");
         userClickedBeforeNewsLoaded = true;
         $("#topmenu li").removeClass("active");
-        $("div.page, #newspage").hide();
+        $("div.page").hide();
         $("#wrap").removeClass().addClass(menu + '-active');
         li.addClass("active");
         $("div#" + menu).show();

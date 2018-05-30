@@ -79,7 +79,6 @@ function routingHandler(hash) {
                 break;
             default:
                 if(ROUTES[hash[0]]) {
-                    topMenuElement.find('li[menu=' + hash[0] + '] a').click();
                     ROUTES[hash[0]](hash);
                 }
         }
