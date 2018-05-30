@@ -18,7 +18,7 @@
 import importlib
 import logging
 import re
-from htmlentitydefs import name2codepoint
+from HTMLParser import HTMLParser
 
 from google.appengine.ext import webapp
 
@@ -98,7 +98,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
 
 
 def html_unescape(s):
-    return re.sub('&(%s);' % '|'.join(name2codepoint), lambda m: unichr(name2codepoint[m.group(1)]), s).strip()
+    return HTMLParser().unescape(s)
 
 
 def parse_html_content(html_content):

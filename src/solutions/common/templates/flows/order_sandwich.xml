@@ -275,7 +275,7 @@
                         nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
                         nextStepResult.outlet = 'message_holiday';
                     }
-                    else if (!rogerthat.service.data.sandwich_settings.leap_time_enabled &amp;&amp; !canOrderSandwich(rogerthat.service.data.sandwich_settings, timezoneOffset)) {
+                    else if (!canOrderSandwich(rogerthat.service.data.sandwich_settings, timezoneOffset)) {
                         nextStepResult.outlet = 'message_cannot_order_now';
                     }
                     else {
@@ -300,7 +300,7 @@
                         var secondsFromMidnight = (currentDate.getTime() / 1000 + timezoneOffset) % 86400;
                         var day = currentDate.getUTCDay();
                         // Check if can order at this time
-                        if (settings.time_from &lt; secondsFromMidnight &amp;&amp; settings.time_until &gt;= secondsFromMidnight) {
+                        if ((settings.time_from + settings.leap_time) &lt; secondsFromMidnight &amp;&amp; (settings.time_until - settings.leap_time) &gt;= secondsFromMidnight) {
                             // Check if we can order at this day
                             canOrder = (settings.status_days &amp; settings.days[day]) === settings.days[day];
                         }

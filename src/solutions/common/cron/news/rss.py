@@ -24,7 +24,7 @@ from google.appengine.ext import webapp, deferred
 from rogerthat.bizz.job import run_job
 from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_transaction
-from solutions.common.cron.news import parse_html_content, transl, \
+from solutions.common.cron.news import html_unescape, parse_html_content, transl, \
     create_news_item
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
@@ -75,7 +75,7 @@ def _worker(rss_settings_key):
         doc = minidom.parseString(response.content)
         for item in doc.getElementsByTagName('item'):
             try:
-                title = item.getElementsByTagName("title")[0].firstChild.nodeValue
+                title = html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue)
                 url = item.getElementsByTagName("link")[0].firstChild.nodeValue
                 description_tags = item.getElementsByTagName("description")
                 if not description_tags:
