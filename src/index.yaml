@@ -225,11 +225,6 @@ indexes:
   properties:
   - name: number
 
-- kind: Product
-  properties:
-  - name: visible
-  - name: description
-
 - kind: Prospect
   properties:
   - name: app_id
@@ -270,11 +265,6 @@ indexes:
   - name: visible
   - name: timestamp
     direction: desc
-
-- kind: Question
-  properties:
-  - name: replied
-  - name: ask_time
 
 - kind: Question
   properties:
@@ -323,42 +313,10 @@ indexes:
   - name: app_ids
   - name: name
 
-- kind: RestaurantMessage
-  ancestor: yes
-  properties:
-  - name: deleted
-  - name: timestamp
-    direction: desc
-
-- kind: RestaurantMessage
-  ancestor: yes
-  properties:
-  - name: timestamp
-    direction: desc
-
 - kind: RestaurantReservation
   properties:
   - name: service_user
   - name: shift_start
-
-- kind: RestaurantReservation
-  properties:
-  - name: service_user
-  - name: shift_start
-  - name: creation_date
-
-- kind: RestaurantReservation
-  properties:
-  - name: service_user
-  - name: shift_start
-  - name: creation_date
-    direction: desc
-
-- kind: RestaurantReservation
-  properties:
-  - name: service_user
-  - name: shift_start
-  - name: date
 
 - kind: RestaurantReservation
   properties:
@@ -395,17 +353,6 @@ indexes:
   properties:
   - name: shift_start
 
-- kind: RestaurantReservation
-  ancestor: yes
-  properties:
-  - name: shift_start
-  - name: date
-
-- kind: RestaurantReservation
-  ancestor: yes
-  properties:
-  - name: status
-
 - kind: SandwichOption
   ancestor: yes
   properties:
@@ -413,11 +360,6 @@ indexes:
   - name: order
 
 - kind: SandwichOption
-  ancestor: yes
-  properties:
-  - name: order
-
-- kind: SandwichOptions
   ancestor: yes
   properties:
   - name: order
@@ -669,14 +611,6 @@ indexes:
   ancestor: yes
   properties:
   - name: deleted
-  - name: timestamp
-    direction: desc
-
-- kind: SolutionLoyaltyVisit
-  ancestor: yes
-  properties:
-  - name: app_user
-  - name: redeemed
   - name: timestamp
     direction: desc
 

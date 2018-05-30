@@ -368,7 +368,7 @@ def validate_sandwiches(language, sandwich_types, sandwich_toppings, sandwich_op
         language (unicode)
         sandwich_types (list of SandwichType)
         sandwich_toppings (list of SandwichToppings)
-        sandwich_options (list of SandwichOptions)
+        sandwich_options (list of SandwichOption)
     Raises:
         InvalidSandwichSettingsException
     """
