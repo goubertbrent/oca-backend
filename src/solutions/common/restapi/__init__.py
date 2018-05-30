@@ -534,6 +534,11 @@ def rest_save_broadcast_rss_feeds(data):
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
+    
+    rss_urls = set()
+    for url in data.rss_urls:
+        if url.startswith("http://") or url.startswith("https://"):
+            rss_urls.add(url)
 
     def trans():
         rss_settings_key = SolutionRssScraperSettings.create_key(service_user, service_identity)
@@ -548,7 +553,7 @@ def rest_save_broadcast_rss_feeds(data):
 
         rss_settings.notify = data.notify
         rss_settings.rss_links = [SolutionRssLink(url=url, dry_runned=current_dict.get(url, False))
-                                  for url in set(data.rss_urls)]
+                                  for url in rss_urls]
         rss_settings.put()
         return rss_settings
 
