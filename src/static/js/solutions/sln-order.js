@@ -504,7 +504,16 @@ $(function () {
             error: sln.showAjaxError
         });
     };
-    
+
+    $('.downloaded-hint').click(function() {
+        var self = $(this);
+        if (!self.next('p').length) {
+            self.after(
+                '<p>' + CommonTranslations.file_downloaded_explanation + '</p>'
+            );
+        }
+    });
+
     var showPaymentEnabledWarningIfNeeded = function() {
         if (!paymentEnabled || $('#payconicMerchantId').val().trim() && $('#payconiqAccessToken').val().trim()) {
             $('#paymentEnabledWarning').hide();
@@ -584,12 +593,12 @@ $(function () {
             $('#paymentOptionalNo').addClass("btn-danger").text(CommonTranslations.REQUIRED_LOWER.capitalize());
         }
     }
-    
+
     function changePaymentMinAmountForFee() {
     	paymentMinAmountForFee = parseInt(parseFloat($('#payment_min_amount_for_fee').val()) * 100);
         savePaymentSettings();
     }
-    
+
     function setPaymentMinAmountForFee(newPaymentMinAmountForFee) {
     	paymentMinAmountForFee = newPaymentMinAmountForFee;
     	$('#payment_min_amount_for_fee').val(newPaymentMinAmountForFee / 100);
