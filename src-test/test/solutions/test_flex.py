@@ -17,13 +17,19 @@
 
 import webapp2
 
+import base64
+import main_authenticated
 import mc_unittest
 import random
+from rogerthat.bizz.session import create_session
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import App
 from rogerthat.pages.legal import get_current_document_version, \
     DOC_TERMS_SERVICE
 from rogerthat.rpc import users
+from rogerthat.settings import get_server_settings
+from rogerthat.utils import now
+from rogerthat.utils.cookie import cookie_signature
 from solutions.common.bizz import SolutionModule, OrganizationType, common_provision
 from solutions.common.bizz.menu import _put_default_menu
 from solutions.common.dal import get_solution_settings
@@ -70,7 +76,7 @@ class FlexTestCase(mc_unittest.TestCase):
             sp.put()
 
         print 'Test rendering the home page'
-        FlexHomeHandler({}, webapp2.Response()).get()
+        self._render_homepage(service_user, set_tos)
 
     def test_dynamic_flex_service_ES(self):
         self._test_dynamic_flex_service('es')
@@ -136,8 +142,7 @@ class FlexTestCase(mc_unittest.TestCase):
             sp.tos_version = get_current_document_version(DOC_TERMS_SERVICE)
             sp.put()
 
-        print 'Test rendering the home page'
-        FlexHomeHandler({}, webapp2.Response()).get()
+        self._render_homepage(service_user, set_tos)
 
         print 'Test deletion of all modules'
         solution_settings = get_solution_settings(service_user)
@@ -145,5 +150,28 @@ class FlexTestCase(mc_unittest.TestCase):
         solution_settings.put()
         common_provision(service_user)
 
+        self._render_homepage(service_user, set_tos)
+
+    def _render_homepage(self, service_user, set_tos):
         print 'Test rendering the home page'
-        FlexHomeHandler({}, webapp2.Response()).get()
+        if set_tos:
+            FlexHomeHandler({}, webapp2.Response()).get()
+        else:
+            server_settings = get_server_settings()
+            server_settings.cookieSecretKey = u'abcdefghijklmnopqrstuvwxyz1234567890;;;;'
+            server_settings.cookieSessionName = u'session'
+            server_settings.put()
+            secret, _ = create_session(service_user)
+
+            value = base64.b64encode(secret)
+            timestamp = unicode(now())
+            signature = cookie_signature(value, timestamp)
+            headers = {
+                'Cookie': str('%s=%s;') % (server_settings.cookieSessionName, "|".join([value, timestamp, signature]))
+            }
+
+            response = main_authenticated.app.get_response('/flex/', headers=headers)
+            self.assertEqual(302, response.status_int)
+
+            response = main_authenticated.app.get_response('/terms', headers=headers)
+            self.assertEqual(200, response.status_int)
