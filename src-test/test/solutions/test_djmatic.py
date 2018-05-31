@@ -16,19 +16,23 @@
 # @@license_version:1.2@@
 
 import os
-from test import set_current_user
 
 from google.appengine.api import urlfetch
 import webapp2
 
+import main_authenticated
+import mc_unittest
+from rogerthat.dal.profile import get_service_profile
+from rogerthat.pages.legal import get_current_document_version, \
+    DOC_TERMS_SERVICE
 from rogerthat.rpc import users
 from rogerthat.utils.zip_utils import rename_file_in_zip_blob
-import mc_unittest
+from rogerthat_tests.mobicage.bizz import test_branding
 from solutions.common.bizz import common_provision
 from solutions.djmatic.bizz import create_djmatic_service
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.djmatic.models import DjMaticProfile, JukeboxAppBranding
-from rogerthat_tests.mobicage.bizz import test_branding
+from test import set_current_user
 
 
 class DynObject(object):
@@ -36,7 +40,13 @@ class DynObject(object):
 
 class DJMaticTestCase(mc_unittest.TestCase):
 
-    def test(self):
+    def test_dashboard(self):
+        self._test()
+
+    def test_tos(self):
+        self._test(False)
+
+    def _test(self, set_tos=True):
         self.set_datastore_hr_probability(1)
 
         print 'Test DJMatic service creation'
@@ -66,6 +76,11 @@ class DJMaticTestCase(mc_unittest.TestCase):
             common_provision(service_user)
         finally:
             urlfetch.fetch = original_fetch
+
+        if set_tos:
+            sp = get_service_profile(service_user)
+            sp.tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+            sp.put()
 
         print 'Test rendering the home page'
         DJMaticHomeHandler(None, webapp2.Response()).get()
