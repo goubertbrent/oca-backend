@@ -2023,18 +2023,7 @@ def remove_city_postal_code(app_id, postal_code):
 @returns(bool)
 @arguments(country=unicode, modules=[unicode], app_ids=[unicode])
 def is_joyn_available(country, modules, app_ids):
-    if SolutionModule.JOYN in modules:
-        return True
-
-    if country != 'BE':
-        return False
-
-    # Temporarily show Joyn only in osa-demo, osa-demo2 and osa-demo-3, be-nazareth, be-bree, ...
-    if {'be-nazareth', 'be-bree', 'be-bocholt2', 'be-zulte', 'be-vleteren',
-            'osa-demo', 'osa-demo2', 'osa-demo-3'}.intersection(app_ids):
-        return True
-
-    return False
+    return SolutionModule.JOYN in modules or country == 'BE'
 
 
 @returns(bool)
