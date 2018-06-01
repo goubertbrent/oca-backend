@@ -36,36 +36,36 @@ $(function() {
         $('#regiomanagerteam_name', modal).val(team ? team.name : '');
         $('#regiomanagerteam_legal_entity', modal).val(team ? team.legal_entity_id : '');
 
-        
+
         var tbody = $('#apps tbody', modal).empty();
-        
+
         var possibleAppIds = [];
         if (team) {
             $.each(team.app_ids, function(i, appId) {
-                possibleAppIds.push(appId); 
+                possibleAppIds.push(appId);
             });
         }
-        
+
         unused_app_ids.push("rogerthat");
-        
+
         $.each(unused_app_ids, function(i, appId) {
             if (possibleAppIds.indexOf(appId) == -1)
-                possibleAppIds.push(appId); 
+                possibleAppIds.push(appId);
         });
-        
+
         $.each(possibleAppIds, function(i, appId) {
             var enabled = team && team.app_ids.indexOf(appId) != -1;
 
             var tmpl = $.tmpl(JS_TEMPLATES.regio_manager_team_apps, {
                 app_id : appId
             });
-            
+
             $('.enabled', tmpl).prop('checked', enabled);
 
             tbody.append(tmpl);
         });
     };
-    
+
     var editRegioManager = function(email) {
         var regioManager = email ? regioManagers[email] : null;
 
@@ -85,13 +85,32 @@ $(function() {
         $('#show-in-stats', modal).prop('checked', regioManager ? regioManager.show_in_stats : true);
         $('#is-support', modal).prop('checked', regioManager ? regioManager.internal_support : false);
         $('#is-admin', modal).prop('checked', regioManager ? regioManager.admin : false);
-        
+
+        var selectAllRights = function() {
+            var self = $(this);
+            var readOrWrite = self.hasClass('read-all') ? 'read' : 'write';
+            var checkboxes = $('#apps tbody').find('.' + readOrWrite);
+            checkboxes.prop('checked', self.is(':checked'));
+            checkboxes.trigger('change');
+        };
+
+        var rightsChanged = function() {
+            var allReadChecked = $('#apps tbody .read').not(':checked').length === 0;
+            var allWriteChecked = $('#apps tbody .write').not(':checked').length === 0;
+            $('#all-app-rights .read-all').prop('checked', allReadChecked);
+            $('#all-app-rights .write-all').prop('checked', allWriteChecked);
+        }
+
+        $('#all-app-rights input').change(selectAllRights);
+        $(document).on('change', '#apps tbody tr:not(#all-app-rights) input', rightsChanged);
+
         var renderPossibleApps = function(teamId) {
-            var tbody = $('#apps tbody', modal).empty();
+            var tbody = $('#apps tbody', modal);
+            tbody.find('tr:not(#all-app-rights)').remove();
             var possibleAppIds = [];
             if (regioManager) {
                 $.each(regioManager.app_ids, function(i, appId) {
-                    possibleAppIds.push(appId); 
+                    possibleAppIds.push(appId);
                 });
                 if (!teamId && regioManager.team_id) {
                     teamId = regioManager.team_id;
@@ -99,24 +118,32 @@ $(function() {
                 if (teamId) {
                     $.each(teams[teamId].app_ids, function(i, appId) {
                         if (possibleAppIds.indexOf(appId) == -1)
-                            possibleAppIds.push(appId); 
+                            possibleAppIds.push(appId);
                     });
                 }
             } else if (teamId) {
                 $.each(teams[teamId].app_ids, function(i, appId) {
                     if (possibleAppIds.indexOf(appId) == -1)
-                        possibleAppIds.push(appId); 
+                        possibleAppIds.push(appId);
                 });
             }
-            
+
+            var readCount = 0, writeCount = 0;
             $.each(possibleAppIds, function(i, appId) {
                 var write = regioManager && regioManager.app_ids.indexOf(appId) != -1;
                 var read = regioManager && (write || regioManager.read_only_app_ids.indexOf(appId) != -1);
-                
+
+                if (read) {
+                    readCount++;
+                }
+                if (write) {
+                    writeCount++;
+                }
+
                 var tmpl = $.tmpl(JS_TEMPLATES.regio_manager_app_rights, {
                     app_id : appId
                 });
-                
+
                 var readCheckbox = $('.read', tmpl).prop('checked', read).change(function() {
                     if (!$(this).is(':checked')) {
                         writeCheckbox.prop('checked', false);
@@ -129,10 +156,13 @@ $(function() {
                 });
                 tbody.append(tmpl);
             });
+
+            $('#all-app-rights .read-all').prop('checked', readCount === possibleAppIds.length);
+            $('#all-app-rights .write-all').prop('checked', writeCount === possibleAppIds.length);
         };
-        
+
         renderPossibleApps(null);
-        
+
         var select = $("#team", modal).empty();
         select.append($('<option></option>').attr('value', "").text("Select team"));
         $.each(teams, function (i, team) {
@@ -156,7 +186,7 @@ $(function() {
         $('.edit-regio-manager').unbind('click').click(function() {
             editRegioManager($(this).parents('tr').attr('data-regio-manager-email'));
         });
-        
+
         $('#regio-managers-teams-table .team-edit').unbind('click').click(function() {
             editRegioManagerTeam($(this).attr('data-regio-manager-team-id'));
         });
@@ -164,7 +194,7 @@ $(function() {
         $('#regio-managers-table tbody tr').unbind('click').click(function() {
             editRegioManager($(this).attr('data-regio-manager-email'));
         });
-        
+
         $('#regio-managers-teams-table tbody tr').unbind('click').click(function() {
             editRegioManager($(this).attr('data-regio-manager-email'));
         });
@@ -194,13 +224,13 @@ $(function() {
                             unused_app_ids.splice(index, 1);
                         }
                     });
-                    
+
                     $.each(team.regio_managers, function(j, regioManager) {
                         regioManagers[regioManager.email] = regioManager;
                     });
                 });
-                
-                
+
+
                 $.each(data.unassigned_regio_managers, function(i, regioManager) {
                     regioManagers[regioManager.email] = regioManager;
                 });
@@ -217,7 +247,7 @@ $(function() {
     $('#regio-manager-team-info').on('shown', function() {
         $('#regiomanagerteam_name', $(this)).focus();
     });
-    
+
     $('#regio-manager-info').on('shown', function() {
         if (!$(this).data('email')) {
             $('.edit-email', $(this)).focus();
@@ -227,11 +257,11 @@ $(function() {
     $('.new-regio-manager-team').click(function() {
         editRegioManagerTeam(null);
     });
-    
+
     $('.new-regio-manager').click(function() {
         editRegioManager(null);
     });
-    
+
     $('#regio-manager-info .delete-btn').click(function() {
         var email = $('#regio-manager-info').data('email');
 
@@ -260,7 +290,7 @@ $(function() {
             });
         });
     });
-    
+
     $('#regio-manager-team-info .save-btn').click(function() {
         var modal = $('#regio-manager-team-info');
         var team_id = parseInt(modal.data('team_id'));
@@ -271,7 +301,7 @@ $(function() {
             showError('Name is required');
             return;
         }
-        
+
         var app_ids = [];
         $.each(apps, function(appId, app) {
             if ($('input.enabled[data-app-id="' + appId + '"]').is(':checked')) {
@@ -316,7 +346,7 @@ $(function() {
         var isSupport = $('#is-support', modal).prop('checked');
         var isAdmin = $('#is-admin', modal).prop('checked');
         var teamId = $('#team', modal).val();
-        
+
         if (!email) {
             showError('Email is required');
             return;
@@ -326,12 +356,12 @@ $(function() {
             showError('Name is required');
             return;
         }
-        
+
         if (!teamId) {
             showError('Team is required');
             return;
         }
-        
+
         if (!showInStats) {
             showInStats = false;
         }

@@ -16,8 +16,6 @@
 # @@license_version:1.2@@
 
 import logging
-import uuid
-
 from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceMenuDef
 from rogerthat.rpc import users
@@ -37,6 +35,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
+import uuid
 
 # [column, row, page]
 DEFAULT_COORDS = {
@@ -159,6 +158,7 @@ DEFAULT_COORDS = {
             "priority": 20
         }
     },
+    SolutionModule.JOBS: None,
 
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
 

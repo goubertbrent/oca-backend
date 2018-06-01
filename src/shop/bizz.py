@@ -337,7 +337,7 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
     customer_team_id = regio_manager.team_id if regio_manager else team_id
     if not customer_team_id:
         if is_admin(current_user):
-            customer_team_id = RegioManagerTeam.get_by_app_id(App.APP_ID_ROGERTHAT).id
+            customer_team_id = RegioManagerTeam.get_mobicage().id
         else:
             raise EmptyValueException('team')
 

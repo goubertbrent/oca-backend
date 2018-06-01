@@ -4291,7 +4291,7 @@ translations = \
          u'connected-users-history': u'Geschiedenis van gekoppelde gebruikers',
          u'connected_users_only': u'Enkel sturen naar volgers',
          u'consumed_n_regional_news_views': u'%(n)d views op een nieuwsbericht',
-         u'consumed_n_regional_news_views_message': u'Voor het nieuwsbericht met titel "%(title)s" zijn %(n)d regionale views geweest.',
+         u'consumed_n_regional_news_views_message': u'Voor het nieuwsbericht met titel "%(title)s" (%(id)d) zijn %(n)d regionale views geweest.',
          u'contact': u'Contact',
          u'contact-your-x-for-more-info': u'Neem contact op met de %(x)s vertegenwoordiger voor meer informatie',
          u'contact_support_to_order_tablet_for_news_coupons': u'Je hebt nog geen Onze Stad App terminal, dus je kunt nog geen gebruik maken van het "Coupon" type van nieuwsberichten. Als u ge\xefnteresseerd bent kunt u contact opnemen met onze klantenservice.',

@@ -16,19 +16,28 @@
 # @@license_version:1.2@@
 
 import os
-from test import set_current_user
 
 from google.appengine.api import urlfetch
-import webapp2
 
-from rogerthat.rpc import users
-from rogerthat.utils.zip_utils import rename_file_in_zip_blob
+import webapp2
+import base64
+import main_authenticated
 import mc_unittest
+from rogerthat.bizz.session import create_session
+from rogerthat.dal.profile import get_service_profile
+from rogerthat.pages.legal import get_current_document_version, \
+    DOC_TERMS_SERVICE
+from rogerthat.rpc import users
+from rogerthat.settings import get_server_settings
+from rogerthat.utils import now
+from rogerthat.utils.cookie import cookie_signature
+from rogerthat.utils.zip_utils import rename_file_in_zip_blob
+from rogerthat_tests.mobicage.bizz import test_branding
 from solutions.common.bizz import common_provision
 from solutions.djmatic.bizz import create_djmatic_service
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.djmatic.models import DjMaticProfile, JukeboxAppBranding
-from rogerthat_tests.mobicage.bizz import test_branding
+from test import set_current_user
 
 
 class DynObject(object):
@@ -36,7 +45,13 @@ class DynObject(object):
 
 class DJMaticTestCase(mc_unittest.TestCase):
 
-    def test(self):
+    def test_dashboard(self):
+        self._test()
+
+    def test_tos(self):
+        self._test(False)
+
+    def _test(self, set_tos=True):
         self.set_datastore_hr_probability(1)
 
         print 'Test DJMatic service creation'
@@ -67,5 +82,33 @@ class DJMaticTestCase(mc_unittest.TestCase):
         finally:
             urlfetch.fetch = original_fetch
 
+        if set_tos:
+            sp = get_service_profile(service_user)
+            sp.tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+            sp.put()
+
+        self._render_homepage(service_user, set_tos)
+
+    def _render_homepage(self, service_user, set_tos):
         print 'Test rendering the home page'
-        DJMaticHomeHandler(None, webapp2.Response()).get()
+        if set_tos:
+            DJMaticHomeHandler(None, webapp2.Response()).get()
+        else:
+            server_settings = get_server_settings()
+            server_settings.cookieSecretKey = u'abcdefghijklmnopqrstuvwxyz1234567890;;;;'
+            server_settings.cookieSessionName = u'session'
+            server_settings.put()
+            secret, _ = create_session(service_user)
+
+            value = base64.b64encode(secret)
+            timestamp = unicode(now())
+            signature = cookie_signature(value, timestamp)
+            headers = {
+                'Cookie': str('%s=%s;') % (server_settings.cookieSessionName, "|".join([value, timestamp, signature]))
+            }
+
+            response = main_authenticated.app.get_response('/djmatic/', headers=headers)
+            self.assertEqual(302, response.status_int)
+
+            response = main_authenticated.app.get_response('/terms', headers=headers)
+            self.assertEqual(200, response.status_int)
