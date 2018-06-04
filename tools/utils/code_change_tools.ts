@@ -15,10 +15,6 @@ class ChangeFileManager {
     this._files.push(file);
   }
 
-  addFiles(files: string[]) {
-    files.forEach(f => this.addFile(f));
-  }
-
   clear() {
     this._files = [];
   }

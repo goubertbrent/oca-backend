@@ -2,20 +2,14 @@
   "build": [
     "init",
     "build.merge",
-    "build.yaml",
+    "merge.yaml",
     "build.api-calls"
-  ],
-  "build.yaml": [
-    "build.yaml.app",
-    "build.yaml.cron",
-    "build.yaml.index",
-    "build.yaml.queue"
-  ],
-  "default": [
-    "watch"
   ],
   "watch": [
     "build",
     "watch.dev"
+  ],
+  "default": [
+    "watch"
   ]
 }

@@ -1,13 +1,14 @@
+import { realpathSync } from 'fs';
 import { join } from 'path';
 
-const PROJECT_ROOT = join(__dirname, '..', '..');
+const PROJECT_ROOT = realpathSync(join(__dirname, '..', '..'));
 
 export class Config {
   PROJECT_ROOT = PROJECT_ROOT;
   BUILD_ROOT = join(PROJECT_ROOT, 'build');
   SOURCE_ROOTS = [
-    join(PROJECT_ROOT, '..', 'rogerthat-backend', 'src'),
-    join(PROJECT_ROOT, 'src'), // Files with the same name will be overwritten from this repo
+    realpathSync(join(PROJECT_ROOT, '..', 'rogerthat-backend', 'src')),
+    realpathSync(join(PROJECT_ROOT, 'src')), // Files with the same name will be overwritten from this repo
   ];
   LIBRARY_ROOTS = [
     join(this.BUILD_ROOT, 'lib'),

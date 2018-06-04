@@ -1,10 +1,8 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs';
-import * as runSequence from 'run-sequence';
 import * as gulp from 'gulp';
 import * as util from 'gulp-util';
 import * as isstream from 'isstream';
 import { join } from 'path';
-
 import { changeFileManager } from './code_change_tools';
 import { Task } from './task';
 
@@ -20,20 +18,19 @@ export function loadTasks(path: string): void {
 function validateTasks(tasks: any) {
   return Object.keys(tasks)
     .map((taskName: string) => {
-      if (!tasks[ taskName ] ||
-        !Array.isArray(tasks[ taskName ]) ||
-        tasks[ taskName ].some((t: any) => typeof t !== 'string')) {
+      if (!tasks[taskName] ||
+        !Array.isArray(tasks[taskName]) ||
+        tasks[taskName].some((t: any) => typeof t !== 'string')) {
         return taskName;
       }
       return null;
     }).filter((taskName: string) => !!taskName);
 }
 
-function registerTasks(tasks: any) {
-  Object.keys(tasks)
-    .forEach((t: string) => {
-      gulp.task(t, (done: any) => runSequence.apply(null, [ ...tasks[ t ], done ]));
-    });
+function registerTasks(tasks: { [ key: string ]: string[] }) {
+  for (const task of Object.keys(tasks)) {
+    gulp.task(task, gulp.series(tasks[ task ]));
+  }
 }
 
 function getInvalidTaskErrorMessage(invalid: string[], file: string) {
@@ -57,7 +54,7 @@ function getInvalidTaskErrorMessage(invalid: string[], file: string) {
  * This means that the format should be flat, with no nesting.
  *
  * The existing composite tasks are defined in
- * "tools/config/seed.tasks.json" and can be overriden by
+ * "tools/config/tasks.json" and can be overriden by
  * editing the composite tasks project configuration.
  *
  * By default it is located in: "tools/config/project.tasks.json".
@@ -78,32 +75,19 @@ function getInvalidTaskErrorMessage(invalid: string[], file: string) {
  * Note that the tasks do not support nested objects.
  */
 export function loadCompositeTasks(tasksFile: string): void {
-  let tasks: any;
-  try {
-    tasks = JSON.parse(readFileSync(tasksFile).toString());
-  } catch (e) {
-    util.log('Cannot load the task configuration files: ' + e.toString());
-    return;
+  const seedTasks = JSON.parse(readFileSync(tasksFile).toString());
+  const invalid = <string[]>validateTasks(seedTasks);
+  if (invalid.length) {
+    const errorMessage = getInvalidTaskErrorMessage(invalid, tasksFile);
+    util.log(util.colors.red(errorMessage));
+    process.exit(1);
   }
-  [ [ tasks, tasksFile ] ]
-    .forEach(([ tasks, file ]: [ string, string ]) => {
-      const invalid = validateTasks(tasks);
-      if (invalid.length) {
-        const errorMessage = getInvalidTaskErrorMessage(invalid, file);
-        util.log(util.colors.red(errorMessage));
-        process.exit(1);
-      }
-    });
-  const mergedTasks = Object.assign({}, tasks);
-  registerTasks(mergedTasks);
+  registerTasks(seedTasks);
 }
 
 function normalizeTask(task: any, taskName: string) {
   if (task instanceof Task) {
     return task;
-  }
-  if (task.prototype && task.prototype instanceof Task) {
-    return new task();
   }
   if (typeof task === 'function') {
     return new class AnonTask extends Task {
@@ -121,8 +105,7 @@ function normalizeTask(task: any, taskName: string) {
       }
     };
   }
-  throw new Error(taskName + ' should be instance of the class ' +
-    'Task, a function or a class which extends Task.');
+  throw new Error(`${taskName} should be instance of the class Task, a function or a class which extends Task.`);
 }
 
 /**
@@ -132,8 +115,6 @@ function normalizeTask(task: any, taskName: string) {
  */
 function registerTask(taskname: string, path: string): void {
   const TASK = join(path, taskname);
-
-  util.log('Registering task', util.colors.yellow(TASK));
   gulp.task(taskname, (done: any) => {
     const task = normalizeTask(require(TASK), TASK);
 
@@ -164,12 +145,11 @@ function readDir(root: string, cb: (taskname: string) => void) {
   walk(root);
 
   function walk(path: string) {
-    let files = readdirSync(path);
-    for (let i = 0; i < files.length; i += 1) {
-      let file = files[ i ];
-      let curPath = join(path, file);
+    const files = readdirSync(path);
+    for (const file of files) {
+      const curPath = join(path, file);
       if (lstatSync(curPath).isFile() && /\.ts$/.test(file)) {
-        let taskname = file.replace(/\.ts$/, '');
+        const taskname = file.replace(/\.ts$/, '');
         cb(taskname);
       }
     }
