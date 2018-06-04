@@ -674,7 +674,9 @@ $(function () {
                     if ($('#menu-image-upload-file')[0].files.length !== 0) {
                         var croppedImageCanvas = imagePreview.cropper('getCroppedCanvas', {
                             width: 720,
-                            height: 404
+                            height: 404,
+                            imageSmoothingEnabled: true,
+                            imageSmoothingQuality: 'high',
                         });
                         var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', 0.8);
                         uploadItemImage(menuItem, resizedImageDataUrl);

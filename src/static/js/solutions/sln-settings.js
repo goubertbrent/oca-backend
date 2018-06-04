@@ -1324,7 +1324,9 @@ $(function () {
             }
             var options = {
                 width: width,
-                height: height
+                height: height,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
             };
             var image = imageElem.cropper('getCroppedCanvas', options).toDataURL('image/png');
             sln.showProcessing();

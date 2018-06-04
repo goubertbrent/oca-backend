@@ -123,7 +123,9 @@ $(function() {
                             modal.find('#save-static-content-image').unbind('click').click(function () {
                                 if ($('#image-input-element')[0].files.length !== 0) {
                                     var croppedImageCanvas = imagePreview.cropper('getCroppedCanvas', {
-                                        width: 720
+                                        width: 720,
+                                        imageSmoothingEnabled: true,
+                                        imageSmoothingQuality: 'high',
                                     });
                                     var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', 0.8);
                                     $('#' + field_name).val(resizedImageDataUrl).attr('disabled', true);

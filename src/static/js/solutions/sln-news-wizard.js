@@ -1235,7 +1235,9 @@ NewsWizard.prototype = {
         function resizeImage(event) {
             if (elemInputImage.get(0).files.length !== 0) {
                 var croppedImageCanvas = elemImagePreview.cropper('getCroppedCanvas', {
-                    width: 1440
+                    width: 1440,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high',
                 });
                 var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', 0.8);
                 elemImagePreview.attr('src', resizedImageDataUrl).css({'max-width': 350, height: 131.25});
