@@ -370,7 +370,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 'PROFIT': OrganizationType.PROFIT,
                 'NON_PROFIT': OrganizationType.NON_PROFIT,
             },
-            'MAP_FILE': VECTOR_MAPS[customer.country] if customer else None,
+            'MAP_FILE': VECTOR_MAPS.get(customer.country) if customer else None,
             'CITY_APPS': get_country_apps(customer.country) if customer else {},
             'BUDGET_RATE': BUDGET_RATE,
         }

@@ -849,6 +849,7 @@ NewsWizard.prototype = {
             var newAppIds = [];
             if (!originalNewsItem && self.citySelect) {
                 newAppIds = self.citySelect.getSelectedAppIds();
+                newAppIds = newAppIds.filter(function (n) { return n!=null; }); // remove NULL
             }
             data.app_ids = newAppIds;
 
