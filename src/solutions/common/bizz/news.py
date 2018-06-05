@@ -246,8 +246,6 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
             # For demo apps the following rules count
             # Extra apps selected --> post in REGIONAL NEWS in the demo app
             # No extra apps selected --> post in LOCAL NEWS in the demo app
-            import pdb
-            pdb.set_trace()
             if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
                 pass  # LOCAL NEWS
             else:
