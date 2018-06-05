@@ -846,16 +846,11 @@ NewsWizard.prototype = {
                 data.scheduled_at = parseInt(scheduledDate.getTime() / 1000);
             }
 
-            if (isDemoApp) {
-                // default app only
-                data.app_ids = [ACTIVE_APPS[0]];
-            } else {
-                var newAppIds = [];
-                if (!originalNewsItem && self.citySelect) {
-                    newAppIds = self.citySelect.getSelectedAppIds();
-                }
-                data.app_ids = newAppIds;
+            var newAppIds = [];
+            if (!originalNewsItem && self.citySelect) {
+                newAppIds = self.citySelect.getSelectedAppIds();
             }
+            data.app_ids = newAppIds;
 
             if(elemCheckPostToFacebook.is(':checked')) {
                 data.broadcast_on_facebook = true;

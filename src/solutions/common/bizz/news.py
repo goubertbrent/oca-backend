@@ -242,13 +242,27 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
 
     feed_names = []
     if tag == u'news':
-        if not default_app.demo:
+        if default_app.demo:
+            # For demo apps the following rules count
+            # Extra apps selected --> post in REGIONAL NEWS in the demo app
+            # No extra apps selected --> post in LOCAL NEWS in the demo app
+            import pdb
+            pdb.set_trace()
+            if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
+                pass  # LOCAL NEWS
+            else:
+                feed_names.append(NewsFeedNameTO(default_app.app_id, u'regional_news'))  # REGIONAL NEWS
+            app_ids = [default_app.app_id]
+        else:
             for app_id in app_ids:
                 if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
                     feed_names.append(NewsFeedNameTO(app_id, u'regional_news'))
     else:
-        for app_id in app_ids:
-            feed_names.append(NewsFeedNameTO(app_id, tag))
+        if default_app.demo:
+            feed_names.append(NewsFeedNameTO(default_app.app_id, tag))
+        else:
+            for app_id in app_ids:
+                feed_names.append(NewsFeedNameTO(app_id, tag))
 
     kwargs = {
         'sticky_until': sponsored_until,
