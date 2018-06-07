@@ -1056,15 +1056,15 @@ $(function () {
     sln.configureDelayedInput($('.sln-set-timezone select'), saveSettings, null, false);
     sln.configureDelayedInput($('.sln-set-search-keywords textarea'), saveSettings);
     sln.configureDelayedInput($('.sln-set-email-address input'), saveSettings);
-    
+
     $('#newsletter-checkbox').change(function() {
         saveConsent('newsletter', $(this).prop('checked'));
     });
-    
+
     $('#email_marketing-checkbox').change(function() {
     	saveConsent('email_marketing', $(this).prop('checked'));
     });
-    
+
     // billing tab
     sln.configureDelayedInput($('.sln-set-iban input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-bic input'), saveSettings);
@@ -1443,7 +1443,7 @@ $(function () {
         }
         uploadImage(popupHeader, updateUrl, previewWidth, previewHeight, null, true);
     }
-    
+
     function saveConsent(consent_type, enabled) {
     	sln.call({
             url: "/common/settings/consent",
@@ -1532,7 +1532,7 @@ $(function () {
         });
 
 
-        getbroadcastOptions(function (broadcastOptions) {
+        getBroadcastOptions(function (broadcastOptions) {
             var html = $.tmpl(templates.broadcast_settings_list, {
                 broadcastTypes: broadcastOptions.editable_broadcast_types,
                 t: CommonTranslations
