@@ -22,6 +22,7 @@ import string
 import uuid
 
 from babel.dates import format_datetime
+import xlwt
 
 from google.appengine.api import search
 from google.appengine.ext import db
@@ -37,13 +38,12 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, send_mail
 from rogerthat.utils.location import GeoCodeZeroResultsException, coordinates_to_address, geo_code, \
-    address_to_coordinates
+    address_to_coordinates, GeoCodeStatusException
 from shop.bizz import broadcast_prospect_creation, create_task, broadcast_task_updates
 from shop.constants import PROSPECT_INDEX
 from shop.models import Prospect, ShopTask, ShopApp, RegioManagerTeam, Customer, Contact
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import OrganizationType
-import xlwt
 
 
 try:
@@ -161,8 +161,8 @@ def search_prospects(query):
 
 
 @returns(Prospect)
-@arguments(customer=Customer)
-def create_prospect_from_customer(customer):
+@arguments(customer=Customer, geo_point_required=bool)
+def create_prospect_from_customer(customer, geo_point_required=False):
     azzert(customer.prospect_id is None and customer.service_email)
 
     contact = Contact.get_one(customer.key())
@@ -184,23 +184,31 @@ def create_prospect_from_customer(customer):
     prospect.customer_id = customer.id
     prospect.status = Prospect.STATUS_CUSTOMER
     prospect.app_id = si.app_id
-    
+
     solution_server_settings = get_solution_server_settings()
-    prospect.add_comment(u'Converted customer to prospect', users.User(solution_server_settings.shop_no_reply_email)) 
+    prospect.add_comment(u'Converted customer to prospect', users.User(solution_server_settings.shop_no_reply_email))
     try:
         result = geo_code(prospect.address)
+    except GeoCodeStatusException:
+        logging.warn('Could not geo_code customer: %s', db.to_dict(customer), exc_info=not geo_point_required)
+        if geo_point_required:
+            raise
+        result = None
     except GeoCodeZeroResultsException:
         try:
             result = geo_code(' '.join(filter(None, [customer.zip_code,
                                                      customer.city,
                                                      OFFICIALLY_SUPPORTED_COUNTRIES.get(customer.country,
                                                                                         customer.country)])))
-        except GeoCodeZeroResultsException:
-            logging.warn('Could not geo_code customer: %s', db.to_dict(customer))
-            return
+        except (GeoCodeStatusException, GeoCodeZeroResultsException):
+            logging.warn('Could not geo_code customer: %s', db.to_dict(customer), exc_info=not geo_point_required)
+            if geo_point_required:
+                raise
+            result = None
 
-    prospect.geo_point = db.GeoPt(result['geometry']['location']['lat'],
-                                  result['geometry']['location']['lng'])
+    if result:
+        prospect.geo_point = db.GeoPt(result['geometry']['location']['lat'],
+                                      result['geometry']['location']['lng'])
 
     customer.prospect_id = prospect.id
     prospect.customer_id = customer.id
@@ -225,7 +233,8 @@ def generate_prospect_export_excel(prospect_ids, do_send_email=True, recipients=
     azzert(not do_send_email or recipients)
     bold_style = xlwt.XFStyle()
     bold_style.font.bold = True
-    column_name, column_address, column_city, column_phone, column_status, column_type, column_categories, column_comments = range(8)
+    column_name, column_address, column_city, column_phone, column_status, column_type, column_categories, column_comments = range(
+        8)
 
     book = xlwt.Workbook(encoding="utf-8")
     sheet = book.add_sheet('Prospects')
@@ -273,10 +282,10 @@ def generate_prospect_export_excel(prospect_ids, do_send_email=True, recipients=
         from_email = solution_server_settings.shop_export_email
         to_emails = recipients
         body_text = 'See attachment for the exported prospects'
-        
+
         attachments = []
         attachments.append(('Prospects %s %s.xls' % (app.name, current_date),
                             base64.b64encode(excel_string)))
-        
+
         send_mail(from_email, to_emails, subject, body_text, attachments=attachments)
     return excel_string
