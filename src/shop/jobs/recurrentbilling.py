@@ -98,28 +98,36 @@ def _create_charge(order_key, today, products):
         subscription_length = 0
         current_date = datetime.datetime.utcnow()
         to_put = []
+
+        def _get_extension_price(product, order_item):
+            if product.charge_interval != 1:
+                last_charge_date = datetime.datetime.utcfromtimestamp(order_item.last_charge_timestamp)
+                new_charge_date = last_charge_date + relativedelta(months=product.charge_interval)
+                if new_charge_date < current_date:
+                    logging.debug('new_charge_date %s < current_date %s, adding %s to total_amount',
+                                  new_charge_date, current_date, order_item.price)
+                    order_item.last_charge_timestamp = now()
+                    to_put.append(order_item)
+                    return order_item.price
+                else:
+                    return 0
+            else:
+                return order_item.price
+
         for order_item in order_item_qry:  # type: OrderItem
             product = products[order_item.product_code]
             if order_item.order_number == order.order_number:
                 if product.is_subscription:
                     subscription_length = order_item.count
                 if product.is_subscription or product.is_subscription_discount or product.is_subscription_extension:
-                    if product.charge_interval != 1:
-                        last_charge_date = datetime.datetime.utcfromtimestamp(order_item.last_charge_timestamp)
-                        new_charge_date = last_charge_date + relativedelta(months=product.charge_interval)
-                        if new_charge_date < current_date:
-                            logging.debug('new_charge_date %s < current_date %s, adding %s to total_amount',
-                                          new_charge_date, current_date, order_item.price)
-                            total_amount += order_item.price
-                            order_item.last_charge_timestamp = now()
-                            to_put.append(order_item)
-                    else:
-                        total_amount += order_item.price
+                    total_amount += _get_extension_price(product, order_item)
 
             elif order_item.parent().key() in subscription_extension_order_keys:
                 if product.is_subscription_extension:
-                    total_amount += order_item.price
-                    subscription_extension_order_item_keys.append(order_item.key())
+                    item_price = _get_extension_price(product, order_item)
+                    if item_price:
+                        total_amount += item_price
+                        subscription_extension_order_item_keys.append(order_item.key())
         if total_amount == 0:
             order.next_charge_date = Order.default_next_charge_date()
             order.put()
