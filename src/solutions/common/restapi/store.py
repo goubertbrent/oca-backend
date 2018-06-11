@@ -31,7 +31,7 @@ from rogerthat.bizz.service import re_index
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import App
-from rogerthat.models.utils import copy_model_properties
+from rogerthat.models.utils import copy_model_properties, allocate_id
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import RETURNSTATUS_TO_SUCCESS, ReturnStatusTO
@@ -286,6 +286,8 @@ def pay_order():
     # create a new order with the exact same order items.
     old_order_key = Order.create_key(customer.id, Order.CUSTOMER_STORE_ORDER_NUMBER)
 
+    charge_id_cache = []
+
     def trans():
         old_order, team = db.get((old_order_key, RegioManagerTeam.create_key(customer.team_id)))
 
@@ -345,7 +347,10 @@ def pay_order():
         # No need for signing here, immediately create a charge.
         azzert(new_order.total_amount > 0)
         if not is_demo:
-            charge = Charge(parent=new_order_key)
+            # Ensure same charge id is used when transaction is retried, else the customer might be charged twice
+            if not charge_id_cache:
+                charge_id_cache.append(allocate_id(Charge, parent=new_order_key))
+            charge = Charge(key=Charge.create_key(charge_id_cache[0], new_order_key.name(), customer.id))
             charge.date = now()
             charge.type = Charge.TYPE_ORDER_DELIVERY
             charge.amount = new_order.amount
@@ -380,11 +385,7 @@ def pay_order():
 
         channel.send_message(service_user, 'common.billing.orders.update')
         if should_create_shoptask:
-            prospect_id = customer.prospect_id
-            if prospect_id is None:
-                prospect = create_prospect_from_customer(customer)
-                prospect_id = prospect.id
-            deferred.defer(create_task_for_order, customer.team_id, prospect_id, new_order.order_number,
+            deferred.defer(create_task_for_order, customer.id, new_order.order_number, _countdown=5,
                            _transactional=True)
         return BoolReturnStatusTO.create(True, None)
 
@@ -404,11 +405,16 @@ def generate_and_put_order_pdf_and_send_mail(customer, new_order_key, service_us
     run_in_xg_transaction(trans)
 
 
-def create_task_for_order(customer_team_id, prospect_id, order_number):
+def create_task_for_order(customer_id, order_number):
+    customer = Customer.get_by_id(customer_id)
+    prospect_id = customer.prospect_id
+    if prospect_id is None:
+        prospect = create_prospect_from_customer(customer)
+        prospect_id = prospect.id
     team, prospect = db.get(
-        [RegioManagerTeam.create_key(customer_team_id), Prospect.create_key(prospect_id)])
+        [RegioManagerTeam.create_key(customer.team_id), Prospect.create_key(prospect_id)])
     azzert(team.support_manager, u'No support manager found for team %s' % team.name)
-    comment = u'Customer placed a new order: %s' % (order_number)
+    comment = u'Customer placed a new order: %s' % order_number
     task = create_task(
         created_by=STORE_MANAGER.email(),
         prospect_or_key=prospect,
