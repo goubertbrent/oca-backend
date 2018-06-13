@@ -26,7 +26,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     OpenInvoicesHandler, TasksHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
     SalesStatisticsHandler, OrderableAppsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
-    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler
+    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, JoynReferralsHandler
 from solutions.djmatic import restapi_overview
 from solutions.djmatic.handlers import DJMaticOverviewHandler
 
@@ -54,6 +54,7 @@ handlers = [
     ('/internal/shop/city/vouchers', CityVouchersHandler),
     ('/internal/shop/login_as', LoginAsCustomerHandler),
     ('/internal/shop/contacts_export', ExportEmailAddressesHandler),
+    ('/internal/shop/joyn_referrals', JoynReferralsHandler),
     ('/internal/shop/customers', CustomersHandler),
     ('/internal/shop/expired_subscriptions', ExpiredSubscriptionsHandler),
     ('/internal/shop/legal_entities', LegalEntityHandler),

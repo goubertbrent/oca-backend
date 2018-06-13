@@ -36,7 +36,7 @@ from google.appengine.ext.webapp import template
 from PIL.Image import Image  # @UnresolvedImport
 from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
-from babel.dates import format_date
+from babel.dates import format_date, format_datetime
 from googleapiclient.discovery import build
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -118,6 +118,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
+from solutions.common.models.loyalty import JoynReferral
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
@@ -690,6 +691,27 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
             writer.writerow((export.email.encode("utf-8"),
                              export.first_name.encode("utf-8"),
                              export.last_name.encode("utf-8")))
+
+
+class JoynReferralsHandler(BizzManagerHandler):
+
+    def get(self):
+        referrals = JoynReferral.query().fetch(None)  # type: list[JoynReferral]
+        customers = db.get([Customer.create_key(ref.customer_id) for ref in referrals])
+        result = []
+        for ref, customer in zip(referrals, customers):
+            result.append({
+                'customer': {
+                    'id': customer.id,
+                    'name': customer.name
+                },
+                'referral': {
+                    'action_timestamp': ', '.join(format_datetime(d, locale='nl') for d in ref.action_dates[-5:])
+                }
+            })
+        context = get_shop_context(referrals=sorted(result, key=lambda r: r['customer']['name']))
+        path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_referrals.html')
+        self.response.write(template.render(path, context))
 
 
 class ExpiredSubscriptionsHandler(BizzManagerHandler):

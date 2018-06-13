@@ -18,10 +18,11 @@
 import urllib
 
 from google.appengine.api import images
-from google.appengine.ext import db, blobstore
+from google.appengine.ext import db, blobstore, ndb
+
 from rogerthat.bizz.gcs import get_serving_url
-from rogerthat.dal import parent_key, parent_key_unsafe
-from rogerthat.models import ArchivedModel
+from rogerthat.dal import parent_key, parent_key_unsafe, parent_ndb_key
+from rogerthat.models import ArchivedModel, NdbModel
 from rogerthat.rpc import users
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
@@ -650,3 +651,16 @@ class CityPostalCodes(db.Model):
     @classmethod
     def create_key(cls, app_id):
         return db.Key.from_path(cls.kind(), app_id)
+
+
+class JoynReferral(NdbModel):
+    TYPE_BUTTON_DASHBOARD = 1
+    action_dates = ndb.DateTimeProperty(repeated=True, indexed=False)  # type: list[datetime]
+
+    @property
+    def customer_id(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, service_user, customer_id):
+        return ndb.Key(cls, customer_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))

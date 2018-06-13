@@ -17,13 +17,16 @@
  */
 
 $(function() {
-    var joynUrl = 'https://www.joyn.be/for-merchants';
-    if (LANGUAGE == 'nl') {
-        joynUrl = 'https://www.joyn.be/nl/for-merchants'
-    } else if (LANGUAGE == 'fr') {
-        joynUrl = 'https://www.joyn.be/fr/for-merchants'
-    } else if (LANGUAGE == 'en') {
-        joynUrl = 'https://www.joyn.be/en/for-merchants'
-    }
-    $('#joyn_become_merchant').attr("href", joynUrl)
+    var urls = {
+        nl: 'https://www.joyn.be/nl/for-merchants',
+        fr: 'https://www.joyn.be/fr/for-merchants',
+        en: 'https://www.joyn.be/en/for-merchants',
+    };
+    var joynUrl = urls[LANGUAGE] || 'https://www.joyn.be/for-merchants';
+    $('#joyn_become_merchant').attr("href", joynUrl).click(function () {
+        sln.call({
+            url: '/common/loyalty/joyn',
+            method: 'post',
+        });
+    });
 });
