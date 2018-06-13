@@ -16,9 +16,9 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import defaultdict
 import datetime
 import logging
+from collections import defaultdict
 from types import NoneType
 
 from google.appengine.ext import db, deferred
@@ -29,6 +29,7 @@ from mcfw.consts import MISSING, REST_FLAVOR_TO
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
+from rogerthat.bizz.app import get_app
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
@@ -95,7 +96,7 @@ from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadc
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
-from solutions.common.models.news import NewsSettings
+from solutions.common.models.news import NewsSettings, NewsSettingsTags
 from solutions.common.models.repair import SolutionRepairSettings
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichOption, SandwichSettings, \
     SandwichOrder
@@ -463,13 +464,19 @@ def export_inbox_messages(email=''):
 @arguments()
 def rest_get_broadcast_options():
     service_user = users.get_current_user()
-    service_identity = users.get_current_session().service_identity or ServiceIdentity.DEFAULT
+    session_ = users.get_current_session()
+    service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     sln_settings_key = SolutionSettings.create_key(service_user)
     news_promotion_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
     extra_city_product_key = Product.create_key(Product.PRODUCT_EXTRA_CITY)
-    to_get = (sln_settings_key, news_promotion_product_key, extra_city_product_key)
-    sln_settings, news_promotion_product, extra_city_product = db.get(to_get)
+    si_key = ServiceIdentity.keyFromUser(create_service_identity_user(service_user, service_identity))
+    to_get = (sln_settings_key, news_promotion_product_key, extra_city_product_key, si_key)
+    sln_settings, news_promotion_product, extra_city_product, si = db.get(to_get)  # type: (SolutionSettings, Product, Product, ServiceIdentity)
     news_settings = NewsSettings.get_by_user(service_user, service_identity)
+    # For demo apps and for shop sessions, creating regional news items is be free.
+    if session_.shop or get_app(si.defaultAppId).demo:
+        if NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
+            news_settings.tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
 
     def transl(key):
         try:

@@ -35,6 +35,7 @@ from rogerthat.models import App
 from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
+from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO
 from rogerthat.utils import now, channel
@@ -125,10 +126,11 @@ def get_regional_apps_of_item(news_item, default_app_id):
 
 
 @ndb.transactional()
-def create_regional_news_item(news_item, regional_apps, service_user, service_identity):
+def create_regional_news_item(news_item, regional_apps, service_user, service_identity, paid=False):
+    # type: (NewsItem, list[unicode], users.User, unicode, bool) -> SolutionNewsItem
     sln_item_key = SolutionNewsItem.create_key(news_item.id, service_user)
     settings_key = NewsSettings.create_key(service_user, service_identity)
-    sln_item, news_settings = ndb.get_multi([sln_item_key, settings_key])  # type: tuple[SolutionNewsItem, NewsSettings]
+    sln_item, news_settings = ndb.get_multi([sln_item_key, settings_key])  # type: (SolutionNewsItem, NewsSettings)
     if not sln_item:
         sln_item = SolutionNewsItem(key=sln_item_key)
 
@@ -140,14 +142,15 @@ def create_regional_news_item(news_item, regional_apps, service_user, service_id
     sln_item.publish_time = publish_time
     sln_item.app_ids = regional_apps
     sln_item.service_identity = service_identity
-    if news_settings and NewsSettingsTags.FREE_REGIONAL_NEWS in news_settings.tags:
+    if paid or news_settings and NewsSettingsTags.FREE_REGIONAL_NEWS in news_settings.tags:
         sln_item.paid = True
     sln_item.put()
+    return sln_item
 
 
 def check_budget(service_user, service_identity):
     keys = [Budget.create_key(service_user), NewsSettings.create_key(service_user, service_identity)]
-    budget, news_settings = ndb.get_multi(keys)  # type: tuple[Budget, NewsSettings]
+    budget, news_settings = ndb.get_multi(keys)  # type: (Budget, NewsSettings)
     if not news_settings or NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
         if not budget or budget.balance <= 0:
             raise BusinessException('insufficient_budget')
@@ -305,6 +308,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         if value is MISSING:
             del kwargs[key]
 
+    is_free_regional_news = get_current_session().shop or default_app.demo
     with users.set_user(service_user):
         try:
             if sponsored:
@@ -335,11 +339,11 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                     create_and_pay_news_order(service_user, news_item.id, order_items)
                 regional_apps = get_regional_apps_of_item(news_item, si.app_id)
                 if regional_apps:
-                    if not news_id:
+                    if not news_id and not is_free_regional_news:
                         # check for budget on creation only
                         check_budget(service_user, identity)
                     deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
-                                   _transactional=True)
+                                   paid=is_free_regional_news, _transactional=True)
                 return news_item
 
             news_item = run_in_xg_transaction(trans)

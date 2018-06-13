@@ -25,6 +25,7 @@ function VectorMap(name, data, enabledAreas, container, options) {
     this.options = options;
     this.tooltip = options.tooltip;
     this.areaClicked = options.areaClicked;
+    this.defaultAreaClicked = options.defaultAreaClicked;
 
     this.selectable = options.selectable || false;
     this.zoom = options.zoom || true;
@@ -177,36 +178,46 @@ VectorMap.prototype = {
     },
 
     render: function() {
+        var self = this;
+        if (!self.container.is(':visible')) {
+            // jquery-mapael is not happy with hidden containers
+            return;
+        }
         // grayed fill color for non-enabled areas
         var mapaelOptions = {
             map: {
-                name: this.name,
+                name: self.name,
                 defaultArea: {
-                    value: this.legend.values.default,
+                    value: self.legend.values.default,
                     attrs: {
-                        fill: this.colors.default,
-                        stroke: this.colors.stroke,
+                        fill: self.colors.default,
+                        stroke: self.colors.stroke,
                     },
                     attrsHover: {
                         animDuration: 0,
-                        fill: this.readonly ? this.colors.unselected : this.colors.hover
+                        fill: self.readonly ? self.colors.unselected : self.colors.hover
                     },
                     text: {
                         attrs: {
                             cursor: "pointer",
                             "font-size": 10,
-                            fill: this.colors.text
+                            fill: self.colors.text
                         },
                         attrsHover: {
                             animDuration: 0
                         }
+                    },
+                    eventHandlers: {
+                        click: function(e, id, mapElem, textElem, elemOptions) {
+                            self.defaultAreaClicked(id);
+                        },
                     }
                 },
             },
-            areas: this.prepareAreas(),
+            areas: self.prepareAreas(),
         };
 
-        if (this.zoom) {
+        if (self.zoom) {
             mapaelOptions.zoom = {
                 enabled: true,
                 step: 0.25,
@@ -214,17 +225,17 @@ VectorMap.prototype = {
             };
         }
 
-        if (this.legend.enabled) {
+        if (self.legend.enabled) {
             var slices = [];
 
-            for (var value in this.legend.values) {
-                if (this.legend.values.hasOwnProperty(value)) {
+            for (var value in self.legend.values) {
+                if (self.legend.values.hasOwnProperty(value)) {
                     slices.push({
-                        sliceValue: this.legend.values[value],
+                        sliceValue: self.legend.values[value],
                         attrs: {
-                            fill: this.colors[value]
+                            fill: self.colors[value]
                         },
-                        label: this.legend.texts[value]
+                        label: self.legend.texts[value]
                     });
                 }
             }
@@ -235,7 +246,7 @@ VectorMap.prototype = {
                 }
             };
         }
-        this.container.mapael(mapaelOptions);
+        self.container.mapael(mapaelOptions);
     },
 
     clear: function() {

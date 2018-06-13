@@ -22,6 +22,7 @@ function CitySelect(cityApps, appStats, selected) {
     this.cityApps = cityApps;
     this.stats = appStats;
     this.selectedApps = selected;
+    this.defaultAppReach = this.stats[ACTIVE_APPS[0]] || 0;
 }
 
 
@@ -29,8 +30,13 @@ CitySelect.prototype = {
     getTooltip: function(city) {
         var appId = this.cityApps[city];
         if (appId) {
-            var estimated = modules.news.getEstimatedReach(this.stats[appId]);
-            return '<b>' + city + '</b><br>' + CommonTranslations['broadcast-estimated-reach'] + ': ' + estimated;
+            var userCount = this.stats[appId];
+            var estimatedReach = modules.news.getEstimatedReach(userCount);
+            var costCount = appId === ACTIVE_APPS[0] ? 0 : userCount;
+            var estimatedCost = modules.news.getEstimatedCost(costCount, CURRENCY);
+            return '<b>' + city + '</b><br>' + CommonTranslations['broadcast-estimated-reach'] + ': ' + estimatedReach
+                + ' ' + CommonTranslations['broadcast-out-of'] + ' ' + userCount + '<br>'
+                + CommonTranslations['broadcast-estimated-cost'] + ' ' + estimatedCost;
         } else {
             return city;
         }
@@ -133,7 +139,7 @@ MapCitySelect.prototype.renderPreview = function() {
 
     var data = this.data;
     if (!this.previewMap) {
-        this.previewMap = new VectorMap('minimap', data.cities, Object.keys(data.cities), this.previewContainer, {
+        this.previewMap = new VectorMap('minimap', data.cities, this.getEnabledApps(), this.previewContainer, {
             width: data.width,
             height: data.height,
             selectable: false,
@@ -141,7 +147,6 @@ MapCitySelect.prototype.renderPreview = function() {
             zoom: false,
             readonly: this.readonly,
         });
-
         this.configureDefaultCity(this.previewMap);
     }
     this.previewMap.render();
@@ -151,6 +156,9 @@ MapCitySelect.prototype.lockPreview = function() {
 };
 MapCitySelect.prototype.setOnSelectClicked = function(callback) {
     this.previewMap.areaClicked = callback;
+};
+MapCitySelect.prototype.setOnDefaultClicked = function(callback) {
+    this.previewMap.defaultAreaClicked = callback;
 };
 MapCitySelect.prototype.selectionChanged = function(selected) {
     // update the preview
@@ -173,7 +181,9 @@ MapCitySelect.prototype.setTotalEstimatedReach = function () {
             total += this.stats[appId];
         }
     }
+    $('#popup-total-reach').text(total);
     $('#popup-estimated-reach').text(modules.news.getEstimatedReach(total));
+    $('#popup-estimated-cost').text(modules.news.getEstimatedCost(total - this.defaultAppReach, CURRENCY));
 };
 
 MapCitySelect.prototype.onShown = function() {
@@ -233,6 +243,27 @@ MapCitySelect.prototype.selectAll = function() {
 MapCitySelect.prototype.deselectAll = function() {
     this.vectorMap.selectAll(false);
 };
+MapCitySelect.prototype.setSelection = function(area, selection) {
+    var map = this.vectorMap;
+    if (map) {
+        map.setSelection(area, selection);
+    } else {
+        var idx = this.selectedApps.indexOf(area);
+        if (selection) {
+            if (idx === -1) {
+                this.selectedApps.push(area);
+            }
+        } else {
+            if (idx !== -1) {
+                this.selectedApps.splice(idx, 1);
+            }
+        }
+    }
+
+    var selected = this.getSelectedApps();
+    this.selectionChanged(selected);
+    this.onSelectionCompleted(selected);
+};
 
 
 // Just a check list
@@ -267,6 +298,8 @@ ListCitySelect.prototype.lockPreview = function() {
 ListCitySelect.prototype.setOnSelectClicked = function(callback) {
     this.previewContainer.on('click', '#select_city_apps', callback);
 };
+ListCitySelect.prototype.setOnDefaultClicked = function(callback) {
+};
 ListCitySelect.prototype.selectionChanged = function(selected) {
     this.renderPreview();
 };
@@ -286,14 +319,11 @@ ListCitySelect.prototype.createModal = function() {
 
     this.modal = sln.createModal(html);
 };
-ListCitySelect.prototype.appCheckboxChanged = function(event) {
-    var elem = $(event.target);
-    var city = elem.val();
-    var idx = this.selectedApps.indexOf(city);
-
-    if (elem.is(':checked')) {
+ListCitySelect.prototype.selectApp = function(app, selection) {
+    var idx = this.selectedApps.indexOf(app);
+    if (selection) {
         if (idx === -1) {
-            this.selectedApps.push(city);
+            this.selectedApps.push(app);
         }
     } else {
         if (idx !== -1) {
@@ -301,9 +331,21 @@ ListCitySelect.prototype.appCheckboxChanged = function(event) {
         }
     }
 };
+ListCitySelect.prototype.appCheckboxChanged = function(event) {
+    var elem = $(event.target);
+    var city = elem.val();
+    this.selectApp(city, elem.is(':checked'));
+};
 ListCitySelect.prototype.selectAll = function() {
     $('input[name=app]', this.modal).prop('checked', true);
 };
 ListCitySelect.prototype.deselectAll = function() {
     $('input[name=app]', this.modal).prop('checked', false);
+};
+ListCitySelect.prototype.setSelection = function(app, selection) {
+    $('input[name=app][value=' + app + ']', this.modal).prop('checked', selection);
+    this.selectApp(app, selection);
+    var selected = this.getSelectedApps();
+    this.selectionChanged(selected);
+    this.onSelectionCompleted(selected);
 };

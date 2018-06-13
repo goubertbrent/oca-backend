@@ -60,6 +60,7 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu, get
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import SolutionQR, SolutionServiceConsent
+from solutions.common.models.news import NewsSettingsTags
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.common.to.order import SolutionOrderSettingsTO
@@ -373,6 +374,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'MAP_FILE': VECTOR_MAPS.get(customer.country) if customer else None,
             'CITY_APPS': get_country_apps(customer.country) if customer else {},
             'BUDGET_RATE': BUDGET_RATE,
+            'NEWS_TAGS': {
+                'FREE_REGIONAL_NEWS': NewsSettingsTags.FREE_REGIONAL_NEWS
+            }
         }
         if not customer:
             mobicage_legal_entity = get_mobicage_legal_entity()
