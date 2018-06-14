@@ -208,9 +208,11 @@ NewsWizard.prototype = {
         var self = this;
         if (self.freeRegionalNews()) {
             self.$('#news_current_budget').text(CommonTranslations.unlimited);
+            self.$('#news_views').hide();
         } else {
             getBudget(function(budget) {
                 self.$('#news_current_budget').text(budget.balance * CONSTS.BUDGET_RATE);
+                self.$('#news_views').show();
             });
         }
     },
