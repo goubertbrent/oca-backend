@@ -33,7 +33,7 @@ from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
     get_news_statistics
 from solutions.common.dal import get_solution_settings
-from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO
+from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, NewsStatsTO
 from solutions.common.utils import is_default_service_identity
 
 
@@ -46,7 +46,7 @@ def rest_get_news(tag=None, cursor=None):
 
 
 @rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
-@returns(NewsBroadcastItemTO)
+@returns(NewsStatsTO)
 @arguments(news_id=(int, long))
 def rest_get_news_statistics(news_id):
     service_identity = users.get_current_session().service_identity

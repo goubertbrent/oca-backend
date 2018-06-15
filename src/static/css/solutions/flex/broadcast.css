@@ -291,11 +291,4 @@
     position: relative;
 }
 
-.card-title-text-right {
-    position: absolute;
-    right: 0;
-    color: rgb(139, 197, 63);
-    font-weight: bold;
-}
-
 /*</editor-fold desc="news overview">*/

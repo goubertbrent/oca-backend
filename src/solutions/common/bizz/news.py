@@ -54,7 +54,8 @@ from solutions.common.models import SolutionScheduledBroadcast
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags
 from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
-from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO
+from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
+    NewsStatsTO, NewsAppTO
 from solutions.flex import SOLUTION_FLEX
 
 FREE_SPONSORED_ITEMS_PER_APP = 5
@@ -84,11 +85,14 @@ def get_news(cursor=None, service_identity=None, tag=None):
     return result
 
 
-@returns(NewsBroadcastItemTO)
+@returns(NewsStatsTO)
 @arguments(news_id=(int, long), service_identity=unicode)
 def get_news_statistics(news_id, service_identity=None):
     news_item = news.get(news_id, service_identity, True)
-    return NewsBroadcastItemTO.from_news_item_to(news_item)
+    apps_rpc = db.get([App.create_key(s.app_id) for s in news_item.statistics])
+    result = NewsStatsTO(news_item=NewsBroadcastItemTO.from_news_item_to(news_item))
+    result.apps = [NewsAppTO.from_model(model) for model in apps_rpc]
+    return result
 
 
 def _save_coupon_news_id(news_item_id, coupon):

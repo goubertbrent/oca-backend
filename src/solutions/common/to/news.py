@@ -17,10 +17,12 @@
 
 from mcfw.properties import unicode_property, long_property, bool_property, \
     typed_property
+from rogerthat.to import TO
 
 from rogerthat.to.news import NewsItemTO
 
-class SponsoredNewsItemCount(object):
+
+class SponsoredNewsItemCount(TO):
     app_id = unicode_property('app_id')
     count = long_property('cost')
     remaining_free = long_property('remaining_free')
@@ -29,6 +31,16 @@ class SponsoredNewsItemCount(object):
         self.app_id = app_id
         self.count = count
         self.remaining_free = remaining_free
+
+
+class NewsAppTO(TO):
+    name = unicode_property('name')
+    type = long_property('type')
+    id = unicode_property('id')
+
+    @classmethod
+    def from_model(cls, app):
+        return cls(name=app.name, type=app.type, id=app.app_id)
 
 
 class NewsBroadcastItemTO(NewsItemTO):
@@ -49,7 +61,12 @@ class NewsBroadcastItemTO(NewsItemTO):
         return item
 
 
-class NewsBroadcastItemListTO(object):
+class NewsStatsTO(TO):
+    news_item = typed_property('stats', NewsBroadcastItemTO)
+    apps = typed_property('apps', NewsAppTO, True)
+
+
+class NewsBroadcastItemListTO(TO):
     """A list of NewsBroadcastItemTO."""
     result = typed_property('1', NewsBroadcastItemTO, True)
     cursor = unicode_property('2')
