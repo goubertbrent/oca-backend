@@ -312,7 +312,8 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         if value is MISSING:
             del kwargs[key]
 
-    is_free_regional_news = get_current_session().shop or default_app.demo
+    current_session = get_current_session()
+    is_free_regional_news = (current_session and current_session.shop) or default_app.demo
     with users.set_user(service_user):
         try:
             if sponsored:

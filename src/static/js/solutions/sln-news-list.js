@@ -289,7 +289,7 @@ NewsList.prototype = {
             container.html(template);
             $('#stats_app_selector_' + newsId).change(function () {
                 var appId = $(this).val();
-                self.renderStatistics(container, newsId, statistics, property, appId);
+                self.renderStatistics(container, newsId, result, property, appId);
             });
 
             var ageWrapper = new google.visualization.ChartWrapper({
