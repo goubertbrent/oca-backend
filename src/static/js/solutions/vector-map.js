@@ -209,7 +209,9 @@ VectorMap.prototype = {
                     },
                     eventHandlers: {
                         click: function(e, id, mapElem, textElem, elemOptions) {
-                            self.defaultAreaClicked(id);
+                            if(typeof self.defaultAreaClicked === 'function') {
+                                self.defaultAreaClicked(id);
+                            }
                         },
                     }
                 },
