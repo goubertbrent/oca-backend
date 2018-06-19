@@ -38,7 +38,7 @@
                     var appVersion = rogerthat.system.appVersion.split(&quot;.&quot;).map(function(x) {
                         return parseInt(x);
                     });
-    
+
                     if (rogerthat.system.os == &quot;android&quot;) {
                         if (!(appVersion[0] &gt; 1
                                 || appVersion[1] &gt; {{ Features.ADVANCED_ORDER.android.major }}
@@ -52,7 +52,7 @@
                             return notSupported();
                         }
                     }
-                    
+
                     var outlet = 'message_advanced_order';
                     {% if payment_enabled %}
                     if (rogerthat.service.data.settings.payment.enabled) {
@@ -201,7 +201,7 @@
             </form>
         </formMessage>
         {% endif %}
-        
+
         <flowCode
                 id="flow_code_phone_default"
                 exceptionReference="message_phone">
@@ -382,7 +382,7 @@
                         });
                         return a;
                     };
-                    
+
                     var nextPossitiveButton = '{% translate language, 'common', 'Send' %}';
                     if (messageFlowRun.steps[0]['step_id'] === 'message_advanced_order_with_pay') {
                         nextPossitiveButton = '{% translate language, 'common', 'Next' %}';
@@ -468,7 +468,7 @@
                     if (amount &lt;= 0) {
                         return {outlet: 'flush_advanced_order_processing'};
                     }
-                    
+
                     if (amount &lt; {{ settings.payment_min_amount_for_fee }}) {
                     	amount += 15;
                     }
@@ -518,7 +518,7 @@
                 </widget>
             </form>
         </formMessage>
-        
+
         <formMessage brandingKey="{{ branding_key }}"
                      id="message_pay_required"
                      alertIntervalType="NONE" alertType="SILENT"
@@ -569,12 +569,13 @@
                 };
             </javascriptCode>
         </flowCode>
-        
-        <resultsFlush id="flush_advanced_order_processing"
-                      reference="message_order_sent"/>
 
+        <resultsFlush id="flush_advanced_order_processing"
+                      reference="{% if manual_confirmation %}message_order_sent_wait_for_confirmation{% else %}end_processing{% endif %}"/>
+
+        {%- if manual_confirmation %}
         <message
-            id="message_order_sent"
+            id="message_order_sent_wait_for_confirmation"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
@@ -582,14 +583,9 @@
             vibrate="false"
             dismissReference="end_processing"
             autoLock="true">
-            <content>
-                {%- if manual_confirmation -%}
-                    {% translate language, 'common', 'order-flow-manual-confirm', 'name=' + settings.name|escape %}
-                {%- else -%}
-                    {% translate language, 'common', 'order-flow-tnx' %}
-                {%- endif -%}
-            </content>
+            <content>{% translate language, 'common', 'order-flow-manual-confirm', 'name=' + settings.name|escape %}</content>
         </message>
+        {% endif %}
 
         <message
             brandingKey="{{ branding_key }}"

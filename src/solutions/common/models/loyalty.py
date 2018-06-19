@@ -244,6 +244,7 @@ class SolutionLoyaltyVisitStamps(db.Model, ArchivedModel):
 class SolutionLoyaltyVisitStampsArchive(SolutionLoyaltyVisitStamps):
     pass
 
+
 class SolutionLoyaltyIdentitySettings(db.Model):
     admins = db.StringListProperty(indexed=False)
     app_ids = db.StringListProperty(indexed=False)
@@ -264,6 +265,7 @@ class SolutionLoyaltyIdentitySettings(db.Model):
     def get_by_user(cls, service_user, service_identity):
         return cls.get(cls.create_key(service_user, service_identity))
 
+
 class SolutionLoyaltySettings(SolutionLoyaltyIdentitySettings):
     LOYALTY_TYPE_REVENUE_DISCOUNT = 1
     LOYALTY_TYPE_LOTTERY = 2
@@ -271,8 +273,8 @@ class SolutionLoyaltySettings(SolutionLoyaltyIdentitySettings):
     LOYALTY_TYPE_CITY_WIDE_LOTTERY = 4
     LOYALTY_TYPE_SLIDES_ONLY = 5
 
-    LOYALTY_TYPE_MAPPING = {LOYALTY_TYPE_REVENUE_DISCOUNT : SolutionLoyaltyVisitRevenueDiscount,
-                            LOYALTY_TYPE_LOTTERY : SolutionLoyaltyVisitLottery,
+    LOYALTY_TYPE_MAPPING = {LOYALTY_TYPE_REVENUE_DISCOUNT: SolutionLoyaltyVisitRevenueDiscount,
+                            LOYALTY_TYPE_LOTTERY: SolutionLoyaltyVisitLottery,
                             LOYALTY_TYPE_STAMPS: SolutionLoyaltyVisitStamps}
 
     FUNCTION_SCAN = 1

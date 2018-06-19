@@ -69,10 +69,16 @@ def order_sandwich_received(service_user, message_flow_run_id, member, steps, en
     remark = get_first_fmr_step_result_value(steps, u'message_remark')
     takeaway_time = get_first_fmr_step_result_value(steps, u'message_takeaway_time')
 
+    sln_settings = get_solution_settings(service_user)
+
+    # check if it's only one type/topping
+    if type_ is None:
+        sandwich_type = SandwichType.list(service_user, sln_settings.solution).get()
+        type_ = 'type_%d' % sandwich_type.type_id
+
     deferred.defer(process_sandwich_order, service_user, service_identity, user_details, type_, topping, customizations,
                    remark, takeaway_time, parent_message_key)
 
-    sln_settings = get_solution_settings(service_user)
     main_branding = get_solution_main_branding(service_user)
 
     result = FlowMemberResultCallbackResultTO()
@@ -383,6 +389,8 @@ def validate_sandwiches(language, sandwich_types, sandwich_toppings, sandwich_op
             errors.add(msg)
         else:
             type_labels.append(sandwich_type.description)
+    if len(sandwich_toppings) < 2:
+        errors.add(common_translate(language, SOLUTION_COMMON, 'insufficient_toppings'))
     for sandwich_topping in sandwich_toppings:
         if sandwich_topping.description in topping_lables:
             msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_topping',

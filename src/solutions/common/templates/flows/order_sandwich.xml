@@ -36,7 +36,7 @@
                      alertIntervalType="NONE"
                      alertType="SILENT"
                      brandingKey="{{ branding_key }}"
-                     positiveReference="flowcode_message_topping"
+                     positiveReference="flowcode_check_toppings"
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_cancel">
@@ -46,11 +46,14 @@
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                        xsi:type="SelectSingleWidget" value="">
+                        xsi:type="SelectSingleWidget" value="{% if types|length < 1 %}type_{{ types[0].type_id }}{% endif %}">
                     {% for type in types %}
                         <choice value="type_{{ type.type_id }}"
                                 label="{{ type.description|e }}{% if sandwich_settings.show_prices and type.price > 0 %} ({{ settings.currency }}{{ type.price_in_euro }}){% endif %}"/>
                     {% endfor %}
+                    {% if types|length <= 1 %}
+                        <choice value="dummy_type_value" label="dummy_type_label"/>
+                    {% endif %}
                 </widget>
                 <javascriptValidation>
                     function run(result, rogerthat){
@@ -64,17 +67,6 @@
                 </javascriptValidation>
             </form>
         </formMessage>
-        <flowCode id="flowcode_message_topping"
-                  exceptionReference="message_topping">
-            <outlet reference="message_topping"
-                    name="message_topping"
-                    value="message_topping"/>
-            <javascriptCode>
-                function run(rogerthat, mfr) {
-                    return {outlet: 'message_topping', defaultValue: mfr.flow_params.sandwichTopping};
-                }
-            </javascriptCode>
-        </flowCode>
 
         <formMessage id="message_topping"
                      alertIntervalType="NONE"
@@ -90,11 +82,14 @@
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                        xsi:type="SelectSingleWidget" value="">
+                        xsi:type="SelectSingleWidget" value="{% if toppings|length < 1 %}topping_{{ toppings[0].topping_id }}{% endif %}">
                     {% for topping in toppings %}
                         <choice value="topping_{{ topping.topping_id }}"
                                 label="{{ topping.description|e }}{% if sandwich_settings.show_prices and topping.price > 0 %} ({{ settings.currency }}{{ topping.price_in_euro }}){% endif %}"/>
                     {% endfor %}
+                    {% if toppings|length <= 1 %}
+                        <choice value="dummy_topping_value" label="dummy_topping_label"/>
+                    {% endif %}
                 </widget>
                 <javascriptValidation>
                     function run(result, rogerthat){
@@ -246,13 +241,13 @@
                 id="results_flush"
                 reference="end_done"/>
         <flowCode id="flowcode_check_status"
-                  exceptionReference="message_type">
+                  exceptionReference="flowcode_check_type">
             <outlet reference="message_holiday"
                     name="message_holiday"
                     value="message_holiday"/>
-            <outlet reference="message_type"
-                    name="message_type"
-                    value="message_type"/>
+            <outlet reference="flowcode_check_type"
+                    name="flowcode_check_type"
+                    value="flowcode_check_type"/>
             <outlet reference="message_cannot_order_now"
                     name="message_cannot_order_now"
                     value="message_cannot_order_now"/>
@@ -279,8 +274,7 @@
                         nextStepResult.outlet = 'message_cannot_order_now';
                     }
                     else {
-                        nextStepResult.outlet = 'message_type';
-                        nextStepResult.defaultValue = flowParams.sandwichType
+                        nextStepResult.outlet = 'flowcode_check_type';
                     }
                     return nextStepResult;
 
@@ -383,5 +377,69 @@
                 }
             </javascriptCode>
         </flowCode>
+
+        <flowCode id="flowcode_check_type"
+                  exceptionReference="message_exception">
+            <outlet name="show_types" value="show_types" reference="message_type"/>
+            <outlet name="skip_types" value="skip_types" reference="flowcode_check_toppings"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun){
+                    "use strict";
+                    var typesCount = {{ types|length }};
+                    var out;
+
+                    if (typesCount &lt;= 1) {
+                        out = 'skip_types';
+                    } else {
+                        out = 'show_types';
+                    }
+
+                    return {
+                        outlet: out,
+                        defaultValue: messageFlowRun.flow_params.sandwichType
+                    };
+                }
+            </javascriptCode>
+        </flowCode>
+
+        <flowCode id="flowcode_check_toppings"
+                  exceptionReference="message_exception">
+            <outlet name="show_toppings" value="show_toppings" reference="message_topping"/>
+            <outlet name="skip_toppings" value="skip_toppings" reference="{% if options|length > 0 %}flowcode_message_customize{% else %}flowcode_set_takeaway_time_constraints{% endif %}"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun){
+                    "use strict";
+                    var toppingsCount = {{ toppings|length }};
+                    var out;
+
+                    if (toppingsCount &lt;= 1) {
+                        out = 'skip_toppings';
+                    } else {
+                        out = 'show_toppings';
+                    }
+
+                    return {
+                        outlet: out,
+                        defaultValue: messageFlowRun.flow_params.sandwichTopping
+                    };
+                }
+            </javascriptCode>
+        </flowCode>
+
+        <message id="message_exception"
+                 brandingKey="{{ branding_key }}"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 allowDismiss="false"
+                 vibrate="false"
+                 autoLock="true">
+            <content>{% translate language, 'common', 'error-occured-unknown-try-again' %}</content>
+            <answer action=""
+                    caption="{% translate language, 'common', 'okay-i-got-it' %}"
+                    id="button_ok"
+                    reference="end_cancel"/>
+        </message>
+
+
     </definition>
 </messageFlowDefinitionSet>
