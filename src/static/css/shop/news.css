@@ -33,25 +33,31 @@
 }
 
 .news-article {
-    width: 280px;
-    height: 400px;
-    padding: 0 50px 0 0;
+    width: 320px;
+    height: 380px;
+    margin: 16px;
+    display: inline-block;
+    overflow: auto;
 }
 
-.news-article h3 {
-    line-height: 30px;
+.news-article img {
+    max-height: 180px;
+}
+
+.article-text{
+    margin-top: 10px;
 }
 
 .play-button {
-    background: url("/static/images/YouTube-icon-dark.png") no-repeat;
+    background: url("/static/images/YouTube-icon-full_color.png") no-repeat;
     background-size: contain;
+    position: absolute;
     height: 72px;
     width: 72px;
     left: 50%;
     top: 55%;
     margin-left: -36px;
     margin-top: -36px;
-    position: absolute;
 }
 
 .youtube-player {

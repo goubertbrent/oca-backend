@@ -4,7 +4,7 @@
     ROUTES['dashboard-news'] = router;
 
     function router() {
-        showNews();
+        getNews();
     }
 
     function getNews() {
@@ -50,10 +50,6 @@
                     });
             });
         });
-    }
-
-    function showNews() {
-        getNews();
     }
 
 })();

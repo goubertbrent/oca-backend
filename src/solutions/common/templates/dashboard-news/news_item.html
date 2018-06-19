@@ -3,6 +3,8 @@
 <div id="dashboard-news">
     {{each(i, article) news}}
     <article class="news-article">
+        <h4>${article.title}</h4>
+        <p><i>${article.creation_time}</i></p>
         <div class="article-media">
             {{if article.media_type === 1}}
             <div class="youtube-container">
@@ -16,8 +18,7 @@
             <img src="${article.media}"/>
             {{/if}}
         </div>
-        <div class="article-content">
-            <h4>${article.title}</h4>
+        <div>
             <div class="article-text">
                 <p>{{html article.content}}</p>
             </div>

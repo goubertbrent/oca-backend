@@ -86,8 +86,7 @@
 
     function renderNewsPreview() {
         var html = $.tmpl(JS_TEMPLATES['dashboard-news/news_preview'], {
-            article: currentArticle,
-            date: sln.format(new Date())
+            article: {...currentArticle, creation_time: sln.format(new Date())},
         });
         $('#news-preview').html(html);
     }
