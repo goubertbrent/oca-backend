@@ -386,36 +386,38 @@ def loyalty_qr_register(service_user, user_details, origin, data):
 @returns()
 @arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], origin=unicode)
 def loyalty_qr_register_result(service_user, service_identity, user_details, origin):
-    if origin == "qr":
-        def trans():
-            sln_l_settings = SolutionLoyaltySettings.get_by_user(service_user)
-            if sln_l_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
-                default_functions = SolutionLoyaltySettings.FUNCTION_SLIDESHOW
-            else:
-                default_functions = SolutionLoyaltySettings.FUNCTION_SCAN | SolutionLoyaltySettings.FUNCTION_SLIDESHOW | SolutionLoyaltySettings.FUNCTION_ADD_REDEEM_LOYALTY_POINTS
+    if origin != 'qr':
+        raise NotImplementedError()
 
-            if is_default_service_identity(service_identity):
-                loyalty_settings = sln_l_settings
-            else:
-                loyalty_settings = SolutionLoyaltyIdentitySettings.get_by_user(service_user, service_identity)
+    def trans():
+        sln_l_settings = SolutionLoyaltySettings.get_by_user(service_user)
+        if sln_l_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
+            default_functions = SolutionLoyaltySettings.FUNCTION_SLIDESHOW
+        else:
+            default_functions = SolutionLoyaltySettings.FUNCTION_SCAN | SolutionLoyaltySettings.FUNCTION_SLIDESHOW | SolutionLoyaltySettings.FUNCTION_ADD_REDEEM_LOYALTY_POINTS
 
-            if loyalty_settings:
-                if user_details[0].email not in loyalty_settings.admins:
-                    loyalty_settings.admins.append(user_details[0].email)
-                    loyalty_settings.app_ids.append(user_details[0].app_id)
-                    old_name_index = loyalty_settings.name_index if loyalty_settings.name_index else len(
-                        loyalty_settings.admins)
-                    loyalty_settings.name_index = old_name_index + 1
-                    loyalty_settings.names.append("Tablet %s" % (loyalty_settings.name_index + 1))
-                    loyalty_settings.functions.append(default_functions)
-                    loyalty_settings.put()
-                    deferred.defer(_update_user_data_admin, service_user, service_identity,
-                                   user_details[0].email, user_details[0].app_id, _transactional=True)
-                    return True
-            return False
+        if is_default_service_identity(service_identity):
+            loyalty_settings = sln_l_settings
+        else:
+            loyalty_settings = SolutionLoyaltyIdentitySettings.get_by_user(service_user, service_identity)
 
-        if db.run_in_transaction(trans):
-            send_message(service_user, u"solutions.common.loyalty.settings.update", service_identity=service_identity)
+        if loyalty_settings:
+            if user_details[0].email not in loyalty_settings.admins:
+                loyalty_settings.admins.append(user_details[0].email)
+                loyalty_settings.app_ids.append(user_details[0].app_id)
+                old_name_index = loyalty_settings.name_index if loyalty_settings.name_index else len(
+                    loyalty_settings.admins)
+                loyalty_settings.name_index = old_name_index + 1
+                loyalty_settings.names.append("Tablet %s" % (loyalty_settings.name_index + 1))
+                loyalty_settings.functions.append(default_functions)
+                loyalty_settings.put()
+                deferred.defer(_update_user_data_admin, service_user, service_identity,
+                               user_details[0].email, user_details[0].app_id, _transactional=True)
+                return True
+        return False
+
+    if db.run_in_transaction(trans):
+        send_message(service_user, u"solutions.common.loyalty.settings.update", service_identity=service_identity)
 
 
 @returns(SendApiCallCallbackResultTO)
