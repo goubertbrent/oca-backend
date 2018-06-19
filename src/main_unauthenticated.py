@@ -26,7 +26,7 @@ from rogerthat.handlers.blobstore import CloudStorageBlobstoreHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
-    BeaconsAppValidateUrlHandler, CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
+    CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
@@ -56,7 +56,6 @@ handlers = [
     ('/shop/products/export', ExportProductsHandler),
     ('/shop/prospects/callback', ProspectCallbackHandler),
     ('/shop/prospects/discover/callback', ProspectDiscoverCallbackHandler),
-    ('/shop/beacons/app/validate_url', BeaconsAppValidateUrlHandler),
     ('/customers/map/([a-z-_]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
     ('/customers/setpassword', CustomerSetPasswordHandler),

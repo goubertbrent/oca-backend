@@ -129,7 +129,7 @@ class TestCase(mc_unittest.TestCase):
 
     def test_recurrent_billing(self):
         self.set_datastore_hr_probability(1)
-        products_to_order = [(u'MSUP', 12), (Product.PRODUCT_BEACON, 1)]
+        products_to_order = [(u'MSUP', 12)]
         subscription_order, customer = self._create_customer_and_subscription_order(products_to_order)
         self._create_service(customer)
         # Turn back next_charge_date more than 12 months

@@ -19,7 +19,6 @@
 var STORE_PRODUCTS = []; // loaded via ajax call
 var BUDGET = null;
 var PRODUCT_SHORT_NAMES = {
-    BEAC: CommonTranslations.beacon,
     BDGT: T('budget'),
     POSM: CommonTranslations.flyers,
     BNNR: CommonTranslations.rollup_banner,

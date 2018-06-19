@@ -204,7 +204,6 @@ def create_beac_product(legal_entity_id, code_prefix=''):
     p.organization_types = []
     p.product_dependencies = []
     p.visible = True
-    p.picture_url = "/static/images/solutions/flex/BEACON_PRESENTATIE.jpg"
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'

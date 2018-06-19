@@ -63,10 +63,6 @@ handlers:
   script: main_unauthenticated.app
   secure: always
 
-- url: /shop/beacons/app/validate_url
-  script: main_unauthenticated.app
-  secure: always
-
 - url: /shop/prospects/discover/callback
   script: main_unauthenticated.app
   secure: always

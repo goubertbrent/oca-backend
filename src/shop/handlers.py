@@ -15,37 +15,31 @@
 #
 # @@license_version:1.2@@
 
-import base64
 import binascii
 import datetime
 import json
 import logging
 import os
-import re
 import urllib
 
-from dateutil.relativedelta import relativedelta
+import webapp2
 from google.appengine.api import search, urlfetch, users as gusers
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
-import webapp2
 
+from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import unicode_property
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
-from mcfw.serialization import s_ushort
-from rogerthat.bizz.beacon import add_new_beacon
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
-from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.service import get_service_interaction_def, get_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
-from rogerthat.models import Beacon, App, ProfilePointer, ServiceProfile
+from rogerthat.models import ProfilePointer, ServiceProfile
 from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content
 from rogerthat.pages.login import SetPasswordHandler
 from rogerthat.rpc import users
@@ -55,7 +49,6 @@ from rogerthat.templates import get_languages_from_request
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer
 from rogerthat.utils.app import get_app_id_from_app_user
-from rogerthat.utils.crypto import md5_hex
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin, \
     validate_customer_url_data, get_customer_consents, update_customer_consents
@@ -258,105 +251,6 @@ def export_products():
         p['default_comment'] = product_model.default_comment(u'nl')
         products.append(p)
     return products
-
-
-class BeaconsAppValidateUrlHandler(webapp2.RequestHandler):
-
-    def post(self):
-        # this url is used in the beacon configurator app to override the uuid, major and minor
-        from rogerthat.pages.shortner import get_short_url_by_code
-        url = self.request.POST.get("url", None)
-        signature_client = self.request.POST.get("signature", None)
-        if not (url and signature_client):
-            logging.error("not all params given")
-            self.abort(500)
-            return
-
-        signature_client = signature_client.upper()
-        logging.info("validate beacon app url: %s and signature: %s", url, signature_client)
-        solution_server_settings = get_solution_server_settings()
-        signature_server = md5_hex(solution_server_settings.shop_beacons_app_secret % (url, url)).upper()
-        logging.info("signature server: %s", signature_server)
-        if not (url and signature_client == signature_server):
-            logging.error("signature did not match")
-            self.abort(500)
-            return
-
-        m = re.match("^(HTTP|http)(S|s)?://(.*)/(M|S)/(.*)$", url)
-        if not m:
-            logging.error("invalid url")
-            self.abort(500)
-            return
-
-        _, _, _, _, code = m.groups()
-        su = get_short_url_by_code(code)
-        logging.info("validate short url: %s", su.full)
-        if not su.full.startswith("/q/s/"):
-            logging.error("short url does not start with /q/s")
-            self.abort(500)
-            return
-
-        match = re.match("^/q/s/(.+)/(\\d+)$", su.full)
-        if not match:
-            logging.error("user_code not found in url")
-            self.abort(500)
-            return
-
-        user_code = match.group(1)
-        logging.info("validating user code: %s", user_code)
-        sid = match.group(2)
-        logging.info("validating sid: %s", sid)
-        pp = ProfilePointer.get_by_key_name(user_code)
-        if not pp:
-            logging.error("ProfilePointer not found")
-            self.abort(500)
-            return
-
-        sid = get_service_interaction_def(pp.user, int(sid))
-        if not sid:
-            logging.error("sid not found")
-            self.abort(500)
-            return
-
-        si = get_service_identity(sid.service_identity_user)
-
-        if not si:
-            logging.error("service_identity not found")
-            self.abort(500)
-            return
-
-        def trans():
-            beacon = Beacon.all().ancestor(parent_key(si.service_user)).get()
-            if beacon:
-                return beacon.uuid, beacon.name
-            app = App.get(App.create_key(si.app_id))
-            app.beacon_last_minor = app.beacon_last_minor + 1
-            name = "%s|%s" % (app.beacon_major, app.beacon_last_minor)
-            logging.info("add_new_beacon: %s", name)
-            if not add_new_beacon(app.beacon_uuid, name, u'Autoconnect', si.service_identity_user):
-                raise Exception("Beacon already exists")
-
-            app.put()
-            return app.beacon_uuid, name
-
-        xg_on = db.create_transaction_options(xg=True)
-        beacon_uuid, beacon_name = db.run_in_transaction_options(xg_on, trans)
-
-        major, minor = beacon_name.split("|")
-        logging.info("Auto connecting beacon %s to service %s", beacon_name, si.service_identity_user)
-
-        outfile = StringIO()
-        s_ushort(outfile, int(major))
-        s_ushort(outfile, int(minor))
-        id_ = base64.b64encode(outfile.getvalue())
-
-        self.response.headers['Content-Type'] = 'text/json'
-        self.response.write(json.dumps({"uuid": beacon_uuid,
-                                        "major": int(major),
-                                        "minor": int(minor),
-                                        "email": si.qualifiedIdentifier,
-                                        "name": si.name,
-                                        "id": id_}))
 
 
 class GenerateQRCodesHandler(webapp2.RequestHandler):

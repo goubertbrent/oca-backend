@@ -49,9 +49,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_no_reply_email = add_meta(db.StringProperty(indexed=False),
                                    doc="The email address that is used as reply-to in all no-reply e-mails.",
                                    order=304)
-    shop_beacons_app_secret = add_meta(db.StringProperty(indexed=False),
-                                       doc="The secret used to secure the overriding of a beacon and connecting it to a service (should contain %s 2 times)",
-                                       order=305)
     shop_customer_extention_emails = add_meta(db.StringListProperty(indexed=False),
                                               doc="The email addresses that will receive an email with customers that need extention",
                                               order=306)
