@@ -19,11 +19,7 @@
         {{each(i, item) items}}
         <tr>
             <td class="span2 align-top"><a href="#/shop/product/${item.product}">${item.product}</a></td>
-            {{if item.app_id}}
-            <td class="description span6 align-top">${item.service_visible_in}</td>
-            {{else}}
             <td class="description span6 align-top">${item.description}</td>
-            {{/if}}
             {{if checkout}}<td></td>{{/if}}
             <td class="price span1 text-right align-top">${LEGAL_ENTITY_CURRENCY} ${item.price/100}</td>
             <td class="count span1 text-right align-top">${item.count}</td>
@@ -69,7 +65,7 @@
     <div class="padding-top row">
     {{if items.length}}
         {{if !checkout}}
-            <a href="#/shop/product/XCTY" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.continue_shopping}</a>
+            <a href="#/shop/product/BDGT" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.continue_shopping}</a>
             <a href="#/shop/cart/checkout" class="btn btn-success pull-right"><i class="fa fa-arrow-right"></i> ${t.continue_order}</a>
         {{else}}
             {{if !customBackButton}}
@@ -86,7 +82,7 @@
         {{/if}}
     {{else}}
         <div class="cart-empty">
-            <a href="#/shop/product/XCTY" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.to_store}</a>
+            <a href="#/shop/product/BDGT" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.to_store}</a>
 
         </div>
     {{/if}}

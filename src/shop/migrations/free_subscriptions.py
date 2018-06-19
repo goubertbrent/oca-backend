@@ -87,7 +87,6 @@ def _replace_subscription_order(order_key, products, paying_subscription_product
         free_item.number = 0
         free_item.price = 0
         free_item.product = Product.PRODUCT_FREE_SUBSCRIPTION
-        free_item.service_visible_in = None
         new_order_items.append(free_item)
 
         new_order = create_order(customer, old_order.contact_id, new_order_items, replace=True,

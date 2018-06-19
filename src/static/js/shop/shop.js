@@ -302,9 +302,6 @@ var type_ahead_options = {
                     }
                 });
             }
-            if ($this.val() === 'XCTY') {
-                show = false;
-            }
             $this.toggle(show);
         });
         return customer.name;
@@ -831,8 +828,6 @@ var showNewOrder = function () {
     getLegalEntity(function (legalEntity) {
         // Show gold/silver/platinum buttons for mobicage entity
         $('#subscription-buttons').toggle(legalEntity.is_mobicage);
-        var elemButtonAddExtraCity = $('#button_add_extra_city').toggle(legalEntity.is_mobicage);
-        var elemButtonActionExtraCities = $('#button_action_extra_cities').toggle(legalEntity.is_mobicage);
         if (!legalEntity.is_mobicage) {
             return;
         }
@@ -860,50 +855,6 @@ var showNewOrder = function () {
             recalc_totals();
             $this.parent().find('button').css('opacity', 0.5);
             $this.css('opacity', 1);
-        });
-        elemButtonAddExtraCity.unbind('click').click(function () {
-            var product = products.XCTY.code;
-            var count = products.XCTY.default_count;
-            // fetch the remaining duration of the subscription order, if there is one.
-            getSubscriptionOrderRemainingLength(function (data) {
-                if (data.success && !data.errormsg) {
-                    count = data.subscription_length;
-                }
-                else if (data.errormsg) {
-                    // Should only happen when the customer is not found. AKA never
-                    sln.alert(data.errormsg);
-                }
-                else {
-                    // No subscription yet.
-                    count = getSubscriptionLength();
-                }
-                var comment = products.XCTY.default_comment;
-                var mode = 'new';
-                add_order_item(product, count, comment, mode);
-                recalc_totals();
-            });
-        });
-        elemButtonActionExtraCities.unbind('click').click(function () {
-            var product = products.A3CT.code;
-            var count = products.A3CT.default_count;
-            // fetch the remaining duration of the subscription order, if there is one.
-            getSubscriptionOrderRemainingLength(function (data) {
-                if (data.success && !data.errormsg) {
-                    count = data.subscription_length;
-                }
-                else if (data.errormsg) {
-                    // Should only happen when the customer is not found. AKA never
-                    sln.alert(data.errormsg);
-                }
-                else {
-                    // No subscription yet.
-                    count = getSubscriptionLength();
-                }
-                var comment = products.A3CT.default_comment;
-                var mode = 'new';
-                add_order_item(product, count, comment, mode);
-                recalc_totals();
-            });
         });
     });
 };

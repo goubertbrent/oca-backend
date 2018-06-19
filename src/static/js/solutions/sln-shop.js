@@ -21,12 +21,10 @@ var BUDGET = null;
 var PRODUCT_SHORT_NAMES = {
     BEAC: CommonTranslations.beacon,
     BDGT: T('budget'),
-    XCTY: CommonTranslations.apps,
     POSM: CommonTranslations.flyers,
     BNNR: CommonTranslations.rollup_banner,
     KKRT: CommonTranslations.loyalty_cards
 };
-var EXTRA_CITY_CODE = 'XCTY', EXTRA_CITY_PRICE = 0;
 var cart = [], ccInfo, callBackAfterCCLinked;
 
 ROUTES.shop = shopRouter;
@@ -56,19 +54,14 @@ function renderItem(productCode){
     tabs.show();
     tabs.find("li[id^='product-']").removeClass('active');
     $('#product-' + productCode).addClass('active');
-    // Different kind of page only for the extra city product.
     var foundProducts = STORE_PRODUCTS.filter(function (p) {
         return p.code === productCode;
     });
     if (!foundProducts.length && STORE_PRODUCTS.length) {
         window.location.hash = '/shop/product/' + STORE_PRODUCTS[0].code;
-        return;
-    } else if (productCode === EXTRA_CITY_CODE) {
-        renderApps();
-    }else{
+    } else {
         renderProduct(productCode);
     }
-    renderGlobals();
 }
 
 function renderProduct(argument) {
@@ -111,35 +104,19 @@ function renderProduct(argument) {
 }
 
 function renderGlobals(){
-    var cartCount = '', appsCount = '';
-    if(cart.length){
+    var cartCount = '';
+    if (cart.length) {
         cartCount = '(' + cart.length + ')';
-        appsCount = cart.filter(function (c) {
-            return c.app_id;
-        }).length;
     }
-    if (appsCount) {
-        appsCount = '(' + appsCount + ')';
-    } else {
-        appsCount = '';
-    }
-    $('.cart-item-count-apps').text(appsCount);
     $('.cart-item-count').text(cartCount);
 }
 
 function renderCartInternal(checkout) {
     var totalExclVat = 0, vat = 0, total = 0;
     $.each(cart, function(i, product){
-        if (product.product === EXTRA_CITY_CODE) {
-            var appName = ALL_APPS.filter(function(p){
-                return p.id === product.app_id;
-            })[0].name;
-            product.service_visible_in = product.service_visible_in.replace(/%\(app_name\)s/g, appName);
-        }else{
-             product.description = STORE_PRODUCTS.filter(function(p){
-                 return p.code === product.product;
-            })[0].description;
-        }
+        product.description = STORE_PRODUCTS.filter(function (p) {
+            return p.code === product.product;
+        })[0].description;
         var tot = product.price * product.count/100;
         var vatTemp = tot * VAT_PCT / 100;
         totalExclVat += tot;
@@ -279,61 +256,6 @@ function renderCart(checkout) {
     }
 }
 
-function renderApps(data) {
-    if(!data){
-        data = {};
-    }
-    var available = [], active = [], ordered = [], orderedApps = [];
-    for(var i = 0; i < cart.length; i++){
-        if(cart[i].app_id){
-            orderedApps.push(cart[i].app_id);
-        }
-    }
-    for (i = 0; i < ALL_APPS.length; i++) {
-        if (ACTIVE_APPS.indexOf(ALL_APPS[i].id) !== -1) {
-            active.push(ALL_APPS[i]);
-        } else if (orderedApps.indexOf(ALL_APPS[i].id) !== -1) {
-            ordered.push(ALL_APPS[i]);
-        }else{
-            var app = ALL_APPS[i];
-            app.price = (EXTRA_CITY_PRICE / 100).toFixed(2);
-            available.push(app);
-        }
-    }
-    var html = $.tmpl(templates['shop/apps'], {
-        ACTIVE_APPS: active,
-        orderedApps: ordered,
-        availableApps: available,
-        error: data.error,
-        t: CommonTranslations,
-        LEGAL_ENTITY_CURRENCY: LEGAL_ENTITY_CURRENCY
-    });
-    $('#store-current-page').html(html);
-    $('#ordered-apps').find('button').click(function(){
-        var app = $(this).attr('data-app-id');
-        // Find the item in the cart that has this cityapp id
-        var orderItem = cart.filter(function(cartitem){
-            return cartitem.app_id == app;
-        })[0];
-        if(orderItem){
-            removeItemFromCart(orderItem, renderApps);
-        }else{
-            //re-render with error msg
-            renderApps({error: CommonTranslations.item_already_remove.replace('%s', app)});
-        }
-    });
-
-    $('#available-apps').find('button').click(function(){
-        var $this = $(this);
-        if($this.attr('disabled')){
-            return;
-        }
-        var app = $(this).attr('disabled', true).attr('data-app-id');
-        addItemToCart({app_id: app, code: EXTRA_CITY_CODE}, renderApps);
-    });
-    renderGlobals();
-}
-
 function removeItemFromCart(item, renderFx){
     var options = {
         method: 'post',
@@ -380,7 +302,7 @@ function addItemToCart(item, renderFx, productCode) {
                 var newItem = data.order_item;
                 var hasItem = false;
                 for(var i = 0; i < cart.length; i++){
-                    if(cart[i].product === newItem.product && newItem.product !== EXTRA_CITY_CODE) {
+                    if (cart[i].product === newItem.product) {
                         cart[i].count = newItem.count;
                         hasItem = true;
                     }
@@ -412,9 +334,6 @@ function getStoreProducts(callback) {
                     $('#shop-tabs').append(
                         '<li id="product-' + prod.code + '"><a href="#/shop/product/' + prod.code + '">'
                         + PRODUCT_SHORT_NAMES[prod.code] + '</a></li>');
-                    if (prod.code === EXTRA_CITY_CODE) {
-                        EXTRA_CITY_PRICE = prod.price;
-                    }
                 }
                 getOrderItems(callback);
             },

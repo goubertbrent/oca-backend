@@ -136,14 +136,14 @@ def create_xcty_product(legal_entity_id, code_prefix=''):
     p.possible_counts = range(1, 37)
     p.is_subscription = False
     p.is_subscription_discount = False
-    p.is_subscription_extension = True
+    p.is_subscription_extension = False  # Disable recurrent billing for this product as we're no longer offering it
     p.organization_types = []
     p.product_dependencies = ['|'.join(['%s%s:-1' % (code_prefix, product_code)
                                         for product_code in ('MSUP', 'MSSU', 'SSUP', 'SSZP', 'CSUB',
                                                              Product.PRODUCT_FREE_PRESENCE,
                                                              Product.PRODUCT_FREE_SUBSCRIPTION)])]
     p.picture_url = ""
-    p.visible = True
+    p.visible = False
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -163,7 +163,7 @@ def create_xctd_product(legal_entity_id, code_prefix=''):
     p.organization_types = []
     p.product_dependencies = ['%(code_prefix)sXCTY:-1' % dict(code_prefix=code_prefix)]
     p.picture_url = ""
-    p.visible = True
+    p.visible = False
     p.legal_entity_id = legal_entity_id
     p.default_comment_translation_key = ''
     if code_prefix:
@@ -185,7 +185,7 @@ def create_a3ct_product(legal_entity_id, code_prefix=''):
         '%(code_prefix)sMSUP:-1|%(code_prefix)sMSSU:-1|%(code_prefix)sSSUP:-1|%(code_prefix)sSSZP:-1|%(code_prefix)sOCAP:-1' % dict(
             code_prefix=code_prefix)]
     p.picture_url = ""
-    p.visible = bool(code_prefix)  # only for legal entities other than mobicage
+    p.visible = False
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'

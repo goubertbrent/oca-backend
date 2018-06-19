@@ -53,13 +53,6 @@ $(document).ready(function () {
                 var possibleCountSelect = $('#possible_order_item_count');
                 possibleCountSelect.empty();
                 var count = product.default_count;
-                if (productCode === 'XCTY') {
-                    if (currentSubscription === 'gold') {
-                        count *= 2;
-                    } else if (currentSubscription === 'platinum') {
-                        count *= 3;
-                    }
-                }
                 $.each(product.possible_counts, function (i, o) {
                     possibleCountSelect.append($('<option></option>').attr('value', o).text(o));
                 });
@@ -110,7 +103,7 @@ function getSubscriptionOrderRemainingLength(callback) {
         if(mode == 'new') {
             $('#new_order table tbody > tr').each(function () {
                 var item = $(this).data('order_item');
-                if (item.product == product && product != 'XCTY') {
+                if (item.product === product) {
                     var err = $('#duplicate_error');
                     err.find('span').text('The product ' + product + ' has already been added');
                     err.slideDown(700).delay(5000).slideUp(700);
@@ -130,7 +123,7 @@ function getSubscriptionOrderRemainingLength(callback) {
                 tr.data('order_item', order_item);
                 tr.unbind('click').click(edit_order_item);
                 $('#new_order table tbody').append(tr);
-                if (mode != 'new') {
+                if (mode !== 'new') {
                     $('#order_item_form').data('tr').detach();
                 }
             });

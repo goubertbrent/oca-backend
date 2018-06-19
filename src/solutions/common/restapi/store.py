@@ -15,32 +15,25 @@
 #
 # @@license_version:1.2@@
 
-import datetime
 import logging
 from contextlib import closing
 
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 
-from babel.dates import format_date
-from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.service import re_index
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.service import get_default_service_identity
-from rogerthat.models import App
 from rogerthat.models.utils import copy_model_properties, allocate_id
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import RETURNSTATUS_TO_SUCCESS, ReturnStatusTO
-from rogerthat.utils import now, channel, today, format_price
+from rogerthat.utils import now, channel, today
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import send_order_email, update_regiomanager_statistic, generate_order_or_invoice_pdf, create_task, \
     get_payed, broadcast_task_updates
 from shop.business.legal_entities import get_vat_pct
-from shop.business.order import get_subscription_order_remaining_length
 from shop.business.prospect import create_prospect_from_customer
 from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
@@ -70,32 +63,7 @@ def get_order_items():
     order_key = Order.create_key(customer.id, Order.CUSTOMER_STORE_ORDER_NUMBER)
     order = Order.get(order_key)
     if order:
-        sln_settings = get_solution_settings(service_user)
-        lang = sln_settings.main_language
-        remaining_length, sub_order = get_subscription_order_remaining_length(customer.id,
-                                                                              customer.subscription_order_number)
-        subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
-                                                     locale=lang)
-        order_items = list(OrderItem.list_by_order(order_key))
-        order_items_updated = list()
-        to_put = list()
-        to_get = list(set([Product.create_key(o.product_code) for o in order_items] + [
-            Product.create_key(Product.PRODUCT_EXTRA_CITY)]))
-        products = {p.code: p for p in db.get(to_get)}
-        # update the order items if necessary.
-        for order_item in order_items:
-            if products[order_item.product_code].is_subscription_extension and order_item.count != remaining_length:
-                order_item.count = remaining_length
-                to_put.append(order_item)
-            order_items_updated.append(order_item)
-        if to_put:
-            db.put(to_put)
-        extra_city_price = format_price(products[Product.PRODUCT_EXTRA_CITY].price, sln_settings.currency)
-        service_visible_in_translation = translate(lang, SOLUTION_COMMON, 'service_visible_in_app',
-                                                   subscription_expiration_date=subscription_order_charge_date,
-                                                   amount_of_months=remaining_length, extra_city_price=extra_city_price,
-                                                   app_name='%(app_name)s')
-        return [OrderItemTO.create(i, service_visible_in_translation) for i in order_items_updated]
+        return [OrderItemTO.create(i) for i in OrderItem.list_by_order(order_key)]
     else:
         return []
 
@@ -107,9 +75,7 @@ def get_products():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     keys = [Product.create_key(Product.PRODUCT_BUDGET)]
-    if SolutionModule.CITY_APP not in sln_settings.modules:  # city apps cannot order more city apps
-        pass  # keys.append(Product.create_key(Product.PRODUCT_EXTRA_CITY))
-    else:
+    if SolutionModule.CITY_APP in sln_settings.modules:
         keys.append(Product.create_key(Product.PRODUCT_ROLLUP_BANNER))
     return [ProductTO.create(p, sln_settings.main_language) for p in Product.get(keys)]
 
@@ -151,38 +117,21 @@ def add_item_to_order(item):
     azzert(customer)
     contact = Contact.get_one(customer)
     azzert(contact)
-    sln_settings = get_solution_settings(service_user)
-    lang = sln_settings.main_language
-
-    # Check if the customer his service isn't already enabled in this city
-    if item.app_id in customer.app_ids:
-        raise BusinessException(translate(lang, SOLUTION_COMMON, u'service_already_active'))
 
     def trans():
-        to_put = list()
+        to_put = []
         customer_store_order_key = Order.create_key(customer.id, Order.CUSTOMER_STORE_ORDER_NUMBER)
-        subscription_order_key = Order.create_key(customer.id, customer.subscription_order_number)
         team_key = RegioManagerTeam.create_key(customer.team_id)
         product_key = Product.create_key(item.code)
 
-        if item.app_id is not MISSING:
-            app_key = App.create_key(item.app_id)
-            product, customer_store_order, sub_order, app, team = db.get(
-                [product_key, customer_store_order_key, subscription_order_key, app_key, team_key])
-            if sub_order.status != Order.STATUS_SIGNED:
-                raise BusinessException(translate(lang, SOLUTION_COMMON, u'no_unsigned_order'))
-            # check if the provided app does exist
-            azzert(app)
-        else:
-            product, customer_store_order, team = db.get([product_key, customer_store_order_key, team_key])
+        product, customer_store_order, team = db.get([product_key, customer_store_order_key, team_key])
 
         # Check if the item has a correct count.
         # Should never happen unless the user manually recreates the ajax request..
         azzert(
-            not product.possible_counts or item.count in product.possible_counts or item.code == Product.PRODUCT_EXTRA_CITY,
-            u'Invalid amount of items supplied')
+            not product.possible_counts or item.count in product.possible_counts, u'Invalid amount of items supplied')
         number = 0
-        existing_order_items = list()
+        existing_order_items = []
         vat_pct = get_vat_pct(customer, team)
         item_already_added = False
         if not customer_store_order:
@@ -203,66 +152,41 @@ def add_item_to_order(item):
             for i in order_items:
                 number = i.number if i.number > number else number
                 existing_order_items.append(i)
-                # Check if this city isn't already in the possible pending order.
-                if hasattr(i, 'app_id') and (i.app_id == item.app_id or item.app_id in customer.app_ids):
-                    raise BusinessException(translate(lang, SOLUTION_COMMON, u'item_already_added'))
-                else:
-                    # Check if there already is an orderitem with the same product code.
-                    # If so, add the count of this new item to the existing item.
-                    for it in order_items:
-                        if it.product_code == item.code and it.product_code not in (
-                                Product.PRODUCT_EXTRA_CITY, Product.PRODUCT_NEWS_PROMOTION):
-                            if (it.count + item.count) in product.possible_counts or not product.possible_counts:
-                                it.count += item.count
-                                item_already_added = True
-                                to_put.append(it)
-                                order_item = it
-                            elif len(product.possible_counts) != 0:
-                                raise BusinessException(
-                                    translate(lang, SOLUTION_COMMON, u'cant_order_more_than_specified',
-                                              allowed_items=max(product.possible_counts)))
-
-        if item.app_id is not MISSING:
-            remaining_length, _ = get_subscription_order_remaining_length(customer.id,
-                                                                          customer.subscription_order_number)
-            subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
-                                                         locale=lang)
-            total = remaining_length * product.price
-        else:
-            total = product.price * item.count
+                # Check if there already is an orderitem with the same product code.
+                # If so, add the count of this new item to the existing item.
+                for it in order_items:
+                    if it.product_code == item.code and it.product_code != Product.PRODUCT_NEWS_PROMOTION:
+                        if (it.count + item.count) in product.possible_counts or not product.possible_counts:
+                            it.count += item.count
+                            item_already_added = True
+                            to_put.append(it)
+                            order_item = it
+                        elif len(product.possible_counts) != 0:
+                            raise BusinessException(
+                                translate(customer.language, SOLUTION_COMMON, u'cant_order_more_than_specified',
+                                          allowed_items=max(product.possible_counts)))
+        total = product.price * item.count
         vat = total * vat_pct / 100
         total_price = total + vat
         customer_store_order.amount += total
         customer_store_order.vat += vat
         azzert(customer_store_order.total_amount >= 0)
         customer_store_order.total_amount += total_price
-        service_visible_in_translation = None
         if not item_already_added:
             order_item = OrderItem(parent=customer_store_order.key())
             order_item.number = number
             order_item.comment = product.default_comment(customer.language)
             order_item.product_code = product.code
-            if item.app_id is not MISSING:
-                order_item.count = remaining_length
-                service_visible_in_translation = translate(lang, SOLUTION_COMMON, 'service_visible_in_app',
-                                                           subscription_expiration_date=subscription_order_charge_date,
-                                                           amount_of_months=remaining_length,
-                                                           extra_city_price=product.price_in_euro,
-                                                           app_name=app.name)
-            else:
-                order_item.count = item.count
+            order_item.count = item.count
             order_item.price = product.price
-
-            if item.app_id is not MISSING:
-                order_item.app_id = item.app_id
             to_put.append(order_item)
         to_put.append(customer_store_order)
         db.put(to_put)
-        return order_item, service_visible_in_translation
+        return order_item
 
     try:
-        order_item, service_visible_in_translation = run_in_xg_transaction(trans)
-        return OrderItemReturnStatusTO.create(True, None, order_item, service_visible_in_translation)
+        new_item = run_in_xg_transaction(trans)
+        return OrderItemReturnStatusTO.create(True, None, new_item)
     except BusinessException as exception:
         return OrderItemReturnStatusTO.create(False, exception.message, None)
 
@@ -287,6 +211,8 @@ def pay_order():
     old_order_key = Order.create_key(customer.id, Order.CUSTOMER_STORE_ORDER_NUMBER)
 
     charge_id_cache = []
+
+    CREATE_SHOPTASK_FOR_ITEMS = [Product.PRODUCT_ROLLUP_BANNER, Product.PRODUCT_CARDS]
 
     def trans():
         old_order, team = db.get((old_order_key, RegioManagerTeam.create_key(customer.team_id)))
@@ -318,8 +244,7 @@ def pay_order():
         if is_subscription_extension_order:
             subscription_order = Order.get_by_order_number(customer.id, customer.subscription_order_number)
             new_order.next_charge_date = subscription_order.next_charge_date
-        added_apps = []
-        should_create_shoptask = not is_demo
+        should_create_shoptask = False
         added_budget = 0
         budget_description = None
         for old_item in old_order_items:
@@ -327,9 +252,7 @@ def pay_order():
             new_item = OrderItem(parent=new_order_key, **properties)
             to_put.append(new_item)
             to_delete.append(old_item)
-            if hasattr(old_item, 'app_id'):
-                added_apps.append(old_item.app_id)
-            else:
+            if old_item.clean_product_code in CREATE_SHOPTASK_FOR_ITEMS:
                 should_create_shoptask = True
             if old_item.clean_product_code == Product.PRODUCT_BUDGET:
                 budget_description = all_products[old_item.product_code].description(language)
@@ -367,18 +290,6 @@ def pay_order():
         # Update the regiomanager statistics so these kind of orders show up in the monthly statistics
         deferred.defer(update_regiomanager_statistic, gained_value=new_order.amount / 100,
                        manager=new_order.manager, _transactional=True)
-
-        # Update the customer service
-        si = get_default_service_identity(users.User(customer.service_email))
-        si.appIds.extend(added_apps)
-        si.put()
-        deferred.defer(re_index, si.user)
-
-        # Update the customer object so the newly added apps are added.
-        customer.app_ids.extend(added_apps)
-        customer.extra_apps_count += len(added_apps)
-        customer.put()
-
         if not is_demo:
             # charge the credit card
             get_payed(customer.id, new_order, charge)

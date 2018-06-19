@@ -1049,7 +1049,6 @@ NewsWizard.prototype = {
                                         product: promotionProduct.code,
                                         app_id: currentAppId
                                     };
-                                    sponsoredOrderItem.service_visible_in = sponsoredOrderItem.comment;
                                     orderItems.push(sponsoredOrderItem);
                                     orderItemNumber++;
                                 }
@@ -1068,7 +1067,6 @@ NewsWizard.prototype = {
                                         product: extraAppProduct.code,
                                         number: orderItemNumber
                                     };
-                                    extraCityOrderItem.service_visible_in = extraCityOrderItem.comment;
                                     orderItems.push(extraCityOrderItem);
                                     orderItemNumber++;
                                 }

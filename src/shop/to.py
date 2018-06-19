@@ -253,10 +253,9 @@ class OrderItemTO(SerializableTO):
     count = long_property('4')
     price = long_property('5')
     app_id = unicode_property('6')
-    service_visible_in = unicode_property('7')
 
     @classmethod
-    def create(cls, model, subscription_order_date=None):
+    def create(cls, model):
         item = OrderItemTO()
         item.id = model.key().id()
         item.number = model.number
@@ -265,10 +264,6 @@ class OrderItemTO(SerializableTO):
         item.count = model.count
         item.price = model.price
         item.app_id = getattr(model, 'app_id', None)  # dynamic property
-        if item.app_id:
-            item.service_visible_in = subscription_order_date
-        else:
-            item.service_visible_in = None
         return item
 
 
@@ -806,10 +801,10 @@ class OrderItemReturnStatusTO(ReturnStatusTO):
     order_item = typed_property('5', OrderItemTO)
 
     @classmethod
-    def create(cls, success=True, errormsg=None, order_item=None, service_visible_in_translation=None):
+    def create(cls, success=True, errormsg=None, order_item=None):
         r = super(OrderItemReturnStatusTO, cls).create(success, errormsg)
         if order_item:
-            r.order_item = OrderItemTO.create(order_item, service_visible_in_translation)
+            r.order_item = OrderItemTO.create(order_item)
         else:
             r.order_item = None
         return r
