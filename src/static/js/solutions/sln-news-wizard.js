@@ -1576,7 +1576,7 @@ NewsWizard.prototype = {
         function stepChanged(data) {
             var step = self.steps[currentStep];
 
-            if (step.tab === 0 && (MODULES.indexOf('loyalty') === -1 || ocaLoyaltyLimited)) {
+            if (step.tab === 0 && (MODULES.indexOf('loyalty') === -1 || OCA_LOYALTY_LIMITTED)) {
                 nextStep();
                 return;
         	}

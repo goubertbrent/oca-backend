@@ -91,14 +91,13 @@ $(function () {
     }
 
     modules.news.getEstimatedReach = function(reach) {
-        console.log('getEstimatedReach: ' + reach);
         // 1/8th - 1/4th
         return [Math.round(reach * 0.125), Math.round(reach * 0.25)].join(' - ');
-    }
+    };
 
     modules.news.getEstimatedCost = function(reach, currency) {
         var maxCost = reach * 50.00 / 10000;
         // 1/8th - 1/4th
         return [currency, (maxCost * 0.125).toFixed(2), '-', currency, (maxCost * 0.25).toFixed(2)].join(' ');
-    }
+    };
 });

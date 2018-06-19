@@ -60,12 +60,11 @@ def rest_get_news_statistics(news_id):
            type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)),
            app_ids=[unicode], scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
            broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO,
-           role_ids=[(int, long)], qr_code_content=unicode, tag=unicode)
+           role_ids=[(int, long)], tag=unicode)
 def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
                        type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
                        scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
-                       facebook_access_token=None, target_audience=None, role_ids=None, qr_code_content=None,
-                       tag=None):
+                       facebook_access_token=None, target_audience=None, role_ids=None, tag=None):
     """
     Args:
         title (unicode)
@@ -76,7 +75,6 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         action_button (NewsButtonTO)
         order_items (list of OrderItemTO)
         type (int)
-        qr_code_content (unicode)
         qr_code_caption (unicode)
         app_ids (list of unicode)
         scheduled_at (long)
@@ -86,7 +84,6 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         facebook_access_token (unicode): user or page access token
         target_audience (NewsTargetAudienceTO)
         role_ids (list of long)
-        qr_code_content (unicode)
         tag (unicode)
     """
     service_user = users.get_current_user()
@@ -103,7 +100,7 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
             service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
             order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
             broadcast_on_twitter, facebook_access_token, target_audience=target_audience, role_ids=role_ids,
-            host=host, qr_code_content=qr_code_content, tag=tag, accept_missing=True)
+            host=host, tag=tag, accept_missing=True)
     except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
         try:
