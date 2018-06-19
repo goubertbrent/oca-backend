@@ -17,6 +17,7 @@ export class Config {
   TEMP_FILES: string[] = [
     '**/*___jb_tmp___',
     '**/*~',
+    '*.pyc',
   ];
 }
 

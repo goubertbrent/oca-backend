@@ -337,6 +337,7 @@ NewsWizard.prototype = {
             nextNewsItemTime: this.broadcastOptions.next_news_item_time,
             broadcastTypes: this.broadcastOptions.editable_broadcast_types,
             promotionProduct: this.broadcastOptions.news_promotion_product,
+            regionalNewsEnabled: this.broadcastOptions.regional_news_enabled,
             product_counts_labels: promotionProduct.possible_counts.map(function (c) {
                 return T('days_amount', {amount: c});
             }),

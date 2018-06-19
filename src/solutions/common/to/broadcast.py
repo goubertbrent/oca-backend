@@ -72,10 +72,11 @@ class BroadcastOptionsTO(TO):
     can_order_extra_apps = bool_property('7')
     roles = typed_property('8', RoleTO, True)
     news_settings = typed_property('9', dict)
+    regional_news_enabled = bool_property('regional_news_enabled')
 
     def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
                  extra_city_product=None, news_enabled=False, subscription_info=None, can_order_extra_apps=True,
-                 roles=None, news_settings=None):
+                 roles=None, news_settings=None, regional_news_enabled=False):
         if editable_broadcast_types is None:
             editable_broadcast_types = []
         if broadcast_types is None:
@@ -92,3 +93,4 @@ class BroadcastOptionsTO(TO):
         self.can_order_extra_apps = can_order_extra_apps
         self.roles = roles
         self.news_settings = news_settings.to_dict() if news_settings else {}
+        self.regional_news_enabled = regional_news_enabled

@@ -201,10 +201,11 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     Returns:
         news_item (NewsBroadcastItemTO)
     """
+    NEWS_TAG = u'news'
     if not order_items or order_items is MISSING:
         order_items = []
     if not tag or tag is MISSING:
-        tag = u'news'
+        tag = NEWS_TAG
     if news_type == NewsItem.TYPE_QR_CODE:
         sln_settings = get_solution_settings(get_service_user_from_service_identity_user(service_identity_user))
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
@@ -248,26 +249,27 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         app_ids.remove(App.APP_ID_ROGERTHAT)
 
     feed_names = []
-    if tag == u'news':
-        if default_app.demo:
-            # For demo apps the following rules count
-            # Extra apps selected --> post in REGIONAL NEWS in the demo app
-            # No extra apps selected --> post in LOCAL NEWS in the demo app
-            if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
-                pass  # LOCAL NEWS
+    if is_regional_news_enabled(default_app):
+        if tag == NEWS_TAG:
+            if default_app.demo:
+                # For demo apps the following rules count
+                # Extra apps selected --> post in REGIONAL NEWS in the demo app
+                # No extra apps selected --> post in LOCAL NEWS in the demo app
+                if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
+                    pass  # LOCAL NEWS
+                else:
+                    feed_names.append(NewsFeedNameTO(default_app.app_id, u'regional_news'))  # REGIONAL NEWS
+                app_ids = [default_app.app_id]
             else:
-                feed_names.append(NewsFeedNameTO(default_app.app_id, u'regional_news'))  # REGIONAL NEWS
-            app_ids = [default_app.app_id]
+                for app_id in app_ids:
+                    if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
+                        feed_names.append(NewsFeedNameTO(app_id, u'regional_news'))
         else:
-            for app_id in app_ids:
-                if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
-                    feed_names.append(NewsFeedNameTO(app_id, u'regional_news'))
-    else:
-        if default_app.demo:
-            feed_names.append(NewsFeedNameTO(default_app.app_id, tag))
-        else:
-            for app_id in app_ids:
-                feed_names.append(NewsFeedNameTO(app_id, tag))
+            if default_app.demo:
+                feed_names.append(NewsFeedNameTO(default_app.app_id, tag))
+            else:
+                for app_id in app_ids:
+                    feed_names.append(NewsFeedNameTO(app_id, tag))
 
     kwargs = {
         'sticky_until': sponsored_until,
@@ -667,3 +669,8 @@ def get_sponsored_news_count(service_identity_user, app_ids):
         remaining_free_items = FREE_SPONSORED_ITEMS_PER_APP - len(news_items)
         price_per_apps.append(SponsoredNewsItemCount(app_id, int(count / 5), remaining_free_items))
     return price_per_apps
+
+
+def is_regional_news_enabled(app_model):
+    # type: (App) -> bool
+    return app_model.type == App.APP_TYPE_CITY_APP

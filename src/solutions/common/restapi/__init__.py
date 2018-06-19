@@ -78,6 +78,7 @@ from solutions.common.bizz.inbox import send_statistics_export_email
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
+from solutions.common.bizz.news import is_regional_news_enabled
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
@@ -474,7 +475,9 @@ def rest_get_broadcast_options():
     sln_settings, news_promotion_product, extra_city_product, si = db.get(to_get)  # type: (SolutionSettings, Product, Product, ServiceIdentity)
     news_settings = NewsSettings.get_by_user(service_user, service_identity)
     # For demo apps and for shop sessions, creating regional news items is be free.
-    if session_.shop or get_app(si.defaultAppId).demo:
+    default_app = get_app(si.defaultAppId)
+    regional_news_enabled = is_regional_news_enabled(default_app)
+    if session_.shop or default_app.demo:
         if NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
             news_settings.tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
 
@@ -519,7 +522,7 @@ def rest_get_broadcast_options():
     roles = get_user_defined_roles()
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
                               extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps,
-                              roles, news_settings)
+                              roles, news_settings, regional_news_enabled)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)
