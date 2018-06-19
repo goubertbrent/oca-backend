@@ -1,4 +1,4 @@
-import { copyFile, unlink } from 'fs';
+import { copy, remove } from 'fs-extra';
 import * as gulp from 'gulp';
 import * as gutil from 'gulp-util';
 import * as gulpWatch from 'gulp-watch';
@@ -27,7 +27,7 @@ export function watch() {
       ...config.SOURCE_ROOTS.map(root => join(root, '**')),
       ...config.TEMP_FILES.map(temp => '!' + temp) ];
 
-    gulpWatch(paths, (e) => {
+    gulpWatch(paths, async (e) => {
       if (e.path.endsWith('.yaml')) {
         gulp.task('merge.yaml')(() => {
           gutil.log('Rebuild yaml files');
@@ -37,18 +37,28 @@ export function watch() {
         const buildFolderPath = e.path.replace(sourceRoot, config.BUILD_ROOT);
         switch (e.event) {
           case 'add':
-            copyFile(e.path, buildFolderPath, () => gutil.log(gutil.colors.green(`Created file ${buildFolderPath}`)));
+            try {
+              await copy(e.path, buildFolderPath);
+              gutil.log(gutil.colors.green(`Created file ${buildFolderPath}`));
+            } catch (e) {
+              gutil.log(gutil.colors.redBright(`Could not copy file ${e.path}: ` + e.message));
+            }
             break;
           case 'unlink':
-            unlink(buildFolderPath, () => gutil.log(gutil.colors.red(`Removed file ${buildFolderPath}`)));
+            await remove(buildFolderPath);
+            gutil.log(gutil.colors.red(`Removed file ${buildFolderPath}`));
             if (buildFolderPath.endsWith('.py')) {
-              unlink(buildFolderPath.replace('.py', '.pyc'), () => {
-              });
+              await remove(buildFolderPath.replace('.py', '.pyc'));
             }
             debouncedClean();
             break;
           case 'change':
-            copyFile(e.path, buildFolderPath, () => gutil.log(gutil.colors.yellow(`Updated file ${buildFolderPath}`)));
+            try {
+              await copy(e.path, buildFolderPath);
+              gutil.log(gutil.colors.yellow(`Updated file ${buildFolderPath}`));
+            } catch (e) {
+              gutil.log(gutil.colors.redBright(`Could not copy file ${e.path}: ` + e.message));
+            }
             break;
         }
       }

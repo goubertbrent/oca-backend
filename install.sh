@@ -6,7 +6,7 @@ pushd ../rogerthat-backend
 git checkout ${VERSION}
 popd
 
-pip install -U --target=build/lib -r ../rogerthat-backend/requirements.txt --prefix=
+pip2 install -U --target=build/lib -r ../rogerthat-backend/requirements.txt --prefix=
 npm install
 npm run build
 pushd build/static
