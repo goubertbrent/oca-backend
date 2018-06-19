@@ -1455,12 +1455,18 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         cat.has_visible = False
         cat.has_visible_with_pay = False
         for item in cat.items:
-            item.unit_str = solutions.translate_unit_symbol(lang, item.unit)
-            item.step_unit = None
-            item.step_unit_conversion = 0
+            # item.custom_unit is displayed with the price
+            # item.unit is the ordering unit
+            item.price_unit_str = solutions.translate_unit_symbol(lang, item.custom_unit)
+            item.step_unit_str = solutions.translate_unit_symbol(lang, item.unit)
+            item.step_unit_conversion = 1
+
+            # set the price unit to kg instead of the step unit (gram in this case)
+            # a better way is to set a conversion table between units
             if item.unit == UNIT_GRAM:
-                item.step_unit = solutions.translate_unit_symbol(lang, UNIT_KG)
                 item.step_unit_conversion = 1000
+                if item.unit == item.custom_unit:
+                    item.price_unit_str = solutions.translate_unit_symbol(lang, UNIT_KG)
 
             if item.image_id:
                 item.image_url = get_item_image_url(item.image_id, server_settings)
@@ -1473,7 +1479,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
                     cat.has_visible = True
                     category_count += 1
 
-                if item.has_price and not item.step_unit:
+                if item.has_price and item.custom_unit == item.unit:
                     item.visible_with_pay = True
                     if not cat.has_visible_with_pay:
                         cat.has_visible_with_pay = True

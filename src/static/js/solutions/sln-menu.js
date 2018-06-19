@@ -50,6 +50,7 @@ $(function () {
             isFlagSet: sln.isFlagSet,
             currency: CURRENCY,
             CONSTS: CONSTS,
+            isPaymentEnabled: modules.order && modules.order.isPaymentEnabled(),
             menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
             advancedOrder: orderSettings.order_type == CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
             showVisibleInCheckboxes: shouldShowVisibility()
@@ -72,6 +73,7 @@ $(function () {
         menuHtmlElement.find('button[action="editMenuDescription"]').click(editMenuDescription);
         menuHtmlElement.find('button[action="editCategoryDescription"]').click(editCategoryDescription);
         menuHtmlElement.find('button[action="editImage"]').click(editItemImage);
+        menuHtmlElement.find('.item-payments-excluded').click(showPriceWarning);
         menuHtmlElement.find('input[name=itemVisibleIn]').change(itemVisibilityChanged);
         menuHtmlElement.find('.mark-all-visible-in').change(markAllVisibleChanged);
         if (sourceId) {
@@ -92,6 +94,10 @@ $(function () {
                     $("thead", thizz).find("input.mark-all-visible-in[value=" + itemType + "]").prop('checked', true);
             });
         });
+    }
+
+    function showPriceWarning() {
+        sln.alert(CommonTranslations.item_price_alert, null, CommonTranslations.alert);
     }
 
     function shouldShowVisibility() {
@@ -374,6 +380,21 @@ $(function () {
         });
     };
 
+    function priceUnitIsLinked() {
+        var elem = $('#itemLinkPriceUnit');
+        return elem.length && elem.is(':checked');
+    }
+
+    function linkPriceUnitChanged() {
+        if (priceUnitIsLinked()) {
+            $('#selectedUnit').show();
+            $('#itemPriceUnit').hide();
+        } else {
+            $('#selectedUnit').hide();
+            $('#itemPriceUnit').show();
+        }
+    }
+
     function editItem() {
         var $this = $(this);
         var itemName = $this.parents('td').attr('item_id');
@@ -395,6 +416,7 @@ $(function () {
             $('#itemPrice').on('blur', itemPriceBlurred).trigger('blur');
             $('#itemUnit').change(unitChanged).change();
             $('#itemShowPrice').change(showPriceChanged).change();
+            $('#itemLinkPriceUnit').change(linkPriceUnitChanged);
         });
 
         $('button[action="submit"]', modal).click(function () {
@@ -438,6 +460,7 @@ $(function () {
         item.description = $("#itemdescription").val();
         item.visible_in = 0;
         item.unit = parseInt($('#itemUnit').val());
+        item.custom_unit = priceUnitIsLinked() ? item.unit : parseInt($('#itemPriceUnit').val());
         if ($('#itemUnitStepContainer').css('display') !== 'none') {
             item.step = parseInt($('#itemUnitStep').val());
         } else {
@@ -507,6 +530,7 @@ $(function () {
             $('#itemPrice').on('blur', itemPriceBlurred);
             $('#itemUnit').change(unitChanged);
             $('#itemShowPrice').change(showPriceChanged);
+            $('#itemLinkPriceUnit').change(linkPriceUnitChanged);
         });
 
         $('button[action="submit"]', modal).click(function () {
@@ -534,13 +558,13 @@ $(function () {
     function unitChanged() {
         var unit = parseInt($(this).val());
         var special = [CONSTS.UNIT_MINUTE, CONSTS.UNIT_GRAM];
-        var unitText = ' / ' + CommonTranslations[UNITS[unit]];
+        var unitText = CommonTranslations[UNITS[unit]];
         if (special.indexOf(unit) !== -1) {
             $('#itemUnitStepContainer').slideDown();
             $('#selectedSubUnit').text(' ' + CommonTranslations[UNITS[unit]]);
             // Always show 'kilogram' even when 'gram' is selected as prices are always per kg and not per g.
             if (unit === CONSTS.UNIT_GRAM) {
-                $('#selectedUnit').text(' / ' + CommonTranslations[UNITS[CONSTS.UNIT_KG]]);
+                $('#selectedUnit').text(CommonTranslations[UNITS[CONSTS.UNIT_KG]]);
             } else {
                 $('#selectedUnit').text(unitText);
             }
@@ -562,6 +586,7 @@ $(function () {
     function showPriceChanged() {
         var checked = $(this).prop('checked');
         $('#itemPrice').attr('disabled', !checked);
+        $('#itemPriceUnit').attr('disabled', !checked);
     }
 
     function newCategory() {

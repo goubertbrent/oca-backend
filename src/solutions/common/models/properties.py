@@ -107,12 +107,15 @@ class MenuItem(object):
     price = long_property('2')
     description = unicode_property('3')
     visible_in = long_property('4')
+    # ordering unit and step
     unit = long_property('5')
     step = long_property('6')
     image_id = long_property('7')
     qr_url = unicode_property('8')
     has_price = bool_property('9')
     id = unicode_property('10')
+    # custom unit can be used for pricing wihout linking to (ordering) unit
+    custom_unit = long_property('11')
 
 
 class MenuCategory(object):
@@ -146,6 +149,7 @@ def _serialize_item(stream, item):
     s_unicode(stream, None if item.qr_url is MISSING else item.qr_url)
     s_bool(stream, item.price > 0 if item.has_price is MISSING else item.has_price)
     s_unicode(stream, item.id)
+    s_long(stream, item.custom_unit)
 
 
 def convert_price_to_long(str_price):
@@ -170,6 +174,8 @@ def _deserialize_item(stream, version):
     item.qr_url = None if version < 7 else ds_unicode(stream)
     item.has_price = item.price > 0 if version < 8 else ds_bool(stream)
     item.id = ds_unicode(stream) if version > 8 else None
+    # defaults to ordering unit
+    item.custom_unit = ds_long(stream) if version > 9 else item.unit
     return item
 
 _serialize_item_list = get_list_serializer(_serialize_item)
@@ -200,7 +206,7 @@ _deserialize_category_list = get_list_deserializer(_deserialize_category, True)
 
 
 def _serialize_categories(stream, categories):
-    s_long(stream, 9)  # version in case we need to adjust the categories structure
+    s_long(stream, 10)  # version in case we need to adjust the categories structure
     _serialize_category_list(stream, categories.values())
 
 

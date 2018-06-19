@@ -126,14 +126,10 @@
                                   value="0"
                                   unitPrice="{% if item.has_price %}{{ item.price }}{% else %}0{% endif %}"
                                   hasPrice="{{ item.has_price|lower }}"
+                                  unit="{{ item.price_unit_str }}"
                                   step="{{ item.step }}"
-                                  {% if item.step_unit %}
-                                  unit="{{ item.step_unit }}"
-                                  stepUnit="{{ item.unit_str }}"
+                                  stepUnit="{{ item.step_unit_str }}"
                                   stepUnitConversion="{{ item.step_unit_conversion }}"
-                                  {% else %}
-                                  unit="{{ item.unit_str }}"
-                                  {% endif %}
                                   {% if item.image_url %}
                                   imageUrl="{{ item.image_url }}"
                                   {% endif %}
@@ -179,18 +175,22 @@
                         <name>{{ category.name|e }}</name>
                         {% for item in category.items %}
                             {% if item.visible_with_pay %}
-                                   <item id="{{ item.id|e }}"
+                                <item id="{{ item.id|e }}"
                                   value="0"
                                   unitPrice="{{ item.price }}"
                                   hasPrice="true"
                                   step="{{ item.step }}"
-                                  unit="{{ item.unit_str }}"
+                                  unit="{{ item.price_unit_str }}"
+                                  stepUnit="{{ item.step_unit_str }}"
+                                  stepUnitConversion="{{ item.step_unit_conversion }}"
                                   {% if item.image_url %}
                                   imageUrl="{{ item.image_url }}"
                                   {% endif %}
                                 >
                                     <name>{{ item.name|e }}</name>
-                                    {% if item.description %}<description>{{ item.description|e }}</description>{% endif %}
+                                    {% if item.description %}
+                                    <description>{{ item.description|e }}</description>
+                                    {% endif %}
                                 </item>
                             {% endif %}
                         {% endfor %}
@@ -459,8 +459,9 @@
                     var categories = steps[0].form_result.result.categories;
                     for (var ci = 0; ci &lt; categories.length; ci++) {
                         for (var ii = 0; ii &lt; categories[ci].items.length; ii++) {
-                            if (categories[ci].items[ii].value &gt; 0) {
-                               amount += categories[ci].items[ii].value * categories[ci].items[ii].unit_price;
+                            var item = categories[ci].items[ii];
+                            if (item.value &gt; 0) {
+                               amount += item.value * item.unit_price / item.step_unit_conversion;
                             }
                         }
                     }

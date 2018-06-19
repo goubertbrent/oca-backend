@@ -85,15 +85,21 @@
         <tr id="category-${menu.categories.indexOf(category)}-item-${items.indexOf(item)}">
 			<td item_id="${item.id}" category_id="${category.id}">
 				<div class="menu-item-content">
-					<h4>${item.name}</h4>
+					<h4>${item.name}
+						{{if (!item.has_price || item.unit !== item.custom_unit) && isPaymentEnabled}}
+						<a href="#" class="item-payments-excluded" role="button">
+							<span class="warning-icon"><i class="fa fa-info-circle"></i></span>
+						</a>
+						{{/if}}
+					</h4>
                     {{if item.has_price}}
 					<div class="menu-item-price">
-						{{if item.unit === CONSTS.UNIT_GRAM}}
+						{{if item.custom_unit === CONSTS.UNIT_GRAM}}
 						${currency} ${(item.price / 100).toFixed(2)}
                         {{if advancedOrder}} / ${UNIT_SYMBOLS[CONSTS.UNIT_KG]}{{/if}}
 						{{else}}
 						${currency} ${(item.price / 100).toFixed(2)}
-                        {{if advancedOrder}}/ ${t[UNIT_SYMBOLS[item.unit]] || UNIT_SYMBOLS[item.unit] }{{/if}}
+                        {{if advancedOrder}}/ ${t[UNIT_SYMBOLS[item.custom_unit]] || UNIT_SYMBOLS[item.custom_unit] }{{/if}}
 						{{/if}}
 					</div>
                     {{/if}}

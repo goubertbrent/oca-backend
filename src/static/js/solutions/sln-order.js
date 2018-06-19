@@ -30,6 +30,8 @@ $(function () {
     var paymentOptional = true;
     var paymentMinAmountForFee = 0;
 
+    modules.order = {};
+
     var channelUpdates = function (data) {
         switch (data.type) {
             case 'solutions.common.orders.update':
@@ -603,6 +605,11 @@ $(function () {
     	paymentMinAmountForFee = newPaymentMinAmountForFee;
     	$('#payment_min_amount_for_fee').val(newPaymentMinAmountForFee / 100);
     }
+
+    function isPaymentEnabled() {
+        return paymentEnabled;
+    }
+    modules.order.isPaymentEnabled = isPaymentEnabled;
 
     sln.registerMsgCallback(channelUpdates);
     loadOrders();
