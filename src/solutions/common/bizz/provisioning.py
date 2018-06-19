@@ -16,22 +16,23 @@
 # @@license_version:1.2@@
 
 import base64
-from contextlib import closing
-from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-from types import NoneType
 import urllib
+from contextlib import closing
+from datetime import timedelta, datetime
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import jinja2
+from google.appengine.ext import db, deferred
+
+import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from babel.numbers import format_currency
-
-from google.appengine.ext import db, deferred
-import jinja2
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -51,7 +52,6 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -101,7 +101,6 @@ from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, Loyalt
 from solutions.common.utils import is_default_service_identity
 from solutions.djmatic import SOLUTION_DJMATIC
 from solutions.jinja_extensions import TranslateExtension
-
 
 try:
     from cStringIO import StringIO
@@ -1316,14 +1315,14 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
         if should_put:
             loyalty_settings.put()
 
-    if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY or \
-            loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY:
+    if loyalty_type in (
+            SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY, SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY):
         logging.info("Clearing LOYALTY icon")
         _default_delete(sln_settings, current_coords)
         return []
 
     logging.info('Creating LOYALTY screen branding')
-    provision_loyalty_branding(sln_settings, main_branding, default_lang, loyalty_settings.loyalty_type)
+    provision_loyalty_branding(sln_settings, main_branding, default_lang, loyalty_type)
 
     ssmi = SolutionServiceMenuItem(u"fa-credit-card",
                                    sln_settings.menu_item_color,
