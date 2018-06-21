@@ -62,7 +62,7 @@ def update_regional_news_budget(sln_news_item_key):
     for app_stats in news_item.statistics:
         if app_stats.app_id not in sln_news_item.app_ids:
             continue
-        total_reach += app_stats.reached.total
+        total_reach += app_stats.reached['total']
 
     sln_settings = get_solution_settings(service_user)
 
