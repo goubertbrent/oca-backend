@@ -148,6 +148,7 @@ def import_menu_from_excel(service_user, file_contents):
         return cat
 
     available_units = map(translate, UNITS.values())
+
     def guess_unit(item_name, unit):
         for unit_no, unit_name in UNITS.iteritems():
             try:
@@ -171,7 +172,7 @@ def import_menu_from_excel(service_user, file_contents):
 
         item.price = long(price * 100)
         item.has_price = bool(item.price)
-        item.unit = guess_unit(name, unit.lower())
+        item.unit = item.custom_unit = guess_unit(name, unit.lower())
 
         if not visible_in:
             item.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
@@ -340,7 +341,7 @@ def _put_default_menu(service_user, translate=None, solution=None):
         drink.has_price = True
         drink.description = None
         drink.step = 1
-        drink.unit = UNIT_PIECE
+        drink.unit = drink.custom_unit = UNIT_PIECE
         drink.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
         drink.image_id = -1
         drink.qr_url = None
@@ -362,7 +363,7 @@ def _put_default_menu(service_user, translate=None, solution=None):
         starter.has_price = True
         starter.description = translate('starter%d-desc' % i)
         starter.step = 1
-        starter.unit = UNIT_PIECE
+        starter.unit = starter.custom_unit = UNIT_PIECE
         starter.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
         starter.image_id = -1
         starter.qr_url = None
