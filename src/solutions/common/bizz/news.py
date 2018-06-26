@@ -49,6 +49,7 @@ from shop.exceptions import NoCreditCardException, AppNotFoundException
 from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
 from shop.to import OrderItemTO
 from solutions.common.bizz import SolutionModule, OrganizationType, facebook, twitter
+from solutions.common.bizz.cityapp import get_apps_in_country_count
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionScheduledBroadcast
 from solutions.common.models.budget import Budget
@@ -670,4 +671,5 @@ def get_sponsored_news_count(service_identity_user, app_ids):
 
 def is_regional_news_enabled(app_model):
     # type: (App) -> bool
-    return app_model.type == App.APP_TYPE_CITY_APP
+    country_code = app_model.app_id.split('-')[0].lower()
+    return app_model.type == App.APP_TYPE_CITY_APP and get_apps_in_country_count(country_code) > 1

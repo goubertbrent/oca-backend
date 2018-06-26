@@ -2078,14 +2078,3 @@ def rest_enable_or_disable_module(name, enabled, force=False):
 @arguments()
 def api_get_app_names():
     return get_country_apps(u'be')
-
-
-@rest('/common/osa/apps', 'get')
-@returns(dict)
-@arguments()
-def rest_get_country_apps():
-    service_user = users.get_current_user()
-    customer = get_customer(service_user)
-    if not customer:
-        return {}
-    return get_country_apps(customer.country)

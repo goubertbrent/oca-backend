@@ -15,20 +15,22 @@
 #
 # @@license_version:1.2@@
 
-from hashlib import sha1
-from hmac import new as hmac
 import json
 import logging
-from random import getrandbits
 import time
+import urllib
+from hashlib import sha1
+from hmac import new as hmac
+from random import getrandbits
 from types import NoneType
 from urllib import quote as urlquote
-import urllib
 
 from google.appengine.api import urlfetch
+
+from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
-from rogerthat.dal.app import get_apps
 from rogerthat.consts import DEBUG
+from rogerthat.dal.app import get_apps
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.utils.transactions import run_in_transaction
@@ -173,12 +175,21 @@ def get_country_apps(country, live=True):
     """
     apps = get_apps([App.APP_TYPE_CITY_APP])
 
+    # TODO: should add 'country' property to an app and filter on that. None if app type != city app
+
     def should_include(app):
         # check if the ios_app_id is set (has a live build)
         if not DEBUG and live and app.ios_app_id in (None, '-1'):
             return False
-        return app.demo or app.app_id.lower().startswith('%s-' % country.lower())
+        return not app.demo and app.app_id.lower().startswith('%s-' % country.lower())
 
     return {
         app.name: app.app_id for app in apps if should_include(app)
     }
+
+
+@cached(1, 3600)
+@returns(int)
+@arguments(country=unicode)
+def get_apps_in_country_count(country):
+    return len(get_country_apps(country, True))
