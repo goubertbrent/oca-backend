@@ -1145,13 +1145,17 @@ NewsWizard.prototype = {
         }
 
         function submitNews(newsItem, orderItems, isNew) {
-            if (isNew && !newsItem.app_ids.length) {
-                sln.alert(CommonTranslations.select_local_and_or_regional_news, null, CommonTranslations.ERROR);
-                return;
-            }
-            checkRegionalNewsBudget(function() {
+            if (isNew) {
+                if (!newsItem.app_ids.length) {
+                    sln.alert(CommonTranslations.select_local_and_or_regional_news, null, CommonTranslations.ERROR);
+                    return;
+                }
+                checkRegionalNewsBudget(function () {
+                    publishNews(newsItem, orderItems);
+                });
+            } else {
                 publishNews(newsItem, orderItems);
-            });
+            }
         }
 
         function publishNews(newsItem, orderItems) {
