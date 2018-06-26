@@ -87,6 +87,7 @@ DEFAULT_JS_TEMPLATES = [
     'settings/settings_branding',
     'settings/settings_branding_preview',
     'settings/app_user_roles',
+    'settings/app_user_admins',
     'settings/app_user_add_roles',
     'settings/try_publish_changes',
     'settings/upload_image',

@@ -16,31 +16,32 @@
 # @@license_version:1.2@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
-from functools import partial
 import hashlib
 import json
 import logging
 import os
 import sys
-from types import NoneType
 import urllib
 import urlparse
+from collections import OrderedDict
+from contextlib import closing
+from functools import partial
+from types import NoneType
 
-from dateutil.relativedelta import relativedelta
+from apiclient.discovery import build
+from apiclient.errors import HttpError
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from google.appengine.ext import ndb
 
-from PIL.Image import Image
-from apiclient.discovery import build
-from apiclient.errors import HttpError
-from babel.dates import format_datetime, get_timezone, format_date
 import cloudstorage
 import httplib2
+import stripe
+from PIL.Image import Image
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -50,11 +51,12 @@ from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
+from rogerthat.bizz.profile import update_password_hash, create_user_profile, get_service_profile
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.consts import WEEK, SCHEDULED_QUEUE, FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, DEBUG, EXPORTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_settings, get_app_by_id
-from rogerthat.dal.profile import get_service_or_user_profile
+from rogerthat.dal.profile import get_service_or_user_profile, get_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile, Message
@@ -65,9 +67,9 @@ from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import bizz_check, now, channel, get_epoch_from_datetime, send_mail
+from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail
 from rogerthat.utils.app import create_app_user_by_email
-from rogerthat.utils.crypto import encrypt, decrypt
+from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
     address_to_coordinates, GeoCodeException
 from rogerthat.utils.service import create_service_identity_user, add_slash_default
@@ -101,13 +103,13 @@ from solutions.common.bizz.service import new_inbox_message, send_signup_update_
     add_service_consent, remove_service_consent
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
+from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
 from solutions.common.models.hints import SolutionHint
 from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-import stripe
 from xhtml2pdf import pisa
 
 try:
@@ -2663,8 +2665,6 @@ def calculate_customer_url_digest(data):
 
 
 def send_signup_verification_email(city_customer, signup, host=None):
-    from solutions.common.handlers import JINJA_ENVIRONMENT
-
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
     data['d'] = calculate_customer_url_digest(data)
@@ -2934,3 +2934,52 @@ def get_organization_types(customer, language):
         return []
     return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, language, customer.app_id))
             for org_type in customer.editable_organization_types]
+
+
+def get_service_admins(service_user):
+    qry = UserProfile.all(keys_only=True).filter('owningServiceEmails', service_user.email())
+    return [key.name() for key in qry]
+
+
+def add_service_admin(service_user, owner_user_email, base_url):
+    # check existence
+    service_email = service_user.email()
+    service_profile = get_service_profile(service_user)
+
+    user_profile = get_user_profile(users.User(owner_user_email), cached=False)
+    password_hash = sha256_hex(unicode(generate_random_key()[:8]))
+    if user_profile:
+        logging.info('Coupling user %s to %s', owner_user_email, service_email)
+        if service_email not in user_profile.owningServiceEmails:
+            user_profile.owningServiceEmails.append(service_email)
+        if not user_profile.passwordHash:
+            user_profile.passwordHash = password_hash
+            user_profile.isCreatedForService = True
+        user_profile.put()
+    else:
+        logging.info('Coupling new user %s to %s', owner_user_email, service_email)
+        service_identity = get_default_service_identity(service_user)
+        user_profile = create_user_profile(users.User(owner_user_email), owner_user_email,
+                                           service_profile.defaultLanguage)
+        user_profile.isCreatedForService = True
+        user_profile.owningServiceEmails = [service_email]
+        update_password_hash(user_profile, password_hash, now())
+        action = common_translate(user_profile.language, SOLUTION_COMMON, 'reset-password')
+        url_params = get_reset_password_url_params(user_profile.name, user_profile.user, action=action)
+        reset_password_link = '%s/customers/setpassword?%s' % (base_url, url_params)
+        params = {
+            'service_name': service_identity.name,
+            'user_email': owner_user_email,
+            'user_name': user_profile.name,
+            'link': reset_password_link,
+            'link_text': common_translate(user_profile.language, SOLUTION_COMMON, 'set_password'),
+            'language': service_profile.defaultLanguage
+        }
+        text_body = JINJA_ENVIRONMENT.get_template('emails/service_admin_added.tmpl').render(params)
+        html_body = JINJA_ENVIRONMENT.get_template('emails/service_admin_added.html').render(params)
+        subject = '%s - %s' % (common_translate(user_profile.language, SOLUTION_COMMON, 'our-city-app'),
+                               common_translate(user_profile.language, SOLUTION_COMMON,
+                                                'permission_granted_to_service'))
+        app = get_app_by_id(user_profile.app_id)
+        from_email = '%s <%s>' % (app.name, shop_translate(user_profile.language, 'oca_info_email_address'))
+        send_mail(from_email, user_profile.user.email(), subject, text_body, html=html_body)

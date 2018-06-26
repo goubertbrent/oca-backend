@@ -1,5 +1,5 @@
 {% raw %}
-<h3>Users
+<h3>${T('users')}
     <sup id="app_users_count" class="badge"></sup>
     <button id="add_user_roles" class="btn btn-success"><i class="fa fa-plus"></i></button>
 </h3>
@@ -59,7 +59,7 @@
                 </div>
             </td>
             {{/if}}
-            <td><button class="btn btn-danger" action="delete_roles" user_key="${ user_roles.user_key }"><i class="fa fa-trash"></i></button></td>
+            <td><button class="btn btn-danger pull-right" action="delete_roles" user_key="${ user_roles.user_key }"><i class="fa fa-trash"></i></button></td>
         </tr>
         {{/each}}
     </tbody>

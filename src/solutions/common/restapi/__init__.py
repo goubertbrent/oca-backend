@@ -41,8 +41,8 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
 from rogerthat.service.api.friends import get_broadcast_reach
 from rogerthat.service.api.system import get_flow_statistics
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
-    WarningReturnStatusTO
+from rogerthat.settings import get_server_settings
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
 from rogerthat.to.service import UserDetailsTO
@@ -53,7 +53,7 @@ from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user,
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from rogerthat.utils.transactions import run_in_transaction
-from shop.bizz import update_customer_consents
+from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
 from shop.business.order import get_subscription_order_remaining_length
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
@@ -544,7 +544,7 @@ def rest_save_broadcast_rss_feeds(data):
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    
+
     rss_urls = set()
     for url in data.rss_urls:
         if url.startswith("http://") or url.startswith("https://"):
@@ -1340,6 +1340,32 @@ def users_delete_user_roles(key, forwarder_types, calendar_ids):
         # news
         delete_news_publisher(app_user, service_user, sln_settings.solution)
 
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException, e:
+        return ReturnStatusTO.create(False, e.message)
+
+
+@rest('/common/users/admins', 'get')
+@returns([unicode])
+@arguments()
+def rest_load_service_admins():
+    service_user = users.get_current_user()
+    return get_service_admins(service_user)
+
+
+@rest('/common/users/admins', 'post')
+@returns(ReturnStatusTO)
+@arguments(user_email=unicode)
+def rest_add_service_email(user_email):
+    base_url = GenericRESTRequestHandler.getCurrentRequest().headers.get('Origin') or get_server_settings().baseUrl
+    try:
+        service_user = users.get_current_user()
+        if not EMAIL_REGEX.match(user_email):
+            sln_settings = get_solution_settings(service_user)
+            message = common_translate(
+                sln_settings.main_language, 'common', 'invalid_email_format', email=user_email)
+            return ReturnStatusTO.create(False, message)
+        add_service_admin(service_user, user_email, base_url)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)

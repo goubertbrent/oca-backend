@@ -1880,7 +1880,7 @@ $(function () {
         var agendaEnabled = $('#section_settings_agenda').length > 0
         var broadcastEnabled = $('#section_settings_broadcast').length > 0
 
-        var container = $('#section_settings_roles');
+        var container = $('#section_settings_roles').find('.user-roles');
         container.html(TMPL_LOADING_SPINNER);
 
         getAllUserRoles(render);
@@ -1943,6 +1943,63 @@ $(function () {
                 }
 
 
+            }
+
+            loadAdmins();
+
+            function loadAdmins() {
+                $('#section_settings_roles').find('.admin-logins').html(TMPL_LOADING_SPINNER);
+                sln.call({
+                    url: '/common/users/admins',
+                    type: 'get',
+                    success: renderAdminSettings,
+                    error: sln.showAjaxError
+                });
+            }
+
+            function renderAdminSettings(adminEmails) {
+                LocalCache.settings.service_admins = adminEmails;
+
+                var container = $('#section_settings_roles').find('.admin-logins');
+
+                var html = $.tmpl(templates['settings/app_user_admins'], {
+                    admins: adminEmails,
+                });
+
+                container.html(html);
+                container.find('#add_admin').click(addAdmin);
+            }
+
+            function addAdmin(email) {
+                function add(email) {
+                    var serviceEmails = LocalCache.settings.service_admins;
+                    if (serviceEmails && serviceEmails.length) {
+                        if (serviceEmails.indexOf(email) !== -1) {
+                            sln.alert(CommonTranslations.x_already_exists.replace('%(x)s', email));
+                            return;
+                        }
+                    }
+
+                    sln.call({
+                        url: '/common/users/admins',
+                        type: 'post',
+                        showProcessing: true,
+                        data: {
+                            user_email: email,
+                        },
+                        success: function(result) {
+                            if (!result.success) {
+                                sln.alert(result.errormsg, null, CommonTranslations.ERROR);
+                            } else {
+                                serviceEmails.push(email);
+                                renderAdminSettings(serviceEmails)
+                            }
+                        },
+                        error: sln.showAjaxError
+                    })
+                }
+                sln.input(add, CommonTranslations.EMAIL_ADDRESS, null,
+                          CommonTranslations.EMAIL_ADDRESS, '', 'email');
             }
 
             $('#app_users_count', html).text(data.length);
