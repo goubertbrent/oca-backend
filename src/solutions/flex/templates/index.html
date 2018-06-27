@@ -83,7 +83,6 @@ var templates = {{ templates|safe }};
 {% if not loyalty %}
 <script src="/static/js/solutions/sln-requirements.js"></script>
 <script src="/static/js/solutions/sln-hints.js"></script>
-<script src="/static/js/slick/slick.js"></script>
 {% endif %}
 <script src="/static/js/solutions/sln-loyalty.js"></script>
 
@@ -91,7 +90,7 @@ var templates = {{ templates|safe }};
 
 {%- include 'settings_header.tmpl' %}
 
-{% if not layout_uer and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in sln_settings.modules) %}
+{% if not layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in sln_settings.modules) %}
 <script src="/static/js/solutions/sln-city-select.js"></script>
 <script src="/static/js/solutions/sln-news-wizard.js"></script>
 <script src="/static/js/solutions/sln-news-list.js"></script>

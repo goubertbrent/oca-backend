@@ -431,6 +431,7 @@ NewsWizard.prototype = {
             elemInputActionButtonUrl = self.$('#news_action_url_value'),
             elemCheckPostToFacebook = self.$('#post_to_facebook'),
             elemCheckPostToTwitter = self.$('#post_to_twitter'),
+            elemBroadcastOnTwitter = $("#broadcast_message_on_twitter").find("input"),
             elemFacebookPage = self.$('#facebook_page'),
             elemConfigureTargetAudience = self.$('#configure_target_audience'),
             hasSignedOrder = self.broadcastOptions.subscription_info.has_signed,
