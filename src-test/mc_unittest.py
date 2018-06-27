@@ -129,7 +129,6 @@ class TestCase(unittest.TestCase):
         rogerthat_app.facebook_app_id = 188033791211994
 
         app.get_default_app = lambda: rogerthat_app
-        app.get_default_app_key = lambda: rogerthat_app.key()
 
         mobicage_entity = LegalEntity(is_mobicage=True,
                                       name='Mobicage NV',

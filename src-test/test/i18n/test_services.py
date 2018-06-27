@@ -14,7 +14,10 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
+from google.appengine.ext import db
 
+import mc_unittest
+from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.friends import makeFriends
 from rogerthat.bizz.i18n import sync_service_translations, get_editable_translation_set, get_all_translations, \
     save_translations, deploy_translation, get_active_translation_set, get_translator, DummyTranslator
@@ -25,10 +28,9 @@ from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models import ServiceProfile
 from rogerthat.rpc import users
-from rogerthat.to.friends import FriendTO
+from rogerthat.to.friends import FriendTO, FRIEND_TYPE_SERVICE
 from rogerthat.to.service import FindServiceItemTO
-from google.appengine.ext import db
-import mc_unittest
+from rogerthat.utils.service import create_service_identity_user
 
 
 def translate_service_strings(service_user):
@@ -109,9 +111,11 @@ class Test(mc_unittest.TestCase):
             makeFriends(human_user, service_user, original_invitee=None, servicetag=None, origin=None)
 
         # Check FriendTO
+        service_identity_user = create_service_identity_user(service_user)
+        helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
         for lang, human_user in human_users.iteritems():
             friend_map = get_friends_map(human_user)
-            serviceTO = FriendTO.fromDBFriendMap(friend_map, service_user, includeAvatarHash=False,
+            serviceTO = FriendTO.fromDBFriendMap(helper, friend_map, service_user, includeAvatarHash=False,
                                                  includeServiceDetails=True, targetUser=human_user)
 
             if lang == service_profile.defaultLanguage or lang not in service_profile.supportedLanguages:
