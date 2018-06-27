@@ -72,6 +72,12 @@ $(function () {
 
 
     function showEdit(newsId) {
+        if (!newsWizard) {
+            setTimeout(function () {
+                showEdit(newsId);
+            }, 200);
+            return;
+        }
         modules.settings.getBroadcastOptions(function (broadcastOptions) {
             modules.broadcast.getAppStatistics(function (appStatistics) {
                 modules.menu.getMenu(function (menu) {
