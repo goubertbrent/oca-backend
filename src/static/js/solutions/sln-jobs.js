@@ -87,8 +87,8 @@ $(function () {
     }
 
     function showEdit(newsId) {
-        modules.settings.getBroadcastOptions(function (broadcastOptions) {
-            modules.broadcast.getAppStatistics(function (appStatistics) {
+        Requests.getBroadcastOptions().then(function (broadcastOptions) {
+            Requests.getAppStatistics().then(function (appStatistics) {
                 newsWizard.broadcastOptions = broadcastOptions;
                 newsWizard.appStatistics = appStatistics;
                 newsWizard.edit(newsId);

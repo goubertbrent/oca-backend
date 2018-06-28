@@ -27,7 +27,7 @@ function NewsWizard(newsList, options) {
     this.serviceMenu = this.options.serviceMenu || {};
     this.broadcastOptions = this.options.broadcastOptions;
     this.appStatistics = this.options.appStatistics;
-    this.menu = this.options.menu;
+    this.menu = null;  // loaded when editing / adding news
     this.sandwichSettings = this.options.sandwichSettings;
 
     this.newsTypes = {
@@ -117,7 +117,6 @@ NewsWizard.prototype = {
         }
         if (this.serviceMenu) {
             this.render(newsItem);
-            return;
         }
     },
 
@@ -210,7 +209,7 @@ NewsWizard.prototype = {
             self.$('#news_current_budget').text(CommonTranslations.unlimited);
             self.$('#news_views').hide();
         } else {
-            getBudget(function(budget) {
+            Requests.getBudget().then(function(budget) {
                 self.$('#news_current_budget').text(budget.balance * CONSTS.BUDGET_RATE);
                 self.$('#news_views').show();
             });
@@ -271,9 +270,9 @@ NewsWizard.prototype = {
             }
         }
         if (flowParams) {
-            if (flowParams.advancedOrder && flowParams.advancedOrder.categories && menu) {
-                for (var i = 0; i < menu.categories.length; i++) {
-                    var category = menu.categories[i],
+            if (flowParams.advancedOrder && flowParams.advancedOrder.categories && this.menu) {
+                for (var i = 0; i < this.menu.categories.length; i++) {
+                    var category = this.menu.categories[i],
                         flowParamCategory = flowParams.advancedOrder.categories[category.id];
                     if (flowParamCategory) {
                         for (var j = 0; j < category.items.length; j++) {
@@ -1006,7 +1005,7 @@ NewsWizard.prototype = {
             checkoutContainer.html(TMPL_LOADING_SPINNER);
             // apologies for this monstrosity
             getCreditCardInfo(function (creditCardInfo) {
-                modules.settings.getBroadcastOptions(function (broadcastOptions) {
+                Requests.getBroadcastOptions().then(function (broadcastOptions) {
                     getPromotedCost(data.app_ids, data.sponsored, function (promotedCostList) {
                         var promotionProduct = broadcastOptions.news_promotion_product,
                             extraAppProduct = broadcastOptions.extra_city_product,

@@ -80,7 +80,7 @@ $(function () {
                         headerMenuElement.addClass('hide');
                     }
                     if (modules.menu) {
-                        modules.menu.loadMenu(modules.menu.renderMenu);
+                        modules.menu.reloadMenu().then(modules.menu.renderMenu);
                     }
                 }
                 renderOrderSettings(data);

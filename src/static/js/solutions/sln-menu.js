@@ -18,10 +18,9 @@
 
 $(function () {
     'use strict';
-    LocalCache.menu = {};
+    var editedMenu = null;
     modules.menu = {
-        getMenu: getMenu,
-        loadMenu: loadMenu,
+        reloadMenu: reloadMenu,
         renderMenu: renderMenu
     };
     var CROP_OPTIONS = {
@@ -39,7 +38,10 @@ $(function () {
     }
 
     function router(urlHash) {
-        getMenu(renderMenu);
+        Requests.getMenu().then(function (menu) {
+            editedMenu = JSON.parse(JSON.stringify(menu));
+            renderMenu(editedMenu);
+        });
     }
 
     function renderMenu(menu, sourceId) {
@@ -51,7 +53,7 @@ $(function () {
             currency: CURRENCY,
             CONSTS: CONSTS,
             isPaymentEnabled: modules.order && modules.order.isPaymentEnabled(),
-            menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
+            menuName: menu.name || CommonTranslations.DEFAULT_MENU_NAME,
             advancedOrder: orderSettings.order_type == CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
             showVisibleInCheckboxes: shouldShowVisibility()
         });
@@ -107,7 +109,7 @@ $(function () {
     }
 
     function getCategory(categoryId) {
-        return LocalCache.menu.categories.filter(function (c) {
+        return editedMenu.categories.filter(function (c) {
             return c.id === categoryId;
         })[0];
     }
@@ -166,7 +168,7 @@ $(function () {
             url: "/common/menu/save",
             type: "POST",
             data: {
-                menu: LocalCache.menu
+                menu: editedMenu
             }
         });
     }
@@ -181,28 +183,24 @@ $(function () {
             url: "/common/menu/save",
             type: "POST",
             data: {
-                menu: LocalCache.menu
+                menu: editedMenu
             },
             success: function (data) {
                 if (!data.success) {
-                    loadMenu(renderMenu);
+                    renderMenu(editedMenu);
                     sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 }
             }
         });
         if (!noReload) {
-            renderMenu(LocalCache.menu, sourceId);
+            renderMenu(editedMenu, sourceId);
         }
     };
 
-    function loadMenu(callback) {
-        return sln.call({
-            url: "/common/menu/load",
-            type: "GET",
-            success: function (data) {
-                LocalCache.menu = data;
-                callback(LocalCache.menu);
-            }
+    function reloadMenu() {
+        return Requests.getMenu({cached: false}).then(function () {
+            editedMenu = JSON.parse(JSON.stringify(menu));
+            renderMenu(editedMenu);
         });
     }
 
@@ -236,7 +234,7 @@ $(function () {
                     success: function(data) {
                         if(data.success) {
                             modal.modal('hide');
-                            getMenu(renderMenu);
+                            reloadMenu();
                         } else {
                             sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                         }
@@ -246,26 +244,18 @@ $(function () {
         });
     }
 
-    function getMenu(callback) {
-        if (LocalCache.menu.name) {
-            callback(LocalCache.menu);
-        } else {
-            loadMenu(callback);
-        }
-    }
-
     var deleteCategory = function () {
         var category = getCategory($(this).parents('tr').attr("category_id"));
         sln.confirm(CommonTranslations.MENU_CATEGORY_DELETE_CONFIRMATION, function () {
-            LocalCache.menu.categories.splice(LocalCache.menu.categories.indexOf(category), 1);
+            editedMenu.categories.splice(editedMenu.categories.indexOf(category), 1);
             setCategoryIndexes();
             saveMenu();
         });
     };
 
     function setCategoryIndexes() {
-        for (var i = 0; i < LocalCache.menu.categories.length; i++) {
-            LocalCache.menu.categories[i].index = LocalCache.menu.categories.indexOf(LocalCache.menu.categories[i]);
+        for (var i = 0; i < editedMenu.categories.length; i++) {
+            editedMenu.categories[i].index = editedMenu.categories.indexOf(editedMenu.categories[i]);
         }
     }
 
@@ -274,10 +264,10 @@ $(function () {
         if ($this.hasClass('disabled'))
             return;
         var category = getCategory($(this).parents('tr').attr("category_id"));
-        var index = LocalCache.menu.categories.indexOf(category);
-        moveElementInArray(LocalCache.menu.categories, index, index - 1);
+        var index = editedMenu.categories.indexOf(category);
+        moveElementInArray(editedMenu.categories, index, index - 1);
         setCategoryIndexes();
-        saveMenu(false, '#category-' + LocalCache.menu.categories.indexOf(category));
+        saveMenu(false, '#category-' + editedMenu.categories.indexOf(category));
     };
 
     var categoryIndexDown = function () {
@@ -285,10 +275,10 @@ $(function () {
         if ($this.hasClass('disabled'))
             return;
         var category = getCategory($(this).parents('tr').attr("category_id"));
-        var index = LocalCache.menu.categories.indexOf(category);
-        moveElementInArray(LocalCache.menu.categories, index, index + 1);
+        var index = editedMenu.categories.indexOf(category);
+        moveElementInArray(editedMenu.categories, index, index + 1);
         setCategoryIndexes();
-        saveMenu(false, '#category-' + LocalCache.menu.categories.indexOf(category));
+        saveMenu(false, '#category-' + editedMenu.categories.indexOf(category));
     };
 
     var itemIndexUp = function () {
@@ -371,9 +361,9 @@ $(function () {
         $('button[action="submit"]', modal).click(function () {
             var description = $("#description", modal).val();
             if (buttonMenu == "pre") {
-                LocalCache.menu.predescription = description;
+                editedMenu.predescription = description;
             } else {
-                LocalCache.menu.postdescription = description;
+                editedMenu.postdescription = description;
             }
             saveMenu();
             modal.modal('hide');
@@ -403,7 +393,7 @@ $(function () {
         var html = $.tmpl(templates.menu_additem, {
             t: CommonTranslations,
             item: item,
-            menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
+            menuName: editedMenu.name || CommonTranslations.DEFAULT_MENU_NAME,
             isFlagSet: sln.isFlagSet,
             units: UNITS,
             CONSTS: CONSTS,
@@ -491,7 +481,7 @@ $(function () {
                 // do nothing
             } else {
                 var nameAlreadyInUse = false;
-                $.each(LocalCache.menu.categories, function (i, c) {
+                $.each(editedMenu.categories, function (i, c) {
                     if (value == c.name) {
                         nameAlreadyInUse = true;
                         return false;
@@ -511,7 +501,7 @@ $(function () {
         var html = $.tmpl(templates.menu_additem, {
             t: CommonTranslations,
             item: {},
-            menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
+            menuName: editedMenu.name || CommonTranslations.DEFAULT_MENU_NAME,
             isFlagSet: sln.isFlagSet,
             units: UNITS,
             CONSTS: CONSTS,
@@ -595,7 +585,7 @@ $(function () {
                 return false;
 
             var nameAlreadyInUse = false;
-            $.each(LocalCache.menu.categories, function (i, c) {
+            $.each(editedMenu.categories, function (i, c) {
                 if (value == c.name) {
                     nameAlreadyInUse = true;
                     return false;
@@ -606,7 +596,7 @@ $(function () {
                 return false;
             }
 
-            LocalCache.menu.categories.push({
+            editedMenu.categories.push({
                 id: sln.uuid(),
                 name: value,
                 items: [],
@@ -633,7 +623,7 @@ $(function () {
                 },
                 success: function (data) {
                     if (data.success) {
-                        LocalCache.menu.name = name;
+                        editedMenu.name = name;
                     } else {
                         sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                     }
@@ -641,7 +631,7 @@ $(function () {
             });
         };
 
-        sln.input(saveMenuName, CommonTranslations.MENU_NAME, null, null, LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME);
+        sln.input(saveMenuName, CommonTranslations.MENU_NAME, null, null, editedMenu.name || CommonTranslations.DEFAULT_MENU_NAME);
     });
 
     function channelUpdates(data) {
