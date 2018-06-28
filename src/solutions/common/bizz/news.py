@@ -671,5 +671,7 @@ def get_sponsored_news_count(service_identity_user, app_ids):
 
 def is_regional_news_enabled(app_model):
     # type: (App) -> bool
+    if app_model.app_id.startswith('osa-'):
+        return True
     country_code = app_model.app_id.split('-')[0].lower()
     return app_model.type == App.APP_TYPE_CITY_APP and get_apps_in_country_count(country_code) > 1
