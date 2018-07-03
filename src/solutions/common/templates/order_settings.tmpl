@@ -17,12 +17,12 @@
     <div id="confirmation_container">
         <label for="automatic_confirmation" class="radio">
             <input type="radio" name="auto_or_manual_confirmation" id="automatic_confirmation"
-                   value="automatic"></input>
+                   value="automatic">
             {% translate language, 'common', 'automatic' %}
         </label>
         <label for="manual_confirmation" class="radio">
             <input type="radio" name="auto_or_manual_confirmation" id="manual_confirmation"
-                value="manual"> </input>
+                   value="manual">
             {% translate language, 'common', 'manual' %}
         </label>
     </div>
@@ -39,12 +39,12 @@
 
     <label for="setting_advanced_order_simple" class="radio">
         <input type="radio" name="setting_advanced_order_fields" id="setting_advanced_order_simple"
-               value="{{ CONSTS.ORDER_TYPE_SIMPLE }}"> </input>
+               value="{{ CONSTS.ORDER_TYPE_SIMPLE }}">
         {% translate language, 'common', 'simple_orders' %}
     </label>
     <label for="setting_advanced_order_advanced" class="radio">
         <input type="radio" name="setting_advanced_order_fields" id="setting_advanced_order_advanced"
-               value="{{ CONSTS['ORDER_TYPE_ADVANCED']}}"> </input>
+               value="{{ CONSTS['ORDER_TYPE_ADVANCED']}}">
         {% translate language, 'common', 'advanced_orders' %}
     </label>
 
@@ -64,7 +64,7 @@
 
         <p>{% translate language, 'common', 'leap_time_info' %}</p>
 
-        <input id="order_leaptime" type="number" min="1" step="1"></input>
+    <input id="order_leaptime" type="number" min="1" step="1"/>
         <select id="order_leaptime_type">
             <option value="60">{% translate language, 'common', 'minutes' %}</option>
             <option value="3600">{% translate language, 'common', 'hours' %}</option>

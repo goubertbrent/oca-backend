@@ -81,22 +81,10 @@ var templates = {{ templates|safe }};
 <script src="/static/js/solutions/sln-utils.js"></script>
 <script src="/static/js/solutions/common.js"></script>
 <script src="/static/js/solutions/requests.js"></script>
-{% if not loyalty %}
-<script src="/static/js/solutions/sln-requirements.js"></script>
-<script src="/static/js/solutions/sln-hints.js"></script>
-{% endif %}
-<script src="/static/js/solutions/sln-loyalty.js"></script>
 
 {%- include 'vector-map-assets.tmpl' %}
 
 {%- include 'settings_header.tmpl' %}
-
-{% if not layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in sln_settings.modules) %}
-<script src="/static/js/solutions/sln-city-select.js"></script>
-<script src="/static/js/solutions/sln-news-wizard.js"></script>
-<script src="/static/js/solutions/sln-news-list.js"></script>
-<script src="/static/js/solutions/sln-news.js"></script>
-{% endif %}
 
 </head>
 
@@ -587,6 +575,18 @@ var templates = {{ templates|safe }};
             sln.runChannel();
         });
     </script>
+    {% if not loyalty %}
+    <script src="/static/js/solutions/sln-requirements.js"></script>
+    <script src="/static/js/solutions/sln-hints.js"></script>
+    {% endif %}
+    <script src="/static/js/solutions/sln-loyalty.js"></script>
+    {% if not layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in
+    sln_settings.modules) %}
+    <script src="/static/js/solutions/sln-city-select.js"></script>
+    <script src="/static/js/solutions/sln-news-wizard.js"></script>
+    <script src="/static/js/solutions/sln-news-list.js"></script>
+    <script src="/static/js/solutions/sln-news.js"></script>
     <script src="/static/js/solutions/sln-router.js"></script>
+    {% endif %}
 </body>
 </html>

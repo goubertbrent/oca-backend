@@ -4,7 +4,7 @@ function RequestsService() {
 
 RequestsService.prototype = {
 
-    request(url, method, data, options) {
+    request: function (url, method, data, options) {
         if (!options) {
             options = {};
         }
@@ -35,7 +35,7 @@ RequestsService.prototype = {
      * @param options{{cached: boolean, showError: boolean, updatesCache: boolean}}
      * @return {Promise}
      */
-    get(url, options) {
+    get: function (url, options) {
         if (!options) {
             options = {};
         }
@@ -47,7 +47,7 @@ RequestsService.prototype = {
         }
         return this._requestCache[url];
     },
-    post(url, data, options) {
+    post: function (url, data, options) {
         var request = this.request(url, 'post', data, options);
         // Update cache if updatesCache option is set, get and post must use the same url.
         if (options && options.updatesCache) {
@@ -55,28 +55,28 @@ RequestsService.prototype = {
         }
         return request;
     },
-    getMenu(options) {
+    getMenu: function (options) {
         return this.get('/common/menu/load', options);
     },
-    getServiceMenu(options){
+    getServiceMenu: function (options) {
         return this.get('/common/get_menu', options);
     },
-    getBroadcastOptions(options) {
+    getBroadcastOptions: function (options) {
         return this.get('/common/broadcast/options', options);
     },
-    getSandwichSettings(options) {
+    getSandwichSettings: function (options) {
         return this.get('/common/sandwich/settings/load', options);
     },
-    getAppStatistics(options) {
+    getAppStatistics: function (options) {
         return this.get('/common/statistics/apps', options);
     },
-    getBudget(options) {
+    getBudget: function (options) {
         return this.get('/common/billing/budget', options);
     },
-    getAppSettings(options) {
+    getAppSettings: function (options) {
         return this.get('/common/settings/app', options);
     },
-    saveAppSettings(data, options) {
+    saveAppSettings: function (data, options) {
         options = options || {};
         options.updatesCache = true;
         return this.post('/common/settings/app', data, options);

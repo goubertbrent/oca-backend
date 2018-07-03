@@ -189,7 +189,7 @@ NewsWizard.prototype = {
         return [apps, totalReach];
     },
 
-    getCityAppTotalReach(appIds) {
+    getCityAppTotalReach: function (appIds) {
         return this.appStatistics.reduce(function(result, app) {
             if (appIds.indexOf(app.app_id) !== -1) {
                 return result + app.total_user_count;
