@@ -499,7 +499,7 @@ $(function () {
             $("#broadcast").find("input[name=broadcast_types]:radio").change(function () {
                 displayReach();
             });
-            modules.settings.renderBroadcastSettings(); // Defined in sln-settings
+            Requests.getBroadcastOptions().then(modules.settings.renderBroadcastSettings); // Defined in sln-settings
         });
     }
 

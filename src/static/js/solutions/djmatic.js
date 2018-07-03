@@ -32,9 +32,6 @@ $(function() {
         showMeridian : false
     });
     $('#jukebox_days label input').click(dateChanged);
-    $('#jukebox_cfg #timepickerEnabledFrom').on('changeTime.timepicker', startTimeChanged);
-    $('#jukebox_cfg #timepickerEnabledUntil').on('changeTime.timepicker', stopTimeChanged);
-    
     loadPlayerSettings();
 });
 
@@ -174,11 +171,12 @@ var updatePlayerLayout = function(settings) {
     genreHtmlElement.append(html);
     $('#jukebox_genres table thead input[type="checkbox"]').change(mainGenreChanged);
     $('#jukebox_genres tbody input[type="checkbox"]').change(genreChanged);
+    $('#jukebox_cfg #timepickerEnabledFrom').on('changeTime.timepicker', startTimeChanged);
+    $('#jukebox_cfg #timepickerEnabledUntil').on('changeTime.timepicker', stopTimeChanged);
 };
 
 // SAVE //
 var savePlayerSettings = function(json) {
-    console.log(json);
     $.ajax({
         url : DJMATIC_JUKEBOX_SERVER_API,
         type : "POST",
