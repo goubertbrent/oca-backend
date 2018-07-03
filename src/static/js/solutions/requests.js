@@ -42,7 +42,7 @@ RequestsService.prototype = {
         if (options.cached === undefined) {
             options.cached = true;
         }
-        if (!this._requestCache[url] && options.cached) {
+        if (!this._requestCache[url] || !options.cached) {
             this._requestCache[url] = this.request(url, 'get', null, options);
         }
         return this._requestCache[url];
