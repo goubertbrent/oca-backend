@@ -686,8 +686,7 @@ class SolutionRssScraperSettings(NdbModel):
 
     @classmethod
     def create_parent_key(cls, service_user):
-        return ndb.Key(cls,
-                       service_user.email())
+        return ndb.Key(cls, service_user.email())
 
     @classmethod
     def create_key(cls, service_user, service_identity):
@@ -695,22 +694,17 @@ class SolutionRssScraperSettings(NdbModel):
             service_identity = ServiceIdentity.DEFAULT
         return ndb.Key(cls,
                        service_identity,
-                       parent=SolutionRssScraperSettings.create_parent_key(service_user))
+                       parent=cls.create_parent_key(service_user))
 
 
 class SolutionRssScraperItem(NdbModel):
-
     timestamp = ndb.IntegerProperty(indexed=True)
     dry_run = ndb.BooleanProperty(indexed=True)
 
-    @property
-    def url(self):
-        return self.key.string_id().decode('utf-8')
-
     @classmethod
-    def create_key(cls, service_user, service_identity, url):
+    def create_key(cls, service_user, service_identity, unique_identifier):
         return ndb.Key(cls,
-                       url,
+                       unique_identifier,
                        parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
 
 
