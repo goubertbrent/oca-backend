@@ -30,7 +30,7 @@ from google.appengine.api import urlfetch
 from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
 from rogerthat.consts import DEBUG
-from rogerthat.dal.app import get_apps
+from rogerthat.dal.app import get_apps_by_type
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.utils.transactions import run_in_transaction
@@ -173,7 +173,7 @@ def get_country_apps(country, live=True):
     Returns:
         apps (dict): a dict with app name (city) as key and app_id as value
     """
-    apps = get_apps([App.APP_TYPE_CITY_APP])
+    apps = get_apps_by_type(App.APP_TYPE_CITY_APP)
 
     # TODO: should add 'country' property to an app and filter on that. None if app type != city app
 

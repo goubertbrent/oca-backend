@@ -48,7 +48,7 @@ def translate_service_strings(service_user):
                     tr_dict[type_][k] = { l: translated }
     save_translations(translation_set, tr_dict)
     deploy_translation(service_user)
-    assert get_active_translation_set(service_user)
+    assert get_active_translation_set(service_profile)
 
 class Test(mc_unittest.TestCase):
 

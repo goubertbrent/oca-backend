@@ -25,13 +25,13 @@ import webapp2
 from babel import dates
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
-from rogerthat.bizz.app import get_app
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
+from rogerthat.dal.app import get_apps_by_id, get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import ServiceIdentity, App
+from rogerthat.models import ServiceIdentity
 from rogerthat.pages.legal import get_version_content, DOC_TERMS_SERVICE, get_current_document_version
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
@@ -333,7 +333,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         loyalty_version = self.request.get("loyalty")
         if customer:
             city_app_id = customer.app_id
-            default_app = get_app(customer.app_id)
+            default_app = get_app_by_id(customer.app_id)
             is_demo_app = default_app.demo
             active_app_ids = customer.sorted_app_ids
         else:
@@ -343,7 +343,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             service_identity_user = create_service_identity_user(service_user, service_identity)
             active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
-        available_apps = App.get([App.create_key(app_id) for app_id in active_app_ids])
+        available_apps = get_apps_by_id(active_app_ids)
 
         if SolutionModule.ORDER or SolutionModule.MENU in sln_settings.modules:
             order_settings = get_solution_order_settings(sln_settings)
