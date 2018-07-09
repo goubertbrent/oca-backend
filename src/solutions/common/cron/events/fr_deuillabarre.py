@@ -19,14 +19,15 @@ import datetime
 import logging
 import socket
 
-from lxml import html
-
 from google.appengine.api import urlfetch
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import deferred, db
+from lxml import html
+
 from rogerthat.dal import parent_key
 from rogerthat.utils import get_epoch_from_datetime
-from solutions.common.bizz import SolutionModule
+from solutions.common.bizz import SolutionModule, get_default_app_id, \
+    get_organization_type
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.agenda import Event
 
@@ -178,7 +179,8 @@ def _process_events(service_user, page):
             event = Event(parent=event_parent_key,
                           source=Event.SOURCE_SCRAPER,
                           external_id=url)
-
+        event.app_ids = [get_default_app_id(service_user)]
+        event.organization_type = get_organization_type(service_user)
         event.calendar_id = sln_settings.default_calendar
         event.external_link = url
         event.title = title
@@ -195,6 +197,3 @@ def _process_events(service_user, page):
 
     if events:
         deferred.defer(_process_events, service_user, page + 1)
-    else:
-        sln_settings.put_identity_pending = True
-        sln_settings.put()

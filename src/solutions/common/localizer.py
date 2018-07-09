@@ -31,6 +31,8 @@ translations = \
          u'1 stamp per scan': u'1 stamp per scan',
          u'<Picture>': u'<Picture>',
          u'<Video>': u'<Video>',
+         u'no_internet_connection': u'No internet connection.',
+         u'no_internet_connection_try_again': u'You are not connected to the internet. Please check your network configuration and try again.',
          u'About': u'About',
          u'Abuse': u'Abuse',
          u'Action button caption is empty': u'Action button caption is empty',

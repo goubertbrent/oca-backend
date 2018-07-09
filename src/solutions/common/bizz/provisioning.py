@@ -16,23 +16,22 @@
 # @@license_version:1.2@@
 
 import base64
+from contextlib import closing
+from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
+import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import jinja2
-from google.appengine.ext import db, deferred
-
-import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from babel.numbers import format_currency
+from google.appengine.ext import db, deferred
+import jinja2
+
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -52,6 +51,7 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -71,7 +71,7 @@ from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type,
 from solutions.common.bizz.system import generate_branding
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_GRAM, UNIT_KG, SECONDS_IN_HOUR, \
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
-from solutions.common.dal import get_solution_settings, get_event_list, get_restaurant_menu, \
+from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
     get_solution_logo, get_solution_group_purchase_settings, get_solution_calendars, get_static_content_keys, \
     get_solution_avatar, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
     get_solution_news_publishers
@@ -96,7 +96,7 @@ from solutions.common.models.properties import MenuItem, ActivatedModules, \
 from solutions.common.models.reservation import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
 from solutions.common.models.static_content import SolutionStaticContent
-from solutions.common.to import EventItemTO, MenuTO, SolutionGroupPurchaseTO, SolutionCalendarTO, TimestampTO
+from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, SolutionCalendarTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.djmatic import SOLUTION_DJMATIC
@@ -562,49 +562,22 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_agenda(sln_settings, service_identity, default_app_id):
-    events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution),
-                    key=lambda e: e.get_first_event_date())
-    event_items = []
-    size = 0
-    for i in xrange(len(events)):
-        event_items.append(EventItemTO.fromEventItemObject(events[i]))
-        size += len(json.dumps(serialize_complex_value(event_items[-1], EventItemTO, False)))
-        if size > 600 * 1024:
-            del event_items[len(event_items) - 1]
-            break
-    logging.debug("reducing events from agenda %s/%s = %s" % (len(event_items), len(events), size))
     calendar_items = [SolutionCalendarTO.fromSolutionCalendar(sln_settings, c)
                       for c in get_solution_calendars(sln_settings.service_user, sln_settings.solution)]
 
-    solution_events = serialize_complex_value(event_items, EventItemTO, True)
     solution_calendars = serialize_complex_value(calendar_items, SolutionCalendarTO, True)
 
     if SolutionModule.CITY_APP in sln_settings.modules:
         city_app_profile_key = CityAppProfile.create_key(sln_settings.service_user)
-
-        def trans():
-            city_app_profile = CityAppProfile.get(city_app_profile_key)
-            events_per_type = {}
-            if city_app_profile and city_app_profile.gather_events_enabled and city_app_profile.gather_events:
-                for organization_type in CityAppProfile.EVENTS_ORGANIZATION_TYPES:
-                    events_stream = city_app_profile.gather_events.get(unicode(organization_type))
-                    if events_stream is not None:
-                        events_per_type[organization_type] = json.load(events_stream)
-            return events_per_type
-
-        events_per_organization_type = db.run_in_transaction(trans)
-        lang = sln_settings.main_language
-        for organization_type in events_per_organization_type:
-            events = events_per_organization_type[organization_type]
-            if events:
-                solution_events.extend(events)
+        city_app_profile = CityAppProfile.get(city_app_profile_key)
+        if city_app_profile and city_app_profile.gather_events_enabled:
+            lang = sln_settings.main_language
+            for organization_type in CityAppProfile.EVENTS_ORGANIZATION_TYPES:
                 name = ServiceProfile.localized_plural_organization_type(organization_type, lang, default_app_id)
                 calendar = SolutionCalendarTO(organization_type, name)
                 solution_calendars.append(serialize_complex_value(calendar, SolutionCalendarTO, False))
 
     return {
-        'timezoneOffset': timezone_offset(sln_settings.timezone),
-        'solutionEvents': solution_events,
         'solutionCalendars': solution_calendars
     }
 

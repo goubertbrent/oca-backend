@@ -15,10 +15,10 @@
 #
 # @@license_version:1.2@@
 
-import json
-import logging
 from base64 import b64encode
 from datetime import datetime
+import json
+import logging
 from types import NoneType
 
 from google.appengine.api import urlfetch
@@ -26,10 +26,10 @@ from google.appengine.ext import deferred, db
 from google.appengine.ext.deferred import PermanentTaskFailure
 
 import cloudstorage
-import pytz
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
+import pytz
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
@@ -67,7 +67,8 @@ from solutions.common.bizz.events import new_event_received, poke_new_event, API
     solution_remind_event, API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, solution_add_to_calender_event, \
     API_METHOD_SOLUTION_EVENTS_REMOVE, solution_event_remove, API_METHOD_SOLUTION_EVENTS_GUEST_STATUS, \
     solution_event_guest_status, API_METHOD_SOLUTION_EVENTS_GUESTS, solution_event_guests, \
-    API_METHOD_SOLUTION_CALENDAR_BROADCAST, solution_calendar_broadcast
+    API_METHOD_SOLUTION_CALENDAR_BROADCAST, solution_calendar_broadcast, \
+    API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
@@ -160,6 +161,7 @@ MESSAGE_TAG_MAPPING[POKE_TAG_LOYALTY_REMINDERS] = stop_loyalty_reminders
 MESSAGE_TAG_MAPPING[POKE_TAG_DISCUSSION_GROUPS] = follow_discussion_groups
 
 API_METHOD_MAPPING = dict()
+API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_LOAD] = solution_load_events
 API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_REMIND] = solution_remind_event
 API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER] = solution_add_to_calender_event
 API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_REMOVE] = solution_event_remove

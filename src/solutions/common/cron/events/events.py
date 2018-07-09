@@ -15,41 +15,27 @@
 #
 # @@license_version:1.2@@
 
-from contextlib import closing
 import datetime
-import json
 import logging
 
-from babel.dates import format_date, format_time
 from google.appengine.ext import db, deferred
-from mcfw.rpc import serialize_complex_value
+import webapp2
+
+from babel.dates import format_date, format_time
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import parent_key
-from rogerthat.models import Message, ServiceIdentity
-from rogerthat.models.properties.keyvalue import KVStore
+from rogerthat.models import Message
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
 from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.models import delete_all
-from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
-from shop.models import Customer
-from solutions.common.bizz import timezone_offset, SolutionModule
 from solutions.common.bizz.events import update_events_from_google
 from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar, SolutionCalendarGoogleSync
-from solutions.common.models.cityapp import CityAppProfile
-from solutions.common.to import EventItemTO
-import webapp2
-
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
 
 
 class UpdateSolutionEventStartDate(webapp2.RequestHandler):
@@ -141,91 +127,6 @@ def _process_event_reminder(reminder_key):
     else:
         reminder.status = EventReminder.STATUS_REMINDED
         reminder.put()
-
-
-class CityAppSolutionGatherEvents(webapp2.RequestHandler):
-
-    def get(self):
-        run_job(_get_cityapps_query, [], _gather_events, [])
-
-
-def _get_cityapps_query():
-    return db.GqlQuery("SELECT __key__ FROM CityAppProfile")
-
-
-def _gather_events(cap_key):
-
-    def trans():
-        si_key = ServiceIdentity.keyFromService(users.User(cap_key.parent().name()), ServiceIdentity.DEFAULT)
-        cap, si = db.get([cap_key, si_key])
-        if cap is None or si is None:
-            return
-        if cap.gather_events:
-            cap.gather_events.clear()
-        else:
-            cap.gather_events = KVStore(cap_key)
-        organization_types = CityAppProfile.EVENTS_ORGANIZATION_TYPES
-        for org_type in organization_types:
-            with closing(StringIO()) as stream:
-                json.dump([], stream)
-                cap.gather_events[unicode(org_type)] = stream
-        cap.put()
-        if cap.gather_events_enabled:
-            for org_type in organization_types:
-                on_trans_committed(run_job, _get_customers_by_organization_type, [org_type, si.app_id],
-                                   _gather_events_for_customer, [cap_key, org_type])
-    run_in_xg_transaction(trans)
-
-
-def _get_customers_by_organization_type(organization_type, app_id):
-    return Customer.all(keys_only=True).filter('organization_type =', organization_type).filter('app_ids =', app_id)
-
-
-def _gather_events_for_customer(customer_key, cap_key, organization_type):
-    customer = Customer.get(customer_key)
-    if not customer.service_email:
-        logging.debug('This customer has no service yet: %s', db.to_dict(customer))
-        return
-    if cap_key.parent().name() == customer.service_email:
-        # do not gather own events
-        return
-    sln_settings = get_solution_settings(customer.service_user)
-    if SolutionModule.AGENDA not in sln_settings.modules:
-        return
-    if sln_settings.default_calendar is None:
-        logging.error('This customer has no default calendar!\n\nSolutionSettings: %s\n\nCustomer: %s',
-                      db.to_dict(sln_settings), db.to_dict(customer), _suppress=False)
-        return
-    sc = SolutionCalendar.get_by_id(sln_settings.default_calendar,
-                                    parent_key(customer.service_user, sln_settings.solution))
-    if not sc:
-        return
-
-    event_items = []
-    for event in sc.events:
-        event_item = EventItemTO.fromEventItemObject(event)
-        event_item.calendar_id = organization_type
-        event_items.append(event_item)
-
-    if event_items:
-        new_events = serialize_complex_value(event_items, EventItemTO, True)
-        gather_events_key = u"%s" % organization_type
-        def trans():
-            cap = CityAppProfile.get(cap_key)
-            stream = cap.gather_events.get(gather_events_key)
-            if stream:
-                json_list = json.load(stream)
-            else:
-                json_list = list()
-            json_list.extend(new_events)
-            with closing(StringIO()) as stream:
-                json.dump(json_list, stream)
-                cap.gather_events[gather_events_key] = stream
-            cap.put()
-
-        db.run_in_transaction(trans)
-        sln_settings.put_identity_pending = True
-        sln_settings.put()
 
 
 class SolutionSyncGoogleCalendarEvents(webapp2.RequestHandler):

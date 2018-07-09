@@ -350,9 +350,10 @@ class EventItemTO(object):
     end_dates_timestamps = typed_property('12', TimestampTO, True)
     calendar_id = long_property('13')
     organizer = unicode_property('14')
+    service_user_email = unicode_property('15')
 
     @staticmethod
-    def fromEventItemObject(obj, include_picture=False, destination_app=True):
+    def fromEventItemObject(obj, include_picture=False, destination_app=True, service_user=None):
         item = EventItemTO()
         item.id = obj.key().id()
         item.title = unicode(obj.title)
@@ -395,9 +396,11 @@ class EventItemTO(object):
             else:
                 item.picture = None
         item.new_picture = False
-
         item.calendar_id = obj.calendar_id
+        if service_user and obj.service_user != service_user:
+            item.calendar_id = obj.organization_type
         item.organizer = obj.organizer
+        item.service_user_email = obj.service_user.email()
         return item
 
 

@@ -26,8 +26,7 @@ from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandle
     SolutionCityVoucherExpiredReminderHandler
 from solutions.common.cron.events import SolutionEventsScraper
 from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
-    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, CityAppSolutionGatherEvents, \
-    SolutionEventsDataPublisher
+    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, SolutionEventsDataPublisher
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
@@ -46,7 +45,6 @@ handlers = [
     ('/admin/cron/rpc/update_first_start_solution_events', UpdateSolutionEventStartDate),
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_events_publish_data', SolutionEventsDataPublisher),
-    ('/admin/cron/rpc/solution_cityapp_gather_events', CityAppSolutionGatherEvents),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/check_djmatic_trial_mode', CheckDjmaticTrialMode),
     ('/admin/cron/rpc/shop_on_site_payments', ReportOnSitePaymentsHandler),
