@@ -81,7 +81,7 @@ from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solu
     API_METHOD_SOLUTION_VOUCHER_REDEEM, \
     API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM, API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE
 from solutions.common.bizz.menu import set_menu_item_image
-from solutions.common.bizz.order import order_received
+from solutions.common.bizz.order import order_received, poke_order
 from solutions.common.bizz.pharmacy.order import pharmacy_order_received
 from solutions.common.bizz.repair import repair_order_received
 from solutions.common.bizz.reservation import reservation_part1, my_reservations_poke, my_reservations_overview_updated, \
@@ -146,11 +146,12 @@ FMR_POKE_TAG_MAPPING[POKE_TAG_ORDER] = order_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_PHARMACY_ORDER] = pharmacy_order_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_NEW_EVENT] = new_event_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_MENU_ITEM_IMAGE_UPLOAD] = set_menu_item_image
-
-POKE_TAG_MAPPING = dict()
-POKE_TAG_MAPPING[POKE_TAG_MY_RESERVATIONS] = my_reservations_poke
-POKE_TAG_MAPPING[POKE_TAG_NEW_EVENT] = poke_new_event
-POKE_TAG_MAPPING[POKE_TAG_DISCUSSION_GROUPS] = poke_discussion_groups
+POKE_TAG_MAPPING = {
+    POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
+    POKE_TAG_NEW_EVENT: poke_new_event,
+    POKE_TAG_DISCUSSION_GROUPS: poke_discussion_groups,
+    POKE_TAG_ORDER: poke_order,
+}
 
 MESSAGE_TAG_MAPPING = dict()
 MESSAGE_TAG_MAPPING[MESSAGE_TAG_SANDWICH_ORDER_NOW] = sandwich_order_from_broadcast_pressed

@@ -14,26 +14,28 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
-
-from contextlib import closing
 import datetime
 import json
+import time
+from contextlib import closing
 from types import NoneType
 
 from google.appengine.ext import db, deferred
 
+import pytz
 from babel.dates import format_datetime, get_timezone
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
-import pytz
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message
 from rogerthat.models.properties.forms import PayWidgetResult
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import messaging
-from rogerthat.to.messaging import AttachmentTO, MemberTO
+from rogerthat.to.messaging import AttachmentTO, MemberTO, AnswerTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
+from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, FlowCallbackResultTypeTO, TYPE_FLOW, \
+    TYPE_MESSAGE, MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, try_or_defer
 from rogerthat.utils.channel import send_message
@@ -59,6 +61,8 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from cStringIO import StringIO
+
+ORDER_FLOW_NAME = u'order'
 
 
 @returns()
@@ -245,6 +249,52 @@ def _send_order_confirmation(service_user, lang, message_flow_run_id, member, st
                        step_id=u'order_complete')
     finally:
         users.clear_user()
+
+
+@returns(PokeCallbackResultTO)
+@arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def poke_order(service_user, email, tag, result_key, context, service_identity, user_details):
+    # type: (users.User, unicode, unicode, unicode, unicode, unicode, list[UserDetailsTO]) -> PokeCallbackResultTO
+    sln_settings = get_solution_settings(service_user)
+    order_settings = get_solution_order_settings(sln_settings)
+    if order_settings.pause_settings_enabled or order_settings.disable_order_outside_hours:
+        now_ = datetime.datetime.now()
+        is_paused = order_settings.pause_settings_paused_until and order_settings.pause_settings_paused_until > now_
+        msg = None
+        if is_paused:
+            msg = order_settings.pause_settings_message
+        elif order_settings.disable_order_outside_hours and not can_order_now(sln_settings):
+            msg = order_settings.outside_hours_message
+        if msg:
+            main_branding = get_solution_main_branding(service_user)
+            button = AnswerTO(id_=u'ok', caption=common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Close'))
+            return PokeCallbackResultTO(type=TYPE_MESSAGE,
+                                        value=MessageCallbackResultTypeTO(message=msg,
+                                                                          answers=[button],
+                                                                          flags=Message.FLAG_AUTO_LOCK,
+                                                                          branding=main_branding.branding_key,
+                                                                          tag=None,
+                                                                          alert_flags=Message.ALERT_FLAG_SILENT,
+                                                                          dismiss_button_ui_flags=0,
+                                                                          attachments=[],
+                                                                          step_id='message_error'))
+        else:
+            return PokeCallbackResultTO(type=TYPE_FLOW, value=FlowCallbackResultTypeTO(flow=ORDER_FLOW_NAME, tag=tag))
+    return None
+
+
+def can_order_now(sln_settings):
+    # type: (SolutionSettings) -> bool
+    time_frames = SolutionOrderWeekdayTimeframe.list(sln_settings.service_user, sln_settings.solution)
+    dt = datetime.datetime.now(get_timezone(sln_settings.timezone))
+    seconds_after_midnight = time.mktime(dt.timetuple()) % 86400
+    current_day = dt.weekday()
+    for time_frame in time_frames:
+        if time_frame.day == current_day:
+            if time_frame.time_until >= seconds_after_midnight >= time_frame.time_from:
+                return True
+    return False
 
 
 @returns()

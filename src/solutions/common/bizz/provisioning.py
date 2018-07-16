@@ -16,22 +16,23 @@
 # @@license_version:1.2@@
 
 import base64
-from contextlib import closing
-from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-from types import NoneType
 import urllib
+from contextlib import closing
+from datetime import timedelta, datetime
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import jinja2
+from google.appengine.ext import db, deferred
+
+import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from babel.numbers import format_currency
-from google.appengine.ext import db, deferred
-import jinja2
-
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -51,7 +52,6 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -66,6 +66,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
+from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
@@ -1508,7 +1509,8 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         Features=Features,
         manual_confirmation=sln_order_settings.manual_confirmation,
         payment_enabled=payment_enabled,
-        min_amount_for_fee_message=min_amount_for_fee_message
+        min_amount_for_fee_message=min_amount_for_fee_message,
+        flow_name=ORDER_FLOW_NAME
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier
@@ -1535,11 +1537,12 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
         _default_delete(sln_settings, current_coords)
         return []
     logging.info('Creating ORDER menu item')
+    static_flow = static_flow_hash if not sln_order_settings.pause_settings_enabled else None
     ssmi = SolutionServiceMenuItem(u'fa-shopping-basket',
                                    sln_settings.menu_item_color,
                                    common_translate(default_lang, SOLUTION_COMMON, 'order'),
                                    tag,
-                                   static_flow=static_flow_hash,
+                                   static_flow=static_flow,
                                    action=SolutionModule.action_order(SolutionModule.ORDER))
 
     return [ssmi]

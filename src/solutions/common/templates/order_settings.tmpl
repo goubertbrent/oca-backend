@@ -89,6 +89,31 @@
             </tbody>
         </table>
     </div>
+    <h3>{% translate language, 'common', 'order_is_ready_default_message' %}</h3>
+    <div id="order_ready_message_container">
+        <textarea id="order_ready_default_message" class="span6" rows="3"
+                  placeholder="{% translate language, 'common', 'enter-dot-dot-dot' %}"></textarea>
+    </div>
+
+    <h3>{% translate language, 'common', 'limitations' %}</h3>
+    <div id="pause-settings">
+        <label for="pause-orders-enabled" class="checkbox">
+            <input type="checkbox" name="pause-orders-enabled" id="pause-orders-enabled">
+            {% translate language, 'common', 'enable_pausing' %}
+        </label>
+        <p>{% translate language, 'common', 'pause_settings_info' %}</p>
+        <label for="pause-settings-message">{% translate language, 'common', 'message_shown_when_paused' %}</label>
+        <textarea id="pause-settings-message" class="span6" rows="3"></textarea>
+        <br><br>
+        <label for="disable-order-outside-hours" class="checkbox">
+            <input type="checkbox" name="disable-order-outside-hours" id="disable-order-outside-hours">
+            {% translate language, 'common', 'disable_ordering_outside_hours' %}
+        </label>
+        <label for="outside-hours-message">
+            {% translate language, 'common', 'message_shown_when_ordering_outside_hours' %}
+        </label>
+        <textarea id="outside-hours-message" class="span6" rows="3"></textarea>
+    </div>
 
     <div id="orderTimeframeModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-header clearfix">
@@ -126,11 +151,5 @@
                 "common", "Save" %}
             </button>
         </div>
-    </div>
-
-    <h3>{% translate language, 'common', 'order_is_ready_default_message' %}</h3>
-    <div id="order_ready_message_container">
-        <textarea id="order_ready_default_message" class="span6" rows="3"
-                  placeholder="{% translate language, 'common', 'enter-dot-dot-dot' %}"></textarea>
     </div>
 </section>

@@ -81,12 +81,15 @@ $(function () {
         var appStatsPromise = Requests.getAppStatistics();
         var sandwichSettingsPromise = Requests.getSandwichSettings();
         var menuPromise = Requests.getMenu();
-        // Execute 4 requests in parallel
-        Promise.all([broadcastPromise, appStatsPromise, sandwichSettingsPromise, menuPromise]).then(function (results) {
+        var orderSettingsPromise = Requests.getOrderSettings();
+        // Execute 5 requests in parallel
+        var promises = [broadcastPromise, appStatsPromise, sandwichSettingsPromise, menuPromise, orderSettingsPromise];
+        Promise.all(promises).then(function (results) {
             var broadcastOptions = results[0],
                 appStatistics = results[1],
                 sandwichSettings = results[2],
-                menu = results[3];
+                menu = results[3],
+                orderSettings = results[4];
             if (orderSettings.order_type !== CONSTS.ORDER_TYPE_ADVANCED) {
                 menu = null;
             }

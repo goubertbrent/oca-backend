@@ -61,7 +61,6 @@ var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
 var CURRENCY = "{{ currency }}";
 var LEGAL_ENTITY_CURRENCY = "{{ LEGAL_ENTITY_CURRENCY }}";
 var CONSTS = {{ CONSTS_JSON }};
-var orderSettings = {{ order_settings_json }};
 var MODULES = {{ modules }};
 var COUNTRY = {% if country %}"{{ country }}"{% else %}null{% endif %};
 var PROVISIONED_MODULES = {{ provisioned_modules }};
@@ -121,8 +120,7 @@ var templates = {{ templates|safe }};
 {% endif %}
 
 {% if not loyalty and (SolutionModule.MENU in sln_settings.modules or SolutionModule.ORDER in sln_settings.modules) %}
-                            <li menu="menu"
-                                {% if hide_menu_tab %}class="hide"{% endif %}>
+                            <li menu="menu">
                             <a href="#/menu" help="tHSuWLfTuSg">
                                 {% if menu and menu.name %}{{ menu.name }}{% else %}{% translate language, "common", "menu-editor-menu" %}{% endif %}
                             </a>

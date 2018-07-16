@@ -15,15 +15,23 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.dal import parent_key
+from google.appengine.ext import db
+
+from mcfw.utils import Enum
+from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.rpc import users
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
     get_service_user_from_service_identity_user
-from google.appengine.ext import db
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, SECONDS_IN_MINUTE
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
 from solutions.common.models.properties import SolutionUserProperty
+
+
+class OrderSettingsFlags(Enum):
+    DEFAULT = 0  # No special flow
+    ENABLED = 1  # instead of a flow, a poke will be used to check if it is currently paused or not.
+    PAUSED = 2  # Currently not possible to order
 
 
 class SolutionOrderSettings(db.Model):
@@ -37,6 +45,13 @@ class SolutionOrderSettings(db.Model):
 
     order_ready_message = db.StringProperty(indexed=False, multiline=True)
     manual_confirmation = db.BooleanProperty(indexed=False, default=False)
+    flags = db.IntegerProperty(indexed=False, choices=OrderSettingsFlags.all())
+    disable_order_outside_hours = db.BooleanProperty(default=False, indexed=False)
+    outside_hours_message = db.StringProperty(indexed=False)
+    # properties names are for easy conversion to ndb model later
+    pause_settings_enabled = db.BooleanProperty(name='pause_settings.enabled', indexed=False, default=False)
+    pause_settings_paused_until = db.DateTimeProperty(name='pause_settings.paused_until', indexed=False)
+    pause_settings_message = db.StringProperty(name='pause_settings.message', indexed=False)
 
     @classmethod
     def create_key(cls, service_user):
@@ -84,6 +99,13 @@ class SolutionOrder(db.Model):
     @property
     def solution_order_key(self):
         return str(self.key())
+
+    @classmethod
+    def list(cls, service_identity_user):
+        return cls.all() \
+            .filter('deleted', False) \
+            .ancestor(parent_key_unsafe(service_identity_user, SOLUTION_COMMON)) \
+            .order('-timestamp').run()
 
 
 class SolutionOrderWeekdayTimeframe(SolutionAppointmentWeekdayTimeframe):

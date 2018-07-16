@@ -29,19 +29,21 @@ $(function () {
     var paymentEnabled = false;
     var paymentOptional = true;
     var paymentMinAmountForFee = 0;
+    var pauseEndTimeout;
 
-    modules.order = {};
+    modules.order = {
+        isPaymentEnabled: isPaymentEnabled
+    };
 
     var channelUpdates = function (data) {
         switch (data.type) {
             case 'solutions.common.orders.update':
-                loadOrders();
+                Requests.getOrderSettings().then(function (orderSettings) {
+                    loadOrders(orderSettings);
+                });
                 break;
             case 'solutions.common.orders.deleted':
                 fadeOutMessageAndUpdateBadge(data.order_key);
-                break;
-            case 'solutions.common.order.settings.update':
-                reLoadOrderSettings();
                 break;
             case 'solutions.common.order.settings.timeframe.update':
                 loadorderTimeframes();
@@ -49,52 +51,33 @@ $(function () {
         }
     };
 
-    $("#ordersShowTodo, #ordersShowAll").click(function () {
-        showAllOrders = !showAllOrders;
-        updateShowHideOrders();
-    });
-
     var settingsSection = $('#section_settings_order');
     settingsSection.find('input[type=radio]').change(putOrderSettings);
+    settingsSection.find('input[type=checkbox]').change(putOrderSettings);
 
-    var updateShowHideOrders = function () {
+    function updateShowHideOrders() {
         $("#ordersShowTodo").toggleClass('btn-success', !showAllOrders)
             .html(showAllOrders ? '&nbsp;' : CommonTranslations.TODO);
         $("#ordersShowAll").toggleClass('btn-success', showAllOrders)
             .html(showAllOrders ? CommonTranslations.ALL : '&nbsp;');
-        renderOrders();
-    };
-
-    var reLoadOrderSettings = function () {
-        sln.call({
-            url: "/common/order/settings/load",
-            type: "GET",
-            success: function (data) {
-                var originalOrderType = orderSettings.order_type;
-                orderSettings = data;
-                var headerMenuElement = $('#topmenu').find('li[menu=menu]');
-                if (originalOrderType != data.order_type) {
-                    if (data.order_type === CONSTS.ORDER_TYPE_ADVANCED) {
-                        headerMenuElement.removeClass('hide');
-                    } else if (MODULES.indexOf('menu') === -1) {
-                        headerMenuElement.addClass('hide');
-                    }
-                    if (modules.menu) {
-                        modules.menu.reloadMenu().then(modules.menu.renderMenu);
-                    }
-                }
-                renderOrderSettings(data);
-            }
-
-        });
-    };
+    }
 
     function renderOrderSettings(data) {
+        var headerMenuElement = $('#topmenu').find('li[menu=menu]');
+        if (data.order_type === CONSTS.ORDER_TYPE_ADVANCED) {
+            headerMenuElement.removeClass('hide');
+        } else if (MODULES.indexOf('menu') === -1) {
+            headerMenuElement.addClass('hide');
+        }
+        if (modules.menu) {
+            Requests.getMenu().then(modules.menu.renderMenu);
+        }
         $("#order_settings_text1").val(data.text_1);
         $("#order_ready_default_message").val(data.order_ready_message);
         settingsSection.find('input[type=radio][value=' + data.order_type + ']').prop('checked', true);
         $('#order_leaptime').val(data.leap_time);
         $('#order_leaptime_type').val(data.leap_time_type);
+        $('#pause-orders-enabled').prop('checked', data.pause_settings.enabled);
         if (data.order_type === CONSTS.ORDER_TYPE_SIMPLE) {
             $('#order_timeframes_container').slideUp();
             $('#intro_text_container').slideDown();
@@ -110,37 +93,50 @@ $(function () {
         } else {
             $('input[name=auto_or_manual_confirmation][value=automatic]').prop('checked', true);
         }
+        $('#pause-settings-message').val(data.pause_settings.message);
+        $('#disable-order-outside-hours').val(data.disable_order_outside_hours);
+        $('#outside-hours-message').val(data.outside_hours_message);
+        renderOrders(data);
+        if (data.pause_settings.paused_until) {
+            if (!pauseEndTimeout) {
+                var timeout = new Date(data.pause_settings.paused_until).getTime() - new Date().getTime();
+                pauseEndTimeout = setTimeout(function () {
+                    renderOrderSettings(data);
+                }, timeout);
+            }
+        }
     }
 
-    function putOrderSettings() {
-        var leapTime = parseInt($('#order_leaptime').val());
-        var confirmation = $('input[name=auto_or_manual_confirmation]:checked').val();
-        if (isNaN(leapTime)) {
-            leapTime = 60;
-        }
-        var leapTimeType = parseInt($('#order_leaptime_type').val());
-        sln.call({
-            url: "/common/order/settings/put",
-            type: "POST",
-            data: {
-                data: JSON.stringify({
-                    text_1: $("#order_settings_text1").val(),
-                    order_type: parseInt($('#section_settings_order').find('input[name=setting_advanced_order_fields]:checked').val()),
-                    leap_time: leapTime,
-                    leap_time_type: leapTimeType,
-                    order_ready_message: $('#order_ready_default_message').val().trim() || orderSettings.order_ready_message,
-                    manual_confirmation: confirmation === 'manual' ? true : false
-                })
-            },
-            success: function (data) {
-                if (!data.success) {
-                    return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
+    function putOrderSettings(pausedUntil, pausedMessage) {
+        Requests.getOrderSettings().then(function (orderSettings) {
+            var leapTime = parseInt($('#order_leaptime').val());
+            var confirmation = $('input[name=auto_or_manual_confirmation]:checked').val();
+            if (isNaN(leapTime)) {
+                leapTime = 60;
             }
+            var leapTimeType = parseInt($('#order_leaptime_type').val());
+            var paused = (typeof pausedUntil === 'string' || pausedUntil === null) ? pausedUntil : orderSettings.pause_settings.paused_until;
+            var data = {
+                text_1: $("#order_settings_text1").val(),
+                order_type: parseInt($('#section_settings_order').find('input[name=setting_advanced_order_fields]:checked').val()),
+                leap_time: leapTime,
+                leap_time_type: leapTimeType,
+                order_ready_message: $('#order_ready_default_message').val().trim() || orderSettings.order_ready_message,
+                manual_confirmation: confirmation === 'manual',
+                pause_settings: {
+                    enabled: $('#pause-orders-enabled').prop('checked'),
+                    paused_until: paused,
+                    message: pausedMessage || $('#pause-settings-message').val(),
+                },
+                disable_order_outside_hours: $('#disable-order-outside-hours').prop('checked'),
+                outside_hours_message: $('#outside-hours-message').val().trim(),
+            };
+            pauseEndTimeout = null;
+            Requests.saveOrderSettings(data).then(renderOrderSettings);
         });
     }
 
-    var getActionsForOrder = function (order) {
+    var getActionsForOrder = function (order, orderSettings) {
         var toolbar = $('<div class="btn-toolbar"></div>');
         var group = $('<div class="btn-group"></div>');
 
@@ -152,7 +148,7 @@ $(function () {
             });
             group.append(btnConfirm);
         }
-        if (order.status == STATUS_RECEIVED) {
+        if (order.status === STATUS_RECEIVED) {
             var btnReady = $('<button action="ready" class="btn btn-large btn-success"><i class="icon-ok icon-white"></i></button>').attr("order_key", order.key).click(
                 function (event) {
                     event.stopPropagation();
@@ -171,7 +167,7 @@ $(function () {
         return toolbar;
     };
 
-    var loadOrders = function () {
+    function loadOrders(orderSettings) {
         solutionInboxMessageOrders = {};
         sln.call({
             url: "/common/orders/load",
@@ -185,16 +181,16 @@ $(function () {
                     if (o.solution_inbox_message_key) {
                         solutionInboxMessageOrders[o.solution_inbox_message_key] = o;
                         if (solutionInboxMessageOrderRequests[o.solution_inbox_message_key]) {
-                            sln.setInboxActions(o.solution_inbox_message_key, getActionsForOrder(o));
+                            sln.setInboxActions(o.solution_inbox_message_key, getActionsForOrder(o, orderSettings));
                             delete solutionInboxMessageOrderRequests[o.solution_inbox_message_key];
                         }
                     }
                 });
                 orders = data;
-                renderOrders();
+                renderOrders(orderSettings);
             }
         });
-    };
+    }
 
     function filterOrders(order) {
         if (showAllOrders) {
@@ -203,13 +199,24 @@ $(function () {
         return order.status === STATUS_RECEIVED;
     }
 
-    var renderOrders = function () {
+    function isPaused(orderSettings) {
+        return orderSettings.pause_settings.paused_until !== null && new Date(orderSettings.pause_settings.paused_until) > new Date();
+    }
+
+    var renderOrders = function (orderSettings) {
         var orderElement = $("#orders-list");
         var localOrders = orders.filter(filterOrders);
+        var pausedUntil = orderSettings.pause_settings.paused_until;
+        var paused = isPaused(orderSettings);
+        var pausedMessage = paused ? T('orders_currently_paused_until', {date: sln.format(new Date(pausedUntil))}) : '';
         var html = $.tmpl(templates.order_list, {
             orders: localOrders,
             advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED,
-            formatHtml: sln.formatHtml
+            formatHtml: sln.formatHtml,
+            paused: paused,
+            T: T,
+            pausedMessage: pausedMessage,
+            pauseEnabled: orderSettings.pause_settings.enabled,
         });
         orderElement.html(html);
         orderElement.find('button[action="view"]').click(function () {
@@ -224,6 +231,45 @@ $(function () {
             badge.text(localOrders.length || '');
         }
         sln.resize_header();
+        updateShowHideOrders();
+        $("#ordersShowTodo, #ordersShowAll").click(function () {
+            showAllOrders = !showAllOrders;
+            renderOrders(orderSettings);
+        });
+        $('#btn-pause-orders').toggle(orderSettings.pause_settings.enabled).click(function () {
+            if (isPaused(orderSettings)) {
+                putOrderSettings(null);
+            } else {
+                var html = $.tmpl(templates.pause_orders_modal, {
+                    T: T,
+                    message: orderSettings.pause_settings.message,
+                });
+                var modal = sln.createModal(html, onShown);
+
+                function onShown() {
+                    var defaultTime = new Date().getHours() + 2;
+                    var timePickerElem = $('#paused-until-time');
+                    timePickerElem.timepicker({
+                        defaultTime: defaultTime + ":00",
+                        showMeridian: false,
+                    });
+                    $('button[action="submit"]', modal).click(function () {
+                        var time = timePickerElem.val().split(':').map(function (d) {
+                            return parseInt(d);
+                        });
+                        var hour = time[0];
+                        var minute = time[1];
+                        var date = new Date();
+                        date.setHours(hour);
+                        date.setMinutes(minute);
+                        date.setSeconds(0);
+                        var message = modal.find('#orders-paused-message').val();
+                        modal.modal('hide');
+                        putOrderSettings(date.toISOString(), message);
+                    });
+                }
+            }
+        });
     };
 
     var fadeOutMessageAndUpdateBadge = function (orderKey) {
@@ -259,64 +305,69 @@ $(function () {
             defaultMessage);
     };
 
-    var orderViewPressed = function (orderKey) {
-        var order = ordersDict[orderKey];
-        order.takeaway_time_formatted = sln.format(new Date(order.takeaway_time * 1000));
-        var html = $.tmpl(templates.order, {
-            header: CommonTranslations.DETAILS,
-            closeBtn: CommonTranslations.CLOSE,
-            sendMessageBtn: CommonTranslations.REPLY,
-            sendOrderReadyBtn: CommonTranslations.READY_FOR_COLLECTION,
-            order_key: orderKey,
-            order: order,
-            advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED,
-            CommonTranslations: CommonTranslations,
-            formatHtml: sln.formatHtml
-        });
-        var modal = sln.createModal(html);
+    function orderViewPressed(orderKey) {
+        Requests.getOrderSettings().then(function (orderSettings) {
+            var order = ordersDict[orderKey];
+            order.takeaway_time_formatted = sln.format(new Date(order.takeaway_time * 1000));
+            var html = $.tmpl(templates.order, {
+                header: CommonTranslations.DETAILS,
+                closeBtn: CommonTranslations.CLOSE,
+                sendMessageBtn: CommonTranslations.REPLY,
+                sendOrderReadyBtn: CommonTranslations.READY_FOR_COLLECTION,
+                order_key: orderKey,
+                order: order,
+                advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED,
+                CommonTranslations: CommonTranslations,
+                formatHtml: sln.formatHtml
+            });
+            var modal = sln.createModal(html);
 
-        $('button[action="sendmessage"]', html).click(function () {
-            modal.modal('hide');
-            var defaultMessage = null;
-            if (orderSettings.manual_confirmation) {
-                defaultMessage = CommonTranslations.order_confirmed;
+            $('button[action="sendmessage"]', html).click(function () {
+                modal.modal('hide');
+                var defaultMessage = null;
+                if (orderSettings.manual_confirmation) {
+                    defaultMessage = CommonTranslations.order_confirmed;
+                }
+                sendMessage(order, defaultMessage);
+            });
+
+            if (order.status === STATUS_COMPLETED) {
+                $('button[action="sendorderready"]', html).hide();
             }
-            sendMessage(order, defaultMessage);
-        });
 
-        if (order.status == STATUS_COMPLETED) {
-            $('button[action="sendorderready"]', html).hide();
-        }
-
-        $('button[action="sendorderready"]', html).click(function () {
-            modal.modal('hide');
-            readyOrderPressed(orderKey);
+            $('button[action="sendorderready"]', html).click(function () {
+                modal.modal('hide');
+                readyOrderPressed(orderKey);
+            });
         });
-    };
+    }
 
     var readyOrderPressed = function (orderKey) {
-        sln.inputBox(function (message, btn) {
-            var msg = message;
-            if (btn == 2) {
-                msg = "";
-            }
-            sln.call({
-                url: "/common/order/sendmessage",
-                type: "POST",
-                data: {
-                    data: JSON.stringify({
-                        order_key: orderKey,
-                        order_status: STATUS_COMPLETED,
-                        message: msg
-                    })
-                },
-                success: function (data) {
-                    if (!data.success) {
-                        return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+        Requests.getOrderSettings().then(function (orderSettings) {
+            sln.inputBox(function (message, btn) {
+                    var msg = message;
+                    if (btn == 2) {
+                        msg = "";
                     }
-                }
-            });
-        }, CommonTranslations.READY, CommonTranslations.READY, null, orderSettings.order_ready_message, null, CommonTranslations.dont_send_message);
+                    sln.call({
+                        url: "/common/order/sendmessage",
+                        type: "POST",
+                        data: {
+                            data: JSON.stringify({
+                                order_key: orderKey,
+                                order_status: STATUS_COMPLETED,
+                                message: msg
+                            })
+                        },
+                        success: function (data) {
+                            if (!data.success) {
+                                return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                            }
+                        }
+                    });
+                }, CommonTranslations.READY, CommonTranslations.READY, null, orderSettings.order_ready_message, null,
+                CommonTranslations.dont_send_message);
+        });
     };
 
     var orderDeletePressed = function (event) {
@@ -609,12 +660,12 @@ $(function () {
     function isPaymentEnabled() {
         return paymentEnabled;
     }
-    modules.order.isPaymentEnabled = isPaymentEnabled;
 
     sln.registerMsgCallback(channelUpdates);
-    loadOrders();
-    renderOrderSettings(orderSettings); // orderSettings defined in index.html
-    updateShowHideOrders();
+    Requests.getOrderSettings().then(function (orderSettings) {
+        renderOrderSettings(orderSettings);
+        loadOrders(orderSettings);
+    });
     loadPaymentSettings();
     loadPayconiq();
 
@@ -623,17 +674,24 @@ $(function () {
     sln.configureDelayedInput($('#payment_min_amount_for_fee'), changePaymentMinAmountForFee);
 
     sln.registerInboxActionListener("order", function (chatId) {
-        var o = solutionInboxMessageOrders[chatId];
-        if (o) {
-            sln.setInboxActions(o.solution_inbox_message_key, getActionsForOrder(o));
-        } else {
-            solutionInboxMessageOrderRequests[chatId] = chatId;
-        }
+        Requests.getOrderSettings().then(function (orderSettings) {
+            var o = solutionInboxMessageOrders[chatId];
+            if (o) {
+                sln.setInboxActions(o.solution_inbox_message_key, getActionsForOrder(o, orderSettings));
+            } else {
+                solutionInboxMessageOrderRequests[chatId] = chatId;
+            }
+        });
     });
-    sln.configureDelayedInput($("#order_settings_text1"), putOrderSettings);
-    sln.configureDelayedInput($("#order_leaptime"), putOrderSettings);
-    sln.configureDelayedInput($("#order_leaptime_type"), putOrderSettings);
-    sln.configureDelayedInput($("#order_ready_default_message"), putOrderSettings);
+    var _putOrderSettings = function () {
+        putOrderSettings();
+    };
+    sln.configureDelayedInput($("#order_settings_text1"), _putOrderSettings);
+    sln.configureDelayedInput($("#order_leaptime"), _putOrderSettings);
+    sln.configureDelayedInput($("#order_leaptime_type"), _putOrderSettings);
+    sln.configureDelayedInput($("#order_ready_default_message"), _putOrderSettings);
+    sln.configureDelayedInput($("#pause-settings-message"), _putOrderSettings);
+    sln.configureDelayedInput($("#outside-hours-message"), _putOrderSettings);
 
     sln.configureDelayedInput($("#payconicMerchantId"), savePayconiqSettings);
     sln.configureDelayedInput($("#payconiqAccessToken"), savePayconiqSettings);

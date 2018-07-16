@@ -15,9 +15,8 @@
 #
 # @@license_version:1.2@@
 
-from rogerthat.dal import generator, parent_key_unsafe
-from rogerthat.rpc import users
 from mcfw.rpc import returns, arguments
+from rogerthat.rpc import users
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
@@ -28,6 +27,7 @@ from solutions.common.utils import create_service_identity_user_wo_default
 @returns(SolutionOrderSettings)
 @arguments(sln_settings=SolutionSettings)
 def get_solution_order_settings(sln_settings):
+    # type: (SolutionSettings) -> SolutionOrderSettings
     solution_order_settings_key = SolutionOrderSettings.create_key(sln_settings.service_user)
     solution_order_settings = SolutionOrderSettings.get(solution_order_settings_key)
     if not solution_order_settings:
@@ -41,6 +41,4 @@ def get_solution_order_settings(sln_settings):
 @arguments(service_user=users.User, service_identity=unicode)
 def get_solution_orders(service_user, service_identity):
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    qry = SolutionOrder.gql("WHERE ANCESTOR IS :ancestor AND deleted = :deleted ORDER BY timestamp DESC")
-    qry.bind(ancestor=parent_key_unsafe(service_identity_user, SOLUTION_COMMON), deleted=False)
-    return generator(qry.run())
+    return SolutionOrder.list(service_identity_user)

@@ -78,16 +78,13 @@ def get_solution_inbox_messages(service_user, service_identity, count, name, cur
 
     return unicode(cursor_), messages, has_more
 
+
 @returns(SolutionSettings)
 @arguments(service_user=users.User)
 def get_solution_settings(service_user):
-    """
-    Args:
-        service_user (users.User)
-    Returns:
-        SolutionSettings
-    """
+    # type: (users.User) -> SolutionSettings
     return SolutionSettings.get(SolutionSettings.create_key(service_user))
+
 
 @returns(SolutionIdentitySettings)
 @arguments(service_user=users.User, service_identity=unicode)

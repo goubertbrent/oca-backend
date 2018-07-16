@@ -58,12 +58,10 @@ from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER,
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
-from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.news import NewsSettingsTags
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
-from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
 
@@ -182,6 +180,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
     SolutionModule.ORDER: [
         'order',
         'order_list',
+        'pause_orders_modal',
         'timeframe_template',
         'menu',
         'menu_import',
@@ -345,11 +344,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
         available_apps = get_apps_by_id(active_app_ids)
 
-        if SolutionModule.ORDER or SolutionModule.MENU in sln_settings.modules:
-            order_settings = get_solution_order_settings(sln_settings)
-        else:
-            order_settings = None  # Client code should not need this variable
-
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
             'UNIT_LITER': UNIT_LITER,
@@ -448,17 +442,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'CONSTS': consts,
                   'CONSTS_JSON': json.dumps(consts),
                   'COUNTRY': customer and customer.country or u'',
-                  'order_settings': order_settings,
-                  'order_settings_json': json.dumps(
-                      serialize_complex_value(
-                          SolutionOrderSettingsTO.fromModel(order_settings, sln_settings.main_language),
-                          SolutionOrderSettingsTO, False)),
                   'modules': json.dumps(sln_settings.modules),
                   'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
-                  'hide_menu_tab': SolutionModule.MENU not in sln_settings.modules
-                  and SolutionModule.ORDER in sln_settings.modules
-                  and (
-                      not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
                   'VAT_PCT': vat_pct,
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,

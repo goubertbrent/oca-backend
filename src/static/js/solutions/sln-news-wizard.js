@@ -651,26 +651,26 @@ NewsWizard.prototype = {
         }
 
         function actionButtonChanged() {
-            var selectedAction = (elemSelectButton.val() || '').split('.');
-            self.$('.news_action').hide();
-            var defaultActions = ['url', 'email', 'phone', 'attachment', 'joyn_coupon'];
-            var isDefaultAction = defaultActions.includes(selectedAction[0]);
-            if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
-                var showElem = true;
-                if (isDefaultAction) {
-                    self.$('#news_action_' + selectedAction[0]).toggle(showElem);
-                } else {
-                    if (orderSettings.order_type !== CONSTS.ORDER_TYPE_ADVANCED && selectedAction[1] === 'order') {
-                        showElem = false;
+            Requests.getOrderSettings().then(function (orderSettings) {
+                var selectedAction = (elemSelectButton.val() || '').split('.');
+                self.$('.news_action').hide();
+                var defaultActions = ['url', 'email', 'phone', 'attachment', 'joyn_coupon'];
+                var isDefaultAction = defaultActions.includes(selectedAction[0]);
+                if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
+                    var showElem = true;
+                    if (isDefaultAction) {
+                        self.$('#news_action_' + selectedAction[0]).toggle(showElem);
+                    } else {
+                        if (orderSettings.order_type !== CONSTS.ORDER_TYPE_ADVANCED && selectedAction[1] === 'order') {
+                            showElem = false;
+                        }
+                        self.$('#news_action_' + selectedAction[1]).toggle(showElem);
                     }
-                    self.$('#news_action_' + selectedAction[1]).toggle(showElem);
+                } else if (selectedAction[0] === 'reserve1') {
+                    self.$('#news_action_restaurant_reservation').show();
                 }
-            } else if (selectedAction[0] === 'reserve1') {
-                self.$('#news_action_restaurant_reservation').show();
-            }
-
-
             renderPreview();
+            });
         }
 
         function actionButtonUrlChanged() {

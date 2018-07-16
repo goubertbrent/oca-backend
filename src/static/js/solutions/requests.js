@@ -80,6 +80,14 @@ RequestsService.prototype = {
         options = options || {};
         options.updatesCache = true;
         return this.post('/common/settings/app', data, options);
+    },
+    getOrderSettings: function(options){
+        return this.get('/common/order/settings', options);
+    },
+    saveOrderSettings: function(data, options){
+        options = options || {};
+        options.updatesCache = true;
+        return this.post('/common/order/settings', data, options);
     }
 };
 

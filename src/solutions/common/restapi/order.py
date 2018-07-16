@@ -14,16 +14,15 @@
 # limitations under the License.
 #
 # @@license_version:1.2@@
-
 from types import NoneType
 
+from dateutil import parser
+from mcfw.restapi import rest
+from mcfw.rpc import returns, arguments
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from rogerthat.utils.channel import send_message
-from mcfw.restapi import rest
-from mcfw.rpc import returns, arguments
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.bizz.order import delete_order, send_message_for_order, delete_order_weekday_timeframe, \
     put_order_weekday_timeframe
@@ -33,10 +32,10 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.order import get_solution_orders, get_solution_order_settings
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import SolutionOrderWeekdayTimeframeTO
-from solutions.common.to.order import SolutionOrderTO, SolutionOrderSettingsTO
+from solutions.common.to.order import SolutionOrderTO, SolutionOrderSettingsTO, OrderPauseSettingsTO
 
 
-@rest("/common/order/settings/load", "get", read_only_access=True)
+@rest('/common/order/settings', 'get', read_only_access=True)
 @returns(SolutionOrderSettingsTO)
 @arguments()
 def order_settings_load():
@@ -46,38 +45,43 @@ def order_settings_load():
     return SolutionOrderSettingsTO.fromModel(sln_order_settings, sln_settings.main_language)
 
 
-@rest("/common/order/settings/put", "post")
-@returns(ReturnStatusTO)
-@arguments(text_1=unicode, order_ready_message=unicode, manual_confirmation=bool, order_type=int, leap_time=int,
-           leap_time_type=int)
-def put_order_settings(text_1, order_ready_message, manual_confirmation, order_type, leap_time=15,
-                       leap_time_type=SECONDS_IN_MINUTE):
+@rest('/common/order/settings', 'post')
+@returns(SolutionOrderSettingsTO)
+@arguments(text_1=unicode, order_ready_message=unicode, manual_confirmation=bool, order_type=int,
+           pause_settings=OrderPauseSettingsTO, leap_time=int, leap_time_type=int, disable_order_outside_hours=bool,
+           outside_hours_message=unicode)
+def put_order_settings(text_1, order_ready_message, manual_confirmation, order_type, pause_settings, leap_time=15,
+                       leap_time_type=SECONDS_IN_MINUTE, disable_order_outside_hours=False, outside_hours_message=None):
+    # type: (unicode, unicode, bool, int, OrderPauseSettingsTO, int, int, bool) -> SolutionOrderSettingsTO
     service_user = users.get_current_user()
     if leap_time_type not in [SECONDS_IN_MINUTE, SECONDS_IN_HOUR, SECONDS_IN_DAY, SECONDS_IN_WEEK]:
         leap_time_type = SECONDS_IN_MINUTE
-    try:
-        sln_order_settings_key = SolutionOrderSettings.create_key(service_user)
-        sln_order_settings = SolutionOrderSettings.get(sln_order_settings_key)
-        if not sln_order_settings:
-            sln_order_settings = SolutionOrderSettings(key=sln_order_settings_key)
-        sln_order_settings.text_1 = text_1
-        sln_order_settings.order_type = order_type
-        sln_order_settings.leap_time = leap_time
-        sln_order_settings.leap_time_type = leap_time_type
-        sln_order_settings.order_ready_message = order_ready_message
-        sln_order_settings.manual_confirmation = manual_confirmation
-        sln_order_settings.put()
+    order_settings_key = SolutionOrderSettings.create_key(service_user)
+    sln_order_settings = SolutionOrderSettings.get(order_settings_key) or SolutionOrderSettings(key=order_settings_key)
+    sln_order_settings.text_1 = text_1
+    sln_order_settings.order_type = order_type
+    sln_order_settings.leap_time = leap_time
+    sln_order_settings.leap_time_type = leap_time_type
+    sln_order_settings.order_ready_message = order_ready_message
+    sln_order_settings.manual_confirmation = manual_confirmation
+    sln_order_settings.pause_settings_enabled = pause_settings.enabled
+    if pause_settings.paused_until:
+        paused_until = parser.parse(pause_settings.paused_until.replace('Z', ''))
+    else:
+        paused_until = None
+    sln_order_settings.pause_settings_paused_until = paused_until
+    sln_order_settings.pause_settings_message = pause_settings.message
+    sln_order_settings.disable_order_outside_hours = disable_order_outside_hours
+    sln_order_settings.outside_hours_message = outside_hours_message
+    sln_order_settings.put()
 
-        sln_settings = get_solution_settings(service_user)
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_order_settings, sln_settings)
-        broadcast_updates_pending(sln_settings)
-        if order_type == ORDER_TYPE_ADVANCED:
-            SolutionOrderWeekdayTimeframe.create_default_timeframes_if_nessecary(service_user, sln_settings.solution)
-        send_message(service_user, u"solutions.common.order.settings.update")
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
+    sln_settings = get_solution_settings(service_user)
+    sln_settings.updates_pending = True
+    put_and_invalidate_cache(sln_order_settings, sln_settings)
+    broadcast_updates_pending(sln_settings)
+    if order_type == ORDER_TYPE_ADVANCED:
+        SolutionOrderWeekdayTimeframe.create_default_timeframes_if_nessecary(service_user, sln_settings.solution)
+    return SolutionOrderSettingsTO.fromModel(sln_order_settings, sln_settings.main_language)
 
 
 @rest('/common/order/settings/timeframe/put', "post")
@@ -88,7 +92,7 @@ def save_order_weekday_timeframe(timeframe_id, day, time_from, time_until):
     try:
         put_order_weekday_timeframe(service_user, timeframe_id, day, time_from, time_until)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
