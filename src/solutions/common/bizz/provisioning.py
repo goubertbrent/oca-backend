@@ -1525,8 +1525,12 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
     order_type = sln_order_settings.order_type
 
     if order_type == ORDER_TYPE_SIMPLE:
-        flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, text_1=sln_order_settings.text_1,
-                           manual_confirmation=sln_order_settings.manual_confirmation, name=sln_settings.name)
+        flow_params = dict(branding_key=main_branding.branding_key,
+                           language=default_lang,
+                           text_1=sln_order_settings.text_1,
+                           manual_confirmation=sln_order_settings.manual_confirmation,
+                           name=sln_settings.name,
+                           flow_name=ORDER_FLOW_NAME)
         order_flow = JINJA_ENVIRONMENT.get_template('flows/order.xml').render(flow_params)
         static_flow_hash = system.put_flow(order_flow.encode('utf-8'), multilanguage=False).identifier
     elif order_type == ORDER_TYPE_ADVANCED:
