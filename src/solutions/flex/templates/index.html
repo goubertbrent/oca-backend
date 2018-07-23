@@ -73,6 +73,7 @@ var LocalCache = {};
 var modules = {};
 var ORGANIZATION_TYPES = {{ organization_types_json }};
 var templates = {{ templates|safe }};
+var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif %};
 </script>
 
 <script src="/static/js/stacktrace.js"></script>
@@ -301,6 +302,9 @@ var templates = {{ templates|safe }};
     {% endif %}
     {% if sln_settings.uses_inbox() and sln_settings.can_edit_services(customer) %}
         {%- include 'customer_signup.tmpl' %}
+    {% endif %}
+    {% if sln_settings.uses_inbox() and is_city and news_review_enabled %}
+        {%- include 'news_review.tmpl' %}
     {% endif %}
     {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
         {%- include 'restaurant_reservation.tmpl' %}

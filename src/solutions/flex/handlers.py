@@ -57,6 +57,7 @@ from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER,
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
+from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
 from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.news import NewsSettingsTags
@@ -397,6 +398,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
         joyn_available = is_joyn_available(country, sln_settings.modules, active_app_ids)
         oca_loyalty_limited = is_oca_loyalty_limited(joyn_available, sln_settings)
+        city_service_user = get_service_user_for_city(city_app_id)
+        is_city = service_user == city_service_user
+        city_app_profile = get_cityapp_profile(city_service_user)
+        news_review_enabled = city_app_profile and city_app_profile.review_news
 
         organization_types = get_organization_types(customer, sln_settings.main_language)
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
@@ -452,7 +457,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'organization_types_json': json.dumps(dict(organization_types)),
                   'vouchers_settings': vouchers_settings,
                   'show_email_checkboxes': customer is not None,
-                  'service_consent': get_customer_consents(customer.user_email) if customer else None
+                  'service_consent': get_customer_consents(customer.user_email) if customer else None,
+                  'is_city': is_city,
+                  'news_review_enabled': news_review_enabled,
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

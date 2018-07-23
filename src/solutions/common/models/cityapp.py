@@ -39,6 +39,8 @@ class CityAppProfile(db.Model):
     # Run params in cron of CityAppSolutionEventsUitdatabank
     run_time = db.IntegerProperty(indexed=False)
 
+    review_news = db.BooleanProperty(indexed=False)
+
     EVENTS_ORGANIZATION_TYPES = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
                                  OrganizationType.EMERGENCY]
 

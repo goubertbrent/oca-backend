@@ -82,3 +82,30 @@ class NewsSettings(NdbModel):
     def get_by_user(cls, service_user, service_identity):
         key = cls.create_key(service_user, service_identity)
         return key.get() or cls(key=key)
+
+
+class NewsReview(NdbModel):
+    service_identity_user = ndb.UserProperty()
+    app_id = ndb.StringProperty(indexed=False)
+    host = ndb.StringProperty(indexed=False)
+    is_free_regional_news = ndb.BooleanProperty(indexed=False)
+    order_items = ndb.PickleProperty()
+    coupon_id = ndb.IntegerProperty(indexed=False)
+    image_id = ndb.IntegerProperty(indexed=False)
+    broadcast_on_facebook = ndb.BooleanProperty(indexed=False)
+    broadcast_on_twitter = ndb.BooleanProperty(indexed=False)
+    facebook_access_token = ndb.StringProperty(indexed=False)
+    data = ndb.PickleProperty()
+
+    approved = ndb.BooleanProperty()
+    inbox_message_key = ndb.StringProperty(indexed=False)
+
+    @property
+    def parent_service_user(self):
+        return users.User(self.key.parent().id().encode('utf-8'))
+
+    @classmethod
+    def create_key(cls, city_service_user):
+        parent = parent_ndb_key(city_service_user, SOLUTION_COMMON)
+        id_ = cls.allocate_ids(1)[0]
+        return ndb.Key(cls, id_, parent=parent)

@@ -22,6 +22,7 @@ from google.appengine.ext.deferred import deferred
 
 from mcfw.rpc import serialize_complex_value
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
+from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
 from rogerthat.to.service import UserDetailsTO
@@ -137,23 +138,33 @@ def put_customer_service(customer, service, search_enabled, skip_module_check, s
         raise e
 
 
+def get_inbox_message_sender_details(sender_service_email):
+    sender_settings = get_solution_settings(sender_service_email)
+    sender_service_profile = get_service_profile(sender_service_email)
+    return UserDetailsTO(email=sender_service_email.email(),
+                         name=sender_settings.name,
+                         avatar_url=sender_service_profile.avatarUrl,
+                         language=sender_service_profile.defaultLanguage)
+
+
 def new_inbox_message(sln_settings, message, parent_chat_key=None, service_identity=None, **kwargs):
     service_identity = service_identity or ServiceIdentity.DEFAULT
     service_user = sln_settings.service_user
     language = sln_settings.main_language
 
-    user_details = kwargs.get('user_details')
+    user_details = kwargs.pop('user_details', None)
     sent_by_service = user_details is None
     if not user_details:  # sent by the service itself
         si = get_service_identity(create_service_identity_user(service_user, service_identity))
         user_details = UserDetailsTO.create(service_user.email(), si.name, language, si.avatarUrl, si.app_id)
 
     if not parent_chat_key:
-        category = kwargs.get('category')
-        category_key = kwargs.get('category_key')
-        reply_enabled = kwargs.get('reply_enabled', False)
+        category = kwargs.pop('category', None)
+        category_key = kwargs.pop('category_key', None)
+        reply_enabled = kwargs.pop('reply_enabled', False)
         message = create_solution_inbox_message(service_user, service_identity, category, category_key,
-                                                sent_by_service, [user_details], now(), message, reply_enabled)
+                                                sent_by_service, [user_details], now(), message, reply_enabled,
+                                                **kwargs)
     else:
         message, _ = add_solution_inbox_message(service_user, parent_chat_key, False, [user_details], now(),
                                                 message, **kwargs)
@@ -244,11 +255,12 @@ def set_customer_signup_status(city_customer, signup, approved, reason=None):
         send_signup_update_messages(sln_settings, message, status_reply_message)
 
 
-def send_signup_update_messages(sln_settings, *messages):
+
+def send_message_updates(sln_settings, type_, *messages):
     service_identity = ServiceIdentity.DEFAULT
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
-    sm_data = [{u'type': u'solutions.common.customer.signup.update'}]
+    sm_data = [{u'type': type_}]
     for message in messages:
         message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
         sm_data.append({
@@ -257,6 +269,12 @@ def send_signup_update_messages(sln_settings, *messages):
         })
 
     channel.send_message(sln_settings.service_user, sm_data, service_identity=service_identity)
+
+
+def send_signup_update_messages(sln_settings, *messages):
+    send_message_updates(
+        sln_settings, u'solutions.common.customer.signup.update', *messages
+    )
 
 
 def add_service_consent(email, type_, data):
