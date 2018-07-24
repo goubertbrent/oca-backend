@@ -1536,12 +1536,17 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
     elif order_type == ORDER_TYPE_ADVANCED:
         static_flow_hash = _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, default_lang)
         put_menu_item_image_upload_flow(main_branding.branding_key, default_lang)
+    else:
+        raise Exception('Invalid order type %s' % order_type)
 
     if not static_flow_hash:
         _default_delete(sln_settings, current_coords)
         return []
     logging.info('Creating ORDER menu item')
-    static_flow = static_flow_hash if not sln_order_settings.pause_settings_enabled else None
+    if order_type == ORDER_TYPE_SIMPLE or not sln_order_settings.pause_settings_enabled:
+        static_flow = static_flow_hash
+    else:
+        static_flow = None
     ssmi = SolutionServiceMenuItem(u'fa-shopping-basket',
                                    sln_settings.menu_item_color,
                                    common_translate(default_lang, SOLUTION_COMMON, 'order'),

@@ -80,10 +80,13 @@ $(function () {
         $('#pause-orders-enabled').prop('checked', data.pause_settings.enabled);
         if (data.order_type === CONSTS.ORDER_TYPE_SIMPLE) {
             $('#order_timeframes_container').slideUp();
+            $('#order-limitations').slideUp();
             $('#intro_text_container').slideDown();
+
         } else if (data.order_type === CONSTS.ORDER_TYPE_ADVANCED) {
             loadorderTimeframes();
             $('#order_timeframes_container').slideDown();
+            $('#order-limitations').slideDown();
             $('#intro_text_container').slideUp();
         }
         $('#mobile_payments_available').toggle(data.order_type === CONSTS.ORDER_TYPE_ADVANCED);
@@ -94,7 +97,7 @@ $(function () {
             $('input[name=auto_or_manual_confirmation][value=automatic]').prop('checked', true);
         }
         $('#pause-settings-message').val(data.pause_settings.message);
-        $('#disable-order-outside-hours').val(data.disable_order_outside_hours);
+        $('#disable-order-outside-hours').prop('checked', data.disable_order_outside_hours);
         $('#outside-hours-message').val(data.outside_hours_message);
         renderOrders(data);
         if (data.pause_settings.paused_until) {
