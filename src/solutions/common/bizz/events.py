@@ -27,23 +27,24 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
-from lxml import etree, html
-import pytz
-
-from apiclient.discovery import build
 from google.appengine.api import images, urlfetch
 from google.appengine.ext import db, deferred
 from googleapiclient.errors import HttpError
 import httplib2
 from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
+from lxml import etree, html
+from oauth2client import client
+from oauth2client.client import HttpAccessTokenRefreshError
+import pytz
+
+from apiclient.discovery import build
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from oauth2client import client
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.consts import DEBUG
-from rogerthat.dal import parent_key, put_and_invalidate_cache
+from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import APPENGINE_APP_ID
@@ -65,8 +66,9 @@ from solutions import translate
 from solutions import translate as common_translate
 import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending, render_common_content, common_provision, put_branding, \
-    assign_app_user_role, revoke_app_user_role
+from solutions.common.bizz import render_common_content, put_branding, \
+    assign_app_user_role, revoke_app_user_role, SolutionModule, \
+    get_default_app_id, get_organization_type
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
     get_solution_main_branding, get_solution_calendars_for_user, get_solution_settings_or_identity_settings
@@ -74,6 +76,7 @@ from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, EventGuest, SolutionCalendarAdmin, \
     SolutionCalendarGoogleSync, SolutionGoogleCredentials
+from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
     SolutionInboxMessageTO
@@ -84,7 +87,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-
+API_METHOD_SOLUTION_EVENTS_LOAD = "solutions.events.load"
 API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER = "solutions.events.addtocalender"
 API_METHOD_SOLUTION_EVENTS_REMIND = "solutions.events.remind"
 API_METHOD_SOLUTION_EVENTS_REMOVE = "solutions.events.remove"
@@ -248,6 +251,8 @@ def put_google_events(service_user, calendar_str_key, calendar_id, solution, goo
                 event.deleted = True
             elif not event.deleted:
                 event.deleted = False
+            event.app_ids = [get_default_app_id(service_user)]
+            event.organization_type = get_organization_type(service_user)
             event.title = google_event.get('summary', no_title_text)
             event.place = google_event.get("location", u"").replace(u"\n", u" ")
             event.organizer = google_event.get("organizer", {}).get("displayName", u"")
@@ -301,17 +306,13 @@ def put_google_events(service_user, calendar_str_key, calendar_id, solution, goo
                 scgs.put()
                 return False
 
-        if db.run_in_transaction(trans):
-            from solutions.common.bizz.provisioning import populate_identity_and_publish
-            sln_settings = get_solution_settings(service_user)
-            sln_main_branding = get_solution_main_branding(service_user)
-            deferred.defer(populate_identity_and_publish, sln_settings, sln_main_branding.branding_key)
 
 @returns([Event])
 @arguments(service_user=users.User, translate=FunctionType, solution=unicode)
 def _put_default_event(service_user, translate, solution):
     event = Event(parent=parent_key(service_user, solution))
-
+    event.app_ids = [get_default_app_id(service_user)]
+    event.organization_type = get_organization_type(service_user)
     now = time.mktime(date.timetuple(date.today()))
     event.title = u"Title"
     event.place = u"Place"
@@ -323,6 +324,8 @@ def _put_default_event(service_user, translate, solution):
 
     event.put()
     event2 = Event(parent=parent_key(service_user, solution))
+    event2.app_ids = [get_default_app_id(service_user)]
+    event2.organization_type = get_organization_type(service_user)
     event2.title = u"Title2"
     event2.place = u"Place2"
     event2.description = u"Description2"
@@ -383,6 +386,8 @@ def put_event(service_user, new_event):
     else:
         picture = None
 
+    default_app_id = get_default_app_id(service_user)
+    organization_type = get_organization_type(service_user)
     def trans():
         if new_event.id:
             event = get_event_by_id(service_user, sln_settings.solution, new_event.id)
@@ -391,7 +396,8 @@ def put_event(service_user, new_event):
         else:
             event = Event(parent=parent_key(service_user, sln_settings.solution))
             event.picture_version = 0
-
+        event.app_ids = [default_app_id]
+        event.organization_type = organization_type
         event.title = new_event.title
         event.place = new_event.place
         event.organizer = new_event.organizer
@@ -411,13 +417,10 @@ def put_event(service_user, new_event):
         event.url = new_event.external_link
         event.picture = picture
         event.calendar_id = new_event.calendar_id
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(event, sln_settings)
-        return sln_settings
+        event.put()
 
     xg_on = db.create_transaction_options(xg=True)
-    sln_settings = db.run_in_transaction_options(xg_on, trans)
-    broadcast_updates_pending(sln_settings)
+    db.run_in_transaction_options(xg_on, trans)
 
 
 @returns(NoneType)
@@ -432,13 +435,47 @@ def delete_event(service_user, event_id):
             else:
                 event.deleted = True
                 event.put()
-            settings.updates_pending = True
-            put_and_invalidate_cache(settings)
-        return settings
 
     xg_on = db.create_transaction_options(xg=True)
-    settings = db.run_in_transaction_options(xg_on, trans)
-    broadcast_updates_pending(settings)
+    db.run_in_transaction_options(xg_on, trans)
+
+
+@returns(SendApiCallCallbackResultTO)
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+           user_details=[UserDetailsTO])
+def solution_load_events(service_user, email, method, params, tag, service_identity, user_details):
+    sln_settings = get_solution_settings(service_user)
+    jsondata = json.loads(params)
+    cursor = jsondata.get('cursor', None)
+    
+    count = 50
+    qry = None
+    if SolutionModule.CITY_APP in sln_settings.modules:
+        city_app_profile_key = CityAppProfile.create_key(sln_settings.service_user)
+        city_app_profile = CityAppProfile.get(city_app_profile_key)
+        if city_app_profile and city_app_profile.gather_events_enabled:
+            si = get_service_identity(create_service_identity_user(service_user, service_identity))
+            qry = Event.get_app_events(cursor, si.defaultAppId)
+    
+    if not qry:
+        qry = Event.get_service_events(cursor, service_user, sln_settings.solution)
+
+    events = qry.fetch(count)
+    cursor_ = qry.cursor()
+    has_more = False
+    if len(events) != 0:
+        qry.with_cursor(cursor_)
+        if len(qry.fetch(1)) > 0:
+            has_more = True
+
+    r = SendApiCallCallbackResultTO()
+    r.result = json.dumps({
+        'events': serialize_complex_value([EventItemTO.fromEventItemObject(e, service_user=service_user) for e in events], EventItemTO, True),
+        'has_more': has_more,
+        'cursor': unicode(cursor_)
+    }).decode('utf8')
+    r.error = None
+    return r
 
 
 @returns(SendApiCallCallbackResultTO)
@@ -450,11 +487,13 @@ def solution_remind_event(service_user, email, method, params, tag, service_iden
 
     app_user = create_app_user_by_email(email, user_details[0].app_id)
     event_id = long(jsondata['eventId'])
+    service_user_email = jsondata.get('serviceUserEmail', service_user.email())
+    event_service_user = users.User(service_user_email)
     remind_before = int(jsondata['remindBefore'])
     if jsondata.get("eventStartEpoch", None):
         event_start_epoch = int(jsondata['eventStartEpoch'])
     else:
-        event_start_epoch = get_event_by_id(service_user, settings.solution, event_id).start_dates[0]
+        event_start_epoch = get_event_by_id(event_service_user, settings.solution, event_id).start_dates[0]
 
     r = SendApiCallCallbackResultTO()
     if is_reminder_set(app_user, event_id, event_start_epoch, remind_before) is False:
@@ -551,7 +590,6 @@ def solution_event_remove(service_user, email, method, params, tag, service_iden
     if event:
         event.deleted = True
         event.put()
-        common_provision(service_user)
         r.result = u"Succesfully removed event"
     else:
         r.result = u"Event not found. Remove failed"
@@ -605,9 +643,11 @@ def solution_event_guest_status(service_user, email, method, params, tag, servic
 
     jsondata = json.loads(params)
     event_id = long(jsondata['eventId'])
+    service_user_email = jsondata.get('serviceUserEmail', service_user.email())
+    event_service_user = users.User(service_user_email)
     status = int(jsondata['status'])
 
-    event = get_event_by_id(service_user, sln_settings.solution, event_id)
+    event = get_event_by_id(event_service_user, sln_settings.solution, event_id)
     r = SendApiCallCallbackResultTO()
     if event:
         eg_key = EventGuest.createKey(app_user, event.key())
@@ -621,7 +661,7 @@ def solution_event_guest_status(service_user, email, method, params, tag, servic
         r.result = u"Succesfully update event status"
 
         if sln_settings.event_notifications_enabled and (eg.status == EventGuest.STATUS_GOING or eg.chat_key):
-            _send_event_notification(sln_settings, service_user, service_identity, user_details,
+            _send_event_notification(sln_settings, event_service_user, service_identity, user_details,
                                      event=event, event_guest=eg)
     else:
         r.result = u"Event not found. Update status failed."
@@ -638,9 +678,11 @@ def solution_event_guests(service_user, email, method, params, tag, service_iden
 
     jsondata = json.loads(params)
     event_id = long(jsondata['eventId'])
+    service_user_email = jsondata.get('serviceUserEmail', service_user.email())
+    event_service_user = users.User(service_user_email)
     include_details = int(jsondata['includeDetails'])
 
-    event = get_event_by_id(service_user, sln_settings.solution, event_id)
+    event = get_event_by_id(event_service_user, sln_settings.solution, event_id)
     r = SendApiCallCallbackResultTO()
     if event:
         your_status = None
@@ -653,13 +695,14 @@ def solution_event_guests(service_user, email, method, params, tag, service_iden
             for guest in event.guests:
                 guests.append(EventGuestTO.fromEventGuest(guest))
 
-        r.result = json.dumps(dict(event_id=event_id,
-                                           include_details=include_details,
-                                           guests_count_going=event.guests_count(EventGuest.STATUS_GOING),
-                                           guests_count_maybe=event.guests_count(EventGuest.STATUS_MAYBE),
-                                           guests_count_not_going=event.guests_count(EventGuest.STATUS_NOT_GOING),
-                                           guests=serialize_complex_value(guests, EventGuestTO, True),
-                                           your_status=your_status)).decode('utf8')
+        r.result = json.dumps(dict(service_user_email=service_user_email,
+                                   event_id=event_id,
+                                   include_details=include_details,
+                                   guests_count_going=event.guests_count(EventGuest.STATUS_GOING),
+                                   guests_count_maybe=event.guests_count(EventGuest.STATUS_MAYBE),
+                                   guests_count_not_going=event.guests_count(EventGuest.STATUS_NOT_GOING),
+                                   guests=serialize_complex_value(guests, EventGuestTO, True),
+                                   your_status=your_status)).decode('utf8')
         r.error = None
     else:
         r.result = None
@@ -834,6 +877,8 @@ def new_event_received(service_user, message_flow_run_id, member, steps, end_id,
         return None
 
     event = Event(parent=parent_key(service_user, sln_settings.solution))
+    event.app_ids = [get_default_app_id(service_user)]
+    event.organization_type = get_organization_type(service_user)
     event.picture_version = 0
     event.title = title.form_result.result.value
     event.place = place.form_result.result.value
@@ -872,7 +917,6 @@ def new_event_received(service_user, message_flow_run_id, member, steps, end_id,
     event.put()
 
     send_message(service_user, u"solutions.common.calendar.update")
-    deferred.defer(common_provision, service_user)
     return None
 
 

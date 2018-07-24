@@ -48,9 +48,21 @@ indexes:
 
 - kind: Event
   properties:
+  - name: app_ids
+  - name: deleted
+  - name: first_start_date
+  
+- kind: Event
+  properties:
   - name: deleted
   - name: last_start_date
 
+- kind: Event
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: first_start_date
+  
 - kind: Event
   ancestor: yes
   properties:

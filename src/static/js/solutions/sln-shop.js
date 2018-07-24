@@ -17,7 +17,6 @@
  */
 
 var STORE_PRODUCTS = []; // loaded via ajax call
-var BUDGET = null;
 var PRODUCT_SHORT_NAMES = {
     BDGT: T('budget'),
     POSM: CommonTranslations.flyers,
@@ -75,9 +74,7 @@ function renderProduct(argument) {
     })[0];
 
     if(productCode === 'BDGT'){
-        getBudget(function(budget){
-            render(budget);
-        });
+        Requests.getBudget().then(render);
     }else {
         render(null);
     }
@@ -339,20 +336,6 @@ function getStoreProducts(callback) {
             error: sln.showAjaxError
         };
         sln.call(options);
-    }
-}
-
-function getBudget(callback) {
-    if (BUDGET) {
-        callback(BUDGET);
-    } else {
-        sln.call({
-            url: '/common/billing/budget',
-            success: function (data) {
-                BUDGET = data;
-                callback(BUDGET);
-            }
-        });
     }
 }
 

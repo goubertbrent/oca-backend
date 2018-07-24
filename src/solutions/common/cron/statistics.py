@@ -17,9 +17,10 @@
 
 import webapp2
 
-from solutions.common.job.module_statistics import start_job
+from solutions.common.job import module_statistics, loyalty_stats
 
 
 class DailyStatisticsHandler(webapp2.RequestHandler):
     def get(self):
-        start_job()
+        module_statistics.start_job()
+        loyalty_stats.start_job()

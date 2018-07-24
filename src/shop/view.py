@@ -50,7 +50,7 @@ from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.session import switch_to_service_identity, create_session
 from rogerthat.consts import FAST_QUEUE, OFFICIALLY_SUPPORTED_COUNTRIES, ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.dal import put_and_invalidate_cache
-from rogerthat.dal.app import get_apps
+from rogerthat.dal.app import get_apps, get_apps_by_type, get_apps_by_id, get_app_by_id
 from rogerthat.dal.profile import get_service_profile, get_profile_info
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions import ServiceExpiredException
@@ -168,8 +168,9 @@ def get_current_http_host(with_protocol=False):
 
 
 def _get_apps():
-    return sorted(get_apps([App.APP_TYPE_ROGERTHAT, App.APP_TYPE_CITY_APP]),
-                  key=lambda app: app.name)
+    apps = get_apps_by_type(App.APP_TYPE_CITY_APP)
+    rt_app = get_app_by_id(App.APP_ID_ROGERTHAT)
+    return sorted(apps + [rt_app], key=lambda app: app.name)
 
 
 def _get_default_organization_types():
@@ -212,7 +213,7 @@ def get_shop_context(**kwargs):
         manager = get_regional_manager(user)
         team_admin = manager and manager.admin
         regio_manager_team = manager.team
-        current_user_apps_unfiltered = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
+        current_user_apps_unfiltered = get_apps_by_id(regio_manager_team.app_ids)
         current_user_apps = sorted(
             [app for app in current_user_apps_unfiltered if app.visible], key=lambda app: app.name)
 
@@ -874,7 +875,7 @@ class SignupAppsHandler(BizzManagerHandler):
         # List all shop apps, joined with all city apps
         shop_apps = list(ShopApp.all())
         shop_app_ids = [a.app_id for a in shop_apps]
-        for city_app in get_apps([App.APP_TYPE_CITY_APP]):
+        for city_app in get_apps_by_type(App.APP_TYPE_CITY_APP):
             if city_app.app_id in shop_app_ids:
                 shop_app = shop_apps[shop_app_ids.index(city_app.app_id)]
             else:
@@ -1235,7 +1236,7 @@ def regio_manager_apps():
     else:
         regio_manager = RegioManager.get(RegioManager.create_key(cur_user.email()))
         regio_manager_team = RegioManagerTeam.get_by_id(regio_manager.team_id)
-        current_user_apps = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
+        current_user_apps = get_apps_by_id(regio_manager_team.app_ids)
     return [AppInfoTO.fromModel(app) for app in current_user_apps]
 
 
@@ -1867,11 +1868,11 @@ def get_service(customer_id):
     svc.apps = get_default_service_identity(service_user).sorted_app_ids
     svc.organization_type = get_service_profile(service_user).organizationType
 
-    service_apps = App.get([App.create_key(app_id) for app_id in svc.apps])
+    service_apps = get_apps_by_id(svc.apps)
     svc.app_infos = [AppInfoTO.fromModel(app) for app in service_apps]
 
     regio_manager_team = RegioManagerTeam.get_by_id(customer.team_id)
-    current_user_apps = App.get([App.create_key(app_id) for app_id in regio_manager_team.app_ids])
+    current_user_apps = get_apps_by_id(regio_manager_team.app_ids)
     svc.current_user_app_infos = [AppInfoTO.fromModel(app) for app in current_user_apps]
     svc.managed_organization_types = customer.managed_organization_types if customer.managed_organization_types else []
     return svc

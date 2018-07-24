@@ -15,10 +15,8 @@
  *
  * @@license_version:1.2@@
  */
-
 $(function () {
     'use strict';
-	var loading=false;
 	var solutionInboxMessageSandwichBarOrders = {};
 	var solutionInboxMessageSandwichBarRequests = {};
 	var sandwichBarOrdersDict = {};
@@ -27,21 +25,18 @@ $(function () {
     var STATUS_READY = 2;
     var STATUS_REPLIED = 3;
 
-    LocalCache.sandwich = {
-        settings: null
-    };
+    var updatedSandwichSettings = null;
 	var showAllOrders = false;
 	var sandwichOrders = [];
-
-    modules.sandwich = {
-        getSandwichSettings: getSandwichSettings
-    };
 
     init();
 
     function init() {
         loadSandwichOrders();
-        loadSettings();
+        Requests.getSandwichSettings().then(function (settings) {
+            updatedSandwichSettings = JSON.parse(JSON.stringify(settings));
+            setSandwichSettingsEvents(settings);
+        });
         updateShowHideSandwichOrders();
     }
 
@@ -270,30 +265,6 @@ $(function () {
         sln.resize_header();
     }
 
-    function getSandwichSettings(callback) {
-        if (LocalCache.sandwich.settings) {
-            callback(LocalCache.sandwich.settings);
-        } else {
-            loadSettings(callback);
-        }
-    }
-
-    function loadSettings(callback) {
-		loading = true;
-		var data = {};
-		sln.call({
-            url: '/common/sandwich/settings/load',
-			data: data,
-			success: function (data) {
-                LocalCache.sandwich.settings = data;
-                setSandwichSettingsEvents(data);
-				loading = false;
-				if (callback)
-                    callback(LocalCache.sandwich.settings);
-            }
-		});
-    }
-
     function setSandwichSettingsEvents(settings) {
         updateShowHideSandwichPrices();
         $.each([1, 2, 4, 8, 16, 32, 64], function (i, val) {
@@ -308,6 +279,7 @@ $(function () {
         });
         $("#sandwich_broadcast_at").timepicker('setTime', sln.intToTime(settings.reminder_at));
         $("#sandwich_order_reminder_broadcast_message").val(settings.reminder_message);
+        attachTimePickerEvents();
         var leapTimeEnabledElem = $('#sandwich_order_leaptime_enabled');
         var leapTimeElem = $('#sandwich_order_leaptime');
         var leapTimeContainer = $('#leap_time_enabled');
@@ -333,14 +305,14 @@ $(function () {
 		var val = parseInt(checkbox.val());
 		var reminder_checkbox = $("#sandwiches_broadcast_days input[value="+val+"]");
 		if (! checkbox.prop('checked')) {
-            LocalCache.sandwich.settings.days = LocalCache.sandwich.settings.days & ~val;
-            LocalCache.sandwich.settings.reminder_days = LocalCache.sandwich.settings.reminder_days & ~val;
+            updatedSandwichSettings.days = updatedSandwichSettings.days & ~val;
+            updatedSandwichSettings.reminder_days = updatedSandwichSettings.reminder_days & ~val;
 			reminder_checkbox.prop('checked', false).prop('disabled', true);
 		} else {
-            LocalCache.sandwich.settings.days = LocalCache.sandwich.settings.days | val;
+            updatedSandwichSettings.days = updatedSandwichSettings.days | val;
 			reminder_checkbox.prop('disabled', false);
 		}
-        var data = {days: LocalCache.sandwich.settings.days, reminder_days: LocalCache.sandwich.settings.reminder_days};
+        var data = {days: updatedSandwichSettings.days, reminder_days: updatedSandwichSettings.reminder_days};
 		saveSettings(data);
 	});
 
@@ -348,67 +320,54 @@ $(function () {
 		var checkbox = $(this);
 		var val = parseInt(checkbox.val());
 		if (! checkbox.prop('checked')) {
-            LocalCache.sandwich.settings.reminder_days = LocalCache.sandwich.settings.reminder_days & ~val;
+            updatedSandwichSettings.reminder_days = updatedSandwichSettings.reminder_days & ~val;
 		} else {
-            LocalCache.sandwich.settings.reminder_days = LocalCache.sandwich.settings.reminder_days | val;
-		}
-        var data = {reminder_days: LocalCache.sandwich.settings.reminder_days};
+            updatedSandwichSettings.reminder_days = updatedSandwichSettings.reminder_days | val;
+        }
+        var data = {reminder_days: updatedSandwichSettings.reminder_days};
 		saveSettings(data);
 	});
 
-    var from_ = 0;
-	$('#sandwich_order_from').on('changeTime.timepicker', function (e) {
-		if (loading)
-			return;
-		from_ = 3600 * e.time.hours;
-		from_ += 60 * e.time.minutes;
-		$(this).keyup();
-	});
-    sln.configureDelayedInput($('#sandwich_order_from'), function () {
-		var data = {from_: from_};
-		saveSettings(data);
-    });
+    function attachTimePickerEvents() {
+        var onFromChange = sln.debounce(function (e) {
+            var from_ = 3600 * e.time.hours;
+            from_ += 60 * e.time.minutes;
+            $(this).keyup();
+            var data = {from_: from_};
+            saveSettings(data);
+        }, 2000);
+        var onTillChange = sln.debounce(function (e) {
+            var till = 3600 * e.time.hours;
+            till += 60 * e.time.minutes;
+            var data = {till: till};
+            saveSettings(data);
+        }, 2000);
+        var onBroadcastChanged = sln.debounce(function (e) {
+            var at = 3600 * e.time.hours;
+            at += 60 * e.time.minutes;
+            var data = {reminder_at: at};
+            saveSettings(data);
+        }, 2000);
+        $('#sandwich_order_from').on('changeTime.timepicker', onFromChange);
+        $('#sandwich_order_till').on('changeTime.timepicker', onTillChange);
 
-    var till = 0;
-	$('#sandwich_order_till').on('changeTime.timepicker', function (e) {
-		if (loading)
-			return;
-		till = 3600 * e.time.hours;
-		till += 60 * e.time.minutes;
-		$(this).keyup();
-	});
-    sln.configureDelayedInput($('#sandwich_order_till'), function () {
-		var data = {till: till};
-		saveSettings(data);
-    });
+        $('#sandwich_broadcast_at').on('changeTime.timepicker', onBroadcastChanged);
 
-	var at = 0;
-	$('#sandwich_broadcast_at').on('changeTime.timepicker', function (e) {
-		if (loading)
-			return;
-		at = 3600 * e.time.hours;
-		at += 60 * e.time.minutes;
-		$(this).keyup();
-	});
-    sln.configureDelayedInput($('#sandwich_broadcast_at'), function () {
-		var data = {reminder_at: at};
-		saveSettings(data);
-    });
-
-    sln.configureDelayedInput($('#sandwich_order_reminder_broadcast_message'), function () {
-		var data = {reminder_message: $('#sandwich_order_reminder_broadcast_message').val()};
-		saveSettings(data);
-    });
+        sln.configureDelayedInput($('#sandwich_order_reminder_broadcast_message'), function () {
+            var data = {reminder_message: $('#sandwich_order_reminder_broadcast_message').val()};
+            saveSettings(data);
+        });
+    }
 
     $("#sandwichHidePrices, #sandwichShowPrices").click(function () {
-        LocalCache.sandwich.settings.show_prices = !LocalCache.sandwich.settings.show_prices;
+        updatedSandwichSettings.show_prices = !updatedSandwichSettings.show_prices;
 		updateShowHideSandwichPrices();
-        saveSettings({show_prices: LocalCache.sandwich.settings.show_prices});
+        saveSettings({show_prices: updatedSandwichSettings.show_prices});
 		$(this).blur();
 	});
 
     function updateShowHideSandwichPrices() {
-        if (LocalCache.sandwich.settings.show_prices) {
+        if (updatedSandwichSettings.show_prices) {
 			$("#sandwichHidePrices").html('&nbsp;');
             $("#sandwichShowPrices").addClass('btn-success').text(CommonTranslations.SHOW_PRICES);
 		} else {
@@ -429,13 +388,14 @@ $(function () {
 			return 0;
 		}
 
-        var items = LocalCache.sandwich.settings[kind].sort(compare);
-		$.each(items, function (i, item) {
+        var items = updatedSandwichSettings[kind].sort(compare);
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
 			var tr = template.clone();
 			$("td.sandwich-description", tr).text(item.description);
-            $("td.sandwich-price", tr).text(LocalCache.sandwich.settings.currency + " " + (item.price / 100).toFixed(2));
+            $("td.sandwich-price", tr).text(updatedSandwichSettings.currency + " " + (item.price / 100).toFixed(2));
 			tr.data('item', item);
-			if ( i == 0 )
+            if (i === 0)
 				$("a.move-up", tr).addClass('disabled');
 			else
 				$("a.move-up", tr).click(function () {
@@ -450,7 +410,7 @@ $(function () {
 					data[kind] = [this_item, up_item];
 					saveSettings(data);
 				});
-			if ( i == items.length - 1 )
+            if (i === items.length - 1)
 				$("a.move-down", tr).addClass('disabled');
 			else
 				$("a.move-down", tr).click(function () {
@@ -472,7 +432,7 @@ $(function () {
 				var data = {};
 				data[kind] = [this_item];
 				saveSettings(data);
-                LocalCache.sandwich.settings[kind].splice(LocalCache.sandwich.settings[kind].indexOf(this_item), 1);
+                updatedSandwichSettings[kind].splice(updatedSandwichSettings[kind].indexOf(this_item), 1);
 				updateTypesToppingsOptions(kind);
 			});
 			$('a.edit', tr).click(function () {
@@ -488,13 +448,13 @@ $(function () {
 				modal.modal('show');
 			});
 			newBody.append(tr);
-		});
+        }
 		var st = $(document).scrollTop();
 		body.replaceWith(newBody);
 		$(document).scrollTop(st);
     }
 
-    function saveSettings(updatedSettings, callback, errback) {
+    function saveSettings(updatedSettings, callback) {
 	    sln.call({
             url: '/common/sandwich/settings/save',
 			type: 'POST',
@@ -504,10 +464,12 @@ $(function () {
 				})
 			},
             success: function (data) {
+                if (data) {
+                    updatedSandwichSettings = data;
+                }
 				if (callback)
-                    callback(data);
+                    callback(updatedSandwichSettings);
 			},
-			error : errback ? errback : sln.showAjaxError
 		});
     }
 
@@ -537,7 +499,7 @@ $(function () {
 		var kind = modal.attr('item-kind');
 		var data = {};
 		if (modal.attr('mode') == 'add') {
-            var items = LocalCache.sandwich.settings[kind];
+            var items = updatedSandwichSettings[kind];
 			var order = 0;
 			$.each(items, function (i, item) { order = Math.max(order, item.order); });
 			data[kind] = [{description: description, price: Math.round(price*100), order: order+1}];
@@ -545,11 +507,8 @@ $(function () {
             saveSettings(data, function (updatedSettings) {
                 sln.hideProcessing();
 				modal.modal('hide');
-                LocalCache.sandwich.settings = updatedSettings;
+                updatedSandwichSettings = updatedSettings;
                 updateTypesToppingsOptions(kind);
-			}, function (err) {
-				sln.hideProcessing();
-                sln.showAjaxError(err);
 			});
 		} else {
 			var this_item = modal.data('item');

@@ -43,8 +43,10 @@ class SolutionAppointmentSettings(db.Model):
 
 class SolutionAppointmentWeekdayTimeframe(db.Model):
     day = db.IntegerProperty()
-    time_from = db.IntegerProperty()  # seconds since midnight
-    time_until = db.IntegerProperty()  # seconds since midnight
+    # seconds since midnight
+    time_from = db.IntegerProperty()  # type: int
+    # seconds since midnight
+    time_until = db.IntegerProperty()  # type: int
 
     @classmethod
     def get_or_create(cls, parent_key, day, time_from, time_until):
@@ -84,6 +86,7 @@ class SolutionAppointmentWeekdayTimeframe(db.Model):
 
     @classmethod
     def list(cls, service_user, solution):
+        # type: (users.User, unicode) -> list[SolutionAppointmentWeekdayTimeframe]
         return sorted(cls.all().ancestor(parent_key(service_user, solution)),
                       key=lambda x: (x.day, x.time_from, x.time_until))
 

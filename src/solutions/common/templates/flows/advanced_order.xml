@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
-    <definition name="order"
+    <definition name="{{ flow_name }}"
                 language="{{ language }}"
                 startReference="flowcode_check_feature_advanced_order">
         <end id="end_advanced_order"

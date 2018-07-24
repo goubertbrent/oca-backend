@@ -72,6 +72,15 @@ class NewsBroadcastItemListTO(TO):
     cursor = unicode_property('2')
 
 
+class NewsReviewTO(TO):
+    inbox_message_key = unicode_property('1')
+    key = unicode_property('2')
+
+    @classmethod
+    def from_model(cls, obj):
+        return cls(inbox_message_key=obj.inbox_message_key, key=obj.key.urlsafe())
+
+
 class DashboardNewsTO(TO):
     title = unicode_property('title')
     creation_time = unicode_property('creation_time')

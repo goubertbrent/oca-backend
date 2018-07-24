@@ -27,21 +27,22 @@ import time
 from urllib import quote as urlquote
 import urllib
 
-import pytz
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
+import pytz
+import webapp2
+
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DEBUG
 from rogerthat.dal import put_and_invalidate_cache, parent_key
 from rogerthat.utils import now, get_epoch_from_datetime
 from shop.constants import MAPS_QUEUE
+from solutions.common.bizz import get_default_app_id, get_organization_type
 from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import Event
 from solutions.common.models.cityapp import CityAppProfile
-import webapp2
 
 
 class CityAppSolutionEventsUitdatabank(webapp2.RequestHandler):
@@ -65,10 +66,8 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
         cap = CityAppProfile.get(cap_key)
         if page == 1:
             run_time = now()
-            services_to_update = set()
         else:
             run_time = cap.run_time
-            services_to_update = set(cap.services_to_update)
 
         logging.info("process_cityapp_uitdatabank_events for %s page %s", cap.service_user, page)
         success, result = get_uitdatabank_events(cap, page, pagelength, cap.uitdatabank_last_query or None)
@@ -78,7 +77,6 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
 
         sln_settings = get_solution_settings(cap.service_user)
         to_put = list()
-        should_update_service = page != 1
 
         result_count = 0
         updated_events_count = 0
@@ -87,15 +85,12 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
             updated_events = _populate_uit_events(sln_settings, cap.uitdatabank_secret, cap.uitdatabank_key,
                                                   r['cdbid'], uitdatabank_actors, cap.uitdatabank_last_query or None)
             if updated_events:
-                services_to_update.update((event.service_user for event in updated_events))
                 updated_events_count += 1
-                should_update_service = True
                 to_put.extend(updated_events)
 
         def trans_update_cap():
             cap = db.get(cap_key)
             cap.run_time = run_time
-            cap.services_to_update = list(services_to_update)
             cap.put()
             return cap
         cap = db.run_in_transaction(trans_update_cap)
@@ -113,15 +108,6 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
                 cap.put()
                 return cap
             cap = db.run_in_transaction(trans_set_last_query)
-
-            if should_update_service:
-                for service_user in cap.services_to_update:
-                    if service_user != sln_settings.service_user:
-                        settings_to_put = get_solution_settings(service_user)
-                    else:
-                        settings_to_put = sln_settings
-                    settings_to_put.put_identity_pending = True
-                    settings_to_put.put()
     except Exception, e:
         logging.exception(str(e), _suppress=False)
 
@@ -208,6 +194,8 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
                       source=Event.SOURCE_UITDATABANK_BE,
                       external_id=external_id)
 
+    event.app_ids = [get_default_app_id(sln_settings.service_user)]
+    event.organization_type = get_organization_type(sln_settings.service_user)
     event.calendar_id = sln_settings.default_calendar
     events = [event]
 
@@ -239,6 +227,8 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
                                         source=Event.SOURCE_UITDATABANK_BE,
                                         external_id=external_id)
 
+            organizer_event.app_ids = [get_default_app_id(sln_settings.service_user)]
+            organizer_event.organization_type = get_organization_type(sln_settings.service_user)
             organizer_event.calendar_id = organizer_sln_settings.default_calendar
             events.append(organizer_event)
 

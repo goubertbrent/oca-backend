@@ -19,11 +19,10 @@ import logging
 from xml.dom import minidom
 
 from google.appengine.api import urlfetch
-from google.appengine.ext import webapp, deferred
+from google.appengine.ext import webapp, deferred, ndb
 
 from rogerthat.bizz.job import run_job
 from rogerthat.utils import now
-from rogerthat.utils.transactions import run_in_transaction
 from solutions.common.cron.news import html_unescape, parse_html_content, transl, \
     create_news_item
 from solutions.common.dal import get_solution_settings
@@ -46,7 +45,6 @@ def _worker(rss_settings_key):
     rss_settings = rss_settings_key.get()  # type: SolutionRssScraperSettings
     if not rss_settings.rss_links:
         return
-
     service_user = rss_settings.service_user
     service_identity = rss_settings.service_identity
 
@@ -58,6 +56,7 @@ def _worker(rss_settings_key):
                       BROADCAST_TYPE_NEWS)
         return
     broadcast_type = transl(BROADCAST_TYPE_NEWS, sln_settings.main_language)
+    must_update_settings = False
 
     for rss_link in rss_settings.rss_links:
         dry_run = not rss_link.dry_runned
@@ -73,10 +72,17 @@ def _worker(rss_settings_key):
         logging.info('Scraping rss for url %s in dry_run %s', rss_link.url, dry_run)
 
         doc = minidom.parseString(response.content)
+        keys = []
+        items = []
         for item in doc.getElementsByTagName('item'):
             try:
                 title = html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue)
                 url = item.getElementsByTagName("link")[0].firstChild.nodeValue
+                guid_elements = item.getElementsByTagName('guid')
+                if guid_elements:
+                    guid = guid_elements[0].firstChild.nodeValue
+                else:
+                    guid = None
                 description_tags = item.getElementsByTagName("description")
                 if not description_tags:
                     logging.debug("url: %s", url)
@@ -86,39 +92,38 @@ def _worker(rss_settings_key):
                 message, _, _ = parse_html_content(description_html)
 
             except:
-                logging.debug("url: %s", url)
                 logging.debug(item.childNodes)
+                logging.debug("url: %s", url)
                 raise
 
-            def trans_send_news():
-                db_item_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
-                db_item = db_item_key.get()
-                if db_item and not dry_run:
-                    return True
-                elif not db_item:
-                    db_item = SolutionRssScraperItem(key=db_item_key)
-                    db_item.timestamp = now()
-                    db_item.dry_run = dry_run
-                    db_item.put()
+            url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
+            keys.append(url_key)
+            if guid:
+                guid_key = SolutionRssScraperItem.create_key(service_user, service_identity, guid)
+                keys.append(guid_key)
+            items.append((title, url, guid, description_html, message))
 
+        scraper_items = {item.key.id(): item for item in ndb.get_multi(keys) if item}
+
+        if dry_run:
+            rss_link.dry_runned = True
+            must_update_settings = True
+
+        def trans():
+            to_put = []
+            for title, url, guid, description_html, message in items:
+                if url not in scraper_items and guid not in scraper_items:
+                    new_key = SolutionRssScraperItem.create_key(service_user, service_identity, guid if guid else url)
+                    new_item = SolutionRssScraperItem(key=new_key,
+                                                      timestamp=now(),
+                                                      dry_run=dry_run)
                     if not dry_run:
                         deferred.defer(create_news_item, sln_settings, broadcast_type, message, title, url,
                                        rss_settings.notify, _transactional=True)
-                return False
+                    to_put.append(new_item)
+            if to_put:
+                ndb.put_multi(to_put)
 
-            should_break = run_in_transaction(trans_send_news)
-            if should_break:
-                break
-
-        def trans_update_dry_run():
-            db_item = SolutionRssScraperSettings.create_key(service_user, service_identity).get()
-            for db_item_rss_link in db_item.rss_links:
-                if db_item_rss_link.url != rss_link.url:
-                    continue
-                db_item_rss_link.dry_runned = True
-                db_item.put()
-                break
-
-        if dry_run:
-            run_in_transaction(trans_update_dry_run)
-
+        trans() if dry_run else ndb.transaction(trans, xg=True)
+    if must_update_settings:
+        rss_settings.put()

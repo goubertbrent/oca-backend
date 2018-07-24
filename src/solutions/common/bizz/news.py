@@ -15,9 +15,11 @@
 #
 # @@license_version:1.2@@
 
+import base64
 import datetime
 import json
 import logging
+from babel.dates import format_datetime, get_timezone
 from types import NoneType
 
 from google.appengine.api import taskqueue
@@ -30,14 +32,16 @@ from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.service import re_index
 from rogerthat.consts import SCHEDULED_QUEUE
+from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
-from rogerthat.models import App
+from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO
+from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -48,12 +52,17 @@ from shop.dal import get_customer
 from shop.exceptions import NoCreditCardException, AppNotFoundException
 from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
 from shop.to import OrderItemTO
+from solutions import translate as common_translate
+from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, OrganizationType, facebook, twitter
 from solutions.common.bizz.cityapp import get_apps_in_country_count
+from solutions.common.bizz.service import get_inbox_message_sender_details, new_inbox_message, \
+    send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
-from solutions.common.models import SolutionScheduledBroadcast
+from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
+from solutions.common.models import SolutionInboxMessage, SolutionScheduledBroadcast
 from solutions.common.models.budget import Budget
-from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags
+from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview
 from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
     NewsStatsTO, NewsAppTO
@@ -61,6 +70,10 @@ from solutions.flex import SOLUTION_FLEX
 
 FREE_SPONSORED_ITEMS_PER_APP = 5
 SPONSOR_DAYS = 7
+
+
+class AllNewsSentToReviewWarning(BusinessException):
+    pass
 
 
 @returns(NewsBroadcastItemListTO)
@@ -161,6 +174,182 @@ def check_budget(service_user, service_identity):
             raise BusinessException('insufficient_budget')
 
 
+def publish_item(service_identity_user, app_id, host, is_free_regional_news, order_items, coupon,
+                 should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token, **kwargs):
+    service_user, identity = get_service_identity_tuple(service_identity_user)
+    news_id = kwargs.get('news_id')
+    sticky = kwargs.pop('sticky', False)
+    if news_id:
+        news_type = kwargs.pop('news_type')
+    else:
+        news_type = kwargs.get('news_type')
+    qr_code_caption = kwargs.get('qr_code_caption')
+    scheduled_at = kwargs.get('scheduled_at')
+
+    def trans():
+        news_item = news.publish(accept_missing=True, sticky=sticky, **kwargs)
+        if should_save_coupon:
+            _save_coupon_news_id(news_item.id, coupon)
+        elif news_type == NewsItem.TYPE_QR_CODE and qr_code_caption is not MISSING and qr_code_caption and news_id:
+            news_coupon = NewsCoupon.get_by_news_id(service_identity_user, news_id)
+            if news_coupon:
+                news_coupon.content = qr_code_caption
+                news_coupon.put()
+            else:
+                logging.warn('Not updating qr_code_caption for non-existing coupon for news with id %d',
+                              news_id)
+        if order_items:
+            create_and_pay_news_order(service_user, news_item.id, order_items)
+        regional_apps = get_regional_apps_of_item(news_item, app_id)
+        if regional_apps:
+            if not news_id and not is_free_regional_news:
+                # check for budget on creation only
+                check_budget(service_user, identity)
+            deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
+                            paid=is_free_regional_news, _transactional=True)
+        return news_item
+
+    try:
+        news_item = run_in_xg_transaction(trans)
+        if broadcast_on_facebook or broadcast_on_twitter:
+            if scheduled_at is not MISSING and scheduled_at > 0:
+                schedule_post_to_social_media(service_user, host, broadcast_on_facebook,
+                                                broadcast_on_twitter, facebook_access_token,
+                                                news_item.id, scheduled_at)
+            else:
+                post_to_social_media(service_user, broadcast_on_facebook,
+                                        broadcast_on_twitter, facebook_access_token,
+                                        news_item.id)
+
+        return NewsBroadcastItemTO.from_news_item_to(news_item, broadcast_on_facebook, broadcast_on_twitter)
+    except:
+        if should_save_coupon:
+            db.delete_async(coupon)
+        raise
+
+
+def get_news_review_message(lang, timezone, header=None, **data):
+    def trans(term, *args, **kwargs):
+        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
+
+    message = u'{}\n\n'.format(header or trans('news_review_requested'))
+    message += u'{}: {}\n'.format(trans('message-title'), data['title'])
+    message += u'{}: {}\n'.format(trans('inbox-message'), data['message'])
+
+    action_buttons = [
+        '{}'.format(button.caption) for button in data['action_buttons']
+    ]
+    message += u'{}: {}\n'.format(trans('action_button'), ','.join(action_buttons))
+
+    scheduled_at = data.get('scheduled_at')
+    if scheduled_at:
+        d = datetime.datetime.utcfromtimestamp(scheduled_at)
+        date_str = format_datetime(d, locale=lang, tzinfo=get_timezone(timezone))
+        message += u'{}\n'.format(trans('scheduled_for_datetime', datetime=date_str))
+    return message
+
+
+def store_image(image_data):
+    _, content = image_data.split(',')
+    image = Image(blob=base64.b64decode(content))
+    image.put()
+    return image
+
+
+def send_news_review_message(sln_settings, sender_service, review_key, image_url, **data):
+    msg = get_news_review_message(sln_settings.main_language, sln_settings.timezone, **data)
+    sender_user_details = get_inbox_message_sender_details(sender_service)
+    picture_urls = []
+    if image_url:
+        picture_urls.append(image_url)
+
+    message = new_inbox_message(
+        sln_settings, msg, service_identity=None,
+        category=SolutionInboxMessage.CATEGORY_NEWS_REVIEW,
+        category_key=review_key,
+        user_details=sender_user_details,
+        picture_urls=picture_urls)
+
+    send_message_updates(sln_settings, u'solutions.common.news.review.update', message)
+    return unicode(message.key())
+
+
+def send_news_for_review(city_service, service_identity_user, app_id, host, is_free_regional_news, order_items, coupon,
+                         should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token,
+                         **kwargs):
+
+    key = NewsReview.create_key(city_service)
+    review = key.get() or NewsReview(key=key)
+    review.service_identity_user = service_identity_user
+    review.app_id = app_id
+    review.host = host
+    review.is_free_regional_news = is_free_regional_news
+    review.order_items = order_items
+    review.coupon_id = coupon and coupon.id
+    review.broadcast_on_facebook = broadcast_on_facebook
+    review.broadcast_on_twitter = broadcast_on_twitter
+    review.facebook_access_token = facebook_access_token
+    review.data = kwargs
+
+    image_url = None
+    if kwargs['image']:
+        image = store_image(kwargs['image'])
+        review.image_id = image.id
+        image_url = u'/unauthenticated/image/%d' % review.image_id
+
+    sln_settings = get_solution_settings(city_service)
+    sender_service, _ = get_service_identity_tuple(service_identity_user)
+    review.inbox_message_key = send_news_review_message(
+        sln_settings, sender_service, unicode(key), image_url, **kwargs)
+    review.put()
+
+
+@returns()
+@arguments(review_key=unicode, reason=unicode)
+def send_news_review_reply(review_key, reason):
+    review = ndb.Key(urlsafe=review_key).get()
+    if review:
+        service_user, identity = get_service_identity_tuple(review.service_identity_user)
+        sln_settings = get_solution_settings(service_user)
+        review_msg = get_news_review_message(sln_settings.main_language, sln_settings.timezone, reason, **review.data)
+        sender_user_details = get_inbox_message_sender_details(review.parent_service_user)
+        message = new_inbox_message(sln_settings, review_msg, service_identity=identity,
+                                    user_details=sender_user_details)
+        send_inbox_message_update(sln_settings, message, service_identity=identity)
+
+
+@returns(NewsBroadcastItemTO)
+@arguments(review_key=unicode)
+def publish_item_from_review(review_key):
+    review = ndb.Key(urlsafe=review_key).get()
+    if not review:
+        raise BusinessException('review item is not found!')
+
+    coupon = review.coupon_id and NewsCoupon.get_by_id(review.coupon_id)
+    should_save_coupon = bool(coupon)
+
+    service_user, _ = get_service_identity_tuple(review.service_identity_user)
+    with users.set_user(service_user):
+        item = publish_item(
+            review.service_identity_user, review.app_id, review.host, review.is_free_regional_news,
+            review.order_items, coupon, should_save_coupon, review.broadcast_on_facebook, review.broadcast_on_twitter,
+            review.facebook_access_token, **review.data)
+
+    inbox_message = SolutionInboxMessage.get(review.inbox_message_key)
+    if inbox_message:
+        inbox_message.read = True
+        inbox_message.trashed = True
+        inbox_message.put()
+        sln_settings = get_solution_settings(review.parent_service_user)
+        send_inbox_message_update(sln_settings, inbox_message)
+
+    if review.image_id:
+        Image.get_by_id(review.image_id).key.delete()
+
+    review.key.delete()
+    return item
+
+
 @returns(NewsBroadcastItemTO)
 @arguments(service_identity_user=users.User, title=unicode, message=unicode, broadcast_type=unicode, sponsored=bool,
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
@@ -249,7 +438,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     if default_app.demo and App.APP_ID_ROGERTHAT in app_ids:
         app_ids.remove(App.APP_ID_ROGERTHAT)
 
-    feed_names = []
+    feed_names = {}
     if is_regional_news_enabled(default_app):
         if tag == NEWS_TAG:
             if default_app.demo:
@@ -259,18 +448,18 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                 if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
                     pass  # LOCAL NEWS
                 else:
-                    feed_names.append(NewsFeedNameTO(default_app.app_id, u'regional_news'))  # REGIONAL NEWS
+                    feed_names[default_app.app_id] = NewsFeedNameTO(default_app.app_id, u'regional_news')  # REGIONAL NEWS
                 app_ids = [default_app.app_id]
             else:
                 for app_id in app_ids:
                     if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
-                        feed_names.append(NewsFeedNameTO(app_id, u'regional_news'))
+                        feed_names[app_id] = NewsFeedNameTO(app_id, u'regional_news')
         else:
             if default_app.demo:
-                feed_names.append(NewsFeedNameTO(default_app.app_id, tag))
+                feed_names[default_app.app_id] = NewsFeedNameTO(default_app.app_id, tag)
             else:
                 for app_id in app_ids:
-                    feed_names.append(NewsFeedNameTO(app_id, tag))
+                    feed_names[app_id] = NewsFeedNameTO(app_id, tag)
 
     kwargs = {
         'sticky_until': sponsored_until,
@@ -278,16 +467,13 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         'broadcast_type': broadcast_type,
         'service_identity': identity,
         'news_id': news_id,
-        'app_ids': app_ids,
+        'news_type': news_type,
         'image': image,
         'scheduled_at': scheduled_at,
         'target_audience': target_audience,
         'role_ids': role_ids,
         'tags': [tag],
-        'feed_names': feed_names
     }
-    if not news_id:
-        kwargs['news_type'] = news_type
 
     if news_type == NewsItem.TYPE_QR_CODE:
         if should_save_coupon:
@@ -314,59 +500,55 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
 
     current_session = get_current_session()
     is_free_regional_news = (current_session and current_session.shop) or default_app.demo
+
+    if sponsored:
+        sticky = True
+    else:
+        customer = get_customer(service_user)
+        if customer and customer.organization_type == OrganizationType.CITY and \
+                not _app_uses_custom_organization_types(customer.language):
+            sticky = True
+            if kwargs['sticky_until'] is None:
+                kwargs['sticky_until'] = now()
+        else:
+            sticky = False
+    kwargs['sticky'] = sticky
+
+    if not should_save_coupon:
+        coupon = None
+
+    new_app_ids = list(app_ids)
+    if not news_id:
+        # check for city-enabled news review
+        for app_id in app_ids:
+            city_service = get_service_user_for_city(app_id)
+            if city_service and city_service != service_user:
+                city_app_profile = get_cityapp_profile(city_service)
+                if city_app_profile.review_news:
+                    # create a city review for this app
+                    city_kwargs = kwargs.copy()
+                    city_kwargs['app_ids'] = [app_id]
+                    city_kwargs['feed_names'] = feed_names.get(app_id, [])
+                    send_news_for_review(
+                        city_service, service_identity_user, app_id, host, is_free_regional_news, order_items,
+                        coupon, should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token,
+                        **city_kwargs)
+                    # remove from current feed
+                    new_app_ids.remove(app_id)
+                    if feed_names and app_id in feed_names:
+                        del feed_names[app_id]
+
+        if new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
+            raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
+
+    # for the rest
+    kwargs['feed_names'] = feed_names.values()
+    kwargs['app_ids'] = new_app_ids
+
     with users.set_user(service_user):
-        try:
-            if sponsored:
-                sticky = True
-            else:
-                customer = get_customer(service_user)
-                if customer and customer.organization_type == OrganizationType.CITY and \
-                        not _app_uses_custom_organization_types(customer.language):
-                    sticky = True
-                    if kwargs['sticky_until'] is None:
-                        kwargs['sticky_until'] = now()
-                else:
-                    sticky = False
-
-            def trans():
-                news_item = news.publish(accept_missing=True, sticky=sticky, **kwargs)
-                if should_save_coupon:
-                    _save_coupon_news_id(news_item.id, coupon)
-                elif news_type == NewsItem.TYPE_QR_CODE and qr_code_caption is not MISSING and qr_code_caption and news_id:
-                    news_coupon = NewsCoupon.get_by_news_id(service_identity_user, news_id)
-                    if news_coupon:
-                        news_coupon.content = qr_code_caption
-                        news_coupon.put()
-                    else:
-                        logging.warn('Not updating qr_code_caption for non-existing coupon for news with id %d',
-                                     news_id)
-                if order_items:
-                    create_and_pay_news_order(service_user, news_item.id, order_items)
-                regional_apps = get_regional_apps_of_item(news_item, si.app_id)
-                if regional_apps:
-                    if not news_id and not is_free_regional_news:
-                        # check for budget on creation only
-                        check_budget(service_user, identity)
-                    deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
-                                   paid=is_free_regional_news, _transactional=True)
-                return news_item
-
-            news_item = run_in_xg_transaction(trans)
-            if broadcast_on_facebook or broadcast_on_twitter:
-                if scheduled_at is not MISSING and scheduled_at > 0:
-                    schedule_post_to_social_media(service_user, host, broadcast_on_facebook,
-                                                  broadcast_on_twitter, facebook_access_token,
-                                                  news_item.id, scheduled_at)
-                else:
-                    post_to_social_media(service_user, broadcast_on_facebook,
-                                         broadcast_on_twitter, facebook_access_token,
-                                         news_item.id)
-
-            return NewsBroadcastItemTO.from_news_item_to(news_item, broadcast_on_facebook, broadcast_on_twitter)
-        except:
-            if should_save_coupon:
-                db.delete_async(coupon)
-            raise
+        return publish_item(
+            service_identity_user, si.app_id, host, is_free_regional_news, order_items,
+            coupon, should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token, **kwargs)
 
 
 @returns()
@@ -671,5 +853,12 @@ def get_sponsored_news_count(service_identity_user, app_ids):
 
 def is_regional_news_enabled(app_model):
     # type: (App) -> bool
+    if app_model.app_id.startswith('osa-'):
+        return True
     country_code = app_model.app_id.split('-')[0].lower()
     return app_model.type == App.APP_TYPE_CITY_APP and get_apps_in_country_count(country_code) > 1
+
+
+def get_news_reviews(service_user):
+    parent_key = parent_ndb_key(service_user, SOLUTION_COMMON)
+    return NewsReview.query(ancestor=parent_key)

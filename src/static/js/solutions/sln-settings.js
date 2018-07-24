@@ -150,7 +150,6 @@ $(function () {
         ROUTES.settings = router;
         modules.settings = {
             getSettings: getSettings,
-            getBroadcastOptions: getBroadcastOptions,
             renderBroadcastSettings: renderBroadcastSettings
         };
         LocalCache.settings = {};
@@ -168,7 +167,7 @@ $(function () {
         if (page === 'branding') {
             showSettingsBranding();
         } else if (page === 'broadcast') {
-            renderBroadcastSettings();
+            Requests.getBroadcastOptions().then(renderBroadcastSettings);
         } else if (page === 'app') {
             renderAppSettings();
         } else if (page == 'roles') {
@@ -1485,78 +1484,62 @@ $(function () {
         }
     }
 
-    function getBroadcastOptions(callback, force) {
-        if (LocalCache.broadcastOptions && !force) {
-            callback(LocalCache.broadcastOptions);
-        } else {
-            sln.call({
-                url: "/common/broadcast/options",
-                type: "GET",
-                success: function (data) {
-                    LocalCache.broadcastOptions = data;
-                    if (callback) {
-                        callback(LocalCache.broadcastOptions);
-                    }
-                }
-            });
-        }
-    }
-
     function addBroadcastNewsPublisher() {
         $('li[section=section_settings_roles]').find('a').click();
         renderRolesSettings();
         // show the add roles dialog with only news publisher option
         addRoles(false, false, true);
     }
+
     $('#sln-set-broadcast-add-rss').click(addRssUrl);
     // add broadcast news publisher
     $('#broadcast_add_news_publisher').click(addBroadcastNewsPublisher);
     // add broadcast type
     $('#settings_add_extra_broadcast_type').click(addBroadcastType);
-    $('#settings_extra_broadcast_type').on('input', function() {
+    $('#settings_extra_broadcast_type').on('input', function () {
         // check for broadcast type if exists or empty
-        var broadcastOptions = LocalCache.broadcastOptions;
         var value = $(this).val().trim();
-        var alreadyExists = broadcastOptions && broadcastOptions.editable_broadcast_types.indexOf(value) !== -1;
+        Requests.getBroadcastOptions().then(function (broadcastOptions) {
+            var alreadyExists = broadcastOptions && broadcastOptions.editable_broadcast_types.indexOf(value) !== -1;
 
-        if(value.length < 3 || !broadcastOptions || alreadyExists) {
-            $('#settings_add_extra_broadcast_type').attr('disabled', true);
-        } else {
-            $('#settings_add_extra_broadcast_type').attr('disabled', false);
-        }
+            if (value.length < 3 || !broadcastOptions || alreadyExists) {
+                $('#settings_add_extra_broadcast_type').attr('disabled', true);
+            } else {
+                $('#settings_add_extra_broadcast_type').attr('disabled', false);
+            }
+        });
     });
 
-    function renderBroadcastSettings() {
+    function renderBroadcastSettings(broadcastOptions) {
         getbroadcastRssSettings(function (settings) {
             renderRssSettings(settings);
         });
-
-
-        getBroadcastOptions(function (broadcastOptions) {
-            var html = $.tmpl(templates.broadcast_settings_list, {
-                broadcastTypes: broadcastOptions.editable_broadcast_types,
-                t: CommonTranslations
-            });
-            $('#section_settings_broadcast > div[name=broadcast_types]').html(html);
-            var listElem = $('#broadcast-types-sortable-list');
-            listElem.find('button[data-action=up]').click(function () {
-                var $this = $(this);
-                var oldIndex = broadcastOptions.editable_broadcast_types.indexOf($this.attr('data-value'));
-                var newIndex = oldIndex - 1;
-                moveElementInArray(broadcastOptions.editable_broadcast_types, oldIndex, newIndex);
-                renderBroadcastSettings();
-            });
-            listElem.find('button[data-action=down]').click(function () {
-                var $this = $(this);
-                var oldIndex = broadcastOptions.editable_broadcast_types.indexOf($this.attr('data-value'));
-                var newIndex = oldIndex + 1;
-                moveElementInArray(broadcastOptions.editable_broadcast_types, oldIndex, newIndex);
-                renderBroadcastSettings();
-            });
-            listElem.find('button[data-action=delete]').click(function() {
-                addOrRemoveBroadcastType($(this).data('value'), true);
-            });
-            $('#btn-save-broadcast-settings').click(saveBroadcastSettings);
+        var editedBroadcastOptions = JSON.parse(JSON.stringify(broadcastOptions));
+        var html = $.tmpl(templates.broadcast_settings_list, {
+            broadcastTypes: broadcastOptions.editable_broadcast_types,
+            t: CommonTranslations
+        });
+        $('#section_settings_broadcast > div[name=broadcast_types]').html(html);
+        var listElem = $('#broadcast-types-sortable-list');
+        listElem.find('button[data-action=up]').click(function () {
+            var $this = $(this);
+            var oldIndex = editedBroadcastOptions.editable_broadcast_types.indexOf($this.attr('data-value'));
+            var newIndex = oldIndex - 1;
+            moveElementInArray(editedBroadcastOptions.editable_broadcast_types, oldIndex, newIndex);
+            renderBroadcastSettings(editedBroadcastOptions);
+        });
+        listElem.find('button[data-action=down]').click(function () {
+            var $this = $(this);
+            var oldIndex = editedBroadcastOptions.editable_broadcast_types.indexOf($this.attr('data-value'));
+            var newIndex = oldIndex + 1;
+            moveElementInArray(editedBroadcastOptions.editable_broadcast_types, oldIndex, newIndex);
+            renderBroadcastSettings(editedBroadcastOptions);
+        });
+        listElem.find('button[data-action=delete]').click(function () {
+            addOrRemoveBroadcastType($(this).data('value'), true);
+        });
+        $('#btn-save-broadcast-settings').click(function () {
+            saveBroadcastSettings(editedBroadcastOptions);
         });
     }
 
@@ -1638,8 +1621,7 @@ $(function () {
                             if(typeof callback === 'function') {
                                 callback();
                             }
-                            LocalCache.broadcastOptions = null;
-                            renderBroadcastSettings();
+                            Requests.getBroadcastOptions({cached: false}).then(renderBroadcastSettings);
                         } else {
                             sln.alert(T[sln.errormsg]);
                         }
@@ -1657,14 +1639,14 @@ $(function () {
         }
     }
 
-    function saveBroadcastSettings() {
+    function saveBroadcastSettings(broadcastOptions) {
         var statusText = $('#save-broadcast-settings-status');
         statusText.text(CommonTranslations.SAVING_DOT_DOT_DOT);
         sln.call({
             url: '/common/settings/broadcast/change_order',
             method: 'post',
             data: {
-                data: JSON.stringify({broadcast_types: LocalCache.broadcastOptions.editable_broadcast_types})
+                data: JSON.stringify({broadcast_types: broadcastOptions.editable_broadcast_types})
             },
             success: function () {
                 statusText.text(CommonTranslations.SAVE);
@@ -1689,40 +1671,20 @@ $(function () {
         $('#preview_frame').contents().find('#logo').attr('src', logoUrl);
     }
 
-    function getAppSettings(callback) {
-        if (LocalCache.settings.app) {
-            callback(LocalCache.settings.app);
-        } else {
-            sln.call({
-                url: '/common/settings/app',
-                success: function (data) {
-                    LocalCache.settings.app = data;
-                    callback(data);
-                }
-            });
-        }
-    }
-
     function saveAppSettings() {
         var birthdayMessageEnabled = $('#birthday_message_enabled').prop('checked'),
             birthdayMessage = $('#birthday_message').val();
-        sln.call({
-            url: '/common/settings/app',
-            method: 'post',
-            data: {
-                settings: {
-                    birthday_message_enabled: birthdayMessageEnabled,
-                    birthday_message: birthdayMessage
-                }
-            },
-            success: function (data) {
-                LocalCache.settings.app = data;
+        var data = {
+            settings: {
+                birthday_message_enabled: birthdayMessageEnabled,
+                birthday_message: birthdayMessage
             }
-        });
+        };
+        Requests.saveAppSettings(data).then(renderAppSettings);
     }
 
     function renderAppSettings() {
-        getAppSettings(render);
+        Requests.getAppSettings().then(render);
         function render(appSettings) {
             var html = $.tmpl(templates['settings/app_settings'], {
                 settings: appSettings,

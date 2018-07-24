@@ -15,13 +15,14 @@
 #
 # @@license_version:1.2@@
 
+from google.appengine.ext import db
+
+from oauth2client.appengine import CredentialsProperty
 from rogerthat.dal import parent_key
 from rogerthat.rpc import users
 from rogerthat.utils import now
 from rogerthat.utils.service import get_service_user_from_service_identity_user, \
     get_identity_from_service_identity_user
-from google.appengine.ext import db
-from oauth2client.appengine import CredentialsProperty
 from solutions.common.models.properties import SolutionUserProperty
 
 
@@ -31,6 +32,8 @@ class Event(db.Model):
     SOURCE_GOOGLE_CALENDAR = 2
     SOURCE_SCRAPER = 3
 
+    app_ids = db.StringListProperty(indexed=True)
+    organization_type = db.IntegerProperty(indexed=True)
     calendar_id = db.IntegerProperty(indexed=True)
 
     source = db.IntegerProperty(indexed=True, default=SOURCE_CMS)
@@ -69,6 +72,22 @@ class Event(db.Model):
     @classmethod
     def get_future_event_keys(cls, current_date):
         return db.Query(cls, keys_only=True).filter('deleted =', False).filter('last_start_date >', current_date)
+
+    @classmethod
+    def get_service_events(cls, cursor, service_user, solution):
+        qry = cls.all().with_cursor(cursor)
+        qry.ancestor(parent_key(service_user, solution))
+        qry.filter("deleted =", False)
+        qry.order("first_start_date")
+        return qry
+
+    @classmethod
+    def get_app_events(cls, cursor, app_id):
+        qry = cls.all().with_cursor(cursor)
+        qry.filter("app_ids", app_id)
+        qry.filter("deleted =", False)
+        qry.order("first_start_date")
+        return qry
 
     def get_first_event_date(self):
         if len(self.start_dates) > 1:

@@ -15,27 +15,40 @@
 #
 # @@license_version:1.2@@
 
-from mcfw.properties import bool_property, long_property, unicode_property
+from mcfw.properties import bool_property, long_property, unicode_property, typed_property
+from rogerthat.to import TO
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import SECONDS_IN_MINUTE
 from solutions.common.models.order import SolutionOrderSettings
 
 
-class SolutionOrderSettingsTO(object):
+class OrderPauseSettingsTO(TO):
+    enabled = bool_property('enabled')
+    paused_until = unicode_property('paused_until')
+    message = unicode_property('message')
+
+
+class SolutionOrderSettingsTO(TO):
     text_1 = unicode_property('1')
     order_type = long_property('2')
     leap_time = long_property('3')
     leap_time_type = long_property('4')
     order_ready_message = unicode_property('5')
     manual_confirmation = bool_property('6', default=False)
+    pause_settings = typed_property('pause_settings', OrderPauseSettingsTO)
+    disable_order_outside_hours = bool_property('disable_order_outside_hours')
+    outside_hours_message = unicode_property('outside_hours_message')
 
-    @staticmethod
-    def fromModel(obj, language):
+    @classmethod
+    def fromModel(cls, obj, language):
+        # type: (SolutionOrderSettings, unicode) -> SolutionOrderSettingsTO
         if obj is None:
             return None
-        to = SolutionOrderSettingsTO()
+        to = cls()
         text_1 = None
+        pause_msg = common_translate(language, SOLUTION_COMMON, 'default_orders_paused_message')
+        outside_hours_msg = common_translate(language, SOLUTION_COMMON, 'default_outside_hours_message')
         if obj:
             text_1 = obj.text_1
             to.order_type = obj.order_type
@@ -43,10 +56,19 @@ class SolutionOrderSettingsTO(object):
             to.leap_time_type = obj.leap_time_type
             to.order_ready_message = obj.order_ready_message
             to.manual_confirmation = obj.manual_confirmation
+            p_until = obj.pause_settings_paused_until.isoformat() + 'Z' if obj.pause_settings_paused_until else None
+            to.pause_settings = OrderPauseSettingsTO(enabled=obj.pause_settings_enabled,
+                                                     paused_until=p_until,
+                                                     message=obj.pause_settings_message or pause_msg)
+            to.disable_order_outside_hours = obj.disable_order_outside_hours
+            to.outside_hours_message = obj.outside_hours_message or outside_hours_msg
         else:
             to.order_type = SolutionOrderSettings.DEFAULT_ORDER_TYPE
             to.leap_time = 15
             to.leap_time_type = SECONDS_IN_MINUTE
+            to.pause_settings = OrderPauseSettingsTO(enabled=False, paused_until=None, message=pause_msg)
+            to.disable_order_outside_hours = False
+            to.outside_hours_message = outside_hours_msg
         if not text_1:
             text_1 = common_translate(language, SOLUTION_COMMON, 'order-flow-details')
 

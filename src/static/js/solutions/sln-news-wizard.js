@@ -27,7 +27,7 @@ function NewsWizard(newsList, options) {
     this.serviceMenu = this.options.serviceMenu || {};
     this.broadcastOptions = this.options.broadcastOptions;
     this.appStatistics = this.options.appStatistics;
-    this.menu = this.options.menu;
+    this.menu = null;  // loaded when editing / adding news
     this.sandwichSettings = this.options.sandwichSettings;
 
     this.newsTypes = {
@@ -117,7 +117,6 @@ NewsWizard.prototype = {
         }
         if (this.serviceMenu) {
             this.render(newsItem);
-            return;
         }
     },
 
@@ -190,7 +189,7 @@ NewsWizard.prototype = {
         return [apps, totalReach];
     },
 
-    getCityAppTotalReach(appIds) {
+    getCityAppTotalReach: function (appIds) {
         return this.appStatistics.reduce(function(result, app) {
             if (appIds.indexOf(app.app_id) !== -1) {
                 return result + app.total_user_count;
@@ -210,7 +209,7 @@ NewsWizard.prototype = {
             self.$('#news_current_budget').text(CommonTranslations.unlimited);
             self.$('#news_views').hide();
         } else {
-            getBudget(function(budget) {
+            Requests.getBudget().then(function(budget) {
                 self.$('#news_current_budget').text(budget.balance * CONSTS.BUDGET_RATE);
                 self.$('#news_views').show();
             });
@@ -271,9 +270,9 @@ NewsWizard.prototype = {
             }
         }
         if (flowParams) {
-            if (flowParams.advancedOrder && flowParams.advancedOrder.categories && menu) {
-                for (var i = 0; i < menu.categories.length; i++) {
-                    var category = menu.categories[i],
+            if (flowParams.advancedOrder && flowParams.advancedOrder.categories && this.menu) {
+                for (var i = 0; i < this.menu.categories.length; i++) {
+                    var category = this.menu.categories[i],
                         flowParamCategory = flowParams.advancedOrder.categories[category.id];
                     if (flowParamCategory) {
                         for (var j = 0; j < category.items.length; j++) {
@@ -431,6 +430,7 @@ NewsWizard.prototype = {
             elemInputActionButtonUrl = self.$('#news_action_url_value'),
             elemCheckPostToFacebook = self.$('#post_to_facebook'),
             elemCheckPostToTwitter = self.$('#post_to_twitter'),
+            elemBroadcastOnTwitter = $("#broadcast_message_on_twitter").find("input"),
             elemFacebookPage = self.$('#facebook_page'),
             elemConfigureTargetAudience = self.$('#configure_target_audience'),
             hasSignedOrder = self.broadcastOptions.subscription_info.has_signed,
@@ -651,26 +651,26 @@ NewsWizard.prototype = {
         }
 
         function actionButtonChanged() {
-            var selectedAction = (elemSelectButton.val() || '').split('.');
-            self.$('.news_action').hide();
-            var defaultActions = ['url', 'email', 'phone', 'attachment', 'joyn_coupon'];
-            var isDefaultAction = defaultActions.includes(selectedAction[0]);
-            if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
-                var showElem = true;
-                if (isDefaultAction) {
-                    self.$('#news_action_' + selectedAction[0]).toggle(showElem);
-                } else {
-                    if (orderSettings.order_type !== CONSTS.ORDER_TYPE_ADVANCED && selectedAction[1] === 'order') {
-                        showElem = false;
+            Requests.getOrderSettings().then(function (orderSettings) {
+                var selectedAction = (elemSelectButton.val() || '').split('.');
+                self.$('.news_action').hide();
+                var defaultActions = ['url', 'email', 'phone', 'attachment', 'joyn_coupon'];
+                var isDefaultAction = defaultActions.includes(selectedAction[0]);
+                if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
+                    var showElem = true;
+                    if (isDefaultAction) {
+                        self.$('#news_action_' + selectedAction[0]).toggle(showElem);
+                    } else {
+                        if (orderSettings.order_type !== CONSTS.ORDER_TYPE_ADVANCED && selectedAction[1] === 'order') {
+                            showElem = false;
+                        }
+                        self.$('#news_action_' + selectedAction[1]).toggle(showElem);
                     }
-                    self.$('#news_action_' + selectedAction[1]).toggle(showElem);
+                } else if (selectedAction[0] === 'reserve1') {
+                    self.$('#news_action_restaurant_reservation').show();
                 }
-            } else if (selectedAction[0] === 'reserve1') {
-                self.$('#news_action_restaurant_reservation').show();
-            }
-
-
             renderPreview();
+            });
         }
 
         function actionButtonUrlChanged() {
@@ -1005,7 +1005,7 @@ NewsWizard.prototype = {
             checkoutContainer.html(TMPL_LOADING_SPINNER);
             // apologies for this monstrosity
             getCreditCardInfo(function (creditCardInfo) {
-                modules.settings.getBroadcastOptions(function (broadcastOptions) {
+                Requests.getBroadcastOptions().then(function (broadcastOptions) {
                     getPromotedCost(data.app_ids, data.sponsored, function (promotedCostList) {
                         var promotionProduct = broadcastOptions.news_promotion_product,
                             extraAppProduct = broadcastOptions.extra_city_product,
@@ -1158,6 +1158,16 @@ NewsWizard.prototype = {
             }
         }
 
+        function getReviewApps(itemAppIds, publishedAppIds) {
+            var reviewApps = [];
+            $.each(CONSTS.CITY_APPS, function(appName, appId) {
+                if (itemAppIds.indexOf(appId) > -1 && publishedAppIds.indexOf(appId) === -1) {
+                    reviewApps.push(appName);
+                }
+            });
+            return reviewApps.join(', ');
+        }
+
         function publishNews(newsItem, orderItems) {
             if (elemButtonSubmit.attr('disabled')) {
                 return;
@@ -1188,10 +1198,19 @@ NewsWizard.prototype = {
                         elemButtonSubmit.attr('disabled', false);
                         return;
                     }
+
+                    if (result.warningmsg && !originalNewsItem) {
+                        var warning = CommonTranslations[result.warningmsg] || result.warningmsg;
+                        return sln.alert(warning, self.goToOverview.bind(self), CommonTranslations.SUCCESS);
+                    }
+
                     self.promotedNews = {};
                     elemButtonSubmit.attr('disabled', false);
                     var text;
-                    if (result.published) {
+                    var reviewApps = newsReviewEnabled & !originalNewsItem ? getReviewApps(newsItem.app_ids, result.app_ids) : '';
+                    if (reviewApps) {
+                        text = CommonTranslations.news_review_partially_published.replace('%(apps)s', reviewApps);
+                    } else if (result.published) {
                         if (originalNewsItem) {
                             text = T(self.translations.item_saved);
                         } else {

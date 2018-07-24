@@ -491,29 +491,16 @@ $(function () {
     };
 
     function renderBroadcastTypes() {
-        var html = $.tmpl(templates.broadcast_types, {
-            broadcast_types: LocalCache.broadcastOptions.broadcast_types
-        });
-        $("#broadcast_types").html(html);
-        $("#broadcast").find("input[name=broadcast_types]:radio").change(function () {
-            displayReach();
-        });
-        modules.settings.renderBroadcastSettings(); // Defined in sln-settings
-    }
-
-    function getAppStatistics(callback) {
-        if (LocalCache.appStatistics) {
-            callback(LocalCache.appStatistics);
-        } else {
-            sln.call({
-                url: '/common/statistics/apps',
-                type: 'GET',
-                success: function (data) {
-                    LocalCache.appStatistics = data;
-                    callback(LocalCache.appStatistics);
-                }
+        Requests.getBroadcastOptions().then(function (broadcastOptions) {
+            var html = $.tmpl(templates.broadcast_types, {
+                broadcast_types: broadcastOptions.broadcast_types
             });
-        }
+            $("#broadcast_types").html(html);
+            $("#broadcast").find("input[name=broadcast_types]:radio").change(function () {
+                displayReach();
+            });
+            Requests.getBroadcastOptions().then(modules.settings.renderBroadcastSettings); // Defined in sln-settings
+        });
     }
 
     $(document).on("click", '#scheduled_broadcasts tbody button[action="delete"]', function () {
@@ -632,7 +619,8 @@ $(function () {
                 break;
             case 'solutions.common.settings.updates_pending':
                 if (!data.updatesPending) {
-                    modules.settings.getBroadcastOptions(false, true);
+                    Requests.getBroadcastOptions({cached: false}).then(function () {
+                    });
                 }
                 break;
             case 'solutions.common.broadcast.scheduled.updated':
@@ -731,17 +719,16 @@ $(function () {
     function init() {
         ROUTES['broadcast'] = router;
         modules.broadcast = {
-            getAppStatistics: getAppStatistics,
             addAttachment: addAttachment,
             registerAttachmentUploadedHandler: registerAttachmentUploadedHandler,
-        }
+        };
 
         elemInputBroadcastTarget.change(displayReach);
         sln.registerMsgCallback(channelUpdates);
 
         if (!modules.menu) {
             modules.menu = {
-                getMenu: returnNothing
+                loadMenu: returnNothing
             };
         }
         if (!modules.sandwich) {
@@ -751,13 +738,13 @@ $(function () {
         }
     }
 
-    function returnNothing(callback) {
-        callback();
+    function returnNothing() {
+        return Promise.resolve();
     }
 
     function router(urlHash) {
         var page = urlHash[1];
-        modules.settings.getBroadcastOptions(function (broadcastOptions) {
+        Requests.getBroadcastOptions().then(function (broadcastOptions) {
             // determine what to show depending if news is enabled or not
             if (!broadcastOptions.news_enabled) {
                 elemPageMessage.show();

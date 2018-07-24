@@ -25,13 +25,13 @@ import webapp2
 from babel import dates
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
-from rogerthat.bizz.app import get_app
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
+from rogerthat.dal.app import get_apps_by_id, get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
-from rogerthat.models import ServiceIdentity, App
+from rogerthat.models import ServiceIdentity
 from rogerthat.pages.legal import get_version_content, DOC_TERMS_SERVICE, get_current_document_version
 from rogerthat.pages.login import SessionHandler
 from rogerthat.rpc import users
@@ -57,13 +57,12 @@ from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER,
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
+from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
-from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.news import NewsSettingsTags
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
-from solutions.common.to.order import SolutionOrderSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
 
@@ -183,6 +182,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
     SolutionModule.ORDER: [
         'order',
         'order_list',
+        'pause_orders_modal',
         'timeframe_template',
         'menu',
         'menu_import',
@@ -334,7 +334,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         loyalty_version = self.request.get("loyalty")
         if customer:
             city_app_id = customer.app_id
-            default_app = get_app(customer.app_id)
+            default_app = get_app_by_id(customer.app_id)
             is_demo_app = default_app.demo
             active_app_ids = customer.sorted_app_ids
         else:
@@ -344,12 +344,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             service_identity_user = create_service_identity_user(service_user, service_identity)
             active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
-        available_apps = App.get([App.create_key(app_id) for app_id in active_app_ids])
-
-        if SolutionModule.ORDER or SolutionModule.MENU in sln_settings.modules:
-            order_settings = get_solution_order_settings(sln_settings)
-        else:
-            order_settings = None  # Client code should not need this variable
+        available_apps = get_apps_by_id(active_app_ids)
 
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
@@ -404,6 +399,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
         joyn_available = is_joyn_available(country, sln_settings.modules, active_app_ids)
         oca_loyalty_limited = is_oca_loyalty_limited(joyn_available, sln_settings)
+        city_service_user = get_service_user_for_city(city_app_id)
+        is_city = service_user == city_service_user
+        city_app_profile = get_cityapp_profile(city_service_user)
+        news_review_enabled = city_app_profile and city_app_profile.review_news
 
         organization_types = get_organization_types(customer, sln_settings.main_language)
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
@@ -449,17 +448,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'CONSTS': consts,
                   'CONSTS_JSON': json.dumps(consts),
                   'COUNTRY': customer and customer.country or u'',
-                  'order_settings': order_settings,
-                  'order_settings_json': json.dumps(
-                      serialize_complex_value(
-                          SolutionOrderSettingsTO.fromModel(order_settings, sln_settings.main_language),
-                          SolutionOrderSettingsTO, False)),
                   'modules': json.dumps(sln_settings.modules),
                   'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
-                  'hide_menu_tab': SolutionModule.MENU not in sln_settings.modules
-                  and SolutionModule.ORDER in sln_settings.modules
-                  and (
-                      not order_settings or order_settings.order_type != order_settings.TYPE_ADVANCED),
                   'VAT_PCT': vat_pct,
                   'IS_MOBICAGE_LEGAL_ENTITY': is_mobicage,
                   'LEGAL_ENTITY_CURRENCY': legal_entity_currency,
@@ -468,7 +458,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'organization_types_json': json.dumps(dict(organization_types)),
                   'vouchers_settings': vouchers_settings,
                   'show_email_checkboxes': customer is not None,
-                  'service_consent': get_customer_consents(customer.user_email) if customer else None
+                  'service_consent': get_customer_consents(customer.user_email) if customer else None,
+                  'is_city': is_city,
+                  'news_review_enabled': news_review_enabled,
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

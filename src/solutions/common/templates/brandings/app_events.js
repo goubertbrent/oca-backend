@@ -18,6 +18,11 @@
 
 (function () {
     'use strict';
+    var serverEventsLoadGuid = null;
+    var serverEvents = [];
+    var serverEventsIsLoading = false;
+    var serverEventsHasMore = true;
+    var serverEventsCursor = null;
     var events = null;
     var eventsDict = {};
     var calendarsDict = {};
@@ -32,7 +37,7 @@
         + '${d.date} <span class="ui-li-count ui-btn-up-c ui-btn-corner-all">${d.events.length}</span>'
         + '</li>'
         + '{{each(i, e) d.events}}'
-        + '<li class="eventItem" event_id="${e.event.id}" event_date="${e.date}" onclick="">'
+        + '<li class="eventItem" service_user_email="${e.event.service_user_email}" event_id="${e.event.id}" event_date="${e.date}" onclick="">'
 
         + '<a href="#detail" data-transition="slide" class="ui-btn ui-btn-icon-right ui-icon-carat-r">'
         + '<p class="ui-li-aside ui-li-desc" style="top: 0.3em;"><strong>${e.time}</strong></p>'
@@ -55,6 +60,10 @@
         }
         rogerthat.callbacks.ready(onRogerthatReady);
         rogerthat.callbacks.backPressed(backPressed);
+        
+        $(window).scroll(function() {
+            validateLoadMore();
+        });
     }
 
     function backPressed() {
@@ -80,6 +89,25 @@
         }, 100); // need to do this async
         return true; // we handled the back press
     }
+    
+    function isOnScreen(element) {
+        var curPos = element.offset();
+        if (curPos === undefined) {
+            return false;
+        }
+        var curTop = curPos.top;
+        var screenHeight = $(window).scrollTop() + $(window).height();
+        return (curTop < screenHeight);
+    }
+    
+    function validateLoadMore() {
+    	var activePage = $.mobile.activePage.attr('id');
+        if (activePage == "events") {
+        	if (isOnScreen($("#events-listview").find("li:last"))) {
+                loadEvents(serverEventsCursor, false);
+            }
+        }
+    };
 
     function caseInsensitiveStringSort(a, b) {
         var lowerCaseA = a.toLowerCase();
@@ -278,6 +306,33 @@
         var elem = $('#event-invitation-sent-popup');
         elem.popup('close');
     }
+    
+    function validateNetworkAndLoadEvents() {
+    	var activePage = $.mobile.activePage.attr('id');
+    	rogerthat.util.isConnectedToInternet(function(result) {
+        	if (result.connectedToWifi || result.connected) {
+        		if (activePage != "events") {
+        			setTimeout(function () {
+                        $.mobile.changePage('#events');
+                    }, 100); // need to do this async
+        		}
+        		loadEvents(null, false);
+        	} else {
+        		if (activePage != "no-network") {
+        			setTimeout(function () {
+                        $.mobile.changePage('#no-network');
+                    }, 100); // need to do this async
+        		}
+        	}
+        }, function() {
+        	if (activePage != "events") {
+    			setTimeout(function () {
+                    $.mobile.changePage('#events');
+                }, 100); // need to do this async
+    		}
+        	loadEvents(null, false);
+        });
+    }
 
     function onRogerthatReady() {
         console.log("onRogerthatReady()");
@@ -292,9 +347,12 @@
         }
 
         rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
-        rogerthat.callbacks.serviceDataUpdated(loadEvents);
-
-        loadEvents();
+        
+        validateNetworkAndLoadEvents();
+        
+        $(document).on("click", "#no-network-retry", function () {
+        	validateNetworkAndLoadEvents();
+        });
 
         function addToCalender(event) {
             var eventDate = event.start_date;
@@ -304,6 +362,7 @@
 
             var addToCalenderParams = {
                 'eventId': event.id,
+                'serviceUserEmail': event.service_user_email,
                 'eventTitle': event.title,
                 'eventDescription': event.description,
                 'eventStart': eventStart,
@@ -319,9 +378,10 @@
 
         var now = (new Date().getTime()) / 1000;
         $(document).on("click", ".eventItem", function () {
+        	var serviceUserEmail = $(this).attr("service_user_email");
             var eventId = parseInt($(this).attr("event_id"));
             var eventDate = $(this).attr("event_date");
-            var event = eventsDict[eventId][eventDate];
+            var event = eventsDict[serviceUserEmail][eventId][eventDate];
             $("#detail").data("event", event);
 
             var calendar = calendarsDict[event.calendar_id];
@@ -396,16 +456,20 @@
             $("#detail .event-detail-guests-loading").show();
             $("#detail .event-detail-guests").hide();
 
-            if (guestsDict[event.id] === undefined) {
+            if(guestsDict[event.service_user_email] === undefined) {
+            	guestsDict[event.service_user_email] = {};
+            }
+            if (guestsDict[event.service_user_email][event.id] === undefined) {
                 var participantsParams = {
                     'eventId': event.id,
+                    'serviceUserEmail': event.service_user_email,
                     'includeDetails': 0
                 };
 
                 var paramsss = JSON.stringify(participantsParams);
                 rogerthat.api.call("solutions.events.guests", paramsss, "");
             } else {
-                loadGuests(event.id);
+                loadGuests(event.service_user_email, event.id);
             }
         });
 
@@ -435,6 +499,7 @@
 
             var remindmeLaterParams = {
                 'eventId': event.id,
+                'serviceUserEmail': event.service_user_email,
                 'remindBefore': remindMeSeconds,
                 'eventStartEpoch': eventStartEpoch
             };
@@ -451,13 +516,14 @@
                 removedEvents.push(event.id);
 
                 var eventRemoveParams = {
-                    'eventId': event.id
+                    'eventId': event.id,
+                    'serviceUserEmail': event.service_user_email,
                 };
 
                 var paramsss = JSON.stringify(eventRemoveParams);
 
                 rogerthat.api.call("solutions.events.remove", paramsss, "");
-                loadEvents();
+                renderEvents();
             }
             hideEventRemovePopupOverlay();
         });
@@ -466,30 +532,31 @@
             var event = $("#detail").data("event");
             var status = parseInt($('input[name=radio-choice-guests]:checked').val());
 
-            if (guestsDict[event.id].your_status) {
-                if (guestsDict[event.id].your_status == 1) {
-                    guestsDict[event.id].guests_count_going -= 1;
-                } else if (guestsDict[event.id].your_status == 2) {
-                    guestsDict[event.id].guests_count_maybe -= 1;
-                } else if (guestsDict[event.id].your_status == 3) {
-                    guestsDict[event.id].guests_count_not_going -= 1;
+            if (guestsDict[event.service_user_email][event.id].your_status) {
+                if (guestsDict[event.service_user_email][event.id].your_status == 1) {
+                    guestsDict[event.service_user_email][event.id].guests_count_going -= 1;
+                } else if (guestsDict[event.service_user_email][event.id].your_status == 2) {
+                    guestsDict[event.service_user_email][event.id].guests_count_maybe -= 1;
+                } else if (guestsDict[event.service_user_email][event.id].your_status == 3) {
+                    guestsDict[event.service_user_email][event.id].guests_count_not_going -= 1;
                 }
             }
-            guestsDict[event.id].your_status = status;
-            guestsDict[event.id].include_details = 0;
+            guestsDict[event.service_user_email][event.id].your_status = status;
+            guestsDict[event.service_user_email][event.id].include_details = 0;
 
             if (status == 1) {
-                guestsDict[event.id].guests_count_going += 1;
+                guestsDict[event.service_user_email][event.id].guests_count_going += 1;
             } else if (status == 2) {
-                guestsDict[event.id].guests_count_maybe += 1;
+                guestsDict[event.service_user_email][event.id].guests_count_maybe += 1;
             } else if (status == 3) {
-                guestsDict[event.id].guests_count_not_going += 1;
+                guestsDict[event.service_user_email][event.id].guests_count_not_going += 1;
             }
 
-            loadGuests(event.id);
+            loadGuests(event.service_user_email, event.id);
 
             var guestStatusParams = {
                 'eventId': event.id,
+                'serviceUserEmail': event.service_user_email,
                 'status': status
             };
 
@@ -544,7 +611,7 @@
 
             rogerthat.user.data.calendar.disabled = disabled;
             rogerthat.user.put();
-            loadEvents();
+            loadEvents(null, true);
         });
 
         $(document).on("click", ".gotoBroadcast", function () {
@@ -597,16 +664,17 @@
             var event = $("#detail").data("event");
             resetGuestDetails(status);
 
-            if (guestsDict[event.id].include_details === 0) {
+            if (guestsDict[event.service_user_email][event.id].include_details === 0) {
                 var participantsParams = {
                     'eventId': event.id,
+                    'serviceUserEmail': event.service_user_email,
                     'includeDetails': 1
                 };
 
                 var paramsss = JSON.stringify(participantsParams);
                 rogerthat.api.call("solutions.events.guests", paramsss, "" + status);
             } else {
-                loadGuestsDetails(event.id, status);
+                loadGuestsDetails(event.service_user_email, event.id, status);
             }
         };
 
@@ -629,7 +697,7 @@
             switch (activePageId) {
                 case 'guests':
                     var event = $("#detail").data("event");
-                    if (guestsDict[event.id].include_details == 0) {
+                    if (guestsDict[event.service_user_email][event.id].include_details == 0) {
                         $.mobile.loading('show', {
                             text: EventsTranslations.LOADING_GUESTS,
                             textVisible: true,
@@ -664,8 +732,8 @@
         return $("<div></div>").text(value).html().replace(/\n/g, "<br>");
     }
 
-    function loadGuests(eventId) {
-        var r = guestsDict[eventId];
+    function loadGuests(serviceUserEmail, eventId) {
+        var r = guestsDict[serviceUserEmail][eventId];
 
         $('input[name="radio-choice-guests"]').checkboxradio();
 
@@ -713,9 +781,9 @@
         }
     }
 
-    function loadGuestsDetails(eventId, status) {
+    function loadGuestsDetails(serviceUserEmail, eventId, status) {
         $.mobile.loading('hide');
-        var r = guestsDict[eventId];
+        var r = guestsDict[serviceUserEmail][eventId];
 
         var listGoing = $("#guests-tabs-going ul");
         var listMaybe = $("#guests-tabs-maybe ul");
@@ -740,46 +808,76 @@
         }
     }
 
-    function loadEvents() {
-        if (rogerthat.service.data.solutionCalendars === undefined)
-            return;
+    function loadEvents(cursor, force) {
+    	if (cursor == null) {
+    		serverEventsHasMore = true;
+    	}
+    	if ((serverEventsIsLoading || serverEventsHasMore === false) && !force) {
+    		return;
+    	}
+    	serverEventsIsLoading = true;
+    	serverEventsLoadGuid = rogerthat.util.uuid();
 
-        if (!rogerthat.user.data.calendar) {
+    	if (!rogerthat.user.data.calendar) {
             rogerthat.user.data.calendar = {};
         }
-
         if (rogerthat.user.data.calendar.disabled === undefined) {
         	rogerthat.user.data.calendar.disabled = [];
         }
-
+        if (rogerthat.service.data.solutionCalendars === undefined) {
+    		rogerthat.service.data.solutionCalendars = [];    		
+    	}
         if (rogerthat.service.data.solutionCalendars.length > 1) {
             $("#events-footer").show();
         } else {
             $("#events-footer").hide();
         }
 
-        var now = (new Date().getTime()) / 1000;
-        var checkdate = now - DAY;
-        events = rogerthat.service.data.solutionEvents.filter(function (event, i) {
-            if ($.inArray(event.id, removedEvents) >= 0) {
-                return false;
-            }
-
-            var isCalendarDisabled = $.inArray(event.calendar_id, rogerthat.user.data.calendar.disabled) > -1;
-            return !isCalendarDisabled;
-        });
-
         calendarsDict = {};
+        var disabledAllCalendars = true;
         $.each(rogerthat.service.data.solutionCalendars, function (i, calendar) {
             calendarsDict[calendar.id] = calendar;
+            var isCalendarDisabled = $.inArray(calendar.id, rogerthat.user.data.calendar.disabled) > -1;
+            if (!isCalendarDisabled) {
+            	disabledAllCalendars = false;
+            }
         });
-
+        
         var adminCalendars = getAdminCalendars();
         if (adminCalendars.length === 0) {
             $("#broadcast-to-calendar").hide();
         } else {
             $("#broadcast-to-calendar").show();
         }
+        
+        if (disabledAllCalendars) {
+        	serverEventsIsLoading = false;
+        	serverEventsHasMore = false;
+        	$("#events-listview").empty();
+        	$("#events-loading").hide();
+        	$("#events-empty").show();
+        	return;
+        }
+        $("#events-empty").hide();
+        $("#events-loading").show();
+    	if (cursor == null) {
+    		serverEvents = [];
+    	}
+        rogerthat.api.call("solutions.events.load", JSON.stringify({
+            'cursor': cursor
+        }), serverEventsLoadGuid);
+    }
+    
+    function renderEvents() {
+        var now = (new Date().getTime()) / 1000;
+        var checkdate = now - DAY;
+        events = serverEvents.filter(function (event, i) {
+            if ($.inArray(event.id, removedEvents) >= 0) {
+                return false;
+            }
+            var isCalendarDisabled = $.inArray(event.calendar_id, rogerthat.user.data.calendar.disabled) > -1;
+            return !isCalendarDisabled;
+        });
 
         var eventsListview = $("#events-listview");
         eventsListview.empty();
@@ -800,10 +898,13 @@
                 var eventCopy = Object.assign({}, event);
                 eventCopy.start_date = eventDate;
                 eventCopy.end_date = eventDateEnd;
-                if(!eventsDict[eventCopy.id]) {
-                    eventsDict[eventCopy.id] = {};
+                if(!eventsDict[eventCopy.service_user_email]) {
+                    eventsDict[eventCopy.service_user_email] = {};
                 }
-                eventsDict[eventCopy.id][eventDate] = eventCopy;
+                if(!eventsDict[eventCopy.service_user_email][eventCopy.id]) {
+                    eventsDict[eventCopy.service_user_email][eventCopy.id] = {};
+                }
+                eventsDict[eventCopy.service_user_email][eventCopy.id][eventDate] = eventCopy;
 
                 eventsPerDay[dayDate].push({
                     "event":  event,
@@ -814,7 +915,12 @@
             }
         });
 
+        $("#events-loading").hide();
         if (Object.keys(eventsDict).length === 0) {
+        	if (serverEventsHasMore) {
+            	loadEvents(serverEventsCursor, false);
+        		return;
+            }
             $("#events-empty").show();
             return;
         }
@@ -831,6 +937,7 @@
             days: days
         });
         eventsListview.append(html);
+        validateLoadMore();
     }
 
     function onReceivedApiResult(method, result, error, tag) {
@@ -838,25 +945,45 @@
         console.log("method: " + method);
         console.log("result: " + result);
         console.log("error: " + error);
+        console.log("tag: " + tag);
 
         if (method == "solutions.events.guests") {
             if (result) {
                 var r = JSON.parse(result);
-                guestsDict[r.event_id] = r;
+                if(!guestsDict[r.service_user_email]) {
+                	guestsDict[r.service_user_email] = {};
+                }
+                guestsDict[r.service_user_email][r.event_id] = r;
                 var event = $("#detail").data("event");
                 if (r.include_details == 0) {
-                    if (event && event.id == r.event_id) {
-                        loadGuests(r.event_id);
+                    if (event && event.service_user_email == r.service_user_email && event.id == r.event_id) {
+                        loadGuests(r.service_user_email, r.event_id);
                     }
                 } else {
                     r.guests.sort(function (guest1, guest2) {
                         return smartSort(guest1.name, guest2.name);
                     });
-                    if (event && event.id == r.event_id) {
-                        loadGuestsDetails(r.event_id, parseInt(tag));
+                    if (event && event.service_user_email == r.service_user_email && event.id == r.event_id) {
+                        loadGuestsDetails(r.service_user_email, r.event_id, parseInt(tag));
                     }
                 }
             }
+        } else if (method == "solutions.events.load") {
+        	if (serverEventsLoadGuid == null || tag == null) {
+                return;
+            }
+        	if (tag != serverEventsLoadGuid) {
+        		return;
+        	}
+        	serverEventsLoadGuid = null;
+        	serverEventsIsLoading = false;
+        	if (result) {
+        		var r = JSON.parse(result);
+        		Array.prototype.push.apply(serverEvents, r.events);
+        		serverEventsHasMore = r.has_more;
+        		serverEventsCursor = r.cursor;
+        		renderEvents();
+        	}
         }
     }
 })();

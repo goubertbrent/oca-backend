@@ -18,10 +18,8 @@
 
 $(function () {
     'use strict';
-    LocalCache.menu = {};
+    var editedMenu = null;
     modules.menu = {
-        getMenu: getMenu,
-        loadMenu: loadMenu,
         renderMenu: renderMenu
     };
     var CROP_OPTIONS = {
@@ -39,59 +37,64 @@ $(function () {
     }
 
     function router(urlHash) {
-        getMenu(renderMenu);
+        Requests.getMenu().then(function (menu) {
+            editedMenu = JSON.parse(JSON.stringify(menu));
+            renderMenu(editedMenu);
+        });
     }
 
     function renderMenu(menu, sourceId) {
-        var menuHtmlElement = $("#menu_contents").find("#menu_test");
-        var html = $.tmpl(templates.menu, {
-            menu: menu,
-            t: CommonTranslations,
-            isFlagSet: sln.isFlagSet,
-            currency: CURRENCY,
-            CONSTS: CONSTS,
-            isPaymentEnabled: modules.order && modules.order.isPaymentEnabled(),
-            menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
-            advancedOrder: orderSettings.order_type == CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
-            showVisibleInCheckboxes: shouldShowVisibility()
-        });
+        Requests.getOrderSettings().then(function (orderSettings) {
+            var menuHtmlElement = $("#menu_contents").find("#menu_test");
+            var html = $.tmpl(templates.menu, {
+                menu: menu,
+                t: CommonTranslations,
+                isFlagSet: sln.isFlagSet,
+                currency: CURRENCY,
+                CONSTS: CONSTS,
+                isPaymentEnabled: modules.order && modules.order.isPaymentEnabled(),
+                menuName: menu.name || CommonTranslations.DEFAULT_MENU_NAME,
+                advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
+                showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
+            });
 
-        // the menu is loaded, enable adding a new category or editing the name
-        $("#menu").find("button[name=newcat]").attr('disabled', false);
-        $("#edit_menu_name").attr('disabled', false);
+            // the menu is loaded, enable adding a new category or editing the name
+            $("#menu").find("button[name=newcat]").attr('disabled', false);
+            $("#edit_menu_name").attr('disabled', false);
 
-        menuHtmlElement.html(html);
-        menuHtmlElement.find('button[action="additem"]').click(addItem);
-        menuHtmlElement.find('button[action="deleteitem"]').click(deleteItem);
-        menuHtmlElement.find('button[action="editItem"]').click(editItem);
-        menuHtmlElement.find('button[action="deletecategory"]').click(deleteCategory);
-        menuHtmlElement.find('button[action="editCategory"]').click(editCategory);
-        menuHtmlElement.find('button[action="categoryUp"]').click(categoryIndexUp);
-        menuHtmlElement.find('button[action="categoryDown"]').click(categoryIndexDown);
-        menuHtmlElement.find('button[action="itemUp"]').click(itemIndexUp);
-        menuHtmlElement.find('button[action="itemDown"]').click(itemIndexDown);
-        menuHtmlElement.find('button[action="editMenuDescription"]').click(editMenuDescription);
-        menuHtmlElement.find('button[action="editCategoryDescription"]').click(editCategoryDescription);
-        menuHtmlElement.find('button[action="editImage"]').click(editItemImage);
-        menuHtmlElement.find('.item-payments-excluded').click(showPriceWarning);
-        menuHtmlElement.find('input[name=itemVisibleIn]').change(itemVisibilityChanged);
-        menuHtmlElement.find('.mark-all-visible-in').change(markAllVisibleChanged);
-        if (sourceId) {
-            try {
-                $(sourceId).get(0).scrollIntoView();
-            } catch (ex) {
-                // Backwards compatibility
-                setCategoryIndexes();
-                saveMenu();
+            menuHtmlElement.html(html);
+            menuHtmlElement.find('button[action="additem"]').click(addItem);
+            menuHtmlElement.find('button[action="deleteitem"]').click(deleteItem);
+            menuHtmlElement.find('button[action="editItem"]').click(editItem);
+            menuHtmlElement.find('button[action="deletecategory"]').click(deleteCategory);
+            menuHtmlElement.find('button[action="editCategory"]').click(editCategory);
+            menuHtmlElement.find('button[action="categoryUp"]').click(categoryIndexUp);
+            menuHtmlElement.find('button[action="categoryDown"]').click(categoryIndexDown);
+            menuHtmlElement.find('button[action="itemUp"]').click(itemIndexUp);
+            menuHtmlElement.find('button[action="itemDown"]').click(itemIndexDown);
+            menuHtmlElement.find('button[action="editMenuDescription"]').click(editMenuDescription);
+            menuHtmlElement.find('button[action="editCategoryDescription"]').click(editCategoryDescription);
+            menuHtmlElement.find('button[action="editImage"]').click(editItemImage);
+            menuHtmlElement.find('.item-payments-excluded').click(showPriceWarning);
+            menuHtmlElement.find('input[name=itemVisibleIn]').change(itemVisibilityChanged);
+            menuHtmlElement.find('.mark-all-visible-in').change(markAllVisibleChanged);
+            if (sourceId) {
+                try {
+                    $(sourceId).get(0).scrollIntoView();
+                } catch (ex) {
+                    // Backwards compatibility
+                    setCategoryIndexes();
+                    saveMenu();
+                }
             }
-        }
 
-        var category_tables = $("div#menu table.category");
-        $.each([1, 2], function (i, itemType) {
-            category_tables.each(function () {
-                var thizz = $(this);
-                if ($("tbody", thizz).find("input:checked[value=" + itemType + "]").length)
-                    $("thead", thizz).find("input.mark-all-visible-in[value=" + itemType + "]").prop('checked', true);
+            var category_tables = $("div#menu table.category");
+            $.each([1, 2], function (i, itemType) {
+                category_tables.each(function () {
+                    var thizz = $(this);
+                    if ($("tbody", thizz).find("input:checked[value=" + itemType + "]").length)
+                        $("thead", thizz).find("input.mark-all-visible-in[value=" + itemType + "]").prop('checked', true);
+                });
             });
         });
     }
@@ -100,14 +103,14 @@ $(function () {
         sln.alert(CommonTranslations.item_price_alert, null, CommonTranslations.alert);
     }
 
-    function shouldShowVisibility() {
+    function shouldShowVisibility(orderSettings) {
         return MODULES.indexOf('order') !== -1
             && MODULES.indexOf('menu') !== -1
             && orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED;
     }
 
     function getCategory(categoryId) {
-        return LocalCache.menu.categories.filter(function (c) {
+        return editedMenu.categories.filter(function (c) {
             return c.id === categoryId;
         })[0];
     }
@@ -166,7 +169,7 @@ $(function () {
             url: "/common/menu/save",
             type: "POST",
             data: {
-                menu: LocalCache.menu
+                menu: editedMenu
             }
         });
     }
@@ -181,28 +184,24 @@ $(function () {
             url: "/common/menu/save",
             type: "POST",
             data: {
-                menu: LocalCache.menu
+                menu: editedMenu
             },
             success: function (data) {
                 if (!data.success) {
-                    loadMenu(renderMenu);
+                    renderMenu(editedMenu);
                     sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                 }
             }
         });
         if (!noReload) {
-            renderMenu(LocalCache.menu, sourceId);
+            renderMenu(editedMenu, sourceId);
         }
     };
 
-    function loadMenu(callback) {
-        return sln.call({
-            url: "/common/menu/load",
-            type: "GET",
-            success: function (data) {
-                LocalCache.menu = data;
-                callback(LocalCache.menu);
-            }
+    function reloadMenu() {
+        return Requests.getMenu({cached: false}).then(function () {
+            editedMenu = JSON.parse(JSON.stringify(menu));
+            renderMenu(editedMenu);
         });
     }
 
@@ -236,7 +235,7 @@ $(function () {
                     success: function(data) {
                         if(data.success) {
                             modal.modal('hide');
-                            getMenu(renderMenu);
+                            reloadMenu();
                         } else {
                             sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                         }
@@ -246,26 +245,18 @@ $(function () {
         });
     }
 
-    function getMenu(callback) {
-        if (LocalCache.menu.name) {
-            callback(LocalCache.menu);
-        } else {
-            loadMenu(callback);
-        }
-    }
-
     var deleteCategory = function () {
         var category = getCategory($(this).parents('tr').attr("category_id"));
         sln.confirm(CommonTranslations.MENU_CATEGORY_DELETE_CONFIRMATION, function () {
-            LocalCache.menu.categories.splice(LocalCache.menu.categories.indexOf(category), 1);
+            editedMenu.categories.splice(editedMenu.categories.indexOf(category), 1);
             setCategoryIndexes();
             saveMenu();
         });
     };
 
     function setCategoryIndexes() {
-        for (var i = 0; i < LocalCache.menu.categories.length; i++) {
-            LocalCache.menu.categories[i].index = LocalCache.menu.categories.indexOf(LocalCache.menu.categories[i]);
+        for (var i = 0; i < editedMenu.categories.length; i++) {
+            editedMenu.categories[i].index = editedMenu.categories.indexOf(editedMenu.categories[i]);
         }
     }
 
@@ -274,10 +265,10 @@ $(function () {
         if ($this.hasClass('disabled'))
             return;
         var category = getCategory($(this).parents('tr').attr("category_id"));
-        var index = LocalCache.menu.categories.indexOf(category);
-        moveElementInArray(LocalCache.menu.categories, index, index - 1);
+        var index = editedMenu.categories.indexOf(category);
+        moveElementInArray(editedMenu.categories, index, index - 1);
         setCategoryIndexes();
-        saveMenu(false, '#category-' + LocalCache.menu.categories.indexOf(category));
+        saveMenu(false, '#category-' + editedMenu.categories.indexOf(category));
     };
 
     var categoryIndexDown = function () {
@@ -285,10 +276,10 @@ $(function () {
         if ($this.hasClass('disabled'))
             return;
         var category = getCategory($(this).parents('tr').attr("category_id"));
-        var index = LocalCache.menu.categories.indexOf(category);
-        moveElementInArray(LocalCache.menu.categories, index, index + 1);
+        var index = editedMenu.categories.indexOf(category);
+        moveElementInArray(editedMenu.categories, index, index + 1);
         setCategoryIndexes();
-        saveMenu(false, '#category-' + LocalCache.menu.categories.indexOf(category));
+        saveMenu(false, '#category-' + editedMenu.categories.indexOf(category));
     };
 
     var itemIndexUp = function () {
@@ -371,9 +362,9 @@ $(function () {
         $('button[action="submit"]', modal).click(function () {
             var description = $("#description", modal).val();
             if (buttonMenu == "pre") {
-                LocalCache.menu.predescription = description;
+                editedMenu.predescription = description;
             } else {
-                LocalCache.menu.postdescription = description;
+                editedMenu.postdescription = description;
             }
             saveMenu();
             modal.modal('hide');
@@ -397,60 +388,63 @@ $(function () {
 
     function editItem() {
         var $this = $(this);
-        var itemName = $this.parents('td').attr('item_id');
-        var category = getCategory($this.parents('td').attr('category_id'));
-        var item = getItem(category, itemName);
-        var html = $.tmpl(templates.menu_additem, {
-            t: CommonTranslations,
-            item: item,
-            menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
-            isFlagSet: sln.isFlagSet,
-            units: UNITS,
-            CONSTS: CONSTS,
-            advancedOrder: orderSettings.order_type == CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
-            showVisibleInCheckboxes: shouldShowVisibility()
-        });
+        Requests.getOrderSettings().then(function (orderSettings) {
+            var itemName = $this.parents('td').attr('item_id');
+            var category = getCategory($this.parents('td').attr('category_id'));
+            var item = getItem(category, itemName);
+            var html = $.tmpl(templates.menu_additem, {
+                t: CommonTranslations,
+                item: item,
+                menuName: editedMenu.name || CommonTranslations.DEFAULT_MENU_NAME,
+                isFlagSet: sln.isFlagSet,
+                units: UNITS,
+                CONSTS: CONSTS,
+                advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
+                showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
+            });
 
-        var modal = sln.createModal(html, function () {
-            $("#itemName", modal).focus();
-            $('#itemPrice').on('blur', itemPriceBlurred).trigger('blur');
-            $('#itemUnit').change(unitChanged).change();
-            $('#itemShowPrice').change(showPriceChanged).change();
-            $('#itemLinkPriceUnit').change(linkPriceUnitChanged);
-        });
+            var modal = sln.createModal(html, function () {
+                $("#itemName", modal).focus();
+                $('#itemPrice').on('blur', itemPriceBlurred).trigger('blur');
+                $('#itemUnit').change(unitChanged).change();
+                $('#itemShowPrice').change(showPriceChanged).change();
+                $('#itemLinkPriceUnit').change(linkPriceUnitChanged);
+            });
 
-        $('button[action="submit"]', modal).click(function () {
-            var valid = validateFormCategoryItem();
-            if (valid) {
-                var value = $("#itemName").val();
-                if (item.name == value) {
-                    // do nothing
-                } else {
-                    var nameAlreadyInUse = false;
-                    $.each(category.items, function (i, item) {
-                        if (value == item.name) {
-                            nameAlreadyInUse = true;
-                            return false;
+            $('button[action="submit"]', modal).click(function () {
+                var valid = validateFormCategoryItem();
+                if (valid) {
+                    var value = $("#itemName").val();
+                    if (item.name == value) {
+                        // do nothing
+                    } else {
+                        var nameAlreadyInUse = false;
+                        $.each(category.items, function (i, item) {
+                            if (value == item.name) {
+                                nameAlreadyInUse = true;
+                                return false;
+                            }
+                        });
+                        if (nameAlreadyInUse) {
+                            sln.alert(CommonTranslations.PRODUCT_DUPLICATE_NAME.replace("%(name)s", value), null,
+                                CommonTranslations.ERROR);
+                            return;
                         }
-                    });
-                    if (nameAlreadyInUse) {
-                        sln.alert(CommonTranslations.PRODUCT_DUPLICATE_NAME.replace("%(name)s", value), null, CommonTranslations.ERROR);
-                        return;
                     }
-                }
-                var values = getItemFormValues();
-                for (var prop in values) {
-                    if (values.hasOwnProperty(prop)) {
-                        item[prop] = values[prop];
+                    var values = getItemFormValues(orderSettings);
+                    for (var prop in values) {
+                        if (values.hasOwnProperty(prop)) {
+                            item[prop] = values[prop];
+                        }
                     }
+                    saveMenu(false, '#category-' + category.index + '-item-' + category.items.indexOf(item));
+                    modal.modal('hide');
                 }
-                saveMenu(false, '#category-' + category.index + '-item-' + category.items.indexOf(item));
-                modal.modal('hide');
-            }
+            });
         });
     }
 
-    function getItemFormValues() {
+    function getItemFormValues(orderSettings) {
         var item = {
             id: sln.uuid()
         };
@@ -466,7 +460,7 @@ $(function () {
         } else {
             item.step = 1;
         }
-        if (!shouldShowVisibility()) {
+        if (!shouldShowVisibility(orderSettings)) {
             item.visible_in = 3; // Visible in menu and order
         } else {
             var menuItem = $('#itemVisibleInMenu');
@@ -491,7 +485,7 @@ $(function () {
                 // do nothing
             } else {
                 var nameAlreadyInUse = false;
-                $.each(LocalCache.menu.categories, function (i, c) {
+                $.each(editedMenu.categories, function (i, c) {
                     if (value == c.name) {
                         nameAlreadyInUse = true;
                         return false;
@@ -508,50 +502,52 @@ $(function () {
     }
 
     function addItem() {
-        var html = $.tmpl(templates.menu_additem, {
-            t: CommonTranslations,
-            item: {},
-            menuName: LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME,
-            isFlagSet: sln.isFlagSet,
-            units: UNITS,
-            CONSTS: CONSTS,
-            advancedOrder: orderSettings.order_type == CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
-            showVisibleInCheckboxes: shouldShowVisibility()
-        });
-        var category = getCategory($(this).parents('tr').attr('category_id'));
-        var menu_div = $("div#menu");
-        // Check the visibility checkboxes by default if the category is checked
-        $.each([1, 2], function (i, itemType) {
-            var checked = !!menu_div.find("#category-" + category.index).find("thead").find("input:checked[value=" + itemType + "]").length;
-            $("input[type=checkbox][name=itemVisibleIn][value=" + itemType + "]", html).prop('checked', checked);
-        });
-        var modal = sln.createModal(html, function () {
-            $("#itemName", modal).focus();
-            $('#itemPrice').on('blur', itemPriceBlurred);
-            $('#itemUnit').change(unitChanged);
-            $('#itemShowPrice').change(showPriceChanged);
-            $('#itemLinkPriceUnit').change(linkPriceUnitChanged);
-        });
+        Requests.getOrderSettings().then(function (orderSettings) {
+            var html = $.tmpl(templates.menu_additem, {
+                t: CommonTranslations,
+                item: {},
+                menuName: editedMenu.name || CommonTranslations.DEFAULT_MENU_NAME,
+                isFlagSet: sln.isFlagSet,
+                units: UNITS,
+                CONSTS: CONSTS,
+                advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
+                showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
+            });
+            var category = getCategory($(this).parents('tr').attr('category_id'));
+            var menu_div = $("div#menu");
+            // Check the visibility checkboxes by default if the category is checked
+            $.each([1, 2], function (i, itemType) {
+                var checked = !!menu_div.find("#category-" + category.index).find("thead").find("input:checked[value=" + itemType + "]").length;
+                $("input[type=checkbox][name=itemVisibleIn][value=" + itemType + "]", html).prop('checked', checked);
+            });
+            var modal = sln.createModal(html, function () {
+                $("#itemName", modal).focus();
+                $('#itemPrice').on('blur', itemPriceBlurred);
+                $('#itemUnit').change(unitChanged);
+                $('#itemShowPrice').change(showPriceChanged);
+                $('#itemLinkPriceUnit').change(linkPriceUnitChanged);
+            });
 
-        $('button[action="submit"]', modal).click(function () {
-            var valid = validateFormCategoryItem();
-            if (valid) {
-                var value = $("#itemName").val();
-                var nameAlreadyInUse = false;
-                $.each(category.items, function (i, item) {
-                    if (value == item.name) {
-                        nameAlreadyInUse = true;
-                        return false;
+            $('button[action="submit"]', modal).click(function () {
+                var valid = validateFormCategoryItem();
+                if (valid) {
+                    var value = $("#itemName").val();
+                    var nameAlreadyInUse = false;
+                    $.each(category.items, function (i, item) {
+                        if (value == item.name) {
+                            nameAlreadyInUse = true;
+                            return false;
+                        }
+                    });
+                    if (nameAlreadyInUse) {
+                        sln.alert(CommonTranslations.PRODUCT_DUPLICATE_NAME.replace("%(name)s", value), null, CommonTranslations.ERROR);
+                    } else {
+                        category.items.push(getItemFormValues(orderSettings));
+                        saveMenu(false, '#category-' + category.index + '-item-' + (category.items.length - 1));
+                        modal.modal('hide');
                     }
-                });
-                if (nameAlreadyInUse) {
-                    sln.alert(CommonTranslations.PRODUCT_DUPLICATE_NAME.replace("%(name)s", value), null, CommonTranslations.ERROR);
-                } else {
-                    category.items.push(getItemFormValues());
-                    saveMenu(false, '#category-' + category.index + '-item-' + (category.items.length - 1));
-                    modal.modal('hide');
                 }
-            }
+            });
         });
     }
 
@@ -595,7 +591,7 @@ $(function () {
                 return false;
 
             var nameAlreadyInUse = false;
-            $.each(LocalCache.menu.categories, function (i, c) {
+            $.each(editedMenu.categories, function (i, c) {
                 if (value == c.name) {
                     nameAlreadyInUse = true;
                     return false;
@@ -606,7 +602,7 @@ $(function () {
                 return false;
             }
 
-            LocalCache.menu.categories.push({
+            editedMenu.categories.push({
                 id: sln.uuid(),
                 name: value,
                 items: [],
@@ -633,7 +629,7 @@ $(function () {
                 },
                 success: function (data) {
                     if (data.success) {
-                        LocalCache.menu.name = name;
+                        editedMenu.name = name;
                     } else {
                         sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                     }
@@ -641,7 +637,7 @@ $(function () {
             });
         };
 
-        sln.input(saveMenuName, CommonTranslations.MENU_NAME, null, null, LocalCache.menu.name || CommonTranslations.DEFAULT_MENU_NAME);
+        sln.input(saveMenuName, CommonTranslations.MENU_NAME, null, null, editedMenu.name || CommonTranslations.DEFAULT_MENU_NAME);
     });
 
     function channelUpdates(data) {

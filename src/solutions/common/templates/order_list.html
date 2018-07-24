@@ -1,4 +1,16 @@
 {% raw %}
+<div>
+    <div class="btn-group">
+        <button type="button" class="btn" id="ordersShowTodo">&nbsp;</button>
+        <button type="button" class="btn btn-success" id="ordersShowAll">&nbsp;</button>
+    </div>
+    {{if pauseEnabled }}
+    <button type="button" class="btn btn-default" id="btn-pause-orders">
+        ${T(paused ? 'enable_placing_orders': 'disable_placing_orders')}
+    </button>
+    <p id="orders-disabled-message" style="margin: 10px 0px;">${pausedMessage}</p>
+    {{/if}}
+</div>
 {{if orders.length}}
 <table class="table table-striped">
     <thead>
@@ -34,5 +46,4 @@
 {{else}}
 <p><i>${CommonTranslations.there_are_no_orders}</i></p>
 {{/if}}
-
 {% endraw %}

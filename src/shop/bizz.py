@@ -604,7 +604,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
 
     def sign_demo_order(o_number):
         if customer.prospect_id:
-            app = App.get(App.create_key(Prospect.get(Prospect.create_key(customer.prospect_id)).app_id))
+            app = get_app_by_id(Prospect.get(Prospect.create_key(customer.prospect_id)).app_id)
             if app.demo:
                 # sign the order and do not create a charge
                 sign_order(customer_id, o_number, u'', no_charge=True)

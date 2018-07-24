@@ -19,7 +19,6 @@ from google.appengine.ext import db
 
 from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key
-from rogerthat.models.properties.keyvalue import KeyValueProperty
 from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType
@@ -36,11 +35,11 @@ class CityAppProfile(db.Model):
 
     # Run params in cron of CityAppSolutionGatherEvents
     gather_events_enabled = db.BooleanProperty(indexed=False, default=False)
-    gather_events = KeyValueProperty()
 
     # Run params in cron of CityAppSolutionEventsUitdatabank
     run_time = db.IntegerProperty(indexed=False)
-    services_to_update = db.ListProperty(users.User, indexed=False)
+
+    review_news = db.BooleanProperty(indexed=False)
 
     EVENTS_ORGANIZATION_TYPES = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
                                  OrganizationType.EMERGENCY]

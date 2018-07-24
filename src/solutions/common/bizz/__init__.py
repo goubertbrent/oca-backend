@@ -26,19 +26,20 @@ import os
 import time
 from types import NoneType
 
+from PIL.Image import Image
+from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+import pytz
+from xhtml2pdf import pisa
 
-from PIL.Image import Image
-from babel.dates import format_date, format_time, format_datetime, get_timezone
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
     azzert, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
-import pytz
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
@@ -79,7 +80,6 @@ from solutions.common.models import SolutionSettings, SolutionIdentitySettings, 
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
-from xhtml2pdf import pisa
 
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
@@ -1093,3 +1093,22 @@ def enable_or_disable_solution_module(service_user, module, enabled):
     to_put.append(sln_settings)
     put_and_invalidate_cache(*to_put)
     broadcast_updates_pending(sln_settings)
+
+
+@cached(1, request=True, memcache=False)
+@returns(unicode)
+@arguments(service_user=users.User)
+def get_default_app_id(service_user):
+    si = get_default_service_identity(service_user)
+    return si.defaultAppId
+
+
+@cached(1, request=True, memcache=False)
+@returns((int, long))
+@arguments(service_user=users.User)
+def get_organization_type(service_user):
+    from shop.dal import get_customer
+    customer = get_customer(service_user)
+    if customer:
+        return customer.organization_type
+    return OrganizationType.UNSPECIFIED

@@ -22,6 +22,8 @@ from types import NoneType
 import uuid
 
 from google.appengine.ext import db, deferred
+
+from mcfw.cache import invalidate_model_cache
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
@@ -224,6 +226,7 @@ def _delete_sessions(service_user):
     keys = Session.all(keys_only=True).filter("user", service_user).fetch(4000)
     if keys:
         db.delete(keys)
+        invalidate_model_cache(keys)
         deferred.defer(_delete_sessions, service_user, _countdown=5)
 
 

@@ -71,6 +71,9 @@ $(function() {
             var message = getMessageByKey(data.message.key);
             if(message) {
                 fromInbox = message.inbox;
+            } else if (destinationInbox === INBOX_NAME_DELETED) {
+                // User pressed button twice, do nothing
+                return;
             } else {
                 // new message
                 messagesList.push(data.message);
@@ -404,7 +407,10 @@ $(function() {
 
     $(document).on("click", '.inbox-message-action-trash', function(event) {
         event.stopPropagation();
-        var messageKey = $(this).attr("message_key");
+        var thisElement = $(this);
+        thisElement.prop('disabled', true);
+        var messageKey = thisElement.attr("message_key");
+
         goBackToInboxOverview();
         sln.call({
             url : "/common/inbox/message/update/trashed",

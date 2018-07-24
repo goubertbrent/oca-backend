@@ -59,6 +59,7 @@ class SolutionInboxMessage(db.Model):
     CATEGORY_AGENDA = 'agenda'
     CATEGORY_CUSTOMER_SIGNUP = 'registration'
     CATEGORY_OCA_INFO = 'oca_info'
+    CATEGORY_NEWS_REVIEW = 'news_review'
 
     ICON_NAMES = {CATEGORY_APPOINTMENT: u'fa-calendar-plus-o',
                   CATEGORY_ASK_QUESTION: u'fa-comments-o',
@@ -72,7 +73,8 @@ class SolutionInboxMessage(db.Model):
                   CATEGORY_SANDWICH_BAR: u'hamburger',
                   CATEGORY_AGENDA: u'fa-book',
                   CATEGORY_CUSTOMER_SIGNUP: u'fa-sign-in',
-                  CATEGORY_OCA_INFO: u'fa-info'}
+                  CATEGORY_OCA_INFO: u'fa-info',
+                  CATEGORY_NEWS_REVIEW: u'fa-newspaper-o'}
 
     TOPICS = {CATEGORY_APPOINTMENT: u'appointment',
               CATEGORY_ASK_QUESTION: u'ask-question',
@@ -86,7 +88,8 @@ class SolutionInboxMessage(db.Model):
               CATEGORY_SANDWICH_BAR: u'order-sandwich',
               CATEGORY_AGENDA: u'agenda',
               CATEGORY_CUSTOMER_SIGNUP: u'registration',
-              CATEGORY_OCA_INFO: u'oca_info'}
+              CATEGORY_OCA_INFO: u'oca_info',
+              CATEGORY_NEWS_REVIEW: u'news_review'}
 
     # for compatibility with older category names
     ICON_NAMES['customer_signup'] = ICON_NAMES[CATEGORY_CUSTOMER_SIGNUP]
@@ -686,8 +689,7 @@ class SolutionRssScraperSettings(NdbModel):
 
     @classmethod
     def create_parent_key(cls, service_user):
-        return ndb.Key(cls,
-                       service_user.email())
+        return ndb.Key(cls, service_user.email())
 
     @classmethod
     def create_key(cls, service_user, service_identity):
@@ -695,22 +697,17 @@ class SolutionRssScraperSettings(NdbModel):
             service_identity = ServiceIdentity.DEFAULT
         return ndb.Key(cls,
                        service_identity,
-                       parent=SolutionRssScraperSettings.create_parent_key(service_user))
+                       parent=cls.create_parent_key(service_user))
 
 
 class SolutionRssScraperItem(NdbModel):
-
     timestamp = ndb.IntegerProperty(indexed=True)
     dry_run = ndb.BooleanProperty(indexed=True)
 
-    @property
-    def url(self):
-        return self.key.string_id().decode('utf-8')
-
     @classmethod
-    def create_key(cls, service_user, service_identity, url):
+    def create_key(cls, service_user, service_identity, unique_identifier):
         return ndb.Key(cls,
-                       url,
+                       unique_identifier,
                        parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
 
 

@@ -633,6 +633,7 @@ class CustomLoyaltyCard(db.Model):
 
     # The loyalty QR which is created by Rogerthat-backend when coupling the custom loyalty card
     loyalty_qr_content = db.StringProperty(indexed=False, required=True)
+    creation_time = db.DateTimeProperty(auto_now_add=True, indexed=False)
 
     # The email:app_id of the enduser
     app_user = db.UserProperty(indexed=False, required=True)

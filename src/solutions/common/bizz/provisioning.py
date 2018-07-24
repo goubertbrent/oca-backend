@@ -66,12 +66,13 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
+from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_GRAM, UNIT_KG, SECONDS_IN_HOUR, \
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
-from solutions.common.dal import get_solution_settings, get_event_list, get_restaurant_menu, \
+from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
     get_solution_logo, get_solution_group_purchase_settings, get_solution_calendars, get_static_content_keys, \
     get_solution_avatar, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
     get_solution_news_publishers
@@ -96,7 +97,7 @@ from solutions.common.models.properties import MenuItem, ActivatedModules, \
 from solutions.common.models.reservation import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
 from solutions.common.models.static_content import SolutionStaticContent
-from solutions.common.to import EventItemTO, MenuTO, SolutionGroupPurchaseTO, SolutionCalendarTO, TimestampTO
+from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, SolutionCalendarTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.djmatic import SOLUTION_DJMATIC
@@ -562,49 +563,22 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_agenda(sln_settings, service_identity, default_app_id):
-    events = sorted(get_event_list(sln_settings.service_user, sln_settings.solution),
-                    key=lambda e: e.get_first_event_date())
-    event_items = []
-    size = 0
-    for i in xrange(len(events)):
-        event_items.append(EventItemTO.fromEventItemObject(events[i]))
-        size += len(json.dumps(serialize_complex_value(event_items[-1], EventItemTO, False)))
-        if size > 600 * 1024:
-            del event_items[len(event_items) - 1]
-            break
-    logging.debug("reducing events from agenda %s/%s = %s" % (len(event_items), len(events), size))
     calendar_items = [SolutionCalendarTO.fromSolutionCalendar(sln_settings, c)
                       for c in get_solution_calendars(sln_settings.service_user, sln_settings.solution)]
 
-    solution_events = serialize_complex_value(event_items, EventItemTO, True)
     solution_calendars = serialize_complex_value(calendar_items, SolutionCalendarTO, True)
 
     if SolutionModule.CITY_APP in sln_settings.modules:
         city_app_profile_key = CityAppProfile.create_key(sln_settings.service_user)
-
-        def trans():
-            city_app_profile = CityAppProfile.get(city_app_profile_key)
-            events_per_type = {}
-            if city_app_profile and city_app_profile.gather_events_enabled and city_app_profile.gather_events:
-                for organization_type in CityAppProfile.EVENTS_ORGANIZATION_TYPES:
-                    events_stream = city_app_profile.gather_events.get(unicode(organization_type))
-                    if events_stream is not None:
-                        events_per_type[organization_type] = json.load(events_stream)
-            return events_per_type
-
-        events_per_organization_type = db.run_in_transaction(trans)
-        lang = sln_settings.main_language
-        for organization_type in events_per_organization_type:
-            events = events_per_organization_type[organization_type]
-            if events:
-                solution_events.extend(events)
+        city_app_profile = CityAppProfile.get(city_app_profile_key)
+        if city_app_profile and city_app_profile.gather_events_enabled:
+            lang = sln_settings.main_language
+            for organization_type in CityAppProfile.EVENTS_ORGANIZATION_TYPES:
                 name = ServiceProfile.localized_plural_organization_type(organization_type, lang, default_app_id)
                 calendar = SolutionCalendarTO(organization_type, name)
                 solution_calendars.append(serialize_complex_value(calendar, SolutionCalendarTO, False))
 
     return {
-        'timezoneOffset': timezone_offset(sln_settings.timezone),
-        'solutionEvents': solution_events,
         'solutionCalendars': solution_calendars
     }
 
@@ -1535,7 +1509,8 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         Features=Features,
         manual_confirmation=sln_order_settings.manual_confirmation,
         payment_enabled=payment_enabled,
-        min_amount_for_fee_message=min_amount_for_fee_message
+        min_amount_for_fee_message=min_amount_for_fee_message,
+        flow_name=ORDER_FLOW_NAME
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier
@@ -1550,8 +1525,12 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
     order_type = sln_order_settings.order_type
 
     if order_type == ORDER_TYPE_SIMPLE:
-        flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, text_1=sln_order_settings.text_1,
-                           manual_confirmation=sln_order_settings.manual_confirmation, name=sln_settings.name)
+        flow_params = dict(branding_key=main_branding.branding_key,
+                           language=default_lang,
+                           text_1=sln_order_settings.text_1,
+                           manual_confirmation=sln_order_settings.manual_confirmation,
+                           name=sln_settings.name,
+                           flow_name=ORDER_FLOW_NAME)
         order_flow = JINJA_ENVIRONMENT.get_template('flows/order.xml').render(flow_params)
         static_flow_hash = system.put_flow(order_flow.encode('utf-8'), multilanguage=False).identifier
     elif order_type == ORDER_TYPE_ADVANCED:
@@ -1562,11 +1541,12 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
         _default_delete(sln_settings, current_coords)
         return []
     logging.info('Creating ORDER menu item')
+    static_flow = static_flow_hash if not sln_order_settings.pause_settings_enabled else None
     ssmi = SolutionServiceMenuItem(u'fa-shopping-basket',
                                    sln_settings.menu_item_color,
                                    common_translate(default_lang, SOLUTION_COMMON, 'order'),
                                    tag,
-                                   static_flow=static_flow_hash,
+                                   static_flow=static_flow,
                                    action=SolutionModule.action_order(SolutionModule.ORDER))
 
     return [ssmi]

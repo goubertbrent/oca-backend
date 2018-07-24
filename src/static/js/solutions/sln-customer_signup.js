@@ -150,7 +150,7 @@ $(function () {
     };
 
     var getSignupButtonGroup = function(signup, onRight) {
-        var group = $('<div class="btn-group"></div>').attr('signup_key', signup.key);
+        var group = $('<div class="btn-group custom-group"></div>').attr('signup_key', signup.key);
 
         var btnOk = $('<button action="ok" class="btn btn-large btn-success"><i class="fa fa-check"></i> ' + CommonTranslations['reservation-approve'] + '</button>').attr('key', signup.key);
         var btnNotOk = $('<button action="notok" class="btn btn-large btn-warning"><i class="fa fa-times"></i> ' + CommonTranslations['reservation-decline'] + '</button>').attr('key', signup.key);
@@ -231,7 +231,7 @@ $(function () {
         var signup = customerSignupMessages[parentMessageId];
         // remove the previous signup button group if any
         var prevButtonGroup = inboxReply.find('.btn-toolbar .btn-group').last();
-        if(prevButtonGroup.attr('signup_key')) {
+        if(prevButtonGroup.hasClass('custom-group')) {
             prevButtonGroup.remove();
         }
         // add the button group if it's a signup message
