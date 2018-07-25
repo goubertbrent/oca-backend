@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2017 Mobicage NV
+# Copyright 2018 Mobicage NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.2@@
+# @@license_version:1.3@@
 
 import logging
 from types import NoneType
@@ -176,4 +176,3 @@ def rest_publish_news_from_review(review_key):
         sln_settings = get_solution_settings(users.get_current_user())
         message = _translate_exception_msg(sln_settings, ex.message)
         return ReturnStatusTO.create(False, message)
-
