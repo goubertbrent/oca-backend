@@ -33,7 +33,7 @@ from solutions.common.bizz.cityapp import get_country_apps
 @arguments(service_user=users.User, service_identity=unicode, all_apps=bool)
 def get_app_statistics(service_user, service_identity=None, all_apps=True):
     customer = get_customer(service_user)
-    if all_apps:
+    if all_apps and customer:
         available_apps = get_country_apps(customer.country).values()
     else:
         if not service_identity or service_identity == MISSING:

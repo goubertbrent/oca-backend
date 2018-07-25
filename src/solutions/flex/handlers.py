@@ -400,7 +400,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         oca_loyalty_limited = is_oca_loyalty_limited(joyn_available, sln_settings)
         city_service_user = get_service_user_for_city(city_app_id)
         is_city = service_user == city_service_user
-        city_app_profile = get_cityapp_profile(city_service_user)
+        city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
         news_review_enabled = city_app_profile and city_app_profile.review_news
 
         organization_types = get_organization_types(customer, sln_settings.main_language)
