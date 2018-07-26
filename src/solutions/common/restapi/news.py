@@ -117,7 +117,7 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
     except BusinessException as ex:
         sln_settings = get_solution_settings(service_user)
         message = _translate_exception_msg(sln_settings, ex.message)
-        return ReturnStatusTO.create(False, message)
+        return WarningReturnStatusTO.create(False, message)
 
 
 @rest('/common/news/delete', 'post')
@@ -176,4 +176,3 @@ def rest_publish_news_from_review(review_key):
         sln_settings = get_solution_settings(users.get_current_user())
         message = _translate_exception_msg(sln_settings, ex.message)
         return ReturnStatusTO.create(False, message)
-
