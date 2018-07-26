@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Mobicage NV
+ * Copyright 2018 Mobicage NV
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @@license_version:1.2@@
+ * @@license_version:1.3@@
  */
 
 var TMPL_ADDRESS = "${customer.address1}{{if customer.address2}}\n${customer.address2}{{/if}}\n${customer.zip_code} ${customer.city}";
