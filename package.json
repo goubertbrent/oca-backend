@@ -1,7 +1,7 @@
 {
   "name": "our-city-app",
   "version": "1.0.0",
-  "description": "build scripts which merges Our City App code with rogerthat-backend so it can be run on the same server",
+  "description": "build scripts which merges Our City App code with mobicage-backend so it can be run on the same server",
   "private": true,
   "main": "gulpfile.ts",
   "repository": {

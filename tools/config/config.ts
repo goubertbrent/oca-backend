@@ -7,7 +7,7 @@ export class Config {
   PROJECT_ROOT = PROJECT_ROOT;
   BUILD_ROOT = join(PROJECT_ROOT, 'build');
   SOURCE_ROOTS = [
-    realpathSync(join(PROJECT_ROOT, '..', 'rogerthat-backend', 'src')),
+    realpathSync(join(PROJECT_ROOT, '..', 'mobicage-backend', 'src')),
     realpathSync(join(PROJECT_ROOT, 'src')), // Files with the same name will be overwritten from this repo
   ];
   LIBRARY_ROOTS = [

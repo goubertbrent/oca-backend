@@ -2,15 +2,15 @@
 
 ## Setup
 
-clone [rogerthat-backend](https://github.com/rogerthat-platform/rogerthat-backend)
+clone [mobicage-backend](https://github.com/our-city-app/mobicage-backend)
 
 ### Folder structure
-- folder/rogerthat-backend
+- folder/mobicage-backend
 - folder/oca-backend
 
 ### Server setup
 - `./install.sh`: Installs the dependencies
-- `npm start`: Merges sources from oca-backend (this repo) and rogerthat-backend and watches for changes, rebuilds if necessary.
+- `npm start`: Merges sources from oca-backend (this repo) and mobicage-backend and watches for changes, rebuilds if necessary.
 - `./start_rogerthat.sh`: Starts the appengine development server
 
 

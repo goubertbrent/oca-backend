@@ -3,7 +3,7 @@
   <component name="FacetManager">
     <facet type="google-appengine-python" name="Google App Engine (Python)">
       <configuration>
-        <option name="rootFolder" value="$MODULE_DIR$/src" />
+        <option name="rootFolder" value="$MODULE_DIR$/../mobicage-backend/src" />
         <option name="sdkFolder" value="$USER_HOME$/Downloads/google-cloud-sdk/platform/google_appengine" />
         <option name="templatesFolder" value="" />
         <option name="oauth2" value="false" />
@@ -14,6 +14,10 @@
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
+    <content url="file://$MODULE_DIR$/../mobicage-backend">
+      <sourceFolder url="file://$MODULE_DIR$/../mobicage-backend/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../mobicage-backend/src-test" isTestSource="false" />
+    </content>
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src-backup" isTestSource="false" />

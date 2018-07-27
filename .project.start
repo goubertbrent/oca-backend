@@ -3,7 +3,7 @@
 	<name>appengine</name>
 	<comment></comment>
 	<projects>
-		<project>rogerthat-backend</project>
+		<project>mobicage-backend</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
