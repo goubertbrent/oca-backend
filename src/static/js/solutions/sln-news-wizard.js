@@ -462,7 +462,6 @@ NewsWizard.prototype = {
         elemSelectBroadcastType.change(renderPreview);
         elemSelectButton.change(actionButtonChanged);
         elemInputTitle.on('input paste keyup', renderPreview);
-        elemInputMessage.on('input paste keyup', renderPreview);
         elemActionButtonInputs.on('input paste keyup', renderPreview);
 
         elemInputActionButtonUrl.keyup(actionButtonUrlChanged);
@@ -498,17 +497,29 @@ NewsWizard.prototype = {
 
         elemCheckPostToFacebook.change(checkForFacebookLogin);
         elemCheckPostToTwitter.change(checkForTwitterLogin);
+        var messageEditor = new SimpleMDE({
+            autoDownloadFontAwesome: false,
+            element: elemInputMessage[0],
+            initialValue: originalNewsItem && originalNewsItem.message,
+            spellChecker: false,
+            status: false,
+            toolbar: ['bold', 'italic', 'strikethrough', 'unordered-list', 'link', 'table'],
+        });
+
+        messageEditor.codemirror.on('change', function () {
+            renderPreview();
+        });
 
         function plusClick(elem) {
             return function() {
                 elem.val(parseInt(elem.val()) + 1);
-            }
+            };
         }
         function minClick(elem) {
             return function() {
                 var value = parseInt(elem.val());
                 elem.val(value > 0 ? value - 1 : 0);
-            }
+            };
         }
         self.$('#age_max_plus').click(plusClick(self.$('#age_max')));
         self.$('#age_min_plus').click(plusClick(self.$('#age_min')));
@@ -748,7 +759,7 @@ NewsWizard.prototype = {
         function getNewsFormData() {
             var data = {
                 title: elemInputTitle.val().trim() || '',
-                message: elemInputMessage.val().trim() || '',
+                message: messageEditor.value().trim() || '',
                 broadcast_type: elemSelectBroadcastType.val().trim(),
                 sponsored: elemCheckboxPromote.prop('checked'),
                 type: parseInt(elemRadioNewsType.filter(':checked').val()),
@@ -1676,7 +1687,8 @@ NewsWizard.prototype = {
                     htmlize: sln.htmlize,
                     settings: settings,
                     reach: totalReach,
-                    currentDatetime: sln.formatDate(new Date().getTime() / 1000)
+                    currentDatetime: sln.formatDate(new Date().getTime() / 1000),
+                    messageHtml: messageEditor.markdown(newsItem.message),
                 });
                 elemNewsPreview.html(html);
                 var elemShowMore = self.$('.news_read_more_text'),

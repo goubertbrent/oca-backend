@@ -12,6 +12,7 @@
 <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet">
 <link href="/static/bootstrap/colorpicker/css/bootstrap-colorpicker.min.css" rel="stylesheet" media="screen">
 <link href="/static/bootstrap/modal-fullscreen/css/bootstrap-modal-fullscreen.css" rel="stylesheet" media="screen">
+<link href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css" rel="stylesheet">
 {% if SolutionModule.BILLING in sln_settings.modules %}
 <link href="/static/css/solutions/flex/shop.css" rel="stylesheet">
 {% endif %}
@@ -584,6 +585,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     <script src="/static/js/solutions/sln-loyalty.js"></script>
     {% if not layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in
     sln_settings.modules) %}
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
     <script src="/static/js/solutions/sln-city-select.js"></script>
     <script src="/static/js/solutions/sln-news-wizard.js"></script>
     <script src="/static/js/solutions/sln-news-list.js"></script>
