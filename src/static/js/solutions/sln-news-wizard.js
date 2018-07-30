@@ -1691,6 +1691,8 @@ NewsWizard.prototype = {
                     messageHtml: messageEditor.markdown(newsItem.message),
                 });
                 elemNewsPreview.html(html);
+                $(elemNewsPreview).find('a').attr( 'target','_blank');
+
                 var elemShowMore = self.$('.news_read_more_text'),
                     elemNewsContent = self.$('.news_content');
                 var hasMore = elemNewsContent.prop('scrollHeight') > 125;
