@@ -502,6 +502,7 @@ $(function () {
     }
 
     function addItem() {
+        var $this = $(this);
         Requests.getOrderSettings().then(function (orderSettings) {
             var html = $.tmpl(templates.menu_additem, {
                 t: CommonTranslations,
@@ -513,7 +514,7 @@ $(function () {
                 advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
                 showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
             });
-            var category = getCategory($(this).parents('tr').attr('category_id'));
+            var category = getCategory($this.parents('tr').attr('category_id'));
             var menu_div = $("div#menu");
             // Check the visibility checkboxes by default if the category is checked
             $.each([1, 2], function (i, itemType) {
