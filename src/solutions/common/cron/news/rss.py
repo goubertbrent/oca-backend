@@ -88,6 +88,10 @@ def _worker(rss_settings_key):
                     logging.debug("url: %s", url)
                     logging.info('description not found for %s', item.childNodes)
                     continue
+                if not description_tags[0].firstChild:
+                    logging.debug("url: %s", url)
+                    logging.info('description firstChild not found for %s', item.childNodes)
+                    continue
                 description_html = description_tags[0].firstChild.nodeValue
                 message, _, _ = parse_html_content(description_html)
 
