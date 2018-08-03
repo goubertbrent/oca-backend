@@ -17,11 +17,9 @@
  */
 
 var SUBSCRIPTION_MODULES = {
-	starter : ['MSUP', 'KFUP', 'SETU'],
-    free: ['FREE'],
-    silver: ['MSUP', 'BEAC', 'ILOS'],
-    gold: ['MSUP', 'BEAC', 'KSUP', 'ILOS'],
-    platinum: ['MSUP', 'BEAC', 'SETX', 'KSPP', 'ILOS']
+    city: ['OCAM', 'APLS', 'APPL'],
+    gold: ['NWSG'],
+    platinum: ['NWSP']
 };
 /**
  * Subscription type from the currently chosen subscription. Can be silver, gold or platinum.
@@ -88,14 +86,6 @@ $(document).ready(function () {
     });
 
 });
-
-function getSubscriptionOrderRemainingLength(callback) {
-    sln.call({
-        url: '/internal/shop/rest/order/subscription_order_length',
-        data: {customer_id: currentCustomer.id},
-        success: callback
-    });
-}
     var add_order_item = function (product, count, comment, mode) {
         var order_item = {product: product, count: count, comment: comment};
         // first check if this item hasn't been added already.

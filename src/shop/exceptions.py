@@ -117,12 +117,6 @@ class ReplaceBusinessException(BusinessException):
         BusinessException.__init__(self, "Customer already has a subscription: %s" % existing_subscription_order_number)
 
 
-class TooManyAppsException(BusinessException):
-    def __init__(self, extra_apps_count, total_extra_app_count):
-        BusinessException.__init__(self, 'You cannot order %s extra apps because there are only %s available'
-                                   % (extra_apps_count, total_extra_app_count))
-
-
 class NoSubscriptionException(BusinessException):
     def __init__(self, customer):
         self.customer = customer
@@ -149,14 +143,6 @@ class ModulesNotAllowedException(BusinessException):
         self.disallowed_modules = disallowed_modules
         BusinessException.__init__(self, "This customer cannot have the following module(s): %s." % ", ".join(
                 map(replace_underscores, disallowed_modules)))
-
-
-class InvalidAppCountException(BusinessException):
-    def __init__(self, max_app_count):
-        self.max_app_count = max_app_count
-        extraS = 's' if self.max_app_count != 1 else ''
-        BusinessException.__init__(self, 'This customer should have exactly %d active application%s.' % (
-            max_app_count, extraS))
 
 
 class InvalidServiceEmailException(BusinessException):

@@ -81,8 +81,8 @@ from shop.business.service import set_service_enabled
 from shop.constants import PROSPECT_CATEGORIES, OFFICIALLY_SUPPORTED_LANGUAGES, LOGO_LANGUAGES
 from shop.exceptions import BusinessException, CustomerNotFoundException, ContactNotFoundException, \
     NoProductsSelectedException, ProductNotFoundException, InvalidProductAmountException, ProductNotAllowedException, \
-    ReplaceBusinessException, TooManyAppsException, InvalidEmailFormatException, EmptyValueException, NoOrderException, \
-    InvalidAppCountException, InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
+    ReplaceBusinessException, InvalidEmailFormatException, EmptyValueException, NoOrderException, \
+    InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
     InvalidProductQuantityException, MissingProductDependencyException, DuplicateCustomerNameException, \
     NotOperatingInCountryException, ContactHasOrdersException, ContactHasCreditCardException, \
     OrderAlreadyCanceledException, NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
@@ -409,8 +409,8 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
 
 @returns(Order)
 @arguments(customer_or_id=(Customer, int, long), contact_or_id=(Contact, int, long), items=[OrderItemTO], replace=bool,
-           skip_app_check=bool, regio_manager_user=gusers.User)
-def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_check=False, regio_manager_user=None):
+           regio_manager_user=gusers.User)
+def create_order(customer_or_id, contact_or_id, items, replace=False, regio_manager_user=None):
     if isinstance(customer_or_id, Customer):
         audit_log(customer_or_id.id, u"Creating new order.")
         customer = customer_or_id
@@ -507,10 +507,6 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
     vat = vat_pct * total / 100
     total_vat_incl = total + vat
 
-    # get all city apps, -1 to exclude the default app
-    if not skip_app_check:
-        total_extra_app_count = App.all().filter('type', App.APP_TYPE_CITY_APP).filter('visible', True).count() - 1
-
     def trans():
         if isinstance(customer_or_id, Customer):
             customer = customer_or_id
@@ -554,7 +550,6 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             return order_item.product == product_code or order_item.product.endswith('_' + product_code)
 
         number = 0
-        extra_apps_count = 0
         for item in items:
             number += 1
             order_item = OrderItem(parent=order)
@@ -564,13 +559,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             order_item.count = item.count
             order_item.price = item.price
             order_item.put()
-
-            if has_product(item, Product.PRODUCT_EXTRA_CITY):
-                extra_apps_count += 1
-            elif has_product(item, Product.PRODUCT_ACTION_3_EXTRA_CITIES):
-                extra_apps_count += 3
-            elif any(
-                    has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
+            if any(has_product(item, product_code) for product_code in ('MSSU', 'SUBY', Product.PRODUCT_FREE_PRESENCE)):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_STATIC
             elif any(has_product(item, product_code) for product_code in ('MSUP', 'SUBX')):
                 customer.subscription_type = Customer.SUBSCRIPTION_TYPE_DYNAMIC
@@ -581,14 +570,6 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
             customer.subscription_order_number = order.key().name()
             customer.manager = order.manager
             customer.team_id = order.team_id
-
-        if not customer.extra_apps_count:
-            customer.extra_apps_count = 0
-        customer.extra_apps_count += extra_apps_count
-        # check if the customer did not select more extra apps than there are extra apps available
-        if not skip_app_check:
-            if customer.extra_apps_count > total_extra_app_count:
-                raise TooManyAppsException(customer.extra_apps_count, total_extra_app_count)
 
         if customer.creation_time == 0:
             customer.creation_time = now()
@@ -610,8 +591,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, skip_app_c
                 sign_order(customer_id, o_number, u'', no_charge=True)
 
     order = run_in_transaction(trans, True)
-    if not skip_app_check:
-        sign_demo_order(order.order_number)
+    sign_demo_order(order.order_number)
     return order
 
 
@@ -693,9 +673,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     redeploy = bool(customer.service_email)
     user_existed = False
 
-    if not customer.extra_apps_count:
-        customer.extra_apps_count = 0
-
     # customer should have the same amount of active apps as he paid for
     # Ensure all services are present in the rogerthat app (for non-demo services)
     if not is_demo:
@@ -706,9 +683,6 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     if App.APP_ID_OSA_LOYALTY in app_list:
         app_list.remove(App.APP_ID_OSA_LOYALTY)
 
-    if not is_demo and not (len(app_list) == 0):
-        if len(app_list) != customer.extra_apps_count + 2:  # + 2 because of the default app and rogerthat
-            raise InvalidAppCountException(customer.extra_apps_count + 2)
     if redeploy:
         if customer.user_email != service.email and not skip_email_check:
             raise InvalidServiceEmailException(customer.user_email)
@@ -959,7 +933,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
             for item in order_items:
                 product = products[item.product_code]
                 if product.is_subscription and product.price > 0:
-                    months += item.count
+                    months += item.count * product.charge_interval
                 if not product.is_subscription and product.extra_subscription_months > 0:
                     months += product.extra_subscription_months
 
@@ -1325,13 +1299,6 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
                     "confirm:This will delete the associated application of " + customer.user_email + ". Are you sure you want to continue?")
 
         order_items = order.list_items()
-        products = {p.code: p for p in db.get([Product.create_key(i.product_code) for i in order_items])}
-        for item in order_items:
-            product = products[item.product_code]
-            if product.is_subscription_extension:
-                if product.code == Product.PRODUCT_EXTRA_CITY:
-                    customer.extra_apps_count -= 1
-        azzert(customer.extra_apps_count >= 0)
         if order.status == Order.STATUS_SIGNED:
             if charge_id:
                 charge = Charge.get(Charge.create_key(charge_id, order_number, customer.id))
@@ -1353,6 +1320,7 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
                     to_put.append(charge)
             if not order.is_subscription_order:
                 extra_months = 0
+                products = {p.code: p for p in db.get([Product.create_key(i.product_code) for i in order_items])}
                 for item in order_items:
                     product = products[item.product_code]
                     if not product.is_subscription and product.extra_subscription_months > 0:
@@ -2570,7 +2538,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
             item.count = Product.get_by_code(product_code).default_count
             item.comment = u''
             order_items.append(item)
-            order = create_order(customer, contact, order_items, skip_app_check=True)
+            order = create_order(customer, contact, order_items)
             order.status = Order.STATUS_SIGNED
             with closing(StringIO()) as pdf:
                 generate_order_or_invoice_pdf(pdf, customer, order)

@@ -18,6 +18,9 @@
 import datetime
 import os
 
+from google.appengine.ext import db
+
+import mc_unittest
 from rogerthat.bizz.service import create_service
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_user_profile
@@ -26,15 +29,12 @@ from rogerthat.rpc import users
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import get_epoch_from_datetime
-from google.appengine.ext import db
-import mc_unittest
 from solutions.common.bizz.reservation import availability_and_shift, STATUS_AVAILABLE, STATUS_TOO_MANY_PEOPLE, \
     cancel_reservation, move_reservation, edit_reservation
 from solutions.common.models import SolutionSettings, SolutionMainBranding
 from solutions.common.models.reservation import RestaurantReservation, RestaurantSettings
 from solutions.common.models.reservation.properties import Shifts, Shift
 from solutions.flex import SOLUTION_FLEX
-
 
 try:
     from cStringIO import StringIO
@@ -64,7 +64,8 @@ class Test(mc_unittest.TestCase):
         self.set_datastore_hr_probability(1)
 
         root_proj = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')
-        branding_url = os.path.join(root_proj, 'rogerthat-backend', 'src-test', 'rogerthat_tests', 'mobicage', 'bizz', 'nuntiuz.zip')
+        branding_url = os.path.join(root_proj, 'mobicage-backend', 'src-test', 'rogerthat_tests', 'mobicage', 'bizz',
+                                    'nuntiuz.zip')
 
         email = u"resto_soluton@foo.com"
         name = u"resto_soluton"

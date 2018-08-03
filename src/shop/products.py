@@ -30,13 +30,14 @@ VEDA_LEGAL_ENTITY_ID = 6446256017113088
 
 
 def add_all_products(mobicage_entity=None):
+    all_keys = list(Product.all(keys_only=True))
+    db.delete(all_keys)
     if mobicage_entity:
         azzert(mobicage_entity.is_mobicage)
     else:
         mobicage_entity = get_mobicage_legal_entity()
     mobicage_legal_entity_id = mobicage_entity.key().id()
     to_put = []
-    to_put.append(create_beac_product(mobicage_legal_entity_id))
     to_put.append(create_demo_product(mobicage_legal_entity_id))
     to_put.append(create_kfup_product(mobicage_legal_entity_id))
     to_put.append(create_ksup_product(mobicage_legal_entity_id))
@@ -63,7 +64,6 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_loya_product(mobicage_legal_entity_id))
     to_put.append(create_lsup_product(mobicage_legal_entity_id))
     to_put.append(create_klup_product(mobicage_legal_entity_id))
-    to_put.append(create_xcty_product(mobicage_legal_entity_id))
     to_put.append(create_a3ct_product(mobicage_legal_entity_id))
     to_put.append(create_ilos_product(mobicage_legal_entity_id))
     to_put.append(create_setx_product(mobicage_legal_entity_id))
@@ -77,21 +77,26 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_suby_product(mobicage_legal_entity_id))
     to_put.append(create_news_product(mobicage_legal_entity_id))
     to_put.append(create_free_product(mobicage_legal_entity_id))
-    to_put.append(create_fcty_product(mobicage_legal_entity_id))
-    to_put.append(create_pres_product(mobicage_legal_entity_id))
-    to_put.append(create_pre2_product(mobicage_legal_entity_id))
+    to_put.append(create_apls_product(mobicage_legal_entity_id))
     to_put.append(create_appl_product(mobicage_legal_entity_id))
     to_put.append(create_bdgt_product(mobicage_legal_entity_id))
+    to_put.append(create_ocam_product(mobicage_legal_entity_id))
+    to_put.append(create_octl_product(mobicage_legal_entity_id))
+    to_put.append(create_octo_product(mobicage_legal_entity_id))
+    to_put.append(create_ocaw_product(mobicage_legal_entity_id))
+    to_put.append(create_poss_product(mobicage_legal_entity_id))
+    to_put.append(create_posd_product(mobicage_legal_entity_id))
+    to_put.append(create_vidl_product(mobicage_legal_entity_id))
+    to_put.append(create_vidp_product(mobicage_legal_entity_id))
+    to_put.append(create_newg_product(mobicage_legal_entity_id))
+    to_put.append(create_newp_product(mobicage_legal_entity_id))
 
     to_put.append(create_kfup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
     to_put.append(create_msup_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
     to_put.append(create_msud_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', default_count=1))
     to_put.append(create_setu_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=7000))
     to_put.append(create_setd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_', price=-7000))
-    to_put.append(create_xcty_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
-    to_put.append(create_xctd_product(ACTIVE_S_LEGAL_ENTITY_ID, 'AS_'))
 
-    to_put.append(create_fcty_product(VEDA_LEGAL_ENTITY_ID, 'VEDA_'))
     to_put.append(create_free_product(VEDA_LEGAL_ENTITY_ID, 'VEDA_'))
 
     to_put.append(create_drc_stud_product())
@@ -128,49 +133,6 @@ def create_ilos_product(legal_entity_id, code_prefix=''):
     return p
 
 
-def create_xcty_product(legal_entity_id, code_prefix=''):
-    p = Product(key_name=code_prefix + Product.PRODUCT_EXTRA_CITY)
-    p.price = 1000
-    p.default_count = 1
-    p.default = False
-    p.possible_counts = range(1, 37)
-    p.is_subscription = False
-    p.is_subscription_discount = False
-    p.is_subscription_extension = False  # Disable recurrent billing for this product as we're no longer offering it
-    p.organization_types = []
-    p.product_dependencies = ['|'.join(['%s%s:-1' % (code_prefix, product_code)
-                                        for product_code in ('MSUP', 'MSSU', 'SSUP', 'SSZP', 'CSUB',
-                                                             Product.PRODUCT_FREE_PRESENCE,
-                                                             Product.PRODUCT_FREE_SUBSCRIPTION)])]
-    p.picture_url = ""
-    p.visible = False
-    p.legal_entity_id = legal_entity_id
-    if code_prefix:
-        p.description_translation_key = p.code[len(code_prefix):] + '.description'
-        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
-    return p
-
-
-def create_xctd_product(legal_entity_id, code_prefix=''):
-    p = Product(key_name=code_prefix + 'XCTD')
-    p.price = -1000
-    p.default_count = 1
-    p.default = False
-    p.possible_counts = range(1, 37)
-    p.is_subscription = False
-    p.is_subscription_discount = False
-    p.is_subscription_extension = True
-    p.organization_types = []
-    p.product_dependencies = ['%(code_prefix)sXCTY:-1' % dict(code_prefix=code_prefix)]
-    p.picture_url = ""
-    p.visible = False
-    p.legal_entity_id = legal_entity_id
-    p.default_comment_translation_key = ''
-    if code_prefix:
-        p.description_translation_key = p.code[len(code_prefix):] + '.description'
-    return p
-
-
 def create_a3ct_product(legal_entity_id, code_prefix=''):
     p = Product(key_name=code_prefix + Product.PRODUCT_ACTION_3_EXTRA_CITIES)
     p.price = 2000
@@ -186,24 +148,6 @@ def create_a3ct_product(legal_entity_id, code_prefix=''):
             code_prefix=code_prefix)]
     p.picture_url = ""
     p.visible = False
-    p.legal_entity_id = legal_entity_id
-    if code_prefix:
-        p.description_translation_key = p.code[len(code_prefix):] + '.description'
-        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
-    return p
-
-
-def create_beac_product(legal_entity_id, code_prefix=''):
-    p = Product(key_name=code_prefix + Product.PRODUCT_BEACON)
-    p.price = 3500
-    p.default_count = 1
-    p.default = False
-    p.possible_counts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    p.is_subscription = False
-    p.is_subscription_discount = False
-    p.organization_types = []
-    p.product_dependencies = []
-    p.visible = True
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
@@ -942,19 +886,18 @@ def create_free_product(legal_entity_id, code_prefix=''):
     p.module_set = 'ALL'
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
-        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
     return p
 
 
-def create_fcty_product(legal_entity_id, code_prefix=''):
-    p = Product(key_name=code_prefix + 'FCTY')
-    p.price = 0
+def create_apls_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'APLS')
+    p.price = 15000
     p.default_count = 1
     p.default = False
     p.possible_counts = [1]
-    p.is_subscription = True
+    p.is_subscription = False
     p.is_subscription_discount = False
-    p.module_set = 'ALL'
+    p.is_subscription_extension = False
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = []
     p.visible = True
@@ -962,43 +905,6 @@ def create_fcty_product(legal_entity_id, code_prefix=''):
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
-    return p
-
-
-def create_pres_product(legal_entity_id, code_prefix=''):
-    p = Product(key_name=code_prefix + 'PRES')
-    p.price = 30000
-    p.default_count = 4
-    p.default = False
-    p.possible_counts = range(1, 101)
-    p.is_subscription = False
-    p.is_subscription_discount = False
-    p.module_set = 'ALL'
-    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
-    p.product_dependencies = []
-    p.visible = True
-    p.legal_entity_id = legal_entity_id
-    p.default_comment_translation_key = ''
-    if code_prefix:
-        p.description_translation_key = p.code[len(code_prefix):] + '.description'
-    return p
-
-
-def create_pre2_product(legal_entity_id, code_prefix=''):
-    p = Product(key_name=code_prefix + 'PRE2')
-    p.price = 37500
-    p.default_count = 4
-    p.default = False
-    p.possible_counts = range(1, 101)
-    p.is_subscription = False
-    p.is_subscription_discount = False
-    p.module_set = 'ALL'
-    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
-    p.product_dependencies = []
-    p.visible = True
-    p.legal_entity_id = legal_entity_id
-    p.default_comment_translation_key = ''
-    p.description_translation_key = 'PRES.description'
     return p
 
 
@@ -1031,6 +937,179 @@ def create_bdgt_product(legal_entity_id, code_prefix=''):
     p.is_subscription = False
     p.is_subscription_discount = False
     p.is_subscription_extension = False
+    p.organization_types = []
+    p.product_dependencies = []
+    p.visible = False
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    p.charge_interval = 12
+    return p
+
+
+def create_ocam_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'OCAM')
+    p.price = 360000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = True
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.module_set = 'ALL'
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    p.charge_interval = 12
+    return p
+
+
+def create_octl_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'OCTL')
+    p.price = 37500
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 10)
+    p.is_subscription = False
+    p.organization_types = []
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_octo_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'OCTO')
+    p.price = 25000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 10)
+    p.is_subscription = False
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_ocaw_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'OCAW')
+    p.price = 37500
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 10)
+    p.is_subscription = False
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_poss_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'POSS')
+    p.price = 60000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 10)
+    p.is_subscription = False
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_posd_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'POSD')
+    p.price = 30000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = False
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_vidl_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'VIDL')
+    p.price = 35000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = False
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_vidp_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'VIDP')
+    p.price = 145000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = False
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_newg_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'NWSG')
+    p.price = 30000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = False
+    p.organization_types = []
+    p.product_dependencies = []
+    p.visible = True
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_newp_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'NWSP')
+    p.price = 60000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = [1]
+    p.is_subscription = False
     p.organization_types = []
     p.product_dependencies = []
     p.visible = True

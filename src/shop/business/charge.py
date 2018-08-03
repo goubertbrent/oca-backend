@@ -52,7 +52,7 @@ def cancel_charge(customer_id, order_number, charge_id):
         for item in order_items:
             product = item.product
             if product.is_subscription and product.price > 0:
-                months += item.count
+                months += item.count * product.charge_interval
             if not product.is_subscription and product.extra_subscription_months > 0:
                 months += product.extra_subscription_months
 

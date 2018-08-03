@@ -32,10 +32,10 @@ def job():
     products = Product.get_products_dict()
     paying_subscription_product_codes = [code for code, p in products.iteritems()
                                          if p.is_subscription and p.price and '_' not in p.code]
-    run_job(_qry, [Order.STATUS_SIGNED], _replace_subscription_order, [products, paying_subscription_product_codes])
+    run_job(_qry, [], _replace_subscription_order, [products, paying_subscription_product_codes])
 
 
-def _qry(status):
+def _qry():
     return Order.all(keys_only=True).filter("status", Order.STATUS_SIGNED).filter('is_subscription_order', True)
 
 

@@ -228,11 +228,9 @@ class RegioManager(db.Model):
 
 class Product(db.Model):
     PRODUCT_BUDGET = u'BDGT'
-    PRODUCT_EXTRA_CITY = u'XCTY'
     PRODUCT_ACTION_3_EXTRA_CITIES = u'A3CT'
     PRODUCT_SUBSCRIPTION_ASSOCIATION = u'SJUP'
     PRODUCT_ROLLUP_BANNER = u'BNNR'
-    PRODUCT_BEACON = u'BEAC'
     PRODUCT_FLYERS = u'POSM'
     PRODUCT_DEMO = u'DEMO'
     PRODUCT_FREE_PRESENCE = u'OCAP'
@@ -337,7 +335,6 @@ class Customer(db.Model):
     prospect_id = db.StringProperty()
     default_app_id = db.StringProperty()
     app_ids = db.StringListProperty()
-    extra_apps_count = db.IntegerProperty(indexed=False)
     subscription_type = db.IntegerProperty(indexed=False, default=-1)
     has_loyalty = db.BooleanProperty(indexed=False, default=False)
     team_id = db.IntegerProperty(indexed=False)
@@ -817,7 +814,7 @@ class OrderItem(db.Expando):
     comment = db.TextProperty()
     price = db.IntegerProperty()  # In euro cents
     last_charge_timestamp = db.IntegerProperty()
-    # app_id : only for orderItems with product code XCTY and NEWS
+    # app_id : only for orderItems with product code NEWS
     # news_item_id: for orderItems with product code NEWS
 
     @property

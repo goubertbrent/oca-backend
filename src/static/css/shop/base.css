@@ -343,43 +343,6 @@ pre.formatted {
 .sub-buttons button{
     transition: all 300ms
 }
-.starter {
-    background-color: #ff77c9 !important;
-    background-image: none !important;
-}
-.silver {
-    background-color: #c0c0c0 !important;
-    background-image: none !important;
-}
-.gold {
-    background-color: #ffd777 !important;
-    background-image: none !important;
-}
-
-.platinum {
-    background-color: #E5E4E2 !important;
-    background-image: none !important;
-}
-
-button.starter:hover {
-    opacity: 1 !important;
-    background-color: #ff77c9;
-}
-
-button.silver:hover {
-    opacity: 1 !important;
-    background-color: #c0c0c0;
-}
-
-button.gold:hover {
-    opacity: 1 !important;
-    background-color: #ffd777;
-}
-
-button.platinum:hover {
-    opacity: 1 !important;
-    background-color: #E5E4E2;
-}
 
 #duplicate_error {
     color: #f00;

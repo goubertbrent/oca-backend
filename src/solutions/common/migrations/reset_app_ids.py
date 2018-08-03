@@ -83,9 +83,7 @@ def _worker(sln_settings_key, dry_run):
         service_identity.appIds = customer.app_ids
 
         if not dry_run:
-            to_put = list()
-            to_put.append(customer)
-            to_put.append(service_identity)
+            to_put = [customer, service_identity]
 
             deferred.defer(re_index, service_identity.service_identity_user, _queue=MIGRATION_QUEUE,
                            _transactional=True)

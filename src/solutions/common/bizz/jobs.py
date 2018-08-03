@@ -43,7 +43,8 @@ def _delete_solution(service_user, delete_svc):
     def trans():
         service_profile = get_service_profile(service_user, False)
         for service_identity in identities:
-            deferred.defer(_delete_solution_models, service_user, service_identity, [service_profile.solution, SOLUTION_COMMON], delete_svc, _transactional=True)
+            deferred.defer(_delete_solution_models, service_user, service_identity,
+                           [service_profile.solution, SOLUTION_COMMON], delete_svc, _transactional=True)
         service_profile.solution = None
         service_profile.put()
     db.run_in_transaction(trans)
@@ -53,6 +54,7 @@ def _delete_solution_models(service_user, service_identity, solutions, delete_sv
     solution = solutions.pop(0)
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     key = parent_key_unsafe(service_identity_user, solution)
+
     def trans():
         keys = db.GqlQuery("SELECT __key__ WHERE ANCESTOR IS KEY('%s')" % str(key)).fetch(1000)
         if keys:
@@ -60,9 +62,10 @@ def _delete_solution_models(service_user, service_identity, solutions, delete_sv
             return True
         else:
             if solutions:
-                deferred.defer(_delete_solution_models, service_user, service_identity, solutions, delete_svc, _transactional=True)
+                deferred.defer(_delete_solution_models, service_user, service_identity,
+                               solutions, delete_svc, _transactional=True)
             elif delete_svc and service_identity is None:
-                    deferred.defer(delete_service.job, service_user, service_user, _transactional=True)
+                deferred.defer(delete_service.job, service_user, service_user, _transactional=True)
             return False
     while db.run_in_transaction(trans):
         pass

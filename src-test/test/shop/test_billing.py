@@ -98,7 +98,7 @@ class TestCase(mc_unittest.TestCase):
     def test_next_charge_date(self):
         self.set_datastore_hr_probability(1)
 
-        order, _ = self._create_customer_and_subscription_order([u'MSUP', u'BEAC', u'KSUP', u'ILOS'])
+        order, _ = self._create_customer_and_subscription_order([u'MSUP', u'KSUP', u'ILOS'])
 
         next_charge_dt = datetime.datetime.utcfromtimestamp(order.next_charge_date)
         self.assertGreater(next_charge_dt, datetime.datetime.utcfromtimestamp(today() + 2 * 363 * 86400))

@@ -58,7 +58,6 @@ class CustomerTO(CompanyTO):
     migration_job = unicode_property('56')
     manager = unicode_property('57')
     app_ids = unicode_list_property('58')
-    extra_apps_count = long_property('59')
     prospect_id = unicode_property('60')
     language = unicode_property('61')
     subscription_type = unicode_property('62')
@@ -92,7 +91,6 @@ class CustomerTO(CompanyTO):
         c.migration_job = customer.migration_job
         c.manager = customer.manager.email().decode('utf-8') if customer.manager else None
         c.app_ids = customer.sorted_app_ids
-        c.extra_apps_count = customer.extra_apps_count
         c.prospect_id = customer.prospect_id
         c.language = customer.language
         c.subscription_type = customer.SUBSCRIPTION_TYPES[customer.subscription_type]

@@ -685,37 +685,21 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     azzert(contact)
     if not customer.stripe_valid:
         raise NoCreditCardException(customer)
-    extra_city_product_key = Product.create_key(Product.PRODUCT_EXTRA_CITY)
     news_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
     rmt_key = RegioManagerTeam.create_key(customer.team_id)
-    extra_city_product, news_promotion_product, team = db.get((extra_city_product_key, news_product_key, rmt_key))
-    azzert(extra_city_product)
+    news_promotion_product, team = db.get((news_product_key, rmt_key))
     azzert(news_promotion_product)
     azzert(team)
     new_order_key = Order.create_key(customer.id, OrderNumber.next(team.legal_entity_key))
     vat_pct = get_vat_pct(customer, team)
 
     total_amount = 0
-    added_app_ids = []
     for order_item in order_items_to:
-        if order_item.product == Product.PRODUCT_EXTRA_CITY:
-            total_amount += extra_city_product.price * order_item.count
-            added_app_ids.append(order_item.app_id)
-            order_item.price = extra_city_product.price
-        elif order_item.product == Product.PRODUCT_NEWS_PROMOTION:
+        if order_item.product == Product.PRODUCT_NEWS_PROMOTION:
             total_amount += news_promotion_product.price * order_item.count
             order_item.price = news_promotion_product.price
         else:
             raise BusinessException('Invalid product \'%s\'' % order_item.product)
-    si = get_default_service_identity(users.User(customer.service_email))
-    if added_app_ids:
-        keys = [App.create_key(app_id) for app_id in added_app_ids]
-        apps = db.get(keys)
-        for app_id, app in zip(added_app_ids, apps):
-            if not app:
-                raise AppNotFoundException(app_id)
-            if app_id in si.appIds:
-                raise BusinessException('Customer %s already has app_id %s' % (customer.id, app_id))
 
     vat = int(round(vat_pct * total_amount / 100))
     total_amount_vat_incl = int(round(total_amount + vat))
@@ -760,7 +744,6 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
                    _transactional=True)
 
     # No need for signing here, immediately create a charge.
-    to_put = []
     charge = Charge(parent=new_order_key)
     charge.date = now()
     charge.type = Charge.TYPE_ORDER_DELIVERY
@@ -773,22 +756,11 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     charge.status = Charge.STATUS_PENDING
     charge.date_executed = now()
     charge.currency_code = team.legal_entity.currency_code
-    to_put.append(charge)
+    charge.put()
 
     # Update the regiomanager statistics so these kind of orders show up in the monthly statistics
     deferred.defer(update_regiomanager_statistic, gained_value=order.amount / 100,
                    manager=order.manager, _transactional=True)
-
-    # Update the customer service
-    si.appIds.extend(added_app_ids)
-    to_put.append(si)
-
-    # Update the customer object so the newly added apps are added.
-    customer.app_ids.extend(added_app_ids)
-    customer.extra_apps_count += len(added_app_ids)
-    to_put.append(customer)
-    db.put(to_put)
-    deferred.defer(re_index, si.user)
 
     # charge the credit card
     if charge.total_amount > 0:

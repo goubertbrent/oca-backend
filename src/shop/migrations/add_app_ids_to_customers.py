@@ -40,9 +40,6 @@ def _add_app_ids(customer):
     def trans(customer_key):
         customer = db.get(customer_key)
         customer.app_ids = si.appIds
-        customer.extra_apps_count = len(si.appIds) - 2
-        if customer.extra_apps_count < 0:
-            customer.extra_apps_count = 0
         customer.put()
 
     db.run_in_transaction(trans, customer.key())

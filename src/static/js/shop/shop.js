@@ -837,21 +837,10 @@ var showNewOrder = function () {
             var $this = $(this);
             var sub = $this.attr('data-sub');
             currentSubscription = sub;
-            $.each(products, function (i, p) {
-                if (SUBSCRIPTION_MODULES[sub].indexOf(p.code) != -1) {
-                    var default_count = p.default_count;
-                    if (p.code == 'MSUP') {
-                    	if (sub == 'starter') {
-                            default_count = 1;
-                        } else if (sub == 'gold') {
-                            default_count *= 2;
-                        } else if (sub == 'platinum') {
-                            default_count *= 3;
-                        }
-                    }
-                    add_order_item(p.code, default_count, p.default_comment, 'new');
-                }
-            });
+            for (const productKey of SUBSCRIPTION_MODULES[sub]) {
+                const product = products[productKey];
+                add_order_item(product.code, product.default_count, product.default_comment, 'new');
+            }
             recalc_totals();
             $this.parent().find('button').css('opacity', 0.5);
             $this.css('opacity', 1);
@@ -859,19 +848,6 @@ var showNewOrder = function () {
     });
 };
 
-function getSubscriptionLength() {
-    var subscriptionLength = 1;
-    $('#new_order').find('table tbody > tr').each(function () {
-        var item = $(this).data('order_item');
-        if (item) {
-            var product = products[item.product];
-            if (product.is_subscription) {
-                subscriptionLength = item.count;
-            }
-        }
-    });
-    return subscriptionLength;
-}
 
 var fillContactsDropdown = function () {
     var select = $('#customer_form').find('#new_order_contact');

@@ -16,9 +16,9 @@
 # @@license_version:1.3@@
 
 import base64
-from test import set_current_user
 
 from google.appengine.ext import db
+
 import mc_unittest
 from mcfw.consts import MISSING
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
@@ -27,13 +27,13 @@ from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
 from shop.bizz import put_service, _after_service_saved, create_or_update_customer, create_contact, create_order, \
     sign_order
-from shop.business.order import get_subscription_order_remaining_length
 from shop.models import RegioManagerTeam, Product, Customer, Order
 from shop.to import ShopProductTO, CustomerServiceTO, OrderItemTO
 from solutions.common.bizz import OrganizationType
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.service import put_customer_service
-from solutions.common.restapi.store import add_item_to_order, remove_from_order, pay_order
+from solutions.common.restapi.store import add_item_to_order, remove_from_order
+from test import set_current_user
 
 
 class CustomerStoreTestCase(mc_unittest.TestCase):
@@ -103,8 +103,7 @@ class CustomerStoreTestCase(mc_unittest.TestCase):
         _after_service_saved(customer.key(), service.email, provision_response, True, service.apps, [])
 
     def test_create_service_trans(self):
-        _, customer = self._create_customer_and_subscription_order(
-            [u'MSUP', u'BEAC', u'KSUP', u'ILOS'])
+        _, customer = self._create_customer_and_subscription_order([u'MSUP', u'KSUP', u'ILOS'])
 
         service = CustomerServiceTO()
         service.address = u'antwerpsesteenweg 19 lochristi'
@@ -128,40 +127,25 @@ class CustomerStoreTestCase(mc_unittest.TestCase):
         put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
                              skip_email_check=True, rollback=True)
 
-
-
     def test_customer_store(self):
-        xcty_product = ShopProductTO.create(u'be-berlare', u'XCTY', 1)
+        product_bdgt, product_posm = db.get([Product.create_key(u'BDGT'), Product.create_key(u'POSM')])
+        price_budget = product_bdgt.price
         posm_product = ShopProductTO.create(MISSING, u'POSM', 250)
-        _, customer = self._create_customer_and_subscription_order(
-            [u'MSUP', u'BEAC', u'KSUP', u'ILOS'])
+        _, customer = self._create_customer_and_subscription_order([u'MSUP', u'KSUP', u'ILOS'])
         self._create_service(customer)
         customer = Customer.get_by_id(customer.id)
         self.current_user = users.User(customer.service_email)
         set_current_user(self.current_user)
-        product_xcty, product_posm = db.get([Product.create_key(u'XCTY'), Product.create_key(u'POSM')])
 
-        xcty_order_item = add_item_to_order(xcty_product).order_item
-        remaining_subscription_length = get_subscription_order_remaining_length(customer.id,
-                                                                                customer.subscription_order_number)[0]
-        price_xcty = remaining_subscription_length * product_xcty.price
+        budget_order_item = add_item_to_order(ShopProductTO.create(MISSING, u'BDGT', 1)).order_item
         temp_order = Order.get_by_order_number(customer.id, '-1')
-        self.assertEqual(temp_order.is_subscription_order, False)
-        self.assertEqual(temp_order.amount, price_xcty)
-        self.assertEqual(temp_order.is_subscription_extension_order, False)  # Is set when paying the order
+        self.assertEqual(temp_order.amount, price_budget)
 
         add_item_to_order(posm_product).order_item
         temp_order = Order.get_by_order_number(customer.id, '-1')
-        self.assertEqual(temp_order.amount, price_xcty + product_posm.price * 250)
+        self.assertEqual(temp_order.amount, price_budget + product_posm.price * 250)
 
         # test removing an order item
-        remove_from_order(xcty_order_item.id)
+        remove_from_order(budget_order_item.id)
         temp_order = Order.get_by_order_number(customer.id, '-1')
         self.assertEqual(temp_order.amount, product_posm.price * 250)
-
-        xcty_order_item = add_item_to_order(xcty_product).order_item
-        temp_order = Order.get_by_order_number(customer.id, '-1')
-        self.assertEqual(temp_order.amount, price_xcty + product_posm.price * 250)
-        self.assertEqual(pay_order().success, False)  # should be false since we have no credit card linked
-
-        # todo: test with credit card linked
