@@ -571,9 +571,6 @@ NewsWizard.prototype = {
                 permissionsList.indexOf('publish_pages') === -1) {
                 errors.push(T('facebook-manage-pages-required'));
             }
-            if(permissionsList.indexOf('publish_actions') === -1) {
-                errors.push(T('facebook-publish-actions-required'));
-            }
 
             if(errors.length > 0) {
                 sln.alert(errors.join('<br/>'));
@@ -597,7 +594,7 @@ NewsWizard.prototype = {
                 sln.hideProcessing();
             },
             {
-                scope: 'manage_pages,publish_pages,publish_actions',
+                scope: 'manage_pages,publish_pages',
                 return_scopes: true
             });
         }
@@ -634,7 +631,6 @@ NewsWizard.prototype = {
                         elemFacebookPage.append($('<option>', {text: page.name, value: page.access_token}));
                     }
                 });
-                elemFacebookPage.append($('<option>', {text: T('my-timeline'), value: userAccessToken}));
                 elemFacebookPage.show();
                 sln.hideProcessing();
             });

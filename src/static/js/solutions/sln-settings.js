@@ -490,10 +490,6 @@ $(function () {
                     return;
                 }
 
-                if(response.authResponse.grantedScopes.indexOf('publish_actions') == -1) {
-                    sln.alert(T('facebook-publish-actions-required'))
-                    return;
-                }
                 fbAccessToken = response.authResponse.accessToken;
                 $("#facebookPlaceStep1").css('visibility', 'hidden');
                 $("#facebookPlaceStep2").css('visibility', 'visible');
@@ -501,7 +497,7 @@ $(function () {
             }
         },
         {
-            scope: 'manage_pages,publish_actions',
+            scope: 'manage_pages',
             return_scopes: true
         });
     };

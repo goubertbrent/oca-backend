@@ -376,7 +376,7 @@ $(function () {
                         doBroadcastToRogerthat(bt.val(), message.val(), false, targetAudienceEnabled,
                             targetAudienceMinAge, targetAudienceMaxAge, targetAudienceGender, msgAttachments, msgUrls, null, twitterEnabled);
                     }
-                }, {scope: 'manage_pages,publish_actions'});
+                }, {scope: 'manage_pages'});
             }
         } else {
             doBroadcastToRogerthat(bt.val(), message.val(), false, targetAudienceEnabled, targetAudienceMinAge,
