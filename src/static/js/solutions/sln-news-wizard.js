@@ -1015,7 +1015,6 @@ NewsWizard.prototype = {
                 Requests.getBroadcastOptions().then(function (broadcastOptions) {
                     getPromotedCost(data.app_ids, data.sponsored, function (promotedCostList) {
                         var promotionProduct = broadcastOptions.news_promotion_product,
-                            extraAppProduct = broadcastOptions.extra_city_product,
                             fromDate = new Date(),
                             untilDate = new Date();
                         untilDate.setDate(fromDate.getDate() + 7);
@@ -1059,24 +1058,6 @@ NewsWizard.prototype = {
                                         app_id: currentAppId
                                     };
                                     orderItems.push(sponsoredOrderItem);
-                                    orderItemNumber++;
-                                }
-                                if (!self.isPresentInApp(currentAppId)) {
-                                    var extraCityOrderItem = {
-                                        count: broadcastOptions.subscription_info.months_left,
-                                        description: extraAppProduct.description,
-                                        comment: T('service_visible_in_app', {
-                                            app_name: appName,
-                                            subscription_expiration_date: broadcastOptions.subscription_info.expiration_date,
-                                            amount_of_months: broadcastOptions.subscription_info.months_left,
-                                            extra_city_price: CURRENCY + (extraAppProduct.price / 100).toFixed(2)
-                                        }),
-                                        app_id: currentAppId,
-                                        price: extraAppProduct.price,
-                                        product: extraAppProduct.code,
-                                        number: orderItemNumber
-                                    };
-                                    orderItems.push(extraCityOrderItem);
                                     orderItemNumber++;
                                 }
                             }

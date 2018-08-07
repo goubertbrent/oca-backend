@@ -66,7 +66,6 @@ class BroadcastOptionsTO(TO):
     broadcast_types = unicode_list_property('1')
     editable_broadcast_types = unicode_list_property('2')
     news_promotion_product = typed_property('3', ProductTO, False)
-    extra_city_product = typed_property('4', ProductTO, False)
     news_enabled = bool_property('5')
     subscription_info = typed_property('6', SubscriptionInfoTO, False)
     can_order_extra_apps = bool_property('7')
@@ -75,8 +74,8 @@ class BroadcastOptionsTO(TO):
     regional_news_enabled = bool_property('regional_news_enabled')
 
     def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
-                 extra_city_product=None, news_enabled=False, subscription_info=None, can_order_extra_apps=True,
-                 roles=None, news_settings=None, regional_news_enabled=False):
+                 news_enabled=False, subscription_info=None, can_order_extra_apps=True, roles=None, news_settings=None,
+                 regional_news_enabled=False):
         if editable_broadcast_types is None:
             editable_broadcast_types = []
         if broadcast_types is None:
@@ -87,7 +86,6 @@ class BroadcastOptionsTO(TO):
         self.broadcast_types = broadcast_types
         self.editable_broadcast_types = editable_broadcast_types
         self.news_promotion_product = news_promotion_product
-        self.extra_city_product = extra_city_product
         self.news_enabled = news_enabled
         self.subscription_info = subscription_info
         self.can_order_extra_apps = can_order_extra_apps

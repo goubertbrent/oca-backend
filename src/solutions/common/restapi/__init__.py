@@ -469,10 +469,9 @@ def rest_get_broadcast_options():
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     sln_settings_key = SolutionSettings.create_key(service_user)
     news_promotion_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
-    extra_city_product_key = Product.create_key(Product.PRODUCT_EXTRA_CITY)
     si_key = ServiceIdentity.keyFromUser(create_service_identity_user(service_user, service_identity))
-    to_get = (sln_settings_key, news_promotion_product_key, extra_city_product_key, si_key)
-    sln_settings, news_promotion_product, extra_city_product, si = db.get(to_get)  # type: (SolutionSettings, Product, Product, ServiceIdentity)
+    to_get = (sln_settings_key, news_promotion_product_key, si_key)
+    sln_settings, news_promotion_product, si = db.get(to_get)  # type: (SolutionSettings, Product, ServiceIdentity)
     news_settings = NewsSettings.get_by_user(service_user, service_identity)
     # For demo apps and for shop sessions, creating regional news items is be free.
     default_app = get_app(si.defaultAppId)
@@ -494,7 +493,6 @@ def rest_get_broadcast_options():
     if abt_agenda:
         broadcast_types.extend(abt_agenda.broadcast_types)
     news_promotion_product_to = ProductTO.create(news_promotion_product, sln_settings.main_language)
-    extra_city_product_to = ProductTO.create(extra_city_product, sln_settings.main_language)
     news_enabled = sln_settings.solution == SOLUTION_FLEX
     customer = get_customer(service_user)
     remaining_length = 0
@@ -521,7 +519,7 @@ def rest_get_broadcast_options():
     subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
     roles = get_user_defined_roles()
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
-                              extra_city_product_to, news_enabled, subscription_info, can_order_extra_apps,
+                              news_enabled, subscription_info, can_order_extra_apps,
                               roles, news_settings, regional_news_enabled)
 
 

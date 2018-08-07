@@ -197,7 +197,7 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
                 news_coupon.put()
             else:
                 logging.warn('Not updating qr_code_caption for non-existing coupon for news with id %d',
-                              news_id)
+                             news_id)
         if order_items:
             create_and_pay_news_order(service_user, news_item.id, order_items)
         regional_apps = get_regional_apps_of_item(news_item, app_id)
@@ -206,7 +206,7 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
                 # check for budget on creation only
                 check_budget(service_user, identity)
             deferred.defer(create_regional_news_item, news_item, regional_apps, service_user, identity,
-                            paid=is_free_regional_news, _transactional=True)
+                           paid=is_free_regional_news, _transactional=True)
         return news_item
 
     try:
@@ -214,12 +214,12 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
         if broadcast_on_facebook or broadcast_on_twitter:
             if scheduled_at is not MISSING and scheduled_at > 0:
                 schedule_post_to_social_media(service_user, host, broadcast_on_facebook,
-                                                broadcast_on_twitter, facebook_access_token,
-                                                news_item.id, scheduled_at)
+                                              broadcast_on_twitter, facebook_access_token,
+                                              news_item.id, scheduled_at)
             else:
                 post_to_social_media(service_user, broadcast_on_facebook,
-                                        broadcast_on_twitter, facebook_access_token,
-                                        news_item.id)
+                                     broadcast_on_twitter, facebook_access_token,
+                                     news_item.id)
 
         return NewsBroadcastItemTO.from_news_item_to(news_item, broadcast_on_facebook, broadcast_on_twitter)
     except:
@@ -402,7 +402,6 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     sponsored_until = None
     should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id
     sponsored_app_ids = set()
-    extra_app_ids = []
     si = get_service_identity(service_identity_user)
     for order_item in reversed(order_items):
         if order_item.product == Product.PRODUCT_NEWS_PROMOTION and sponsored:
@@ -410,12 +409,6 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
             azzert(order_item.app_id not in sponsored_app_ids)
             sponsored_app_ids.add(order_item.app_id)
             order_item.count = get_sponsored_news_count_in_app(service_identity_user, order_item.app_id).count
-        elif order_item.product == Product.PRODUCT_EXTRA_CITY:
-            azzert(order_item.app_id)
-            azzert(order_item.app_id not in extra_app_ids)
-            extra_app_ids.append(order_item.app_id)
-            if order_item.app_id in si.appIds:
-                order_items.remove(order_item)
         else:
             raise BusinessException('Invalid product %s' % order_item.product)
 
@@ -448,7 +441,8 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                 if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
                     pass  # LOCAL NEWS
                 else:
-                    feed_names[default_app.app_id] = NewsFeedNameTO(default_app.app_id, u'regional_news')  # REGIONAL NEWS
+                    feed_names[default_app.app_id] = NewsFeedNameTO(
+                        default_app.app_id, u'regional_news')  # REGIONAL NEWS
                 app_ids = [default_app.app_id]
             else:
                 for app_id in app_ids:
