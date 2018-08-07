@@ -76,7 +76,7 @@ $(function() {
         var data = JSON.stringify({
             uitdatabank_secret : $('.sln-set-events-secret input').val(),
             uitdatabank_key : $('.sln-set-events-key input').val(),
-            uitdatabank_regions : $('.sln-set-events-regions').data('regions'),
+            uitdatabank_regions : $('.sln-set-events-regions').data('regions') || [],
             gather_events : gatherEvents,
         });
         sln.call({

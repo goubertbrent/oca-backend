@@ -951,6 +951,7 @@ def create_free_product(legal_entity_id, code_prefix=''):
     p.visible = True
     p.legal_entity_id = legal_entity_id
     p.module_set = 'ALL'
+    p.default_comment_translation_key = ''
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
     return p
