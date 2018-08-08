@@ -115,30 +115,42 @@ def _create_charge(order_key, today, products):
             else:
                 return order_item.price
 
+        orders = {order.order_number: order}
         subscription_product = None  # type: Product
         for order_item in order_item_qry:  # type: OrderItem
             product = products.get(order_item.product_code)
             if not product:
                 logging.info('Product with code %s does not exist anymore, skipping', order_item.product_code)
                 continue
+
+            order = orders.get(order_item.order_number)
+            if not order:
+                order = Order.get_by_order_number(customer_id, order_item.order_number)
+                orders[order.order_number: order]
+            if order.status == Order.STATUS_CANCELED:
+                logging.debug('Skipping order item %s of canceled order %s',
+                              order_item.product_code, order_item.order_number)
+                continue
+
             if order_item.order_number == order.order_number:
                 if product.is_subscription:
                     subscription_length = order_item.count
                     total_amount += order_item.price
                 elif product.is_subscription_discount or product.is_subscription_extension:
                     total_amount += _get_extension_price(product, order_item)
-
             elif order_item.parent().key() in subscription_extension_order_keys:
                 if product.is_subscription_extension:
                     item_price = _get_extension_price(product, order_item)
                     if item_price:
                         total_amount += item_price
                         subscription_extension_order_item_keys.append(order_item.key())
+
             if product.is_subscription:
                 if subscription_product:
                     raise Exception('Order %s has more than 1 subscription product (%s and %s)' %
                                     (order.order_number, subscription_product.code, product.code))
                 subscription_product = product
+
         if total_amount == 0:
             order.next_charge_date = Order.default_next_charge_date()
             order.put()
