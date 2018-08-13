@@ -123,11 +123,11 @@ def _create_charge(order_key, today, products):
                 logging.info('Product with code %s does not exist anymore, skipping', order_item.product_code)
                 continue
 
-            order = orders.get(order_item.order_number)
-            if not order:
-                order = Order.get_by_order_number(customer_id, order_item.order_number)
-                orders[order.order_number: order]
-            if order.status == Order.STATUS_CANCELED:
+            o = orders.get(order_item.order_number)
+            if not o:
+                o = Order.get_by_order_number(customer_id, order_item.order_number)
+                orders[o.order_number] = o
+            if o.status == Order.STATUS_CANCELED:
                 logging.debug('Skipping order item %s of canceled order %s',
                               order_item.product_code, order_item.order_number)
                 continue
