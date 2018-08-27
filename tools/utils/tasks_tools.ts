@@ -1,10 +1,11 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs';
 import * as gulp from 'gulp';
 import * as util from 'gulp-util';
-import * as isstream from 'isstream';
 import { join } from 'path';
 import { changeFileManager } from './code_change_tools';
 import { Task } from './task';
+
+var isstream = require('isstream');
 
 /**
  * Loads the tasks within the given path.

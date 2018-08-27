@@ -27,10 +27,7 @@
     ]
   },
   "files": [
-    "gulpfile.ts",
-    "tools/manual_typings/isstream.d.ts",
-    "tools/manual_typings/open.d.ts",
-    "tools/manual_typings/merge-stream.d.ts"
+    "gulpfile.ts"
   ],
   "exclude": [
     "node_modules",
