@@ -19,9 +19,12 @@ import logging
 from xml.dom import minidom
 
 from google.appengine.api import urlfetch
-from google.appengine.ext import webapp, deferred, ndb
+from google.appengine.api.taskqueue import taskqueue
+from google.appengine.ext import webapp, ndb
+from google.appengine.ext.deferred import deferred
 
 from rogerthat.bizz.job import run_job
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.utils import now
 from solutions.common.cron.news import html_unescape, parse_html_content, transl, \
     create_news_item
@@ -84,13 +87,9 @@ def _worker(rss_settings_key):
                 else:
                     guid = None
                 description_tags = item.getElementsByTagName("description")
-                if not description_tags:
-                    logging.debug("url: %s", url)
-                    logging.info('description not found for %s', item.childNodes)
-                    continue
-                if not description_tags[0].firstChild:
-                    logging.debug("url: %s", url)
-                    logging.info('description firstChild not found for %s', item.childNodes)
+                if not description_tags or not description_tags[0].firstChild:
+                    logging.debug('url: %s', url)
+                    logging.info('description not found or empty for %s', item.childNodes)
                     continue
                 description_html = description_tags[0].firstChild.nodeValue
                 message, _, _ = parse_html_content(description_html)
@@ -114,6 +113,7 @@ def _worker(rss_settings_key):
             must_update_settings = True
 
         def trans():
+            tasks = []
             to_put = []
             for title, url, guid, description_html, message in items:
                 if url not in scraper_items and guid not in scraper_items:
@@ -122,12 +122,19 @@ def _worker(rss_settings_key):
                                                       timestamp=now(),
                                                       dry_run=dry_run)
                     if not dry_run:
-                        deferred.defer(create_news_item, sln_settings, broadcast_type, message, title, url,
-                                       rss_settings.notify, _transactional=True)
+                        pickled = deferred.serialize(create_news_item, sln_settings, broadcast_type, message, title,
+                                                     url, rss_settings.notify)
+                        tasks.append(taskqueue.Task(payload=pickled, url=deferred._DEFAULT_URL,
+                                                    headers=deferred._TASKQUEUE_HEADERS))
                     to_put.append(new_item)
             if to_put:
                 ndb.put_multi(to_put)
 
-        trans() if dry_run else ndb.transaction(trans, xg=True)
+            return tasks
+
+        tasks = trans() if dry_run else ndb.transaction(trans, xg=True)
+        if tasks:
+            logging.info('Scheduling %d tasks to create news items', len(tasks))
+            taskqueue.Queue(HIGH_LOAD_WORKER_QUEUE).add(tasks)
     if must_update_settings:
         rss_settings.put()
