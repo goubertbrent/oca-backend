@@ -316,10 +316,10 @@ def re_index_customer(customer_key):
 @arguments(current_user=users.User, customer_id=(int, long, NoneType), vat=unicode, name=unicode, address1=unicode,
            address2=unicode, zip_code=unicode, city=unicode, country=unicode, language=unicode,
            organization_type=(int, long), prospect_id=unicode, force=bool, team_id=(int, long, NoneType),
-           website=unicode, facebook_page=unicode)
+           website=unicode, facebook_page=unicode, app_id=unicode)
 def create_or_update_customer(current_user, customer_id, vat, name, address1, address2, zip_code, city, country,
                               language, organization_type, prospect_id, force=False, team_id=None,
-                              website=None, facebook_page=None):
+                              website=None, facebook_page=None, app_id=None):
     is_in_transaction = db.is_in_transaction()
     name = name.strip()
     if not name:
@@ -371,7 +371,9 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
             customer_key = None
 
         for other_customer in list_customers_by_name(name, 2 if customer_key else 1):
-            if customer_key != other_customer.key():
+            # check the name within the same app only if app_id is provided
+            same_app = app_id is None or app_id == other_customer.default_app_id
+            if customer_key != other_customer.key() and same_app:
                 raise DuplicateCustomerNameException(name)
 
     if vat:
@@ -2509,7 +2511,8 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
                                              address1=address1, address2=address2, zip_code=zip_code,
                                              country=country, language=language, city=city,
                                              organization_type=organization_type, prospect_id=None,
-                                             force=force, team_id=team_id, website=website, facebook_page=facebook_page)
+                                             force=force, team_id=team_id, website=website, facebook_page=facebook_page,
+                                             app_id=service.apps[0])
 
         customer.put()
         if customer_id:
