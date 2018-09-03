@@ -85,6 +85,7 @@ def _create_charge(order_key, today, products):
             return None
 
         logging.info("Creating recurrent charge for order %s (%s: %s)", order.order_number, customer_id, customer.name)
+        azzert(12 >= order.charge_interval >= 1, 'Expected charge interval to be between 1 and 12')
         subscription_extension_orders = list(Order.all()
                                              .ancestor(customer)
                                              .filter("next_charge_date <", today)
@@ -97,26 +98,12 @@ def _create_charge(order_key, today, products):
         subscription_extension_order_item_keys = []
         total_amount = 0
         subscription_length = 0
-        current_date = datetime.utcnow()
         to_put = []
 
-        def _get_extension_price(product, order_item):
-            if product.charge_interval != 1:
-                last_charge_date = datetime.utcfromtimestamp(order_item.last_charge_timestamp)
-                new_charge_date = last_charge_date + relativedelta(months=product.charge_interval)
-                if new_charge_date < current_date:
-                    logging.debug('new_charge_date %s < current_date %s, adding %s to total_amount',
-                                  new_charge_date, current_date, order_item.price)
-                    order_item.last_charge_timestamp = now()
-                    to_put.append(order_item)
-                    return order_item.price
-                else:
-                    return 0
-            else:
-                return order_item.price
+        def _get_item_price(order_item):
+            return order_item.price * order.charge_interval
 
         orders = {order.order_number: order}
-        subscription_product = None  # type: Product
         for order_item in order_item_qry:  # type: OrderItem
             product = products.get(order_item.product_code)
             if not product:
@@ -135,21 +122,13 @@ def _create_charge(order_key, today, products):
             if order_item.order_number == order.order_number:
                 if product.is_subscription:
                     subscription_length = order_item.count
-                    total_amount += order_item.price
+                    total_amount += _get_item_price(order_item)
                 elif product.is_subscription_discount or product.is_subscription_extension:
-                    total_amount += _get_extension_price(product, order_item)
+                    total_amount += _get_item_price(order_item)
             elif order_item.parent().key() in subscription_extension_order_keys:
                 if product.is_subscription_extension:
-                    item_price = _get_extension_price(product, order_item)
-                    if item_price:
-                        total_amount += item_price
-                        subscription_extension_order_item_keys.append(order_item.key())
-
-            if product.is_subscription:
-                if subscription_product:
-                    raise Exception('Order %s has more than 1 subscription product (%s and %s)' %
-                                    (order.order_number, subscription_product.code, product.code))
-                subscription_product = product
+                    total_amount += _get_item_price(order_item)
+                    subscription_extension_order_item_keys.append(order_item.key())
 
         if total_amount == 0:
             order.next_charge_date = Order.default_next_charge_date()
@@ -205,7 +184,7 @@ def _create_charge(order_key, today, products):
         charge = Charge(parent=order_key)
         charge.date = now()
         charge.type = Charge.TYPE_RECURRING_SUBSCRIPTION
-        charge.subscription_extension_length = 1
+        charge.subscription_extension_length = order.charge_interval
         charge.subscription_extension_order_item_keys = subscription_extension_order_item_keys
         charge.currency_code = get_currency_code()
         charge.team_id = customer.team_id
@@ -215,9 +194,8 @@ def _create_charge(order_key, today, products):
         charge.total_amount = charge.amount + charge.vat
         to_put.append(charge)
 
-        months = subscription_product.charge_interval  # type: int
-        azzert(12 >= months >= 1, 'Expected charge interval to be between 1 and 12')
-        next_charge_datetime = datetime.utcfromtimestamp(order.next_charge_date) + relativedelta(months=months)
+        next_charge_datetime = datetime.utcfromtimestamp(order.next_charge_date) + relativedelta(
+            months=order.charge_interval)
         next_charge_date_int = int((next_charge_datetime - datetime.utcfromtimestamp(0)).total_seconds())
         order.next_charge_date = next_charge_date_int
         to_put.append(order)

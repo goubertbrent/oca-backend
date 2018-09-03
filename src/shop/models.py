@@ -259,7 +259,7 @@ class Product(db.Model):
     # Same as above
     description_translation_key = db.StringProperty(indexed=False)
     legal_entity_id = db.IntegerProperty()
-    charge_interval = db.IntegerProperty(default=1, indexed=False)
+    can_change_price = db.BooleanProperty(default=False, indexed=False)
 
     @property
     def code(self):
@@ -716,6 +716,7 @@ class Order(db.Model):
     date_canceled = db.IntegerProperty()
     manager = db.UserProperty()
     team_id = db.IntegerProperty(indexed=True)
+    charge_interval = db.IntegerProperty(default=1)
 
     @property
     def amount_in_euro(self):
@@ -813,7 +814,6 @@ class OrderItem(db.Expando):
     count = db.IntegerProperty()
     comment = db.TextProperty()
     price = db.IntegerProperty()  # In euro cents
-    last_charge_timestamp = db.IntegerProperty()
     # app_id : only for orderItems with product code NEWS
     # news_item_id: for orderItems with product code NEWS
 

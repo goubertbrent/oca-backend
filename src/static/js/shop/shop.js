@@ -826,22 +826,20 @@ var showNewOrder = function () {
     }
     $("#new_order_customer_credit_card_error").toggle(currentCustomer.stripe_valid);
     getLegalEntity(function (legalEntity) {
-        // Show gold/silver/platinum buttons for mobicage entity
+        // Show product combination buttons for mobicage entity
         $('#subscription-buttons').toggle(legalEntity.is_mobicage);
         if (!legalEntity.is_mobicage) {
             return;
         }
         $('button[data-sub]').unbind('click').click(function () {
-            // Remove any previous selected items
-            $('#new_order table tbody > tr').remove();
+            selectedItems = [];
             var $this = $(this);
             var sub = $this.attr('data-sub');
             currentSubscription = sub;
             for (const productKey of SUBSCRIPTION_MODULES[sub]) {
                 const product = products[productKey];
-                add_order_item(product.code, product.default_count, product.default_comment, 'new');
+                addOrderItem(product.code, product.default_count, product.default_comment, product.price, 'new');
             }
-            recalc_totals();
             $this.parent().find('button').css('opacity', 0.5);
             $this.css('opacity', 1);
         });

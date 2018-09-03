@@ -134,6 +134,7 @@ def create_ilos_product(legal_entity_id, code_prefix=''):
     p.product_dependencies = []
     p.visible = bool(code_prefix)  # only for legal entities other than mobicage
     p.legal_entity_id = legal_entity_id
+    p.can_change_price = True
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
@@ -979,10 +980,10 @@ def create_apls_product(legal_entity_id, code_prefix=''):
 
 def create_appl_product(legal_entity_id, code_prefix=''):
     p = Product(key_name=code_prefix + 'APPL')
-    p.price = 10000
+    p.price = 9900 / 12
     p.default_count = 1
     p.default = False
-    p.possible_counts = [1]
+    p.possible_counts = range(1, 13)
     p.is_subscription = False
     p.is_subscription_discount = False
     p.is_subscription_extension = True
@@ -993,7 +994,6 @@ def create_appl_product(legal_entity_id, code_prefix=''):
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
-    p.charge_interval = 12
     return p
 
 
@@ -1069,26 +1069,25 @@ def create_bdgt_product(legal_entity_id, code_prefix=''):
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
-    p.charge_interval = 12
     return p
 
 
 def create_ocam_product(legal_entity_id, code_prefix=''):
     p = Product(key_name=code_prefix + 'OCAM')
-    p.price = 360000
+    p.price = 10000
     p.default_count = 1
     p.default = False
-    p.possible_counts = [1]
+    p.possible_counts = range(1, 13)
     p.is_subscription = True
     p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
     p.product_dependencies = []
     p.module_set = 'ALL'
     p.visible = True
     p.legal_entity_id = legal_entity_id
+    p.can_change_price = True
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
-    p.charge_interval = 12
     return p
 
 

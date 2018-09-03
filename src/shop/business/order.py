@@ -18,8 +18,9 @@
 import datetime
 import logging
 
-import dateutil
+from google.appengine.ext import db
 
+import dateutil
 from mcfw.rpc import returns, arguments
 from rogerthat.consts import DAY
 from rogerthat.rpc.service import BusinessException
@@ -63,8 +64,14 @@ def set_next_charge_date(customer_id, next_charge_date):
     order = Order.get_by_order_number(customer_id, customer.subscription_order_number)
     if not order.status == Order.STATUS_SIGNED:
         raise BusinessException('The customer his subscription order has not been signed yet.')
+    other_orders = Order.list_signed(customer).filter('is_subscription_order', False)  # type: list[Order]
+    to_put = [order]
     order.next_charge_date = next_charge_date
-    order.put()
+    for extension_order in other_orders:
+        if extension_order.is_subscription_extension_order:
+            extension_order.next_charge_date = next_charge_date
+        to_put.append(extension_order)
+    db.put(to_put)
 
 
 @returns(tuple)

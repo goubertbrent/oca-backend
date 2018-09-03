@@ -772,6 +772,7 @@ class ProductTO(object):
     code = unicode_property('14')
     picture_url = unicode_property('15')
     price_in_euro = unicode_property('16')
+    can_change_price = bool_property('17')
 
     @classmethod
     def create(cls, model, language):
@@ -792,6 +793,7 @@ class ProductTO(object):
         to.visible = model.visible
         to.picture_url = model.picture_url
         to.price_in_euro = model.price_in_euro
+        to.can_change_price = model.can_change_price
         return to
 
 

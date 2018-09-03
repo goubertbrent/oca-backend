@@ -410,9 +410,9 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
 
 
 @returns(Order)
-@arguments(customer_or_id=(Customer, int, long), contact_or_id=(Contact, int, long), items=[OrderItemTO], replace=bool,
-           regio_manager_user=gusers.User)
-def create_order(customer_or_id, contact_or_id, items, replace=False, regio_manager_user=None):
+@arguments(customer_or_id=(Customer, int, long), contact_or_id=(Contact, int, long), items=[OrderItemTO],
+           charge_interval=(int, long), replace=bool, regio_manager_user=gusers.User)
+def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replace=False, regio_manager_user=None):
     if isinstance(customer_or_id, Customer):
         audit_log(customer_or_id.id, u"Creating new order.")
         customer = customer_or_id
@@ -438,7 +438,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, regio_mana
     if not (len(items) > 0):
         raise NoProductsSelectedException()
 
-    _order_items_signed_orders = list()
+    _order_items_signed_orders = []
 
     def get_order_items_signed_orders():
         if _order_items_signed_orders:
@@ -465,9 +465,9 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, regio_mana
             is_subscription = True
         if product.is_subscription_extension:
             is_subscription_extension_order = True
-        total += product.price * item.count
-        item.price = product.price
-        if product.organization_types and not customer.organization_type in product.organization_types:
+        price = item.price if product.can_change_price else product.price
+        total += price * item.count
+        if product.organization_types and customer.organization_type not in product.organization_types:
             raise ProductNotAllowedException(product.description(DEFAULT_LANGUAGE))
         if product.product_dependencies:
             for dependency in product.product_dependencies:
@@ -534,6 +534,7 @@ def create_order(customer_or_id, contact_or_id, items, replace=False, regio_mana
         order.total_amount = int(round(total_vat_incl))
         order.is_subscription_order = is_subscription
         order.is_subscription_extension_order = is_subscription_extension_order
+        order.charge_interval = charge_interval
         regio_manager = None
         if regio_manager_user:
             regio_manager = RegioManager.get(RegioManager.create_key(regio_manager_user.email()))
@@ -935,7 +936,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
             for item in order_items:
                 product = products[item.product_code]
                 if product.is_subscription and product.price > 0:
-                    months += item.count * product.charge_interval
+                    months += item.count
                 if not product.is_subscription and product.extra_subscription_months > 0:
                     months += product.extra_subscription_months
 
@@ -973,13 +974,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
             if is_subscription_extension_order:
                 sub_order = sub_order or Order.get_by_order_number(customer.id, customer.subscription_order_number)
                 order.next_charge_date = sub_order.next_charge_date
-        to_put = [order]
-        for item in order_items:  # type: OrderItem
-            product = products[item.product_code]
-            if product.charge_interval != 1:
-                item.last_charge_timestamp = now()
-                to_put.append(item)
-        db.put(to_put)
+        order.put()
 
         if not no_charge:
             deferred.defer(send_order_email, order_key, gusers.get_current_user(), _transactional=True,
@@ -1346,7 +1341,7 @@ def cancel_order(customer_or_id, order_number, confirm=False, delete_service=Fal
                 customer.user_email = None
                 customer.app_ids = []
             customer.subscription_order_number = None
-        to_put.append(customer)
+            to_put.append(customer)
         db.put(to_put)
         return customer
 
@@ -1488,7 +1483,7 @@ def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, 
         path = 'order_pdf.html'
 
     products = Product.get_products_dict()
-    order_items = list()
+    order_items = []  # type: list[OrderItem]
     for item in order_item_qry:
         if recurrent:
             product = products[item.product_code]

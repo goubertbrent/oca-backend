@@ -1120,6 +1120,11 @@ var createLib = function() {
                 timeout = setTimeout(later, wait);
                 if (callNow) func.apply(context, args);
             };
+        },
+        updateItem: function updateItem(array, updatedItem, idProperty) {
+            return array.map(function (item) {
+                return item[idProperty] === updatedItem[idProperty] ? updatedItem : item;
+            });
         }
     };
 };

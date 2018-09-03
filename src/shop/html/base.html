@@ -397,13 +397,15 @@ var CommonTranslations = {
                     <div class="alert alert-error" id="order_item_error">
                         <strong>Error!</strong> <span></span>
                     </div>
-                    <label>Select product: </label>
+                    <label for="order_item_product">Select product: </label>
                     <select id="order_item_product" class="span6">
                         <option value="">Select product</option>
                     </select>
-                    <label>Count: </label>
+                    <label for="order_item_count">Count: </label>
                     <input type="number" id="order_item_count" class="span1">
                     <select id="possible_order_item_count"></select>
+                    <label for="order_item_price">Price:</label>
+                    <input type="number" step="0.01" min="0" id="order_item_price" disabled>
                     <label>Comment: </label>
                     <textarea class="span6" id="order_item_comment" style="height: 140px;"></textarea>
                 </fieldset>

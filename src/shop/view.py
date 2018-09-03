@@ -217,7 +217,8 @@ def get_shop_context(**kwargs):
     # These are the variables used in base.html
     js_templates = kwargs.pop('js_templates', dict())
     if 'prospect_comment' not in js_templates:
-        js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history']))
+        js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history',
+                                                 'new_order_list']))
     ctx = dict(stripePublicKey=solution_server_settings.stripe_public_key,
                modules=_get_solution_modules(),
                default_modules=_get_default_modules(),
@@ -1622,14 +1623,16 @@ def rest_put_order_contact(customer_id, order_number, contact_id):
 
 @rest("/internal/shop/rest/order/new", "post")
 @returns(CreateOrderReturnStatusTO)
-@arguments(customer_id=(int, long), contact_id=(int, long), items=[OrderItemTO], replace=bool)
-def create_new_order(customer_id, contact_id, items, replace=False):
+@arguments(customer_id=(int, long), contact_id=(int, long), items=[OrderItemTO], charge_interval=(int, long),
+           replace=bool)
+def create_new_order(customer_id, contact_id, items, charge_interval=None, replace=False):
     try:
-        create_order(customer_id, contact_id, items, replace, regio_manager_user=gusers.get_current_user())
+        create_order(customer_id, contact_id, items, charge_interval, replace,
+                     regio_manager_user=gusers.get_current_user())
         return CreateOrderReturnStatusTO.create(True)
-    except ReplaceBusinessException, e:
+    except ReplaceBusinessException as e:
         return CreateOrderReturnStatusTO.create(False, e.message, True)
-    except BusinessException, e:
+    except BusinessException as e:
         return CreateOrderReturnStatusTO.create(False, e.message)
 
 
