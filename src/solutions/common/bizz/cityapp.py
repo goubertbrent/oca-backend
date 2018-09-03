@@ -91,6 +91,7 @@ def _get_uitdatabank_events_old(city_app_profile, page, pagelength, changed_sinc
 @returns(tuple)
 @arguments(city_app_profile=CityAppProfile, page=(int, long), pagelength=(int, long))
 def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
+    # type: (CityAppProfile, int, int) -> tuple[bool, list[dict]]
 
     def encode(text):
         return urlquote(str(text), "~")
@@ -115,8 +116,10 @@ def _get_uitdatabank_events_v2(city_app_profile, page, pagelength):
                   "start": (page - 1) * pagelength,
                   "datetype": "next3months",
                   "group": "event"}
+    for key, value in zip(city_app_profile.uitdatabank_filters_key, city_app_profile.uitdatabank_filters_value):
+        url_params['q'] += ' AND NOT %s:%s' % (key, value)
     params.update(url_params)
-
+    logging.info('Uit search params: %s', url_params)
     for k, v in params.items():
         if isinstance(v, unicode):
             params[k] = v.encode('utf8')

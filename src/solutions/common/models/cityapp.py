@@ -32,6 +32,10 @@ class CityAppProfile(db.Model):
     uitdatabank_key = db.StringProperty(indexed=False)
     uitdatabank_region = db.StringProperty(indexed=False) # deprecated since we allow multiple regions
     uitdatabank_regions = db.StringListProperty(indexed=False)
+    # See https://documentatie.uitdatabank.be/content/search_api/latest/referentiegids.html for possible filters
+    # properties names are for easy conversion to ndb model later
+    uitdatabank_filters_key = db.StringListProperty(name='uitdatabank_filters.key', indexed=False)
+    uitdatabank_filters_value = db.StringListProperty(name='uitdatabank_filters.value', indexed=False)
 
     # Run params in cron of CityAppSolutionGatherEvents
     gather_events_enabled = db.BooleanProperty(indexed=False, default=False)
