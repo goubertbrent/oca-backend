@@ -16,38 +16,40 @@
 # @@license_version:1.3@@
 
 import base64
+from collections import OrderedDict
+from contextlib import closing
 import csv
 import datetime
+from functools import partial
 import hashlib
 import json
 import logging
 import os
 import sys
+from types import NoneType
 import urllib
 import urlparse
-from collections import OrderedDict
-from contextlib import closing
-from functools import partial
-from types import NoneType
+
+from PIL.Image import Image
+from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
+from dateutil.relativedelta import relativedelta
+import httplib2
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
+import stripe
+from xhtml2pdf import pisa
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from google.appengine.ext import ndb
-
-import cloudstorage
-import httplib2
-import stripe
-from PIL.Image import Image
-from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
+from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -110,7 +112,7 @@ from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-from xhtml2pdf import pisa
+
 
 try:
     from cStringIO import StringIO
@@ -465,8 +467,8 @@ def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replac
             is_subscription = True
         if product.is_subscription_extension:
             is_subscription_extension_order = True
-        price = item.price if product.can_change_price else product.price
-        total += price * item.count
+        item.price = item.price if product.can_change_price and item.price is not MISSING else product.price
+        total += item.price * item.count
         if product.organization_types and customer.organization_type not in product.organization_types:
             raise ProductNotAllowedException(product.description(DEFAULT_LANGUAGE))
         if product.product_dependencies:
