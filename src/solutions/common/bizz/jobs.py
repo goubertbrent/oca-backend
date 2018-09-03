@@ -14,15 +14,16 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-
 from types import NoneType
 
+from google.appengine.ext import deferred, db
+
+from mcfw.rpc import arguments, returns
 from rogerthat.bizz.job import delete_service
+from rogerthat.bizz.job.delete_service import validate_delete_service
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
-from google.appengine.ext import deferred, db
-from mcfw.rpc import arguments, returns
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
 from solutions.common.utils import create_service_identity_user_wo_default
@@ -35,10 +36,12 @@ def delete_solution(service_user, delete_svc):
 
 
 def _delete_solution(service_user, delete_svc):
+    # type: (users.User, bool) -> None
     sln_settings = get_solution_settings(service_user)
     identities = [None]
     if sln_settings.identities:
         identities.extend(sln_settings.identities)
+    validate_delete_service(service_user)
 
     def trans():
         service_profile = get_service_profile(service_user, False)
