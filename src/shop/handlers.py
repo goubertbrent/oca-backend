@@ -40,7 +40,8 @@ from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile
-from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content
+from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content, \
+    get_legal_language
 from rogerthat.pages.login import SetPasswordHandler
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -444,11 +445,12 @@ class CustomerSignupHandler(PublicPageHandler):
             apps = get_all_signup_enabled_apps()
             solution_server_settings = get_solution_server_settings()
             version = get_current_document_version(DOC_TERMS_SERVICE)
+            legal_language = get_legal_language(self.language)
             params = {
                 'apps': apps,
                 'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
                 'email_verified': False,
-                'toc_content': get_version_content(self.language, DOC_TERMS_SERVICE, version)
+                'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version)
             }
 
         params['signup_success'] = json.dumps(self.render('signup_success'))
