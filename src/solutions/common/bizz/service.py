@@ -151,6 +151,7 @@ def new_inbox_message(sln_settings, message, parent_chat_key=None, service_ident
     service_identity = service_identity or ServiceIdentity.DEFAULT
     service_user = sln_settings.service_user
     language = sln_settings.main_language
+    send_to_forwarders = kwargs.pop('send_to_forwarders', False)
 
     user_details = kwargs.pop('user_details', None)
     sent_by_service = user_details is None
@@ -169,7 +170,7 @@ def new_inbox_message(sln_settings, message, parent_chat_key=None, service_ident
         message, _ = add_solution_inbox_message(service_user, parent_chat_key, False, [user_details], now(),
                                                 message, **kwargs)
 
-    if kwargs.get('send_to_forwarders'):
+    if send_to_forwarders:
         send_inbox_forwarders_message(service_user, service_identity, user_details.toAppUser(), message.message, {
             'if_name': user_details.name,
             'if_email': user_details.email
