@@ -46,6 +46,7 @@ from rogerthat.bizz.service import create_service, validate_and_get_solution, In
     InvalidBroadcastTypeException, RoleNotFoundException, AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.branding import BrandingValidationException
@@ -623,7 +624,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 sln_settings = get_solution_settings(service_user)
 
-            if DEBUG or friends or get_current_queue():
+            if DEBUG or friends or get_current_queue() or is_demo_app(service_user):
                 pass  # no check needed
             else:
                 now_ = now()
@@ -1112,3 +1113,7 @@ def get_organization_type(service_user):
     if customer:
         return customer.organization_type
     return OrganizationType.UNSPECIFIED
+
+
+def is_demo_app(service_user):
+    return get_app_by_id(get_default_app_id(service_user)).demo
