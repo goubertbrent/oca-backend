@@ -368,4 +368,10 @@ $(function() {
         }
     });
 
+    $('.legal-all-versions').click(function(event) {
+        // open all versions page in a new windiw
+        event.preventDefault();
+        window.open($(this).attr('href'), '_blank');
+    });
+
 });
