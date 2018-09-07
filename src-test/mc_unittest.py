@@ -24,14 +24,16 @@ import unittest
 
 from google.appengine.ext import db
 
+from setup_devserver import init_env
+
+init_env()
+
 from mcfw.cache import _tlocal
-from rogerthat.bizz.payment import create_payment_provider
 from rogerthat.bizz.qrtemplate import store_template
 from rogerthat.bizz.service import create_qr_template_key_name
 from rogerthat.bizz.system import DEFAULT_QR_CODE_OVERLAY, DEFAULT_QR_CODE_COLOR, HAND_ONLY_QR_CODE_OVERLAY
 from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
-from rogerthat.to.payment import PaymentProviderTO
 from rogerthat.utils import now, guid
 from shop.bizz import put_app_signup_enabled
 from shop.models import RegioManagerTeam, RegioManager, LegalEntity
@@ -66,7 +68,7 @@ class TestCase(unittest.TestCase):
         from google.appengine.ext import testbed
         from rogerthat_tests import register_tst_mobile
 
-        os.environ['HTTP_HOST'] = 'rt.dev:8080'
+        os.environ['HTTP_HOST'] = 'localhost:8080'
 
         self.testbed = testbed.Testbed()
         self.testbed.activate()
@@ -107,6 +109,7 @@ class TestCase(unittest.TestCase):
                                                       u'es-madrid': u'Madrid'}}
 
         apps = {}
+        qrtemplate_keys = self.setup_qr_templates()
         for app_type, apps_dict in apps_to_be_created.iteritems():
             for app_id, app_name in apps_dict.iteritems():
                 new_app = App(key=App.create_key(app_id))
@@ -118,9 +121,11 @@ class TestCase(unittest.TestCase):
                 new_app.android_app_id = new_app.ios_app_id
                 new_app.is_default = False
                 new_app.visible = True
+                new_app.secure = True
                 new_app.creation_time = now()
                 new_app.mdp_client_id = guid()
                 new_app.mdp_client_secret = guid()
+                new_app.qrtemplate_keys = qrtemplate_keys
                 apps[app_id] = new_app
 
         rogerthat_app = apps[App.APP_ID_ROGERTHAT]
@@ -166,25 +171,6 @@ class TestCase(unittest.TestCase):
         to_put = apps.values() + [ss, sss, regio_manager, regio_manager_team]
         put_and_invalidate_cache(*to_put)
 
-        create_payment_provider(PaymentProviderTO(id=u"payconiq",
-                                                  name=u"Payconiq",
-                                                  logo=None,
-                                                  version=1,
-                                                  description=u"payconiq descripion is markdown",
-                                                  oauth_settings=None,
-                                                  background_color=None,
-                                                  text_color=None,
-                                                  button_color=None,
-                                                  black_white_logo=None,
-                                                  asset_types=[],
-                                                  currencies=[u'EUR'],
-                                                  settings=u"{'a': 1}",
-                                                  embedded_application=None,
-                                                  app_ids=[]))
-
-        for app_id in apps:
-            self.setup_qr_templates(app_id)
-
         users.get_current_user = lambda: users.User(u'g.audenaert@gmail.com')
         user = users.get_current_user()
         create_user_profile(user, u"Geert Audenaert", language='nl')
@@ -197,23 +183,19 @@ class TestCase(unittest.TestCase):
             if new_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
                 put_app_signup_enabled(app_id=new_app.app_id, enabled=True)
 
-    def setup_qr_templates(self, app_id):
-        app = App.get(App.create_key(app_id))
-        app.qrtemplate_keys = list()
-
+    def setup_qr_templates(self):
+        qrtemplate_keys = []
         description = u"DEFAULT"
-        key_name = create_qr_template_key_name(app_id, description)
+        key_name = create_qr_template_key_name('test', description)
         store_template(None, DEFAULT_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0')
                                                                             for c in DEFAULT_QR_CODE_COLOR), key_name)
-        app.qrtemplate_keys.append(key_name)
-
+        qrtemplate_keys.append(key_name)
         description = u"HAND"
-        key_name = create_qr_template_key_name(app_id, description)
+        key_name = create_qr_template_key_name('test', description)
         store_template(None, HAND_ONLY_QR_CODE_OVERLAY, description, u"".join(("%X" % c).rjust(2, '0')
                                                                               for c in DEFAULT_QR_CODE_COLOR), key_name)
-        app.qrtemplate_keys.append(key_name)
-
-        put_and_invalidate_cache(app)
+        qrtemplate_keys.append(key_name)
+        return qrtemplate_keys
 
     def tearDown(self):
         self.testbed.deactivate()

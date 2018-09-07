@@ -20,11 +20,13 @@ import logging
 
 from google.appengine.ext import db, ndb
 
+from babel import Locale
 from babel.dates import get_timezone
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
+from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.common import NdbModel
@@ -214,7 +216,7 @@ class SolutionMessage(db.Model):
         return str(self.key())
 
 
-class SolutionIdentitySettings(db.Model):
+class SolutionIdentitySettings(db.Expando):
     name = db.StringProperty(indexed=False)
     phone_number = db.StringProperty(indexed=False)
     qualified_identifier = db.StringProperty(indexed=False)
@@ -239,8 +241,7 @@ class SolutionIdentitySettings(db.Model):
 
     payment_enabled = db.BooleanProperty(default=False)
     payment_optional = db.BooleanProperty(default=True)
-    payment_min_amount_for_fee = db.IntegerProperty(default=0)
-    payment_test_mode = db.BooleanProperty(default=False)
+    payment_test_mode = db.BooleanProperty(default=DEBUG)
 
     @staticmethod
     def create_key(service_user, service_identity):
@@ -387,6 +388,10 @@ class SolutionSettings(SolutionIdentitySettings):
     @property
     def tz_info(self):
         return get_timezone(self.timezone)
+
+    @property
+    def currency_symbol(self):
+        return Locale.parse(self.main_language).currencies.get(self.currency, self.currency)
 
 
 class SolutionAutoBroadcastTypes(db.Model):

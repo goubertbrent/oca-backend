@@ -18,6 +18,7 @@
 from google.appengine.ext import db
 
 from mcfw.utils import Enum
+from rogerthat.bizz.payment.providers.payconiq.models import PayconiqTransaction
 from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.rpc import users
 from rogerthat.utils.service import get_identity_from_service_identity_user, \
@@ -25,6 +26,7 @@ from rogerthat.utils.service import get_identity_from_service_identity_user, \
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, SECONDS_IN_MINUTE
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
+from solutions.common.models.payment import PaymentTransaction
 from solutions.common.models.properties import SolutionUserProperty
 
 
@@ -85,6 +87,18 @@ class SolutionOrder(db.Model):
     payment_provider = db.StringProperty()
 
     @property
+    def id(self):
+        return self.key().id()
+
+    @property
+    def transaction_key(self):
+        if self.transaction_id and self.payment_provider:
+            if self.payment_provider == 'payconiq':
+                return PayconiqTransaction.create_key(self.transaction_id)
+            elif self.payment_provider == 'threefold':
+                return PaymentTransaction.create_key('threefold', self.transaction_id)
+
+    @property
     def service_identity_user(self):
         return users.User(self.parent_key().name())
 
@@ -98,6 +112,7 @@ class SolutionOrder(db.Model):
 
     @property
     def solution_order_key(self):
+        # TODO get rid of this and use id instead
         return str(self.key())
 
     @classmethod

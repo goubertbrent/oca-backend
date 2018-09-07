@@ -86,7 +86,6 @@ var DJMATIC_JUKEBOX_SERVER_API = "{{ jukebox_server_api }}";
 var DJMATIC_PROFILE_STATUS = "{{ djmatic_profile.status }}";
 var UNITS = {{ UNITS }};
 var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
-var CURRENCY = "{{ currency }}";
 var CONSTS = {{ CONSTS_JSON }};
 var MODULES = {{ modules }};
 var COUNTRY = null;
@@ -240,10 +239,17 @@ var modules = {};
                                 <div class="sln-set-avatar" url="/djmatic/settings/avatar"></div>
                                 <div class="sln-set-logo"></div>
                                 <div class="sln-set-name" required_setting="true"></div>
-                                <div class="sln-set-phone-number"></div>
+                                <diupv class="sln-set-phone-number"></diup`v>
                                 <div class="sln-set-facebook-action-url"></div>
                                 <div class="sln-set-facebook-place"></div>
-                                <div class="sln-set-currency"></div>
+                                <div class="sln-set-currency">
+                                    <label>{% translate language, "common", "Currency" %}:</label>
+                                    <select name="currency">
+                                        {% for currency, name in currencies %}
+                                        <option value="{{ currency }}">{{ name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                                 <div class="sln-set-description"></div>
                                 <div class="sln-set-openinghours"></div>
                                 <div class="sln-set-address"></div>

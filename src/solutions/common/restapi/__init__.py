@@ -26,6 +26,7 @@ from google.appengine.ext import db, deferred
 from babel.dates import format_date
 from babel.numbers import format_currency
 from mcfw.consts import MISSING, REST_FLAVOR_TO
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -110,8 +111,8 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     TimestampTO, SolutionScheduledBroadcastTO, SolutionInboxesTO, SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
-    ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, SaveSettingsResultTO, \
-    SaveSettingsReturnStatusTO, AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
+    ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
+    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -626,33 +627,22 @@ def broadcast_validate_url(url, allow_empty=False):
         return UrlReturnStatusTO.create(False, e.message, url)
 
 
-@rest("/common/settings/save", "post")
-@returns(SaveSettingsReturnStatusTO)
-@arguments(name=unicode, description=unicode, opening_hours=unicode, address=unicode, phone_number=unicode,
-           facebook_page=unicode, facebook_name=unicode, facebook_action=unicode, currency=unicode, search_enabled=bool,
-           search_keywords=unicode, timezone=unicode, events_visible=bool, email_address=unicode,
-           inbox_email_reminders=bool, iban=unicode, bic=unicode, search_enabled_check=bool)
-def settings_save(name, description=None, opening_hours=None, address=None, phone_number=None, facebook_page=None,
-                  facebook_name=None, facebook_action=None, currency=None, search_enabled=True, search_keywords=None,
-                  timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None, iban=None,
-                  bic=None, search_enabled_check=False):
+@rest('/common/settings', 'put')
+@returns(SolutionSettingsTO)
+@arguments(data=SolutionSettingsTO)
+def settings_save(data):
+    # type: (SolutionSettingsTO) -> SolutionSettingsTO
     try:
         service_user = users.get_current_user()
         session_ = users.get_current_session()
         service_identity = session_.service_identity
-        address_geocoded = save_settings(service_user, service_identity, name, description, opening_hours, address,
-                                         phone_number, facebook_page, facebook_name, facebook_action, currency,
-                                         search_enabled, search_keywords, timezone, events_visible, email_address,
-                                         inbox_email_reminders, iban, bic, search_enabled_check)
-
-        r = SaveSettingsResultTO()
-        r.address_geocoded = address_geocoded
-        return SaveSettingsReturnStatusTO.create(True, None, r)
+        sln_settings, sln_i_settings = save_settings(service_user, service_identity, data)
+        return SolutionSettingsTO.fromModel(sln_settings, sln_i_settings)
     except BusinessException as e:
-        return SaveSettingsReturnStatusTO.create(False, e.message, None)
+        raise HttpBadRequestException(e.message)
 
 
-@rest("/common/settings/load", "get", read_only_access=True)
+@rest('/common/settings', 'get', read_only_access=True)
 @returns(SolutionSettingsTO)
 @arguments()
 def settings_load():

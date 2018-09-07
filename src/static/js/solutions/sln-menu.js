@@ -44,15 +44,19 @@ $(function () {
     }
 
     function renderMenu(menu, sourceId) {
-        Requests.getOrderSettings().then(function (orderSettings) {
+        var promises = [Requests.getOrderSettings(), Requests.getPaymentSettings(), Requests.getSettings()];
+        Promise.all(promises).then(function (data) {
+            var orderSettings = data[0];
+            var paymentSettings = data[1];
+            var settings = data[2];
             var menuHtmlElement = $("#menu_contents").find("#menu_test");
             var html = $.tmpl(templates.menu, {
                 menu: menu,
                 t: CommonTranslations,
                 isFlagSet: sln.isFlagSet,
-                currency: CURRENCY,
+                currency: CONSTS.CURRENCY_SYMBOLS[settings.currency],
                 CONSTS: CONSTS,
-                isPaymentEnabled: modules.order && modules.order.isPaymentEnabled(),
+                isPaymentEnabled: paymentSettings.enabled,
                 menuName: menu.name || CommonTranslations.DEFAULT_MENU_NAME,
                 advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
                 showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
@@ -388,7 +392,10 @@ $(function () {
 
     function editItem() {
         var $this = $(this);
-        Requests.getOrderSettings().then(function (orderSettings) {
+        var promises = [Requests.getOrderSettings(), Requests.getSettings()];
+        Promise.all(promises).then(function (results) {
+            var orderSettings = results[0];
+            var settings = results[1];
             var itemName = $this.parents('td').attr('item_id');
             var category = getCategory($this.parents('td').attr('category_id'));
             var item = getItem(category, itemName);
@@ -399,6 +406,7 @@ $(function () {
                 isFlagSet: sln.isFlagSet,
                 units: UNITS,
                 CONSTS: CONSTS,
+                currency: CONSTS.CURRENCY_SYMBOLS[settings.currency],
                 advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
                 showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
             });
@@ -503,7 +511,10 @@ $(function () {
 
     function addItem() {
         var $this = $(this);
-        Requests.getOrderSettings().then(function (orderSettings) {
+        var promises = [Requests.getOrderSettings(), Requests.getSettings()]
+        Promise.all(promises).then(function (results) {
+            var orderSettings = results[0];
+            var settings = results[1];
             var html = $.tmpl(templates.menu_additem, {
                 t: CommonTranslations,
                 item: {},
@@ -511,6 +522,7 @@ $(function () {
                 isFlagSet: sln.isFlagSet,
                 units: UNITS,
                 CONSTS: CONSTS,
+                currency: CONSTS.CURRENCY_SYMBOLS[settings.currency],
                 advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED && MODULES.indexOf('order') !== -1,
                 showVisibleInCheckboxes: shouldShowVisibility(orderSettings)
             });

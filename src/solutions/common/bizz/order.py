@@ -153,7 +153,9 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                             assert isinstance(result, PayWidgetResult)
                             transaction_id = result.transaction_id
                             payment_provider = result.provider_id
-                            transaction_details = get_transaction_details(payment_provider, transaction_id)
+                            app_user = user_details[0].toAppUser()
+                            transaction_details = get_transaction_details(payment_provider, transaction_id,
+                                                                          service_user, service_identity, app_user)
 
                 picture_url = None
                 attachments = []
@@ -164,11 +166,11 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                     order.write(c.encode('utf-8') if isinstance(c, unicode) else c)
                 details = get_extended_details_from_tag(order.getvalue().decode('utf-8'))
                 if transaction_details:
-                    details += u'\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_received_paid',
+                    details += u'\n\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_received_paid',
                                                           amount=u'%.2f' % transaction_details.get_display_amount(),
                                                           currency=transaction_details.currency)
                 elif sln_i_settings.payment_enabled:
-                    details += u'\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_not_paid_yet')
+                    details += u'\n\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_not_paid_yet')
 
                 takeaway_datetime = datetime.datetime.fromtimestamp(takeaway_time,
                                                                     tz=get_timezone(sln_settings.timezone))

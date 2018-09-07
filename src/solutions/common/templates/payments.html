@@ -1,0 +1,69 @@
+{% raw %}
+<div id="mobile_payments_container" class="clearfix">
+    <h2>${T('mobile_payments')}</h2>
+    <div id="mobile_payments_available">
+        <span class="help-block">${T('mobile_payments_explanation')}</span>
+        <div class="payment-optional">
+            <label class="checkbox" for="payments_optional">
+                <input type="checkbox" value="payments_optional" id="payments_optional"
+                       value="${paymentSettings.min_amount_for_fee}"
+                       {{if paymentSettings.optional}}checked{{/if}}/> ${T('Optional')}
+            </label>
+            <span class="help-block">{{html T('payments_optional_explanation') }}</span>
+        </div>
+        <hr>
+        {{if settings.payconiq}}
+        <h3>Payconiq</h3>
+        {{html payconiqHtml}}
+        <form class="form-horizontal">
+            <label class="checkbox" for="payconiq_enabled">
+                <input type="checkbox" value="payconiq_enabled" id="payconiq_enabled"
+                       {{if settings.payconiq.enabled}}checked{{/if}}/> ${T('Enabled')}
+            </label>
+            <div class="control-group">
+                <label class="control-label" for="payconicMerchantId">Merchant ID</label>
+                <div class="controls">
+                    <input id="payconicMerchantId" type="text"
+                           value="${settings.payconiq.settings.merchant_id}" style="width: 95%;"/>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="payconiqAccessToken">Account Key</label>
+                <div class="controls">
+                    <textarea id="payconiqAccessToken" type="text" rows="5" style="width: 95%;">${settings.payconiq.settings.jwt}</textarea>
+                </div>
+            </div>
+            <div class="control-group">
+                <span class="help-block">${T('payments_fee_min_amount_explanation')}</span>
+                <div class="input-prepend">
+                    <span class="add-on">€</span>
+                    <input type="number" id="payment_min_amount_for_fee"
+                           value="${settings.payconiq.fee.min_amount / 100}"
+                           min="0" step="0.01" class="span2">
+                </div>
+                <span class="help-block">${T('payments_fee_min_amount_zero_cost')}</span>
+           </div>
+        </form>
+        <hr>
+        {{/if}}
+       {{if settings.threefold}}
+        <h3>ThreeFold</h3>
+        <form class="form-horizontal">
+            <p>TODO: Explanation about threefold</p>
+            <label class="checkbox" for="threefold_enabled">
+                <input type="checkbox" value="threefold_enabled" id="threefold_enabled"
+                       {{if settings.threefold.enabled}}checked{{/if}}/> ${T('Enabled')}
+            </label>
+            <label for="threefold_address">Address</label>
+            <input name="threefold_address" id="threefold_address" type="text" minlength="78"
+                   maxlength="78" value="${settings.threefold.settings.address}" style="width: 600px;">
+            <p>TODO: where to find this address</p>
+        </form>
+        {{/if}}
+    </div>
+    <div id="mobile_payments_unavailable" style="display: none;">
+        ${T('mobile_payments_only_available_with_adv_order')}
+    </div>
+    <hr>
+</div>
+{% endraw %}

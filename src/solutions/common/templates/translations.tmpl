@@ -2,8 +2,6 @@
 
    var DEBUG = {% if debug %}true{% else %}false{% endif %};
 
-   var CURRENCY = "{{ currency }}";
-
    var LANGUAGE = "{{ language }}";
    
    var LOGO_LANGUAGES = [{% for lang in logo_languages %}"{{ lang }}",{% endfor %}];

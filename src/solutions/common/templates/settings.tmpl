@@ -545,6 +545,14 @@
                 <br>
             {% endif %}
             <div class="sln-set-description"></div>
+            <div class="sln-set-currency">
+                <label>{% translate language, "common", "Currency" %}:</label>
+                <select name="currency">
+                    {% for currency, name in currencies %}
+                    <option value="{{ currency }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="sln-set-openinghours"></div>
             <div class="sln-set-address"></div>
             <div class="sln-set-search-keywords"></div>

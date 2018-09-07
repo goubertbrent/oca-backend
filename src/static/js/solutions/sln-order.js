@@ -26,14 +26,7 @@ $(function () {
     var orders = [];
     var showAllOrders = false;
 
-    var paymentEnabled = false;
-    var paymentOptional = true;
-    var paymentMinAmountForFee = 0;
     var pauseEndTimeout;
-
-    modules.order = {
-        isPaymentEnabled: isPaymentEnabled
-    };
 
     var channelUpdates = function (data) {
         switch (data.type) {
@@ -144,7 +137,7 @@ $(function () {
         var group = $('<div class="btn-group"></div>');
 
         if (order.status !== STATUS_COMPLETED && orderSettings.manual_confirmation) {
-            var btnConfirm = $('<button action="confirm" class="btn btn-large btn-primary"><i class="fa fa-reply"><i></button>')
+            var btnConfirm = $('<button action="confirm" class="btn btn-large btn-primary"><i class="fa fa-reply"><i></button>');
             btnConfirm.click(function (event) {
                 event.stopPropagation();
                 sendMessage(order, CommonTranslations.order_confirmed);
@@ -321,7 +314,9 @@ $(function () {
                 order: order,
                 advancedOrder: orderSettings.order_type === CONSTS.ORDER_TYPE_ADVANCED,
                 CommonTranslations: CommonTranslations,
-                formatHtml: sln.formatHtml
+                T: T,
+                formatHtml: sln.formatHtml,
+                transactionStatus: order.transaction ? T('transaction_status_' + order.transaction.status) : null,
             });
             var modal = sln.createModal(html);
 
@@ -528,140 +523,93 @@ $(function () {
         minuteStep: 5
     });
 
-    var loadPaymentSettings = function () {
-        sln.call({
-            url: "/common/payments/settings",
-            type: "GET",
-            success: function (data) {
-                setPaymentEnabled(data.enabled);
-                setPaymentOptional(data.optional);
-                setPaymentMinAmountForFee(data.min_amount_for_fee)
-            },
-            error: sln.showAjaxError
+    function loadPaymentSettings(refresh) {
+        var promises = [Requests.getPaymentSettings({cached: !refresh}), Requests.getPaymentProviders({cached: !refresh})];
+        Promise.all(promises).then(function (results) {
+            var paymentSettings = results[0];
+            var paymentProviders = results[1];
+            renderPaymentSettings(paymentSettings, paymentProviders);
         });
-    };
-
-    var savePaymentSettings = function () {
-        sln.call({
-            url: "/common/payments/settings",
-            type: "POST",
-            data: {
-                data: JSON.stringify({
-                    enabled: paymentEnabled,
-                    optional: paymentOptional,
-                    min_amount_for_fee: paymentMinAmountForFee
-                })
-            },
-            success: function (data) {
-                if (!data.success) {
-                    return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
-            },
-            error: sln.showAjaxError
-        });
-    };
-
-    $('.downloaded-hint').click(function() {
-        var self = $(this);
-        if (!self.next('p').length) {
-            self.after(
-                '<p>' + CommonTranslations.file_downloaded_explanation + '</p>'
-            );
-        }
-    });
-
-    var showPaymentEnabledWarningIfNeeded = function() {
-        if (!paymentEnabled || $('#payconicMerchantId').val().trim() && $('#payconiqAccessToken').val().trim()) {
-            $('#paymentEnabledWarning').hide();
-        } else {
-            $('#paymentEnabledWarning').show();
-        }
     }
 
-    var loadPayconiq = function () {
-        sln.call({
-            url: "/common/payments/payconiq",
-            type: "GET",
-            success: function (data) {
-                $("#payconicMerchantId").val(data.merchant_id || '');
-                $("#payconiqAccessToken").val(data.jwt || '');
-                showPaymentEnabledWarningIfNeeded();
+    function renderPaymentSettings(paymentSettings, paymentProviders) {
+        var settings = paymentProviders.reduce(function (acc, provider) {
+            acc[provider.provider_id] = provider;
+            return acc;
+        }, {});
+        var html = $.tmpl(templates['payments'], {
+            payconiqHtml: templates['payconiq_nl'],
+            paymentSettings: paymentSettings,
+            paymentProviders: paymentProviders,
+            settings: settings,
+        });
+        $('#section_settings_mobile_payments').html(html);
+
+        $('.downloaded-hint').click(function () {
+            var self = $(this);
+            if (!self.next('p').length) {
+                self.after(
+                    '<p>' + CommonTranslations.file_downloaded_explanation + '</p>'
+                );
             }
         });
-    };
+        $('#payments_optional').change(savePaymentSettings);
+        sln.configureDelayedInput($('#payment_min_amount_for_fee'), savePayconiqSettings);
+        sln.configureDelayedInput($("#payconicMerchantId"), savePayconiqSettings);
+        sln.configureDelayedInput($("#payconiqAccessToken"), savePayconiqSettings);
+        $('#payconiq_enabled').change(savePayconiqSettings);
+        sln.configureDelayedInput($("#threefold_address"), saveThreefoldSettings);
+        $('#threefold_enabled').change(saveThreefoldSettings);
+    }
+
+    function savePaymentSettings() {
+        var data = {
+            optional: $('#payments_optional').prop('checked')
+        };
+        Requests.savePaymentSettings(data).then(function (updatedSettings) {
+            Requests.getPaymentProviders().then(function (paymentProviders) {
+                renderPaymentSettings(updatedSettings, paymentProviders);
+            });
+        });
+    }
 
     var savePayconiqSettings = function() {
         var data = {
-            merchant_id : $("#payconicMerchantId").val().trim(),
-            jwt : $("#payconiqAccessToken").val().trim()
-        };
-
-        showPaymentEnabledWarningIfNeeded();
-
-        if (!data.merchant_id || !data.jwt) {
-            return;
-        }
-
-        sln.call({
-            url : "/common/payments/payconiq",
-            type : "POST",
-            showProcessing : true,
-            data : {
-                data : JSON.stringify(data)
+            provider_id: 'payconiq',
+            enabled: $('#payconiq_enabled').prop('checked'),
+            settings: {
+                merchant_id: $("#payconicMerchantId").val().trim(),
+                jwt: $("#payconiqAccessToken").val().trim(),
             },
-            success : function(data) {
-                if (!data.success) {
-                    return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
+            fee: {
+                min_amount: Math.round(parseFloat($('#payment_min_amount_for_fee').val()) * 100),
+                fee: 15,
+                precision: 2,
+                currency: 'EUR',
             }
+        };
+        Requests.savePaymentProvider('payconiq', data).then(function () {
+            loadPaymentSettings(true);
         });
     };
 
-    function togglePaymentEnabled() {
-        setPaymentEnabled(!paymentEnabled);
-        savePaymentSettings();
-    }
-
-    function setPaymentEnabled(newPaymentEnabled) {
-        paymentEnabled = newPaymentEnabled;
-        if (newPaymentEnabled) {
-            $('#paymentEnabledYes').addClass("btn-success").text(CommonTranslations.ENABLED);
-            $('#paymentEnabledNo').removeClass("btn-danger").html('&nbsp;');
-        } else {
-            $('#paymentEnabledYes').removeClass("btn-success").html('&nbsp;');
-            $('#paymentEnabledNo').addClass("btn-danger").text(CommonTranslations.DISABLED);
-        }
-        showPaymentEnabledWarningIfNeeded();
-    }
-
-    function togglePaymentOptional() {
-        setPaymentOptional(!paymentOptional);
-        savePaymentSettings();
-    }
-
-    function setPaymentOptional(newPaymentOptional) {
-        paymentOptional = newPaymentOptional;
-        if (newPaymentOptional) {
-            $('#paymentOptionalYes').addClass("btn-success").text(CommonTranslations.Optional);
-            $('#paymentOptionalNo').removeClass("btn-danger").html('&nbsp;');
-        } else {
-            $('#paymentOptionalYes').removeClass("btn-success").html('&nbsp;');
-            $('#paymentOptionalNo').addClass("btn-danger").text(CommonTranslations.REQUIRED_LOWER.capitalize());
-        }
-    }
-
-    function changePaymentMinAmountForFee() {
-    	paymentMinAmountForFee = parseInt(parseFloat($('#payment_min_amount_for_fee').val()) * 100);
-        savePaymentSettings();
-    }
-
-    function setPaymentMinAmountForFee(newPaymentMinAmountForFee) {
-    	paymentMinAmountForFee = newPaymentMinAmountForFee;
-    	$('#payment_min_amount_for_fee').val(newPaymentMinAmountForFee / 100);
-    }
-
-    function isPaymentEnabled() {
-        return paymentEnabled;
+    function saveThreefoldSettings() {
+        var data = {
+            provider_id: 'threefold',
+            enabled: $('#threefold_enabled').prop('checked'),
+            settings: {
+                address: $("#threefold_address").val().trim(),
+            },
+            fee: {
+                min_amount: 0,
+                fee: 0,
+                precision: 9,
+                currency: 'TFT',
+            }
+        };
+        Requests.savePaymentProvider('threefold', data).then(function () {
+            loadPaymentSettings(true);
+        });
     }
 
     sln.registerMsgCallback(channelUpdates);
@@ -670,11 +618,7 @@ $(function () {
         loadOrders(orderSettings);
     });
     loadPaymentSettings();
-    loadPayconiq();
 
-    $('#paymentEnabledYes, #paymentEnabledNo').click(togglePaymentEnabled);
-    $('#paymentOptionalYes, #paymentOptionalNo').click(togglePaymentOptional);
-    sln.configureDelayedInput($('#payment_min_amount_for_fee'), changePaymentMinAmountForFee);
 
     sln.registerInboxActionListener("order", function (chatId) {
         Requests.getOrderSettings().then(function (orderSettings) {
@@ -696,6 +640,4 @@ $(function () {
     sln.configureDelayedInput($("#pause-settings-message"), _putOrderSettings);
     sln.configureDelayedInput($("#outside-hours-message"), _putOrderSettings);
 
-    sln.configureDelayedInput($("#payconicMerchantId"), savePayconiqSettings);
-    sln.configureDelayedInput($("#payconiqAccessToken"), savePayconiqSettings);
 });

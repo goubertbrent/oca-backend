@@ -127,20 +127,22 @@ $(function () {
 			return o;
 		});
 
-		var html = $.tmpl(templates.sandwiches_list_item, {
-            sandwiches : localSandwichOrders,
-            STATUS_RECEIVED: STATUS_RECEIVED,
-            STATUS_READY: STATUS_READY,
-			STATUS_REPLIED: STATUS_REPLIED,
-			CURRENCY: CURRENCY,
-			t: CommonTranslations
+        Requests.getSettings().then(function (settings) {
+            var html = $.tmpl(templates.sandwiches_list_item, {
+                sandwiches: localSandwichOrders,
+                STATUS_RECEIVED: STATUS_RECEIVED,
+                STATUS_READY: STATUS_READY,
+                STATUS_REPLIED: STATUS_REPLIED,
+                CURRENCY: CONSTS.CURRENCY_SYMBOLS[settings.currency],
+                t: CommonTranslations
+            });
+            sandwichOrdersTable.html(html);
+            sandwichesElem.find('button[action="reply"]').click(replySandwichOrderPressed);
+            sandwichesElem.find('button[action="ready"]').click(readySandwichOrderPressed);
+            sandwichesElem.find('button[action="delete"]').click(deleteSandwichOrderPressed);
+            $('.sln-sandwich-badge').text(localSandwichOrders.length || '');
+            sln.resize_header();
         });
-        sandwichOrdersTable.empty().append(html);
-		sandwichesElem.find('button[action="reply"]').click(replySandwichOrderPressed);
-		sandwichesElem.find('button[action="ready"]').click(readySandwichOrderPressed);
-		sandwichesElem.find('button[action="delete"]').click(deleteSandwichOrderPressed);
-        $('.sln-sandwich-badge').text(localSandwichOrders.length || '');
-        sln.resize_header();
     }
 
     function replySandwichOrderPressed() {

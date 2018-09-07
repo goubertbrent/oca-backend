@@ -114,7 +114,7 @@
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="AdvancedOrderWidget"
-                        currency="{{ settings.currency }}"
+                        currency="{{ settings.currency_symbol }}"
                         leapTime="{{ leap_time }}">
                     {% for category in menu.categories %}
                     {% if category.items and category.has_visible %}
@@ -167,7 +167,7 @@
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="AdvancedOrderWidget"
-                        currency="{{ settings.currency }}"
+                        currency="{{ settings.currency_symbol }}"
                         leapTime="{{ leap_time }}">
                     {% for category in menu.categories %}
                     {% if category.items and category.has_visible_with_pay %}
@@ -465,33 +465,56 @@
                             }
                         }
                     }
-
                     if (amount &lt;= 0) {
                         return {outlet: 'flush_advanced_order_processing'};
                     }
-
-                    if (amount &lt; {{ settings.payment_min_amount_for_fee }}) {
-                    	amount += 15;
-                    }
-
                     var amountStr = (amount / 100).toFixed(2);
                     var outlet = 'message_pay_required';
                     if (rogerthat.service.data.settings.payment.optional) {
                         outlet = 'message_pay_optional';
                     }
+                   var methods = [];
+                   var providers = rogerthat.service.data.settings.payment.providers;
+                   for (var i = 0; i &lt; providers.length; i++) {
+                       var provider = providers[i];
+                       switch (provider.provider_id) {
+                           case 'payconiq':
+                               methods.push({
+                                   provider_id: 'payconiq',
+                                   currency: 'EUR',
+                                   amount: 0,
+                                   target: rogerthat.service.account,
+                                   precision: 2,
+                                   calculate_amount: true,
+                               });
+                               break;
+                           case 'threefold':
+                               if (provider.settings.address) {
+                                   methods.push({
+                                       provider_id: 'threefold',
+                                       currency: 'TFT',
+                                       amount: 0,
+                                       target: provider.settings.address,
+                                       precision: 5,
+                                       calculate_amount: true,
+                                   });
+                               }
+                               break;
+                       }
+                   }
                     return {
                         outlet: outlet,
                         message: "{% translate language, 'common', 'pay_widget_message', '_duplicate_backslashes=True' %}".replace('%(amount)s', amountStr).replace('%(currency)s', 'EUR'),
                         defaultValue: {
                             memo: "{% translate language, 'common', 'pay_widget_memo', '_duplicate_backslashes=True' %}".replace('%(name)s', rogerthat.service.name).replace('%(app_name)s', rogerthat.system.appName),
                             target: rogerthat.service.account,
-                            test_mode: rogerthat.service.data.settings.payment.test_mode,
-                            methods: [{
-                                provider_id: 'payconiq',
-                                currency: 'EUR',
+                            base_method:{
+                                currency: '{{ settings.currency }}',
                                 amount: amount,
-                                precision: 2
-                            }]
+                                precision: 2,
+                            },
+                            test_mode: rogerthat.service.data.settings.payment.test_mode,
+                            methods: methods,
                         }
                     };
                 };
@@ -510,11 +533,18 @@
                   positiveButtonCaption="{% translate language, 'common', 'Send' %}"
                   negativeButtonCaption="{% translate language, 'common', 'skip' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
+                    <baseMethod>
+                        <currency>EUR</currency>
+                        <amount>1</amount>
+                        <precision>2</precision>
+                    </baseMethod>
                     <method>
                         <provider_id>payconiq</provider_id>
                         <currency>EUR</currency>
                         <amount>1</amount>
                         <precision>2</precision>
+                        <target>(fake target)</target>
+                        <calculateAmount>false</calculateAmount>
                     </method>
                 </widget>
             </form>
@@ -532,11 +562,18 @@
                   positiveButtonCaption="{% translate language, 'common', 'Send' %}"
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
+                    <baseMethod>
+                        <currency>EUR</currency>
+                        <amount>1</amount>
+                        <precision>2</precision>
+                    </baseMethod>
                     <method>
                         <provider_id>payconiq</provider_id>
                         <currency>EUR</currency>
                         <amount>1</amount>
                         <precision>2</precision>
+                        <target>(fake target)</target>
+                        <calculateAmount>false</calculateAmount>
                     </method>
                 </widget>
             </form>

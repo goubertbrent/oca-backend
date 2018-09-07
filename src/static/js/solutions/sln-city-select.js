@@ -18,11 +18,12 @@
 
 var NotImplmentedError = new Error('not implmented');
 
-function CitySelect(cityApps, appStats, selected) {
+function CitySelect(cityApps, appStats, selected, currency) {
     this.cityApps = cityApps;
     this.stats = appStats;
     this.selectedApps = selected;
     this.defaultAppReach = this.stats[ACTIVE_APPS[0]] || 0;
+    this.currency = currency;
 }
 
 
@@ -33,7 +34,7 @@ CitySelect.prototype = {
             var userCount = this.stats[appId];
             var estimatedReach = modules.news.getEstimatedReach(userCount);
             var costCount = appId === ACTIVE_APPS[0] ? 0 : userCount;
-            var estimatedCost = modules.news.getEstimatedCost(costCount, CURRENCY);
+            var estimatedCost = modules.news.getEstimatedCost(costCount, this.currency);
             return '<b>' + city + '</b><br>' + CommonTranslations['broadcast-estimated-reach'] + ': ' + estimatedReach
                 + ' ' + CommonTranslations['broadcast-out-of'] + ' ' + userCount + '<br>'
                 + CommonTranslations['broadcast-estimated-cost'] + ' ' + estimatedCost;
@@ -117,7 +118,7 @@ CitySelect.prototype = {
 
 
 // with a map
-function MapCitySelect(cityApps, appStats, selected, previewContainer, mapData, readonly) {
+function MapCitySelect(cityApps, appStats, selected, previewContainer, mapData, readonly, currency) {
     CitySelect.call(this, cityApps, appStats, selected);
 
     this.data = mapData;
@@ -126,6 +127,7 @@ function MapCitySelect(cityApps, appStats, selected, previewContainer, mapData, 
     this.previewMap = null;
     this.defaultCity = ALL_APPS[0].name;
     this.readonly = readonly || false;
+    this.currency = currency;
 
     this.renderPreview();
 }
@@ -183,7 +185,7 @@ MapCitySelect.prototype.setTotalEstimatedReach = function () {
     }
     $('#popup-total-reach').text(total);
     $('#popup-estimated-reach').text(modules.news.getEstimatedReach(total));
-    $('#popup-estimated-cost').text(modules.news.getEstimatedCost(total - this.defaultAppReach, CURRENCY));
+    $('#popup-estimated-cost').text(modules.news.getEstimatedCost(total - this.defaultAppReach, this.currency));
 };
 
 MapCitySelect.prototype.onShown = function() {
@@ -267,8 +269,8 @@ MapCitySelect.prototype.setSelection = function(area, selection) {
 
 
 // Just a check list
-function ListCitySelect(cityApps, appStats, selected, previewContainer) {
-    CitySelect.call(this, cityApps, appStats, selected);
+function ListCitySelect(cityApps, appStats, selected, previewContainer, currency) {
+    CitySelect.call(this, cityApps, appStats, selected, currency);
     this.previewContainer = previewContainer;
 
     this.renderPreview();

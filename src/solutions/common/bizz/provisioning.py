@@ -67,6 +67,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
 from solutions.common.bizz.order import ORDER_FLOW_NAME
+from solutions.common.bizz.payment import get_providers_settings
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
@@ -478,7 +479,7 @@ def handle_auto_connected_service(service_user, visible):
 
 def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id):
     start = datetime.now()
-    timezone_offsets = list()
+    timezone_offsets = []
     for _ in xrange(20):
         try:
             t = get_next_timezone_transition(sln_settings.timezone, start)
@@ -492,9 +493,8 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
                                  int(t.from_offset)])
         start = t.activates
 
-    app_data = dict()
-    holiday_dates = list()
-    holiday_dates_str = list()
+    holiday_dates = []
+    holiday_dates_str = []
     cur_date = now()
     for d1, d2 in sln_i_settings.holiday_tuples:
         # don't include holidays in the past
@@ -515,31 +515,37 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
         address = sln_i_settings.address.replace("\r", " ").replace("\n", " ").replace("\t", " ")
         if isinstance(address, unicode):
             address = address.encode('utf-8')
-        params = urllib.urlencode(dict(q=address,
-                                       t=u"d"))
+        params = urllib.urlencode({'q': address, 't': u'd'})
         address_url = u"https://maps.google.com/maps?%s" % params
-    app_data['settings'] = {}
-    app_data['settings']['app_name'] = default_app_name
-    app_data['settings']['service_identity'] = service_identity or u"+default+"
-    app_data['settings']['name'] = sln_i_settings.name
-    app_data['settings']['address'] = sln_i_settings.address or None
-    app_data['settings']['address_url'] = address_url
-    app_data['settings']['opening_hours'] = sln_i_settings.opening_hours or None
-    app_data['settings']['timezone'] = sln_settings.timezone
-    app_data['settings']['timezoneOffset'] = timezone_offset(sln_settings.timezone)
-    app_data['settings']['timezoneOffsets'] = timezone_offsets
-    app_data['settings']['holidays'] = dict()
-    app_data['settings']['holidays']['dates'] = holiday_dates
-    app_data['settings']['holidays']['dates_str'] = holiday_dates_str
     if not sln_i_settings.holiday_out_of_office_message:
         sln_i_settings.holiday_out_of_office_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
                                                                         'holiday-out-of-office')
-    app_data['settings']['holidays']['out_of_office_message'] = xml_escape(sln_i_settings.holiday_out_of_office_message)
-    app_data['settings']['modules'] = sln_settings.modules
-    app_data['settings']['payment'] = dict()
-    app_data['settings']['payment']['enabled'] = sln_i_settings.payment_enabled or False
-    app_data['settings']['payment']['optional'] = sln_i_settings.payment_optional in (None, True)
-    app_data['settings']['payment']['test_mode'] = sln_i_settings.payment_test_mode or False
+    payment_provider_settings = get_providers_settings(sln_settings.service_user, service_identity)
+    app_data = {
+        'settings': {
+            'app_name': default_app_name,
+            'service_identity': service_identity or u"+default+",
+            'name': sln_i_settings.name,
+            'address': sln_i_settings.address or None,
+            'address_url': address_url,
+            'opening_hours': sln_i_settings.opening_hours or None,
+            'timezone': sln_settings.timezone,
+            'timezoneOffset': timezone_offset(sln_settings.timezone),
+            'timezoneOffsets': timezone_offsets,
+            'holidays': {
+                'dates': holiday_dates,
+                'dates_str': holiday_dates_str,
+                'out_of_office_message': xml_escape(sln_i_settings.holiday_out_of_office_message)
+            },
+            'modules': sln_settings.modules,
+            'payment': {
+                'enabled': sln_i_settings.payment_enabled,
+                'optional': sln_i_settings.payment_optional in (None, True),
+                'test_mode': sln_i_settings.payment_test_mode or False,
+                'providers': [provider.to_dict() for provider in payment_provider_settings if provider.is_enabled],
+            }
+        }
+    }
 
     for module, get_app_data_func in MODULES_GET_APP_DATA_FUNCS.iteritems():
         if module in sln_settings.modules:
@@ -1364,9 +1370,9 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
 
     menu = MenuTO.fromMenuObject(RestaurantMenu.get(RestaurantMenu.create_key(sln_settings.service_user,
                                                                               sln_settings.solution)))
-    holiday_dates_str = list()
-    holiday_dates = list()
-    orderable_times = list()
+    holiday_dates_str = []
+    holiday_dates = []
+    orderable_times = []
     orderable_times_str = StringIO()
     leap_time = sln_order_settings.leap_time * sln_order_settings.leap_time_type
 
@@ -1486,10 +1492,13 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         start = t.activates
 
     min_amount_for_fee_message = None
-    if sln_settings.payment_min_amount_for_fee > 0:
-        amount = format_currency(sln_settings.payment_min_amount_for_fee / 100.0, sln_settings.currency,
-                                 locale=lang)
-        min_amount_for_fee_message = common_translate(lang, SOLUTION_COMMON, 'payments_fee_min_amount', amount=amount)
+    provider_settings = {p.provider_id: p for p in get_providers_settings(sln_settings.service_user, service_identity)}
+    if 'payconiq' in provider_settings:
+        min_amount = provider_settings['payconiq'].fee.min_amount
+        if min_amount:
+            amount = format_currency(min_amount / 100.0, sln_settings.currency, locale=lang)
+            min_amount_for_fee_message = common_translate(lang, SOLUTION_COMMON, 'payments_fee_min_amount',
+                                                          amount=amount)
 
     flow_params = dict(
         branding_key=main_branding.branding_key,
@@ -1510,7 +1519,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         manual_confirmation=sln_order_settings.manual_confirmation,
         payment_enabled=payment_enabled,
         min_amount_for_fee_message=min_amount_for_fee_message,
-        flow_name=ORDER_FLOW_NAME
+        flow_name=ORDER_FLOW_NAME,
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier

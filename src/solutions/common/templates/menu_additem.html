@@ -18,7 +18,7 @@
 				<input type="checkbox" name="itemLinkPriceUnit" id="itemLinkPriceUnit" {{if (item.has_price || item.has_price === undefined) && item.custom_unit === item.unit}}checked{{/if}}>
 			</label>
 			<div class="input-prepend">
-				<span class="add-on">{% endraw %}{{ currency }}{% raw %}</span>
+				<span class="add-on">${currency}</span>
 				<input type="number" id="itemPrice" name="itemPrice" step="0.01" min="0" value="${item.price ? (item.price / 100) : (item.has_price === undefined ? 2.75: 0.00)}"
 				 required {{if item.has_price === false}}disabled{{/if}} style="width: 64px;">
             </div>

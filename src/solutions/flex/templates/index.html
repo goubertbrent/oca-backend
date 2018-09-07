@@ -59,7 +59,6 @@ $.ajaxSetup({
 var EMAIL_SETTINGS = {{ email_settings|safe }};
 var UNITS = {{ UNITS }};
 var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
-var CURRENCY = "{{ currency }}";
 var LEGAL_ENTITY_CURRENCY = "{{ LEGAL_ENTITY_CURRENCY }}";
 var CONSTS = {{ CONSTS_JSON }};
 var MODULES = {{ modules }};
@@ -419,7 +418,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
                             {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
                                 <li class="" section="section_settings_order"><a href="#">{% translate language, "common", "orders" %}</a></li>
                             {% endif %}
-                            {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules and customer.payment_possible %}
+                            {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
                                 <li class="" section="section_settings_mobile_payments"><a href="#">{% translate language, "common", "mobile_payments" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
@@ -524,7 +523,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
 
         {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
                             {%- include 'order_settings.tmpl' %}
-                            {%- include 'mobile_payments.tmpl' %}
+                            <section id="section_settings_mobile_payments" style="display: none;"></section>
         {% endif %}
 
         {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
@@ -583,7 +582,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     <script src="/static/js/solutions/sln-hints.js"></script>
     {% endif %}
     <script src="/static/js/solutions/sln-loyalty.js"></script>
-    {% if not layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in
+    {% if not is_layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in
     sln_settings.modules) %}
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
     <script src="/static/js/solutions/sln-city-select.js"></script>

@@ -21,8 +21,9 @@ import os
 
 import jinja2
 import webapp2
+from jinja2 import StrictUndefined
 
-from babel import dates
+from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
@@ -54,11 +55,12 @@ from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.loyalty import is_joyn_available, is_oca_loyalty_limited
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
-    UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY
+    UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES, \
+    get_currency_name
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
-from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
+from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.models import SolutionQR, SolutionServiceConsent
 from solutions.common.models.news import NewsSettingsTags
 from solutions.common.models.properties import MenuItem
@@ -69,7 +71,8 @@ from solutions.jinja_extensions import TranslateExtension
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
                                     os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
-    extensions=[TranslateExtension])
+    extensions=[TranslateExtension],
+    undefined=StrictUndefined)
 
 
 DEFAULT_JS_TEMPLATES = [
@@ -187,7 +190,9 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'menu_import',
         'menu_additem',
         'menu_editdescription',
-        'menu_edit_image'
+        'menu_edit_image',
+        'payments',
+        'payconiq_nl',
     ],
     SolutionModule.PHARMACY_ORDER: [
         'pharmacy_order',
@@ -236,11 +241,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
                        'appscale': APPSCALE,
-                       'currency': sln_settings.currency,
                        'service_user_email': sln_settings.service_user}
-        templates = dict()
-        templates_to_get = set()
-        templates_to_get.add("location")
+        templates = {}
+        templates_to_get = {'location'}
         for tmpl in templates_to_get:
             templates[tmpl] = JINJA_ENVIRONMENT.get_template(tmpl + '.html').render(tmpl_params)
         templates = json.dumps(templates)
@@ -249,10 +252,9 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_templates(self, sln_settings):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
-                       'currency': sln_settings.currency,
                        'appscale': APPSCALE,
                        'service_user_email': sln_settings.service_user}
-        templates = dict()
+        templates = {}
         templates_to_get = set()
         for tmpl in DEFAULT_JS_TEMPLATES:
             templates_to_get.add(tmpl)
@@ -303,7 +305,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                           'service_name': sln_settings.name,
                           'service_display_email': sln_settings.qualified_identifier or service_user.email().encode("utf-8"),
                           'service_user_email': service_user.email().encode("utf-8"),
-                          'currency': sln_settings.currency,
                           'translations': json.dumps(all_translations)
                           }
                 channel.append_firebase_params(params)
@@ -351,6 +352,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
 
         available_apps = get_apps_by_id(active_app_ids)
 
+        locale = Locale.parse(sln_settings.main_language)
+        currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
+        locale = Locale.parse('en_GB')
+        currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
             'UNIT_LITER': UNIT_LITER,
@@ -377,7 +382,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'BUDGET_RATE': BUDGET_RATE,
             'NEWS_TAGS': {
                 'FREE_REGIONAL_NEWS': NewsSettingsTags.FREE_REGIONAL_NEWS
-            }
+            },
+            'CURRENCY_SYMBOLS': currency_symbols
         }
         if not customer:
             mobicage_legal_entity = get_mobicage_legal_entity()
@@ -441,7 +447,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'functionality_modules': functionality_modules,
                   'functionality_info': functionality_info,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
-                  'currency': sln_settings.currency,
+                  'currencies': currencies.items(),
                   'is_layout_user': session_.layout_only if session_ else False,
                   'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
                   'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,

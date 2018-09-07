@@ -73,6 +73,14 @@ RequestsService.prototype = {
         }
         return request;
     },
+    put: function (url, data, options) {
+        var request = this.request(url, 'put', data, options);
+        // Update cache if updatesCache option is set, get and put must use the same url.
+        if (options && options.updatesCache) {
+            this._requestCache[url] = request;
+        }
+        return request;
+    },
     getMenu: function (options) {
         return this.get('/common/menu/load', options);
     },
@@ -106,6 +114,28 @@ RequestsService.prototype = {
         options = options || {};
         options.updatesCache = true;
         return this.post('/common/order/settings', data, options);
+    },
+    getPaymentSettings: function (options) {
+        return this.get('/common/payments/settings', options);
+    },
+    savePaymentSettings: function(data, options){
+        options = options || {};
+        options.updatesCache = true;
+        return this.post('/common/payments/settings', data, options);
+    },
+    getPaymentProviders: function (options) {
+        return this.get('/common/payments/providers', options);
+    },
+    savePaymentProvider: function(providerId, data, options){
+        return this.put('/common/payments/providers/' + providerId, data, options);
+    },
+    getSettings: function (options) {
+        return this.get('/common/settings', options);
+    },
+    saveSettings: function(data, options){
+        options = options || {};
+        options.updatesCache = true;
+        return this.put('/common/settings', data, options);
     }
 };
 

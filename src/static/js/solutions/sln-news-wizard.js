@@ -328,48 +328,51 @@ NewsWizard.prototype = {
             value: actionButtonValue,
             label: actionButtonLabel
         };
-        var params = {
-            T: T,
-            serviceMenu: this.serviceMenu,
-            canPromote: canOrderApps,
-            canSendNewsItem: this.broadcastOptions.next_news_item_time * 1000 < new Date().getTime(),
-            nextNewsItemTime: this.broadcastOptions.next_news_item_time,
-            broadcastTypes: this.broadcastOptions.editable_broadcast_types,
-            promotionProduct: this.broadcastOptions.news_promotion_product,
-            regionalNewsEnabled: this.broadcastOptions.regional_news_enabled,
-            product_counts_labels: promotionProduct.possible_counts.map(function (c) {
-                return T('days_amount', {amount: c});
-            }),
-            product_prices: promotionProduct.possible_counts.map(function (c) {
-                return LEGAL_ENTITY_CURRENCY + ' ' + (c * promotionProduct.price / 100);
-            }),
-            newsItem: newsItem || {
-                type: NEWS_TYPE_NORMAL
-            },
-            actionButton: actionButton,
-            newsTypes: this.newsTypes,
-            apps: apps,
-            stats: this.getCityAppStats(),
-            totalReach: totalReach,
-            menu: this.menu,
-            UNIT_SYMBOLS: UNIT_SYMBOLS,
-            UNITS: UNITS,
-            CURRENCY: CURRENCY,
-            CONSTS: CONSTS,
-            CommonTranslations: CommonTranslations,
-            restaurantReservationDate: restaurantReservationDate,
-            sandwichSettings: this.sandwichSettings,
-            selectedSandwich: selectedSandwich || {},
-            isFlagSet: sln.isFlagSet,
-            allowedButtonActions: allowedButtonActions,
-            roles: this.broadcastOptions.roles,
-            baseLink: this.newsList.baseLink,
-            title: this.title,
-            hasMap: !!CONSTS.MAP_FILE,
-        };
-        var html = $.tmpl(templates['broadcast/broadcast_news'], params);
-        this.newsList.container.html(html);
-        this.setupEventHandlers(newsItem);
+        var self = this;
+        Requests.getSettings().then(function (settings) {
+            var params = {
+                T: T,
+                serviceMenu: self.serviceMenu,
+                canPromote: canOrderApps,
+                canSendNewsItem: self.broadcastOptions.next_news_item_time * 1000 < new Date().getTime(),
+                nextNewsItemTime: self.broadcastOptions.next_news_item_time,
+                broadcastTypes: self.broadcastOptions.editable_broadcast_types,
+                promotionProduct: self.broadcastOptions.news_promotion_product,
+                regionalNewsEnabled: self.broadcastOptions.regional_news_enabled,
+                product_counts_labels: promotionProduct.possible_counts.map(function (c) {
+                    return T('days_amount', {amount: c});
+                }),
+                product_prices: promotionProduct.possible_counts.map(function (c) {
+                    return LEGAL_ENTITY_CURRENCY + ' ' + (c * promotionProduct.price / 100);
+                }),
+                newsItem: newsItem || {
+                    type: NEWS_TYPE_NORMAL
+                },
+                actionButton: actionButton,
+                newsTypes: self.newsTypes,
+                apps: apps,
+                stats: self.getCityAppStats(),
+                totalReach: totalReach,
+                menu: self.menu,
+                UNIT_SYMBOLS: UNIT_SYMBOLS,
+                UNITS: UNITS,
+                CURRENCY: CONSTS.CURRENCY_SYMBOLS[settings.currency],
+                CONSTS: CONSTS,
+                CommonTranslations: CommonTranslations,
+                restaurantReservationDate: restaurantReservationDate,
+                sandwichSettings: self.sandwichSettings,
+                selectedSandwich: selectedSandwich || {},
+                isFlagSet: sln.isFlagSet,
+                allowedButtonActions: allowedButtonActions,
+                roles: self.broadcastOptions.roles,
+                baseLink: self.newsList.baseLink,
+                title: self.title,
+                hasMap: !!CONSTS.MAP_FILE,
+            };
+            var html = $.tmpl(templates['broadcast/broadcast_news'], params);
+            self.newsList.container.html(html);
+            self.setupEventHandlers(newsItem);
+        });
     },
 
     $: function(selector) {
@@ -1354,8 +1357,11 @@ NewsWizard.prototype = {
             }
             self.$('#news_estimated_reach').text(modules.news.getEstimatedReach(totalReach));
             self.$('#news_max_reach').text(totalReach);
-            self.$('#news_estimated_cost').text(modules.news.getEstimatedCost(totalReach - localReach, CURRENCY));
-            renderPreview();
+            Requests.getSettings().then(function (settings) {
+                var currency = CONSTS.CURRENCY_SYMBOLS[settings.currency];
+                self.$('#news_estimated_cost').text(modules.news.getEstimatedCost(totalReach - localReach, currency));
+                renderPreview();
+            });
         }
 
         function getMapData(mapFile, callback) {
@@ -1374,19 +1380,21 @@ NewsWizard.prototype = {
                 return app.name;
             });
             stats = self.getCityAppStats();
+            Requests.getSettings().then(function (settings) {
+                var currency = CONSTS.CURRENCY_SYMBOLS[settings.currency];
+                if (data) {
+                    self.citySelect = new MapCitySelect(CONSTS.CITY_APPS, stats, preselected, previewContainer, data, true, currency);
+                } else {
+                    self.citySelect = new ListCitySelect(CONSTS.CITY_APPS, stats, preselected, previewContainer, currency);
+                }
 
-            if (data) {
-                self.citySelect = new MapCitySelect(CONSTS.CITY_APPS, stats, preselected, previewContainer, data, true);
-            } else {
-                self.citySelect = new ListCitySelect(CONSTS.CITY_APPS, stats, preselected, previewContainer);
-            }
-
-            self.citySelect.onSelectionCompleted = cityAppsChanged;
-            self.citySelect.setOnSelectClicked(editCityApps);
-            self.citySelect.setOnDefaultClicked(editCityApps);
-            if (originalNewsItem) {
-                self.citySelect.lockPreview();
-            }
+                self.citySelect.onSelectionCompleted = cityAppsChanged;
+                self.citySelect.setOnSelectClicked(editCityApps);
+                self.citySelect.setOnDefaultClicked(editCityApps);
+                if (originalNewsItem) {
+                    self.citySelect.lockPreview();
+                }
+            });
         }
 
         function initAppSelect(callback) {
@@ -1647,7 +1655,7 @@ NewsWizard.prototype = {
         }
 
         function doRenderPreview() {
-            modules.settings.getSettings(r);
+            Requests.getSettings().then(r);
             function r(settings) {
                 var newsItem = getNewsFormData();
                 var imageUrl = elemImagePreview.attr('src') || '';

@@ -17,6 +17,8 @@
 
 from types import NoneType
 
+from google.appengine.ext import ndb
+
 from dateutil import parser
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -129,6 +131,7 @@ def order_delete(order_key, message):
     except BusinessException, e:
         return ReturnStatusTO.create(False, e.message)
 
+
 @rest("/common/orders/load", "get", read_only_access=True)
 @returns([SolutionOrderTO])
 @arguments()
@@ -136,7 +139,11 @@ def orders_load():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    return map(SolutionOrderTO.fromModel, get_solution_orders(service_user, service_identity))
+    orders = list(get_solution_orders(service_user, service_identity))
+    to_get = [order.transaction_key for order in orders if order.transaction_id]
+    transactions = {transaction.id: transaction for transaction in ndb.get_multi(to_get)}
+    return [SolutionOrderTO.from_model(order, transactions.get(order.transaction_id)) for order in orders]
+
 
 @rest("/common/order/sendmessage", "post")
 @returns(ReturnStatusTO)

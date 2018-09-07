@@ -21,6 +21,7 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import SECONDS_IN_MINUTE
 from solutions.common.models.order import SolutionOrderSettings
+from solutions.common.to.payments import TransactionDetailsTO
 
 
 class OrderPauseSettingsTO(TO):
@@ -78,7 +79,7 @@ class SolutionOrderSettingsTO(TO):
         return to
 
 
-class SolutionOrderTO(object):
+class SolutionOrderTO(TO):
     key = unicode_property('1')
     description = unicode_property('2')
     status = long_property('3')
@@ -89,9 +90,10 @@ class SolutionOrderTO(object):
     phone_number = unicode_property('8')
     solution_inbox_message_key = unicode_property('9')
     takeaway_time = long_property('10')
+    transaction = typed_property('transaction', TransactionDetailsTO)
 
-    @staticmethod
-    def fromModel(model):
+    @classmethod
+    def from_model(cls, model, transaction):
         to = SolutionOrderTO()
         to.key = unicode(model.solution_order_key)
         to.description = model.description
@@ -103,4 +105,5 @@ class SolutionOrderTO(object):
         to.phone_number = model.phone_number
         to.solution_inbox_message_key = model.solution_inbox_message_key
         to.takeaway_time = model.takeaway_time
+        to.transaction = TransactionDetailsTO.from_model(transaction) if transaction else None
         return to

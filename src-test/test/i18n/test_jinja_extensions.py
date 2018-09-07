@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
+from jinja2 import StrictUndefined
 
 import test  # @UnusedImport
 from rogerthat.consts import DEBUG
@@ -28,7 +29,8 @@ class TestTranslationExtension(mc_unittest.TestCase):
     def test_translation_extension(self):
         sln_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src', 'solutions')
         JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.join(sln_dir, 'common', 'templates')),
-                                               extensions=[TranslateExtension])
+                                               extensions=[TranslateExtension],
+                                               undefined=StrictUndefined)
 
         template = JINJA_ENVIRONMENT.get_template('reservations.html')
         template.render({'language': DEFAULT_LANGUAGE,

@@ -539,7 +539,6 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
     result.value.form.widget.max_chars = 500
     result.value.form.widget.place_holder = u''
     result.value.form.widget.value = u''
-    result.value.form.widget.auto_complete()
 
     result.value.message = common_translate(user_details[0].language, SOLUTION_COMMON, u'inbox-forwarding-reply-to') % {
         'if_name': user_details[0].name,

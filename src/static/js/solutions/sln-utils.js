@@ -1003,7 +1003,7 @@ var createLib = function() {
             if (options.data && options.data.data) {
                 options.data = options.data.data;
             }
-            if (method === 'POST' && options.data && typeof(options.data) !== 'string') {
+            if ((method === 'POST' || method === 'PUT') && options.data && typeof(options.data) !== 'string') {
                 options.data = JSON.stringify(options.data);
             }
             if (options.showProcessing)

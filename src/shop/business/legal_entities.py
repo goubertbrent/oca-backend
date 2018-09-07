@@ -17,12 +17,12 @@
 
 from types import NoneType
 
+from mcfw.rpc import arguments, returns
 from rogerthat.consts import OFFICIALLY_SUPPORTED_COUNTRIES
 from rogerthat.rpc.service import BusinessException
-from mcfw.rpc import arguments, returns
-from shop.business.i18n import CURRENCIES
 from shop.exceptions import EmptyValueException
 from shop.models import LegalEntity, Customer, RegioManagerTeam
+from solutions.common.consts import CURRENCIES
 
 
 @returns(LegalEntity)

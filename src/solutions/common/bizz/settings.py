@@ -34,7 +34,8 @@ from solutions.common.bizz import _get_location, broadcast_updates_pending
 from solutions.common.dal import get_solution_settings, get_solution_logo, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionLogo, SolutionAvatar, SolutionSettings, \
-    SolutionBrandingSettings
+    SolutionBrandingSettings, SolutionIdentitySettings
+from solutions.common.to import SolutionSettingsTO
 from solutions.common.utils import is_default_service_identity
 
 SLN_LOGO_WIDTH = 640
@@ -52,71 +53,65 @@ def validate_sln_settings(sln_settings):
         _validate_service_identity(to, False)
 
 
-@returns(bool)
-@arguments(service_user=users.User, service_identity=unicode, name=unicode, description=unicode, opening_hours=unicode, address=unicode,
-           phone_number=unicode, facebook_page=unicode, facebook_name=unicode, facebook_action=unicode,
-           currency=unicode, search_enabled=bool, search_keywords=unicode, timezone=unicode, events_visible=bool,
-           email_address=unicode, inbox_email_reminders=bool, iban=unicode, bic=unicode, search_enabled_check=bool)
-def save_settings(service_user, service_identity, name, description=None, opening_hours=None, address=None, phone_number=None,
-                  facebook_page=None, facebook_name=None, facebook_action=None, currency=None, search_enabled=True,
-                  search_keywords=None, timezone=None, events_visible=None, email_address=None, inbox_email_reminders=None,
-                  iban=None, bic=None, search_enabled_check=False):
-    address_geocoded = True
+@returns(tuple)
+@arguments(service_user=users.User, service_identity=unicode, data=SolutionSettingsTO)
+def save_settings(service_user, service_identity, data):
+    # type: (users.User, unicode, SolutionSettingsTO) -> tuple[SolutionSettings, SolutionIdentitySettings]
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    sln_i_settings.name = name
-    sln_i_settings.description = description
-    sln_i_settings.opening_hours = opening_hours
-    sln_i_settings.phone_number = phone_number
+    sln_i_settings.name = data.name
+    sln_i_settings.description = data.description
+    sln_i_settings.opening_hours = data.opening_hours
+    sln_i_settings.phone_number = data.phone_number
 
-    if email_address and email_address != service_user.email():
-        sln_i_settings.qualified_identifier = email_address
+    if data.email_address and data.email_address != service_user.email():
+        sln_i_settings.qualified_identifier = data.email_address
     else:
         sln_i_settings.qualified_identifier = None
 
-    if facebook_page is not None:
-        if sln_settings.facebook_page != facebook_page:
-            send_message(service_user, u"solutions.common.settings.facebookPageChanged", facebook_page=facebook_page)
-    sln_settings.facebook_page = facebook_page
-    sln_settings.facebook_name = facebook_name if facebook_page else ""
-    sln_settings.facebook_action = facebook_action
-    if currency is not None:
-        sln_settings.currency = currency
-    sln_settings.search_enabled = search_enabled
-    sln_settings.search_enabled_check = search_enabled_check
+    if data.facebook_page is not None:
+        if sln_settings.facebook_page != data.facebook_page:
+            send_message(service_user, u'solutions.common.settings.facebookPageChanged',
+                         facebook_page=data.facebook_page)
+    sln_settings.facebook_page = data.facebook_page
+    sln_settings.facebook_name = data.facebook_name if data.facebook_page else ''
+    sln_settings.facebook_action = data.facebook_action
+    if data.currency is not None:
+        sln_settings.currency = data.currency
+    sln_settings.search_enabled = data.search_enabled
+    sln_settings.search_enabled_check = data.search_enabled_check
 
-    sln_i_settings.search_keywords = search_keywords
-    if address and (sln_i_settings.address != address or not sln_i_settings.location):
-        sln_i_settings.address = address
+    sln_i_settings.search_keywords = data.search_keywords
+    if data.address and (sln_i_settings.address != data.address or not sln_i_settings.location):
+        sln_i_settings.address = data.address
         try:
-            lat, lon = _get_location(address)
+            lat, lon = _get_location(data.address)
             sln_i_settings.location = db.GeoPt(lat, lon)
         except:
-            address_geocoded = False
-            logging.warning("Failed to resolve address: %s" % sln_i_settings.address, exc_info=1)
-    if timezone is not None:
-        if sln_settings.timezone != timezone:
+            logging.warning('Failed to resolve address: %s' % sln_i_settings.address, exc_info=1)
+            sln_i_settings.location = None
+    if data.timezone is not None:
+        if sln_settings.timezone != data.timezone:
             send_message(service_user, u"solutions.common.settings.timezoneChanged")
-        sln_settings.timezone = timezone
+        sln_settings.timezone = data.timezone
 
-    if events_visible is not None:
-        sln_settings.events_visible = events_visible
+    if data.events_visible is not None:
+        sln_settings.events_visible = data.events_visible
 
-    if inbox_email_reminders is not None:
-        sln_i_settings.inbox_email_reminders_enabled = inbox_email_reminders
+    if data.inbox_email_reminders is not None:
+        sln_i_settings.inbox_email_reminders_enabled = data.inbox_email_reminders
 
-    sln_settings.iban = iban
-    sln_settings.bic = bic
+    sln_settings.iban = data.iban
+    sln_settings.bic = data.bic
 
     sln_settings.updates_pending = True
     validate_sln_settings(sln_settings)
     if not is_default_service_identity(service_identity):
         sln_i_settings.put()
     sln_settings.put()
-
     broadcast_updates_pending(sln_settings)
 
-    return address_geocoded
+    return sln_settings, sln_i_settings
 
 
 @returns(NoneType)

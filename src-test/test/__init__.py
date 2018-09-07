@@ -18,26 +18,13 @@
 # For unit tests: we set the log level to ERROR in order not to pollute
 # unit test output
 
-import os
-os.environ['APPLICATION_ID'] = 'mobicagecloud'
-os.environ['SERVER_NAME'] = 'localhost'
-os.environ['SERVER_PORT'] = '8080'
-os.environ['SERVER_SOFTWARE'] = 'Development Server'
-os.environ["DEFAULT_VERSION_HOSTNAME"] = 'mobicagecloudhr.appspot.com'
-os.environ['APPENGINE_RUNTIME'] = 'python27'  # Needed to make webapp.template load ._internal.django
-
-from google.appengine.api import datastore_file_stub, apiproxy_stub_map, user_service_stub, mail_stub, urlfetch_stub
-from google.appengine.api.app_identity import app_identity_stub
-from google.appengine.api.blobstore import blobstore_stub, file_blob_storage
-from google.appengine.api.images import images_stub
-from google.appengine.api.memcache import memcache_stub
-from google.appengine.api.taskqueue import taskqueue_stub
-from google.appengine.api import users as gusers
-
-import logging
 import uuid
 
-logging.getLogger().setLevel(logging.ERROR)
+from google.appengine.api import users as gusers
+
+from mc_unittest import init_env
+
+init_env()
 
 def register_tst_mobile(email):
     from rogerthat.rpc.models import Mobile
@@ -91,29 +78,3 @@ def set_current_mobile(mobile):
     from rogerthat.rpc import users
     users.get_current_mobile = lambda: mobile
     set_current_user(mobile.user)
-
-
-def init_env():
-    try:
-
-        if not apiproxy_stub_map.apiproxy.GetStub('user'):
-            apiproxy_stub_map.apiproxy.RegisterStub('user', user_service_stub.UserServiceStub())
-            apiproxy_stub_map.apiproxy.RegisterStub('datastore_v3', datastore_file_stub.DatastoreFileStub('mobicagecloud', '/dev/null', '/dev/null'))
-            apiproxy_stub_map.apiproxy.RegisterStub('mail', mail_stub.MailServiceStub())
-            apiproxy_stub_map.apiproxy.RegisterStub('blobstore', blobstore_stub.BlobstoreServiceStub(file_blob_storage.FileBlobStorage('/dev/null', 'mobicagecloud')))
-            apiproxy_stub_map.apiproxy.RegisterStub('memcache', memcache_stub.MemcacheServiceStub())
-            apiproxy_stub_map.apiproxy.RegisterStub('images', images_stub.ImagesServiceStub())
-            apiproxy_stub_map.apiproxy.RegisterStub('urlfetch', urlfetch_stub.URLFetchServiceStub())
-            apiproxy_stub_map.apiproxy.RegisterStub('taskqueue', taskqueue_stub.TaskQueueServiceStub())
-            apiproxy_stub_map.apiproxy.RegisterStub('app_identity_service', app_identity_stub.AppIdentityServiceStub())
- 
-    except Exception as e:
-        print e
-        raise
-
-    from rogerthat.settings import get_server_settings
-
-    settings = get_server_settings()
-    settings.jabberDomain = "localhost"
-
-init_env()

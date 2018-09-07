@@ -393,10 +393,6 @@ class Customer(db.Model):
         return False
 
     @property
-    def payment_possible(self):
-        return self.country in ('BE',) and self.language in ('nl',)
-
-    @property
     def app_id(self):
         if self.default_app_id:
             return self.default_app_id

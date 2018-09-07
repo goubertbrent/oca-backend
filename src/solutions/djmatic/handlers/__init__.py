@@ -19,11 +19,12 @@ import json
 import logging
 import os
 
-from google.appengine.api import users as gae_users
 import jinja2
 import webapp2
+from google.appengine.api import users as gae_users
+from jinja2 import StrictUndefined
 
-from babel import dates
+from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.consts import DEBUG
@@ -39,7 +40,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, UNIT_MINUTE, \
-    ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNITS, UNIT_SYMBOLS, UNIT_DAY, UNIT_PERSON, UNIT_PLATTER, UNIT_SESSION
+    ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNITS, UNIT_SYMBOLS, UNIT_DAY, UNIT_PERSON, UNIT_PLATTER, UNIT_SESSION, \
+    CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings, get_solution_email_settings
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
@@ -49,7 +51,8 @@ from solutions.jinja_extensions import TranslateExtension
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates'),
                                                                        os.path.join(os.path.dirname(__file__), '..', '..', 'common', 'templates')]),
-                                       extensions=[TranslateExtension])
+                                       extensions=[TranslateExtension],
+                                       undefined=StrictUndefined)
 
 class DJMaticHomeHandler(webapp2.RequestHandler):
 
@@ -84,7 +87,6 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
 
         tmpl_params = {'language': DEFAULT_LANGUAGE,
                        'debug': DEBUG,
-                       'currency': sln_settings.currency,
                        'service_user_email': service_user.email()}
         templates = dict()
         for tmpl in ('menu_additem', 'menu', 'menu_editdescription', 'menu_edit_image', 'holiday_holiday',
@@ -111,6 +113,10 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
         for key in COMMON_JS_KEYS:
             all_translations[key] = translate(sln_settings.main_language, SOLUTION_COMMON, COMMON_JS_KEYS[key])
 
+        locale = Locale.parse(sln_settings.main_language)
+        currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
+        locale = Locale.parse('en_GB')
+        currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
             'UNIT_LITER': UNIT_LITER,
@@ -125,7 +131,8 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'ORDER_TYPE_SIMPLE': ORDER_TYPE_SIMPLE,
             'ORDER_TYPE_ADVANCED': ORDER_TYPE_ADVANCED,
             'ORDER_ITEM_VISIBLE_IN_MENU': MenuItem.VISIBLE_IN_MENU,
-            'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItem.VISIBLE_IN_ORDER
+            'ORDER_ITEM_VISIBLE_IN_ORDER': MenuItem.VISIBLE_IN_ORDER,
+            'CURRENCY_SYMBOLS': currency_symbols
         }
         params = {
             'language': DEFAULT_LANGUAGE,
@@ -146,6 +153,7 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
             'jukebox_server_api': JUKEBOX_SERVER_API_URL,
             'bulk_invite_message': bulk_invite_message,
             'SolutionModule': SolutionModule,
+            'currencies': currencies.items(),
             'email_settings': json.dumps(
                 serialize_complex_value(
                     SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user),

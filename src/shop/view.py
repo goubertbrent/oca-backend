@@ -36,6 +36,7 @@ from google.appengine.ext.webapp import template
 from PIL.Image import Image  # @UnresolvedImport
 from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
+from babel import Locale
 from babel.dates import format_date, format_datetime
 from googleapiclient.discovery import build
 from mcfw.cache import cached
@@ -60,6 +61,7 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.app import AppInfoTO
+from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, send_mail
 from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.cookie import set_cookie
@@ -80,7 +82,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
-from shop.business.i18n import shop_translate, get_languages, CURRENCIES
+from shop.business.i18n import shop_translate, get_languages
 from shop.business.legal_entities import put_legal_entity
 from shop.business.order import get_customer_subscription_length, cancel_subscription, get_subscription_order, \
     set_next_charge_date
@@ -115,6 +117,7 @@ from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_c
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
+from solutions.common.consts import CURRENCIES, get_currency_name
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
@@ -220,6 +223,8 @@ def get_shop_context(**kwargs):
     if 'prospect_comment' not in js_templates:
         js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history',
                                                  'new_order_list']))
+    locale = Locale.parse(DEFAULT_LANGUAGE)
+    currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
     ctx = dict(stripePublicKey=solution_server_settings.stripe_public_key,
                modules=_get_solution_modules(),
                default_modules=_get_default_modules(),
@@ -240,7 +245,8 @@ def get_shop_context(**kwargs):
                default_languages_json=json.dumps(COUNTRY_DEFAULT_LANGUAGES),
                logo_languages_json=json.dumps(LOGO_LANGUAGES),
                PROSPECT_CATEGORIES=PROSPECT_CATEGORY_KEYS,
-               CURRENCIES=json.dumps(CURRENCIES),
+               currencies=currencies.items(),
+               CURRENCIES=json.dumps(currencies),
                prospect_status_type_strings=json.dumps(Prospect.STATUS_TYPES),
                DEBUG=DEBUG,
                APPSCALE=APPSCALE,

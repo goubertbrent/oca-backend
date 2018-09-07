@@ -20,7 +20,7 @@ import urllib
 
 from mcfw.consts import MISSING
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, long_list_property, \
-    unicode_list_property
+    unicode_list_property, float_property
 from mcfw.rpc import parse_complex_value, serialize_complex_value
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.settings import get_server_settings
@@ -143,16 +143,21 @@ class SolutionInboxesTO(object):
         return to
 
 
-class SolutionSettingsTO(object):
+class LatLonTO(TO):
+    lat = float_property('lat')
+    lon = float_property('lon')
+
+
+class SolutionSettingsTO(TO):
     name = unicode_property('1')
     description = unicode_property('2')
     opening_hours = unicode_property('3')
     address = unicode_property('4')
     phone_number = unicode_property('5')
     updates_pending = bool_property('6')
-    facebook_page = unicode_property('7')
-    facebook_name = unicode_property('8')
-    facebook_action = unicode_property('9')
+    facebook_page = unicode_property('7', default=None)
+    facebook_name = unicode_property('8', default=None)
+    facebook_action = unicode_property('9', default=None)
     currency = unicode_property('10')
     search_enabled = bool_property('11')
     timezone = unicode_property('12')
@@ -168,6 +173,7 @@ class SolutionSettingsTO(object):
     bic = unicode_property('22')
     publish_changes_users = unicode_list_property('23', default=[])
     search_enabled_check = bool_property('24')
+    location = typed_property('location', LatLonTO)
 
     @staticmethod
     def fromModel(sln_settings, sln_i_settings):
@@ -199,6 +205,8 @@ class SolutionSettingsTO(object):
         to.bic = sln_settings.bic
         to.publish_changes_users = sln_settings.publish_changes_users
         to.search_enabled_check = True if sln_settings.search_enabled_check is None else sln_settings.search_enabled_check
+        to.location = LatLonTO(lat=sln_i_settings.location.lat,
+                               lon=sln_i_settings.location.lon) if sln_i_settings.location else None
         return to
 
 
@@ -1004,20 +1012,6 @@ class BrandingSettingsAndMenuItemsTO(object):
         to.branding_settings = branding_settings
         to.menu_item_rows = menu_item_rows
         return to
-
-
-class SaveSettingsResultTO(object):
-    address_geocoded = bool_property('1')
-
-
-class SaveSettingsReturnStatusTO(ReturnStatusTO):
-    result = typed_property('51', SaveSettingsResultTO)
-
-    @classmethod
-    def create(cls, success=True, errormsg=None, result=None):
-        r = super(SaveSettingsReturnStatusTO, cls).create(success=success, errormsg=errormsg)
-        r.result = result
-        return r
 
 
 class AppUserRolesTO(object):

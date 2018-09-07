@@ -40,5 +40,6 @@ def get_solution_order_settings(sln_settings):
 @returns([SolutionOrder])
 @arguments(service_user=users.User, service_identity=unicode)
 def get_solution_orders(service_user, service_identity):
+    # type: (users.User, unicode) -> list[SolutionOrder]
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     return SolutionOrder.list(service_identity_user)

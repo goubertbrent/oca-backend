@@ -17,13 +17,9 @@
 
 import logging
 
-from babel import Locale
-
 from shop.translations import shop_translations
 
 SHOP_DEFAULT_LANGUAGE = u"en"
-CURRENCY_SYMBOLS = dict(Locale(SHOP_DEFAULT_LANGUAGE).currency_symbols)
-CURRENCIES = dict(Locale(SHOP_DEFAULT_LANGUAGE).currencies)
 
 
 def shop_translate(lang, key, **kwargs):

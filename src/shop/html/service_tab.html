@@ -86,10 +86,9 @@
 
                                 <div class="controls">
                                     <select id="service_currency">
-                                        <option value="€">€</option>
-                                        <option value="£">£</option>
-                                        <option value="$">$</option>
-                                        <option value="lei">lei</option>
+                                        {% for currency, name in currencies %}
+                                        <option value="{{ currency }}">{{ name }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                             </div>

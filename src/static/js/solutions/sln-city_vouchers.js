@@ -197,22 +197,24 @@ $(function() {
             type : "get",
             data : params,
             success : function(data) {
-            	data.amount = CURRENCY + " " + ((data.value - data.redeemed_value) / 100).toFixed(2);
-
-                $.each(data.transactions, function(i, transaction) {
-                    transaction.date = sln.formatDate(transaction.created, true, false, false);
-                    transaction.amount = "";
-                    if (transaction.action == 2 || transaction.action == 3) {
-                    	transaction.amount = CURRENCY + " " + (transaction.value / 100).toFixed(2);
-                    }
+                Requests.getSettings().then(function (settings) {
+                    var currency = CONSTS.CURRENCY_SYMBOLS[settings.currency];
+                    data.amount = currency + " " + ((data.value - data.redeemed_value) / 100).toFixed(2);
+                    $.each(data.transactions, function (i, transaction) {
+                        transaction.date = sln.formatDate(transaction.created, true, false, false);
+                        transaction.amount = "";
+                        if (transaction.action == 2 || transaction.action == 3) {
+                            transaction.amount = currency + " " + (transaction.value / 100).toFixed(2);
+                        }
+                    });
+                    var html = $.tmpl(templates['city_vouchers/city_vouchers_transactions'], {
+                        header: CommonTranslations.HISTORY,
+                        cancelBtn: CommonTranslations.CANCEL,
+                        CommonTranslations: CommonTranslations,
+                        voucher: data
+                    });
+                    var modal = sln.createModal(html);
                 });
-                var html = $.tmpl(templates['city_vouchers/city_vouchers_transactions'], {
-                    header : CommonTranslations.HISTORY,
-                    cancelBtn : CommonTranslations.CANCEL,
-                    CommonTranslations: CommonTranslations,
-                    voucher : data
-                });
-                var modal = sln.createModal(html);
             }
         });
     };

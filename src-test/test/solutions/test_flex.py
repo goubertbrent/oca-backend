@@ -15,12 +15,13 @@
 #
 # @@license_version:1.3@@
 
+import base64
+import random
+
 import webapp2
 
-import base64
 import main_authenticated
 import mc_unittest
-import random
 from rogerthat.bizz.session import create_session
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import App
@@ -37,9 +38,14 @@ from solutions.common.models.order import SolutionOrderWeekdayTimeframe, Solutio
 from solutions.flex.bizz import create_flex_service
 from solutions.flex.handlers import FlexHomeHandler
 from test import set_current_user
+from test.solutions.util import setup_payment_providers
 
 
 class FlexTestCase(mc_unittest.TestCase):
+
+    def setUp(self, datastore_hr_probability=0):
+        super(FlexTestCase, self).setUp(datastore_hr_probability)
+        setup_payment_providers()
 
     def test_static_flex_service(self):
         self._test_static_flex_service()

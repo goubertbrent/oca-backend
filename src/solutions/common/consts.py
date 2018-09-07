@@ -68,3 +68,14 @@ SECONDS_IN_MINUTE = 60
 SECONDS_IN_HOUR = 3600
 SECONDS_IN_DAY = 86400
 SECONDS_IN_WEEK = 604800
+
+CURRENCIES = ['EUR', 'USD', 'GBP', 'RON', 'TFT']
+CURRENCY_NAMES = {
+    'RON': u'Leu',
+    'TFT': u'ThreeFold Token'
+}
+
+
+def get_currency_name(locale, currency_symbol):
+    name = locale.currencies.get(currency_symbol)
+    return name or CURRENCY_NAMES.get(currency_symbol, currency_symbol)

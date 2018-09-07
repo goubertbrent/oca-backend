@@ -15,18 +15,19 @@
 #
 # @@license_version:1.3@@
 
-import json
 import logging
 
+from mcfw.consts import REST_FLAVOR_TO
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
-from rogerthat.service.api.payments import get_provider, put_provider
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
-from solutions.common.bizz.payment import get_payment_settings, save_payment_settings, \
-    is_in_test_mode
-from solutions.common.to.payments import PaymentSettingsTO, PayconiqProviderTO
+from rogerthat.to.payment import ServicePaymentProviderTO
+from solutions.common.bizz.payment import save_payment_settings, get_providers_settings, \
+    save_provider
+from solutions.common.dal import get_solution_settings_or_identity_settings, get_solution_settings
+from solutions.common.to.payments import PaymentSettingsTO
 
 
 @rest('/common/payments/settings', 'get', read_only_access=True, silent_result=True)
@@ -35,50 +36,41 @@ from solutions.common.to.payments import PaymentSettingsTO, PayconiqProviderTO
 def rest_get_payment_settings():
     service_user = users.get_current_user()
     service_identity = users.get_current_session().service_identity
-    to = PaymentSettingsTO()
-    to.enabled, to.optional, to.min_amount_for_fee = get_payment_settings(service_user, service_identity)
-    return to
+    sln_settings = get_solution_settings(service_user)
+    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    return PaymentSettingsTO.from_model(sln_i_settings)
 
 
 @rest('/common/payments/settings', 'post')
-@returns(ReturnStatusTO)
-@arguments(enabled=bool, optional=bool, min_amount_for_fee=(int, long))
-def rest_put_payment_settings(enabled, optional, min_amount_for_fee):
+@returns(PaymentSettingsTO)
+@arguments(optional=bool)
+def rest_put_payment_settings(optional):
     service_user = users.get_current_user()
     service_identity = users.get_current_session().service_identity
     try:
-        save_payment_settings(service_user, service_identity, enabled, optional, min_amount_for_fee)
-        return RETURNSTATUS_TO_SUCCESS
+        sln_i_settings = save_payment_settings(service_user, service_identity, optional)
+        return PaymentSettingsTO.from_model(sln_i_settings)
     except ServiceApiException as e:
         logging.exception(e)
-        return ReturnStatusTO.create(False, None)
+        raise HttpBadRequestException(e.message)
 
 
-@rest('/common/payments/payconiq', 'get', read_only_access=True, silent_result=True)
-@returns(PayconiqProviderTO)
+@rest('/common/payments/providers', 'get', read_only_access=True, silent_result=True)
+@returns([ServicePaymentProviderTO])
 @arguments()
-def rest_get_payconiq_settings():
+def rest_get_providers():
+    service_identity = users.get_current_session().service_identity
+    return get_providers_settings(users.get_current_user(), service_identity)
+
+
+@rest('/common/payments/providers/<provider_id:[^/]+>', 'put', flavor=REST_FLAVOR_TO)
+@returns(ServicePaymentProviderTO)
+@arguments(provider_id=unicode, data=ServicePaymentProviderTO)
+def rest_put_provider_settings(provider_id, data):
+    # type: (unicode, ServicePaymentProviderTO) -> ServicePaymentProviderTO
     service_user = users.get_current_user()
     service_identity = users.get_current_session().service_identity
-    r = get_provider(u'payconiq', service_identity, is_in_test_mode(service_user, service_identity))
-    return PayconiqProviderTO.fromProvider(r)
-
-
-@rest('/common/payments/payconiq', 'post')
-@returns(ReturnStatusTO)
-@arguments(merchant_id=unicode, jwt=unicode)
-def rest_put_payconiq_settings(merchant_id, jwt):
-    service_user = users.get_current_user()
-    service_identity = users.get_current_session().service_identity
-
-    settings = {
-        u'merchant_id': merchant_id,
-        u'jwt': jwt
-    }
-
     try:
-        put_provider(u'payconiq', json.dumps(settings).decode('utf8'), service_identity, is_in_test_mode(service_user, service_identity))
-        return ReturnStatusTO.create(True, None)
+        return save_provider(service_user, service_identity, provider_id, data)
     except ServiceApiException as e:
-        logging.exception(e)
-        return ReturnStatusTO.create(False, None)
+        raise HttpBadRequestException(e.message)

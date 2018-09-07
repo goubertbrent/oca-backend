@@ -24,6 +24,7 @@ from zipfile import ZipFile
 import jinja2
 import webapp2
 from google.appengine.ext import webapp, db
+from jinja2 import StrictUndefined
 
 from PyPDF2.pdf import PdfFileReader
 from lxml import html, etree
@@ -50,7 +51,8 @@ except ImportError:
 
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
-                                       extensions=[TranslateExtension])
+                                       extensions=[TranslateExtension],
+                                       undefined=StrictUndefined)
 
 
 class GetSolutionLogoHandler(webapp.RequestHandler):

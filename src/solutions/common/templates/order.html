@@ -33,6 +33,14 @@
             <a href="/common/image_viewer?p=${order.picture_url}" target="_blank"><img src="${order.picture_url}"></a>
         </div>
         {{/if}}
+    {{if order.transaction}}
+    <div>
+        <h4>${ T('transaction') }</h4>
+        <p>${ T('transaction_id') }:  ${ order.transaction.id }</p>
+        <p>${ T('paid_amount')}: ${order.transaction.amount_str } ${order.transaction.currency}</p>
+        <p>${ T('status')}: ${transactionStatus}</p>
+    </div>
+    {{/if}}
     </div>
     <div class="modal-footer">
         <button action="sendmessage" class="btn btn-primary">${sendMessageBtn}</button>

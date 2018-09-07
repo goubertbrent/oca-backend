@@ -49,7 +49,7 @@
                         xsi:type="SelectSingleWidget" value="{% if types|length < 1 %}type_{{ types[0].type_id }}{% endif %}">
                     {% for type in types %}
                         <choice value="type_{{ type.type_id }}"
-                                label="{{ type.description|e }}{% if sandwich_settings.show_prices and type.price > 0 %} ({{ settings.currency }}{{ type.price_in_euro }}){% endif %}"/>
+                                label="{{ type.description|e }}{% if sandwich_settings.show_prices and type.price > 0 %} ({{ settings.currency_symbol }}{{ type.price_in_euro }}){% endif %}"/>
                     {% endfor %}
                     {% if types|length <= 1 %}
                         <choice value="dummy_type_value" label="dummy_type_label"/>
@@ -85,7 +85,7 @@
                         xsi:type="SelectSingleWidget" value="{% if toppings|length < 1 %}topping_{{ toppings[0].topping_id }}{% endif %}">
                     {% for topping in toppings %}
                         <choice value="topping_{{ topping.topping_id }}"
-                                label="{{ topping.description|e }}{% if sandwich_settings.show_prices and topping.price > 0 %} ({{ settings.currency }}{{ topping.price_in_euro }}){% endif %}"/>
+                                label="{{ topping.description|e }}{% if sandwich_settings.show_prices and topping.price > 0 %} ({{ settings.currency_symbol }}{{ topping.price_in_euro }}){% endif %}"/>
                     {% endfor %}
                     {% if toppings|length <= 1 %}
                         <choice value="dummy_topping_value" label="dummy_topping_label"/>
@@ -136,7 +136,7 @@
                     {%- for option in options %}
                     <choice
                         value="option_{{ option.option_id }}"
-                        label="{{ option.description|e }}{% if sandwich_settings.show_prices and option.price > 0 %} ({{settings.currency}}{{option.price_in_euro}}){% endif %}" />
+                        label="{{ option.description|e }}{% if sandwich_settings.show_prices and option.price > 0 %} ({{settings.currency_symbol}}{{option.price_in_euro}}){% endif %}" />
                     {%- endfor %}
                 </widget>
             </form>

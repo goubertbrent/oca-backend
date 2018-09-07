@@ -117,8 +117,8 @@ $(function() {
                 var keyElem = $('.sln-set-events-key input');
                 var regionElem = $('.sln-set-events-regions');
                 if(secretElem.length && keyElem.length && regionElem.length) {
-                    secretElem.data('updateVal')(data.uitdatabank_secret);
-                    keyElem.data('updateVal')(data.uitdatabank_key);
+                    secretElem.val(data.uitdatabank_secret);
+                    keyElem.val(data.uitdatabank_key);
                     regionElem.data('regions', data.uitdatabank_regions);
                     setUitdatabankStatus(data.uitdatabank_enabled);
                     renderRegions(data.uitdatabank_regions);

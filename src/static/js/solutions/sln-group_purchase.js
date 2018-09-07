@@ -128,92 +128,94 @@ $(function() {
             url : "/common/group_purchase/load",
             type : "GET",
             success : function(data) {
-                var groupPurchase = $("#group_purchase #group_purchase_table tbody");
-                $.each(data, function(i, o) {
-                    o.time_from_str = sln.formatDate(o.time_from, true, false, false);
-                    o.time_until_str = sln.formatDate(o.time_until, true, false, false);
-                });
-                var now = (new Date().getTime()) / 1000;
+                Requests.getSettings().then(function (settings) {
+                    var groupPurchase = $("#group_purchase #group_purchase_table tbody");
+                    $.each(data, function(i, o) {
+                        o.time_from_str = sln.formatDate(o.time_from, true, false, false);
+                        o.time_until_str = sln.formatDate(o.time_until, true, false, false);
+                    });
+                    var now = (new Date().getTime()) / 1000;
 
-                data.sort(function(a, b) {
-                    if (now > a.time_until || now > b.time_until) {
-                        return a.time_until - b.time_until;
-                    }
-                    if((a.time_from - b.time_from) != 0)
-                        return a.time_from - b.time_from;
-                    if((a.time_until - b.time_until) != 0)
-                        return a.time_until - b.time_until;
-                    return sln.caseInsensitiveStringSort(a.title, b.title);
-                });
-                var html = $.tmpl(templates.group_purchase, {
-                    group_purchases : data,
-                    CommonTranslations : CommonTranslations,
-                    CURRENCY: CURRENCY
-                });
-                groupPurchase.empty().append(html);
+                    data.sort(function(a, b) {
+                        if (now > a.time_until || now > b.time_until) {
+                            return a.time_until - b.time_until;
+                        }
+                        if((a.time_from - b.time_from) != 0)
+                            return a.time_from - b.time_from;
+                        if((a.time_until - b.time_until) != 0)
+                            return a.time_until - b.time_until;
+                        return sln.caseInsensitiveStringSort(a.title, b.title);
+                    });
+                    var html = $.tmpl(templates.group_purchase, {
+                        group_purchases : data,
+                        CommonTranslations : CommonTranslations,
+                        CURRENCY: CONSTS.CURRENCY_SYMBOLS[settings.currency]
+                    });
+                    groupPurchase.empty().append(html);
 
-                $.each(data, function(i, o) {
-                   $("#"+ o.id).data("group_purchase", o);
-                });
+                    $.each(data, function(i, o) {
+                        $("#"+ o.id).data("group_purchase", o);
+                    });
 
-                $('#group_purchase button[action="edit"]').click(function() {
-                    var groupPurchaseId = $(this).attr("group_purchase_id");
-                    var gp = $("#" + groupPurchaseId).data("group_purchase");
-                    initGroupPurchaseModal(gp);
+                    $('#group_purchase button[action="edit"]').click(function() {
+                        var groupPurchaseId = $(this).attr("group_purchase_id");
+                        var gp = $("#" + groupPurchaseId).data("group_purchase");
+                        initGroupPurchaseModal(gp);
 
-                    setTimeout(function() {
-                        $("#groupPurchaseModal .modal-body").scrollTop(0);
-                    }, 300);
-                });
+                        setTimeout(function() {
+                            $("#groupPurchaseModal .modal-body").scrollTop(0);
+                        }, 300);
+                    });
 
-                $('#group_purchase button[action="delete"]').click(function() {
-                    var groupPurchaseId = $(this).attr("group_purchase_id");
-                    sln.confirm(CommonTranslations.GROUP_PURCHASE_DELETE_CONFIRMATION, function() {
-                        sln.call({
-                            url : "/common/group_purchase/delete",
-                            type : "POST",
-                            data : {
-                                data : JSON.stringify({
-                                    group_purchase_id : parseInt(groupPurchaseId)
-                                })
-                            },
-                            success : function(data) {
-                                if (!data.success) {
-                                    return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                                }
-                                fadeOutMessageAndUpdateBadge(groupPurchaseId);
-                            },
-                            error : sln.showAjaxError
+                    $('#group_purchase button[action="delete"]').click(function() {
+                        var groupPurchaseId = $(this).attr("group_purchase_id");
+                        sln.confirm(CommonTranslations.GROUP_PURCHASE_DELETE_CONFIRMATION, function() {
+                            sln.call({
+                                url : "/common/group_purchase/delete",
+                                type : "POST",
+                                data : {
+                                    data : JSON.stringify({
+                                        group_purchase_id : parseInt(groupPurchaseId)
+                                    })
+                                },
+                                success : function(data) {
+                                    if (!data.success) {
+                                        return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                                    }
+                                    fadeOutMessageAndUpdateBadge(groupPurchaseId);
+                                },
+                                error : sln.showAjaxError
+                            });
                         });
                     });
-                });
 
-                $('#group_purchase button[action="subscriptions"]').click(function() {
-                    var groupPurchaseId = $(this).attr("group_purchase_id");
-                    var gp = $("#" + groupPurchaseId).data("group_purchase");
+                    $('#group_purchase button[action="subscriptions"]').click(function() {
+                        var groupPurchaseId = $(this).attr("group_purchase_id");
+                        var gp = $("#" + groupPurchaseId).data("group_purchase");
 
-                    $("#contact_group_purchase_subscriptions").data("group_purchase", gp);
-                    $("#add_group_purchase_subscriptions").data("group_purchase", gp);
+                        $("#contact_group_purchase_subscriptions").data("group_purchase", gp);
+                        $("#add_group_purchase_subscriptions").data("group_purchase", gp);
 
-                    var groupPurchaseSubscriptions = $("#group_purchase #group_purchase_subscriptions_table tbody");
+                        var groupPurchaseSubscriptions = $("#group_purchase #group_purchase_subscriptions_table tbody");
 
-                    $.each(gp.subscriptions, function(i, o) {
-                        o.time_str = sln.formatDate(o.timestamp, true, false, false);
+                        $.each(gp.subscriptions, function(i, o) {
+                            o.time_str = sln.formatDate(o.timestamp, true, false, false);
+                        });
+
+                        gp.subscriptions.sort(function(a, b) {
+                            return b.timestamp - a.timestamp;
+                        });
+
+                        var html = $.tmpl(templates.group_purchase_subscriptions, {
+                            group_purchases_subscriptions : gp.subscriptions,
+                            group_purchase_id : gp.id
+                        });
+                        groupPurchaseSubscriptions.empty().append(html);
                     });
 
-                    gp.subscriptions.sort(function(a, b) {
-                        return b.timestamp - a.timestamp;
-                    });
-
-                    var html = $.tmpl(templates.group_purchase_subscriptions, {
-                        group_purchases_subscriptions : gp.subscriptions,
-                        group_purchase_id : gp.id
-                    });
-                    groupPurchaseSubscriptions.empty().append(html);
-                });
-
-                $('.sln-group-purchase-badge').text(data.length || '');
-                sln.resize_header();
+                    $('.sln-group-purchase-badge').text(data.length || '');
+                    sln.resize_header();
+                })
             },
             error : sln.showAjaxError
         });
