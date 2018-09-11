@@ -2365,6 +2365,16 @@ def export_customers_csv(google_user):
     result = list()
     properties = ['name', 'address1', 'address2', 'zip_code', 'country']
 
+    phone_numbers = {}
+    qry = Contact.all()
+    while True:
+        contacts = qry.fetch(300)
+        if not contacts:
+            break
+        for contact in contacts:
+            phone_numbers[contact.customer_key.id()] = contact.phone_number
+        qry.with_cursor(qry.cursor())
+
     qry = get_all_customers()
     while True:
         customers = qry.fetch(300)
@@ -2403,8 +2413,7 @@ def export_customers_csv(google_user):
             d['Subscription type'] = Customer.SUBSCRIPTION_TYPES[customer.subscription_type]
             d['Has terminal'] = u'Yes' if customer.has_loyalty else u'No'
             d['Total users'] = total_users[i]
-            contact = Contact.get_one(customer)
-            d['Telephone'] = contact.phone_number if contact else u''
+            d['Telephone'] = phone_numbers.get(customer.id, u'')
             result.append(d)
             if len(customer.app_ids) != 0:
                 d['App'] = customer.app_id
