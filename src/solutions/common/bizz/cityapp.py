@@ -15,15 +15,15 @@
 #
 # @@license_version:1.3@@
 
-import json
-import logging
-import time
-import urllib
 from hashlib import sha1
 from hmac import new as hmac
+import json
+import logging
 from random import getrandbits
+import time
 from types import NoneType
 from urllib import quote as urlquote
+import urllib
 
 from google.appengine.api import urlfetch
 
@@ -74,7 +74,14 @@ def _get_uitdatabank_events_old(city_app_profile, page, pagelength, changed_sinc
               'pagelength': pagelength}
     data = urllib.urlencode(values)
     logging.debug(url + data)
-    result = urlfetch.fetch(url + data, deadline=60)
+    try:
+        result = urlfetch.fetch(url + data, deadline=30)
+    except urlfetch.DownloadError as e:
+        logging.debug('Caught %s. Retrying....', e.__class__.__name__)
+        result = urlfetch.fetch(url + data, deadline=30)
+    if result.status_code != 200:
+        logging.info("_get_uitdatabank_events_old failed with status_code %s and content:\n%s" % (result.status_code, result.content))
+        return False, "Make sure your credentials are correct."
     r = json.loads(result.content)
 
     if not r:
