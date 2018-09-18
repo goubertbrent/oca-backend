@@ -27,8 +27,6 @@ from rogerthat.settings import get_server_settings
 from shop.models import Customer
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook, \
     CampaignMonitorOrganizationWebhook
-from solutions.common.bizz.service import add_service_consent, \
-    remove_service_consent
 from solutions.common.models import SolutionServiceConsent
 
 
@@ -125,7 +123,7 @@ def register_webhook(list_id, events, consent_type):
 
 
 @returns(CampaignMonitorWebhook)
-@arguments(webhook_id=unicode, organization_type=(int, long), list_id=unicode, events=[unicode])
+@arguments(webhook_id=(long, int), organization_type=(int, long), list_id=unicode, events=[unicode])
 def register_organization_type_webhook(webhook_id, organization_type, list_id, events):
     ls = get_list(list_id)
     webhook = CampaignMonitorWebhook.get_by_id(webhook_id)
@@ -144,7 +142,7 @@ def register_organization_type_webhook(webhook_id, organization_type, list_id, e
     callback_url = get_list_callback_url(webhook_id, organization_type)
     ls.create_webhook(events, callback_url, 'json')  # returns list id, not very useful
     webhook.put()
-    deferred.defer(register_members_to_organization_list, webhook_id, list_id)
+    deferred.defer(register_members_to_organization_list, webhook_id, organization_type)
     return webhook
 
 
@@ -167,6 +165,7 @@ def subscribe_customer(email, organization_type, list_id):
         if customer.organization_type == organization_type:
             subscribe(list_id, email)
 
+
 @returns()
 @arguments(list_id=unicode, email=unicode, name=unicode, custom_fields=dict)
 def subscribe(list_id, email, name=None, custom_fields=None):
@@ -188,6 +187,7 @@ def unsubscribe(list_id, email):
 
 def new_list_event(webhook_id, events_list_id, events, headers, consent_type):
     """A new subscribers list event triggered by webhooks"""
+    from solutions.common.bizz.service import add_service_consent, remove_service_consent
     logging.debug('Got some subscriber list events %s, %s', events_list_id, events)
     webhook = CampaignMonitorWebhook.get_by_id(webhook_id)
     for event in events:

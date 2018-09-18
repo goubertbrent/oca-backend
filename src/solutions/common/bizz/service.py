@@ -256,7 +256,6 @@ def set_customer_signup_status(city_customer, signup, approved, reason=None):
         send_signup_update_messages(sln_settings, message, status_reply_message)
 
 
-
 def send_message_updates(sln_settings, type_, *messages):
     service_identity = ServiceIdentity.DEFAULT
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
@@ -314,4 +313,3 @@ def update_service_consent(email, grant, type_, data):
         }
         log_offload.create_log(email, 'oca.service_consents', request_data, None)
     return updated
-
