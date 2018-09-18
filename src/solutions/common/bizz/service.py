@@ -32,7 +32,7 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.models import Product, RegioManagerTeam
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
-from solutions.common.bizz.campaignmonitor import ListEvents, send_smart_email
+from solutions.common.bizz.campaignmonitor import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
@@ -279,15 +279,16 @@ def send_signup_update_messages(sln_settings, *messages):
 
 
 def add_service_consent(email, type_, data):
-    update_service_consent(email, True, type_, data)
+    return update_service_consent(email, True, type_, data)
 
 
 def remove_service_consent(email, type_, data):
-    update_service_consent(email, False, type_, data)
+    return update_service_consent(email, False, type_, data)
 
 
 @ndb.transactional(xg=True)
 def update_service_consent(email, grant, type_, data):
+    updated = False
     sec_key = SolutionServiceConsent.create_key(email)
     sec = sec_key.get()
     if not sec:
@@ -295,37 +296,22 @@ def update_service_consent(email, grant, type_, data):
 
     if grant:
         if type_ not in sec.types:
+            updated = True
             sec.types.append(type_)
             sec.put()
     elif type_ in sec.types:
+        updated = True
         sec.types.remove(type_)
         sec.put()
 
-    SolutionServiceConsentHistory(consent_type=type_, data=data, parent=sec_key).put()
-
-    request_data = {
-        'email': email,
-        'grant': grant,
-        'type': type_,
-        'data': data,
-    }
-    log_offload.create_log(email, 'oca.service_consents', request_data, None)
-
-
-def new_list_event(list_id, events, headers, consent_type):
-    """A new subscribers list event triggered by webhooks"""
-    logging.debug('Got some subscriber list events %s, %s', list_id, events)
-    for event in events:
-        event_type = event['Type']
-        event_email = event['EmailAddress']
-        data = {
-            'context': u'User %ssubscribed via campaignmonitor' % ('un' if event_type == ListEvents.DEACTIVATE else ''),
-            'headers': headers,
-            'name': event['Name'],
-            'ip': event.get('SignupIPAddress'),
-            'date': event['Date']
+    if updated:
+        SolutionServiceConsentHistory(consent_type=type_, data=data, parent=sec_key).put()
+        request_data = {
+            'email': email,
+            'grant': grant,
+            'type': type_,
+            'data': data,
         }
-        if event_type == ListEvents.SUBSCRIBE:
-            add_service_consent(event_email, consent_type, data)
-        elif event_type == ListEvents.DEACTIVATE:
-            remove_service_consent(event_email, consent_type, data)
+        log_offload.create_log(email, 'oca.service_consents', request_data, None)
+    return updated
+

@@ -19,12 +19,16 @@ import logging
 import urlparse
 
 from createsend import BadRequest, List, Transactional, Subscriber
-from google.appengine.ext import ndb
+from google.appengine.ext import ndb, deferred
 
 from mcfw.rpc import arguments, returns
 from rogerthat.consts import DEBUG
 from rogerthat.settings import get_server_settings
-from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
+from shop.models import Customer
+from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook, \
+    CampaignMonitorOrganizationWebhook
+from solutions.common.bizz.service import add_service_consent, \
+    remove_service_consent
 from solutions.common.models import SolutionServiceConsent
 
 
@@ -39,8 +43,11 @@ class ListEvents(object):
     ALL = [SUBSCRIBE, DEACTIVATE, UPDATE]
 
 
-def get_list_callback_url(webhook_id):
-    path = '/'.join([LIST_CALLBACK_PATH, str(webhook_id)])
+def get_list_callback_url(webhook_id, organization_type=None):
+    if organization_type is None:
+        path = '%s/%s' % (LIST_CALLBACK_PATH, webhook_id)
+    else:
+        path = '%s/%s_type_%s' % (LIST_CALLBACK_PATH, webhook_id, organization_type)
     return urlparse.urljoin(get_server_settings().baseUrl, path)
 
 
@@ -117,6 +124,49 @@ def register_webhook(list_id, events, consent_type):
     return webhook
 
 
+@returns(CampaignMonitorWebhook)
+@arguments(webhook_id=unicode, organization_type=(int, long), list_id=unicode, events=[unicode])
+def register_organization_type_webhook(webhook_id, organization_type, list_id, events):
+    ls = get_list(list_id)
+    webhook = CampaignMonitorWebhook.get_by_id(webhook_id)
+    if not webhook:
+        return None
+
+    if webhook.get_organization_list(organization_type):
+        return webhook
+
+    ol = CampaignMonitorOrganizationWebhook()
+    ol.organization_type = organization_type
+    ol.list_id = list_id
+
+    webhook.add_organization_list(ol)
+
+    callback_url = get_list_callback_url(webhook_id, organization_type)
+    ls.create_webhook(events, callback_url, 'json')  # returns list id, not very useful
+    webhook.put()
+    deferred.defer(register_members_to_organization_list, webhook_id, list_id)
+    return webhook
+
+
+def register_members_to_organization_list(webhook_id, organization_type, page=1):
+    webhook = CampaignMonitorWebhook.get_by_id(webhook_id)
+    if not webhook:
+        return None
+    ol = webhook.get_organization_list(organization_type)
+
+    ls = get_list(webhook.list_id)
+    res = ls.active(page=page)
+    for r in res.Results:
+        deferred.defer(subscribe_customer, r.EmailAddress, organization_type, ol.list_id)
+    if res.NumberOfPages > page:
+        deferred.defer(register_members_to_organization_list, webhook_id, organization_type, page + 1)
+
+
+def subscribe_customer(email, organization_type, list_id):
+    for customer in Customer.list_by_user_email(email):
+        if customer.organization_type == organization_type:
+            subscribe(list_id, email)
+
 @returns()
 @arguments(list_id=unicode, email=unicode, name=unicode, custom_fields=dict)
 def subscribe(list_id, email, name=None, custom_fields=None):
@@ -134,3 +184,35 @@ def unsubscribe(list_id, email):
         # pass if it's already unsubscribed (203)
         if exception.data.Code != 203:
             raise
+
+
+def new_list_event(webhook_id, events_list_id, events, headers, consent_type):
+    """A new subscribers list event triggered by webhooks"""
+    logging.debug('Got some subscriber list events %s, %s', events_list_id, events)
+    webhook = CampaignMonitorWebhook.get_by_id(webhook_id)
+    for event in events:
+        event_type = event['Type']
+        event_email = event['EmailAddress']
+        data = {
+            'context': u'User %ssubscribed via campaignmonitor' % ('un' if event_type == ListEvents.DEACTIVATE else ''),
+            'headers': headers,
+            'name': event['Name'],
+            'ip': event.get('SignupIPAddress'),
+            'date': event['Date']
+        }
+        if event_type == ListEvents.SUBSCRIBE:
+            if add_service_consent(event_email, consent_type, data):
+                if webhook.list_id != events_list_id:
+                    subscribe(webhook.list_id, event_email)
+                for ol in webhook.get_organization_lists():
+                    if ol.list_id == events_list_id:
+                        continue
+                    subscribe_customer(event_email, ol.organization_type, ol.list_id)
+        elif event_type == ListEvents.DEACTIVATE:
+            if remove_service_consent(event_email, consent_type, data):
+                if webhook.list_id != events_list_id:
+                    unsubscribe(webhook.list_id, event_email)
+                for ol in webhook.get_organization_lists():
+                    if ol.list_id == events_list_id:
+                        continue
+                    unsubscribe(ol.list_id, event_email)

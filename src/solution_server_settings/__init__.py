@@ -15,6 +15,8 @@
 #
 # @@license_version:1.1@@
 
+import logging
+
 from google.appengine.ext import db, ndb
 
 from mcfw.cache import CachedModelMixIn, cached
@@ -22,9 +24,6 @@ from mcfw.rpc import returns, arguments
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from rogerthat.models.common import NdbModel
 from rogerthat.models.utils import add_meta
-
-import logging
-
 from solutions.common.models import SolutionServiceConsent
 
 
@@ -182,15 +181,36 @@ del ds_ss
 del s_ss
 
 
+class CampaignMonitorOrganizationWebhook(NdbModel):
+    organization_type = ndb.IntegerProperty()
+    list_id = ndb.StringProperty()
+
+
 class CampaignMonitorWebhook(NdbModel):
     create_date = ndb.DateTimeProperty(indexed=False, auto_now_add=True)
     list_id = ndb.StringProperty()
     consent_type = ndb.StringProperty(choices=SolutionServiceConsent.TYPES)
+    organization_lists = ndb.StructuredProperty(CampaignMonitorOrganizationWebhook, repeated=True)  # type: list[CampaignMonitorOrganizationWebhook]
 
     @property
     def id(self):
         return self.key.id()
+    
+    def get_organization_lists(self):
+        if not self.organization_lists:
+            self.organization_lists = []
+        return self.organization_lists
+    
+    def add_organization_list(self, ol):
+        self.get_organization_lists().append(ol)
+
+    def get_organization_list(self, organization_type):
+        for ol in self.get_organization_lists():
+            if ol.organization_type == organization_type:
+                return ol
+        return None
 
     @classmethod
     def list_by_list_id(cls, list_id):
         return cls.query().filter(cls.list_id == list_id)
+

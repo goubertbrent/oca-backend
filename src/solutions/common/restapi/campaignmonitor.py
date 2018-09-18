@@ -24,26 +24,44 @@ from mcfw.rpc import arguments, returns
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.utils import try_or_defer
 from solution_server_settings import CampaignMonitorWebhook
-from solutions.common.bizz.campaignmonitor import LIST_CALLBACK_PATH
-from solutions.common.bizz.service import new_list_event
+from solutions.common.bizz.campaignmonitor import LIST_CALLBACK_PATH, \
+    new_list_event
 
 
 @rest(LIST_CALLBACK_PATH + '/<webhook_id:[^/]+>', 'post', read_only_access=True, authenticated=False)
 @returns(dict)
-@arguments(webhook_id=(int, long))
-def api_list_webhook_callback(webhook_id):
+@arguments(webhook_id=unicode)
+def api_get_list_webhook_callback(webhook_id):
     """A generic handler for campaignmonitor subscriber list web hooks"""
-    webhook = CampaignMonitorWebhook.get_by_id(webhook_id)  # type: CampaignMonitorWebhook
+    if '_type_' in webhook_id:
+        list_id, organization_type = [long(v) for v in webhook_id.split('_type_')]
+    else:
+        list_id = long(webhook_id)
+        organization_type = None
+
+    webhook = CampaignMonitorWebhook.get_by_id(list_id)  # type: CampaignMonitorWebhook
     if not webhook:
         raise HttpBadRequestException()
+    
     current_request = GenericRESTRequestHandler.getCurrentRequest()
     list_events = json.loads(current_request.body)
-    list_id = list_events['ListID']
+    events_list_id = list_events['ListID']
     events = list_events['Events']
-    if webhook.list_id != list_id:
-        logging.warn('Invalid list id %s, expected %s', list_id, webhook.list_id)
-        raise HttpBadRequestException()
+    
+    if organization_type is None:
+        if webhook.list_id != events_list_id:
+            logging.warn('Invalid list id %s, expected %s', events_list_id, webhook.list_id)
+            raise HttpBadRequestException()
+    else:
+        ol = webhook.get_organization_list(organization_type)
+        if not ol:
+            logging.warn('Invalid organization_type %s', organization_type)
+            raise HttpBadRequestException()
+        if ol.list_id != events_list_id:
+            logging.warn('Invalid organization list id %s, expected %s', events_list_id, ol.list_id)
+            raise HttpBadRequestException()
+
     headers = get_headers_for_consent(current_request)
-    try_or_defer(new_list_event, list_id, events, headers, webhook.consent_type)
+    try_or_defer(new_list_event, list_id, events_list_id, events, headers, webhook.consent_type)
     # just to make sure the status code is 200
     return {}
