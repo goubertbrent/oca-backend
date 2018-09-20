@@ -332,10 +332,16 @@ class FlexHomeHandler(webapp2.RequestHandler):
         week_days = self._get_week_days(sln_settings)
         loyalty_version = self.request.get("loyalty")
         if customer:
-            city_app_id = customer.app_id
-            default_app = get_app_by_id(customer.app_id)
+            if service_identity != ServiceIdentity.DEFAULT:
+                service_identity_user = create_service_identity_user(service_user, service_identity)
+                si = get_service_identity(service_identity_user)
+                city_app_id = si.app_id
+                active_app_ids = si.sorted_app_ids
+            else:
+                city_app_id = customer.app_id
+                active_app_ids = customer.sorted_app_ids
+            default_app = get_app_by_id(city_app_id)
             is_demo_app = default_app.demo
-            active_app_ids = customer.sorted_app_ids
         else:
             city_app_id = None
             is_demo_app = False
