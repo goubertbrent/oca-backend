@@ -11,15 +11,15 @@
             </label>
             <span class="help-block">{{html T('payments_optional_explanation') }}</span>
         </div>
-        <hr>
         {{if settings.payconiq}}
+        <hr>
         <h3>Payconiq</h3>
+        <label class="checkbox" for="payconiq_enabled">
+            <input type="checkbox" value="payconiq_enabled" id="payconiq_enabled"
+                   {{if settings.payconiq.enabled}}checked{{/if}}/> ${T('Enabled')}
+        </label>
         {{html payconiqHtml}}
         <form class="form-horizontal">
-            <label class="checkbox" for="payconiq_enabled">
-                <input type="checkbox" value="payconiq_enabled" id="payconiq_enabled"
-                       {{if settings.payconiq.enabled}}checked{{/if}}/> ${T('Enabled')}
-            </label>
             <div class="control-group">
                 <label class="control-label" for="payconicMerchantId">Merchant ID</label>
                 <div class="controls">
@@ -44,20 +44,39 @@
                 <span class="help-block">${T('payments_fee_min_amount_zero_cost')}</span>
            </div>
         </form>
-        <hr>
         {{/if}}
-       {{if settings.threefold}}
+        {{if settings.threefold}}
+        <hr>
         <h3>ThreeFold</h3>
+        <label class="checkbox" for="threefold_enabled">
+            <input type="checkbox" value="threefold_enabled" id="threefold_enabled"
+                   {{if settings.threefold.enabled}}checked{{/if}}/> ${T('Enabled')}
+        </label>
+        <p>
+            ThreeFold Token a decentralized digital currency backed by the fastest growing commodity in the world — <b>The Internet</b>.
+            For more information, please visit <a href="https://threefold.io/tokens/">www.threefold.io/tokens</a>.
+            Before you do anything you will need to have a ThreeFold Token wallet to be able to receive ThreeFold Tokens.
+            You can find instructions about how to download the ThreeFold wallet on your Android or iOS device
+            <a href="https://www.threefold.io/tokens/#section-download-wallet">on the ThreeFold website</a>.
+        </p>
+        <p><b>How to get your ThreeFold address?</b></p>
+        <p>
+            1. Once the ThreeFold app is installed, click "Wallets" in the side bar, choose the ThreeFold currency and
+            press 'Receive'. A page with a QR code will be displayed.
+        </p>
+        <p>
+            2. Your address is displayed underneath this QR code. Click on the address or the QR code to copy it. 
+            Eventually paste the address in an e-mail to yourself, so you can later access it on your computer. 
+        </p>
+        <p>3. Paste this address in the "Address" field below.</p>
         <form class="form-horizontal">
-            <p>TODO: Explanation about threefold</p>
-            <label class="checkbox" for="threefold_enabled">
-                <input type="checkbox" value="threefold_enabled" id="threefold_enabled"
-                       {{if settings.threefold.enabled}}checked{{/if}}/> ${T('Enabled')}
-            </label>
-            <label for="threefold_address">Address</label>
-            <input name="threefold_address" id="threefold_address" type="text" minlength="78"
-                   maxlength="78" value="${settings.threefold.settings.address}" style="width: 600px;">
-            <p>TODO: where to find this address</p>
+            <div class="control-group">
+                <label class="control-label" for="threefold_address">Address</label>
+                <div class="controls">
+                    <input name="threefold_address" id="threefold_address" type="text" minlength="78"
+                        maxlength="78" value="${settings.threefold.settings.address}" style="width: 95%;">
+                </div>
+            </div>
         </form>
         {{/if}}
     </div>

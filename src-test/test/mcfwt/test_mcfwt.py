@@ -15,6 +15,9 @@
 #
 # @@license_version:1.3@@
 
+import json
+import logging
+
 import mc_unittest
 from mcfw.properties import long_property, unicode_property, bool_property, float_property, unicode_list_property, \
     typed_property, get_hash
@@ -56,7 +59,8 @@ class Test(mc_unittest.TestCase):
         @returns(bool)
         @arguments(sender=unicode, member=(unicode, MemberTO))
         def polySingleArgument(sender, member):
-            assert((sender == "eef" and isinstance(member, MemberTO)) or (sender == "geert" and isinstance(member, unicode)))
+            assert((sender == "eef" and isinstance(member, MemberTO)) or (
+                sender == "geert" and isinstance(member, unicode)))
             return True
 
         m = MemberTO()
@@ -93,7 +97,6 @@ class Test(mc_unittest.TestCase):
         m2.member = u"mieke"
 
         self.assertRaises(ValueError, lambda: polyArrayArgument(u"eef", [m2, u"carl"]))
-
 
     def testSerializeWithMISSING(self):
         RESULT_STR = """{"id":"ef0da970-eaec-11e2-9eeb-af96f4efab6f","result":{"type":"form","value":{"attachments":[],"message":"Beste Test agent 11, \\n\\nselecteer de dag waarvan u de schedule wil bekijken:","flags":0,"alert_flags":0,"branding":"9D104A3966ADA1E11B2508606944E6EFC2E1DF49DC9A041A23CF8C4114CF5F5C","tag":"{\\"_id\\":\\"select_date_get_schedule\\"}","form":{"positive_button":"Verder","positive_confirmation":null,"positive_button_ui_flags":1,"negative_button":"Annuleren","negative_confirmation":null,"negative_button_ui_flags":0,"type":"date_select","widget":{"date":0,"min_date":1373587200,"max_date":1405123200,"minute_interval":30,"mode":"date","unit":null}}}},"error":null}"""
@@ -160,7 +163,6 @@ class Test(mc_unittest.TestCase):
         h4 = get_hash(d1)
 
         self.assertNotEqual(h3, h4)
-
 
     def testReturnsWithListWithTuple(self):
 

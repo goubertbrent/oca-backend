@@ -94,7 +94,6 @@ class TestCase(mc_unittest.TestCase):
         sign_order(customer.id, order.order_number, 'image/png,%s' % base64.b64encode(UNKNOWN_AVATAR))
         return db.get((order.key(), customer.key()))
 
-
     def test_next_charge_date(self):
         self.set_datastore_hr_probability(1)
 
@@ -155,8 +154,8 @@ class TestCase(mc_unittest.TestCase):
         # extend the customer's (expired) subscription
         charge = set_expired_subscription_status(customer.id, ExpiredSubscription.STATUS_EXTEND_SUBSCRIPTION)
         subscription_order, \
-        expired_subscription = db.get((Order.create_key(customer.id, customer.subscription_order_number),
-                                       ExpiredSubscription.create_key(customer.id)))
+            expired_subscription = db.get((Order.create_key(customer.id, customer.subscription_order_number),
+                                           ExpiredSubscription.create_key(customer.id)))
         self.assertEqual(expired_subscription, None)
         product_subscription = Product.get_by_code(u'MSUP')
         charge_total = product_subscription.price * 12  # subscription extensions should always be 12 months long
@@ -174,9 +173,9 @@ class TestCase(mc_unittest.TestCase):
         self.set_datastore_hr_probability(1)
         products_to_order = [(u'MSUP', 12),  # monthly subscription, $50.00
                              (u'KSUP', 12),  # subscription discount, -$15.00
-                             (Product.PRODUCT_EXTRA_CITY, 12),  # extra city, $5.00
-                             (Product.PRODUCT_EXTRA_CITY, 12),  # extra city, $5.00
-                             (Product.PRODUCT_EXTRA_CITY, 12)]  # extra city, $5.00
+                             (u'XCTY', 12),  # extra city, $5.00
+                             (u'XCTY', 12),  # extra city, $5.00
+                             (u'XCTY', 12)]  # extra city, $5.00
         old_subscription_order, customer = self._create_customer_and_subscription_order(products_to_order)
         old_subscription_order.next_charge_date -= 12 * 31 * 86400  # Turn back next_charge_date more than 12 months
         old_subscription_order.put()
@@ -189,9 +188,9 @@ class TestCase(mc_unittest.TestCase):
                                                                                                       (u'LSUP', 1)]))
 
         products_to_order = [(Product.PRODUCT_FREE_SUBSCRIPTION, 1),
-                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
-                             (Product.PRODUCT_EXTRA_CITY, 1),  # extra city, $5.00
-                             (Product.PRODUCT_EXTRA_CITY, 1)]  # extra city, $5.00
+                             (u'XCTY', 1),  # extra city, $5.00
+                             (u'XCTY', 1),  # extra city, $5.00
+                             (u'XCTY', 1)]  # extra city, $5.00
         order_items = self._create_items(customer, products_to_order)
         new_subscription_order, customer = self._create_order(customer, old_subscription_order.contact_id, order_items,
                                                               replace=True)
@@ -202,7 +201,7 @@ class TestCase(mc_unittest.TestCase):
         products = Product.get_products_dict()
         charge = _create_charge(new_subscription_order.key(), now(), products)
         self.assertIsNotNone(charge)
-        expected_charge_amount = 3 * products[Product.PRODUCT_EXTRA_CITY].price  # 3x $5.00
+        expected_charge_amount = 3 * products[u'XCTY'].price  # 3x $5.00
         self.assertEqual(expected_charge_amount, charge.amount)
 
         def trans_invoice_number():
