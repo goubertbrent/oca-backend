@@ -1,0 +1,34 @@
+{% extends 'base.html' %} {% block body %}
+
+<div class="container">
+  <h2>Import customers</h2>
+  <form id="import_form">
+    <div class="control-group">
+      <label for="app">App</label>
+      <select type="text" id="app" name="app" required>
+        <option value="">Select an app...</option>
+        {% for app in apps %}
+        <option value="{{ app.app_id }}">
+          {{ app.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="customers_sheet">File</label>
+      <input id="customers_sheet" type="file" accept=".csv, application/csv" required>
+    </div>
+
+    <div class="info" style="display: none;">
+      <div class="loading-spinner"></div>
+      <span class="progress-info"></span>
+    </div>
+
+    <button id="import_customers" class="btn btn-primary">Import</button>
+  </form>
+
+  {% include "firebase_config.html" %}
+  <script src="/static/js/shop/customers_import.js"></script>
+</div>
+{% endblock %}

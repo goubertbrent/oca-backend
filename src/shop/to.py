@@ -933,3 +933,13 @@ class CustomerLocationTO(object):
         self.lon = lon
         self.address = address
         self.type = type_
+
+
+class ImportCustomersReturnStatusTO(ReturnStatusTO):
+    customer_count = long_property('101')
+
+    @classmethod
+    def create(cls, success=True, errormsg=None, customer_count=0):
+        status = super(ImportCustomersReturnStatusTO, cls).create(success, errormsg)
+        status.customer_count = customer_count
+        return status

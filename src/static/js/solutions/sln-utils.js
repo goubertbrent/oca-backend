@@ -1099,8 +1099,8 @@ var createLib = function() {
                 var reader = new FileReader();
 
                 reader.onload = function (e) {
-                    var base64Date = reader.result.split(';base64,').pop();
-                    callback(base64Date);
+                    var base64Data = reader.result.split(';base64,').pop();
+                    callback(base64Data);
                 };
                 reader.readAsDataURL(input.files[0]);
             } else {

@@ -76,7 +76,7 @@ from shop.bizz import search_customer, create_or_update_customer, \
     user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
     finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
     regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin, user_has_permissions_to_question, \
-    put_app_signup_enabled, sign_order
+    put_app_signup_enabled, sign_order, import_customer
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -89,7 +89,8 @@ from shop.business.prospect import search_prospects, generate_prospect_export_ex
 from shop.business.qr import generate_unassigned_qr_codes_zip_for_app
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES, COUNTRY_DEFAULT_LANGUAGES, \
     LOGO_LANGUAGES, PROSPECT_CATEGORY_KEYS, STORE_MANAGER
-from shop.dal import get_shop_loyalty_slides, get_shop_loyalty_slides_new_order, get_mobicage_legal_entity
+from shop.dal import get_shop_loyalty_slides, get_shop_loyalty_slides_new_order, get_mobicage_legal_entity, \
+    get_customer
 from shop.exceptions import DuplicateCustomerNameException, ReplaceBusinessException, NoSubscriptionFoundException, \
     CustomerNotFoundException, NoPermissionException
 from shop.jobs.migrate_service import migrate_and_create_user_profile
@@ -106,7 +107,7 @@ from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServi
     RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, OrderAndInvoiceTO, \
     RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, TaskTO, ProductTO, RegioManagerTeamTO, \
     ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
-    LegalEntityReturnStatusTO, CustomerChargesTO
+    LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
@@ -270,6 +271,12 @@ class BizzManagerHandler(webapp2.RequestHandler):
         if not authorize_manager():
             self.abort(401)
         return super(BizzManagerHandler, self).dispatch()
+
+    def render_template(self, name, **context):
+        context.update(get_shop_context())
+        channel.append_firebase_params(context)
+        path = os.path.join(os.path.dirname(__file__), 'html', '%s.html' % name)
+        self.response.write(template.render(path, context))
 
 
 class BizzAdminHandler(BizzManagerHandler):
@@ -714,6 +721,13 @@ class JoynReferralsHandler(BizzManagerHandler):
         context = get_shop_context(referrals=sorted(result, key=lambda r: r['customer']['name']))
         path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_referrals.html')
         self.response.write(template.render(path, context))
+
+
+class CustomersImportHandler(BizzManagerHandler):
+
+    def get(self):
+        apps = sorted(get_apps_by_type(App.APP_TYPE_CITY_APP), key=lambda a: a.name.lower())
+        return self.render_template('customers_import', apps=apps)
 
 
 class ExpiredSubscriptionsHandler(BizzManagerHandler):
@@ -2319,3 +2333,46 @@ def test_app_broadcast(service, app_ids, message, tester):
 def rest_get_customer_charges(paid=False, cursor=None):
     user = gusers.get_current_user()
     return get_customer_charges(user, paid, cursor=cursor)
+
+
+@rest('/internal/shop/customers/import/sheet', 'post')
+@returns(ImportCustomersReturnStatusTO)
+@arguments(import_id=(int, long), app_id=unicode, file_data=str)
+def rest_import_customers(import_id, app_id, file_data):
+    user = gusers.get_current_user()
+
+    city_service_user = get_service_user_for_city(app_id)
+    sln_settings = get_solution_settings(city_service_user)
+    city_customer = get_customer(city_service_user)
+
+    country = city_customer.country
+    language, currency = sln_settings.main_language, sln_settings.currency
+
+    try:
+        stream = StringIO(base64.b64decode(file_data))
+        stream.readline()  # skip header
+        reader = csv.reader(stream)
+    except csv.Error:
+        return ImportCustomersReturnStatusTO.create(
+            False, 'Invalid csv format'
+        )
+
+    customer_count = 0
+    for row in reader:
+        try:
+            id_, org_type_name, name, vat, email, phone, address, zip_code, \
+            city, website, facebook_page, contact_name, contact_address, contact_zipcode, \
+            contact_city, contact_email, contact_phone = map(unicode, [v.decode('utf-8') for v in row])
+        except ValueError:
+            return ImportCustomersReturnStatusTO.create(
+                False, 'Invalid csv file header/column format'
+            )
+
+        customer_count += 1
+        deferred.defer(
+            import_customer, user, import_id, app_id, city_customer, currency, name, vat, org_type_name,
+            email, phone, address, zip_code, city, website, facebook_page, contact_name, contact_address,
+            contact_zipcode, contact_city, contact_email, contact_phone
+        )
+
+    return ImportCustomersReturnStatusTO.create(True, customer_count=customer_count)

@@ -68,7 +68,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
-from rogerthat.translations import DEFAULT_LANGUAGE
+from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
@@ -97,12 +97,12 @@ from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, A
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor
+from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor, DEFAULT_BROADCAST_TYPES
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
-    add_service_consent, remove_service_consent
+    add_service_consent, remove_service_consent, create_customer_with_service, put_customer_service
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.handlers import JINJA_ENVIRONMENT
@@ -2960,3 +2960,60 @@ def add_service_admin(service_user, owner_user_email, base_url):
         app = get_app_by_id(user_profile.app_id)
         from_email = '%s <%s>' % (app.name, shop_translate(user_profile.language, 'oca_info_email_address'))
         send_mail(from_email, user_profile.user.email(), subject, text_body, html=html_body)
+
+
+def import_customer(
+    current_user, import_id, app_id, city_customer, currency, name, vat, org_type_name, email, phone,
+    address, zip_code, city, website, facebook_page, contact_name, contact_address, contact_zipcode,
+    contact_city, contact_email, contact_phone):
+
+    def get_org_type(lang, name):
+        translation_keys = {
+            ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT: 'association',
+            ServiceProfile.ORGANIZATION_TYPE_PROFIT: 'merchant',
+            ServiceProfile.ORGANIZATION_TYPE_CITY: 'community_service',
+            ServiceProfile.ORGANIZATION_TYPE_EMERGENCY: 'Care',
+            ServiceProfile.ORGANIZATION_TYPE_UNSPECIFIED: 'service',
+        }
+
+        for org_type in ServiceProfile.ORGANIZATION_TYPES:
+            translation_key = translation_keys.get(org_type)
+            if name.lower() == localize(translation_key, name).lower():
+                return org_type
+
+    try:
+        language = city_customer.language
+        country = city_customer.country
+        org_type = get_org_type(language, org_type_name)
+        email = email or contact_email
+        address = address or contact_address
+        phone = phone or contact_phone
+        city = city or contact_city
+        zip_code = zip_code or contact_zipcode
+        broadcast_types, modules = map(list, [DEFAULT_BROADCAST_TYPES, SolutionModule.MANDATORY_MODULES])
+
+        service = create_customer_service_to(
+            name, address, '', city, zip_code, email, language, currency,
+            phone, org_type, app_id, broadcast_types, modules)
+
+        customer, email_changed, is_new_service = create_customer_with_service(
+            city_customer, None, service, name, contact_address, '', contact_zipcode,
+            contact_city, language, org_type, vat, website=website, facebook_page=facebook_page
+        )
+
+        first_name, _, last_name = contact_name.partition(' ')
+        contact = Contact.get_one(customer.key())
+        update_contact(
+            customer.id, contact.id, first_name, last_name, contact_email, contact_phone)
+
+        put_customer_service(
+            customer, service, skip_module_check=True, search_enabled=False,
+            skip_email_check=True, rollback=is_new_service)
+    except Exception as e:
+        # TODO: show an error or send message cannot import customer
+        logging.error(
+            'Cannot create a service for imported customer %s (%s)', name, email, exc_info=True)
+        channel.send_message(current_user, 'shop.customer.import.failed', import_id=import_id)
+        return
+
+    channel.send_message(current_user, 'shop.customer.import.success', import_id=import_id)
