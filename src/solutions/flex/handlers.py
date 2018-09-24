@@ -71,8 +71,7 @@ from solutions.jinja_extensions import TranslateExtension
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
                                     os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
-    extensions=[TranslateExtension],
-    undefined=StrictUndefined)
+    extensions=[TranslateExtension])
 
 
 DEFAULT_JS_TEMPLATES = [

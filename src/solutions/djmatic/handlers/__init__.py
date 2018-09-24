@@ -51,8 +51,8 @@ from solutions.jinja_extensions import TranslateExtension
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates'),
                                                                        os.path.join(os.path.dirname(__file__), '..', '..', 'common', 'templates')]),
-                                       extensions=[TranslateExtension],
-                                       undefined=StrictUndefined)
+                                       extensions=[TranslateExtension])
+
 
 class DJMaticHomeHandler(webapp2.RequestHandler):
 
@@ -104,7 +104,7 @@ class DJMaticHomeHandler(webapp2.RequestHandler):
         jinja_template = JINJA_ENVIRONMENT.get_template('index.html')
 
         days = self._get_days(sln_settings)
-        day_flags = [(pow(2, day_num), day_name) for day_num, day_name in days ]
+        day_flags = [(pow(2, day_num), day_name) for day_num, day_name in days]
         months = self._get_months(sln_settings, 'wide')
         months_short = self._get_months(sln_settings, 'abbreviated')
         week_days = self._get_week_days(sln_settings)

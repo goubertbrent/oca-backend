@@ -504,7 +504,7 @@
                    }
                     return {
                         outlet: outlet,
-                        message: "{% translate language, 'common', 'pay_widget_message', '_duplicate_backslashes=True' %}".replace('%(amount)s', amountStr).replace('%(currency)s', 'EUR'),
+                        message: "{% translate language, 'common', 'pay_widget_message', '_duplicate_backslashes=True' %}".replace('%(amount)s', amountStr).replace('%(currency)s', '{{ settings.currency }}'),
                         defaultValue: {
                             memo: "{% translate language, 'common', 'pay_widget_memo', '_duplicate_backslashes=True' %}".replace('%(name)s', rogerthat.service.name).replace('%(app_name)s', rogerthat.system.appName),
                             target: rogerthat.service.account,

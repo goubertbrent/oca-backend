@@ -27,5 +27,4 @@ SHOP_TEMPLATES_FOLDER = os.path.join(os.path.dirname(__file__), 'html')
 SHOP_JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([SHOP_TEMPLATES_FOLDER,
                                     os.path.join(os.path.dirname(__file__), 'templates')]),
-    extensions=[TranslateExtension, SolutionsTranslateExtension],
-    undefined=StrictUndefined)
+    extensions=[TranslateExtension, SolutionsTranslateExtension])

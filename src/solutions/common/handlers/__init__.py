@@ -24,7 +24,6 @@ from zipfile import ZipFile
 import jinja2
 import webapp2
 from google.appengine.ext import webapp, db
-from jinja2 import StrictUndefined
 
 from PyPDF2.pdf import PdfFileReader
 from lxml import html, etree
@@ -51,8 +50,7 @@ except ImportError:
 
 
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
-                                       extensions=[TranslateExtension],
-                                       undefined=StrictUndefined)
+                                       extensions=[TranslateExtension])
 
 
 class GetSolutionLogoHandler(webapp.RequestHandler):
@@ -144,7 +142,8 @@ class OrderPdfHandler(webapp.RequestHandler):
         download = self.request.get("download", "false") == "true"
 
         self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers['Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
+        self.response.headers[
+            'Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
 
         try:
             customer = Customer.get_by_id(customer_id)
@@ -174,7 +173,8 @@ class InvoicePdfHandler(webapp.RequestHandler):
         download = self.request.get("download", "false") == "true"
 
         self.response.headers['Content-Type'] = 'application/pdf'
-        self.response.headers['Content-Disposition'] = str('%s; filename=invoice_%s.pdf' % ("attachment" if download else "inline", invoice_number))
+        self.response.headers[
+            'Content-Disposition'] = str('%s; filename=invoice_%s.pdf' % ("attachment" if download else "inline", invoice_number))
 
         try:
             customer = Customer.get_by_id(customer_id)
@@ -190,7 +190,8 @@ class InvoicePdfHandler(webapp.RequestHandler):
         invoice = db.get(Invoice.create_key(customer_id, order_number, charge_id, invoice_number))
 
         if not invoice or not invoice.pdf:
-            logging.error("%s attempted to download invoice %s which does not exist or does not have a pdf generated", service_user, invoice_number)
+            logging.error(
+                "%s attempted to download invoice %s which does not exist or does not have a pdf generated", service_user, invoice_number)
             self.error(500)
             return
         self.response.out.write(invoice.pdf)
@@ -258,7 +259,8 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
                 if static_content_id:
                     sc = SolutionStaticContent.get(SolutionStaticContent.create_key(service_user, static_content_id))
                     if not sc:
-                        logging.error(u"Failed to update static content with id '%s' for user %s", static_content_id, service_user)
+                        logging.error(
+                            u"Failed to update static content with id '%s' for user %s", static_content_id, service_user)
                         return sln_settings
 
                     if sc.old_coords != coords and sc.provisioned:
@@ -289,10 +291,10 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
             send_message(service_user, "solutions.common.service_menu.updated")
             broadcast_updates_pending(sln_settings)
             self.response.out.write(
-                    broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result', success=True))
+                broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result', success=True))
         except:
             logging.exception(
-                    'Error while trying to save static content PDF for user %s' % sln_settings.service_user.email())
+                'Error while trying to save static content PDF for user %s' % sln_settings.service_user.email())
             self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
                                                                 error=translate(sln_settings.main_language,
                                                                                 SOLUTION_COMMON,
@@ -300,6 +302,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
 
 
 class FlowStatisticsExportHandler(webapp2.RequestHandler):
+
     def get(self):
         excel = base64.b64decode(system.export_flow_statistics())
         self.response.headers['Content-Type'] = 'application/vnd.ms-excel'
