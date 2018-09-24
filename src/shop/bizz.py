@@ -102,7 +102,8 @@ from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
-    add_service_consent, remove_service_consent, create_customer_with_service, put_customer_service
+    add_service_consent, remove_service_consent, create_customer_with_service, put_customer_service, \
+    get_default_modules
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.handlers import JINJA_ENVIRONMENT
@@ -2990,7 +2991,9 @@ def import_customer(
         phone = phone or contact_phone
         city = city or contact_city
         zip_code = zip_code or contact_zipcode
-        broadcast_types, modules = map(list, [DEFAULT_BROADCAST_TYPES, SolutionModule.MANDATORY_MODULES])
+        broadcast_types, modules = map(list, [
+            DEFAULT_BROADCAST_TYPES, get_default_modules(city_customer)
+        ])
 
         service = create_customer_service_to(
             name, address, '', city, zip_code, email, language, currency,
