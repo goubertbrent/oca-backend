@@ -253,6 +253,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                        'debug': DEBUG,
                        'appscale': APPSCALE,
+                       'currency': sln_settings.currency,  # TBD: use currencies?
                        'service_user_email': sln_settings.service_user}
         templates = {}
         templates_to_get = set()
@@ -305,6 +306,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                           'service_name': sln_settings.name,
                           'service_display_email': sln_settings.qualified_identifier or service_user.email().encode("utf-8"),
                           'service_user_email': service_user.email().encode("utf-8"),
+                          'currency': sln_settings.currency,  # TBD: use currencies?
                           'translations': json.dumps(all_translations)
                           }
                 channel.append_firebase_params(params)
@@ -448,6 +450,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'functionality_info': functionality_info,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
                   'currencies': currencies.items(),
+                  'currency': sln_settings.currency,  # TBD: use currencies?
                   'is_layout_user': session_.layout_only if session_ else False,
                   'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
                   'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
@@ -479,8 +482,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                                                       "settings-bulk-invite-message",
                                                       app_name=system.get_identity().app_names[0])
 
-        if SolutionModule.MENU in sln_settings.modules:
-            params['menu'] = get_restaurant_menu(service_user)
+        params['menu'] = get_restaurant_menu(service_user) if SolutionModule.MENU in sln_settings.modules else None
 
         channel.append_firebase_params(params)
         self.response.out.write(jinja_template.render(params))
