@@ -115,37 +115,6 @@
             </div>
         </div>
         <div class="control-group">
-            <label for="service-modules" class="control-label">${T('modules')}</label>
-
-            <div class="controls" id="service-modules-container">
-                {{each(i, m) modules}}
-                <label class="checkbox">
-                    <input type="checkbox" name="service-modules" value="${m.key}"
-{{if edit}}
-    {{if service.modules.indexOf(m.key)!==-1}}checked{{/if}}
-{{/if}}>${m.label}</label>
-                {{/each}}
-            </div>
-        </div>
-        <div class="control-group">
-            <label for="service-broadcast-types" class="control-label">${T('broadcast_types')}</label>
-
-            <div class="controls" id="service-broadcast-types-container">
-                {{if edit}}
-                {{each(i, b) service.broadcast_types}}
-                <label class="checkbox"><input type="checkbox" name="service-broadcast-types" value="${b}"
-                                               checked>${b}</label>
-                {{/each}}
-                {{else}}
-                {{each(i, b) broadcastTypes}}
-                <label class="checkbox"><input type="checkbox" name="service-broadcast-types" value="${b}"
-                                               checked>${b}</label>
-                {{/each}}
-                {{/if}}
-                <input type="text" id="service-extra-broadcast-type" placeholder="${T('add_custom_broadcast_type')}"
-                       style="width: 292px;">
-                <button type="button" id="service-extra-broadcast-type-add" class="btn btn-default">
-                    <i class="fa fa-plus"></i></button>
                 <button type="button" id="service-submit" class="btn btn-success pull-right"
                         style="margin-top: 10px;">{{if edit}}${T('SAVE')}{{else}}${T('create_service')}{{/if}}
             </div>

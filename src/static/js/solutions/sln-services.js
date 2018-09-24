@@ -111,17 +111,6 @@
         window.location.hash = '#/services';
     });
 
-    function addBroadcastType() {
-        var $this = $('#service-extra-broadcast-type');
-        if ($this.val().length > 0) {
-            $('#service-extra-broadcast-type').before(
-                    ' <label class="checkbox"><input type="checkbox" name="service-broadcast-types" value="'
-                    + $this.val() + '" checked>' + $this.val() + '</label>'
-                );
-            $this.val('');
-        }
-    }
-
     function renderServicesFormInternal(mode) {
         $('#services-list-container').hide();
         $('#service-form-container').show();
@@ -135,29 +124,17 @@
         }
 
         getServiceConfiguration(function (config) {
-            var broadcastTypes = config.broadcast_types;
-            if (mode === 'edit') {
-                broadcastTypes = currentService.broadcast_types;
-            }
             var html = $.tmpl(templates['services/service_form'], {
                 service: currentService,
                 edit: mode === 'edit',
-                modules: config.modules,
                 organizationType: organizationType,
                 organizationTypes: ORGANIZATION_TYPES,
-                broadcastTypes: broadcastTypes,
                 languages: supportedLanguages,
                 t: CommonTranslations
             });
             $('#service-form-container').html(html);
 
             $('#service-form').find('input').not('[type=checkbox], [type=select]').first().focus();
-            $('#service-extra-broadcast-type-add').click(addBroadcastType);
-            $('#service-extra-broadcast-type').keypress(function (e) {
-                if (e.keyCode === 13) {
-                    addBroadcastType();
-                }
-            });
 
             var checkNoWebsite = $('#check-no-website'),
                 checkNoFacebookPage = $('#check-no-facebook-page');
@@ -192,13 +169,6 @@
     }
 
     function getServiceFormValues() {
-        var serviceModules = [], serviceBroadcastTypes = [];
-        $('#service-modules-container').find('input[type=checkbox]:checked').each(function () {
-            serviceModules.push($(this).val());
-        });
-        $('#service-broadcast-types-container').find('input[type=checkbox]:checked').each(function () {
-            serviceBroadcastTypes.push($(this).val());
-        });
         return {
             customer_id: currentService.customer_id,
             name: $('#service-name').val(),
@@ -209,8 +179,6 @@
             user_email: $('#service-email').val(),
             telephone: $('#service-phone').val(),
             language: $('#service-language').val(),
-            modules: serviceModules,
-            broadcast_types: serviceBroadcastTypes,
             organization_type: parseInt($('#organization_type').val()),
             vat: $('#service-vat').val(),
             website: $('#service-website').val(),
@@ -258,10 +226,6 @@
     function putService(force) {
         var formValues = getServiceFormValues();
         currentService = formValues;
-        if(currentService.modules.indexOf('broadcast') !== -1 && !currentService.broadcast_types.length) {
-            sln.alert(T('broadcast-type-required'), null, CommonTranslations.ERROR);
-            return;
-        }
         if (currentService.mode === 'edit') {
             formValues.service_email = currentService.service_email;
         }

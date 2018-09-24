@@ -29,7 +29,7 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.models import Product, RegioManagerTeam
+from shop.models import Product, RegioManagerTeam, CustomerSignup
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.bizz.campaignmonitor import send_smart_email
@@ -68,6 +68,12 @@ def get_allowed_modules(city_customer):
         return SolutionModule.ASSOCIATION_MODULES
     else:
         return SolutionModule.POSSIBLE_MODULES
+
+
+def get_default_modules(city_customer):
+    return [
+        module for module in get_allowed_modules(city_customer) if module in CustomerSignup.DEFAULT_MODULES
+    ]
 
 
 def filter_modules(city_customer, modules, broadcast_types):

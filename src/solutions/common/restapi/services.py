@@ -43,7 +43,7 @@ from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.service import create_customer_with_service, filter_modules, get_allowed_broadcast_types, \
-    get_allowed_modules, put_customer_service, set_customer_signup_status
+    get_allowed_modules, put_customer_service, set_customer_signup_status, get_default_modules
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
@@ -186,11 +186,10 @@ def get_service(service_email):
 @rest("/common/services/put", "post", read_only_access=False)
 @returns(WarningReturnStatusTO)
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
-           telephone=unicode, language=unicode, modules=[unicode], broadcast_types=[unicode],
-           customer_id=(int, long, NoneType), organization_type=(int, long), vat=unicode, website=unicode,
-           facebook_page=unicode, force=bool)
-def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
-                     broadcast_types, customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
+           telephone=unicode, language=unicode, customer_id=(int, long, NoneType), organization_type=(int, long),
+           vat=unicode, website=unicode, facebook_page=unicode, force=bool)
+def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language,
+                     customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
                      website=None, facebook_page=None, force=False):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
@@ -207,7 +206,8 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     is_new_service = False
 
     try:
-        modules = filter_modules(city_customer, modules, broadcast_types)
+        broadcast_types = get_allowed_broadcast_types(city_customer)
+        modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
         service = create_customer_service_to(name, address1, address2, city, zip_code, user_email, language, city_sln_settings.currency,
                                              telephone, organization_type, city_customer.app_id, broadcast_types, modules)
         (customer, email_changed, is_new_service) \
