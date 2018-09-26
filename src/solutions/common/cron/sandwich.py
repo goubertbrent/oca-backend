@@ -29,13 +29,14 @@ from rogerthat.service.api import messaging
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
+from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.messaging import MESSAGE_TAG_SANDWICH_ORDER_NOW
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type
 from solutions.common.dal import get_solution_settings_or_identity_settings
-from solutions.common.models import SolutionSettings, SolutionMainBranding
+from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionAutoBroadcastTypes
 from solutions.common.models.sandwich import SandwichSettings, \
     SandwichLastBroadcastDay
 
@@ -45,17 +46,34 @@ class SandwichAutoBroadcastCronHandler(webapp.RequestHandler):
     def get(self):
         deferred.defer(_schedule_auto_broadcasts)
 
+
 def _schedule_auto_broadcasts():
     run_job(_qry, [], _worker, [])
+
 
 def _qry():
     return SolutionSettings.all(keys_only=True).filter("modules =", SolutionModule.SANDWICH_BAR)
 
+
 def _worker(sln_settings_key):
-    sln_settings = db.get(sln_settings_key)
+    auto_broadcast_types_key = SolutionAutoBroadcastTypes.create_key(
+        sln_settings_key, SolutionModule.SANDWICH_BAR)
+
+    sln_settings, auto_broadcast_types = db.get([sln_settings_key, auto_broadcast_types_key])
+    solution_datetime = datetime.now(pytz.timezone(sln_settings.timezone))
+
+    broadcast_type = get_sandwich_reminder_broadcast_type(
+        sln_settings.main_language or DEFAULT_LANGUAGE,
+        SandwichSettings.DAYS[solution_datetime.weekday()])
+
+    if not auto_broadcast_types or broadcast_type not in auto_broadcast_types.broadcast_types:
+        logging.warning(
+            'Sandwich reminder broadcast types is not published yet for %s',
+            sln_settings.service_user.email())
+        return
+
     def trans():
         sandwich_settings = SandwichSettings.get_settings(sln_settings.service_user, sln_settings.solution)
-        solution_datetime = datetime.now(pytz.timezone(sln_settings.timezone))
         if not sandwich_settings.can_broadcast_for_sandwiches_on(solution_datetime):
             logging.info("No email_reminders today for %s", sln_settings.service_user.email())
             return
@@ -79,11 +97,12 @@ def _worker(sln_settings_key):
         last_broad_cast_day.month = solution_datetime.month
         last_broad_cast_day.day = solution_datetime.day
         last_broad_cast_day.put()
-        deferred.defer(_broadcast, sln_settings_key, sandwich_settings.key(),
+        deferred.defer(_broadcast, sln_settings_key, sandwich_settings.key(), broadcast_type,
                        _transactional=True, _countdown=seconds_before_broadcast, _queue=SCHEDULED_QUEUE)
-    db.run_in_transaction(trans)
+    run_in_xg_transaction(trans)
 
-def _broadcast(sln_settings_key, sandwich_settings_key):
+
+def _broadcast(sln_settings_key, sandwich_settings_key, broadcast_type):
     sln_settings, sandwich_settings = db.get([sln_settings_key, sandwich_settings_key])
     if not sln_settings:
         logging.info("Service has been deleted in the meantime")
@@ -92,8 +111,8 @@ def _broadcast(sln_settings_key, sandwich_settings_key):
     if not sandwich_settings.can_order_sandwiches_on(solution_datetime):
         logging.info("No email_reminders anymore today for %s", sln_settings.service_user.email())
         return
-    broadcast_type = get_sandwich_reminder_broadcast_type(sln_settings.main_language or DEFAULT_LANGUAGE,
-                                                          SandwichSettings.DAYS[solution_datetime.weekday()])
+
+
     message = sandwich_settings.reminder_broadcast_message
     order_sandwich_answer = AnswerTO()
     order_sandwich_answer.action = None
