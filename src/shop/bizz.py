@@ -2964,9 +2964,9 @@ def add_service_admin(service_user, owner_user_email, base_url):
 
 
 def import_customer(
-    current_user, import_id, app_id, city_customer, currency, name, vat, org_type_name, email, phone,
-    address, zip_code, city, website, facebook_page, contact_name, contact_address, contact_zipcode,
-    contact_city, contact_email, contact_phone):
+        current_user, import_id, app_id, city_customer, currency, name, vat, org_type_name, email, phone,
+        address, zip_code, city, website, facebook_page, contact_name, contact_address, contact_zipcode,
+        contact_city, contact_email, contact_phone):
 
     def get_org_type(lang, name):
         translation_keys = {
@@ -2979,7 +2979,7 @@ def import_customer(
 
         for org_type in ServiceProfile.ORGANIZATION_TYPES:
             translation_key = translation_keys.get(org_type)
-            if name.lower() == localize(translation_key, name).lower():
+            if name.lower() == localize(lang, translation_key).lower():
                 return org_type
 
     try:
