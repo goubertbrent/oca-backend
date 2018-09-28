@@ -20,7 +20,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, deferred
-
+from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.dal import put_and_invalidate_cache
@@ -34,9 +34,10 @@ from solutions.common.bizz import _get_location, broadcast_updates_pending
 from solutions.common.dal import get_solution_settings, get_solution_logo, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionLogo, SolutionAvatar, SolutionSettings, \
-    SolutionBrandingSettings, SolutionIdentitySettings
+    SolutionBrandingSettings
 from solutions.common.to import SolutionSettingsTO
 from solutions.common.utils import is_default_service_identity
+
 
 SLN_LOGO_WIDTH = 640
 SLN_LOGO_HEIGHT = 240
@@ -101,8 +102,10 @@ def save_settings(service_user, service_identity, data):
     if data.inbox_email_reminders is not None:
         sln_i_settings.inbox_email_reminders_enabled = data.inbox_email_reminders
 
-    sln_settings.iban = data.iban
-    sln_settings.bic = data.bic
+    if data.iban is not MISSING:
+        sln_settings.iban = data.iban
+    if data.bic is not MISSING:
+        sln_settings.bic = data.bic
 
     sln_settings.updates_pending = True
     validate_sln_settings(sln_settings)

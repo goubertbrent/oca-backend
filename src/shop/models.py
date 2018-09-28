@@ -554,7 +554,8 @@ class Customer(db.Model):
 class CustomerSignup(db.Model):
     DEFAULT_MODULES = [SolutionModule.BROADCAST, SolutionModule.BULK_INVITE,
                        SolutionModule.QR_CODES, SolutionModule.STATIC_CONTENT,
-                       SolutionModule.WHEN_WHERE, SolutionModule.ASK_QUESTION]
+                       SolutionModule.WHEN_WHERE, SolutionModule.ASK_QUESTION,
+                       SolutionModule.BILLING]
 
     company_name = db.StringProperty()
     company_organization_type = db.IntegerProperty()
