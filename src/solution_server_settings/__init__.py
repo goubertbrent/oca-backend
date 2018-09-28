@@ -146,6 +146,13 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                   doc="Createsend api key",
                                   order=1601)
 
+    joyn_client_id = add_meta(db.StringProperty(indexed=False),
+                                  doc="Joyn client_id",
+                                  order=1701)
+    joyn_client_secret = add_meta(db.StringProperty(indexed=False),
+                                  doc="Joyn client_secret",
+                                  order=1702)
+
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
         get_solution_server_settings.invalidate_cache()

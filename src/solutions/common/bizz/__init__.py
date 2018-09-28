@@ -611,6 +611,8 @@ def broadcast_updates_pending(sln_settings):
 @returns(NoneType)
 @arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User], friends=[BaseMemberTO])
 def common_provision(service_user, sln_settings=None, broadcast_to_users=None, friends=None):
+    from solutions.common.bizz.joyn.merchants import re_index as merchant_re_index
+
     try:
         start = time.time()
         settings_was_none = not bool(sln_settings)
@@ -676,6 +678,8 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 sln_settings = db.run_in_transaction(trans)
             broadcast_updates_pending(sln_settings)
+
+        deferred.defer(merchant_re_index, service_user, _countdown=2)
 
         logging.debug('Provisioning took %s seconds', time.time() - start)
     except (AvatarImageNotSquareException, TranslatedException, BusinessException):

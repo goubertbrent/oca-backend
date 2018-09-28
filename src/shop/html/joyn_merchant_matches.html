@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<h2>Joyn merchant matches ({{ total_matches }})</h2>
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+    <tr>
+        <th>Joyn Details</th>
+        <th>Matches</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for match in matches %}
+    <tr>
+    	<td>
+    		<p><b>Name</b> {{ match.joyn_data.name }}</p>
+    		<p><b>Email</b> {{ match.joyn_data.email }}</p>
+    		<p><b>Phone</b> {{ match.joyn_data.phone }}</p>
+    		<p><b>Website</b> {{ match.joyn_data.website }}</p>
+    		<p><b>Address</b> {{ match.joyn_data.address }}</p>
+    		<p><b>Facebook page</b> {{ match.joyn_data.facebookPage }}</p>
+    	</td>
+    	<td>
+    	<form method="post" action="/internal/shop/joyn_merchant_matches/delete">
+			<input type="hidden" name="joyn_merchant_id" value="{{ match.joyn_data.id }}" />
+			<input type="submit" value="Delete matches" />
+	    </form>
+    		{% for k, v in match.matches.iteritems %}
+    			<p><b>{{ k }}</b></p>
+    			<ul style="list-style: none;">
+	    			{% for m in v %}
+	    				<li>
+	    					<a href="#customer-{{ m.customer_id }}" open-customer-popup="{{ m.customer_id }}" style="float: left; margin-right: 20px;">{{ m.customer_name }}</a>
+	    					
+	    					<form method="post" action="/internal/shop/joyn_merchant_matches">
+	    						<input type="hidden" name="joyn_merchant_id" value="{{ match.joyn_data.id }}" />
+	    						<input type="hidden" name="customer_id" value="{{ m.customer_id }}" />
+	    						<input type="hidden" name="service" value="{{ m.merchant}}" />
+								<input type="submit" value="Mark as match" />
+						    </form>
+	    				</li>
+	    			{% endfor %}
+    			</ul>
+    		{% endfor %}
+    	</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

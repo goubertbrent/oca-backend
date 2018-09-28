@@ -15,9 +15,8 @@
 #
 # @@license_version:1.3@@
 
-from rogerthat.wsgi import RogerthatWSGIApplication
-
 from mcfw.restapi import rest_functions
+from rogerthat.wsgi import RogerthatWSGIApplication
 from shop import view
 from shop.handlers import StaticFileHandler, GenerateQRCodesHandler, AppBroadcastHandler
 from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesHandler, QuestionsHandler, \
@@ -27,7 +26,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
     SalesStatisticsHandler, OrderableAppsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
     ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, JoynReferralsHandler, \
-    CustomersImportHandler
+    JoynMerchantMatchesHandler, JoynMerchantMatchesDeleteHandler, CustomersImportHandler
 from solutions.djmatic import restapi_overview
 from solutions.djmatic.handlers import DJMaticOverviewHandler
 
@@ -56,6 +55,8 @@ handlers = [
     ('/internal/shop/login_as', LoginAsCustomerHandler),
     ('/internal/shop/contacts_export', ExportEmailAddressesHandler),
     ('/internal/shop/joyn_referrals', JoynReferralsHandler),
+    ('/internal/shop/joyn_merchant_matches', JoynMerchantMatchesHandler),
+    ('/internal/shop/joyn_merchant_matches/delete', JoynMerchantMatchesDeleteHandler),
     ('/internal/shop/customers', CustomersHandler),
     ('/internal/shop/expired_subscriptions', ExpiredSubscriptionsHandler),
     ('/internal/shop/legal_entities', LegalEntityHandler),

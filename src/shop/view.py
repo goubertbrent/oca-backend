@@ -16,35 +16,35 @@
 # @@license_version:1.3@@
 
 import base64
+from cgi import FieldStorage
+from collections import namedtuple
 import csv
+from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-import urllib
-from cgi import FieldStorage
-from collections import namedtuple
-from datetime import date, timedelta
 from types import NoneType
-
-import webapp2
-from google.appengine.api import urlfetch, users as gusers
-from google.appengine.ext import db, deferred
-from google.appengine.ext.webapp import template
+import urllib
 
 from PIL.Image import Image  # @UnresolvedImport
 from PyPDF2.merger import PdfFileMerger
-from add_1_monkey_patches import DEBUG, APPSCALE
 from babel import Locale
 from babel.dates import format_date, format_datetime
 from googleapiclient.discovery import build
+from oauth2client.client import HttpAccessTokenRefreshError
+from xhtml2pdf import pisa
+
+from add_1_monkey_patches import DEBUG, APPSCALE
+from google.appengine.api import urlfetch, users as gusers
+from google.appengine.ext import db, deferred
+from google.appengine.ext.webapp import template
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
@@ -122,13 +122,15 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
+from solutions.common.models.joyn import JoynMerchantMatches, JoynMerchantMatch
 from solutions.common.models.loyalty import JoynReferral
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
-from xhtml2pdf import pisa
+import webapp2
+
 
 try:
     from cStringIO import StringIO
@@ -711,6 +713,7 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
 class JoynReferralsHandler(BizzManagerHandler):
 
     def get(self):
+        azzert(is_admin(gusers.get_current_user()))
         referrals = JoynReferral.query().fetch(None)  # type: list[JoynReferral]
         customers = db.get([Customer.create_key(ref.customer_id) for ref in referrals])
         result = []
@@ -727,6 +730,66 @@ class JoynReferralsHandler(BizzManagerHandler):
         context = get_shop_context(referrals=sorted(result, key=lambda r: r['customer']['name']))
         path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_referrals.html')
         self.response.write(template.render(path, context))
+
+
+class JoynMerchantMatchesHandler(BizzManagerHandler):
+
+    def get(self):
+        azzert(is_admin(gusers.get_current_user()))
+        matches = JoynMerchantMatches.query().fetch(None)
+        context = get_shop_context(matches=matches, total_matches=len(matches))
+        path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_merchant_matches.html')
+        self.response.write(template.render(path, context))
+
+    def post(self):
+        azzert(is_admin(gusers.get_current_user()))
+        joyn_merchant_id = self.request.get("joyn_merchant_id")
+        customer_id = self.request.get("customer_id")
+        service = self.request.get("service")
+        logging.debug('joyn merchant %s connected to %s', joyn_merchant_id, customer_id)
+        if not (joyn_merchant_id and customer_id and service):
+            self.abort(400)
+            return
+        joyn_merchant_id = long(joyn_merchant_id)
+        customer_id = long(customer_id)
+
+        match_key = JoynMerchantMatches.create_key(joyn_merchant_id)
+        match = match_key.get()
+        if not match:
+            self.abort(400)
+            return
+
+        connect_key = JoynMerchantMatch.create_key(joyn_merchant_id)
+        JoynMerchantMatch(
+            key=connect_key,
+            customer_id=customer_id,
+            service=service
+        ).put()
+        match_key.delete()
+
+        import time
+        time.sleep(1)  # dirty but otherwise list shows old items
+        self.redirect('/internal/shop/joyn_merchant_matches')
+
+
+class JoynMerchantMatchesDeleteHandler(BizzManagerHandler):
+
+    def post(self):
+        azzert(is_admin(gusers.get_current_user()))
+        joyn_merchant_id = self.request.get("joyn_merchant_id")
+        if not joyn_merchant_id:
+            self.abort(400)
+            return
+        joyn_merchant_id = long(joyn_merchant_id)
+
+        match_key = JoynMerchantMatches.create_key(joyn_merchant_id)
+        match = match_key.get()
+        if match:
+            match_key.delete()
+
+        import time
+        time.sleep(1)  # dirty but otherwise list shows old items
+        self.redirect('/internal/shop/joyn_merchant_matches')
 
 
 class CustomersImportHandler(BizzManagerHandler):
@@ -2350,9 +2413,7 @@ def rest_import_customers(import_id, app_id, file_data):
     city_service_user = get_service_user_for_city(app_id)
     sln_settings = get_solution_settings(city_service_user)
     city_customer = get_customer(city_service_user)
-
-    country = city_customer.country
-    language, currency = sln_settings.main_language, sln_settings.currency
+    currency = sln_settings.currency
 
     try:
         stream = StringIO(base64.b64decode(file_data))
@@ -2367,8 +2428,8 @@ def rest_import_customers(import_id, app_id, file_data):
     for row in reader:
         try:
             id_, org_type_name, name, vat, email, phone, address, zip_code, \
-            city, website, facebook_page, contact_name, contact_address, contact_zipcode, \
-            contact_city, contact_email, contact_phone = map(unicode, [v.decode('utf-8') for v in row])
+                city, website, facebook_page, contact_name, contact_address, contact_zipcode, \
+                contact_city, contact_email, contact_phone = map(unicode, [v.decode('utf-8') for v in row])
         except ValueError:
             return ImportCustomersReturnStatusTO.create(
                 False, 'Invalid csv file header/column format'
