@@ -215,7 +215,8 @@ MODULES_JS_TEMPLATE_MAPPING = {
     ],
     SolutionModule.SANDWICH_BAR: [
         'sandwiches_order_inbox_detail',
-        'sandwiches_list_item'
+        'sandwiches_list_item',
+        'transaction_modal',
     ],
     SolutionModule.STATIC_CONTENT: [
         'static_content/static_content_select_icon',

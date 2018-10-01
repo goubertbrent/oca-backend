@@ -29,12 +29,14 @@ class PaymentSettingsTO(TO):
 
 class TransactionDetailsTO(TO):
     id = unicode_property('id')
+    provider_id = unicode_property('provider_id')
     timestamp = long_property('timestamp')
     currency = unicode_property('currency')
     amount = long_property('amount')
     amount_str = unicode_property('amount_str')
     precision = long_property('precision')
     status = unicode_property('status')
+    external_url = unicode_property('external_url')
 
     def get_display_amount(self):
         return float(self.amount) / pow(10, self.precision)
@@ -42,9 +44,11 @@ class TransactionDetailsTO(TO):
     @classmethod
     def from_model(cls, model):
         return cls(id=model.id,
+                   provider_id=model.provider_id,
                    timestamp=model.timestamp,
                    currency=model.currency,
                    amount=model.amount,
                    amount_str=u'%.2f' % (float(model.amount) / pow(10, model.precision)),
                    precision=model.precision,
-                   status=model.status)
+                   status=model.status,
+                   external_url=model.external_url)

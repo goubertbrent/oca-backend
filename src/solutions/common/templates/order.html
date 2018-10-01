@@ -38,7 +38,7 @@
         <h4>${ T('transaction') }</h4>
         <p>${ T('transaction_id') }:  ${ order.transaction.id }</p>
         <p>${ T('paid_amount')}: ${order.transaction.amount_str } ${order.transaction.currency}</p>
-        <p>${ T('status')}: ${transactionStatus}</p>
+        <p>${ T('status')}: ${T('transaction_status_' + order.transaction.status) }</p>
     </div>
     {{/if}}
     </div>

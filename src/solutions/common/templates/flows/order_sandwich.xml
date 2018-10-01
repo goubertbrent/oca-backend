@@ -12,6 +12,7 @@
         <end
             id="end_cancel"
             waitForFollowUpMessage="false"/>
+        <end id="end_feature_not_supported" />
         <message id="message_cannot_order_now"
                  alertIntervalType="NONE"
                  alertType="SILENT"
@@ -46,23 +47,21 @@
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                        xsi:type="SelectSingleWidget" value="{% if types|length < 1 %}type_{{ types[0].type_id }}{% endif %}">
+                        xsi:type="SelectSingleWidget" value="{% if types|length < 1 %}type_{{ types[0].id }}{% endif %}">
                     {% for type in types %}
-                        <choice value="type_{{ type.type_id }}"
+                        <choice value="type_{{ type.id }}"
                                 label="{{ type.description|e }}{% if sandwich_settings.show_prices and type.price > 0 %} ({{ settings.currency_symbol }}{{ type.price_in_euro }}){% endif %}"/>
                     {% endfor %}
                     {% if types|length <= 1 %}
-                        <choice value="dummy_type_value" label="dummy_type_label"/>
+                        <choice value="this_step_should_not_have_been_submitted" label="Placeholder"/>
                     {% endif %}
                 </widget>
                 <javascriptValidation>
                     function run(result, rogerthat){
-                        'use strict';
                         var type = result.value;
-                        if(!type){
+                        if (!type) {
                             return "{% translate language, 'common', 'please_select_a_sandwich_type' %}"
                         }
-
                     }
                 </javascriptValidation>
             </form>
@@ -72,7 +71,7 @@
                      alertIntervalType="NONE"
                      alertType="SILENT"
                      brandingKey="{{ branding_key }}"
-                     positiveReference="{% if options|length > 0 %}flowcode_message_customize{% else %}flowcode_set_takeaway_time_constraints{% endif %}"
+                     positiveReference="{% if options|length > 0 %}flowcode_message_customize{% else %}message_proceed{% endif %}"
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_cancel">
@@ -82,9 +81,9 @@
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                        xsi:type="SelectSingleWidget" value="{% if toppings|length < 1 %}topping_{{ toppings[0].topping_id }}{% endif %}">
+                        xsi:type="SelectSingleWidget" value="{% if toppings|length < 1 %}topping_{{ toppings[0].id }}{% endif %}">
                     {% for topping in toppings %}
-                        <choice value="topping_{{ topping.topping_id }}"
+                        <choice value="topping_{{ topping.id }}"
                                 label="{{ topping.description|e }}{% if sandwich_settings.show_prices and topping.price > 0 %} ({{ settings.currency_symbol }}{{ topping.price_in_euro }}){% endif %}"/>
                     {% endfor %}
                     {% if toppings|length <= 1 %}
@@ -120,7 +119,7 @@
                 alertIntervalType="NONE"
                 alertType="SILENT"
                 brandingKey="{{ branding_key }}"
-                positiveReference="flowcode_set_takeaway_time_constraints"
+                positiveReference="message_proceed"
                 vibrate="false"
                 autoLock="true"
                 negativeReference="end_cancel">
@@ -135,13 +134,31 @@
                     xsi:type="SelectMultiWidget">
                     {%- for option in options %}
                     <choice
-                        value="option_{{ option.option_id }}"
+                        value="option_{{ option.id }}"
                         label="{{ option.description|e }}{% if sandwich_settings.show_prices and option.price > 0 %} ({{settings.currency_symbol}}{{option.price_in_euro}}){% endif %}" />
                     {%- endfor %}
                 </widget>
             </form>
         </formMessage>
         {%- endif %}
+        <message
+            brandingKey="{{ branding_key }}"
+            id="message_proceed"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="false"
+            vibrate="true"
+            autoLock="true">
+            <content>{% translate language, 'common', 'order-sandwich-message-proceed' %}</content>
+            <answer
+                id="button_one_more"
+                caption="{% translate language, 'common', 'order-sandwich-proceed-another-one' %}"
+                reference="flowcode_check_type"/>
+            <answer
+                id="button_checkout"
+                caption="{% translate language, 'common', 'order-sandwich-proceed-checkout' %}"
+                reference="flowcode_set_takeaway_time_constraints" />
+        </message>
         {# Mostly copied from advanced_order.xml #}
         <formMessage brandingKey="{{ branding_key }}"
                      id="message_takeaway_time"
@@ -204,8 +221,6 @@
                         }
 
                         function canOrderAtTime() {
-                            var selectedDate = new Date(selectedDateTime * 1000);
-                            var dayToday = selectedDate.getUTCDay();
                             var sAfterMidnight = selectedDateTime % 86400;
                             var sandwichSettings = rogerthat.service.data.sandwich_settings;
                             var canOrder = (sandwichSettings.time_from + sandwichSettings.leap_time) &lt; sAfterMidnight
@@ -221,10 +236,10 @@
                 alertIntervalType="NONE"
                 alertType="SILENT"
                 brandingKey="{{ branding_key }}"
-                positiveReference="flow_code_check_internet_before_flush"
+                positiveReference="flow_code_check_internet_before_pay"
                 vibrate="false"
                 autoLock="true"
-                negativeReference="flow_code_check_internet_before_flush">
+                negativeReference="flow_code_check_internet_before_pay">
             <content>{% translate language, 'common', 'order-sandwich-message-add-remark' %}</content>
             <form
                 positiveButtonConfirmation=""
@@ -251,6 +266,10 @@
             <outlet reference="message_cannot_order_now"
                     name="message_cannot_order_now"
                     value="message_cannot_order_now"/>
+            <outlet
+                reference="message_feature_not_supported"
+                name="not_supported"
+                value="not_supported" />
             <javascriptCode>
                 function run(rogerthat, messageFlowRun) {
                     var flowParams = messageFlowRun.flow_params;
@@ -276,6 +295,12 @@
                     else {
                         nextStepResult.outlet = 'flowcode_check_type';
                     }
+                    {% if payment_enabled %}
+                    var outlet = checkPaymentSupport();
+                    if (outlet) {
+                        nextStepResult.outlet = outlet;
+                    }
+                    {% endif %}
                     return nextStepResult;
 
                     function isInHoliday(holidayDates) {
@@ -300,12 +325,55 @@
                         }
                         return canOrder;
                     }
+
+                    {% if payment_enabled %}
+                    function checkPaymentSupport(){
+                        var appVersion = rogerthat.system.appVersion.split('.').map(function(x) {
+                            return parseInt(x);
+                        });
+                        if (rogerthat.service.data.settings.payment.enabled) {
+                            if (rogerthat.system.os === 'android') {
+                                if (!(appVersion[0] &gt; 2
+                                        || appVersion[1] &gt; {{ Features.PAYMENTS.android.major }}
+                                        || appVersion[2] &gt;= {{ Features.PAYMENTS.android.minor }})) {
+                                    if (!rogerthat.service.data.settings.payment.optional) {
+                                        return 'not_supported';
+                                    }
+                                }
+                             } else if (rogerthat.system.os === 'ios') {
+                                if (!(appVersion[0] &gt; 2
+                                        || appVersion[1] &gt; {{ Features.PAYMENTS.ios.major }}
+                                        || appVersion[2] &gt;= {{ Features.PAYMENTS.ios.minor }})) {
+                                    if (!rogerthat.service.data.settings.payment.optional) {
+                                        return 'not_supported';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    {% endif %}
                 };
             </javascriptCode>
         </flowCode>
+
+        <message
+            brandingKey="{{ branding_key }}"
+            id="message_feature_not_supported"
+            alertIntervalType="NONE"
+            alertType="SILENT"
+            allowDismiss="true"
+            dismissReference="end_feature_not_supported"
+            vibrate="false"
+            autoLock="true">
+            <content>{% translate language, 'common', 'message_feature_not_supported' %}</content>
+        </message>
         <flowCode
-            id="flow_code_check_internet_before_flush"
+            id="flow_code_check_internet_before_pay"
             exceptionReference="results_flush">
+            <outlet
+                name="flowcode_calculate_payment"
+                value="flowcode_calculate_payment"
+                reference="flowcode_calculate_payment"/>
             <outlet
                 name="results_flush"
                 value="results_flush"
@@ -316,10 +384,13 @@
                 reference="message_no_internet"/>
             <javascriptCode>
                 function run(rogerthat, messageFlowRun) {
-                    if (rogerthat.system.internet &amp;&amp; !rogerthat.system.internet.connected) {
-                        return {outlet: 'message_no_internet'};
-                    }
-                    return {outlet: 'results_flush'};
+                		if (rogerthat.system.internet &amp;&amp; !rogerthat.system.internet.connected) {
+                     	return {outlet: 'message_no_internet'};
+                    	}
+                    	if (rogerthat.service.data.settings.payment.enabled) {
+                    		return {outlet: 'flowcode_calculate_payment'};
+                    	}
+                    	return {outlet: 'results_flush'};
                 };
             </javascriptCode>
         </flowCode>
@@ -336,7 +407,7 @@
             <answer
                 id="button_try_again"
                 caption="{% translate language, 'common', 'Try again' %}"
-                reference="flow_code_check_internet_before_flush" />
+                reference="flow_code_check_internet_before_pay" />
             <answer
                 id="button_abort"
                 caption="{% translate language, 'common', 'Cancel order' %}"
@@ -441,5 +512,180 @@
         </message>
 
 
+
+        <flowCode
+            id="flowcode_calculate_payment"
+            exceptionReference="results_flush">
+            <outlet
+                reference="message_pay_optional"
+                name="message_pay_optional"
+                value="message_pay_optional"/>
+            <outlet
+                reference="message_pay_required"
+                name="message_pay_required"
+                value="message_pay_required"/>
+            <outlet
+                reference="results_flush"
+                name="results_flush"
+                value="results_flush"/>
+            <javascriptCode>
+                // Mapping from datastore ids to cost in cents
+                var types = JSON.parse('{{ types_json | safe }}');
+                var toppings = JSON.parse('{{ toppings_json | safe }}');
+                var options = JSON.parse('{{ options_json | safe }}');
+
+                var hasType = false;
+                function getAmount(split) {
+                    var stepId = split[0], id = split[1];
+                    switch (stepId) {
+                        case 'type':
+                            hasType = true;
+                            return types[id];
+                        case 'topping':
+                            return toppings[id];
+                        case 'option':
+                            return options[id];
+                        default:
+                            return 0;
+                    }
+                }
+
+                function run(rogerthat, messageFlowRun) {
+                    var amount = 0;
+                    var sandwichesCount = 0;
+                    for (var _i = 0, steps_1 = messageFlowRun.steps; _i &lt; steps_1.length; _i++) {
+                        var step = steps_1[_i];
+                        if (step.form_result &amp;&amp; step.form_result.result) {
+                            if (step.form_result.result.values) {
+                                for (var _a = 0, _b = step.form_result.result.values; _a &lt; _b.length; _a++) {
+                                    var val = _b[_a];
+                                    amount += getAmount(val.split('_'));
+                                }
+                            } else{
+                                var split = step.form_result.result.value.split('_');
+                                // Topping is mandatory, use that to count amount of sandwiches
+                                if (split[0] === 'topping') {
+                                    sandwichesCount++;
+                                }
+                                amount += getAmount(split);
+                            }
+                        }
+                    }
+                    if (!hasType) {
+                        var firstType = Object.keys(types)[0];
+                        amount += types[firstType] * sandwichesCount;
+                    }
+                    if (amount &lt;= 0) {
+                        return {outlet: 'results_flush'};
+                    }
+
+                    var amountStr = (amount / 100).toFixed(2);
+                    var outlet = 'message_pay_required';
+                    if (rogerthat.service.data.settings.payment.optional) {
+                        outlet = 'message_pay_optional';
+                    }
+                    var methods = [];
+                    var providers = rogerthat.service.data.settings.payment.providers;
+                    for (var i = 0; i &lt; providers.length; i++) {
+                        var provider = providers[i];
+                        switch (provider.provider_id) {
+                            case 'payconiq':
+                                methods.push({
+                                    provider_id: 'payconiq',
+                                    currency: 'EUR',
+                                    amount: 0,
+                                    target: rogerthat.service.account,
+                                    precision: 2,
+                                    calculate_amount: true,
+                                });
+                                break;
+                            case 'threefold':
+                                if (provider.settings.address) {
+                                    methods.push({
+                                        provider_id: 'threefold',
+                                        currency: 'TFT',
+                                        amount: 0,
+                                        target: provider.settings.address,
+                                        precision: 5,
+                                        calculate_amount: true,
+                                    });
+                                }
+                                break;
+                        }
+                    }
+                    return {
+                        outlet: outlet,
+                        message: "{% translate language, 'common', 'pay_widget_message', '_duplicate_backslashes=True' %}".replace('%(amount)s', amountStr).replace('%(currency)s', 'EUR'),
+                        defaultValue: {
+                            memo: "{% translate language, 'common', 'pay_widget_memo', '_duplicate_backslashes=True' %}".replace('%(name)s', rogerthat.service.name).replace('%(app_name)s', rogerthat.system.appName),
+                            target: rogerthat.service.account,
+                            base_method:{
+                                currency: '{{ settings.currency }}',
+                                amount: amount,
+                                precision: 2,
+                            },
+                            test_mode: rogerthat.service.data.settings.payment.test_mode,
+                            methods: methods,
+                        }
+                    };
+                }
+            </javascriptCode>
+        </flowCode>
+        <formMessage brandingKey="{{ branding_key }}"
+                     id="message_pay_required"
+                     alertIntervalType="NONE" alertType="SILENT"
+                     positiveReference="results_flush"
+                     negativeReference="end_cancel"
+                     vibrate="false" autoLock="true">
+            <content/>
+            <form positiveButtonConfirmation="" negativeButtonConfirmation=""
+                  positiveButtonCaption="{% translate language, 'common', 'Send' %}"
+                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order"
+                        target="">
+                    <baseMethod>
+                        <currency>EUR</currency>
+                        <amount>1</amount>
+                        <precision>2</precision>
+                    </baseMethod>
+                    <method>
+                        <provider_id>payconiq</provider_id>
+                        <currency>EUR</currency>
+                        <amount>1</amount>
+                        <precision>2</precision>
+                        <target>(fake target)</target>
+                        <calculateAmount>false</calculateAmount>
+                    </method>
+                </widget>
+            </form>
+        </formMessage>
+
+        <formMessage brandingKey="{{ branding_key }}"
+                     id="message_pay_optional"
+                     alertIntervalType="NONE" alertType="SILENT"
+                     positiveReference="results_flush"
+                     negativeReference="results_flush"
+                     vibrate="false" autoLock="true">
+            <content/>
+            <form positiveButtonConfirmation="" negativeButtonConfirmation=""
+                  positiveButtonCaption="{% translate language, 'common', 'Send' %}"
+                  negativeButtonCaption="{% translate language, 'common', 'skip' %}">
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
+                    <baseMethod>
+                        <currency>EUR</currency>
+                        <amount>1</amount>
+                        <precision>2</precision>
+                    </baseMethod>
+                    <method>
+                        <provider_id>payconiq</provider_id>
+                        <currency>EUR</currency>
+                        <amount>1</amount>
+                        <precision>2</precision>
+                        <target>(fake target)</target>
+                        <calculateAmount>false</calculateAmount>
+                    </method>
+                </widget>
+            </form>
+        </formMessage>
     </definition>
 </messageFlowDefinitionSet>

@@ -30,3 +30,18 @@
 	width: 394px;
 	height: 106px;
 }
+
+td.sandwich-details-cell {
+    padding: 0;
+}
+
+td.sandwich-details-cell .table {
+    margin: 0;
+    border-right: none;
+    border-left: none;
+    border-top: none;
+}
+
+td.sandwich-details-cell .table th {
+    border-radius: 0 !important;
+}

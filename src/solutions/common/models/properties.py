@@ -17,7 +17,8 @@
 
 from contextlib import closing
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
+
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
@@ -26,6 +27,7 @@ from mcfw.serialization import s_long, s_unicode, ds_long, ds_unicode, get_list_
     s_bool, ds_bool
 from rogerthat.models import App
 from rogerthat.models.properties.messaging import SpecializedList
+from rogerthat.to import TO
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.consts import UNIT_PIECE
 
@@ -63,7 +65,8 @@ def deserialize_solution_user(stream):
         u.app_id = App.APP_ID_ROGERTHAT
     return u
 
-class SolutionUser(object):
+
+class SolutionUser(TO):
     name = unicode_property('1')
     email = unicode_property('2')
     avatar_url = unicode_property('3')
@@ -94,6 +97,19 @@ class SolutionUserProperty(db.UnindexedProperty):
         return db.Blob(stream.getvalue())
 
     def make_value_from_datastore(self, value):
+        if value is None:
+            return None
+        return deserialize_solution_user(StringIO.StringIO(value))
+
+
+class NdbSolutionUserProperty(ndb.GenericProperty):
+
+    def _to_base_type(self, value):
+        stream = StringIO.StringIO()
+        serialize_solution_user(stream, value)
+        return db.Blob(stream.getvalue())
+
+    def _from_base_type(self, value):
         if value is None:
             return None
         return deserialize_solution_user(StringIO.StringIO(value))

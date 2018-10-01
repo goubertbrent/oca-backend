@@ -316,7 +316,6 @@ $(function () {
                 CommonTranslations: CommonTranslations,
                 T: T,
                 formatHtml: sln.formatHtml,
-                transactionStatus: order.transaction ? T('transaction_status_' + order.transaction.status) : null,
             });
             var modal = sln.createModal(html);
 

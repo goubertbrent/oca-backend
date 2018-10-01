@@ -21,7 +21,7 @@ import logging
 from collections import defaultdict
 from types import NoneType
 
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 
 from babel.dates import format_date
 from babel.numbers import format_currency
@@ -34,7 +34,7 @@ from rogerthat.bizz.app import get_app
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
-from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
+from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, parent_ndb_key
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
@@ -82,7 +82,8 @@ from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, 
 from solutions.common.bizz.news import is_regional_news_enabled
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
-from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
+from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order, \
+    get_sandwich_models
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
@@ -99,6 +100,7 @@ from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
+from solutions.common.models.payment import transaction_key
 from solutions.common.models.repair import SolutionRepairSettings
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichOption, SandwichSettings, \
     SandwichOrder
@@ -111,8 +113,8 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     TimestampTO, SolutionScheduledBroadcastTO, SolutionInboxesTO, SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
-    ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
-    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
+    SandwichSettingTO, SandwichOrderDetailsTO, ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO,\
+    PictureReturnStatusTO, AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
 from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -156,7 +158,7 @@ def public_load_events(service_user_email):
     from solutions.common.dal import get_public_event_list
     from rogerthat.models import ServiceProfile
 
-    if service_user_email and service_user_email != MISSING:
+    if service_user_email and service_user_email is not MISSING:
         service_user = users.User(service_user_email)
         sp_up = get_service_or_user_profile(service_user)
         if sp_up and isinstance(sp_up, ServiceProfile):
@@ -1670,24 +1672,20 @@ def rest_load_sandwich_settings():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
 
-    types = SandwichType.list(service_user, sln_settings.solution).run()
-    toppings = SandwichTopping.list(service_user, sln_settings.solution).run()
-    options = SandwichOption.list(service_user, sln_settings.solution).run()
+    types = SandwichType.list(service_user, sln_settings.solution).fetch_async()
+    toppings = SandwichTopping.list(service_user, sln_settings.solution).fetch_async()
+    options = SandwichOption.list(service_user, sln_settings.solution).fetch_async()
     sandwich_settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
 
-    return SandwichSettingsTO.from_model(sandwich_settings, types, toppings, options, sln_settings.currency)
+    return SandwichSettingsTO.from_model(sandwich_settings, types.get_result(), toppings.get_result(),
+                                         options.get_result(), sln_settings.currency)
 
 
 @rest("/common/sandwich/settings/save", "post")
 @returns(SandwichSettingsTO)
 @arguments(sandwich_settings=SandwichSettingsTO)
 def save_sandwich_settings(sandwich_settings):
-    """
-    Args:
-        sandwich_settings (SandwichSettingsTO)
-    Returns:
-        sandwich_settings (SandwichSettingsTO)
-    """
+    # type: (SandwichSettingsTO) -> SandwichSettingsTO
     service_user = users.get_current_user()
 
     sln_settings = get_solution_settings(service_user)
@@ -1696,19 +1694,19 @@ def save_sandwich_settings(sandwich_settings):
 
     if any(getattr(sandwich_settings, name) is not MISSING for name, _ in simple_members):
         sandwich_settings_model = SandwichSettings.get_settings(service_user, sln_settings.solution)
-        if sandwich_settings.show_prices != MISSING:
+        if sandwich_settings.show_prices is not MISSING:
             sandwich_settings_model.show_prices = sandwich_settings.show_prices
-        if sandwich_settings.days != MISSING:
+        if sandwich_settings.days is not MISSING:
             sandwich_settings_model.status_days = sandwich_settings.days
-        if sandwich_settings.from_ != MISSING:
+        if sandwich_settings.from_ is not MISSING:
             sandwich_settings_model.time_from = sandwich_settings.from_
-        if sandwich_settings.till != MISSING:
+        if sandwich_settings.till is not MISSING:
             sandwich_settings_model.time_until = sandwich_settings.till
-        if sandwich_settings.reminder_days != MISSING:
+        if sandwich_settings.reminder_days is not MISSING:
             sandwich_settings_model.broadcast_days = sandwich_settings.reminder_days
-        if sandwich_settings.reminder_message != MISSING:
+        if sandwich_settings.reminder_message is not MISSING:
             sandwich_settings_model.reminder_broadcast_message = sandwich_settings.reminder_message
-        if sandwich_settings.reminder_at != MISSING:
+        if sandwich_settings.reminder_at is not MISSING:
             sandwich_settings_model.remind_at = sandwich_settings.reminder_at
         if sandwich_settings.leap_time is not MISSING:
             sandwich_settings_model.leap_time = sandwich_settings.leap_time
@@ -1720,33 +1718,37 @@ def save_sandwich_settings(sandwich_settings):
         to_put.append(sandwich_settings_model)
 
     has_new = False
+    updated_items = []
 
     def update(items, clazz):
         has_new_items = False
-        # XXX: multiget
+        existing_models = {model.id: model for model in ndb.get_multi([clazz.create_key(service_user, item.id)
+                                                                       for item in items if item.id is not MISSING])}
         for item in items:
             if item.id is MISSING:
-                item_model = clazz(parent=parent_key(service_user, sln_settings.solution))
+                item_model = clazz(parent=parent_ndb_key(service_user, sln_settings.solution))
                 has_new_items = True
             else:
-                item_model = clazz.get_by_id(item.id, parent_key(service_user, sln_settings.solution))
+                item_model = existing_models[item.id]
                 if item.deleted:
                     item_model.deleted = True
             item_model.description = item.description
             item_model.price = item.price
             item_model.order = item.order
-            to_put.append(item_model)
+            updated_items.append(item_model)
             return has_new_items
 
-    if sandwich_settings.types != MISSING:
+    if sandwich_settings.types is not MISSING:
         has_new = has_new or update(sandwich_settings.types, SandwichType)
-    if sandwich_settings.toppings != MISSING:
+    if sandwich_settings.toppings is not MISSING:
         has_new = has_new or update(sandwich_settings.toppings, SandwichTopping)
-    if sandwich_settings.options != MISSING:
+    if sandwich_settings.options is not MISSING:
         has_new = has_new or update(sandwich_settings.options, SandwichOption)
     sln_settings.updates_pending = True
     to_put.append(sln_settings)
-    put_in_chunks(to_put)
+    if updated_items:
+        ndb.put_multi(updated_items)
+    db.put(to_put)
 
     broadcast_updates_pending(sln_settings)
     if has_new:
@@ -1760,9 +1762,41 @@ def load_sandwich_orders():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-    sln_settings = get_solution_settings(service_user)
-    return [SandwichOrderTO.fromModel(m) for m in
-            SandwichOrder.list(service_user, service_identity, sln_settings.solution)]
+    orders = SandwichOrder.list(service_user, service_identity).fetch(None)  # type: list[SandwichOrder]
+    type_ids = set()
+    topping_ids = set()
+    option_ids = set()
+    for order in orders:
+        if order.details:
+            for detail in order.details:
+                type_ids.add(detail.type_id)
+                topping_ids.add(detail.topping_id)
+                if detail.option_ids:
+                    option_ids.update(detail.option_ids)
+        else:
+            type_ids.add(order.type_id)
+            topping_ids.add(order.topping_id)
+            option_ids.update(order.option_ids)
+    types, toppings, options = get_sandwich_models(service_user, type_ids, topping_ids, option_ids)
+    results = []
+
+    to_get = [transaction_key(order.payment_provider, order.transaction_id) for order in orders if order.transaction_id]
+    transactions = {transaction.id: transaction for transaction in ndb.get_multi(to_get)}
+    for order in orders:
+        if order.details:
+            details = [SandwichOrderDetailsTO(type=SandwichSettingTO.from_model(types[detail.type_id]),
+                                              topping=SandwichSettingTO.from_model(toppings[detail.topping_id]),
+                                              options=[SandwichSettingTO.from_model(options[id_])
+                                                       for id_ in detail.option_ids])
+                       for detail in order.details]
+        else:
+            details = [SandwichOrderDetailsTO(
+                type=SandwichSettingTO.from_model(types[order.type_id]),
+                topping=SandwichSettingTO.from_model(toppings[order.topping_id]),
+                options=[SandwichSettingTO.from_model(options[id_]) for id_ in order.option_ids]
+            )]
+        results.append(SandwichOrderTO.from_model(order, details, transactions.get(order.transaction_id)))
+    return results
 
 
 @rest("/common/sandwich/orders/reply", "post")

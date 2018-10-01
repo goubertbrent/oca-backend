@@ -18,15 +18,16 @@
 import datetime
 import time
 
-from rogerthat.dal import parent_key, parent_key_unsafe
+from google.appengine.ext import db, ndb
+
+from rogerthat.dal import parent_key, parent_ndb_key_unsafe, parent_ndb_key
+from rogerthat.models import NdbModel
 from rogerthat.rpc import users
 from rogerthat.utils import now
-from rogerthat.utils.service import get_identity_from_service_identity_user, \
-    get_service_user_from_service_identity_user
-from google.appengine.ext import db
-
+from rogerthat.utils.service import get_identity_from_service_identity_user, get_service_user_from_service_identity_user
+from solutions import SOLUTION_FLEX
 from solutions.common.consts import SECONDS_IN_MINUTE, SECONDS_IN_HOUR
-from solutions.common.models.properties import SolutionUserProperty
+from solutions.common.models.properties import NdbSolutionUserProperty, SolutionUser
 from solutions.common.utils import create_service_identity_user_wo_default
 
 
@@ -121,11 +122,11 @@ class SandwichLastBroadcastDay(db.Model):
         return cls.get(cls.create_key(service_user, solution))
 
 
-class SandwichType(db.Model):
-    description = db.StringProperty()
-    price = db.IntegerProperty()  # In euro cents
-    order = db.IntegerProperty()
-    deleted = db.BooleanProperty(default=False)
+class SandwichType(ndb.Model):
+    description = ndb.StringProperty()
+    price = ndb.IntegerProperty()  # In euro cents
+    order = ndb.IntegerProperty()
+    deleted = ndb.BooleanProperty(default=False)
 
     @property
     def price_in_euro(self):
@@ -133,27 +134,28 @@ class SandwichType(db.Model):
 
     @property
     def service_user(self):
-        return users.User(self.parent_key().name())
+        return users.User(self.key.parent().id())
+
+    @classmethod
+    def create_key(cls, service_user, type_id):
+        return ndb.Key(cls, type_id, parent=parent_ndb_key(service_user, SOLUTION_FLEX))
 
     @property
-    def type_id(self):
-        return self.key().id()
+    def id(self):
+        return self.key.id()
 
-    id = type_id
+    @classmethod
+    def list(cls, service_user, solution):
+        return SandwichType.query(ancestor=parent_ndb_key(service_user, solution))\
+            .filter(cls.deleted == False)\
+            .order(cls.order)
 
-    @staticmethod
-    def get_by_type_id(service_user, solution, type_id):
-        return SandwichType.get_by_id(type_id, parent_key(service_user, solution))
 
-    @staticmethod
-    def list(service_user, solution):
-        return SandwichType.all().ancestor(parent_key(service_user, solution)).filter('deleted', False).order('order')
-
-class SandwichTopping(db.Model):
-    description = db.StringProperty()
-    price = db.IntegerProperty()  # In euro cents
-    order = db.IntegerProperty()
-    deleted = db.BooleanProperty(default=False)
+class SandwichTopping(ndb.Model):
+    description = ndb.StringProperty()
+    price = ndb.IntegerProperty()  # In euro cents
+    order = ndb.IntegerProperty()
+    deleted = ndb.BooleanProperty(default=False)
 
     @property
     def price_in_euro(self):
@@ -161,27 +163,28 @@ class SandwichTopping(db.Model):
 
     @property
     def service_user(self):
-        return users.User(self.parent_key().name())
+        return users.User(self.key.parent().id())
 
     @property
     def topping_id(self):
-        return self.key().id()
+        return self.key.id()
 
     id = topping_id
 
-    @staticmethod
-    def get_by_topping_id(service_user, solution, topping_id):
-        return SandwichTopping.get_by_id(topping_id, parent_key(service_user, solution))
+    @classmethod
+    def create_key(cls, service_user, topping_id):
+        return ndb.Key(cls, topping_id, parent=parent_ndb_key(service_user, SOLUTION_FLEX))
 
-    @staticmethod
-    def list(service_user, solution):
-        return SandwichTopping.all().ancestor(parent_key(service_user, solution)).filter('deleted', False).order('order')
+    @classmethod
+    def list(cls, service_user, solution):
+        return cls.query(ancestor=parent_ndb_key(service_user, solution)).filter(cls.deleted == False).order(cls.order)
 
-class SandwichOption(db.Model):
-    description = db.StringProperty()
-    price = db.IntegerProperty()  # In euro cents
-    order = db.IntegerProperty()
-    deleted = db.BooleanProperty(default=False)
+
+class SandwichOption(ndb.Model):
+    description = ndb.StringProperty()
+    price = ndb.IntegerProperty()  # In euro cents
+    order = ndb.IntegerProperty()
+    deleted = ndb.BooleanProperty(default=False)
 
     @property
     def price_in_euro(self):
@@ -189,42 +192,52 @@ class SandwichOption(db.Model):
 
     @property
     def service_user(self):
-        return users.User(self.parent_key().name())
+        return users.User(self.key.parent().id())
 
-    @staticmethod
-    def get_by_option_ids(service_user, solution, option_ids):
-        return SandwichOption.get_by_id(option_ids, parent_key(service_user, solution))
+    @classmethod
+    def create_key(cls, service_user, option_id):
+        return ndb.Key(cls, option_id, parent=parent_ndb_key(service_user, SOLUTION_FLEX))
 
-    @staticmethod
-    def list(service_user, solution, include_deleted=False):
-        qry = SandwichOption.all().ancestor(parent_key(service_user, solution))
+    @classmethod
+    def list(cls, service_user, solution, include_deleted=False):
+        qry = SandwichOption.query(ancestor=parent_ndb_key(service_user, solution))
         if include_deleted:
-            return qry.order('order')
+            return qry.order(cls.order)
         else:
-            return qry.filter('deleted', False).order('order')
+            return qry.filter(cls.deleted == False).order(cls.order)
 
     @property
-    def option_id(self):
-        return self.key().id()
+    def id(self):
+        return self.key.id()
 
-    id = option_id
 
-class SandwichOrder(db.Model):
+class SandwichOrderDetail(NdbModel):
+    type_id = ndb.IntegerProperty()
+    topping_id = ndb.IntegerProperty()
+    option_ids = ndb.IntegerProperty(repeated=True)
+
+
+class SandwichOrder(NdbModel):
     STATUS_RECEIVED = 1
     STATUS_READY = 2
     STATUS_REPLIED = 3
 
-    sender = SolutionUserProperty()
-    order_time = db.IntegerProperty()
-    type_id = db.IntegerProperty()
-    topping_id = db.IntegerProperty()
-    option_ids = db.ListProperty(int)
-    price = db.IntegerProperty()  # In euro cents
-    remark = db.TextProperty()
-    deleted = db.BooleanProperty(default=False)
-    status = db.IntegerProperty(default=STATUS_RECEIVED)
-    solution_inbox_message_key = db.StringProperty(indexed=False)
-    takeaway_time = db.IntegerProperty(indexed=False)
+    sender = NdbSolutionUserProperty()  # type: SolutionUser
+    order_time = ndb.IntegerProperty()
+
+    type_id = ndb.IntegerProperty()  # deprecated since details
+    topping_id = ndb.IntegerProperty()  # deprecated since details
+    option_ids = ndb.IntegerProperty(repeated=True)  # deprecated since details
+    details = ndb.LocalStructuredProperty(SandwichOrderDetail, repeated=True)  # type: list[SandwichOrderDetail]
+
+    price = ndb.IntegerProperty()  # In euro cents
+    remark = ndb.TextProperty()
+    deleted = ndb.BooleanProperty(default=False)
+    status = ndb.IntegerProperty(default=STATUS_RECEIVED)
+    solution_inbox_message_key = ndb.StringProperty(indexed=False)
+    takeaway_time = ndb.IntegerProperty(indexed=False)
+    payment_provider = ndb.StringProperty()
+    transaction_id = ndb.StringProperty()
 
     @property
     def price_in_euro(self):
@@ -232,7 +245,7 @@ class SandwichOrder(db.Model):
 
     @property
     def service_identity_user(self):
-        return users.User(self.parent_key().name())
+        return users.User(self.key.parent().id())
 
     @property
     def service_user(self):
@@ -244,42 +257,28 @@ class SandwichOrder(db.Model):
 
     @property
     def solution(self):
-        return self.parent_key().kind()
-
-    @property
-    def solution_sandwich_order_key(self):
-        return str(self.key())
+        return self.key.parent.kind()
 
     @property
     def parent_message_key(self):
-        return self.key().name()
+        return self.key.id()
 
     id = parent_message_key
 
-    @property
-    def sandwich_type(self):
-        return SandwichType.get_by_type_id(self.service_user, self.solution, self.type_id)
+    @classmethod
+    def create_key(cls, parent_message_key, service_identity_user):
+        return ndb.Key(cls, parent_message_key, parent=parent_ndb_key_unsafe(service_identity_user, SOLUTION_FLEX))
 
-    @property
-    def sandwich_topping(self):
-        if not self.topping_id:
-            return None
-        return SandwichTopping.get_by_topping_id(self.service_user, self.solution, self.topping_id)
-
-    @property
-    def sandwich_options(self):
-        l = list()
-        for option_id in self.option_ids:
-            l.append(SandwichOption.get_by_option_ids(self.service_user, self.solution, option_id))
-        return l
-
-    @staticmethod
-    def get_by_order_id(service_user, service_identity, solution, order_id):
+    @classmethod
+    def get_by_order_id(cls, service_user, service_identity, order_id):
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-        return SandwichOrder.get_by_key_name(order_id, parent_key_unsafe(service_identity_user, solution))
+        return cls.get_by_id(order_id, parent_ndb_key_unsafe(service_identity_user, SOLUTION_FLEX))
 
-    @staticmethod
-    def list(service_user, service_identity, solution):
+    @classmethod
+    def list(cls, service_user, service_identity):
         service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
         midnight = int(time.mktime(time.strptime(str(datetime.date.today()), '%Y-%m-%d')))
-        return SandwichOrder.all().ancestor(parent_key_unsafe(service_identity_user, solution)).filter('deleted', False).filter("order_time >", midnight).order('-order_time')
+        return cls.query(ancestor=parent_ndb_key_unsafe(service_identity_user, SOLUTION_FLEX)) \
+            .filter(cls.deleted == False) \
+            .filter(cls.order_time > midnight) \
+            .order(-cls.order_time)

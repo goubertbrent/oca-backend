@@ -34,9 +34,10 @@ from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettin
     SolutionIdentitySettings
 from solutions.common.models.agenda import Event
 from solutions.common.models.properties import MenuCategory
+from solutions.common.to.payments import TransactionDetailsTO
 
 
-class SolutionUserKeyLabelTO(object):
+class SolutionUserKeyLabelTO(TO):
     key = unicode_property('1')
     label = unicode_property('2')
 
@@ -45,7 +46,7 @@ class SolutionInboxForwarder(SolutionUserKeyLabelTO):
     type = unicode_property('51')
 
 
-class SolutionInboxMessageTO(object):
+class SolutionInboxMessageTO(TO):
     key = unicode_property('1')
     category = unicode_property('2')  # only filled in on parent message
     timestamp = long_property('3')
@@ -651,7 +652,7 @@ class SolutionRepairSettingsTO(object):
         return to
 
 
-class SolutionRepairOrderTO(object):
+class SolutionRepairOrderTO(TO):
     key = unicode_property('1')
     description = unicode_property('2')
     status = long_property('3')
@@ -675,7 +676,7 @@ class SolutionRepairOrderTO(object):
         return to
 
 
-class SandwichSettingTO(object):
+class SandwichSettingTO(TO):
     id = long_property('1')
     description = unicode_property('2')
     price = long_property('3')
@@ -684,18 +685,18 @@ class SandwichSettingTO(object):
     price_in_euro = unicode_property('6')
 
     @staticmethod
-    def fromModel(model):
-        ss = SandwichSettingTO()
-        ss.id = model.id
-        ss.description = model.description
-        ss.price = model.price
-        ss.order = model.order
-        ss.deleted = False
-        ss.price_in_euro = model.price_in_euro
-        return ss
+    def from_model(model):
+        return SandwichSettingTO(
+            id=model.id,
+            description=model.description,
+            price=model.price,
+            order=model.order,
+            deleted=False,
+            price_in_euro=model.price_in_euro
+        )
 
 
-class SandwichSettingsTO(object):
+class SandwichSettingsTO(TO):
     show_prices = bool_property('1')
     types = typed_property('2', SandwichSettingTO, True)
     toppings = typed_property('3', SandwichSettingTO, True)
@@ -721,59 +722,61 @@ class SandwichSettingsTO(object):
             options (list of solutions.common.models.sandwich.SandwichOption)
             currency (unicode)
         """
-        to = cls()
-        to.show_prices = sandwich_settings.show_prices
-        to.types = [SandwichSettingTO.fromModel(t) for t in types]
-        to.toppings = [SandwichSettingTO.fromModel(t) for t in toppings]
-        to.options = [SandwichSettingTO.fromModel(t) for t in options]
-        to.currency = currency
-        to.days = sandwich_settings.status_days
-        to.from_ = sandwich_settings.time_from
-        to.till = sandwich_settings.time_until
-        to.reminder_days = sandwich_settings.broadcast_days
-        to.reminder_message = sandwich_settings.reminder_broadcast_message
-        to.reminder_at = sandwich_settings.remind_at
-        to.leap_time_enabled = sandwich_settings.leap_time_enabled
-        to.leap_time = sandwich_settings.leap_time
-        to.leap_time_type = sandwich_settings.leap_time_type
-        return to
+        return cls(
+            types=[SandwichSettingTO.from_model(t) for t in types],
+            toppings=[SandwichSettingTO.from_model(t) for t in toppings],
+            options=[SandwichSettingTO.from_model(t) for t in options],
+            currency=currency,
+            days=sandwich_settings.status_days,
+            from_=sandwich_settings.time_from,
+            till=sandwich_settings.time_until,
+            reminder_days=sandwich_settings.broadcast_days,
+            reminder_message=sandwich_settings.reminder_broadcast_message,
+            reminder_at=sandwich_settings.remind_at,
+            leap_time_enabled=sandwich_settings.leap_time_enabled,
+            leap_time=sandwich_settings.leap_time,
+            leap_time_type=sandwich_settings.leap_time_type,
+            show_prices=sandwich_settings.show_prices,
+        )
 
 
-class SandwichOrderTO(object):
+class SandwichOrderDetailsTO(TO):
+    type = typed_property('1', SandwichSettingTO, False)
+    topping = typed_property('2', SandwichSettingTO, False)
+    options = typed_property('3', SandwichSettingTO, True)
+
+
+class SandwichOrderTO(TO):
     id = unicode_property('1')
     timestamp = long_property('2')
-    type = typed_property('3', SandwichSettingTO, False)
-    topping = typed_property('4', SandwichSettingTO, False)
-    options = typed_property('5', SandwichSettingTO, True)
-    price = long_property('6')
-    price_in_euro = unicode_property('7')
-    remark = unicode_property('8')
-    sender_name = unicode_property('9')
-    sender_avatar_url = unicode_property('10')
-    status = long_property('11')
-    solution_inbox_message_key = unicode_property('12')
-    takeaway_time = long_property('13')
+    details = typed_property('3', SandwichOrderDetailsTO, True)
+    price = long_property('4')
+    price_in_euro = unicode_property('5')
+    remark = unicode_property('6')
+    sender_name = unicode_property('7')
+    sender_avatar_url = unicode_property('8')
+    status = long_property('9')
+    solution_inbox_message_key = unicode_property('10')
+    takeaway_time = long_property('11')
+    transaction = typed_property('transaction', TransactionDetailsTO)
 
-    @staticmethod
-    def fromModel(model):
-        to = SandwichOrderTO()
-        to.id = model.id
-        to.timestamp = model.order_time
-        to.type = SandwichSettingTO.fromModel(model.sandwich_type)
-        topping = model.sandwich_topping
-        to.topping = SandwichSettingTO.fromModel(topping) if topping else None
-        to.options = list()
-        for option in model.sandwich_options:
-            to.options.append(SandwichSettingTO.fromModel(option))
-        to.price = model.price
-        to.price_in_euro = model.price_in_euro
-        to.remark = model.remark
-        to.sender_name = model.sender.name
-        to.sender_avatar_url = model.sender.avatar_url
-        to.status = model.status
-        to.solution_inbox_message_key = model.solution_inbox_message_key
-        to.takeaway_time = model.takeaway_time
-        return to
+    @classmethod
+    def from_model(cls, model, details, transaction):
+        # type: (SandwichOrder, list[SandwichOrderDetailsTO]) -> SandwichOrderTO
+        return cls(
+            id=model.id,
+            timestamp=model.order_time,
+            details=details,
+            price=model.price,
+            price_in_euro=model.price_in_euro,
+            remark=model.remark,
+            sender_name=model.sender.name,
+            sender_avatar_url=model.sender.avatar_url,
+            status=model.status,
+            solution_inbox_message_key=model.solution_inbox_message_key,
+            takeaway_time=model.takeaway_time,
+            transaction=TransactionDetailsTO.from_model(transaction) if transaction else None,
+        )
 
 
 class SolutionGroupPurchaseSubscriptionTO(object):

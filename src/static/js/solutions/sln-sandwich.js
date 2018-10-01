@@ -134,12 +134,13 @@ $(function () {
                 STATUS_READY: STATUS_READY,
                 STATUS_REPLIED: STATUS_REPLIED,
                 CURRENCY: CONSTS.CURRENCY_SYMBOLS[settings.currency],
-                t: CommonTranslations
+                t: CommonTranslations,
             });
             sandwichOrdersTable.html(html);
             sandwichesElem.find('button[action="reply"]').click(replySandwichOrderPressed);
             sandwichesElem.find('button[action="ready"]').click(readySandwichOrderPressed);
             sandwichesElem.find('button[action="delete"]').click(deleteSandwichOrderPressed);
+            sandwichesElem.find('button[action="transaction"]').click(showTransactionDetails)
             $('.sln-sandwich-badge').text(localSandwichOrders.length || '');
             sln.resize_header();
         });
@@ -147,19 +148,24 @@ $(function () {
 
     function replySandwichOrderPressed() {
         var sandwichId = $(this).attr("sandwich_id");
-		var m = sandwichOrders.filter(function(order) {
+        var order = sandwichOrders.filter(function (order) {
 			return order.id === sandwichId;
 		})[0];
 
-        var orderString = $.tmpl(templates.sandwiches_order_inbox_detail, {
-            type : m.type,
-            topping: m.topping,
-            options: m.options,
-            remark: m.remark,
-            CommonTranslations : CommonTranslations
-        });
+        var orderStringContainer = $('<div></div>');
+        for (var i = 0; i < order.details.length; i++) {
+            var details = order.details[i];
+            var detailHtml = $.tmpl(templates.sandwiches_order_inbox_detail, {
+                type: details.type,
+                topping: details.topping,
+                options: details.options,
+                remark: order.remark,
+                CommonTranslations: CommonTranslations
+            });
+            orderStringContainer.append(detailHtml);
+        }
 
-        sln.inputBox(function(message) {
+        sln.inputBox(function (message) {
             sln.call({
                 url : "/common/sandwich/orders/reply",
                 type : "POST",
@@ -178,8 +184,8 @@ $(function () {
             });
         },
         CommonTranslations.REPLY, CommonTranslations.REPLY,
-        CommonTranslations.NAME + ": " + m.sender_name, CommonTranslations.NO_MORE_SANDWICHES,
-        orderString, null, true);
+            CommonTranslations.NAME + ": " + order.sender_name, CommonTranslations.NO_MORE_SANDWICHES,
+            orderStringContainer, null, true);
     }
 
     function readySandwichOrderPressed(event) {
@@ -255,6 +261,17 @@ $(function () {
         CommonTranslations.DELETE, CommonTranslations.DELETE, null,
         replyMessage, null, null,
         replyRequired, placeholder);
+    }
+
+    function showTransactionDetails(event) {
+        event.stopPropagation();
+        var sandwichId = $(this).attr('sandwich_id');
+        var sandwich = sandwichBarOrdersDict[sandwichId];
+        var html = $.tmpl(templates['transaction_modal'], {
+            transaction: sandwich.transaction,
+            date: sln.format(new Date(sandwich.transaction.timestamp * 1000)),
+        });
+        sln.createModal(html);
     }
 
     function fadeOutMessageAndUpdateBadge(sandwichId) {

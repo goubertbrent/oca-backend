@@ -17,6 +17,8 @@
 
 from google.appengine.ext import ndb
 
+from rogerthat.bizz.payment.providers.payconiq.models import PayconiqTransaction
+from rogerthat.bizz.payment.providers.threefold.api import _get_explorer_url
 from rogerthat.models import NdbModel
 
 
@@ -44,6 +46,20 @@ class PaymentTransaction(NdbModel):
     def provider_id(self):
         return self.key.namespace()
 
+    @property
+    def external_url(self):
+        if self.provider_id == 'threefold':
+            explorer_url = _get_explorer_url(self.test_mode)
+            return u'%s/hash.html?hash=%s' % (explorer_url, self.id)
+
     @classmethod
     def create_key(cls, provider_id, transaction_id):
         return ndb.Key(cls, transaction_id, namespace=provider_id)
+
+
+def transaction_key(provider_id, transaction_id):
+    if provider_id == 'payconiq':
+        return PayconiqTransaction.create_key(transaction_id)
+    elif provider_id == 'threefold':
+        return PaymentTransaction.create_key('threefold', transaction_id)
+    return None

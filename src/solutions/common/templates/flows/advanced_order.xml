@@ -107,7 +107,10 @@
                      negativeReference="end_advanced_order">
             <content>{% translate language, 'common', 'enter_your_order' %}
 
-{{ leap_time_message }}</content>
+{{ leap_time_message }}{% if min_amount_for_fee_message %}
+
+{{ min_amount_for_fee_message }}
+{% endif %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
@@ -135,7 +138,9 @@
                                   {% endif %}
                                 >
                                     <name>{{ item.name|e }}</name>
-                                    {% if item.description %}<description>{{ item.description|e }}</description>{% endif %}
+                                    {% if item.description %}
+                                    <description>{{ item.description|e }}</description>
+                                    {% endif %}
                                 </item>
                             {% endif %}
                         {% endfor %}

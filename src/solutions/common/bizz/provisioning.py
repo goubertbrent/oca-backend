@@ -27,7 +27,7 @@ from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import jinja2
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 
 import solutions
 from babel import dates
@@ -38,7 +38,7 @@ from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DAY
-from rogerthat.dal import parent_key, put_and_invalidate_cache
+from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_ndb_key
 from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, ServiceProfile
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.models.utils import allocate_id
@@ -1709,80 +1709,84 @@ def delete_restaurant_reservation(sln_settings, current_coords, service_menu):
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, tag):
-    """
-    Args:
-        sln_settings (SolutionSettings)
-        current_coords (list of int)
-        main_branding (SolutionMainBranding)
-        default_lang (unicode)
-        tag (unicode)
-    """
     logging.info('Creating ORDER SANDWICH message flow')
+    payment_enabled = False
+    identities = [None]
+    if sln_settings.identities:
+        identities.extend(sln_settings.identities)
+    for service_identity in identities:
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        if sln_i_settings.payment_enabled:
+            payment_enabled = True
+            break
     lang = sln_settings.main_language
     service_user = sln_settings.service_user
     default_data = []
-    types = list(SandwichType.list(service_user, sln_settings.solution))
+    types_future = SandwichType.list(service_user, sln_settings.solution).fetch_async()
+    toppings_future = SandwichTopping.list(service_user, sln_settings.solution).fetch_async()
+    options_future = SandwichOption.list(service_user, sln_settings.solution, True).fetch_async()
+    types, toppings, options = types_future.get_result(), toppings_future.get_result(), options_future.get_result()
     to_put = []
     if not types:
         # Add some default data
-        types.append(SandwichType(parent=parent_key(service_user, sln_settings.solution),
+        types.append(SandwichType(parent=parent_ndb_key(service_user, sln_settings.solution),
                                   description=common_translate(lang, SOLUTION_COMMON,
                                                                'order-sandwich-default-data-type-white'),
                                   price=0,
                                   order=1))
-        types.append(SandwichType(parent=parent_key(service_user, sln_settings.solution),
+        types.append(SandwichType(parent=parent_ndb_key(service_user, sln_settings.solution),
                                   description=common_translate(lang, SOLUTION_COMMON,
                                                                'order-sandwich-default-data-type-dark'),
                                   price=0,
                                   order=2))
         default_data.extend(types)
-    toppings = list(SandwichTopping.list(service_user, sln_settings.solution))
     if not toppings:
-        toppings.append(SandwichTopping(parent=parent_key(service_user, sln_settings.solution),
+        toppings.append(SandwichTopping(parent=parent_ndb_key(service_user, sln_settings.solution),
                                         description=common_translate(lang, SOLUTION_COMMON,
                                                                      'order-sandwich-default-data-topping-ham'),
                                         price=200,
                                         order=1))
-        toppings.append(SandwichTopping(parent=parent_key(service_user, sln_settings.solution),
+        toppings.append(SandwichTopping(parent=parent_ndb_key(service_user, sln_settings.solution),
                                         description=common_translate(lang, SOLUTION_COMMON,
                                                                      'order-sandwich-default-data-topping-cheese'),
                                         price=200,
                                         order=2))
-        toppings.append(SandwichTopping(parent=parent_key(service_user, sln_settings.solution),
+        toppings.append(SandwichTopping(parent=parent_ndb_key(service_user, sln_settings.solution),
                                         description=common_translate(lang, SOLUTION_COMMON,
                                                                      'order-sandwich-default-data-topping-ham-cheese'),
                                         price=300,
                                         order=3))
         default_data.extend(toppings)
-    options = list(SandwichOption.list(service_user, sln_settings.solution, True))
     if not options:
-        options.append(SandwichOption(parent=parent_key(service_user, sln_settings.solution),
+        options.append(SandwichOption(parent=parent_ndb_key(service_user, sln_settings.solution),
                                       description=common_translate(lang, SOLUTION_COMMON,
                                                                    'order-sandwich-default-data-option-mayo'),
                                       price=0,
                                       order=1))
-        options.append(SandwichOption(parent=parent_key(service_user, sln_settings.solution),
+        options.append(SandwichOption(parent=parent_ndb_key(service_user, sln_settings.solution),
                                       description=common_translate(lang, SOLUTION_COMMON,
                                                                    'order-sandwich-default-data-option-cocktail'),
                                       price=0,
                                       order=2))
-        options.append(SandwichOption(parent=parent_key(service_user, sln_settings.solution),
+        options.append(SandwichOption(parent=parent_ndb_key(service_user, sln_settings.solution),
                                       description=common_translate(lang, SOLUTION_COMMON,
                                                                    'order-sandwich-default-data-option-greens'),
                                       price=100,
                                       order=3))
         default_data.extend(options)
     else:
-        options = list(SandwichOption.list(service_user, sln_settings.solution))
+        options = SandwichOption.list(service_user, sln_settings.solution).fetch()
 
     validate_sandwiches(sln_settings.main_language, types, toppings, options)
 
     sandwich_settings = SandwichSettings.get_settings(service_user, sln_settings.solution)
+    if not sandwich_settings.show_prices:
+        payment_enabled = False
 
     if default_data:
-        db.put(default_data)
+        ndb.put_multi(default_data)
 
-    days = list()
+    days = []
     day_names = dates.get_day_names('wide', locale=lang)
     for day in SandwichSettings.DAYS:
         if sandwich_settings.status_days & day == day:
@@ -1845,8 +1849,11 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
         'branding_key': main_branding.branding_key,
         'language': default_lang,
         'types': types,
+        'types_json': json.dumps({t.id: t.price for t in types}),
         'toppings': toppings,
+        'toppings_json': json.dumps({topping.id: topping.price for topping in toppings}),
         'options': options,
+        'options_json': json.dumps({option.id: option.price for option in options}),
         'sandwich_settings': sandwich_settings,
         'settings': sln_settings,
         'orderable_sandwich_days_message': orderable_sandwich_days_message,
@@ -1856,7 +1863,9 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
         'possible_times_message': possible_times_message,
         'leap_time_message': leap_time_message,
         'leap_time_str': leap_time_str,
-        'timezone_offsets': json.dumps(timezone_offsets)
+        'timezone_offsets': json.dumps(timezone_offsets),
+        'Features': Features,
+        'payment_enabled': payment_enabled,
     }
     flow = JINJA_ENVIRONMENT.get_template('flows/order_sandwich.xml').render(flow_params)
     order_sandwich_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
@@ -1864,7 +1873,7 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
     to_put.append(sandwich_settings)
 
     # Configure automatic broadcast types
-    broadcast_types = list()
+    broadcast_types = []
     for day in SandwichSettings.DAYS:
         if day & sandwich_settings.broadcast_days == day:
             broadcast_types.append(get_sandwich_reminder_broadcast_type(default_lang, day))

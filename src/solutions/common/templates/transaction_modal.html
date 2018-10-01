@@ -1,0 +1,16 @@
+<div class="modal fade">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>${T('transaction_details')}</h3>
+  </div>
+  <div class="modal-body">
+    <p>${T('transaction_id') }:  ${transaction.id}</p>
+    <p>${T('paid_amount')}: ${transaction.amount_str } ${transaction.currency}</p>
+    <p>${T('Date')}: ${date}</p>
+    <p>${T('status')}: ${T('transaction_status_' + transaction.status) }</p>
+      <a href="${transaction.external_url}" class="btn btn-primary" target="_blank">${T('view_on_external_site')}</a>
+  </div>
+  <div class="modal-footer">
+    <button data-dismiss="modal" class="btn">Close</button>
+  </div>
+</div>

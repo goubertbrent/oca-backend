@@ -23,6 +23,10 @@ from solutions.common.consts import SECONDS_IN_MINUTE
 from solutions.common.models.order import SolutionOrderSettings
 from solutions.common.to.payments import TransactionDetailsTO
 
+class OrderPauseSettingsTO(TO):
+    enabled = bool_property('enabled')
+    paused_until = unicode_property('paused_until')
+    message = unicode_property('message')
 
 class OrderPauseSettingsTO(TO):
     enabled = bool_property('enabled')

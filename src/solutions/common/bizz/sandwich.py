@@ -15,20 +15,21 @@
 #
 # @@license_version:1.3@@
 
+import itertools
 import logging
 from datetime import datetime
 from types import NoneType
 
+from google.appengine.ext import deferred, db, ndb
+
 import pytz
 from babel import dates
 from babel.dates import format_datetime, get_timezone
-from google.appengine.ext import deferred, db
-
 from mcfw.properties import azzert
 from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from rogerthat.dal import parent_key_unsafe
 from rogerthat.models import Message
+from rogerthat.models.properties.forms import PayWidgetResult
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
 from rogerthat.to.messaging import MemberTO
@@ -44,16 +45,16 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_first_fmr_step_result_value, SolutionModule
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
+from solutions.common.bizz.payment import get_transaction_details
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.exceptions.sandwich import InvalidSandwichSettingsException
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.properties import SolutionUser
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, \
-    SandwichOrder, SandwichOption, SandwichSettings
+    SandwichOrder, SandwichOption, SandwichSettings, SandwichOrderDetail
 from solutions.common.to import SolutionInboxMessageTO
 from solutions.common.utils import create_service_identity_user_wo_default
-from solutions.flex import SOLUTION_FLEX
 
 
 @returns(FlowMemberResultCallbackResultTO)
@@ -61,13 +62,39 @@ from solutions.flex import SOLUTION_FLEX
            steps=[object_factory("step_type", FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
            parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
-def order_sandwich_received(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
-                   tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
-    type_ = get_first_fmr_step_result_value(steps, u'message_type')
-    topping = get_first_fmr_step_result_value(steps, u'message_topping')
-    customizations = get_first_fmr_step_result_value(steps, u'message_customize')
+def order_sandwich_received(service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id,
+                            parent_message_key, tag, result_key, flush_id, flush_message_flow_id, service_identity,
+                            user_details):
+    sln_settings = get_solution_settings(service_user)
+    step_mapping = {
+        'message_type': [],
+        'message_topping': [],
+        'message_customize': [],
+    }
+
+    for step in steps:
+        if step.step_id in step_mapping:
+            step_mapping[step.step_id].append(step.get_value())
+
+    # if there is only one type, the 'type' step isn't shown, so we get that sandwich type from the db.
+    default_sandwich_type_id = None
+    if not step_mapping['message_type']:
+        sandwich_type = SandwichType.list(service_user, sln_settings.solution).get()
+        default_sandwich_type_id = 'type_%d' % sandwich_type.type_id
+    sandwiches = []
+    for type_, topping, customizations in itertools.izip_longest(step_mapping['message_type'],
+                                                                 step_mapping['message_topping'],
+                                                                 step_mapping['message_customize']):
+        sandwiches.append({
+            u'type': type_ or default_sandwich_type_id,
+            u'topping': topping,
+            u'customizations': customizations or []
+        })
+
     remark = get_first_fmr_step_result_value(steps, u'message_remark')
     takeaway_time = get_first_fmr_step_result_value(steps, u'message_takeaway_time')
+    pay_result = get_first_fmr_step_result_value(steps, u'message_pay_required') or \
+                 get_first_fmr_step_result_value(steps, u'message_pay_optional')
 
     sln_settings = get_solution_settings(service_user)
 
@@ -76,8 +103,8 @@ def order_sandwich_received(service_user, message_flow_run_id, member, steps, en
         sandwich_type = SandwichType.list(service_user, sln_settings.solution).get()
         type_ = 'type_%d' % sandwich_type.type_id
 
-    deferred.defer(process_sandwich_order, service_user, service_identity, user_details, type_, topping, customizations,
-                   remark, takeaway_time, parent_message_key)
+    deferred.defer(process_sandwich_orders, service_user, service_identity, user_details, sandwiches,
+                   remark, takeaway_time, parent_message_key, pay_result)
 
     main_branding = get_solution_main_branding(service_user)
 
@@ -96,41 +123,74 @@ def order_sandwich_received(service_user, message_flow_run_id, member, steps, en
     return result
 
 
-def process_sandwich_order(service_user, service_identity, user_details, type_, topping, customizations, remark,
-                           takeaway_time, parent_message_key):
+def get_sandwich_models(service_user, type_ids, topping_ids, option_ids):
+    # type: (users.User, set[int], set[int], set[int]) -> tuple[dict[int, SandwichType], dict[int, SandwichTopping], dict[int, SandwichOption]]
+    keys = [SandwichType.create_key(service_user, id_) for id_ in type_ids] + \
+           [SandwichTopping.create_key(service_user, id_) for id_ in topping_ids] + \
+           [SandwichOption.create_key(service_user, id_) for id_ in option_ids]
+    models = ndb.get_multi(keys)
+    types = {model.id: model for model in models if isinstance(model, SandwichType)}
+    toppings = {model.id: model for model in models if isinstance(model, SandwichTopping)}
+    options = {model.id: model for model in models if isinstance(model, SandwichOption)}
+    return types, toppings, options
+
+
+def process_sandwich_orders(service_user, service_identity, user_details, sandwiches,
+                           remark, takeaway_time, parent_message_key, pay_result=None):
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
 
-    # Calculate price
-    type_id = int(type_.split('_')[-1])
-    topping_id = int(topping.split('_')[-1]) if topping else None
-    option_ids = [int(c.split('_')[-1]) for c in customizations] if customizations else []
-
-    logging.info("type: %s", type_id)
-    logging.info("topping: %s", topping_id)
-    logging.info("options: %s", option_ids)
-
-    sandwich_type = SandwichType.get_by_type_id(service_user, SOLUTION_FLEX, type_id)
-    sandwich_topping = SandwichTopping.get_by_topping_id(service_user, SOLUTION_FLEX, topping_id) if topping_id else None
-    sandwich_customizations = SandwichOption.get_by_option_ids(service_user, SOLUTION_FLEX, option_ids)
-
-    logging.info("type: %s", sandwich_type)
-    logging.info("topping: %s", sandwich_topping)
-    logging.info("options: %s", sandwich_customizations)
-
-    total_price = sum([sandwich_type.price, sandwich_topping.price if sandwich_topping else 0] + [sc.price for sc in sandwich_customizations])
-
-    # Save order to datastore
     now_ = now()
     sln_settings = get_solution_settings(service_user)
+    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     timezone_offset = datetime.now(pytz.timezone(sln_settings.timezone)).utcoffset().total_seconds()
     lang = sln_settings.main_language
 
-    customizations = ['']
-    customizations.extend([sw.description for sw in sandwich_customizations])
+    total_price = 0
+    sandwich_msg = []
+    sandwich_details = []
+    logging.info("sandwiches: %s", sandwiches)
+    type_ids = set()
+    topping_ids = set()
+    option_ids = set()
+    for sandwich in sandwiches:
+        type_id = int(sandwich[u'type'].split('_')[-1])
+        topping_id = int(sandwich[u'topping'].split('_')[-1]) if sandwich[u'topping'] else None
+        opt_ids = [int(c.split('_')[-1]) for c in sandwich[u'customizations'] or []]
+        type_ids.add(type_id)
+        topping_ids.add(topping_id)
+        option_ids.update(opt_ids)
+    types, toppings, options = get_sandwich_models(service_user, type_ids, topping_ids, option_ids)
+    for sandwich in sandwiches:
+        type_id = int(sandwich[u'type'].split('_')[-1])
+        topping_id = int(sandwich[u'topping'].split('_')[-1]) if sandwich[u'topping'] else None
+        option_ids = [int(c.split('_')[-1]) for c in sandwich[u'customizations'] or []]
+
+        sandwich_details.append(SandwichOrderDetail(
+            type_id=type_id,
+            topping_id=topping_id,
+            option_ids=option_ids,
+        ))
+
+        sandwich_type = types[type_id]
+        sandwich_topping = toppings[topping_id]
+        sandwich_options = [options[id_] for id_ in option_ids]
+
+        logging.info("type: %s\ntopping: %s\n options: %s", sandwich_type, sandwich_topping, sandwich_options)
+
+        total_price += sum(
+            [sandwich_type.price, sandwich_topping.price if sandwich_topping else 0] + [sc.price for sc in
+                                                                                        sandwich_options])
+
+        customizations = ['']
+        customizations.extend([sw.description for sw in sandwich_options])
+        msg = common_translate(lang, SOLUTION_COMMON, 'if-sandwich-order-received-detail',
+                               sandwich_type=sandwich_type.description,
+                               topping=sandwich_topping.description if sandwich_topping else u"",
+                               customizations=u"\n - ".join(customizations))
+        sandwich_msg.append(msg)
+
     msg = common_translate(lang, SOLUTION_COMMON, 'if-sandwich-order-received',
-                           sandwich_type=sandwich_type.description,
-                           topping=sandwich_topping.description if sandwich_topping else u"",
-                           customizations=u"\n - ".join(customizations),
+                           sandwiches=u"\n".join(sandwich_msg),
                            remarks=remark or "")
     if takeaway_time:
         takeaway_time = long(takeaway_time - timezone_offset)
@@ -141,37 +201,51 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
 
     create_inbox_message = True
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
-    order = SandwichOrder.get_or_insert(key_name=parent_message_key, parent=parent_key_unsafe(service_identity_user, SOLUTION_FLEX))
-    if order.solution_inbox_message_key:
+    sandwich_key = SandwichOrder.create_key(parent_message_key, service_identity_user)
+    sandwich = sandwich_key.get() or SandwichOrder(key=sandwich_key)
+    if sandwich.solution_inbox_message_key:
         create_inbox_message = False
 
-    order.sender = SolutionUser.fromTO(user_details[0])
-    order.order_time = now_
-    order.price = total_price
-    order.type_id = type_id
-    order.topping_id = topping_id
-    order.option_ids = option_ids
-    order.remark = remark
-    order.status = SandwichOrder.STATUS_RECEIVED
-    order.takeaway_time = takeaway_time
+    sandwich.sender = SolutionUser.fromTO(user_details[0])
+    sandwich.order_time = now_
+    sandwich.price = total_price
+    sandwich.details = sandwich_details
+    sandwich.remark = remark
+    sandwich.status = SandwichOrder.STATUS_RECEIVED
+    sandwich.takeaway_time = takeaway_time
+    if pay_result:
+        assert isinstance(pay_result, PayWidgetResult)
+        app_user = user_details[0].toAppUser()
+        transaction_details = get_transaction_details(pay_result.provider_id, pay_result.transaction_id, service_user,
+                                                      service_identity, app_user)
+        sandwich.transaction_id = pay_result.transaction_id
+        sandwich.payment_provider = pay_result.provider_id
+        if transaction_details:
+            msg += u'\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_received_paid',
+                                              amount=u'%.2f' % transaction_details.get_display_amount(),
+                                              currency=transaction_details.currency)
+        elif sln_i_settings.payment_enabled:
+            msg += u'\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_not_paid_yet')
 
     sm_data = [{u"type": u"solutions.common.sandwich.orders.update"}]
 
     if create_inbox_message:
         message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_SANDWICH_BAR, None, False, user_details, now_, msg, True)
-        order.solution_inbox_message_key = message.solution_inbox_message_key
-        order.put()
-        message.category_key = unicode(order.key())
+        sandwich.solution_inbox_message_key = message.solution_inbox_message_key
+        sandwich.put()
+        message.category_key = sandwich_key.urlsafe()
         message.put()
 
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
-        sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+        sm_data.append({
+            u'type': u'solutions.common.messaging.update',
+            u'message': SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True).to_dict()
+        })
         app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
                     'if_name': user_details[0].name,
-                    'if_email':user_details[0].email
+                    'if_email': user_details[0].email
                 }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
 
     send_message(service_user, sm_data, service_identity=service_identity)
@@ -179,19 +253,19 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
     if SolutionModule.LOYALTY in sln_settings.modules:
         deferred.defer(update_user_data_admins, service_user, service_identity)
 
+
 @returns(NoneType)
 @arguments(service_user=users.User, service_identity=unicode, sandwich_id=unicode, message=unicode)
 def reply_sandwich_order(service_user, service_identity, sandwich_id, message=unicode):
     from solutions.common.bizz.messaging import send_inbox_forwarders_message
 
     sln_settings = get_solution_settings(service_user)
-    sandwich_order = SandwichOrder.get_by_order_id(service_user, service_identity, sln_settings.solution, sandwich_id)
+    sandwich_order = SandwichOrder.get_by_order_id(service_user, service_identity, sandwich_id)
     azzert(service_user == sandwich_order.service_user)
     sandwich_order.status = SandwichOrder.STATUS_REPLIED
     sandwich_order.put()
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.sandwich.orders.update"})
+    sm_data = [{u'type': u'solutions.common.sandwich.orders.update'}]
 
     if sandwich_order.solution_inbox_message_key:
         sim_parent, _ = add_solution_inbox_message(service_user, sandwich_order.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True)
@@ -231,7 +305,7 @@ def ready_sandwich_order(service_user, service_identity, sandwich_id, message):
 
     sln_settings = get_solution_settings(service_user)
     def txn():
-        m = SandwichOrder.get_by_order_id(service_user, service_identity, sln_settings.solution, sandwich_id)
+        m = SandwichOrder.get_by_order_id(service_user, service_identity, sandwich_id)
         azzert(service_user == m.service_user)
         m.status = SandwichOrder.STATUS_READY
         m.put()
@@ -240,8 +314,7 @@ def ready_sandwich_order(service_user, service_identity, sandwich_id, message):
     xg_on = db.create_transaction_options(xg=True)
     sandwich_order = db.run_in_transaction_options(xg_on, txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.sandwich.orders.update"})
+    sm_data = [{u'type': u'solutions.common.sandwich.orders.update'}]
 
     if message:
         if sandwich_order.solution_inbox_message_key:
@@ -290,7 +363,7 @@ def delete_sandwich_order(service_user, service_identity, sandwich_id, message):
     sln_settings = get_solution_settings(service_user)
 
     def txn():
-        m = SandwichOrder.get_by_order_id(service_user, service_identity, sln_settings.solution, sandwich_id)
+        m = SandwichOrder.get_by_order_id(service_user, service_identity, sandwich_id)
         azzert(service_user == m.service_user)
         m.deleted = True
         m.put()
