@@ -300,6 +300,10 @@ $(function () {
             CommonTranslations.REPLY_TO_MORE_INFO.replace("%(username)s", order.sender_name),
             defaultMessage);
     };
+    
+    function capitalize(s) {
+        return s.charAt(0).toUpperCase() + s.substr(1);
+    }
 
     function orderViewPressed(orderKey) {
         Requests.getOrderSettings().then(function (orderSettings) {
@@ -316,7 +320,7 @@ $(function () {
                 CommonTranslations: CommonTranslations,
                 T: T,
                 formatHtml: sln.formatHtml,
-                transactionStatus: order.transaction ? T('transaction_status_' + order.transaction.status) : null,
+                transactionStatus: order.transaction ? T(capitalize(order.transaction.status)) : null,
             });
             var modal = sln.createModal(html);
 
