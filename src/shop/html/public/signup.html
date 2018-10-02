@@ -47,6 +47,19 @@
                                 </div>
                             </div>
                             <div class="control-group">
+                                <label for="language" class="control-label">
+                                    {% translate language, "common", "Language" %}
+                                </label>
+                                <div class="controls">
+                                    <select id="language" class="input-block-level" required>
+                                        <option value="">{% translate language, "common", "Select..." %}</option>
+                                        {% for lang_code, lang_name in languages %}
+                                        <option value="{{ lang_code }}" {% if language == lang_code %}selected{% endif %}>{{ lang_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-group">
                                 <label for="already_in_app" class="control-label">{% translate language, "common", "already_have_an_app" %}</label>
                                 <div class="controls">
                                     <div class="radio">
@@ -65,7 +78,7 @@
                                 </div>
                             </div>
                             <div class="control-group">
-                                <label for="app" class="control-label">{% translate language, "common", "city" %}</label>
+                                <label for="app" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
                                 <div class="controls">
                                     <select id="app" class="input-block-level" required>
                                         <option value="">{% translate language, "common", "Select..." %}</option>
@@ -125,7 +138,7 @@
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_city" class="control-label">{% translate language, "common", "city" %}</label>
+                                    <label for="enterprise_city" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_city" type="text" class="input-block-level"/>
                                     </div>
@@ -170,7 +183,7 @@
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="contact_city" class="control-label">{% translate language, "common", "city" %}</label>
+                                    <label for="contact_city" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
                                     <div class="controls">
                                         <input id="contact_city" type="text" class="input-block-level" required/>
                                     </div>

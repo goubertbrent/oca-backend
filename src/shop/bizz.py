@@ -2706,6 +2706,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
             raise BusinessException(message)
 
     signup.timestamp = now()
+    signup.language = customer.language
     signup.put()
     send_signup_verification_email(city_customer, signup, domain)
     # Save accepted terms of use in a separate modal so we can save it to the ServiceProfile later

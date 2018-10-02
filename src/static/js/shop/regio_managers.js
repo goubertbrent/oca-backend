@@ -366,8 +366,9 @@ $(function() {
             showInStats = false;
         }
 
+
         var appRights = [];
-        $.each(apps, function(appId, app) {
+        $.each(teams[teamId].app_ids, function(i, appId) {
             var access;
             if ($('input.write[data-app-id="' + appId + '"]').is(':checked')) {
                 access = AccessType.FULL;

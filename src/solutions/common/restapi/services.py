@@ -331,15 +331,18 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
 
         _fill_signup_data(signup, 'email', 'telephone', 'website', 'facebook_page')
         modules = filter_modules(city_customer, modules, broadcast_types)
-        service = create_customer_service_to(signup.company_name, signup.company_address1, None, signup.company_city,
-                                             signup.company_zip_code, signup.company_email, lang, city_sln_settings.currency,
-                                             signup.company_telephone, signup.company_organization_type, city_customer.app_id,
-                                             broadcast_types, modules=modules)
-        customer = create_customer_with_service(city_customer, None, service, signup.company_name,
-                                                signup.customer_address1, None, signup.company_zip_code,
-                                                signup.company_city, lang, signup.company_organization_type,
-                                                signup.company_vat, signup.company_website,
-                                                signup.company_facebook_page, force=force)[0]
+
+        service = create_customer_service_to(
+            signup.company_name, signup.company_address1, None, signup.company_city,
+            signup.company_zip_code, signup.company_email, signup.language, city_sln_settings.currency,
+            signup.company_telephone, signup.company_organization_type, city_customer.app_id,
+            broadcast_types, modules=modules)
+
+        customer = create_customer_with_service(
+            city_customer, None, service, signup.company_name,
+            signup.customer_address1, None, signup.company_zip_code,
+            signup.company_city, signup.language, signup.company_organization_type,
+            signup.company_vat, signup.company_website, signup.company_facebook_page, force=force)[0]
 
         # update the contact, as it should be created by now
         _update_signup_contact(customer, signup)
