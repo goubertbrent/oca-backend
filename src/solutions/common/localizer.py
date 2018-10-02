@@ -5168,7 +5168,7 @@ translations = \
          u'signup_not_found': u'De registratiegegevens voor deze app konden niet gevonden worden.',
          u'signup_not_ok': u'Omschrijf waarom u deze aanvraag niet kan accepteren en geef de organisatie mee hoe ze u hierover kunnen contacteren',
          u'signup_not_ok_fill_reason': u'Gelieve de reden in te vullen',
-         u'signup_note': u'Welkom.\nMaak uw eigen app aan in 2 stappen. \nSelecteer uw stad of gemeente.',
+         u'signup_note': u'Welkom. Registreer uw onderneming of vereniging in enkele stappen.',
          u'signup_request_denial_reason': u'Uw aanvraag werd geweigerd omwille van de volgende reden:\n\n%(reason)s',
          u'signup_request_denied_by_city': u'Uw aanvraag werd geweigerd door %(city)s',
          u'signup_verify_your_email': u'Om het registratieproces af te ronden moet je e-mailadres geverifieerd worden.',
