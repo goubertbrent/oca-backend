@@ -42,6 +42,7 @@ $(function() {
         $('#next').click(nextStep);
         $('#back').click(previousStep);
 
+        $('#language').change(languageChanged);
         $('#app').change(customerSelected);
         $('select').change(validateInput);
         $('input[type!=checkbox][type!=radio]').each(function() {
@@ -101,6 +102,7 @@ $(function() {
                     url: '/unauthenticated/osa/customer/org/types',
                     type: 'GET',
                     data: {
+                        language: getSelectedLanguage(),
                         customer_id: app.customer_id
                     },
                     success: function(data) {
@@ -215,7 +217,7 @@ $(function() {
         args.company = gatherFromInputs('enterprise');
         args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
         args.customer = gatherFromInputs('contact');
-        args.customer.language = getBrowserLanguage();
+        args.customer.language = getSelectedLanguage();
         args.recaptcha_token = recaptchaToken;
         args.email_consents = {
             email_marketing: $('#email_consents_email_marketing').prop('checked'),
@@ -337,6 +339,14 @@ $(function() {
             copyInput('enterprise_user_email', 'contact_user_email');
             copyInput('enterprise_telephone', 'contact_telephone');
         }
+    }
+
+    function languageChanged() {
+        window.location.href = window.location.pathname + '?language=' + getSelectedLanguage();
+    }
+
+    function getSelectedLanguage() {
+        return $('#language').val() || getBrowserLanguage();
     }
 
     function showHideButtons() {

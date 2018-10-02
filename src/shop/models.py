@@ -577,6 +577,7 @@ class CustomerSignup(db.Model):
     customer_website = db.StringProperty()
     customer_facebook_page = db.StringProperty()
 
+    language = db.StringProperty()
     modules = db.StringListProperty(default=DEFAULT_MODULES)
     timestamp = db.IntegerProperty()
     done = db.BooleanProperty(indexed=True, default=False)

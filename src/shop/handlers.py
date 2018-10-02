@@ -41,7 +41,7 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile
 from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content, \
-    get_legal_language
+    get_legal_language, LANGUAGES as LEGAL_LANGUAGES
 from rogerthat.pages.login import SetPasswordHandler
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -54,6 +54,7 @@ from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, is_admin, \
     validate_customer_url_data, get_customer_consents, update_customer_consents
 from shop.business.i18n import shop_translate
+from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.dal import get_all_signup_enabled_apps
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
@@ -424,6 +425,8 @@ class CustomerSigninHandler(PublicPageHandler):
 class CustomerSignupHandler(PublicPageHandler):
 
     def get(self):
+        language = (self.request.get('language') or self.language).split('_')[0]
+
         email = self.request.get('email')
         if email.endswith('.'):
             email = email[:-1]
@@ -445,7 +448,7 @@ class CustomerSignupHandler(PublicPageHandler):
             apps = get_all_signup_enabled_apps()
             solution_server_settings = get_solution_server_settings()
             version = get_current_document_version(DOC_TERMS_SERVICE)
-            legal_language = get_legal_language(self.language)
+            legal_language = get_legal_language(language)
             params = {
                 'apps': apps,
                 'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
@@ -453,7 +456,11 @@ class CustomerSignupHandler(PublicPageHandler):
                 'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version)
             }
 
-        params['signup_success'] = json.dumps(self.render('signup_success'))
+        params['language'] = language.lower()
+        params['languages'] = [
+            (code, name) for code, name in OFFICIALLY_SUPPORTED_LANGUAGES.iteritems() if code in LEGAL_LANGUAGES
+        ]
+        params['signup_success'] = json.dumps(self.render('signup_success', language=language))
         self.response.write(self.render('signup', **params))
 
 
@@ -541,16 +548,14 @@ def customer_signup(city_customer_id, company, customer, recaptcha_token, email_
 
 @rest('/unauthenticated/osa/customer/org/types', 'get', read_only_access=True, authenticated=False)
 @returns(dict)
-@arguments(customer_id=int)
-def customer_get_editable_organization_types(customer_id):
-    request = GenericRESTRequestHandler.getCurrentRequest()
-    language = get_languages_from_request(request)[0]
+@arguments(customer_id=int, language=unicode)
+def customer_get_editable_organization_types(customer_id, language=None):
+    if not language:
+        request = GenericRESTRequestHandler.getCurrentRequest()
+        language = get_languages_from_request(request)[0]
+
     try:
         customer = Customer.get_by_id(customer_id)
-
-        if not language:
-            language = customer.language
-
         return dict(get_organization_types(customer, language))
     except CustomerNotFoundException:
         return {}
