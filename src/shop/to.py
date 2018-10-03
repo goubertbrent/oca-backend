@@ -210,7 +210,7 @@ class SignOrderReturnStatusTO(ReturnStatusTO, CustomerChargeTO):
         return r
 
 
-class ContactTO(object):
+class ContactTO(TO):
     id = long_property('0')
     first_name = unicode_property('1')
     last_name = unicode_property('2')
@@ -226,16 +226,6 @@ class ContactTO(object):
         c.email = contact.email
         c.phone_number = contact.phone_number
         return c
-
-
-class ContactReturnStatusTO(ReturnStatusTO):
-    contact = typed_property('51', ContactTO)
-
-    @classmethod
-    def create(cls, success=True, errormsg=None, contact=None):
-        r = super(ContactReturnStatusTO, cls).create(success=success, errormsg=errormsg)
-        r.contact = contact
-        return r
 
 
 class SerializableTO(object):
@@ -291,7 +281,7 @@ class ModulesReturnStatusTO(ReturnStatusTO):
         return r
 
 
-class OrderTO(object):
+class OrderTO(TO):
     customer_id = long_property('1')
     order_number = unicode_property('2')
     full_date_str = unicode_property('3')
@@ -309,6 +299,25 @@ class OrderTO(object):
         i.amount = obj.total_amount_in_euro
         i.next_charge_date = obj.next_charge_date or 0
         return i
+
+
+class QuotationTO(TO):
+    id = long_property('id')
+    date = long_property('date')
+    total_amount = long_property('total_amount')
+    download_url = unicode_property('download_url')
+
+    @classmethod
+    def from_model(cls, model, customer_id, base_url):
+        return cls(id=model.id,
+                   date=model.date,
+                   total_amount=model.total_amount,
+                   download_url=u'%s/internal/shop/customers/%s/quotations/%s' % (base_url, customer_id, model.id))
+
+
+class CreateQuotationTO(TO):
+    contact_id = long_property('contact_id')
+    order_items = typed_property('order_items', OrderItemTO, True)
 
 
 class OrderReturnStatusTO(ReturnStatusTO):

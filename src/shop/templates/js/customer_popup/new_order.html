@@ -6,7 +6,11 @@
         </div>
         <div>
             <label for="new_order_contact">Contact: </label>
-            <select id="new_order_contact"></select><br>
+            <select id="new_order_contact">
+                {{each(i, contact) contacts}}
+                <option value="${contact.id}">${contact.first_name} ${contact.last_name}</option>
+                {{/each}}
+            </select><br>
         </div>
         <div>
             <label for="new_order_charge_interval">Charge interval</label>

@@ -24,6 +24,7 @@ import time
 import urllib
 
 from google.appengine.api import users as gusers, images
+from google.appengine.api.app_identity import app_identity
 from google.appengine.ext import db, blobstore, ndb
 
 from babel import Locale
@@ -691,30 +692,22 @@ class ChargeNumber(OsaSequenceBaseModel):
         return number.last_number
 
 
-class Order(db.Model):
-    STATUS_UNSIGNED = 0
-    STATUS_SIGNED = 1
-    STATUS_CANCELED = 2
-
-    CUSTOMER_STORE_ORDER_NUMBER = '-1'
-
+class Quotation(db.Model):
     date = db.IntegerProperty()
     amount = db.IntegerProperty()  # In euro cents
     vat_pct = db.IntegerProperty()
     vat = db.IntegerProperty()  # In euro cents
     total_amount = db.IntegerProperty()  # In euro cents
     contact_id = db.IntegerProperty()
-    signature = db.BlobProperty()
-    pdf = db.BlobProperty()
-    status = db.IntegerProperty(default=STATUS_UNSIGNED)
-    is_subscription_order = db.BooleanProperty()
-    is_subscription_extension_order = db.BooleanProperty(default=False)
-    date_signed = db.IntegerProperty()
-    next_charge_date = db.IntegerProperty()
-    date_canceled = db.IntegerProperty()
     manager = db.UserProperty()
-    team_id = db.IntegerProperty(indexed=True)
-    charge_interval = db.IntegerProperty(default=1)
+
+    @property
+    def id(self):
+        return self.key().id()
+
+    @property
+    def order_number(self):
+        return self.key().id_or_name()
 
     @property
     def amount_in_euro(self):
@@ -729,16 +722,8 @@ class Order(db.Model):
         return u'{:20,.2f}'.format(self.total_amount / 100.0)
 
     @property
-    def order_number(self):
-        return self.key().name()
-
-    @property
     def full_date_str(self):
         return time.strftime(u'%d %b %Y %H:%M:%S', time.gmtime(self.date))
-
-    @property
-    def full_date_canceled_str(self):
-        return time.strftime(u'%d %b %Y %H:%M:%S', time.gmtime(self.date_canceled))
 
     @property
     def date_str(self):
@@ -751,6 +736,67 @@ class Order(db.Model):
     @property
     def customer_id(self):
         return self.parent_key().id()
+
+    @classmethod
+    def create_key(cls, quotation_id, customer_id):
+        return db.Key.from_path(cls.kind(), quotation_id, parent=Customer.create_key(customer_id))
+
+    @classmethod
+    def download_url(cls, filename):
+        # Temporary download url
+        expires = now() + 3600
+        to_sign = """%(http_verb)s
+%(content_md5)s
+%(content_type)s
+%(expiration)s
+%(canonicalized_resource)s""" % {
+            'http_verb': 'GET',
+            'content_md5': '',
+            'content_type': '',
+            'expiration': expires,
+            'canonicalized_resource': filename,
+        }
+        signature = app_identity.sign_blob(to_sign.encode('ascii'))[1]
+        encoded_signature = base64.b64encode(signature)
+        service_email = app_identity.get_service_account_name()
+        url = get_serving_url(filename)
+        params = {
+            'GoogleAccessId': service_email,
+            'Expires': expires,
+            'Signature': encoded_signature
+        }
+        return '%s?%s' % (url, urllib.urlencode(params))
+
+    @classmethod
+    def list(cls, customer_key):
+        return list(cls.all().ancestor(customer_key).order('date'))
+
+    @classmethod
+    def filename(cls, bucket, customer_id, quotation_id):
+        return u'/%s/quotations/%d/%d.pdf' % (bucket, customer_id, quotation_id)
+
+
+class Order(Quotation):
+    STATUS_UNSIGNED = 0
+    STATUS_SIGNED = 1
+    STATUS_CANCELED = 2
+
+    CUSTOMER_STORE_ORDER_NUMBER = '-1'
+
+    signature = db.BlobProperty()
+    pdf = db.BlobProperty()
+    status = db.IntegerProperty(default=STATUS_UNSIGNED)
+    is_subscription_order = db.BooleanProperty()
+    is_subscription_extension_order = db.BooleanProperty(default=False)
+    date_signed = db.IntegerProperty()
+    next_charge_date = db.IntegerProperty()
+    date_canceled = db.IntegerProperty()
+    team_id = db.IntegerProperty()
+    charge_interval = db.IntegerProperty(default=1)
+
+    @property
+    def full_date_canceled_str(self):
+        return time.strftime(u'%d %b %Y %H:%M:%S', time.gmtime(self.date_canceled))
 
     @property
     def contact_key(self):
@@ -773,10 +819,6 @@ class Order(db.Model):
     @classmethod
     def create_key(cls, customer_id, order_number):
         return db.Key.from_path(cls.kind(), order_number, parent=Customer.create_key(customer_id))
-
-    @staticmethod
-    def list(customer_key):
-        return list(Order.all().ancestor(customer_key).order('date'))
 
     @staticmethod
     def list_unsigned(customer):
@@ -859,6 +901,10 @@ class OrderItem(db.Expando):
     @classmethod
     def create_key(cls, customer_id, order_number, order_item_id):
         return db.Key.from_path(cls.kind(), order_item_id, parent=Order.create_key(customer_id, order_number))
+
+
+class QuotationItem(OrderItem):
+    pass
 
 
 class CreditCard(db.Model):

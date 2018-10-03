@@ -21,7 +21,7 @@ from google.appengine.api import users as gusers
 
 from rogerthat.rpc.service import BusinessException
 from mcfw.rpc import arguments
-from shop.bizz import is_admin
+from shop.business.permissions import is_admin
 from shop.dal import get_mobicage_legal_entity
 from shop.models import Product, RegioManager
 

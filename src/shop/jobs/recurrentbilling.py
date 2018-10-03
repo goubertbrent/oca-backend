@@ -26,7 +26,9 @@ from rogerthat.bizz.job import run_job
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import cancel_order, create_task, audit_log
+from shop.bizz import create_task
+from shop.business.audit import audit_log
+from shop.business.order import cancel_order
 from shop.business.prospect import create_prospect_from_customer
 from shop.business.service import set_service_disabled
 from shop.exceptions import OrderAlreadyCanceledException

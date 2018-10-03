@@ -31,8 +31,9 @@ from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
     WarningReturnStatusTO
 from rogerthat.utils.channel import send_message_to_session
-from shop.bizz import create_customer_service_to, audit_log, dict_str_for_audit_log, search_customer, \
+from shop.bizz import create_customer_service_to, search_customer, \
     update_contact
+from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException, NotOperatingInCountryException, EmptyValueException, \

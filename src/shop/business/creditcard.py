@@ -24,7 +24,7 @@ from mcfw.rpc import returns
 from rogerthat.utils import try_or_defer
 from rogerthat.utils.transactions import run_in_xg_transaction
 from solution_server_settings import get_solution_server_settings
-from shop.bizz import user_has_permissions_to_team
+from shop.business.permissions import user_has_permissions_to_team
 from shop.exceptions import NoPermissionException
 from shop.models import Customer, CreditCard
 import stripe

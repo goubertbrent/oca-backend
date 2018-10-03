@@ -811,3 +811,8 @@ indexes:
   ancestor: yes
   properties:
   - name: timestamp
+
+- kind: Quotation
+  ancestor: yes
+  properties:
+  - name: date

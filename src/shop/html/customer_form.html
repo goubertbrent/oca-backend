@@ -24,6 +24,7 @@
                 <li class="can_edit_only"><a href="#" data-target="#tab-new-order">New order</a></li>
                 <li class="can_edit_only"><a href="#" data-target="#tab-service">Service</a></li>
                 <li class="can_edit_only"><a href="#" data-target="#tab-orders">Orders</a></li>
+                <li class="can_edit_only"><a href="#" data-target="#tab-quotations">Quotations</a></li>
                 <li class="can_edit_only"><a href="#" data-target="#tab-prospect">Prospect</a></li>
                 <li class="can_edit_only"><a href="#" data-target="#tab-history">History</a></li>
             </ul>
@@ -171,12 +172,17 @@
                         <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
                     </svg>
                 </div>
-                <div class="tab-pane" id="tab-new-order">{% include "new_order.html" %}</div>
+                <div class="tab-pane" id="tab-new-order">
+                    <svg class="circular">
+                        <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
+                    </svg>
+                </div>
                 <div class="tab-pane" id="tab-orders">
                     <svg class="circular">
                         <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />
                     </svg>
                 </div>
+                <div class="tab-pane" id="tab-quotations"></div>
                 <div class="tab-pane" id="tab-service">
                     <div class="loading"></div>
                     <div class="content hide">{% include "service_tab.html" %}</div>

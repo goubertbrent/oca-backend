@@ -69,7 +69,6 @@ var TMPL_LOADING_SPINNER = '<svg class="circular" style="margin:0 auto; left: 0;
     + '<circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10" />'
     + '</svg>';
 
-var TEMPLATES = {};
 var OrganizationType = {
     ASSOCIATION: 1,
     MERCHANT: 2,
@@ -93,20 +92,26 @@ var TABTYPES = {
     PROSPECT: 'prospect',
     NEW_ORDER: 'new-order',
     ORDERS: 'orders',
+    QUOTATIONS: 'quotations',
     SERVICE: 'service',
     HISTORY: 'history'
 };
+
+var SUBSCRIPTION_MODULES = {
+    city: ['OCAM', 'APLS', 'APPL'],
+    gold: ['NWSG'],
+    platinum: ['NWSP']
+};
+
 var currentMode;
 
-var currentLanguage = null;
-var products = {};
 var regioManagerTeams = [];
-var productsForLanguage = {};
 var logoUrl = '/static/images/shop/osa_white_en_64.jpg';
 var regioManagersPerApp = {};
 var _processingTimeout,
     LEGAL_ENTITY,
-    _legalEntityCallbacks = [];
+    _legalEntityCallbacks = [],
+    currentSubscription;
 
 var EMAIL_REGEX = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
@@ -137,65 +142,6 @@ var openCustomerModalFromUrl = function() {
             });
         }
     }
-};
-
-var loadProducts = function (language) {
-    if (!language)
-        return;
-    if (productsForLanguage[language]) {
-        if (currentLanguage != language) {
-            products = productsForLanguage[language];
-            currentLanguage = language;
-            setProducts();
-        }
-        return;
-    }
-
-    sln.call({
-        url: '/internal/shop/rest/product/translations',
-        data: {
-            language: language
-        },
-        success: function (data) {
-            if (data) {
-                var d = {};
-                $.each(data, function (i, p) {
-                    d[p.code] = p;
-                });
-                productsForLanguage[language] = d;
-                products = d;
-                currentLanguage = language;
-                setProducts();
-            }
-        }
-    });
-};
-
-var setProducts = function() {
-    var select = $("#order_item_product").empty();
-    select.append($('<option></option>').attr('value', "").text("Select product"));
-    var sortedProducts = [];
-    for (var productCode in products) {
-        if (products.hasOwnProperty(productCode)) {
-            sortedProducts.push(products[productCode]);
-        }
-    }
-    function compareProduct(a, b) {
-        if (a.description < b.description)
-            return -1;
-        else if (a.description > b.description)
-            return 1;
-        else
-            return 0;
-    }
-
-    sortedProducts.sort(compareProduct);
-    getLegalEntity(function (legalEntity) {
-        $.each(sortedProducts, function (i, p) {
-            select.append($('<option></option>').attr('value', p.code).attr('org-type', p.organization_types.join(",")).html(
-                p.description + " (" + legalEntity.currency + ' ' + +p.price_in_euro + ")"));
-        });
-    });
 };
 
 var loadRegioManagerTeams = function () {
@@ -284,25 +230,6 @@ var type_ahead_options = {
         thizz.data('customer', customer).addClass('success');
         $.each(customer_selected, function (i, f) {
             f(thizz, customer);
-        });
-        // filter the possible product items depending on the organization type of the customer
-        $('#order_item_product').find('option').each(function (index, value) {
-            var $this = $(value);
-            var show = false;
-            // if organisation type of the product contains one or more organisation types of customer, show it
-            // if product doesn't have an organization type also show it
-            if (!$this.attr("org-type")) {
-                show = true;
-            }
-            else {
-                var types = $this.attr("org-type").split(',');
-                $.each(types, function (index, type) {
-                    if (customer.organization_type == type) {
-                        show = true;
-                    }
-                });
-            }
-            $this.toggle(show);
         });
         return customer.name;
     }
@@ -647,6 +574,9 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
             case '#tab-orders':
                 showOrders();
                 break;
+            case '#tab-quotations':
+                showQuotations();
+                break;
             case '#tab-service':
                 showCreateService();
                 break;
@@ -657,26 +587,6 @@ var showCustomerForm = function (mode, tabFunction, customerId) {
     });
     showDetails();
     return modal;
-};
-
-/**
- * Loads a template and returns it to the callback function. Caches it when it has loaded for improved performance.
- * @param url location of the template. Location of templates is in the /static/parts/ folder
- * @param callback function to be called when the template has been loaded
- * @param base (optional) base url where the template is located.
- */
-var getTPL = function (url, callback, base) {
-    if (TEMPLATES[url]) {
-        callback(TEMPLATES[url]);
-    } else {
-        sln.call({
-            url: (base ? base : '/static/parts/') + url + '.html',
-            success: function (data) {
-                TEMPLATES[url] = data;
-                callback(TEMPLATES[url]);
-            }
-        });
-    }
 };
 
 var showDetails = function () {
@@ -758,26 +668,7 @@ var showContacts = function (customerId, reload) {
         renderContacts();
         return;
     }
-    // reload all the contacts from this customer if the 'reload' variable is set.
-    if (currentCustomer.contacts && !reload) {
-        // The contacts are cached, there's no need to annoy the server.
-        renderContacts(currentCustomer.contacts);
-    } else {
-        sln.call({
-            url: '/internal/shop/rest/contact/find',
-            type: 'GET',
-            data: {
-                customer_id: customerId
-            },
-            success: function (data) {
-                // cache the contacts to allow for fast tab switching
-                currentCustomer.contacts = data;
-                renderContacts(data);
-            },
-            error: sln.showAjaxError
-        });
-    }
-
+    ShopRequests.getContacts(customerId, {cached: !reload}).then(contacts => renderContacts(contacts));
 };
 
 var showProspect = function (reload) {
@@ -810,135 +701,234 @@ var showNewOrder = function () {
     showRelevantButtons(TABTYPES.NEW_ORDER);
     var form = $('#customer_form');
     form.find('#tab-nav-container').find('a').parent().show();
-    if (currentCustomer.contacts) {
-        fillContactsDropdown();
-    } else {
-        sln.call({
-            url: '/internal/shop/rest/contact/find',
-            data: {
-                customer_id: currentCustomer.id
-            },
-            success: function (data) {
-                currentCustomer.contacts = data;
-                fillContactsDropdown();
-            }
+    // TODO chain requests getLegalEntity
+    ShopRequests.getContacts(currentCustomer.id).then(contacts => {
+        var html = $.tmpl(JS_TEMPLATES['customer_popup/new_order'], {
+            contacts: contacts
         });
-    }
-    $("#new_order_customer_credit_card_error").toggle(currentCustomer.stripe_valid);
-    getLegalEntity(function (legalEntity) {
-        // Show product combination buttons for mobicage entity
-        $('#subscription-buttons').toggle(legalEntity.is_mobicage);
-        if (!legalEntity.is_mobicage) {
-            return;
-        }
-        $('button[data-sub]').unbind('click').click(function () {
-            selectedItems = [];
-            var $this = $(this);
-            var sub = $this.attr('data-sub');
-            currentSubscription = sub;
-            for (const productKey of SUBSCRIPTION_MODULES[sub]) {
-                const product = products[productKey];
-                addOrderItem(product.code, product.default_count, product.default_comment, product.price, 'new');
-            }
-            $this.parent().find('button').css('opacity', 0.5);
-            $this.css('opacity', 1);
+        form.find('#tab-new-order').html(html);
+        ShopRequests.getProducts(currentCustomer.language).then(products => {
+            var productsMapping = products.reduce((acc, product) => {
+                acc[product.code] = product;
+                return acc;
+            }, {});
+            getLegalEntity(legalEntity => {
+                var orderList = new OrderItemList(form.find('#order-item-list'), legalEntity, products, currentCustomer.organization_type);
+                $("#new_order_customer_credit_card_error").toggle(currentCustomer.stripe_valid);
+                // Show product combination buttons for mobicage entity
+                $('#subscription-buttons').toggle(legalEntity.is_mobicage);
+                orderList.render();
+                if (!legalEntity.is_mobicage) {
+                    return;
+                }
+                $('button[data-sub]').unbind('click').click(function () {
+                    orderList.selectedItems = [];
+                    var $this = $(this);
+                    var sub = $this.attr('data-sub');
+                    currentSubscription = sub;
+                    for (const productKey of SUBSCRIPTION_MODULES[sub]) {
+                        const product = productsMapping[productKey];
+                        orderList.addOrderItem(product.code, product.default_count, product.default_comment, product.price, 'new');
+                    }
+                    orderList.render();
+                    $this.parent().find('button').css('opacity', 0.5);
+                    $this.css('opacity', 1);
+                });
+                form.find("#button_create_new_order").unbind('click').click(function () {
+                    if ($(this).attr('disabled')) {
+                        return;
+                    }
+                    var customer = currentCustomer;
+                    var contact = parseInt(form.find('#new_order_contact').val());
+                    if (!orderList.selectedItems.length) {
+                        $('#new_order_error').show().find('span').text('You need to select at least 1 product');
+                        return;
+                    }
+                    if (!(customer && contact)) {
+                        $('#new_order_error').show().find('span').text('Not all required fields are filled!');
+                        return;
+                    }
+
+                    $("#new_order_customer_credit_card_error").css("display", "none");
+                    $("#button_create_new_order").attr('disabled', true);
+                    var chargeInterval = parseInt($('#new_order_charge_interval').val());
+                    sln.call({
+                        url: '/internal/shop/rest/order/new',
+                        type: 'POST',
+                        data: {
+                            data: JSON.stringify({
+                                customer_id: customer.id,
+                                contact_id: contact,
+                                items: orderList.selectedItems,
+                                replace: false,
+                                charge_interval: chargeInterval,
+                            })
+                        },
+                        success: function (data) {
+                            if (data.success) {
+                                orderList.selectedItems = [];
+                                orderList.render();
+                                $('#new_order_error').hide();
+                                showCreateService();
+                            } else {
+                                if (data.can_replace) {
+                                    showConfirmation(data.errormsg, function () {
+                                        $("#button_create_new_order").attr('disabled', true);
+                                        sln.call({
+                                            url: '/internal/shop/rest/order/new',
+                                            type: 'POST',
+                                            data: {
+                                                data: JSON.stringify({
+                                                    customer_id: customer.id,
+                                                    contact_id: contact,
+                                                    items: orderList.selectedItems,
+                                                    replace: true,
+                                                    charge_interval: chargeInterval,
+                                                })
+                                            },
+                                            success: function (data) {
+                                                if (!data.success) {
+                                                    $('#new_order_error span').text(data.errormsg);
+                                                    $('#new_order_error').show();
+                                                    return;
+                                                }
+                                                $('#new_order table tbody').empty();
+                                                $('#new_order_total_excl_vat').empty();
+                                                $('#new_order_vat_percentage').empty();
+                                                $('#new_order_vat').empty();
+                                                $('#new_order_total_incl_vat').empty();
+                                                $('#new_order_error').hide();
+                                                // Always go to create service, regardless if this is a new customer or not.
+                                                showCreateService();
+                                            },
+                                            error: function () {
+                                                $('#new_order_error span').text('Unknown error occurred!');
+                                                $('#new_order_error').show();
+                                            }, complete: function () {
+                                                // Force the service and orders tabs to be reloaded
+                                                currentCustomer.ordersLoaded = false;
+                                                currentCustomer.default_modules = false;
+                                                loadCustomer(currentCustomer.id, function (customer) {
+                                                    for (var k in customer) {
+                                                        if (customer.hasOwnProperty(k)) {
+                                                            currentCustomer[k] = customer[k];
+                                                        }
+                                                    }
+                                                });
+                                                $("#button_create_new_order").attr('disabled', false);
+                                            }
+                                        });
+                                    }, null, "Replace current order with new order", "Cancel");
+                                } else {
+                                    $('#new_order_error span').text(data.errormsg);
+                                    $('#new_order_error').show();
+                                }
+                            }
+                        },
+                        error: function () {
+                            $('#new_order_error span').text('Unknown error occurred!');
+                            $('#new_order_error').show();
+                        }, complete: function () {
+                            currentCustomer.ordersLoaded = false;
+                            currentCustomer.default_modules = false;
+                            $("#button_create_new_order").attr('disabled', false);
+                        }
+                    });
+                });
+
+                $('#button_add_order_item').unbind('click').click(function () {
+                    orderList.showAddItemDialog();
+                });
+            });
+            $('#possible_order_item_count').change(function () {
+                $('#order_item_count').val($(this).val());
+            });
         });
-    });
-};
-
-
-var fillContactsDropdown = function () {
-    var select = $('#customer_form').find('#new_order_contact');
-    select.empty();
-    $.each(currentCustomer.contacts, function (i, c) {
-        select.append($('<option></option>').attr('value', c.id).text(c.first_name + ' ' + c.last_name));
     });
 };
 
 var renderProspect = function (prospect) {
-    getTPL('customer_popup/prospects_tab', function (template) {
-        if (!prospect) {
-            prospect = {};
-            prospect.unassigned = true;
-        } else {
-            for (var i = 0; i < prospect.comments.length; i++) {
-                prospect.comments[i].datetime = sln.format(new Date(prospect.comments[i].timestamp * 1000));
-            }
+    if (!prospect) {
+        prospect = {};
+        prospect.unassigned = true;
+    } else {
+        for (var i = 0; i < prospect.comments.length; i++) {
+            prospect.comments[i].datetime = sln.format(new Date(prospect.comments[i].timestamp * 1000));
         }
-        if (prospect.subscription) {
-            prospect.probableSubscription = (SUBSCRIPTION_TYPES[prospect.subscription]) + ', ';
-        }
-        var html = $.tmpl(template, {
-            prospect: prospect ? prospect : {}
-        });
-        var tab = $('#tab-prospect');
-        tab.html(html);
-        tab.find('.edit-prospect-type-btn').unbind('click').click(function () {
-            $('#prospect-types-modal').modal('show');
-        });
-        tab.find('.edit-prospect-categories-btn').unbind('click').click(function () {
-            $('#prospect-categories-modal').modal('show');
-        });
-        $('#prospect-categories-modal').find('input[type="checkbox"]').each(function () {
-            var $this = $(this);
-            $this.prop('checked', prospect.categories ? prospect.categories.indexOf($this.val()) !== -1 : false);
-        });
-
-        if (!prospect.unassigned) {
-            $('#save-prospect-button, #button_save_prospect').hide();
-            $('#edit-prospect-button').show().unbind('click').click(function () {
-                tab.find('.edit').show().siblings().hide();
-                $('#edit-prospect-button').hide();
-
-                $('#prospect-types-modal').find('input[type="checkbox"]').each(function () {
-                    var $this = $(this);
-                    $this.prop('checked', prospect.types.indexOf($this.val()) != -1);
-                });
-                // show 'save' button
-                $('#button_save_prospect').show().unbind('click').click(function () {
-                    putProspect(prospect.id);
-                    $('#button_save_prospect').hide();
-                    $('#edit-prospect-button').show();
-                    tab.find('.edit').hide().siblings().show();
-                });
-            });
-            var historyContainer = $('#customer-prospect-history-container');
-            historyContainer.html('');
-
-            $('#customer-prospect-task-history').show().unbind('click').click(function () {
-                $(this).hide();
-                historyContainer.html(TMPL_LOADING_SPINNER)
-                    .css('min-height', '105px');
-                sln.call({
-                    url: '/internal/shop/rest/prospect/task_history',
-                    data: {
-                        id: currentCustomer.prospect.id
-                    },
-                    success: function (data) {
-                        $.each(data, function (i, task) {
-                            task.created = sln.format(new Date(task.creation_time * 1000));
-                            task.closed = task.closed_time ? sln.format(new Date(task.closed_time * 1000)) : '';
-                            var manager = currentRegioManagers[task.assignee]; //  currentRegioManagers is only filled in on the prospects page
-                            if (manager) {
-                                task.manager = manager.name;
-                            } else {
-                                task.manager = task.assignee;
-                            }
-                            task.type_icon = ShopTaskIcons[task.type];
-
-                        });
-                        var html = $.tmpl(JS_TEMPLATES.prospect_task_history, {
-                            history: data
-                        });
-                        historyContainer.show().html(html);
-                    }
-                });
-            });
-        } else {
-            $('#edit-prospect-button, #button_save_prospect').hide();
-            tab.find('.edit').show().siblings().hide();
-        }
+    }
+    if (prospect.subscription) {
+        prospect.probableSubscription = (SUBSCRIPTION_TYPES[prospect.subscription]) + ', ';
+    }
+    var html = $.tmpl(JS_TEMPLATES['customer_popup/prospects_tab'], {
+        prospect: prospect ? prospect : {}
     });
+    var tab = $('#tab-prospect');
+    tab.html(html);
+    tab.find('.edit-prospect-type-btn').unbind('click').click(function () {
+        $('#prospect-types-modal').modal('show');
+    });
+    tab.find('.edit-prospect-categories-btn').unbind('click').click(function () {
+        $('#prospect-categories-modal').modal('show');
+    });
+    $('#prospect-categories-modal').find('input[type="checkbox"]').each(function () {
+        var $this = $(this);
+        $this.prop('checked', prospect.categories ? prospect.categories.indexOf($this.val()) !== -1 : false);
+    });
+
+    if (!prospect.unassigned) {
+        $('#save-prospect-button, #button_save_prospect').hide();
+        $('#edit-prospect-button').show().unbind('click').click(function () {
+            tab.find('.edit').show().siblings().hide();
+            $('#edit-prospect-button').hide();
+
+            $('#prospect-types-modal').find('input[type="checkbox"]').each(function () {
+                var $this = $(this);
+                $this.prop('checked', prospect.types.indexOf($this.val()) != -1);
+            });
+            // show 'save' button
+            $('#button_save_prospect').show().unbind('click').click(function () {
+                putProspect(prospect.id);
+                $('#button_save_prospect').hide();
+                $('#edit-prospect-button').show();
+                tab.find('.edit').hide().siblings().show();
+            });
+        });
+        var historyContainer = $('#customer-prospect-history-container');
+        historyContainer.html('');
+
+        $('#customer-prospect-task-history').show().unbind('click').click(function () {
+            $(this).hide();
+            historyContainer.html(TMPL_LOADING_SPINNER)
+                .css('min-height', '105px');
+            sln.call({
+                url: '/internal/shop/rest/prospect/task_history',
+                data: {
+                    id: currentCustomer.prospect.id
+                },
+                success: function (data) {
+                    $.each(data, function (i, task) {
+                        task.created = sln.format(new Date(task.creation_time * 1000));
+                        task.closed = task.closed_time ? sln.format(new Date(task.closed_time * 1000)) : '';
+                        var manager = currentRegioManagers[task.assignee]; //  currentRegioManagers is only filled in on the prospects page
+                        if (manager) {
+                            task.manager = manager.name;
+                        } else {
+                            task.manager = task.assignee;
+                        }
+                        task.type_icon = ShopTaskIcons[task.type];
+
+                    });
+                    var html = $.tmpl(JS_TEMPLATES.prospect_task_history, {
+                        history: data
+                    });
+                    historyContainer.show().html(html);
+                }
+            });
+        });
+    } else {
+        $('#edit-prospect-button, #button_save_prospect').hide();
+        tab.find('.edit').show().siblings().hide();
+    }
 };
 
 var putProspect = function (prospectId) {
@@ -1013,30 +1003,25 @@ var putProspect = function (prospectId) {
     });
 };
 
-var renderContacts = function (data) {
-    getTPL('customer_popup/contacts_tab', function (template) {
-        var html = $.tmpl(template, {
-            contacts: data
-        });
-        $('#tab-contacts').html(html);
-        // `Add contact` button
-        $('#add-contact-button').unbind('click').click(function () {
-            showAddContact(currentCustomer);
-        });
-        $('.contact-card').unbind('click').click(function () {
-            var contactId = parseInt($(this).attr('data-contact-id'));
-            var contact = currentCustomer.contacts.filter(function (c) {
-                return c.id == contactId;
-            }) [0];
-            showEditContact(contact);
-        });
-        //Prevent popup from showing up when clicking the email or phone links.
-        $('.contact-card').find('a').unbind('click').click(function (e) {
-            e.stopPropagation();
-        });
-
+function renderContacts(data) {
+    var html = $.tmpl(JS_TEMPLATES['customer_popup/contacts_tab'], {
+        contacts: data
     });
-};
+    $('#tab-contacts').html(html);
+    // `Add contact` button
+    $('#add-contact-button').unbind('click').click(function () {
+        showAddContact();
+    });
+    $('.contact-card').unbind('click').click(function () {
+        var contactId = parseInt($(this).attr('data-contact-id'));
+        var contact = data.find(c => c.id === contactId);
+        showEditContact(contact);
+    });
+    //Prevent popup from showing up when clicking the email or phone links.
+    $('.contact-card').find('a').unbind('click').click(function (e) {
+        e.stopPropagation();
+    });
+}
 
 var showEditContact = function (contact) {
     //Recycle the 'add contact' form, but hide the customer field.
@@ -1054,74 +1039,31 @@ var showEditContact = function (contact) {
 
     form.find('#button_update_contact').unbind('click').click(function () {
         // save changes
-        var first = form.find('#first_name').val();
-        var last = form.find('#last_name').val();
-        var email = form.find('#email').val();
-        var phone = form.find('#phone_number').val();
-        if (!(first && last && email && phone)) {
+        var updatedContact = {
+            first_name: form.find('#first_name').val().trim(),
+            last_name: form.find('#last_name').val().trim(),
+            email: form.find('#email').val().trim(),
+            phone_number: form.find('#phone_number').val().trim()
+        }
+        if (!(updatedContact.first_name && updatedContact.last_name && updatedContact.email && updatedContact.phone_number)) {
             err.show().find('span').text('Not all required fields are filled!');
             return;
         }
-        sln.call({
-            url: '/internal/shop/rest/contact/update',
-            type: 'POST',
-            data: {
-                data: JSON.stringify({
-                    customer_id: currentCustomer.id,
-                    id: contact.id,
-                    first_name: first,
-                    last_name: last,
-                    email_address: email,
-                    phone_number: phone,
-                    contact_id: contact.id
-                })
-            },
-            success: function (data) {
-                if (data.success) {
-                    $('#contact_form').modal('hide');
-                    // reload all the contacts,
-                    showContacts(currentCustomer.id, true);
-                } else {
-                    err.show().find('span').text(data.errormsg);
-                }
-            },
-            error: function () {
-                err.show().find('span').text('Unknown error occurred!');
-            }
+        ShopRequests.updateContact(currentCustomer.id, contact.id, updatedContact).then(() => {
+            $('#contact_form').modal('hide');
+            showContacts(currentCustomer.id, true);
         });
     });
 
     form.find('#button_remove_contact').unbind('click').click(function () {
-        sln.call({
-            url: '/internal/shop/rest/contact/delete',
-            method: 'post',
-            data: {
-                data: JSON.stringify({
-                    customer_id: currentCustomer.id,
-                    contact_id: contact.id
-                })
-            },
-            success: function (data) {
-                if (data.success) {
-                    $('#contact_form').modal('hide');
-                    var contactToRemove = currentCustomer.contacts.filter(function (con) {
-                        return con.id === contact.id;
-                    })[0];
-                    if (contactToRemove) {
-                        currentCustomer.contacts.splice(currentCustomer.contacts.indexOf(contactToRemove), 1);
-                    }
-                    renderContacts(currentCustomer.contacts);
-                } else {
-                    err.show().find('span').text(data.errormsg);
-                }
-            }, error: function () {
-                err.show().find('span').text('Unknown error occurred!');
-            }
+        ShopRequests.deleteContact(currentCustomer.id, contact.id).then(() => {
+            $('#contact_form').modal('hide');
+            return ShopRequests.getContacts(currentCustomer.id, {cached: false}).then(contacts => renderContacts(contacts));
         });
     });
 };
 
-var showAddContact = function (customer) {
+var showAddContact = function () {
     // show the 'add contact' tab
     $('#new_contact_error').hide();
     var form = $('#contact_form');
@@ -1343,7 +1285,6 @@ var setCustomerDetails = function () {
 };
 
 var initCustomerForm = function (customer) {
-    loadProducts(customer.language);
     currentCustomer = customer;
     var customerForm = $('#customer_form');
     $('.modal-footer', customerForm).show();
@@ -1363,7 +1304,7 @@ var initCustomerForm = function (customer) {
         if ($(this).attr('disabled'))
             return;
 
-        showAddContact(currentCustomer);
+        showAddContact();
     });
     getLegalEntity(function (legalEntity) {
             var btnNewCreditCard = $("#button_new_credit_card", customerForm);
@@ -1474,35 +1415,83 @@ var showOrders = function (refresh) {
     $('#button_set_next_charge_date').toggle(currentCustomer.is_admin || currentCustomer.can_edit).unbind('click').click(showSetNextChargeDate);
 };
 
-var renderBilling = function () {
-    getTPL('customer_popup/billing_tab', function (template) {
-        var html = $.tmpl(template, {
-            unsigned_orders: currentCustomer.unsigned_orders,
-            invoices: currentCustomer.invoices,
-            orders: currentCustomer.signed_orders,
-            canceledOrders: currentCustomer.canceled_orders
-        });
-        $("#tab-orders").html(html).find('a.sign-order').unbind('click').click(function () {
-            var $this = $(this);
-            sln.call({
-                url: '/internal/shop/stat/view-order.part.html',
-                success: function (page) {
-                    $("#extra-content").append(page);
-                    if (!currentCustomer.service_email) {
-                        showAlert('This customer does not have a service yet. First create a service for this customer.'
-                            , null, "Error");
-                        return;
-                    }
-                    var order_number = $this.attr('order_number');
-                    $('#pdf-viewer').attr('src', '/static/pdfdotjs/web/viewer.html?file=' + encodeURIComponent('/internal/shop/order/pdf?customer_id=' + currentCustomer.id +
-                            '&order_number=' + order_number + '&download=false'));
-                    $('#button_sign_order').show();
-                    $('#view_order_form').modal('show').data('order', {
-                        customer_id: currentCustomer.id,
-                        order_number: order_number
-                    });
-                }
+function showQuotations(refresh) {
+    var tab = $('#tab-quotations');
+    tab.html(TMPL_LOADING_SPINNER);
+    showRelevantButtons(TABTYPES.QUOTATIONS);
+    var contactsPromise = ShopRequests.getContacts(currentCustomer.id);
+    var productsPromise = ShopRequests.getProducts(currentCustomer.language);
+    var quotationsPromise = ShopRequests.getQuotations(currentCustomer.id, {cached: !refresh});
+    Promise.all([contactsPromise, productsPromise, quotationsPromise]).then(([contacts, products, quotations]) => {
+        getLegalEntity(legalEntity => {
+            var html = $.tmpl(JS_TEMPLATES['customer_popup/quotations_tab'], {
+                contacts: contacts
             });
+            tab.html(html);
+            renderQuotations(legalEntity, quotations);
+            var itemList = new OrderItemList($('#quotation-item-list'), legalEntity, products, currentCustomer.organization_type);
+            itemList.render();
+            $('#add-quotation-item').click(() => itemList.showAddItemDialog());
+            var createButton = $('#create-quotation');
+            createButton.click(() => {
+                if (createButton.prop('disbaled')) {
+                    return;
+                }
+                createButton.prop('disabled', true);
+                var quotation = {
+                    contact_id: parseInt($('#new_quotation_contact').val(), 10),
+                    order_items: itemList.selectedItems,
+                };
+                ShopRequests.createQuotation(currentCustomer.id, quotation).then(() => {
+                    createButton.prop('disabled', false);
+                    itemList.selectedItems = [];
+                    itemList.render();
+                    ShopRequests.getQuotations(currentCustomer.id, {cached: false}).then(quotations => {
+                        renderQuotations(legalEntity, quotations);
+                    });
+                }).catch(() => createButton.prop('disabled', false));
+            });
+        });
+    });
+}
+
+function renderQuotations(legalEntity, quotations) {
+    var html = $.tmpl(JS_TEMPLATES['customer_popup/quotations_list'], {
+        quotations: quotations.map(q => Object.assign({}, q, {
+            date: sln.format(new Date(q.date * 1000)),
+            total_amount: `${legalEntity.currency} ${(q.total_amount / 100).toFixed(2)}`,
+        }))
+    });
+    $('#quotations-list').html(html);
+}
+
+var renderBilling = function () {
+    var html = $.tmpl(JS_TEMPLATES['customer_popup/billing_tab'], {
+        unsigned_orders: currentCustomer.unsigned_orders,
+        invoices: currentCustomer.invoices,
+        orders: currentCustomer.signed_orders,
+        canceledOrders: currentCustomer.canceled_orders
+    });
+    $("#tab-orders").html(html).find('a.sign-order').unbind('click').click(function () {
+        var $this = $(this);
+        sln.call({
+            url: '/internal/shop/stat/view-order.part.html',
+            success: function (page) {
+                $("#extra-content").append(page);
+                if (!currentCustomer.service_email) {
+                    showAlert('This customer does not have a service yet. First create a service for this customer.'
+                        , null, "Error");
+                    return;
+                }
+                var order_number = $this.attr('order_number');
+                $('#pdf-viewer').attr('src', '/static/pdfdotjs/web/viewer.html?file=' + encodeURIComponent('/internal/shop/order/pdf?customer_id=' + currentCustomer.id +
+                    '&order_number=' + order_number + '&download=false'));
+                $('#button_sign_order').show();
+                $('#view_order_form').modal('show').data('order', {
+                    customer_id: currentCustomer.id,
+                    order_number: order_number
+                });
+            }
         });
     });
 };
@@ -1558,17 +1547,13 @@ function renderProspectHistory (data) {
             data[i].datetime = sln.format(new Date(data[i].created_time * 1000));
         }
     }
-    getTPL('customer_popup/history_tab', function (template) {
-        var html = $.tmpl(template, {
-            history: data
-        });
-        $("#tab-history").html(html);
+    var html = $.tmpl(JS_TEMPLATES['customer_popup/history_tab'], {
+        history: data
     });
+    $("#tab-history").html(html);
 }
 
 $(function () {
-
-    loadProducts("nl");
     loadRegioManagerTeams();
     customer_selected.push(function (sender, customer) {
         if (sender.attr('id') != 'link_credit_card_customer_name')
@@ -1691,14 +1676,13 @@ $(function () {
                         var creating = currentCustomer.creating;
                         currentCustomer = data.customer;
                         currentCustomer.creating = creating;
-                        showAddContact(data.customer);
+                        showAddContact();
                     } else {
                         // Updated existing customer
                         currentCustomer = data.customer;
                         showDetails();
                         showAlert('Customer saved', null, 'Saved', 3000);
                     }
-                    loadProducts(currentCustomer.language);
                 } else if (data.warning) {
                     // warnings like duplicated customer name
                     showConfirmation(data.warning + "<br><br>Are you sure you wish to continue?", function () {
@@ -1716,6 +1700,9 @@ $(function () {
     };
 
     $('#customer_form').on('hidden', function (e) {
+        if (e.target.id !== 'customer_form') {
+            return;
+        }
         currentCustomer = {};
         newService = {};
         currentMode = null;
@@ -1776,36 +1763,19 @@ $(function () {
                 $('#new_contact_error').show().find('span').text('Invalid email address');
                 return;
             }
-            sln.call({
-                url: '/internal/shop/rest/contact/new',
-                type: 'POST',
-                data: {
-                    data: JSON.stringify({
-                        customer_id: currentCustomer.id,
-                        first_name: first,
-                        last_name: last,
-                        email_address: email,
-                        phone_number: phone
-                    })
-                },
-                success: function (data) {
-                    if (data.success) {
-                        $('#contact_form').modal('hide');
-                        // re-load all the contacts and hide popup
-                        currentCustomer.contacts = [];
-                        currentCustomer.contacts.push(data.contact);
-                        currentMode = CustomerFormType.SEARCH;
-                        if (currentCustomer.creating) {
-                            showNewOrder();
-                        } else {
-                            showContacts(currentCustomer.id, true);
-                        }
-                    } else {
-                        $('#new_contact_error').show().find('span').text(data.errormsg);
-                    }
-                },
-                error: function () {
-                    $('#new_contact_error').show().find('span').text('Unknown error occurred!');
+            var contact = {
+                first_name: first,
+                last_name: last,
+                email: email,
+                phone_number: phone
+            };
+            ShopRequests.addContact(currentCustomer.id, contact).then(() => {
+                currentMode = CustomerFormType.SEARCH;
+                $('#contact_form').modal('hide');
+                if (currentCustomer.creating) {
+                    showNewOrder();
+                } else {
+                    showContacts(currentCustomer.id, true);
                 }
             });
         });
@@ -2104,15 +2074,13 @@ function cancelSubscriptionClicked () {
     var valid = true;
     if (!cancelSubscriptionButton.attr('disabled')) {
         cancelSubscriptionButton.attr('disabled', true);
-        getTPL('customer_popup/cancel_order_modal_content', function (tmpl) {
-            var html = $.tmpl(tmpl, {
-                customer: currentCustomer
-            });
-            var title = 'Cancel subscription';
-            var positiveCaption = 'Cancel subscription';
-            var negativeCaption = 'Abort';
-            sln.confirm(html.html(), doCancelSubscription, abortCancelSubscription, positiveCaption, negativeCaption, title, closeCheck);
+        var html = $.tmpl(JS_TEMPLATES['customer_popup/cancel_order_modal_content'], {
+            customer: currentCustomer
         });
+        var title = 'Cancel subscription';
+        var positiveCaption = 'Cancel subscription';
+        var negativeCaption = 'Abort';
+        sln.confirm(html.html(), doCancelSubscription, abortCancelSubscription, positiveCaption, negativeCaption, title, closeCheck);
     }
 
     function doCancelSubscription () {
