@@ -127,14 +127,15 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
         total_amount += price
     total_amount_formatted = format_currency(total_amount / 100., legal_entity.currency_code,
                                              locale=mobicage_legal_entity.country_code)
-    vat_amount = total_amount / mobicage_legal_entity.vat_percent if mobicage_legal_entity.country_code == legal_entity.country_code else 0
+    vat_amount = total_amount / \
+        mobicage_legal_entity.vat_percent if mobicage_legal_entity.country_code == legal_entity.country_code else 0
     vat_amount_formatted = format_currency(vat_amount / 100., legal_entity.currency_code,
                                            locale=mobicage_legal_entity.country_code)
     from_date = format_datetime(datetime.utcfromtimestamp(start_date), locale=SHOP_DEFAULT_LANGUAGE,
                                 format='dd/MM/yyyy HH:mm')
     until_date = format_datetime(datetime.utcfromtimestamp(end_date), locale=SHOP_DEFAULT_LANGUAGE,
                                  format='dd/MM/yyyy HH:mm')
-    
+
     solution_server_settings = get_solution_server_settings()
     template_variables = {
         'products': products,
@@ -150,7 +151,7 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
         'revenue_percent': legal_entity.revenue_percent,
         'vat_amount_formatted': vat_amount_formatted,
         'total_amount_formatted': total_amount_formatted,
-        'logo_path': '../html/img/osa_white_en_250.jpg')
+        'logo_path': '../html/img/osa_white_en_250.jpg'
     }
     source_html = SHOP_JINJA_ENVIRONMENT.get_template('invoice/reseller_invoice.html').render(template_variables)
     output_stream = StringIO()
@@ -229,6 +230,6 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
             get_server_settings().baseUrl, customer.id, order.order_number, charge.id, invoice.invoice_number)
         subject = 'New reseller invoice for %s, %s - %s' % (legal_entity.name, start_time, end_time)
         body_text = 'A new invoice is available for reseller %s for period %s to %s here: %s' % (
-        legal_entity.name, start_time, end_time, serving_url)
+            legal_entity.name, start_time, end_time, serving_url)
 
         send_mail(from_email, to_emails, subject, body_text)
