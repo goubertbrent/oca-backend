@@ -36,7 +36,7 @@ class AssociationsTestCase(mc_unittest.TestCase):
                                 address=u"Antwerpsesteenweg 19\n9080 Lochristi",
                                 phone_number=u"+32 9 324 25 64",
                                 languages=[u"en", u"nl"],
-                                currency=u"€",
+                                currency=u"EUR",
                                 modules=[SolutionModule.CITY_APP, SolutionModule.BROADCAST, SolutionModule.ASK_QUESTION,
                                          SolutionModule.WHEN_WHERE],
                                 broadcast_types=['News', 'test'],

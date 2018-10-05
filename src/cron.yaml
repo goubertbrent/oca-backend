@@ -90,3 +90,7 @@ cron:
 - description: Daily OCA statistics
   url: /admin/cron/daily_statistics
   schedule: every day 04:30
+
+- description: Match Joyn Merchants
+  url: /admin/cron/match_joyn
+  schedule: every monday 09:00

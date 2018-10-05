@@ -24,6 +24,7 @@ export function watch() {
   const debouncedClean = debounce(cleanEmptyFolders, 200);
   return function () {
     let paths: string[] = [
+      '!' + config.BUILD_ROOT,
       ...config.SOURCE_ROOTS.map(root => join(root, '**')),
       ...config.TEMP_FILES.map(temp => '!' + temp) ];
 

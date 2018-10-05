@@ -15,25 +15,22 @@
 #
 # @@license_version:1.3@@
 
-from collections import defaultdict
-from datetime import datetime
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import importlib
 import logging
 import os
 import time
+from collections import defaultdict
+from datetime import datetime
 from types import NoneType
 
-from PIL.Image import Image
-from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
-import pytz
-from xhtml2pdf import pisa
 
+import pytz
+import solutions
+from PIL.Image import Image
+from babel.dates import format_date, format_time, format_datetime, get_timezone
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
@@ -41,7 +38,7 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding
-from rogerthat.bizz.rtemail import generate_auto_login_url, EMAIL_REGEX
+from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import create_service, validate_and_get_solution, InvalidAppIdException, \
     InvalidBroadcastTypeException, RoleNotFoundException, AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE, DEBUG
@@ -57,7 +54,6 @@ from rogerthat.rpc.users import User
 from rogerthat.service.api import app, qr
 from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role, store_branding, \
     store_pdf_branding
-from rogerthat.settings import get_server_settings
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
@@ -70,18 +66,17 @@ from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZe
 from rogerthat.utils.transactions import run_in_transaction
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
-from solutions.common.models import SolutionSettings, SolutionIdentitySettings, SolutionMainBranding, \
+from solutions.common.models import SolutionSettings, SolutionMainBranding, \
     SolutionBrandingSettings, SolutionLogo, FileBlob, SolutionNewsPublisher
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
-
+from xhtml2pdf import pisa
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
@@ -485,7 +480,7 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
            organization_type=int, fail_if_exists=bool, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
            owner_user_email=unicode, search_enabled=bool)
 def create_solution_service(email, name, branding_url=None, menu_item_color=None, address=None, phone_number=None,
-                            solution=None, languages=None, currency=u"€", category_id=None, organization_type=1,
+                            solution=None, languages=None, currency=u"EUR", category_id=None, organization_type=1,
                             fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
                             search_enabled=False):
     password = unicode(generate_random_key()[:8])
@@ -1093,8 +1088,8 @@ def enable_or_disable_solution_module(service_user, module, enabled):
         if customer:
             customer.has_loyalty = enabled
             to_put.append(customer)
-
-    sln_settings.updates_pending = True
+    if module != SolutionModule.JOYN:
+        sln_settings.updates_pending = True
     to_put.append(sln_settings)
     put_and_invalidate_cache(*to_put)
     broadcast_updates_pending(sln_settings)

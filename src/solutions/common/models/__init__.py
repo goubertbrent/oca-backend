@@ -299,7 +299,7 @@ class SolutionSettings(SolutionIdentitySettings):
 
     menu_item_color = db.StringProperty(indexed=False)
 
-    currency = db.StringProperty(indexed=False)  # symbol, e.g. €
+    currency = db.StringProperty(indexed=False)  # 3 letter symbol, e.g. EUR
     solution = db.StringProperty(indexed=False)
     timezone = db.StringProperty(indexed=False, default=u"Europe/Brussels")
     main_language = db.StringProperty(indexed=False)

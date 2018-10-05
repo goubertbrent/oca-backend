@@ -2220,6 +2220,7 @@ def post_app_broadcast(service, app_ids, message, tester=None):
 
 def create_customer_service_to(name, address1, address2, city, zip_code, email, language, currency, phone_number,
                                organization_type, app_id, broadcast_types, modules):
+    # type: (str, str, str, str, str, str, str, str, str, int, str, list[str], list[str]) -> CustomerServiceTO
     service = CustomerServiceTO()
 
     service.name = name

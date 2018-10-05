@@ -116,6 +116,7 @@ from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
+from solutions.common.bizz.joyn import _add_joyn_module
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
@@ -124,7 +125,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
-from solutions.common.models.joyn import JoynMerchantMatches, JoynMerchantMatch
+from solutions.common.models.joyn import JoynMerchantMatches, JoynMerchantMatchStatus
 from solutions.common.models.loyalty import JoynReferral
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
@@ -738,7 +739,7 @@ class JoynMerchantMatchesHandler(BizzManagerHandler):
 
     def get(self):
         azzert(is_admin(gusers.get_current_user()))
-        matches = JoynMerchantMatches.query().fetch(None)
+        matches = JoynMerchantMatches.list_new().fetch(None)
         context = get_shop_context(matches=matches, total_matches=len(matches))
         path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_merchant_matches.html')
         self.response.write(template.render(path, context))
@@ -747,9 +748,8 @@ class JoynMerchantMatchesHandler(BizzManagerHandler):
         azzert(is_admin(gusers.get_current_user()))
         joyn_merchant_id = self.request.get("joyn_merchant_id")
         customer_id = self.request.get("customer_id")
-        service = self.request.get("service")
         logging.debug('joyn merchant %s connected to %s', joyn_merchant_id, customer_id)
-        if not (joyn_merchant_id and customer_id and service):
+        if not (joyn_merchant_id and customer_id):
             self.abort(400)
             return
         joyn_merchant_id = long(joyn_merchant_id)
@@ -760,17 +760,13 @@ class JoynMerchantMatchesHandler(BizzManagerHandler):
         if not match:
             self.abort(400)
             return
+        match.customer_id = customer_id
+        match.status = JoynMerchantMatchStatus.MATCHED
+        match.put()
 
-        connect_key = JoynMerchantMatch.create_key(joyn_merchant_id)
-        JoynMerchantMatch(
-            key=connect_key,
-            customer_id=customer_id,
-            service=service
-        ).put()
-        match_key.delete()
-
+        deferred.defer(_add_joyn_module, customer_id)
         import time
-        time.sleep(1)  # dirty but otherwise list shows old items
+        time.sleep(1)  # Ensure datastore consistency
         self.redirect('/internal/shop/joyn_merchant_matches')
 
 
@@ -786,8 +782,8 @@ class JoynMerchantMatchesDeleteHandler(BizzManagerHandler):
 
         match_key = JoynMerchantMatches.create_key(joyn_merchant_id)
         match = match_key.get()
-        if match:
-            match_key.delete()
+        match.status = JoynMerchantMatchStatus.REMOVED
+        match.put()
 
         import time
         time.sleep(1)  # dirty but otherwise list shows old items
