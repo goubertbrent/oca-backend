@@ -194,24 +194,5 @@
 {% endif %}
 <h1>{{ contact.first_name }} {{ contact.last_name }}</h1>
 
-<pdf:nextpage/>
-
-<div style="font-size: 7pt;">
-    <h3>{% shop_translate language, "terms_and_conditions" %}</h3>
-{% if legal_entity.is_mobicage %}
-    {% for i in range(1, 18 if order.total_amount == 0 else 19) %}
-        {% if i == 15 %}
-    <p>{% shop_translate language, "tos_15", "tos_link=" + tos_link %}</p>
-        {% else %}
-    <p>{% shop_translate language, "tos_" + i|string %}</p>
-        {% endif %}
-    {% endfor %}
-{% else %}
-    {% for tos_line in legal_entity.terms_of_use.splitlines() %}
-    <p>{{ tos_line }}</p>
-    {% endfor %}
-{% endif %}
-</div>
-
 </body>
 </html>

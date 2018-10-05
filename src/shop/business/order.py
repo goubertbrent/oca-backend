@@ -294,7 +294,9 @@ def list_quotations(customer_id):
 
 def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items, output_stream, path, payment_note,
                                    payment_type, products, recurrent, legal_entity, contact):
-    # type: (Charge, Customer, Invoice, Order, list[OrderItem], StringIO, unicode, unicode, int, dict[str, Product], bool, LegalEntity, Contact) -> None
+    # type: (Charge, Customer, Invoice, Order, list[OrderItem], StringIO,
+    # unicode, unicode, int, dict[str, Product], bool, LegalEntity, Contact)
+    # -> None
     for item in order_items:
         item.product_description = products[item.product_code].description(customer.language).replace('\n', '<br />')
         item.product_comment = item.comment or products[item.product_code].default_comment(customer.language) \
@@ -316,8 +318,6 @@ def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items
         "payment_type": payment_type,
         "order_items": sorted(order_items, key=lambda x: x.number),
         "recurrent": recurrent,
-        'tos_link': '<a href="%s">%s</a>' % (solution_server_settings.shop_privacy_policy_url,
-                                             solution_server_settings.shop_privacy_policy_url),
         'logo_path': logo_path
     }
     source_html = SHOP_JINJA_ENVIRONMENT.get_template(path).render(variables)

@@ -5306,7 +5306,7 @@ translations = \
          u'you_have_been_granted_permission_to_service': u'U heeft nu toegang tot het dashboard van %(service)s.',
          u'your-menu': u'jouw menu',
          u'your_application_is_ready': u'Uw eigen app is een feit!',
-         u'your_registration_request_submitted': u'Beste, proficiat met uw applicatie. Van zodra uw stad of gemeente uw aanvraag heeft goedgekeurd zal u een email ontvangen met uw login en paswoord, zo kan u van start. Nadien zullen wij u per mail informeren over alle mogelijkheden binnen uw eigen applicatie. Mogelijkheden zoals een gratis e-shop, hoe u nieuws en acties kan uitsturen, een gratis klantenkaartsysteem... Tot binnenkort. Veel succes en welkom!',
+         u'your_registration_request_submitted': u'Beste, proficiat met uw applicatie. Van zodra uw stad of gemeente uw aanvraag heeft goedgekeurd zal u een email ontvangen met uw login en paswoord, zo kan u van start. Nadien zullen wij u per mail informeren over alle mogelijkheden binnen uw eigen applicatie. Mogelijkheden zoals een gratis e-shop, een gratis reservatiesysteem, hoe u nieuws en acties kan uitsturen... Tot binnenkort. Veel succes en welkom!',
          u'zip_code': u'Postcode'},
  u'pt_BR': {u'%(app_name)s has 1 new message for you': u'%(app_name)s tem 1 nova mensagem para voc\xea',
             u'<Picture>': u'<Imagem>',

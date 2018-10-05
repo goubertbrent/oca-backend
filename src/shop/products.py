@@ -65,6 +65,7 @@ def add_all_products(mobicage_entity=None):
     to_put.append(create_klup_product(mobicage_legal_entity_id))
     to_put.append(create_xcty_product(mobicage_legal_entity_id))
     to_put.append(create_a3ct_product(mobicage_legal_entity_id))
+    to_put.append(create_mido_product(mobicage_legal_entity_id))
     to_put.append(create_ilos_product(mobicage_legal_entity_id))
     to_put.append(create_setx_product(mobicage_legal_entity_id))
     to_put.append(create_bnnr_product(mobicage_legal_entity_id))
@@ -199,6 +200,25 @@ def create_a3ct_product(legal_entity_id, code_prefix=''):
             code_prefix=code_prefix)]
     p.picture_url = ""
     p.visible = False
+    p.legal_entity_id = legal_entity_id
+    if code_prefix:
+        p.description_translation_key = p.code[len(code_prefix):] + '.description'
+        p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'
+    return p
+
+
+def create_mido_product(legal_entity_id, code_prefix=''):
+    p = Product(key_name=code_prefix + 'MIDO')
+    p.price = 6000
+    p.default_count = 1
+    p.default = False
+    p.possible_counts = range(1, 37)
+    p.is_subscription = False
+    p.is_subscription_discount = False
+    p.is_subscription_extension = True
+    p.organization_types = [ServiceProfile.ORGANIZATION_TYPE_CITY]
+    p.product_dependencies = []
+    p.visible = True
     p.legal_entity_id = legal_entity_id
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'

@@ -150,9 +150,7 @@ def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date,
         'revenue_percent': legal_entity.revenue_percent,
         'vat_amount_formatted': vat_amount_formatted,
         'total_amount_formatted': total_amount_formatted,
-        'logo_path': '../html/img/osa_white_en_250.jpg',
-        'tos_link': '<a href="%s">%s</a>' % (solution_server_settings.shop_privacy_policy_url,
-                                             solution_server_settings.shop_privacy_policy_url)
+        'logo_path': '../html/img/osa_white_en_250.jpg')
     }
     source_html = SHOP_JINJA_ENVIRONMENT.get_template('invoice/reseller_invoice.html').render(template_variables)
     output_stream = StringIO()

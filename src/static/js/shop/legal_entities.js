@@ -103,8 +103,7 @@ function renderPutLegalEntity(entityId) {
         var page = $.tmpl(JS_TEMPLATES['legal_entities/legal_entity_put'], {
             entity: entity || {},
             COUNTRIES: SORTED_COUNTRIES,
-            CURRENCIES: CURRENCIES_SORTED,
-            TERMS_OF_USE: TERMS_OF_USE
+            CURRENCIES: CURRENCIES_SORTED
         });
         $('#legal_entities_content').html(page);
         $('#mobicage_terms_of_use').change(termsOfUseLanguageChanged).change();

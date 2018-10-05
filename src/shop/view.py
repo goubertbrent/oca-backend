@@ -824,20 +824,10 @@ class LegalEntityHandler(BizzManagerHandler):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
             self.abort(403)
-        solution_server_settings = get_solution_server_settings()
         path = os.path.join(os.path.dirname(__file__), 'html', 'legal_entities.html')
         js_templates = render_js_templates(['legal_entities'], True)
-        terms_of_use_translated = dict()
-        tos_link = '<a href="%s">%s</a>' % (solution_server_settings.shop_privacy_policy_url,
-                                            solution_server_settings.shop_privacy_policy_url)
-
-        for language in get_languages():
-            terms_of_use_translated[language] = shop_translate(language, 'tos_15', tos_link=tos_link) \
-                .replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t') \
-                .replace("'", "\\'").replace('"', '\\"').replace('15. ', '')
         self.response.out.write(template.render(path, get_shop_context(
-            js_templates=js_templates,
-            TERMS_OF_USE=json.dumps(terms_of_use_translated))))
+            js_templates=js_templates)))
 
 
 @rest('/internal/shop/rest/legal_entity/list', 'get')
@@ -856,7 +846,7 @@ def rest_put_legal_entity(entity):
         entity = put_legal_entity(entity.id if entity.id is not MISSING else None, entity.name, entity.address,
                                   entity.postal_code, entity.city, entity.country_code, entity.phone,
                                   entity.email, entity.vat_percent, entity.vat_number, entity.currency_code, entity.iban,
-                                  entity.bic, entity.terms_of_use, entity.revenue_percentage)
+                                  entity.bic, entity.revenue_percentage)
         return LegalEntityReturnStatusTO.create(True, None, entity)
     except BusinessException as exception:
         return LegalEntityReturnStatusTO.create(False, exception)
