@@ -142,7 +142,13 @@ class OrderItemList {
         $('#button_save_order_item').unbind('click').click(() => {
             var oldProductCode = $('#order_item_form').data('productCode');
             var productCode = $('#order_item_form #order_item_product').val();
-            var count = parseInt($('#possible_order_item_count').val());
+            var product = this.productsMapping[productCode];
+            var count;
+            if (product.possible_counts.length > 0) {
+                count = parseInt($('#possible_order_item_count').val());
+            } else {
+                count = parseInt($('#order_item_count').val());
+            }
             var comment = $('#order_item_form #order_item_comment').val();
             var mode = $('#order_item_form').attr('mode');
             if (!(productCode && count)) {
