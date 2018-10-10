@@ -171,6 +171,8 @@
     function getServiceFormValues() {
         return {
             customer_id: currentService.customer_id,
+            modules: currentService.modules,
+            broadcast_types: currentService.broadcast_types,
             name: $('#service-name').val(),
             address1: $('#service-address1').val(),
             address2: $('#service-address2').val(),

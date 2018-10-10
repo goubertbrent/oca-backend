@@ -188,10 +188,11 @@ def get_service(service_email):
 @returns(WarningReturnStatusTO)
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
            telephone=unicode, language=unicode, customer_id=(int, long, NoneType), organization_type=(int, long),
-           vat=unicode, website=unicode, facebook_page=unicode, force=bool)
+           vat=unicode, modules=[unicode], broadcast_types=[unicode], website=unicode, facebook_page=unicode,
+           force=bool)
 def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                      customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
-                     website=None, facebook_page=None, force=False):
+                     modules=None, broadcast_types=None, website=None, facebook_page=None, force=False):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
@@ -207,8 +208,11 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     is_new_service = False
 
     try:
-        broadcast_types = get_allowed_broadcast_types(city_customer)
-        modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
+        if not broadcast_types:
+            broadcast_types = get_allowed_broadcast_types(city_customer)
+        if not modules:
+            modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
+
         service = create_customer_service_to(name, address1, address2, city, zip_code, user_email, language, city_sln_settings.currency,
                                              telephone, organization_type, city_customer.app_id, broadcast_types, modules)
         (customer, email_changed, is_new_service) \
