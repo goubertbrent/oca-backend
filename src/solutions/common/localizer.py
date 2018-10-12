@@ -5113,7 +5113,7 @@ translations = \
          u'session': u'sessie',
          u'set-facebook-page-start-sharing': u'Stel uw facebook pagina in en begin met delen! (Te vinden op het tabblad "instellingen")',
          u'set_password': u'Wachtwoord instellen',
-         u'set_password_note': u'Geef hieronder je nieuw wachtwoord twee mail in en klik "Verzenden"',
+         u'set_password_note': u'Geef hieronder je nieuw wachtwoord twee maal in en klik "Verzenden"',
          u'settings-add-holiday': u'Verlof toevoegen',
          u'settings-add-shift': u'Shift toevoegen',
          u'settings-add-table': u'Tafel toevoegen',
