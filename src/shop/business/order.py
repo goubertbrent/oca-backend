@@ -280,7 +280,7 @@ def create_quotation(customer_id, data, google_user):
         db.put(to_put)
         pdf_contents = StringIO()
         _generate_order_or_invoice_pdf(None, customer, None, quotation, order_items, pdf_contents, 'order_pdf.html', None,
-                                       None, all_products, False, team.legal_entity, contact)
+                                       None, all_products, False, team.legal_entity, contact, is_quotation=True)
         file_name = Quotation.filename(bucket, customer_id, quotation_id)
         with cloudstorage.open(file_name, 'w', content_type='application/pdf') as f:
             f.write(pdf_contents.getvalue())
@@ -293,7 +293,7 @@ def list_quotations(customer_id):
 
 
 def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items, output_stream, path, payment_note,
-                                   payment_type, products, recurrent, legal_entity, contact):
+                                   payment_type, products, recurrent, legal_entity, contact, is_quotation=False):
     # type: (Charge, Customer, Invoice, Order, list[OrderItem], StringIO,
     # unicode, unicode, int, dict[str, Product], bool, LegalEntity, Contact)
     # -> None
@@ -318,7 +318,8 @@ def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items
         "payment_type": payment_type,
         "order_items": sorted(order_items, key=lambda x: x.number),
         "recurrent": recurrent,
-        'logo_path': logo_path
+        'logo_path': logo_path,
+        'is_quotation': is_quotation
     }
     source_html = SHOP_JINJA_ENVIRONMENT.get_template(path).render(variables)
     # Monkey patch problem in PIL
