@@ -17,7 +17,7 @@
 
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
-from shop.cron import RecurrentBilling, ReportOnSitePaymentsHandler, NotifyExtentionNeededHandler, \
+from shop.cron import RecurrentBilling, NotifyExtentionNeededHandler, \
     ExportResellerInvoicesHandler, CleanupUnverifiedSignupRequests, MatchJoynMerchantsHandler
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.cron.associations import CreateNonProfitStatistics
@@ -47,7 +47,6 @@ handlers = [
     ('/admin/cron/rpc/solution_events_publish_data', SolutionEventsDataPublisher),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/check_djmatic_trial_mode', CheckDjmaticTrialMode),
-    ('/admin/cron/rpc/shop_on_site_payments', ReportOnSitePaymentsHandler),
     ('/admin/cron/rpc/shop_notify_extention_needed', NotifyExtentionNeededHandler),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
     ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),

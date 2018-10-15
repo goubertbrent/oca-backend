@@ -63,10 +63,6 @@ cron:
   url: /admin/cron/rpc/shop_export_reseller_invoices
   schedule: every monday 14:00
 
-- description: On site payments
-  url: /admin/cron/rpc/shop_on_site_payments
-  schedule: every friday 06:00
-
 - description: Shop notify extention needed
   url: /admin/cron/rpc/shop_notify_extention_needed
   schedule: 1 of month 7:00
