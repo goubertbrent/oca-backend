@@ -57,7 +57,7 @@ from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile, get_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
-from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile, Message
+from rogerthat.models import App, ServiceIdentity, ServiceProfile, UserProfile, Message
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
@@ -69,7 +69,7 @@ from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
     address_to_coordinates, GeoCodeException
-from rogerthat.utils.service import create_service_identity_user, add_slash_default
+from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.business.audit import audit_log
@@ -2119,26 +2119,6 @@ def export_customers_csv(google_user):
             break
         logging.debug('Fetched %s customers', len(customers))
         qry.with_cursor(qry.cursor())
-        si_stats_keys = list()
-
-        for customer in customers:
-            if customer.service_email:
-                service_user = users.User(email=customer.service_email)
-                service_identity_user = create_service_identity_user(service_user)
-                si_stats_keys.append(ServiceIdentityStatistic.create_key(service_identity_user))
-            else:
-                si_stats_keys.append(None)
-
-        total_users = []
-        # get the ServiceIdentityStatistics in chunks of 50 because these objects can be big
-        for chunk in chunks(si_stats_keys, 50):
-            total_users += [si_stat.number_of_users if si_stat else 0
-                            for si_stat in db.get(filter(None, chunk))]
-        for i, key in enumerate(si_stats_keys):
-            if not key:
-                total_users.insert(i, 0)
-
-        i = 0
         for customer in customers:
             d = OrderedDict()
             d['Email'] = customer.user_email
@@ -2149,7 +2129,6 @@ def export_customers_csv(google_user):
                 d[p] = getattr(customer, p)
             d['Subscription type'] = Customer.SUBSCRIPTION_TYPES[customer.subscription_type]
             d['Has terminal'] = u'Yes' if customer.has_loyalty else u'No'
-            d['Total users'] = total_users[i]
             d['Telephone'] = phone_numbers.get(customer.id, u'')
             result.append(d)
             if len(customer.app_ids) != 0:
@@ -2157,17 +2136,15 @@ def export_customers_csv(google_user):
             else:
                 d['App'] = ''
             d['Language'] = customer.language
-            d['Email Consent URL'] = get_customer_email_consent_url(customer)
 
             for p, v in d.items():
                 if v and isinstance(v, unicode):
                     d[p] = v.encode('utf-8')
-            i += 1
 
     result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language', 'Email Consent URL']
+                  'Subscription type', 'Has terminal', 'Has credit card', 'App', 'Language']
 
     date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
     gcs_path = '/%s/customers/export-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
@@ -2750,7 +2727,7 @@ def import_customer(
         put_customer_service(
             customer, service, skip_module_check=True, search_enabled=False,
             skip_email_check=True, rollback=is_new_service)
-    except Exception as e:
+    except:
         # TODO: show an error or send message cannot import customer
         logging.error(
             'Cannot create a service for imported customer %s (%s)', name, email, exc_info=True)
