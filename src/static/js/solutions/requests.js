@@ -136,7 +136,29 @@ RequestsService.prototype = {
         options = options || {};
         options.updatesCache = true;
         return this.put('/common/settings', data, options);
-    }
+    },
+    getPaymentMethods: function (options) {
+        return this.get('/common/store/payment-methods', options);
+    },
+    getPayconiqPaymentInfo: function (options) {
+        options = options || {};
+        options.cached = false;
+        return this.get('/common/store/payconiq', options);
+    },
+    getCreditcardInfo: function(options){
+      return this.get('/common/billing/card', options);
+    },
+    saveCreditcard: function(data, options){
+        options = options || {};
+        options.updatesCache = true;
+        return this.post('/common/billing/card', data, options);
+    },
+    getContacts: function(options){
+      return this.get('/common/billing/contacts', options);
+    },
+    getStoreProducts: function(options){
+        return this.get('/common/store/products', options);
+    },
 };
 
 var Requests = new RequestsService();

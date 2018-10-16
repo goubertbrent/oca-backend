@@ -15,22 +15,10 @@
 #
 # @@license_version:1.3@@
 
-from mcfw.properties import unicode_property, long_property, bool_property, \
-    typed_property
+from mcfw.properties import unicode_property, long_property, bool_property, typed_property
 from rogerthat.to import TO
 
 from rogerthat.to.news import NewsItemTO
-
-
-class SponsoredNewsItemCount(TO):
-    app_id = unicode_property('app_id')
-    count = long_property('cost')
-    remaining_free = long_property('remaining_free')
-
-    def __init__(self, app_id=None, count=0, remaining_free=0):
-        self.app_id = app_id
-        self.count = count
-        self.remaining_free = remaining_free
 
 
 class NewsAppTO(TO):

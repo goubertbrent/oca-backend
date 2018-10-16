@@ -15,51 +15,9 @@
  *
  * @@license_version:1.3@@
  */
-var handler;
-var logoUrl = '/static/images/shop/osa_white_' + LANGUAGE + '_64.jpg';
-if (LOGO_LANGUAGES.indexOf(LANGUAGE) === -1) {
-    logoUrl = '/static/images/shop/osa_white_en_64.jpg';
-}
-var manageCreditCardModal;
 
 $(function() {
     modules.billing = {};
-
-    handler = StripeCheckout.configure({
-        key: STRIPE_PUBLIC_KEY,
-        image: logoUrl,
-        token: function (token) {
-            sln.showProcessing(CommonTranslations.SAVING_DOT_DOT_DOT);
-            var contact = $('#link_credit_card_contact', manageCreditCardModal).find(':selected').data('contact');
-            sln.call({
-                url: '/common/billing/card/link_stripe',
-                type: 'POST',
-                data: {
-                    data: JSON.stringify({
-                        stripe_token: token.id,
-                        stripe_token_created: token.created,
-                        contact_id: contact ? contact.id : null
-                    })
-                },
-                success: function (message) {
-                    sln.hideProcessing();
-                    if (!message) {
-                        manageCreditCardModal.modal('hide');
-                        if (callBackAfterCCLinked) {
-                            callBackAfterCCLinked();
-                            callBackAfterCCLinked = undefined;
-                        }
-                        return;
-                    }
-                    sln.alert(message);
-                },
-                error: function () {
-                    sln.hideProcessing();
-                    sln.alert(CommonTranslations.ERROR_OCCURED_CREDIT_CARD_LINKING);
-                }
-            });
-        }
-    });
 
     var signaturePad = null;
     $('#button_sign_order').click(
@@ -286,7 +244,9 @@ $(function() {
         }
     }
 
-    $("#manage_credit_card").toggle(IS_MOBICAGE_LEGAL_ENTITY).click(manageCreditCard);
+    $("#manage_credit_card").toggle(IS_MOBICAGE_LEGAL_ENTITY).click(function(){
+        CreditcardManager.addCreditcard();
+    });
 
     loadUnsignedOrders();
     loadOrders();
@@ -295,58 +255,3 @@ $(function() {
 
     sln.registerMsgCallback(channelUpdates);
 });
-
-function manageCreditCard() {
-    var html = $.tmpl(templates.billing_manage_credit_card, {
-        header : CommonTranslations.MANAGE_CREDIT_CARD,
-        cancelBtn : CommonTranslations.CLOSE,
-        CommonTranslations : CommonTranslations
-    });
-
-    manageCreditCardModal = sln.createModal(html);
-
-    sln.call({
-        url : "/common/billing/card/info",
-        type : "GET",
-        data : {},
-        success : function(data) {
-            if (data) {
-                $("#credit-card-info-brand", manageCreditCardModal).text(data.brand);
-                $("#credit-card-info-exp-month", manageCreditCardModal).text(data.exp_month);
-                $("#credit-card-info-exp-year", manageCreditCardModal).text(data.exp_year);
-                $("#credit-card-info-last4", manageCreditCardModal).text(data.last4);
-                $(".credit-card-info", manageCreditCardModal).show();
-            }
-            $(".credit-card-info-loading", manageCreditCardModal).hide();
-
-        },
-        error : sln.showAjaxError
-    });
-    sln.call({
-        url : '/common/billing/contacts',
-        data : {},
-        success : function(data) {
-            var select = $('#link_credit_card_contact', manageCreditCardModal);
-            select.empty();
-            $.each(data, function(i, c) {
-                select.append($('<option></option>').attr('value', c.id).data('contact', c).text(
-                        c.first_name + ' ' + c.last_name));
-            });
-
-            if (data && data.length > 0) {
-                $(".credit-card-contacts", manageCreditCardModal).show();
-            }
-        }
-    });
-    $("#link_credit_card", manageCreditCardModal).click(function() {
-        var contact = $('#link_credit_card_contact', manageCreditCardModal).find(':selected').data('contact');
-        handler.open({
-            name : CommonTranslations.OUR_CITY_APP,
-            description : CommonTranslations.OUR_CITY_APP_SUBSCRIPTION,
-            currency : 'eur',
-            panelLabel : CommonTranslations.SUBSCRIBE,
-            email : contact ? contact.email : service_user_email,
-            allowRememberMe : false
-        });
-    });
-}

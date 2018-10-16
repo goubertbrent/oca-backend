@@ -67,24 +67,12 @@ function NewsWizard(newsList, options) {
         text: T('target_audience'),
         description: T('news_target_audience_explanation'),
         tab: 6,
-    }, {
-        text: T('checkout'),
-        description: '',
-        tab: 7
     }];
 
     this.validation = {
-        rules: {
-            news_checkbox_apps: {
-                required: true
-            }
-        },
+        rules: {},
         errorPlacement: function (error, element) {
-            if (element.attr('name') === 'news_checkbox_apps') {
-                error.insertAfter($(element).parent().parent());
-            } else {
-                error.insertAfter(element);
-            }
+            error.insertAfter(element);
         }
     };
     this.defaultButtons = options.defaultButtons || [{
@@ -98,10 +86,7 @@ function NewsWizard(newsList, options) {
         item_published: 'news_item_published',
         item_scheduled: 'news_item_scheduled_for_datetime',
         item_publish_error: 'could_not_publish_newsitem',
-    }
-
-    this.randomReachCount = Math.floor(Math.random() * (5001 - 1500) + 1500);
-    this.promotedNews = {};
+    };
     modules.broadcast.registerAttachmentUploadedHandler(this.attachmentUploaded.bind(this));
 }
 
@@ -143,52 +128,6 @@ NewsWizard.prototype = {
     },
 
 
-    isPresentInApp: function(app_id) {
-        return ACTIVE_APPS.indexOf(app_id) !== -1;
-    },
-
-    getTotalReach: function(canOrderApps, originalNewsItem, newAdditionalApps) {
-        newAdditionalApps = newAdditionalApps || [];
-        var apps;
-        if (canOrderApps) {
-            apps = JSON.parse(JSON.stringify(ALL_APPS)).filter(function (a) {
-                return a.id !== 'rogerthat';
-            });
-        } else {
-            apps = JSON.parse(JSON.stringify(ALL_APPS)).filter(function (a) {
-                return a.id !== 'rogerthat' && ACTIVE_APPS.indexOf(a.id) !== -1;
-            });
-        }
-        var totalReach = 0;
-        self = this;
-        $.each(apps, function (i, app) {
-            var stats = self.appStatistics.filter(function (a) {
-                return a.app_id === app.id;
-            })[0];
-            if (stats) {
-                app.visible = true;
-                if (isDemoApp) {
-                    app.total_user_count = self.randomReachCount;
-                } else {
-                    app.total_user_count = stats.total_user_count;
-                }
-                var hasOrderedApp = originalNewsItem && originalNewsItem.app_ids.indexOf(app.id) !== -1;
-                if (hasOrderedApp || self.isPresentInApp(app.id) && !originalNewsItem) {
-                    app.checked = 'checked';
-                }
-                if (hasOrderedApp) {
-                    app.disabled = 'disabled';
-                }
-                if (hasOrderedApp || newAdditionalApps.indexOf(app.id) !== -1) {
-                    totalReach += app.total_user_count;
-                }
-            } else {
-                app.visible = false;
-            }
-        });
-        return [apps, totalReach];
-    },
-
     getCityAppTotalReach: function (appIds) {
         return this.appStatistics.reduce(function(result, app) {
             if (appIds.indexOf(app.app_id) !== -1) {
@@ -229,21 +168,16 @@ NewsWizard.prototype = {
     },
 
     render: function(newsItem) {
-        var actionButtonId, actionButton, actionButtonLabel, flowParams, canOrderApps, result,
-            restaurantReservationDate, selectedSandwich, actionButtonValue;
-        restaurantReservationDate = new Date().getTime() / 1000;
-        var promotionProduct = this.broadcastOptions.news_promotion_product;
-        actionButton = newsItem ? newsItem.buttons[0] : null;
-        actionButtonId = actionButton ? actionButton.id : null;
-        actionButtonValue = this.getActionButtonValue(actionButton);
-        actionButtonLabel = actionButton ? actionButton.caption : '';
-        canOrderApps = this.broadcastOptions.subscription_info.has_signed && this.broadcastOptions.can_order_extra_apps;
+        var flowParams, selectedSandwich;
+        var restaurantReservationDate = new Date().getTime() / 1000;
+        var actionButton = newsItem ? newsItem.buttons[0] : null;
+        var actionButtonId = actionButton ? actionButton.id : null;
+        var actionButtonValue = this.getActionButtonValue(actionButton);
+        var actionButtonLabel = actionButton ? actionButton.caption : '';
         this.citySelect = null;
-        // old promoted news related
-        // result = this.getTotalReach(canOrderApps, newsItem);
         var appIds, apps;
         if (newsItem) {
-            apps = []
+            apps = [];
             appIds = newsItem.app_ids;
             for (var appName in CONSTS.CITY_APPS) {
                 if (appIds.indexOf(CONSTS.CITY_APPS[appName]) !== -1) {
@@ -333,18 +267,8 @@ NewsWizard.prototype = {
             var params = {
                 T: T,
                 serviceMenu: self.serviceMenu,
-                canPromote: canOrderApps,
-                canSendNewsItem: self.broadcastOptions.next_news_item_time * 1000 < new Date().getTime(),
-                nextNewsItemTime: self.broadcastOptions.next_news_item_time,
                 broadcastTypes: self.broadcastOptions.editable_broadcast_types,
-                promotionProduct: self.broadcastOptions.news_promotion_product,
                 regionalNewsEnabled: self.broadcastOptions.regional_news_enabled,
-                product_counts_labels: promotionProduct.possible_counts.map(function (c) {
-                    return T('days_amount', {amount: c});
-                }),
-                product_prices: promotionProduct.possible_counts.map(function (c) {
-                    return LEGAL_ENTITY_CURRENCY + ' ' + (c * promotionProduct.price / 100);
-                }),
                 newsItem: newsItem || {
                     type: NEWS_TYPE_NORMAL
                 },
@@ -399,7 +323,6 @@ NewsWizard.prototype = {
             elemInputImage = self.$('#news_input_image'),
             elemInputUseCoverPhoto = self.$('#news_button_cover_photo'),
             elemSelectButton = self.$('#select_broadcast_button'),
-            elemCheckboxPromote = self.$('#checkbox_promote'),
             elemImagePreview = self.$('#news_image_preview'),
             elemImageEditorContainer = self.$('#news_image_editor_container'),
             elemButtonRemoveImage = self.$('#news_button_remove_image'),
@@ -408,7 +331,6 @@ NewsWizard.prototype = {
             elemButtonPrevious = self.$('#news_back'),
             elemButtonNext = self.$('#news_next'),
             elemForm = self.$('#form_broadcast_news'),
-            elemNewsFormContainer = self.$('#news_form_container'),
             elemStepTitle = self.$('#step_title'),
             elemStepDescription = self.$('#step_content_explanation'),
             elemNewsPreview = self.$('#news_preview'),
@@ -417,8 +339,6 @@ NewsWizard.prototype = {
             elemNewsActionRemoveAttachment = self.$('#news_action_remove_attachment'),
             elemNewsActionAttachmentCaption = self.$('#news_action_attachment_caption'),
             elemNewsActionAttachmentValue = self.$('#news_action_attachment_value'),
-            elemCheckboxesApps = elemForm.find('input[name=news_checkbox_apps]'),
-            elemEditCityApps = elemForm.find('#edit_city_apps'),
             elemCheckboxesRoles = elemForm.find('#roles').find('input[type=checkbox]'),
             elemNewsActionRestaurantDatepicker = self.$('#news_action_restaurant_reservation_datepicker'),
             elemNewsActionRestaurantTimepicker = self.$('#news_action_restaurant_reservation_timepicker'),
@@ -436,7 +356,6 @@ NewsWizard.prototype = {
             elemBroadcastOnTwitter = $("#broadcast_message_on_twitter").find("input"),
             elemFacebookPage = self.$('#facebook_page'),
             elemConfigureTargetAudience = self.$('#configure_target_audience'),
-            hasSignedOrder = self.broadcastOptions.subscription_info.has_signed,
             restaurantReservationDate;
 
         var itemIsPublished = originalNewsItem && originalNewsItem.published;
@@ -446,15 +365,12 @@ NewsWizard.prototype = {
         elemButtonSubmit.hide();
 
         var renderPreview = sln.debounce(doRenderPreview, 250);
-        elemCheckboxPromote.change(paidContentChanged);
         elemButtonSubmit.click(function(e) {
             newsFormSubmitted(e, !originalNewsItem || !originalNewsItem.id);
         });
         elemInputImage.change(imageChanged);
         elemInputUseCoverPhoto.click(useCoverPhoto);
         elemButtonRemoveImage.click(removeImage);
-        elemForm.on('change', 'input[name=news_checkbox_apps]', cityAppsChanged);
-        elemEditCityApps.click(editCityApps);
         elemCheckboxSchedule.change(scheduleChanged);
         elemButtonPrevious.click(previousStep);
         elemButtonNext.click(nextStep);
@@ -644,7 +560,6 @@ NewsWizard.prototype = {
         }).timepicker('setTime', scheduleDate.getHours() + ':' + scheduleDate.getMinutes());
         currentStep = 0;
         stepChanged(getNewsFormData());
-        // appsChanged();
         cityAppsChanged();
 
         if (originalNewsItem && originalNewsItem.image_url) {
@@ -703,64 +618,11 @@ NewsWizard.prototype = {
             actionButtonChanged();
         }
 
-        function shouldPay(callback) {
-            // just disable payments for now
-            return callback(false);
-
-            var shouldShowPaymentScreen = false;
-            var selectedAppIds = [];
-            elemCheckboxesApps.filter(':checked').each(function () {
-                selectedAppIds.push(this.value);
-            });
-            var originalApps = originalNewsItem ? originalNewsItem.app_ids : [];
-            for (var i = 0; i < selectedAppIds.length; i++) {
-                if (!self.isPresentInApp(selectedAppIds[i])) {
-                    shouldShowPaymentScreen = true;
-                    break;
-                }
-            }
-            if (!shouldShowPaymentScreen && elemCheckboxPromote.prop('checked')) {
-                getPromotedCost(selectedAppIds, true, function (data) {
-                    $.each(data, function (i, costInApp) {
-                        if (originalApps.indexOf(costInApp.app_id) === -1 && costInApp.remaining_free === 0) {
-                            shouldShowPaymentScreen = true;
-                        }
-                    });
-                    callback(shouldShowPaymentScreen);
-                });
-            } else {
-                callback(shouldShowPaymentScreen);
-            }
-        }
-
-        function paidContentChanged() {
-            shouldPay(function (pay) {
-                elemButtonNext.toggle(pay);
-                elemButtonSubmit.toggle(!pay);
-            });
-            if (elemCheckboxPromote.prop('checked')) {
-                var allAppIds = ALL_APPS.map(function (app) {
-                    return app.id;
-                });
-                getPromotedCost(allAppIds, true, function (promotedCosts) {
-                    $.each(promotedCosts, function (i, promotedCost) {
-                        if (promotedCost.remaining_free !== 0) {
-                            var text = T('x_free_promoted_items_remaining', {amount: promotedCost.remaining_free});
-                            self.$('#free_promoted_' + promotedCost.app_id).html('<br />' + text);
-                        }
-                    });
-                });
-            } else {
-                self.$('.free_promoted_text').empty();
-            }
-        }
-
         function getNewsFormData() {
             var data = {
                 title: elemInputTitle.val().trim() || '',
                 message: messageEditor.value().trim() || '',
                 broadcast_type: elemSelectBroadcastType.val().trim(),
-                sponsored: elemCheckboxPromote.prop('checked'),
                 type: parseInt(elemRadioNewsType.filter(':checked').val()),
                 tag: self.tag
             };
@@ -923,11 +785,7 @@ NewsWizard.prototype = {
                 data.broadcast_on_facebook = false;
             }
 
-            if(elemCheckPostToTwitter.is(':checked')) {
-                data.broadcast_on_twitter = true;
-            } else {
-                data.broadcast_on_twitter = false;
-            }
+            data.broadcast_on_twitter = elemCheckPostToTwitter.is(':checked');
 
             if(elemConfigureTargetAudience.is(':checked')) {
                 data.target_audience = {
@@ -937,7 +795,7 @@ NewsWizard.prototype = {
                     connected_users_only: self.$('#connected_users_only').is(':checked')
                 };
             }
-            data.role_ids = []
+            data.role_ids = [];
             elemCheckboxesRoles.filter(':checked').each(function() {
                 data.role_ids.push(parseInt($(this).val()));
             });
@@ -961,191 +819,20 @@ NewsWizard.prototype = {
                     return;
                 }
             }
-            submitNews(data, undefined, isNew);
+            submitNews(data, isNew);
         }
 
-        function getPromotedCost(appIds, promoted, callback) {
-            var cacheStr = appIds.sort().join(',');
-            if (!promoted || !appIds) {
-                callback();
-                return;
-            } else if (self.promotedNews[cacheStr]) {
-                callback(self.promotedNews[cacheStr]);
-                return;
-            }
-            sln.call({
-                url: '/common/news/promoted_cost',
-                method: 'post',
-                data: {
-                    app_ids: appIds
-                },
-                success: function (data) {
-                    self.promotedNews[cacheStr] = data;
-                    callback(data);
-                }
-            });
-        }
-
-        function pollCCInfo(callback) {
-            getCreditCardInfo(function (data) {
-                if (!data) {
-                    // data not available yet. Try again in 500 ms...
-                    console.info('Credit card info not available yet. Retrying...');
-                    setTimeout(function () {
-                        pollCCInfo(callback);
-                    }, 500);
-                } else {
-                    callback(data);
-                }
-            });
-
-        }
-
-        function getCreditCardInfo(callback) {
-            var options = {
-                method: 'get',
-                url: '/common/billing/card/info',
-                success: callback
-            };
-            sln.call(options);
-        }
-
-        function showNewsOrderPage(data) {
-            var checkoutContainer = self.$('#tab7');
-            checkoutContainer.html(TMPL_LOADING_SPINNER);
-            // apologies for this monstrosity
-            getCreditCardInfo(function (creditCardInfo) {
-                Requests.getBroadcastOptions().then(function (broadcastOptions) {
-                    getPromotedCost(data.app_ids, data.sponsored, function (promotedCostList) {
-                        var promotionProduct = broadcastOptions.news_promotion_product,
-                            fromDate = new Date(),
-                            untilDate = new Date();
-                        untilDate.setDate(fromDate.getDate() + 7);
-                        var orderItems = [],
-                            orderItemNumber = 0;
-                        if (data.app_ids) {
-                            for (var i = 0; i < data.app_ids.length; i++) {
-                                var currentAppId = data.app_ids[i];
-                                var appName = ALL_APPS.filter(function (p) {
-                                    return p.id === currentAppId;
-                                })[0].name;
-                                if (data.sponsored) {
-                                    var promotedCount = promotedCostList.filter(function (item) {
-                                        return item.app_id === currentAppId;
-                                    })[0];
-                                    var comment;
-                                    if (promotedCount.remaining_free > 0) {
-                                        if (promotedCount.remaining_free === 1) {
-                                            comment = T('this_is_the_last_free_promoted_news_item', {
-                                                app_name: appName
-                                            });
-                                        } else {
-                                            // No need to bill for something that is free.
-                                            continue;
-                                        }
-                                    } else {
-                                        comment = promotionProduct.default_comment
-                                            .replace('%(post_title)s', data.title || data.qr_code_caption)
-                                            .replace('%(from_date)s', sln.format(fromDate))
-                                            .replace('%(until_date)s', sln.format(untilDate))
-                                            .replace('%(app_name)s', appName);
-                                    }
-
-                                    var sponsoredOrderItem = {
-                                        count: promotedCount.count,
-                                        description: promotionProduct.description,
-                                        comment: comment,
-                                        number: orderItemNumber,
-                                        price: promotionProduct.price,
-                                        product: promotionProduct.code,
-                                        app_id: currentAppId
-                                    };
-                                    orderItems.push(sponsoredOrderItem);
-                                    orderItemNumber++;
-                                }
-                            }
-                        }
-                        renderNewsOrderPage(orderItems, creditCardInfo);
-                    });
-                });
-            });
-
-            function renderNewsOrderPage(orderItems, creditCardInfo) {
-                if (!creditCardInfo) {
-                    creditCardInfo = false;
-                }
-                var totalExclVat = 0, vat = 0, total = 0;
-                $.each(orderItems, function (i, orderItem) {
-                    var tot = orderItem.price * orderItem.count / 100;
-                    var vatTemp = tot * VAT_PCT / 100;
-                    totalExclVat += tot;
-                    vat += vatTemp;
-                    total += tot + vatTemp;
-                });
-                var html = $.tmpl(templates['shop/shopping_cart'], {
-                    items: orderItems,
-                    vatPct: VAT_PCT,
-                    totalExclVat: totalExclVat.toFixed(2),
-                    vat: vat.toFixed(2),
-                    total: total.toFixed(2),
-                    checkout: true,
-                    creditCard: creditCardInfo,
-                    t: CommonTranslations,
-                    LEGAL_ENTITY_CURRENCY: LEGAL_ENTITY_CURRENCY,
-                    customBackButton: T('back')
-                });
-                checkoutContainer.html(html);
-                checkoutContainer.find('#change-creditcard, #link-cc, #add-creditcard').click(function () {
-                    callBackAfterCCLinked = function () {
-                        pollCCInfo(function (ccinfo) {
-                            creditCardInfo = ccinfo ? ccinfo : false; // when undefined, it shows 'loading'.
-                            renderNewsOrderPage(orderItem, creditCardInfo);
-                        });
-                    };
-                    manageCreditCard();
-                });
-                checkoutContainer.find('#checkout').click(function () {
-                    // show loading instead of 'pay with creditcard'
-                    var $this = $(this);
-                    if ($this.is(':disabled')) {
-                        return;
-                    }
-                    if (creditCardInfo) {
-                        loading();
-                        submitNews(data, orderItems);
-                    } else {
-                        callBackAfterCCLinked = function () {
-                            pollCCInfo(function (ccinfo) {
-                                creditCardInfo = ccinfo ? ccinfo : false; // when undefined, it shows 'loading'.
-                                if (creditCardInfo) {
-                                    loading();
-                                    submitNews(data, orderItems);
-                                }
-                            });
-                        };
-                        manageCreditCard();
-                    }
-                    function loading() {
-                        $this.find('.normal').hide();
-                        $this.find('.loading').show();
-                        $this.attr('disabled', true);
-                    }
-                });
-                checkoutContainer.find('#shopping_cart_back_button').click(previousStep);
-            }
-        }
-
-        function submitNews(newsItem, orderItems, isNew) {
+        function submitNews(newsItem, isNew) {
             if (isNew) {
                 if (!newsItem.app_ids.length) {
                     sln.alert(CommonTranslations.select_local_and_or_regional_news, null, CommonTranslations.ERROR);
                     return;
                 }
                 checkRegionalNewsBudget(function () {
-                    publishNews(newsItem, orderItems);
+                    publishNews(newsItem);
                 });
             } else {
-                publishNews(newsItem, orderItems);
+                publishNews(newsItem);
             }
         }
 
@@ -1159,16 +846,14 @@ NewsWizard.prototype = {
             return reviewApps.join(', ');
         }
 
-        function publishNews(newsItem, orderItems) {
+        function publishNews(newsItem) {
             if (elemButtonSubmit.attr('disabled')) {
                 return;
             }
             if (!elemForm.valid()) {
                 return;
             }
-            orderItems = orderItems || [];
             var data = newsItem;
-            data.order_items = orderItems;
             data.news_id = originalNewsItem ? originalNewsItem.id : undefined;
             elemButtonSubmit.attr('disabled', true);
 
@@ -1195,7 +880,6 @@ NewsWizard.prototype = {
                         return sln.alert(warning, self.goToOverview.bind(self), CommonTranslations.SUCCESS);
                     }
 
-                    self.promotedNews = {};
                     elemButtonSubmit.attr('disabled', false);
                     var text;
                     var reviewApps = newsReviewEnabled & !originalNewsItem ? getReviewApps(newsItem.app_ids, result.app_ids) : '';
@@ -1213,11 +897,6 @@ NewsWizard.prototype = {
                         });
                     }
                     sln.alert(text, self.goToOverview.bind(self), CommonTranslations.SUCCESS);
-                    $.each(orderItems, function (i, orderItem) {
-                        if (orderItem.app_id) {
-                            ACTIVE_APPS.push(orderItem.app_id);
-                        }
-                    });
                     if (originalNewsItem) {
                         for (var prop in originalNewsItem) {
                             if (originalNewsItem.hasOwnProperty(prop)) {
@@ -1318,21 +997,6 @@ NewsWizard.prototype = {
                 if (event) {
                     renderPreview();
                 }
-            }
-        }
-
-        // old promoted news related
-        function appsChanged(e) {
-            var selectedAppIds = [];
-            elemCheckboxesApps.filter(':checked').each(function () {
-                selectedAppIds.push(this.value);
-            });
-            var result = self.getTotalReach(hasSignedOrder, originalNewsItem, selectedAppIds);
-            var totalReach = result[1];
-            self.$('#news_estimated_reach, .news_reach > b').text(totalReach);
-            // check if 'next' or 'send' button should be shown.
-            if (e) {
-                paidContentChanged();
             }
         }
 
@@ -1510,10 +1174,6 @@ NewsWizard.prototype = {
             return !error;
         }
 
-        function requestLoyaltyDevice() {
-            modules.loyalty.requestLoyaltyDevice('News coupons');
-        }
-
         function autoRequireActionButtonRoles() {
             var tag = elemSelectButton.val();
             var menuItem = self.serviceMenu.items.filter(function(item) {
@@ -1602,31 +1262,14 @@ NewsWizard.prototype = {
 
             var LAST_STEP = self.steps.length - 1;
             var isLastStep = currentStep === LAST_STEP;
-            if (LAST_STEP - 1 === currentStep) {
-                paidContentChanged();
-            } else {
-                elemButtonSubmit.hide();
-                elemButtonNext.toggle(!isLastStep);
-            }
-
-            if (isLastStep) {
-                shouldPay(function (pay) {
-                    if (pay) {
-                        elemNewsFormContainer.removeClass('span6').addClass('span12');
-                        showNewsOrderPage(data);
-                    } else {
-                        elemNewsFormContainer.removeClass('span12').addClass('span6');
-                    }
-                });
-            } else {
-                elemNewsFormContainer.removeClass('span12').addClass('span6');
-            }
+            elemButtonSubmit.toggle(isLastStep);
+            elemButtonNext.toggle(!isLastStep);
             if (step.tab === 0) {
                 elemButtonPrevious.attr('disabled', true);
             } else if (step.tab === 1 && MODULES.includes('joyn')) {
                 elemButtonPrevious.attr('disabled', true);
             } else {
-                elemButtonPrevious.attr('disabled', false).toggle(!isLastStep);
+                elemButtonPrevious.attr('disabled', false);
             }
             self.$('.tab-pane').removeClass('active');
             self.$('#tab' + step.tab).addClass('active');
@@ -1637,7 +1280,7 @@ NewsWizard.prototype = {
             renderPreview();
 
             // target audience step
-            if (step.tab == 6) {
+            if (step.tab === 6) {
                 self.showBudget();
             }
         }
@@ -1663,8 +1306,6 @@ NewsWizard.prototype = {
                     newsItem.image_url = imageUrl;
                 }
                 newsItem.title = newsItem.title || T('events-title');
-                // old promoted news related
-                // var result = self.getTotalReach(hasSignedOrder, originalNewsItem, selectedAppIds);
                 var totalReach = self.getCityAppTotalReach(newsItem.app_ids);
                 var html = $.tmpl(templates['broadcast/broadcast_news_preview'], {
                     defaultButtons: self.defaultButtons,

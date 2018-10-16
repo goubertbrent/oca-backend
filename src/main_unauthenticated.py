@@ -15,6 +15,8 @@
 #
 # @@license_version:1.3@@
 
+from webapp2_extras.routes import RedirectRoute
+
 import shop.handlers
 import solutions.common.restapi
 import solutions.common.restapi.campaignmonitor
@@ -28,6 +30,7 @@ from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler
+from solutions.common.handlers.callback.payconiq import PayconiqCallbackHandler
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
@@ -36,8 +39,6 @@ from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-from webapp2_extras.routes import RedirectRoute
-
 from version.handler import VersionsHandler
 
 handlers = [
@@ -66,7 +67,8 @@ handlers = [
     RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='customers_login', strict_slash=True),
     ('/solutions/common/public/attachment/view/(.*)', CloudStorageBlobstoreHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
-    ('/version', VersionsHandler)
+    ('/version', VersionsHandler),
+    ('/payments/payconiq/callback', PayconiqCallbackHandler),
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))

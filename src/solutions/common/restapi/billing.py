@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 import stripe
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
@@ -50,7 +51,7 @@ def get_billing_contacts():
     return [ContactTO.fromContactModel(c) for c in Contact.list(customer)]
 
 
-@rest("/common/billing/card/info", "get", read_only_access=True)
+@rest('/common/billing/card', 'get', read_only_access=True)
 @returns(CreditCardTO)
 @arguments()
 def get_billing_credit_card_info():
@@ -69,28 +70,25 @@ def get_billing_credit_card_info():
         stripe_customer = stripe.Customer.retrieve(customer.stripe_id)
         card = stripe_customer.cards.data[0]
 
-        cc = CreditCardTO()
-        cc.brand = card.brand
-        cc.exp_month = card.exp_month
-        cc.exp_year = card.exp_year
-        cc.last4 = card.last4
-        return cc
+        return CreditCardTO.from_stripe_card(card)
     except BusinessException:
         return None
 
 
-@rest("/common/billing/card/link_stripe", "post")
-@returns(unicode)
+@rest('/common/billing/card', 'post')
+@returns(CreditCardTO)
 @arguments(stripe_token=unicode, stripe_token_created=(int, long), contact_id=(int, long, NoneType))
 def rest_link_stripe_to_customer(stripe_token, stripe_token_created, contact_id):
     service_user = users.get_current_user()
     try:
-        link_stripe_to_customer(service_user.email(), stripe_token, stripe_token_created, contact_id)
+        card = link_stripe_to_customer(service_user.email(), stripe_token, stripe_token_created, contact_id)
+        return CreditCardTO.from_stripe_card(card)
     except NoPermissionException:
         sln_settings = get_solution_settings(service_user)
-        return translate(sln_settings.main_language, SOLUTION_COMMON, 'no_permission')
-    except BusinessException, exception:
-        return exception.message
+        message = translate(sln_settings.main_language, SOLUTION_COMMON, 'no_permission')
+        raise HttpBadRequestException(message)
+    except BusinessException as exception:
+        raise HttpBadRequestException(exception.message)
 
 
 @rest("/common/billing/orders/load_unsigned", "get", read_only_access=True)

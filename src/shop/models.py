@@ -261,6 +261,7 @@ class Product(db.Model):
     description_translation_key = db.StringProperty(indexed=False)
     legal_entity_id = db.IntegerProperty()
     can_change_price = db.BooleanProperty(default=False, indexed=False)
+    name_key = db.StringProperty(indexed=False)
 
     @property
     def code(self):
@@ -283,6 +284,12 @@ class Product(db.Model):
             return shop_translate(language, self.description_translation_key)
 
         return self.description_translation_key
+
+    def name(self, language):
+        if self.name_key is None:
+            return None
+        else:
+            return shop_translate(language, self.name_key)
 
     @property
     def price_in_euro(self):
@@ -1084,6 +1091,7 @@ class Invoice(db.Model):
     PAYMENT_MANUAL = 2
     PAYMENT_MANUAL_AFTER = 3
     PAYMENT_ON_SITE = 4
+    PAYMENT_PAYCONIQ = 5
 
     date = db.IntegerProperty()
     pdf = db.BlobProperty()

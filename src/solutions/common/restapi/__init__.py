@@ -469,12 +469,11 @@ def rest_get_broadcast_options():
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     sln_settings_key = SolutionSettings.create_key(service_user)
-    news_promotion_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
     si_key = ServiceIdentity.keyFromUser(create_service_identity_user(service_user, service_identity))
-    to_get = (sln_settings_key, news_promotion_product_key, si_key)
-    sln_settings, news_promotion_product, si = db.get(to_get)  # type: (SolutionSettings, Product, ServiceIdentity)
+    to_get = (sln_settings_key, si_key)
+    sln_settings, si = db.get(to_get)  # type: (SolutionSettings, ServiceIdentity)
     news_settings = NewsSettings.get_by_user(service_user, service_identity)
-    # For demo apps and for shop sessions, creating regional news items is be free.
+    # For demo apps and for shop sessions, creating regional news items is free.
     default_app = get_app(si.defaultAppId)
     regional_news_enabled = is_regional_news_enabled(default_app)
     if session_.shop or default_app.demo:
@@ -493,35 +492,10 @@ def rest_get_broadcast_options():
     broadcast_types = list(editable_broadcast_types)
     if abt_agenda:
         broadcast_types.extend(abt_agenda.broadcast_types)
-    news_promotion_product_to = ProductTO.create(news_promotion_product, sln_settings.main_language)
     news_enabled = sln_settings.solution == SOLUTION_FLEX
-    customer = get_customer(service_user)
-    remaining_length = 0
-    sub_order = None
-    can_order_extra_apps = True
-    has_signed_order = False
-    if customer and customer.organization_type != OrganizationType.CITY:
-        if customer.subscription_cancel_pending_date != 0 and customer.subscription_order_number:
-            can_order_extra_apps = False
-            has_signed_order = False
-        else:
-            remaining_length, sub_order = get_subscription_order_remaining_length(customer.id,
-                                                                                  customer.subscription_order_number)
-            has_signed_order = sub_order.status == Order.STATUS_SIGNED if sub_order else False
-            if has_signed_order:
-                can_order_extra_apps = False
-    else:
-        can_order_extra_apps = False
-
-    subscription_order_charge_date = None
-    if has_signed_order:
-        subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
-                                                     locale=sln_settings.main_language)
-    subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
     roles = get_user_defined_roles()
-    return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
-                              news_enabled, subscription_info, can_order_extra_apps,
-                              roles, news_settings, regional_news_enabled)
+    return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_enabled, roles, news_settings,
+                              regional_news_enabled)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)

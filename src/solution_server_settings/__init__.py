@@ -154,6 +154,12 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     joyn_client_secret = add_meta(db.StringProperty(indexed=False),
                                   doc="Joyn client_secret",
                                   order=1702)
+    payconiq_merchant_id = add_meta(db.StringProperty(indexed=False),
+                                    doc="Payconiq merchant id",
+                                    order=1703)
+    payconiq_secret = add_meta(db.StringProperty(indexed=False),
+                               doc="Payconiq secret (used to create transactions)",
+                               order=1704)
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
@@ -177,6 +183,7 @@ register(SolutionServerSettings, s_ss, ds_ss)
 @returns(SolutionServerSettings)
 @arguments()
 def get_solution_server_settings():
+    # type: () -> SolutionServerSettings
     @db.non_transactional
     def get():
         ss = SolutionServerSettings.get_by_key_name("MainSettings")

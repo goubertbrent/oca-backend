@@ -17,6 +17,7 @@
 
 from google.appengine.ext import ndb
 
+from mcfw.utils import Enum
 from rogerthat.models import NdbModel
 
 
@@ -47,3 +48,42 @@ class PaymentTransaction(NdbModel):
     @classmethod
     def create_key(cls, provider_id, transaction_id):
         return ndb.Key(cls, transaction_id, namespace=provider_id)
+
+
+class PayconiqPaymentStatus(Enum):
+    INITIAL = 'INITIAL'
+    CREATION = 'CREATION'
+    PENDING = 'PENDING'
+    CONFIRMED = 'CONFIRMED'
+    BLOCKED = 'BLOCKED'
+    CANCELED_BY_MERCHANT = 'CANCELED_BY_MERCHANT'
+    SUCCEEDED = 'SUCCEEDED'
+    FAILED = 'FAILED'
+    TIMEDOUT = 'TIMEDOUT'
+    CANCELED = 'CANCELED'
+
+
+# Note that 'succeeded' is not final and can still be blocked afterwards
+FINAL_STATUSES = [PayconiqPaymentStatus.BLOCKED, PayconiqPaymentStatus.FAILED, PayconiqPaymentStatus.TIMEDOUT,
+                  PayconiqPaymentStatus.CANCELED, PayconiqPaymentStatus.CANCELED_BY_MERCHANT]
+
+
+# For payments via dashboard
+class PayconiqPayment(NdbModel):
+    creation_date = ndb.DateTimeProperty(auto_now_add=True)
+    paid_date = ndb.DateTimeProperty()
+    service_user = ndb.StringProperty(required=True)
+    currency = ndb.StringProperty(indexed=False)
+    amount = ndb.IntegerProperty(indexed=False)
+    precision = ndb.IntegerProperty(indexed=False, default=2)
+    status = ndb.StringProperty(choices=PayconiqPaymentStatus.all(), default=PayconiqPaymentStatus.INITIAL)
+    order_number = ndb.StringProperty()
+    transaction_id = ndb.StringProperty()
+
+    @property
+    def id(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, id_):
+        return ndb.Key(cls, id_)

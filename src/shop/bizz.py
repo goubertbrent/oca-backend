@@ -1073,12 +1073,11 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
         body = sb.getvalue()
 
     attachments = None
-    if payment_type in (Invoice.PAYMENT_STRIPE, Invoice.PAYMENT_ON_SITE, Invoice.PAYMENT_MANUAL):
+    if payment_type in (
+    Invoice.PAYMENT_STRIPE, Invoice.PAYMENT_ON_SITE, Invoice.PAYMENT_MANUAL, Invoice.PAYMENT_PAYCONIQ):
         pass
     elif payment_type == Invoice.PAYMENT_MANUAL_AFTER:
-        attachments = []
-        attachments.append(("invoice-%s.pdf" % invoice.invoice_number,
-                            base64.b64encode(invoice.pdf)))
+        attachments = [("invoice-%s.pdf" % invoice.invoice_number, base64.b64encode(invoice.pdf))]
 
         if customer.legal_entity.is_mobicage:
             attachments.append(("payment.png",

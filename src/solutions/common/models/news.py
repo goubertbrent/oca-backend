@@ -89,7 +89,6 @@ class NewsReview(NdbModel):
     app_id = ndb.StringProperty(indexed=False)
     host = ndb.StringProperty(indexed=False)
     is_free_regional_news = ndb.BooleanProperty(indexed=False)
-    order_items = ndb.PickleProperty()
     coupon_id = ndb.IntegerProperty(indexed=False)
     image_id = ndb.IntegerProperty(indexed=False)
     broadcast_on_facebook = ndb.BooleanProperty(indexed=False)

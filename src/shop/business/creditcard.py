@@ -30,7 +30,6 @@ from shop.models import Customer, CreditCard
 import stripe
 
 
-@returns(unicode)
 @arguments(customer_id_or_service_email=(int, long, unicode), stripe_token=unicode, stripe_token_created=(int, long),
            contact_id=(int, long))
 def link_stripe_to_customer(customer_id_or_service_email, stripe_token, stripe_token_created, contact_id):
@@ -64,6 +63,7 @@ def link_stripe_to_customer(customer_id_or_service_email, stripe_token, stripe_t
         card = stripe_customer.cards.data[0]
     try_or_defer(store_stripe_link_to_datastore, customer.key(), stripe_customer.id, card.id, stripe_token_created,
                  contact_id)
+    return card
 
 
 def store_stripe_link_to_datastore(customer_key, stripe_customer_id, stripe_card_id, stripe_token_created, contact_id):

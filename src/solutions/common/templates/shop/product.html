@@ -1,4 +1,11 @@
 {% raw %}
+<ul class="nav nav-tabs" id="shop-tabs">
+    {{each(i, p) products}}
+    <li id="product-${product.code}" {{if p.code === product.code}} class="active"{{/if}}>
+        <a href="#/shop/product/${p.code}">${p.name}</a>
+    </li>
+    {{/each}}
+</ul>
 <h3>${product.description}</h3>
 <div>
     <div class="shop-product-details row">
@@ -23,7 +30,7 @@
                             <i class="fa fa-spinner fa-pulse"></i> ${t.LOADING_DOT_DOT_DOT}
                         </button>
                     {{else}}
-                        <button type="button" class="btn btn-success" data-product-code="${product.code}" id="add-to-cart">
+                        <button type="button" class="btn btn-success" id="add-to-cart">
                             <span class="normal"><i class="fa fa-shopping-cart"></i> ${t.order_now}</span>
                         </button>
                     {{/if}}

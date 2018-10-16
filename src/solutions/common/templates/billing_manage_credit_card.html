@@ -1,29 +1,30 @@
 {% raw -%}
-<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3 id="myModalLabel">${header}</h3>
+        <h3>${header}</h3>
     </div>
     <div class="modal-body">
-        <div class="credit-card-info-loading">
-            <p>${CommonTranslations.LOADING_DOT_DOT_DOT}</p>
-            <div class="progress progress-striped active">
-                <div class="bar" style="width: 100%;"></div>
+        {{if creditCard}}
+        <div class="credit-card-info">
+	        <p>${T('Brand')}: ${creditCard.brand}</p>
+	        <p>${T('Expires')}: ${creditCard.exp_month}/${creditCard.exp_year}</p>
+	        <p>${T('Card number')}: **** **** **** ${creditCard.last4}<span id="credit-card-info-last4"></span></p>
+        </div>
+        {{else}}
+        <h4>${T('New credit card')}</h4>
+            {{if contacts.length}}
+            <div class="credit-card-contacts">
+                <label for="link_credit_card_contact">${T('Select contact')}: </label>
+                <select id="link_credit_card_contact" required>
+                    {{each(i, contact) contacts}}
+                    <option value="${contact.id}">${contact.first_name + ' ' + contact.last_name}</option>
+                    {{/each}}
+                </select><br>
             </div>
-        </div>
-        <div class="credit-card-info" style="display: none;">
-	        <p>${CommonTranslations.BRAND}: <span id="credit-card-info-brand"></span></p>
-	        <p>${CommonTranslations.EXPIRES}: <span id="credit-card-info-exp-month"></span>/<span id="credit-card-info-exp-year"></span></p>
-	        <p>${CommonTranslations.CARD_NUMBER}: **** **** **** <span id="credit-card-info-last4"></span></p>
-        </div>
-        
-        <h4>${CommonTranslations.NEW_CREDIT_CARD}</h4>
-        <div class="credit-card-contacts" style="display: none;">
-	        <label>${CommonTranslations.SELECT_CONTACT}: </label>
-	        <select id="link_credit_card_contact"></select><br>
-        </div>
-        <button id="link_credit_card" class="btn btn-primary">${CommonTranslations.LINK_CREDIT_CARD}</button>
-        
+            {{/if}}
+        {{/if}}
+        <button id="link_credit_card" class="btn btn-primary">${T('Link credit card')}</button>
 
     </div>
     <div class="modal-footer">

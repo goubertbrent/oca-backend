@@ -725,21 +725,6 @@ $(function () {
 
         elemInputBroadcastTarget.change(displayReach);
         sln.registerMsgCallback(channelUpdates);
-
-        if (!modules.menu) {
-            modules.menu = {
-                loadMenu: returnNothing
-            };
-        }
-        if (!modules.sandwich) {
-            modules.sandwich = {
-                getSandwichSettings: returnNothing
-            };
-        }
-    }
-
-    function returnNothing() {
-        return Promise.resolve();
     }
 
     function router(urlHash) {

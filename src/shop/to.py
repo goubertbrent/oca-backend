@@ -764,7 +764,7 @@ class ShopProductTO(object):
         return to
 
 
-class ProductTO(object):
+class ProductTO(TO):
     default = bool_property('0')
     default_comment = unicode_property('1')
     default_count = long_property('2')
@@ -782,6 +782,7 @@ class ProductTO(object):
     picture_url = unicode_property('15')
     price_in_euro = unicode_property('16')
     can_change_price = bool_property('17')
+    name = unicode_property('name')
 
     @classmethod
     def create(cls, model, language):
@@ -803,6 +804,7 @@ class ProductTO(object):
         to.picture_url = model.picture_url
         to.price_in_euro = model.price_in_euro
         to.can_change_price = model.can_change_price
+        to.name = model.name(language)
         return to
 
 

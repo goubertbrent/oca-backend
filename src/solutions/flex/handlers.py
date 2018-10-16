@@ -21,7 +21,6 @@ import os
 
 import jinja2
 import webapp2
-from jinja2 import StrictUndefined
 
 from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
@@ -83,8 +82,6 @@ DEFAULT_JS_TEMPLATES = [
     'qanda_question_modules',
     'qanda_question_detail',
     'hints_modal',
-    'shop/shopping_cart',
-    'shop/product',
     'settings/settings_branding',
     'settings/settings_branding_preview',
     'settings/app_user_roles',
@@ -122,7 +119,10 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'billing_view_invoice',
         'billing_settings_unsigned_orders_table',
         'billing_settings_orders_table',
-        'billing_settings_invoices_table'
+        'billing_settings_invoices_table',
+        'shop/shopping_cart',
+        'shop/product',
+        'shop/choose_payment_method',
     ],
     SolutionModule.BROADCAST: [
         'addattachment',
@@ -474,6 +474,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'service_consent': get_customer_consents(customer.user_email) if customer else None,
                   'is_city': is_city,
                   'news_review_enabled': news_review_enabled,
+                  'payconiq_url': 'https://%s.payconiq.com/v2/online/static/widget.js' % ('dev' if DEBUG else 'api')
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

@@ -19,7 +19,6 @@ from mcfw.properties import unicode_property, typed_property, bool_property, lon
 from rogerthat.to import TO
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.to.roles import RoleTO
-from shop.to import ProductTO
 from solutions.common.to import TimestampTO, UrlTO
 
 
@@ -65,16 +64,13 @@ class SubscriptionInfoTO(object):
 class BroadcastOptionsTO(TO):
     broadcast_types = unicode_list_property('1')
     editable_broadcast_types = unicode_list_property('2')
-    news_promotion_product = typed_property('3', ProductTO, False)
     news_enabled = bool_property('5')
-    subscription_info = typed_property('6', SubscriptionInfoTO, False)
-    can_order_extra_apps = bool_property('7')
     roles = typed_property('8', RoleTO, True)
     news_settings = typed_property('9', dict)
     regional_news_enabled = bool_property('regional_news_enabled')
 
-    def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
-                 news_enabled=False, subscription_info=None, can_order_extra_apps=True, roles=None, news_settings=None,
+    def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_enabled=False, roles=None,
+                 news_settings=None,
                  regional_news_enabled=False):
         if editable_broadcast_types is None:
             editable_broadcast_types = []
@@ -85,10 +81,7 @@ class BroadcastOptionsTO(TO):
 
         self.broadcast_types = broadcast_types
         self.editable_broadcast_types = editable_broadcast_types
-        self.news_promotion_product = news_promotion_product
         self.news_enabled = news_enabled
-        self.subscription_info = subscription_info
-        self.can_order_extra_apps = can_order_extra_apps
         self.roles = roles
         self.news_settings = news_settings.to_dict() if news_settings else {}
         self.regional_news_enabled = regional_news_enabled

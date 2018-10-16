@@ -58,6 +58,10 @@
         </tr>
         </tbody>
     </table>
+    {{if paymentMethodText}}
+        <br />
+        <p>${paymentMethodText}</p>
+    {{/if}}
 {{else}}
     <p>${t.cart_empty}</p>
 {{/if}}
@@ -66,58 +70,18 @@
     {{if items.length}}
         {{if !checkout}}
             <a href="#/shop/product/BDGT" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.continue_shopping}</a>
-            <a href="#/shop/cart/checkout" class="btn btn-success pull-right"><i class="fa fa-arrow-right"></i> ${t.continue_order}</a>
+            <a href="#/shop/payment-methods" class="btn btn-success pull-right"><i class="fa fa-arrow-right"></i> ${t.choose_payment_method}</a>
         {{else}}
-            {{if !customBackButton}}
-            <a href="#/shop/cart" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.back}</a>
-            {{else}}
-            <button type="button" class="btn btn-default pull-left" id="shopping_cart_back_button">
-                <i class="fa fa-arrow-left"></i> ${customBackButton}
-            </button>
-            {{/if}}
-            <button type="button" class="btn btn-success pull-right" id="checkout">
-                <span class="normal"><i class="fa fa-credit-card"></i> ${t.pay_with_cc}</span>
-                <span class="loading" style="display: none;"><i class="fa fa-spinner fa-pulse"></i> ${t.LOADING_DOT_DOT_DOT}</span>
+            <a href="#/shop/payment-methods" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.back}</a>
+            <button id="shopping_cart_pay_button" class="btn btn-success pull-right">
+                <span class="normal">${payText}</span>
             </button>
         {{/if}}
     {{else}}
         <div class="cart-empty">
             <a href="#/shop/product/BDGT" class="btn btn-default pull-left"><i class="fa fa-arrow-left"></i> ${t.to_store}</a>
-
         </div>
     {{/if}}
-    </div>
-    <div  class="row">
-    {{if checkout}}
-        {{if creditCard}}
-        <div class="pull-right ccinfo">
-            <span>${t.credit_card}: ${creditCard.brand}, **** **** **** ${creditCard.last4}</span>
-            <button type="button" class="btn btn-mini btn-primary" id="change-creditcard">${t.adjust}</button>
-        </div>
-        {{else}}
-            {{if creditCard === false}}
-             <div class="pull-right ccinfo"><span>${t.no_cc_linked}</span>
-                <button type="button" class="btn btn-small btn-primary" id="add-creditcard">${t.link_cc}</button>
-            </div>
-            {{else}}
-            <div class="pull-right ccinfo">
-                <button type="button" class="btn btn-small btn-primary" disabled>${t.LOADING_DOT_DOT_DOT}</button>
-            </div>
-            {{/if}}
-        {{/if}}
-    {{/if}}
-    </div>
-</div>
-<div class="modal hide fade" id="submit-order-error">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3>${t.info}</h3>
-    </div>
-	<div class="modal-body">
-    </div>
-    <div class="modal-footer">
-        <button type="button" class="btn pull-left" id="close-message-dialog" data-dismiss="modal">${t.CLOSE}</button>
-        <button type="button" class="btn btn-success pull-right" id="link-cc" style="display: none;">${t.link_cc}</button>
     </div>
 </div>
 {% endraw %}

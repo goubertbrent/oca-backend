@@ -1086,6 +1086,7 @@ def create_bdgt_product(legal_entity_id, code_prefix=''):
     p.product_dependencies = []
     p.visible = False
     p.legal_entity_id = legal_entity_id
+    p.name_key = p.code[len(code_prefix):] + '.name'
     if code_prefix:
         p.description_translation_key = p.code[len(code_prefix):] + '.description'
         p.default_comment_translation_key = p.code[len(code_prefix):] + '.default_comment'

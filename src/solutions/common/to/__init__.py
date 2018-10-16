@@ -857,11 +857,15 @@ class SolutionGroupPurchaseSettingsTO(object):
         return to
 
 
-class CreditCardTO(object):
+class CreditCardTO(TO):
     brand = unicode_property('1')
     exp_month = long_property('2')
     exp_year = long_property('3')
     last4 = unicode_property('4')
+
+    @classmethod
+    def from_stripe_card(cls, card):
+        return cls(brand=card.brand, exp_month=card.exp_month, exp_year=card.exp_year, last4=card.last4)
 
 
 class UrlTO(object):
@@ -1058,3 +1062,12 @@ class CustomerSignupTO(object):
         to.inbox_message_key = signup.inbox_message_key
         to.key = unicode(signup.key())
         return to
+
+
+class PayconiqStoreSettingsTO(TO):
+    enabled = bool_property('enabled')
+
+
+class StorePaymentMethods(TO):
+    credit_card = bool_property('credit_card')
+    payconiq = bool_property('payconiq')
