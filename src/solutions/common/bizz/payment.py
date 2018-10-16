@@ -109,7 +109,7 @@ def get_providers_settings(service_user, service_identity):
 def get_visible_payment_providers(service_user, service_identity):
     default_app_id = get_service_identity(create_service_identity_user(service_user, service_identity)).defaultAppId
     providers = []
-    if DEBUG:
+    if DEBUG or default_app_id.startswith('osa-'):
         return [u'payconiq', u'threefold']
     if default_app_id.startswith('be-'):
         providers.append('payconiq')

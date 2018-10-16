@@ -201,8 +201,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
         {% if not oca_loyalty_limited or not functionality_modules or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "oca-loyalty" %}<span
                                class="badge badge-important sln-loyalty-badge"></span></a></li>
-        {% endif %}
-        {% if joyn_supported %}
+        {% elif joyn_supported %}
                         <li menu="joyn"><a href="#/joyn">{% translate language, "common", "joyn" %}</a></li>
         {% endif %}
     {% endif %}
