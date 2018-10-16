@@ -75,7 +75,7 @@ def get_payconiq_info(service_user):
     payment.put()
     amount_str = str(order.total_amount)
     return {
-        'webhookId': payment.id,
+        'webhookId': str(payment.id),
         'signature': generate_payconiq_signature(settings.payconiq_merchant_id, currency, amount_str,
                                                  settings.payconiq_secret, payment.id),
         'merchantId': settings.payconiq_merchant_id,
