@@ -105,7 +105,7 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_advanced_order">
-            <content>{% translate language, 'common', 'enter_your_order' %}
+            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'common', 'enter_your_order' %}{% endif %}
 
 {{ leap_time_message }}</content>
             <form positiveButtonConfirmation=""
@@ -155,7 +155,7 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_advanced_order">
-            <content>{% translate language, 'common', 'enter_your_order' %}
+            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'common', 'enter_your_order' %}{% endif %}
 
 {{ leap_time_message }}{% if min_amount_for_fee_message %}
 
