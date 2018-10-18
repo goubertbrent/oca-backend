@@ -60,7 +60,7 @@
         }
         rogerthat.callbacks.ready(onRogerthatReady);
         rogerthat.callbacks.backPressed(backPressed);
-        
+
         $(window).scroll(function() {
             validateLoadMore();
         });
@@ -89,7 +89,7 @@
         }, 100); // need to do this async
         return true; // we handled the back press
     }
-    
+
     function isOnScreen(element) {
         var curPos = element.offset();
         if (curPos === undefined) {
@@ -99,7 +99,7 @@
         var screenHeight = $(window).scrollTop() + $(window).height();
         return (curTop < screenHeight);
     }
-    
+
     function validateLoadMore() {
     	var activePage = $.mobile.activePage.attr('id');
         if (activePage == "events") {
@@ -306,7 +306,7 @@
         var elem = $('#event-invitation-sent-popup');
         elem.popup('close');
     }
-    
+
     function validateNetworkAndLoadEvents() {
     	var activePage = $.mobile.activePage.attr('id');
     	rogerthat.util.isConnectedToInternet(function(result) {
@@ -347,9 +347,9 @@
         }
 
         rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
-        
+
         validateNetworkAndLoadEvents();
-        
+
         $(document).on("click", "#no-network-retry", function () {
         	validateNetworkAndLoadEvents();
         });
@@ -825,7 +825,7 @@
         	rogerthat.user.data.calendar.disabled = [];
         }
         if (rogerthat.service.data.solutionCalendars === undefined) {
-    		rogerthat.service.data.solutionCalendars = [];    		
+    		rogerthat.service.data.solutionCalendars = [];
     	}
         if (rogerthat.service.data.solutionCalendars.length > 1) {
             $("#events-footer").show();
@@ -842,14 +842,14 @@
             	disabledAllCalendars = false;
             }
         });
-        
+
         var adminCalendars = getAdminCalendars();
         if (adminCalendars.length === 0) {
             $("#broadcast-to-calendar").hide();
         } else {
             $("#broadcast-to-calendar").show();
         }
-        
+
         if (disabledAllCalendars) {
         	serverEventsIsLoading = false;
         	serverEventsHasMore = false;
@@ -867,10 +867,9 @@
             'cursor': cursor
         }), serverEventsLoadGuid);
     }
-    
+
     function renderEvents() {
         var now = (new Date().getTime()) / 1000;
-        var checkdate = now - DAY;
         events = serverEvents.filter(function (event, i) {
             if ($.inArray(event.id, removedEvents) >= 0) {
                 return false;
@@ -903,7 +902,10 @@
                 }
                 if(!eventsDict[eventCopy.service_user_email][eventCopy.id]) {
                     eventsDict[eventCopy.service_user_email][eventCopy.id] = {};
+                } else {
+                    eventCopy.replicated = true;
                 }
+
                 eventsDict[eventCopy.service_user_email][eventCopy.id][eventDate] = eventCopy;
 
                 eventsPerDay[dayDate].push({
@@ -926,7 +928,19 @@
         }
         $("#events-empty").hide();
 
-        Object.keys(eventsPerDay).sort().map(function(dayDate) {
+        var dayDates = Object.keys(eventsPerDay);
+        dayDates.sort().map(function(dayDate) {
+            var dayEvents = eventsPerDay[dayDate];
+            var allRepeated = dayEvents.every(function(dayEvent) {
+                var event = dayEvent.event;
+                var eventDate = dayEvent.date;
+                return eventsDict[event.service_user_email][event.id][eventDate].replicated;
+            });
+
+            if (allRepeated && serverEventsHasMore) {
+                return;
+            }
+
             days.push({
                 "date": parseDateToEventDate(new Date(parseInt(dayDate))),
                 "events": eventsPerDay[dayDate]
