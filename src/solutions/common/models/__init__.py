@@ -749,8 +749,8 @@ class SolutionServiceConsentHistory(NdbModel):
 
 
 class SolutionModuleAppText(NdbModel):
-    MENU_ITEM_LABEL = '1'
-    FIRST_FLOW_MESSAGE = '2'
+    MENU_ITEM_LABEL = u'menu_item_label'
+    FIRST_FLOW_MESSAGE = u'first_flow_message'
 
     texts = ndb.JsonProperty(indexed=False)
 
