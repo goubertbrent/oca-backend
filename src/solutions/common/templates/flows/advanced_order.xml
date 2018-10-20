@@ -489,9 +489,10 @@
                                });
                                break;
                            case 'threefold':
+                           case 'threefold_testnet':
                                if (provider.settings.address) {
                                    methods.push({
-                                       provider_id: 'threefold',
+                                       provider_id: provider.provider_id,
                                        currency: 'TFT',
                                        amount: 0,
                                        target: provider.settings.address,

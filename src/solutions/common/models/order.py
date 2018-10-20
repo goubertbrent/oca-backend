@@ -95,8 +95,8 @@ class SolutionOrder(db.Model):
         if self.transaction_id and self.payment_provider:
             if self.payment_provider == 'payconiq':
                 return PayconiqTransaction.create_key(self.transaction_id)
-            elif self.payment_provider == 'threefold':
-                return PaymentTransaction.create_key('threefold', self.transaction_id)
+            elif 'threefold' in self.payment_provider:
+                return PaymentTransaction.create_key(self.payment_provider, self.transaction_id)
 
     @property
     def service_identity_user(self):

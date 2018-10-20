@@ -21,7 +21,7 @@ from google.appengine.ext.deferred import deferred
 
 from mcfw.properties import azzert
 from rogerthat.bizz.payment import get_api_module
-from rogerthat.bizz.payment.providers.threefold.api import get_timestamp_from_block, _get_total_amount
+from rogerthat.bizz.payment.providers.threefold.api import _get_total_amount
 from rogerthat.consts import DEBUG
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
@@ -86,7 +86,7 @@ def get_providers_settings(service_user, service_identity):
     service_identity = service_identity or ServiceIdentity.DEFAULT
     test_mode = is_in_test_mode(service_user, service_identity)
     results = []
-    visible_providers = get_visible_payment_providers(service_user, service_identity)
+    visible_providers = get_visible_payment_providers(service_user, service_identity, test_mode)
     with users.set_user(service_user):
         providers = {provider.provider_id: provider for provider in list_providers(service_identity, test_mode)}
         for provider_id in visible_providers:
@@ -106,41 +106,44 @@ def get_providers_settings(service_user, service_identity):
         return results
 
 
-def get_visible_payment_providers(service_user, service_identity):
+def get_visible_payment_providers(service_user, service_identity, test_mode):
     default_app_id = get_service_identity(create_service_identity_user(service_user, service_identity)).defaultAppId
     providers = []
     if DEBUG or default_app_id.startswith('osa-'):
-        return [u'payconiq', u'threefold']
+        return ['payconiq', 'threefold_testnet']
     if default_app_id.startswith('be-'):
         providers.append('payconiq')
-    elif 'threefold' in default_app_id:
-        providers.append('threefold')
+    # In the future the `if 'threefold'` will be removed
+    if 'threefold' in default_app_id:
+        if test_mode:
+            providers.append('threefold_testnet')
+        else:
+            providers.append('threefold')
     return providers
 
 
 def get_transaction_details(payment_provider, transaction_id, service_user, service_identity, app_user):
     # type: (unicode, unicode, users.User, unicode, users.User) -> TransactionDetailsTO
-    test_mode = is_in_test_mode(service_user, service_identity)
     mod = get_api_module(payment_provider)
     if payment_provider == 'payconiq':
-        transaction = mod.get_public_transaction(test_mode, transaction_id)
+        transaction = mod.get_public_transaction(transaction_id)
         return TransactionDetailsTO.from_dict(transaction)
-    elif payment_provider == 'threefold':
+    elif payment_provider in ['threefold', 'threefold_testnet']:
         settings_mapping = {p.provider_id: p.settings for p in get_providers_settings(service_user, service_identity)}
-        tf_settings = settings_mapping['threefold']  # type: ThreeFoldSettingsTO
+        tf_settings = settings_mapping[payment_provider]  # type: ThreeFoldSettingsTO
         service_address = tf_settings.address
         azzert(tf_settings.address)
-        transaction = mod.get_public_transaction(test_mode, transaction_id)
+        transaction = mod.get_public_transaction(transaction_id)
         amount = _get_total_amount(transaction, service_address)
         azzert(amount)
         status = PaymentTransaction.STATUS_SUCCEEDED
         if transaction['unconfirmed']:  # Usually will be true
             status = PaymentTransaction.STATUS_PENDING
         # Transaction id = external transaction id for ThreeFold transactions
-        transaction_key = PaymentTransaction.create_key('threefold', transaction_id)
+        transaction_key = PaymentTransaction.create_key(payment_provider, transaction_id)
         transaction_model = PaymentTransaction(
             key=transaction_key,
-            test_mode=test_mode,
+            test_mode=False,
             target=service_address,
             currency='TFT',
             amount=amount,
@@ -152,7 +155,7 @@ def get_transaction_details(payment_provider, transaction_id, service_user, serv
         if status == PaymentTransaction.STATUS_PENDING:
             deferred.defer(_check_transaction_completed, transaction_key, _countdown=60)
         else:
-            transaction_model.timestamp = get_timestamp_from_block(test_mode, transaction['transaction']['height'])
+            transaction_model.timestamp = mod.get_timestamp_from_block(transaction['transaction']['height'])
         transaction_model.put()
         return TransactionDetailsTO.from_model(transaction_model)
     else:
@@ -164,9 +167,9 @@ def _check_transaction_completed(transaction_key):
     transaction = transaction_key.get()  # type: PaymentTransaction
     if transaction.status != PaymentTransaction.STATUS_PENDING:
         return
+    mod = get_api_module(transaction.provider_id)
     try:
-        ext_trans = get_api_module(transaction.provider_id).get_public_transaction(transaction.test_mode,
-                                                                                   transaction.external_id)
+        ext_trans = mod.get_public_transaction(transaction.external_id)
     except Exception as e:
         logging.exception(e.message)
         if 'unrecognized hash' in e.message:  # in case of a fork this transaction will not exist
@@ -179,6 +182,6 @@ def _check_transaction_completed(transaction_key):
         deferred.defer(_check_transaction_completed, transaction_key, _transactional=True, _countdown=60)
     else:
         transaction.status = PaymentTransaction.STATUS_SUCCEEDED
-        transaction.timestamp = get_timestamp_from_block(transaction.test_mode, ext_trans['transaction']['height'])
+        transaction.timestamp = mod.get_timestamp_from_block(ext_trans['transaction']['height'])
         transaction.put()
         deferred.defer(send_message, transaction.service_user, u'solutions.common.orders.update', _transactional=True)
