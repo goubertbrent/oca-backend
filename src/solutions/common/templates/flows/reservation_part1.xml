@@ -57,7 +57,7 @@
                 vibrate="false"
                 autoLock="true"
                 negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfZmFpbCIsICJsYW5nIjogIm5sIn0=">
-            <content>{% translate language, 'common', 'reservation-message-date-time' %}</content>
+            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'common', 'reservation-message-date-time' %}{% endif %}</content>
             <form
                 positiveButtonConfirmation=""
                 negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"

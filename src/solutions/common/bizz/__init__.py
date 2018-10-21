@@ -53,7 +53,7 @@ from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
 from rogerthat.service.api import app, qr
 from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role, store_branding, \
-    store_pdf_branding
+    store_pdf_branding, put_reserved_menu_item_label
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
@@ -72,7 +72,7 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
 from solutions.common.models import SolutionSettings, SolutionMainBranding, \
-    SolutionBrandingSettings, SolutionLogo, FileBlob, SolutionNewsPublisher
+    SolutionBrandingSettings, SolutionLogo, FileBlob, SolutionNewsPublisher, SolutionModuleAppText
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
@@ -327,6 +327,14 @@ def get_app_info_cached(app_id):
     return app.get_info(app_id)
 
 
+def update_reserved_menu_item_labels(sln_settings):
+    logging.warning(sln_settings.service_user)
+    with users.set_user(sln_settings.service_user):
+        for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
+            put_reserved_menu_item_label(
+                i, common_translate(sln_settings.main_language, SOLUTION_COMMON, label))
+
+
 @returns(ProvisionResponseTO)
 @arguments(solution=unicode, email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            address=unicode, phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
@@ -343,14 +351,18 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
                                     search_enabled=search_enabled)
         service_user = sln_settings.service_user
+        #update_reserved_menu_item_labels(sln_settings)
     else:
         service_user = users.User(email)
-        sln_settings = update_solution_service(service_user, branding_url, menu_item_color, solution, languages,
-                                               currency,
-                                               modules=modules, broadcast_types=broadcast_types, apps=apps,
-                                               organization_type=organization_type, name=name, address=address,
-                                               phone_number=phone_number, qualified_identifier=qualified_identifier)
+        language_updated, sln_settings = update_solution_service(
+            service_user, branding_url, menu_item_color, solution, languages, currency,
+            modules=modules, broadcast_types=broadcast_types, apps=apps,
+            organization_type=organization_type, name=name, address=address,
+            phone_number=phone_number, qualified_identifier=qualified_identifier)
         password = None
+        #if language_updated:
+        #    update_reserved_menu_item_labels(sln_settings)
+
 
     deferred.defer(common_provision, service_user, broadcast_to_users=broadcast_to_users,
                    _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
@@ -362,7 +374,7 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
     return resp
 
 
-@returns(SolutionSettings)
+@returns(tuple)
 @arguments(service_user=users.User, branding_url=unicode, menu_item_color=unicode, solution=unicode,
            languages=[unicode], currency=unicode, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
            organization_type=int, name=unicode, address=unicode, phone_number=unicode, qualified_identifier=unicode)
@@ -406,7 +418,9 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
             solution_settings.solution = solution
             solution_settings_changed = True
 
+        language_updated = False
         if languages:
+            language_updated = solution_settings.main_language != languages[0]
             service_profile.supportedLanguages = languages
             solution_settings.main_language = languages[0]
             solution_settings_changed = True
@@ -465,7 +479,7 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
         service_profile.put()
         if solution_settings_changed:
             solution_settings.put()
-        return solution_settings
+        return language_updated, solution_settings
 
     if db.is_in_transaction:
         return trans()
@@ -1116,3 +1130,14 @@ def get_organization_type(service_user):
 
 def is_demo_app(service_user):
     return get_app_by_id(get_default_app_id(service_user)).demo
+
+
+@returns()
+@arguments(service_user=users.User, module_name=unicode, texts=dict)
+def set_solution_module_app_text(service_user, module_name, texts):
+    key = SolutionModuleAppText.create_key(service_user, module_name)
+    app_text = key.get()
+    if not app_text:
+        app_text = SolutionModuleAppText(key=key)
+    app_text.texts = texts
+    app_text.put()

@@ -35,11 +35,15 @@
             autoLock="true"
             negativeReference="base64:eyJsYW5nIjogImVuIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B5TVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNVRkR1ZzSUdWbGJpQjJjbUZoWnd3IiwgImlkIjogImVuZF8xIn0=">
         <content>
-            {%- if SolutionModule.CITY_APP in settings.modules -%}
-                {% translate language, 'common', 'ask-question-message-cityapp-1' %}
-            {%- else -%}
-                {% translate language, 'common', 'ask-question-message-1' %}
-            {%- endif -%}
+            {%- if custom_message -%}
+                {{ custom_message }}
+            {% else %}
+                {%- if SolutionModule.CITY_APP in settings.modules -%}
+                    {% translate language, 'common', 'ask-question-message-cityapp-1' %}
+                {%- else -%}
+                    {% translate language, 'common', 'ask-question-message-1' %}
+                {%- endif -%}
+            {% endif %}
         </content>
         <form
             positiveButtonConfirmation=""
