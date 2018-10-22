@@ -616,6 +616,8 @@ class BrandingSettingsTO(object):
     menu_item_color = unicode_property('4')
     show_identity_name = bool_property('5')
     show_avatar = bool_property('6')
+    recommend_enabled = bool_property('7', default=True)
+    left_align_icons = bool_property('8', default=False)
 
     @classmethod
     def from_model(cls, model):
@@ -631,6 +633,8 @@ class BrandingSettingsTO(object):
         to.menu_item_color = model.menu_item_color or SolutionBrandingSettings.default_menu_item_color(to.color_scheme)
         to.show_identity_name = model.show_identity_name
         to.show_avatar = model.show_avatar
+        to.recommend_enabled = model.recommend_enabled
+        to.left_align_icons = model.left_align_icons
         return to
 
 

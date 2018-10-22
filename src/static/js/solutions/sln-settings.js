@@ -1076,7 +1076,9 @@ $(function () {
 
             var elemColorScheme = $("#color_scheme"),
                 elemShowName = $('#show_name'),
-                elemInputShowAvatar = $('#show_avatar');
+                elemInputShowAvatar = $('#show_avatar'),
+                elemShowRecommend = $('#show_recommend'),
+                elemLeftAlignIcons = $('#left_align_icons');
 
             elemColorScheme.change(function () {
                 settingsBranding.branding_settings.color_scheme = elemColorScheme.val();
@@ -1095,6 +1097,17 @@ $(function () {
                 settingsBranding.branding_settings.show_avatar = showAvatar;
                 $("#preview_frame").contents().find('body').toggleClass('show_avatar', showAvatar);
                 resizeBranding();
+            });
+
+            elemShowRecommend.change(function() {
+                var showRecommend = this.checked;
+                settingsBranding.branding_settings.recommend_enabled = showRecommend;
+                $('#3x0x0').toggle(showRecommend);
+            });
+
+            elemLeftAlignIcons.change(function() {
+                var leftAlignIcons = this.checked;
+                settingsBranding.branding_settings.left_align_icons = leftAlignIcons;
             });
 
             $('#logo_div').click(function () {

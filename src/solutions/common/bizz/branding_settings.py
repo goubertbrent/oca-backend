@@ -26,6 +26,7 @@ from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.models import SolutionSettings, SolutionBrandingSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchaseSettings
 from solutions.common.models.loyalty import SolutionLoyaltySettings
+from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.to import BrandingSettingsTO
 
 
@@ -56,12 +57,21 @@ def save_branding_settings(service_user, branding_settings_to):
         branding_settings.text_color = branding_settings_to.text_color
         branding_settings.show_identity_name = branding_settings_to.show_identity_name
         branding_settings.show_avatar = branding_settings_to.show_avatar
+        branding_settings.recommend_enabled = branding_settings_to.recommend_enabled
+
         branding_settings.modification_time = now()
 
         sln_settings.events_branding_hash = None
         sln_settings.updates_pending = True
 
         to_be_put = [branding_settings, sln_settings]
+
+        if branding_settings_to.left_align_icons != branding_settings.left_align_icons:
+            static_content = SolutionStaticContent.list_non_deleted(service_user)
+            for static_content  in SolutionStaticContent.list_non_deleted(service_user):
+                static_content.provisioned = False
+                to_be_put.append(static_content)
+            branding_settings.left_align_icons = branding_settings_to.left_align_icons
 
         if loyalty_settings:
             loyalty_settings.loyalty_branding_hash = None

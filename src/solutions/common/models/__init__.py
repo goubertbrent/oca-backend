@@ -431,7 +431,6 @@ class SolutionBrandingSettings(db.Model):
     recommend_enabled = db.BooleanProperty(default=True, indexed=False)
     left_align_icons = db.BooleanProperty(default=False, indexed=False)
 
-
     @classmethod
     def create_key(cls, service_user):
         return db.Key.from_path(cls.kind(), cls.kind(), parent=parent_key(service_user, SOLUTION_COMMON))

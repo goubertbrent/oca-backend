@@ -328,7 +328,6 @@ def get_app_info_cached(app_id):
 
 
 def update_reserved_menu_item_labels(sln_settings):
-    logging.warning(sln_settings.service_user)
     with users.set_user(sln_settings.service_user):
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             put_reserved_menu_item_label(

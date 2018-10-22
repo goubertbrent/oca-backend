@@ -26,6 +26,22 @@
             </label>
         </div>
     </div>
+    <div class="control-group">
+        <label class="control-label" for="show_recommend">${t.show_recommend}</label>
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox" id="show_recommend" {{if brandingSettings.recommend_enabled }}checked{{/if}}/>
+            </label>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="left_align_icons">${t.left_align_icons}</label>
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox" id="left_align_icons" {{if brandingSettings.left_align_icons }}checked{{/if}}/>
+            </label>
+        </div>
+    </div>
     <div class="control-group" style="display: none;">
         <label class="control-label" for="color_scheme">${t.color_scheme}</label>
         <div class="controls">

@@ -7,7 +7,7 @@
             {{each(i, row) menuItems}}
             <tr>
                 {{each(j, smi) row.menu_items}}
-                <td id="${ smi.coords }" class="rt-cs-${brandingSettings.color_scheme}">
+                <td id="${ smi.coords }" class="rt-cs-${brandingSettings.color_scheme}" {{if !brandingSettings.recommend_enabled && smi.coords === '3x0x0'}}style="display: none;"{{/if}}>
                     {{if smi.iconName}}
                     <div>
                         {{if smi.iconName.indexOf('fa-') === 0}}
