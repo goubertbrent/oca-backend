@@ -1060,6 +1060,52 @@ $(function () {
         }
     }
 
+
+    function alignedMenuItems(brandingSettings) {
+        // should returns a new array with empty
+        // spots at the end
+        var items = [ {
+            menu_items: []
+        }, {
+            menu_items: []
+        } , {
+            menu_items: []
+        }];
+        var forwardRow = 0, forwardCol = 0;
+        var backwardRow = 2, backwardCol = 3;
+
+        function forward() {
+            forwardCol++;
+            if (forwardCol >= 4) {
+                forwardCol %= 4;
+                forwardRow++;
+            }
+        }
+
+        function backward() {
+            backwardCol--;
+            if (backwardCol < 0) {
+                backwardCol += 4;
+                backwardRow--;
+            }
+        }
+
+        var showRecommend = brandingSettings.branding_settings.recommend_enabled;
+        $.each(brandingSettings.menu_item_rows, function(i, row) {
+            $.each(row.menu_items, function(j, item) {
+                if (!item.iconName || (!showRecommend && item.coords === '3x0x0')) {
+                    items[backwardRow].menu_items[backwardCol] = item;
+                    backward();
+                } else {
+                    items[forwardRow].menu_items[forwardCol] = item;
+                    forward();
+                }
+            });
+        });
+
+        return items;
+    }
+
     function renderSettingsBranding() {
         $('#branding_settings').html(TMPL_LOADING_SPINNER);
         getSettingsBranding(function (settings) {
@@ -1070,7 +1116,7 @@ $(function () {
                 brandingSettings: settingsBranding.branding_settings
             });
             elemBrandingSettings.html(html);
-            renderSettingsBrandingPreview();
+            rearrangeItems();
 
             //bind events
 
@@ -1099,15 +1145,24 @@ $(function () {
                 resizeBranding();
             });
 
+
+            function rearrangeItems() {
+                if (settingsBranding.branding_settings.left_align_icons) {
+                    renderSettingsBrandingPreview(alignedMenuItems(settingsBranding));
+                } else {
+                    renderSettingsBrandingPreview();
+                }
+            }
+
             elemShowRecommend.change(function() {
                 var showRecommend = this.checked;
                 settingsBranding.branding_settings.recommend_enabled = showRecommend;
-                $('#3x0x0').toggle(showRecommend);
+                rearrangeItems();
             });
 
             elemLeftAlignIcons.change(function() {
-                var leftAlignIcons = this.checked;
-                settingsBranding.branding_settings.left_align_icons = leftAlignIcons;
+                settingsBranding.branding_settings.left_align_icons = this.checked;
+                rearrangeItems();
             });
 
             $('#logo_div').click(function () {
@@ -1230,14 +1285,13 @@ $(function () {
         }, 300);
     }
 
-    function renderSettingsBrandingPreview() {
+    function renderSettingsBrandingPreview(menuItems) {
         var html = $.tmpl(templates['settings/settings_branding_preview'], {
             t: CommonTranslations,
             brandingSettings: settingsBranding.branding_settings,
-            menuItems: settingsBranding.menu_item_rows
+            menuItems: menuItems || settingsBranding.menu_item_rows
         });
         $('#branding_settings_preview').html(html);
-
 
         //bind events
         var elemIframe = $('#preview_frame').load(function () {
