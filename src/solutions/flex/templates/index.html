@@ -198,11 +198,10 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     {% endif %}
     {% if not loyalty %}
     <!-- show loyalty tab if there is no "Functionalities" page or in case loyalty is enabled -->
-        {% if not oca_loyalty_limited and (not functionality_modules or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
+        {% if not oca_loyalty_limited or not functionality_modules or SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "oca-loyalty" %}<span
                                class="badge badge-important sln-loyalty-badge"></span></a></li>
-        {% endif %}
-        {% if joyn_supported %}
+        {% elif joyn_supported %}
                         <li menu="joyn"><a href="#/joyn">{% translate language, "common", "joyn" %}</a></li>
         {% endif %}
     {% endif %}

@@ -87,9 +87,9 @@ function updateEntity(entityId, updatedEntity, callback) {
 
 function renderListLegalEntities() {
     getLegalEntities(function (data) {
-        var page = $.tmpl(JS_TEMPLATES['legal_entity_table']);
+        var page = $.tmpl(JS_TEMPLATES['legal_entities/legal_entity_table']);
         $('#legal_entities_content').html(page);
-        var pageContent = $.tmpl(JS_TEMPLATES['legal_entity_row'], {
+        var pageContent = $.tmpl(JS_TEMPLATES['legal_entities/legal_entity_row'], {
             legalEntities: data,
             COUNTRIES: COUNTRIES
         });
@@ -100,11 +100,10 @@ function renderListLegalEntities() {
 
 function renderPutLegalEntity(entityId) {
     _getLegalEntity(entityId, function (entity) {
-        var page = $.tmpl(JS_TEMPLATES.legal_entity_put, {
+        var page = $.tmpl(JS_TEMPLATES['legal_entities/legal_entity_put'], {
             entity: entity || {},
             COUNTRIES: SORTED_COUNTRIES,
-            CURRENCIES: CURRENCIES_SORTED,
-            TERMS_OF_USE: TERMS_OF_USE
+            CURRENCIES: CURRENCIES_SORTED
         });
         $('#legal_entities_content').html(page);
         $('#mobicage_terms_of_use').change(termsOfUseLanguageChanged).change();

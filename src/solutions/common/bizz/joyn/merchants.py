@@ -21,7 +21,6 @@ from google.appengine.api import search
 from google.appengine.ext import db
 
 from mcfw.rpc import returns, arguments
-from mcfw.utils import normalize_search_string
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.rpc import users
@@ -101,7 +100,9 @@ def re_index(service_user):
             continue
 
         fields.extend([search.TextField(name='slni_%s_name' % service_identity, value=sln_i_settings.name),
-                       search.TextField(name='slni_%s_phone_number' % service_identity, value=sln_i_settings.phone_number),
+                       search.TextField(name='slni_%s_phone_number' % service_identity,
+                                        value=sln_i_settings.phone_number and sln_i_settings.phone_number.replace(' ',
+                                                                                                                  '')),
                        search.TextField(name='slni_%s_qualified_identifier' % service_identity, value=sln_i_settings.qualified_identifier),
                        search.TextField(name='slni_%s_address' % service_identity, value=sln_i_settings.address)
                        ])
@@ -115,9 +116,12 @@ def re_index(service_user):
 def find_merchant(search_string):
     the_index = search.Index(name=MERCHANTS_INDEX)
     try:
-        query_string = u"%s" % (normalize_search_string(search_string))
+        # Add quotes to only search on *exact* matches.
+        # Otherwise if there are multiple merchants in the same street, all merchants in that street will be matched.
+        query_string = u'"%s"' % (search_string)
         query = search.Query(query_string=query_string,
-                             options=search.QueryOptions(returned_fields=['merchant', 'customer_id', 'customer_name']))
+                             options=search.QueryOptions(
+                                 returned_fields=['merchant', 'customer_id', 'customer_name']))
         search_result = the_index.search(query)
         if search_result.results:
             return search_result.results

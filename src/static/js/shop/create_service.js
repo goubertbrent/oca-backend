@@ -22,6 +22,7 @@ var TAB_IDS = $('#create_service_form_tmpl section').map(function() {
     return this.id;
 }).get();
 var newService, currentTabId;
+var CREATE_SERVICE_TEMPLATE = $('#create_service_form_tmpl').html();
 
 var showTab = function(tabId) {
     // Hide errors
@@ -363,9 +364,6 @@ var showCreateService = function() {
             $('.existing-service-only').hide();
         }
     }
-    if(! TEMPLATES['service_tab']) {
-        TEMPLATES['service_tab'] = $('#create_service_form_tmpl').html();
-    }
 
     // if the customer his subscription is static, do not make the second tab editable and prefill the appropriate values.
     if(!currentCustomer.default_modules){
@@ -383,7 +381,7 @@ var showCreateService = function() {
                 } else {
                     currentCustomer.default_modules = response.modules;
                     currentCustomer.isStatic = response.success; // if success == true, customer is static.
-                    $('#create_service_form_tmpl').html(TEMPLATES['service_tab']);
+                    $('#create_service_form_tmpl').html(CREATE_SERVICE_TEMPLATE);
                     showServiceTab();
                 }
             }
@@ -499,20 +497,7 @@ var customerSelected = function(customer) {
             }
         });
     } else {
-        if (currentCustomer.contacts) {
-            prefillServiceData(customer, currentCustomer.contacts[0]);
-        } else {
-
-            sln.call({
-                url: '/internal/shop/rest/contact/find',
-                data: {
-                    customer_id: customer.id
-                },
-                success: function (contacts) {
-                    prefillServiceData(customer, contacts[0])
-                }
-            });
-        }
+        ShopRequests.getContacts(customer.id).then(contacts => prefillServiceData(customer, contacts[0]));
 
         sln.call({
             url : '/internal/shop/rest/regio_manager/apps',
@@ -542,7 +527,7 @@ var customerSelected = function(customer) {
             }else{
                 selectDefaultApps();
             }
-        }else{
+        }else {
             selectDefaultApps();
         }
     }

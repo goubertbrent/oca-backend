@@ -27,7 +27,7 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from rogerthat.consts import DEBUG
-from rogerthat.dal import parent_key, parent_key_unsafe
+from rogerthat.dal import parent_key, parent_key_unsafe, parent_ndb_key
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
@@ -299,7 +299,7 @@ class SolutionSettings(SolutionIdentitySettings):
 
     menu_item_color = db.StringProperty(indexed=False)
 
-    currency = db.StringProperty(indexed=False)  # symbol, e.g. €
+    currency = db.StringProperty(indexed=False)  # 3 letter symbol, e.g. EUR
     solution = db.StringProperty(indexed=False)
     timezone = db.StringProperty(indexed=False, default=u"Europe/Brussels")
     main_language = db.StringProperty(indexed=False)
@@ -428,6 +428,9 @@ class SolutionBrandingSettings(db.Model):
     show_identity_name = db.BooleanProperty(indexed=False, default=True)
     show_avatar = db.BooleanProperty(indexed=False, default=True)
     modification_time = db.IntegerProperty(default=0)
+    recommend_enabled = db.BooleanProperty(default=True, indexed=False)
+    left_align_icons = db.BooleanProperty(default=False, indexed=False)
+
 
     @classmethod
     def create_key(cls, service_user):
@@ -743,3 +746,23 @@ class SolutionServiceConsentHistory(NdbModel):
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     consent_type = ndb.StringProperty()
     data = ndb.JsonProperty(compressed=True)
+
+
+class SolutionModuleAppText(NdbModel):
+    MENU_ITEM_LABEL = u'menu_item_label'
+    FIRST_FLOW_MESSAGE = u'first_flow_message'
+
+    texts = ndb.JsonProperty(indexed=False)
+
+    @classmethod
+    def create_key(cls, service_user, module_name):
+        parent_key = parent_ndb_key(service_user, SOLUTION_COMMON)
+        return ndb.Key(cls, module_name, parent=parent_key)
+
+    @classmethod
+    def get_text(cls, service_user, module_name, *text_types):
+        app_text = cls.create_key(service_user, module_name).get()
+        if not app_text:
+            return [None] * len(text_types)
+        return [app_text.texts.get(text_type) for text_type in text_types]
+

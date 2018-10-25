@@ -62,7 +62,7 @@ class LotteryTest(mc_unittest.TestCase):
                                       address="test address",
                                       phone_number="",
                                       languages=["en", "nl"],
-                                      currency=u"€",
+                                      currency=u"EUR",
                                       modules=list(SolutionModule.STATIC_MODULES) + [
                                       loyalty_module],
                                       broadcast_types=[

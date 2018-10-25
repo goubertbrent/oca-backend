@@ -1,0 +1,41 @@
+<div class="accordion" id="quotations-accordion">
+    <div class="accordion-group">
+        <div class="accordion-heading">
+            <a class="accordion-toggle" data-toggle="collapse" data-parent="#quotations-accordion"
+               href="#quotations-list-parent">
+                Quotations
+            </a>
+        </div>
+        <div id="quotations-list-parent" class="accordion-body collapse in">
+            <div class="accordion-inner" id="quotations-list"></div>
+        </div>
+    </div>
+    <div class="accordion-group">
+        <div class="accordion-heading">
+            <a class="accordion-toggle" data-toggle="collapse" data-parent="#quotations-accordion"
+               href="#quotation-form-parent">
+                New quotation
+            </a>
+        </div>
+        <div id="quotation-form-parent" class="accordion-body collapse">
+            <div class="accordion-inner">
+                <form id="quotations-form" class="form-inline">
+                    <fieldset>
+                        <legend>Quotations</legend>
+                        <label for="new_quotation_contact">Contact: </label>
+                        <select id="new_quotation_contact">
+                            {{each(i, contact) contacts}}
+                            <option value="${contact.id}" {{if i === 0 }}selected{{/if}}>${contact.first_name}
+                                ${contact.last_name}
+                            </option>
+                            {{/each}}
+                        </select>
+                        <button type="button" class="btn btn-default" id="add-quotation-item">Add product</button>
+                    </fieldset>
+                </form>
+                <div id="quotation-item-list"></div>
+                <button type="button" id="create-quotation" class="btn btn-success">Create quotation</button>
+            </div>
+        </div>
+    </div>
+</div>

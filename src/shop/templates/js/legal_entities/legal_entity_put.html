@@ -48,18 +48,6 @@
         <input type="text" id="entity_iban" name="entity_iban" required value="${entity.iban}">
         <label for="entity_bic">BIC</label>
         <input type="text" id="entity_bic" name="entity_bic" required value="${entity.bic}">
-        <label for="entity_terms_of_use">Terms and conditions</label>
-        <textarea id="entity_terms_of_use" name="entity_terms_of_use" rows="10" style="width: 100%;">${entity.terms_of_use}</textarea>
-        <span class="help-block">
-            <strong>The following text must always be present in the terms of use, select the correct language in the
-                dropdown to get the translated text.</strong>
-        </span>
-        <select id="mobicage_terms_of_use">
-            {{each(lang, terms) TERMS_OF_USE}}
-            <option value="${lang}" {{if lang === 'en'}}selected{{/if}}>${lang}</option>
-            {{/each}}
-        </select>
-        <div id="mobicage_terms_of_use_translated"></div>
         <div style="margin-top: 10px;">
             {{if entity.id}}
             <button type="button" class="btn btn-success" id="submit_legal_entity"><i class="fa fa-save"></i> Save

@@ -77,7 +77,7 @@ class Test(mc_unittest.TestCase):
 
         solutionSettings = SolutionSettings(key=SolutionSettings.create_key(service_user), name=name,
                             menu_item_color=None, address=u"lochristi", phone_number=None,
-                            currency=u"€", main_language=DEFAULT_LANGUAGE, solution=SOLUTION_FLEX)
+                            currency=u"EUR", main_language=DEFAULT_LANGUAGE, solution=SOLUTION_FLEX)
 
         solutionSettings.holidays = []
         solutionSettings.holiday_out_of_office_message = u'holiday-out-of-office'

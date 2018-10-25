@@ -16,17 +16,14 @@
 # @@license_version:1.3@@
 from google.appengine.ext import ndb
 
+from mcfw.utils import Enum
 from rogerthat.models.common import NdbModel
 
 
-class JoynMerchantMatch(NdbModel):
-    date = ndb.DateTimeProperty(auto_now=True)
-    customer_id = ndb.IntegerProperty()
-    service = ndb.StringProperty()
-
-    @classmethod
-    def create_key(cls, joyn_id):
-        return ndb.Key(cls._get_kind(), joyn_id)
+class JoynMerchantMatchStatus(Enum):
+    NEW = 0
+    MATCHED = 1
+    REMOVED = 2
 
 
 class JoynMerchantMatches(NdbModel):
@@ -35,7 +32,13 @@ class JoynMerchantMatches(NdbModel):
     zipcode = ndb.StringProperty()
     joyn_data = ndb.JsonProperty()
     matches = ndb.JsonProperty()
+    status = ndb.IntegerProperty(choices=JoynMerchantMatchStatus.all(), default=JoynMerchantMatchStatus.NEW)
+    customer_id = ndb.IntegerProperty()
 
     @classmethod
     def create_key(cls, joyn_id):
         return ndb.Key(cls._get_kind(), joyn_id)
+
+    @classmethod
+    def list_new(cls):
+        return cls.query().filter(cls.status == JoynMerchantMatchStatus.NEW)

@@ -27,6 +27,7 @@ from test import set_current_user
 
 
 class AssociationsTestCase(mc_unittest.TestCase):
+
     def test_association_creation(self):
         self.set_datastore_hr_probability(1)
         apps = [a.app_id for a in App.all()]
@@ -35,7 +36,7 @@ class AssociationsTestCase(mc_unittest.TestCase):
                                 address=u"Antwerpsesteenweg 19\n9080 Lochristi",
                                 phone_number=u"+32 9 324 25 64",
                                 languages=[u"en", u"nl"],
-                                currency=u"€",
+                                currency=u"EUR",
                                 modules=[SolutionModule.CITY_APP, SolutionModule.BROADCAST, SolutionModule.ASK_QUESTION,
                                          SolutionModule.WHEN_WHERE],
                                 broadcast_types=['News', 'test'],
@@ -43,7 +44,7 @@ class AssociationsTestCase(mc_unittest.TestCase):
                                 allow_redeploy=False,
                                 organization_type=OrganizationType.CITY)
         # Create city customer
-        shop_user = users.User(u'regiomanager-test@example.com') 
+        shop_user = users.User(u'regiomanager-test@example.com')
         customer_id = None
         vat = u''
         name = u'Town Lochristi'
@@ -80,9 +81,7 @@ class AssociationsTestCase(mc_unittest.TestCase):
         telephone = u'+32 9 324 25 64'
         language = u'nl'
         modules = [u'agenda', u'bulk_invite', u'static_content', u'ask_question', u'broadcast']
-        broadcast_types = [u'Evenementen', u'Nieuws']
         set_current_user(users.User(r.login), set_google_user=False)
-        output = rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules,
-                                 broadcast_types)
+        output = rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules)
         self.assertTrue(output.success, output.errormsg)
         self.assertFalse(output.errormsg)

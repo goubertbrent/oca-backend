@@ -11,12 +11,13 @@
             </label>
             <span class="help-block">{{html T('payments_optional_explanation') }}</span>
         </div>
-        {{if settings.payconiq}}
+        {{each(i, setting) settings}}
+        {{if setting.provider_id === 'payconiq'}}
         <hr>
         <h3>Payconiq</h3>
         <label class="checkbox" for="payconiq_enabled">
             <input type="checkbox" value="payconiq_enabled" id="payconiq_enabled"
-                   {{if settings.payconiq.enabled}}checked{{/if}}/> ${T('Enabled')}
+                   {{if setting.enabled}}checked{{/if}}/> ${T('Enabled')}
         </label>
         {{html payconiqHtml}}
         <form class="form-horizontal">
@@ -24,13 +25,13 @@
                 <label class="control-label" for="payconicMerchantId">Merchant ID</label>
                 <div class="controls">
                     <input id="payconicMerchantId" type="text"
-                           value="${settings.payconiq.settings.merchant_id}" style="width: 95%;"/>
+                           value="${setting.settings.merchant_id}" style="width: 95%;"/>
                 </div>
             </div>
             <div class="control-group">
                 <label class="control-label" for="payconiqAccessToken">Account Key</label>
                 <div class="controls">
-                    <textarea id="payconiqAccessToken" type="text" rows="5" style="width: 95%;">${settings.payconiq.settings.jwt}</textarea>
+                    <textarea id="payconiqAccessToken" type="text" rows="5" style="width: 95%;">${setting.settings.jwt}</textarea>
                 </div>
             </div>
             <div class="control-group">
@@ -38,19 +39,19 @@
                 <div class="input-prepend">
                     <span class="add-on">€</span>
                     <input type="number" id="payment_min_amount_for_fee"
-                           value="${settings.payconiq.fee.min_amount / 100}"
+                           value="${setting.fee.min_amount / 100}"
                            min="0" step="0.01" class="span2">
                 </div>
                 <span class="help-block">${T('payments_fee_min_amount_zero_cost')}</span>
            </div>
         </form>
         {{/if}}
-        {{if settings.threefold}}
+        {{if setting.provider_id.indexOf('threefold') > -1}}
         <hr>
-        <h3>ThreeFold</h3>
+        <h3>ThreeFold ${setting.provider_id === 'threefold_testnet' ? '(testnet)': ''}</h3>
         <label class="checkbox" for="threefold_enabled">
             <input type="checkbox" value="threefold_enabled" id="threefold_enabled"
-                   {{if settings.threefold.enabled}}checked{{/if}}/> ${T('Enabled')}
+                   {{if setting.enabled}}checked{{/if}}/> ${T('Enabled')}
         </label>
         <p>
             ThreeFold Token a decentralized digital currency backed by the fastest growing commodity in the world — <b>The Internet</b>.
@@ -74,11 +75,12 @@
                 <label class="control-label" for="threefold_address">Address</label>
                 <div class="controls">
                     <input name="threefold_address" id="threefold_address" type="text" minlength="78"
-                        maxlength="78" value="${settings.threefold.settings.address}" style="width: 95%;">
+                        maxlength="78" value="${setting.settings.address}" style="width: 95%;">
                 </div>
             </div>
         </form>
         {{/if}}
+        {{/each}}
     </div>
     <div id="mobile_payments_unavailable" style="display: none;">
         ${T('mobile_payments_only_available_with_adv_order')}

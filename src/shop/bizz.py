@@ -16,40 +16,36 @@
 # @@license_version:1.3@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
-from functools import partial
 import hashlib
 import json
 import logging
 import os
-import sys
-from types import NoneType
 import urllib
 import urlparse
-
-from PIL.Image import Image
-from babel.dates import format_datetime, get_timezone, format_date
-import cloudstorage
-from dateutil.relativedelta import relativedelta
-import httplib2
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
-import stripe
-from xhtml2pdf import pisa
+from collections import OrderedDict
+from contextlib import closing
+from functools import partial
+from types import NoneType
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from google.appengine.ext import ndb
+
+import cloudstorage
+import httplib2
+import stripe
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
-from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -61,11 +57,10 @@ from rogerthat.dal.app import get_app_settings, get_app_by_id
 from rogerthat.dal.profile import get_service_or_user_profile, get_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
-from rogerthat.models import App, ServiceIdentity, ServiceIdentityStatistic, ServiceProfile, UserProfile, Message
+from rogerthat.models import App, ServiceIdentity, ServiceProfile, UserProfile, Message
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
-from rogerthat.rpc.rpc import rpc_items
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
@@ -74,21 +69,25 @@ from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
     address_to_coordinates, GeoCodeException
-from rogerthat.utils.service import create_service_identity_user, add_slash_default
+from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction
-from shop import SHOP_JINJA_ENVIRONMENT, SHOP_TEMPLATES_FOLDER
+from shop import SHOP_JINJA_ENVIRONMENT
+from shop.business.audit import audit_log
 from shop.business.i18n import shop_translate
 from shop.business.legal_entities import get_vat_pct
+from shop.business.order import validate_and_sanitize_order_items, calculate_order_totals, \
+    _generate_order_or_invoice_pdf, cancel_order
+from shop.business.permissions import is_admin, is_admin_or_other_legal_entity, is_payment_admin, \
+    user_has_permissions_to_team, regio_manager_has_permissions_to_team
 from shop.business.service import set_service_enabled
-from shop.constants import PROSPECT_CATEGORIES, OFFICIALLY_SUPPORTED_LANGUAGES, LOGO_LANGUAGES
+from shop.constants import PROSPECT_CATEGORIES, OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.exceptions import BusinessException, CustomerNotFoundException, ContactNotFoundException, \
-    NoProductsSelectedException, ProductNotFoundException, InvalidProductAmountException, ProductNotAllowedException, \
     ReplaceBusinessException, InvalidEmailFormatException, EmptyValueException, NoOrderException, \
     InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
-    InvalidProductQuantityException, MissingProductDependencyException, DuplicateCustomerNameException, \
+    DuplicateCustomerNameException, \
     NotOperatingInCountryException, ContactHasOrdersException, ContactHasCreditCardException, \
-    OrderAlreadyCanceledException, NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
-from shop.models import Customer, Contact, normalize_vat, Invoice, AuditLog, Order, Charge, OrderItem, Product, \
+    NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
+from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
     ShopApp, LegalDocumentAcceptance, LegalDocumentType
@@ -99,7 +98,6 @@ from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLI
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor, DEFAULT_BROADCAST_TYPES
 from solutions.common.bizz.grecaptcha import recaptcha_verify
-from solutions.common.bizz.jobs import delete_solution
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
     add_service_consent, remove_service_consent, create_customer_with_service, put_customer_service, \
@@ -109,11 +107,9 @@ from solutions.common.dal.hints import get_solution_hints
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage, SolutionServiceConsent
 from solutions.common.models.hints import SolutionHint
-from solutions.common.models.qanda import Question
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-
 
 try:
     from cStringIO import StringIO
@@ -133,96 +129,6 @@ CUSTOMER_INDEX = 'CUSTOMER_INDEX'
 
 class PaymentFailedException(Exception):
     pass
-
-
-@returns(bool)
-@arguments(user=users.User)
-def is_admin(user):
-    solutions_server_settings = get_solution_server_settings()
-    return user in [gusers.User(email) for email in solutions_server_settings.shop_bizz_admin_emails]
-
-
-@returns(bool)
-@arguments(user=users.User)
-def is_admin_or_other_legal_entity(user):
-    if not is_admin(user):
-        manager = RegioManager.get(RegioManager.create_key(user.email()))
-        if not manager or manager.team.legal_entity.is_mobicage:
-            return False
-    return True
-
-
-@returns(bool)
-@arguments(user=users.User)
-def is_payment_admin(user):
-    solutions_server_settings = get_solution_server_settings()
-    return user in [gusers.User(email) for email in solutions_server_settings.shop_payment_admin_emails]
-
-
-@returns(bool)
-@arguments(user=users.User)
-def is_team_admin(user):
-    manager = RegioManager.get(RegioManager.create_key(user.email()))
-    return manager is not None and manager.admin
-
-
-@returns(bool)
-@arguments(user=users.User, team_id=(int, long))
-def user_has_permissions_to_team(user, team_id):
-    @db.non_transactional
-    def _get_regio_manager(email):
-        return RegioManager.get(RegioManager.create_key(email))
-
-    if is_admin(user):
-        return True
-    regio_manager = _get_regio_manager(user.email())
-    if regio_manager:
-        return regio_manager_has_permissions_to_team(regio_manager, team_id)
-    logging.error("has_permissions_to_team failed for user '%s' and team '%s'", user, team_id)
-    return False
-
-
-@returns(bool)
-@arguments(regio_manager=RegioManager, team_id=(int, long))
-def regio_manager_has_permissions_to_team(regio_manager, team_id):
-    return regio_manager.team_id == team_id if regio_manager else False
-
-
-@returns(bool)
-@arguments(user=users.User, question=Question)
-def user_has_permissions_to_question(user, question):
-    if is_admin(user):
-        return True
-
-    key = RegioManager.create_key(user.email())
-    manager = RegioManager.get(key)
-    if manager:
-        if manager.admin and manager.team_id == question.team_id:
-            return True
-
-    return False
-
-
-def dict_str_for_audit_log(variables_dict):
-    return u"\n".join((u"%s=%s" % (var, value) for var, value in variables_dict.iteritems()))
-
-
-@db.non_transactional
-def audit_log(customer_id, message, variables=None, user=None, prospect_id=None):
-    al = AuditLog()
-    al.customer_id = customer_id
-    al.prospect_id = prospect_id
-    al.date = now()
-    if user:
-        al.user = user
-    else:
-        al.user = gusers.get_current_user() or users.get_current_user()
-    al.message = message
-    if variables:
-        al.variables = variables
-    else:
-        al.variables = dict_str_for_audit_log(sys._getframe(2).f_locals)
-    rpc_items.append(db.put_async(al), audit_log, customer_id, message, al.variables, al.user, al.prospect_id)
 
 
 @returns([Customer])
@@ -417,11 +323,10 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
            charge_interval=(int, long), replace=bool, regio_manager_user=gusers.User)
 def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replace=False, regio_manager_user=None):
     if isinstance(customer_or_id, Customer):
-        audit_log(customer_or_id.id, u"Creating new order.")
         customer = customer_or_id
     else:
-        audit_log(customer_or_id, u"Creating new order.")
         customer = Customer.get_by_id(customer_or_id)
+    audit_log(customer.id, u"Creating new order.")
     google_user = gusers.get_current_user()
     team = RegioManagerTeam.get_by_id(customer.team_id)
     if google_user:
@@ -437,80 +342,22 @@ def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replac
     contact_id = contact.id
 
     vat_pct = get_vat_pct(customer, team)
-    total = 0.0
-    if not (len(items) > 0):
-        raise NoProductsSelectedException()
-
-    _order_items_signed_orders = []
-
-    def get_order_items_signed_orders():
-        if _order_items_signed_orders:
-            return _order_items_signed_orders
-        for order in Order.list_signed(customer.key()):
-            _order_items_signed_orders.extend(list(OrderItem.list_by_order(order.key())))
-        return _order_items_signed_orders
-
-    is_subscription = False
-    is_subscription_extension_order = False
 
     @db.non_transactional
     def get_products():
         return {p.code: p for p in Product.list_by_legal_entity(team.legal_entity_id)}
 
     all_products = get_products()
+    validate_and_sanitize_order_items(customer, all_products, items)
+    price, total, vat, total_vat_incl = calculate_order_totals(vat_pct, items, all_products)
+    is_subscription = False
+    is_subscription_extension_order = False
     for item in items:
         product = all_products[item.product]
-        if not product:
-            raise ProductNotFoundException(item.product)
-        elif item.count < 1 or (product.possible_counts and item.count not in product.possible_counts):
-            raise InvalidProductAmountException(item.count, item.product)
         if product.is_subscription:
             is_subscription = True
         if product.is_subscription_extension:
             is_subscription_extension_order = True
-        item.price = item.price if product.can_change_price and item.price is not MISSING else product.price
-        total += item.price * item.count
-        if product.organization_types and customer.organization_type not in product.organization_types:
-            raise ProductNotAllowedException(product.description(DEFAULT_LANGUAGE))
-        if product.product_dependencies:
-            for dependency in product.product_dependencies:
-                dependency_found = False
-                dependencies_product_codes = []
-                for dependency in dependency.split('|'):
-                    dependency_count = item.count
-                    if ':' in dependency:
-                        dependency, dependency_count = dependency.split(":")
-                        dependency_count = int(dependency_count)
-                    dependencies_product_codes.append(dependency)
-
-                    for oi in items:
-                        if oi.product == dependency and (dependency_count <= 0 or oi.count == item.count):
-                            dependency_found = True
-                            break
-                    else:
-                        # Dependency not found in this order
-                        if dependency_count < 0:
-                            for oi in get_order_items_signed_orders():
-                                if oi.product_code == dependency and (dependency_count <= 0 or oi.number == item.count):
-                                    dependency_found = True
-                                    break
-
-                if not dependency_found:
-                    # for legal entities it is possible that not all possible dependencies exist. so here I take
-                    # the first existing dependency to make sure the next lines don't raise a KeyError
-                    # it is intentional that it raises a KeyError if none of the dependency products exist
-                    for dependency in dependencies_product_codes:
-                        if dependency in all_products:
-                            break
-                    if dependency_count > 0:
-                        raise InvalidProductQuantityException(product.description(DEFAULT_LANGUAGE),
-                                                              all_products[dependency].description(DEFAULT_LANGUAGE))
-                    else:
-                        raise MissingProductDependencyException(product.description(DEFAULT_LANGUAGE),
-                                                                all_products[dependency].description(DEFAULT_LANGUAGE))
-
-    vat = vat_pct * total / 100
-    total_vat_incl = total + vat
 
     def trans():
         if isinstance(customer_or_id, Customer):
@@ -1272,85 +1119,6 @@ def vacuum_service_modules_by_subscription(customer_id):
     run_in_xg_transaction(trans)
 
 
-@returns(Customer)
-@arguments(customer_or_id=(int, long, Customer), order_number=unicode, confirm=bool, delete_service=bool,
-           charge_id=(int, long))
-def cancel_order(customer_or_id, order_number, confirm=False, delete_service=False, charge_id=None):
-    def trans():
-        logging.info('Canceling order %s', order_number)
-        service_deleted = False
-        to_put = list()
-        if isinstance(customer_or_id, Customer):
-            customer = customer_or_id
-            order = db.get(Order.create_key(customer_or_id.id, order_number))
-        else:
-            customer_id = customer_or_id
-            customer, order = db.get((Customer.create_key(customer_id),
-                                      Order.create_key(customer_id, order_number)))  # type: Customer, Order
-
-        if order.status == Order.STATUS_CANCELED:
-            raise OrderAlreadyCanceledException(order)
-        if delete_service and order.is_subscription_order and customer.service_email:
-            if confirm:
-                delete_solution(users.User(customer.service_email), True)
-                service_deleted = True
-            else:
-                raise BusinessException(
-                    "confirm:This will delete the associated application of " + customer.user_email + ". Are you sure you want to continue?")
-
-        order_items = order.list_items()
-        if order.status == Order.STATUS_SIGNED:
-            if charge_id:
-                charge = Charge.get(Charge.create_key(charge_id, order_number, customer.id))
-                if not charge:
-                    raise BusinessException('Charge with id %s not found' % charge_id)
-                if charge.status == Charge.STATUS_EXECUTED:
-                    raise BusinessException(
-                        'Charge with id %s has already been executed so it cannot be canceled' % charge_id)
-                if charge.invoice_number != '':
-                    raise BusinessException(
-                        'Charge with id %s already has an invoice so it cannot be canceled' % charge_id)
-                charge.status = Charge.STATUS_CANCELLED
-                charge.date_cancelled = now()
-                to_put.append(charge)
-            else:
-                for charge in Charge.all().ancestor(order).filter("status =", Charge.STATUS_PENDING):
-                    charge.status = Charge.STATUS_CANCELLED
-                    charge.date_cancelled = now()
-                    to_put.append(charge)
-            if not order.is_subscription_order:
-                extra_months = 0
-                products = {p.code: p for p in db.get([Product.create_key(i.product_code) for i in order_items])}
-                for item in order_items:
-                    product = products[item.product_code]
-                    if not product.is_subscription and product.extra_subscription_months > 0:
-                        extra_months += product.extra_subscription_months
-
-                if extra_months > 0:
-                    logging.info('Substracting %d months from %s\'s subscription' % (extra_months, customer.name))
-                    sub_order = Order.get_by_order_number(customer.id, customer.subscription_order_number)
-                    next_charge_datetime = datetime.datetime.utcfromtimestamp(
-                        sub_order.next_charge_date) - relativedelta(
-                        months=extra_months)
-                    sub_order.next_charge_date = get_epoch_from_datetime(next_charge_datetime)
-                    to_put.append(sub_order)
-
-        order.status = Order.STATUS_CANCELED
-        order.date_canceled = now()
-        to_put.append(order)
-        if order.is_subscription_order:
-            if service_deleted:
-                customer.service_email = None
-                customer.user_email = None
-                customer.app_ids = []
-            customer.subscription_order_number = None
-            to_put.append(customer)
-        db.put(to_put)
-        return customer
-
-    return run_in_transaction(trans, xg=True)
-
-
 @arguments(charge=Charge)
 def generate_transfer_document_image(charge):
     from PIL import Image  # @Reimport
@@ -1478,63 +1246,31 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
 
 def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, pro_forma=False,
                                   payment_note=None, payment_type=None, charge=None):
-    order_item_qry = OrderItem.all().ancestor(order)
+    order_items = OrderItem.all().ancestor(order).fetch(None)
+    products_to_get = [i.product_code for i in order_items]
     recurrent = charge and charge.is_recurrent
     if invoice or pro_forma:
         path = 'invoice_pdf.html'
     else:
         path = 'order_pdf.html'
 
-    products = Product.get_products_dict()
-    order_items = []  # type: list[OrderItem]
-    for item in order_item_qry:
+    pdf_order_items = []  # type: list[OrderItem]
+    if recurrent and charge.subscription_extension_order_item_keys:
+        recurrent_order_items = db.get(charge.subscription_extension_order_item_keys)
+        products_to_get.extend([i.product_code for i in recurrent_order_items])
+        pdf_order_items.extend(recurrent_order_items)
+    products = {product.code: product for product in db.get([Product.create_key(code) for code in products_to_get])}
+    for item in order_items:
         if recurrent:
             product = products[item.product_code]
             if product.is_subscription or product.is_subscription_discount or product.is_subscription_extension:
-                order_items.append(item)
+                pdf_order_items.append(item)
         else:  # new order
-            order_items.append(item)
+            pdf_order_items.append(item)
 
-    if recurrent and charge.subscription_extension_order_item_keys:
-        recurrent_order_items = db.get(charge.subscription_extension_order_item_keys)
-        order_items.extend(recurrent_order_items)
-
-    for item in order_items:
-        item.product_description = products[item.product_code].description(customer.language).replace('\n', '<br />')
-        item.product_comment = item.comment or products[item.product_code].default_comment(customer.language) \
-            .replace('\n', '<br />')
-
-    if customer.language in LOGO_LANGUAGES:
-        logo_path = 'html/img/osa_white_%s_250.jpg' % customer.language
-    else:
-        logo_path = 'html/img/osa_white_en_250.jpg'
-
-    solution_server_settings = get_solution_server_settings()
-
-    variables = {
-        "customer": customer,
-        'language': customer.language,
-        "charge": charge,
-        "invoice": invoice,
-        "order": order,
-        "payment_note": payment_note,
-        "payment_type": payment_type,
-        "order_items": sorted(order_items, key=lambda x: x.number),
-        "recurrent": recurrent,
-        'tos_link': '<a href="%s">%s</a>' % (solution_server_settings.shop_privacy_policy_url,
-                                             solution_server_settings.shop_privacy_policy_url),
-        'logo_path': logo_path
-    }
-    source_html = SHOP_JINJA_ENVIRONMENT.get_template(path).render(variables)
-    # Monkey patch problem in PIL
-    orig_to_bytes = getattr(Image, "tobytes", None)
-    try:
-        if orig_to_bytes is None:
-            Image.tobytes = Image.tostring
-        pisa.CreatePDF(src=source_html, dest=output_stream, path=SHOP_TEMPLATES_FOLDER)
-    finally:
-        if orig_to_bytes is None:
-            delattr(Image, "tobytes")
+    legal_entity, contact = db.get((customer.team.legal_entity_key, order.contact_key))
+    _generate_order_or_invoice_pdf(charge, customer, invoice, order, pdf_order_items, output_stream, path, payment_note,
+                                   payment_type, products, recurrent, legal_entity, contact)
 
 
 @returns(tuple)
@@ -2383,26 +2119,6 @@ def export_customers_csv(google_user):
             break
         logging.debug('Fetched %s customers', len(customers))
         qry.with_cursor(qry.cursor())
-        si_stats_keys = list()
-
-        for customer in customers:
-            if customer.service_email:
-                service_user = users.User(email=customer.service_email)
-                service_identity_user = create_service_identity_user(service_user)
-                si_stats_keys.append(ServiceIdentityStatistic.create_key(service_identity_user))
-            else:
-                si_stats_keys.append(None)
-
-        total_users = []
-        # get the ServiceIdentityStatistics in chunks of 50 because these objects can be big
-        for chunk in chunks(si_stats_keys, 50):
-            total_users += [si_stat.number_of_users if si_stat else 0
-                            for si_stat in db.get(filter(None, chunk))]
-        for i, key in enumerate(si_stats_keys):
-            if not key:
-                total_users.insert(i, 0)
-
-        i = 0
         for customer in customers:
             d = OrderedDict()
             d['Email'] = customer.user_email
@@ -2413,7 +2129,6 @@ def export_customers_csv(google_user):
                 d[p] = getattr(customer, p)
             d['Subscription type'] = Customer.SUBSCRIPTION_TYPES[customer.subscription_type]
             d['Has terminal'] = u'Yes' if customer.has_loyalty else u'No'
-            d['Total users'] = total_users[i]
             d['Telephone'] = phone_numbers.get(customer.id, u'')
             result.append(d)
             if len(customer.app_ids) != 0:
@@ -2421,17 +2136,15 @@ def export_customers_csv(google_user):
             else:
                 d['App'] = ''
             d['Language'] = customer.language
-            d['Email Consent URL'] = get_customer_email_consent_url(customer)
 
             for p, v in d.items():
                 if v and isinstance(v, unicode):
                     d[p] = v.encode('utf-8')
-            i += 1
 
     result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'Total users', 'Has credit card', 'App', 'Language', 'Email Consent URL']
+                  'Subscription type', 'Has terminal', 'Has credit card', 'App', 'Language']
 
     date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
     gcs_path = '/%s/customers/export-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
@@ -2484,6 +2197,7 @@ def post_app_broadcast(service, app_ids, message, tester=None):
 
 def create_customer_service_to(name, address1, address2, city, zip_code, email, language, currency, phone_number,
                                organization_type, app_id, broadcast_types, modules):
+    # type: (str, str, str, str, str, str, str, str, str, int, str, list[str], list[str]) -> CustomerServiceTO
     service = CustomerServiceTO()
 
     service.name = name
@@ -2629,7 +2343,7 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     msg_params = {'if_name': customer_signup.customer_name, 'if_email': customer_signup.customer_email}
     send_inbox_forwarders_message(service_user, ServiceIdentity.DEFAULT, app_user, summary, msg_params,
                                   message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled,
-                                  answers=answers, flags=Message.FLAG_SHARED_MEMBERS | Message.FLAG_ALLOW_DISMISS)
+                                  answers=answers, flags=Message.FLAG_SHARED_MEMBERS)
 
     send_signup_update_messages(sln_settings, message)
     return message.solution_inbox_message_key
@@ -2706,6 +2420,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
             raise BusinessException(message)
 
     signup.timestamp = now()
+    signup.language = customer.language
     signup.put()
     send_signup_verification_email(city_customer, signup, domain)
     # Save accepted terms of use in a separate modal so we can save it to the ServiceProfile later
@@ -3012,7 +2727,7 @@ def import_customer(
         put_customer_service(
             customer, service, skip_module_check=True, search_enabled=False,
             skip_email_check=True, rollback=is_new_service)
-    except Exception as e:
+    except:
         # TODO: show an error or send message cannot import customer
         logging.error(
             'Cannot create a service for imported customer %s (%s)', name, email, exc_info=True)

@@ -16,35 +16,36 @@
 # @@license_version:1.3@@
 
 import base64
-from cgi import FieldStorage
-from collections import namedtuple
 import csv
-from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-from types import NoneType
 import urllib
+from cgi import FieldStorage
+from collections import namedtuple
+from datetime import date, timedelta
+from types import NoneType
 
-from PIL.Image import Image  # @UnresolvedImport
-from PyPDF2.merger import PdfFileMerger
-from babel import Locale
-from babel.dates import format_date, format_datetime
-from googleapiclient.discovery import build
-from oauth2client.client import HttpAccessTokenRefreshError
-from xhtml2pdf import pisa
-
-from add_1_monkey_patches import DEBUG, APPSCALE
+import webapp2
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+
+from PIL.Image import Image  # @UnresolvedImport
+from PyPDF2.merger import PdfFileMerger
+from add_1_monkey_patches import DEBUG, APPSCALE
+from babel import Locale
+from babel.dates import format_date, format_datetime
+from googleapiclient.discovery import build
 from mcfw.cache import cached
-from mcfw.consts import MISSING
+from mcfw.consts import MISSING, REST_FLAVOR_TO
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
@@ -69,23 +70,24 @@ from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed, allow_transaction_propagation
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import search_customer, create_or_update_customer, \
-    audit_log, generate_order_or_invoice_pdf, generate_transfer_document_image, TROPO_SESSIONS_URL, \
+    generate_order_or_invoice_pdf, generate_transfer_document_image, TROPO_SESSIONS_URL, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
-    put_prospect, put_regio_manager, is_admin, is_payment_admin, dict_str_for_audit_log, link_prospect_to_customer, \
+    put_prospect, put_regio_manager, link_prospect_to_customer, \
     list_history_tasks, put_hint, delete_hint, \
     get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, put_surrounding_apps, \
     create_contact, create_order, export_customers_csv, put_service, update_contact, put_regio_manager_team, \
-    user_has_permissions_to_team, get_regiomanagers_by_app_id, delete_contact, cancel_order, \
-    finish_on_site_payment, send_payment_info, manual_payment, post_app_broadcast, shopOauthDecorator, \
-    regio_manager_has_permissions_to_team, get_customer_charges, is_team_admin, user_has_permissions_to_question, \
-    put_app_signup_enabled, sign_order, import_customer
+    get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
+    post_app_broadcast, shopOauthDecorator, get_customer_charges, put_app_signup_enabled, sign_order, import_customer
+from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
 from shop.business.i18n import shop_translate, get_languages
 from shop.business.legal_entities import put_legal_entity
 from shop.business.order import get_customer_subscription_length, cancel_subscription, get_subscription_order, \
-    set_next_charge_date
+    set_next_charge_date, list_quotations, cancel_order, create_quotation
+from shop.business.permissions import is_admin, is_payment_admin, is_team_admin, user_has_permissions_to_team, \
+    regio_manager_has_permissions_to_team, user_has_permissions_to_question
 from shop.business.product import list_products
 from shop.business.prospect import search_prospects, generate_prospect_export_excel
 from shop.business.qr import generate_unassigned_qr_codes_zip_for_app
@@ -104,16 +106,17 @@ from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge
     ProspectRejectionReason, ShopTask, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
     ExpiredSubscription, LegalEntity
 from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServiceTO, CustomerReturnStatusTO, \
-    ContactReturnStatusTO, CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
-    CityBoundsReturnStatusTO, ShopAppTO, PointTO, ProspectsMapTO, TaskListTO, ProspectDetailsTO, ProspectReturnStatusTO, \
-    RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, OrderAndInvoiceTO, \
-    RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, TaskTO, ProductTO, RegioManagerTeamTO, \
+    CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
+    CityBoundsReturnStatusTO, CreateQuotationTO, ShopAppTO, PointTO, ProspectsMapTO, TaskListTO, ProspectDetailsTO, \
+    ProspectReturnStatusTO, RegioManagerReturnStatusTO, RegioManagerTeamsTO, AppRightsTO, ModulesReturnStatusTO, \
+    OrderAndInvoiceTO, RegioManagerStatisticTO, ProspectHistoryTO, SimpleAppTO, TaskTO, ProductTO, RegioManagerTeamTO, \
     ProspectTO, RegioManagerTO, SubscriptionLengthReturnStatusTO, OrderReturnStatusTO, LegalEntityTO, \
-    LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO
+    LegalEntityReturnStatusTO, CustomerChargesTO, ImportCustomersReturnStatusTO, QuotationTO
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
+from solutions.common.bizz.joyn import _add_joyn_module
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
@@ -122,15 +125,14 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
-from solutions.common.models.joyn import JoynMerchantMatches, JoynMerchantMatch
+from solutions.common.models.joyn import JoynMerchantMatches, JoynMerchantMatchStatus
 from solutions.common.models.loyalty import JoynReferral
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
-import webapp2
-
+from xhtml2pdf import pisa
 
 try:
     from cStringIO import StringIO
@@ -223,8 +225,8 @@ def get_shop_context(**kwargs):
     # These are the variables used in base.html
     js_templates = kwargs.pop('js_templates', dict())
     if 'prospect_comment' not in js_templates:
-        js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history',
-                                                 'new_order_list']))
+        js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history']))
+    js_templates.update(render_js_templates(['customer_popup'], is_folders=True))
     locale = Locale.parse(DEFAULT_LANGUAGE)
     currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
     ctx = dict(stripePublicKey=solution_server_settings.stripe_public_key,
@@ -259,13 +261,14 @@ def get_shop_context(**kwargs):
 
 
 def render_js_templates(tmpl_names, is_folders=False):
-    templates = dict()
+    templates = {}
     if is_folders:
         for folder in tmpl_names:
             path = os.path.join(os.path.dirname(__file__), 'templates', 'js', folder)
             for template_file in os.listdir(path):
                 with open(os.path.join(path, template_file)) as f:
-                    templates[template_file.replace('.html', '').replace('.tmpl', '')] = f.read()
+                    key = '%s/%s' % (folder, template_file.replace('.html', '').replace('.tmpl', ''))
+                    templates[key] = f.read()
     else:
         for tmpl in tmpl_names:
             with open(os.path.join(os.path.dirname(__file__), 'templates', 'js', '%s.html' % tmpl)) as f:
@@ -736,7 +739,7 @@ class JoynMerchantMatchesHandler(BizzManagerHandler):
 
     def get(self):
         azzert(is_admin(gusers.get_current_user()))
-        matches = JoynMerchantMatches.query().fetch(None)
+        matches = JoynMerchantMatches.list_new().fetch(None)
         context = get_shop_context(matches=matches, total_matches=len(matches))
         path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_merchant_matches.html')
         self.response.write(template.render(path, context))
@@ -745,9 +748,8 @@ class JoynMerchantMatchesHandler(BizzManagerHandler):
         azzert(is_admin(gusers.get_current_user()))
         joyn_merchant_id = self.request.get("joyn_merchant_id")
         customer_id = self.request.get("customer_id")
-        service = self.request.get("service")
         logging.debug('joyn merchant %s connected to %s', joyn_merchant_id, customer_id)
-        if not (joyn_merchant_id and customer_id and service):
+        if not (joyn_merchant_id and customer_id):
             self.abort(400)
             return
         joyn_merchant_id = long(joyn_merchant_id)
@@ -758,17 +760,13 @@ class JoynMerchantMatchesHandler(BizzManagerHandler):
         if not match:
             self.abort(400)
             return
+        match.customer_id = customer_id
+        match.status = JoynMerchantMatchStatus.MATCHED
+        match.put()
 
-        connect_key = JoynMerchantMatch.create_key(joyn_merchant_id)
-        JoynMerchantMatch(
-            key=connect_key,
-            customer_id=customer_id,
-            service=service
-        ).put()
-        match_key.delete()
-
+        deferred.defer(_add_joyn_module, customer_id)
         import time
-        time.sleep(1)  # dirty but otherwise list shows old items
+        time.sleep(1)  # Ensure datastore consistency
         self.redirect('/internal/shop/joyn_merchant_matches')
 
 
@@ -784,8 +782,8 @@ class JoynMerchantMatchesDeleteHandler(BizzManagerHandler):
 
         match_key = JoynMerchantMatches.create_key(joyn_merchant_id)
         match = match_key.get()
-        if match:
-            match_key.delete()
+        match.status = JoynMerchantMatchStatus.REMOVED
+        match.put()
 
         import time
         time.sleep(1)  # dirty but otherwise list shows old items
@@ -822,20 +820,10 @@ class LegalEntityHandler(BizzManagerHandler):
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
             self.abort(403)
-        solution_server_settings = get_solution_server_settings()
         path = os.path.join(os.path.dirname(__file__), 'html', 'legal_entities.html')
         js_templates = render_js_templates(['legal_entities'], True)
-        terms_of_use_translated = dict()
-        tos_link = '<a href="%s">%s</a>' % (solution_server_settings.shop_privacy_policy_url,
-                                            solution_server_settings.shop_privacy_policy_url)
-
-        for language in get_languages():
-            terms_of_use_translated[language] = shop_translate(language, 'tos_15', tos_link=tos_link) \
-                .replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t') \
-                .replace("'", "\\'").replace('"', '\\"').replace('15. ', '')
         self.response.out.write(template.render(path, get_shop_context(
-            js_templates=js_templates,
-            TERMS_OF_USE=json.dumps(terms_of_use_translated))))
+            js_templates=js_templates)))
 
 
 @rest('/internal/shop/rest/legal_entity/list', 'get')
@@ -854,7 +842,7 @@ def rest_put_legal_entity(entity):
         entity = put_legal_entity(entity.id if entity.id is not MISSING else None, entity.name, entity.address,
                                   entity.postal_code, entity.city, entity.country_code, entity.phone,
                                   entity.email, entity.vat_percent, entity.vat_number, entity.currency_code, entity.iban,
-                                  entity.bic, entity.terms_of_use, entity.revenue_percentage)
+                                  entity.bic, entity.revenue_percentage)
         return LegalEntityReturnStatusTO.create(True, None, entity)
     except BusinessException as exception:
         return LegalEntityReturnStatusTO.create(False, exception)
@@ -1615,47 +1603,66 @@ def rest_link_stripe_to_customer(customer_id, stripe_token, stripe_token_created
         return exception.message
 
 
-@rest("/internal/shop/rest/contact/new", "post")
-@returns(ContactReturnStatusTO)
-@arguments(customer_id=(int, long), first_name=unicode, last_name=unicode, email_address=unicode,
-           phone_number=unicode)
-def new_contact(customer_id, first_name, last_name, email_address, phone_number):
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts', 'post', flavor=REST_FLAVOR_TO)
+@returns(ContactTO)
+@arguments(customer_id=(int, long), data=ContactTO)
+def new_contact(customer_id, data):
+    # type: (long, ContactTO) -> ContactTO
     try:
-        contact = create_contact(customer_id, first_name, last_name, email_address, phone_number)
-        return ContactReturnStatusTO.create(contact=ContactTO.fromContactModel(contact))
-    except BusinessException as ex:
-        return ContactReturnStatusTO.create(False, ex)
+        contact = create_contact(customer_id, data.first_name, data.last_name, data.email, data.phone_number)
+        return ContactTO.fromContactModel(contact)
+    except BusinessException as e:
+        raise HttpBadRequestException(e.message)
 
 
-@rest("/internal/shop/rest/contact/update", "post")
-@returns(ContactReturnStatusTO)
-@arguments(customer_id=(int, long), contact_id=(int, long), first_name=unicode, last_name=unicode, email_address=unicode,
-           phone_number=unicode)
-def save_contact(customer_id, contact_id, first_name, last_name, email_address, phone_number):
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts/<contact_id:[^/]+>', 'put', flavor=REST_FLAVOR_TO)
+@returns(ContactTO)
+@arguments(customer_id=(int, long), contact_id=(int, long), data=ContactTO)
+def save_contact(customer_id, contact_id, data):
+    # type: (long, long, ContactTO) -> ContactTO
     try:
-        contact = update_contact(customer_id, contact_id, first_name, last_name, email_address, phone_number)
-        return ContactReturnStatusTO.create(contact=ContactTO.fromContactModel(contact))
-    except BusinessException, ex:
-        return ContactReturnStatusTO.create(False, ex)
+        contact = update_contact(customer_id, contact_id, data.first_name, data.last_name, data.email,
+                                 data.phone_number)
+        return ContactTO.fromContactModel(contact)
+    except BusinessException as e:
+        raise HttpBadRequestException(e.message)
 
 
-@rest("/internal/shop/rest/contact/delete", "post")
-@returns(ReturnStatusTO)
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts/<contact_id:[^/]+>', 'delete')
+@returns()
 @arguments(customer_id=(int, long), contact_id=(int, long))
 def delete_contact_rest(customer_id, contact_id):
     try:
         delete_contact(customer_id, contact_id)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, ex:
-        return ReturnStatusTO.create(False, ex)
+    except BusinessException as e:
+        raise HttpBadRequestException(e.message)
 
 
-@rest("/internal/shop/rest/contact/find", "get")
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts', 'get')
 @returns([ContactTO])
 @arguments(customer_id=(int, long))
 def list_contacts(customer_id):
-    audit_log(customer_id, u"Listing contacts")
     return [ContactTO.fromContactModel(c) for c in Contact.list(Customer.create_key(customer_id))]
+
+
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/quotations', 'get')
+@returns([QuotationTO])
+@arguments(customer_id=(int, long))
+def rest_list_quotations(customer_id):
+    base_url = get_server_settings().baseUrl
+    return [QuotationTO.from_model(model, customer_id, base_url) for model in list_quotations(customer_id)]
+
+
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/quotations', 'post', flavor=REST_FLAVOR_TO)
+@returns(QuotationTO)
+@arguments(customer_id=(int, long), data=CreateQuotationTO)
+def rest_create_quotation(customer_id, data):
+    base_url = get_server_settings().baseUrl
+    try:
+        quotation = create_quotation(customer_id, data, gusers.get_current_user())
+        return QuotationTO.from_model(quotation, customer_id, base_url)
+    except BusinessException as e:
+        raise HttpBadRequestException(e.message)
 
 
 @rest("/internal/shop/rest/customer/get_default_modules", "get")
@@ -2367,7 +2374,7 @@ def set_surrounding_apps(app):
     return RETURNSTATUS_TO_SUCCESS
 
 
-@rest("/internal/shop/rest/product/translations", "get", silent_result=True)
+@rest('/internal/shop/rest/products', 'get', silent_result=True, flavor=REST_FLAVOR_TO)
 @returns([ProductTO])
 @arguments(language=unicode)
 def get_product_translations(language):

@@ -28,9 +28,9 @@ from solutions.common.consts import CURRENCIES
 @returns(LegalEntity)
 @arguments(entity_id=(int, long, NoneType), name=unicode, address=unicode, postal_code=unicode, city=unicode,
            country_code=unicode, phone=unicode, email=unicode, vat_percent=(int, long), vat_number=unicode,
-           currency_code=unicode, iban=unicode, bic=unicode, terms_of_use=unicode, revenue_percentage=(int, long))
+           currency_code=unicode, iban=unicode, bic=unicode, revenue_percentage=(int, long))
 def put_legal_entity(entity_id, name, address, postal_code, city, country_code, phone, email, vat_percent, vat_number,
-                     currency_code, iban, bic, terms_of_use, revenue_percentage):
+                     currency_code, iban, bic, revenue_percentage):
     fx_arguments = locals()
     for k, v in fx_arguments.items():
         if not v and k and k != 'entity_id':
@@ -57,7 +57,8 @@ def put_legal_entity(entity_id, name, address, postal_code, city, country_code, 
 def get_vat_pct(customer, team=None):
     team = team or RegioManagerTeam.get_by_id(customer.team_id)
     if team.id != customer.team_id:
-        raise BusinessException('Invalid team specified to get_vat_pct, got %d, expected %d' % (team.id, customer.team_id))
+        raise BusinessException('Invalid team specified to get_vat_pct, got %d, expected %d' %
+                                (team.id, customer.team_id))
     if customer.should_pay_vat:
         return team.legal_entity.vat_percent
     return 0

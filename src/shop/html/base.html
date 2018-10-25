@@ -394,7 +394,7 @@ var CommonTranslations = {
             <h3>Order item</h3>
         </div>
         <div class="modal-body">
-            <form>
+            <form id="form_order_item">
                 <fieldset>
                     <div class="alert alert-error" id="order_item_error">
                         <strong>Error!</strong> <span></span>
@@ -421,11 +421,12 @@ var CommonTranslations = {
     <div id="extra-content"></div>
 
 <script src="/static/bootstrap/datepicker/js/bootstrap-datepicker.js"></script>
-    <script src="/static/js/shop/signature_pad.min.js"></script>
-    <script type="text/javascript" src="/static/js/shop/shop.js"></script>
-    <script type="text/javascript" src="/static/js/shop/create_service.js"></script>
-    <script src="/static/js/shop/new_order.js"></script>
-    <script type="text/javascript" src="/static/js/shop/prospects.js"></script>
+<script src="/static/js/shop/signature_pad.min.js"></script>
+<script type="text/javascript" src="/static/js/shop/shop-requests.js"></script>
+<script type="text/javascript" src="/static/js/shop/shop.js"></script>
+<script src="/static/js/shop/order_item_list.js"></script>
+<script type="text/javascript" src="/static/js/shop/create_service.js"></script>
+<script type="text/javascript" src="/static/js/shop/prospects.js"></script>
     {% block custom_javascript %}&nbsp;{% endblock %}
 </body>
 </html>

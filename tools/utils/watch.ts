@@ -24,6 +24,7 @@ export function watch() {
   const debouncedClean = debounce(cleanEmptyFolders, 200);
   return function () {
     let paths: string[] = [
+      '!' + config.BUILD_ROOT,
       ...config.SOURCE_ROOTS.map(root => join(root, '**')),
       ...config.TEMP_FILES.map(temp => '!' + temp) ];
 
@@ -41,7 +42,7 @@ export function watch() {
               await copy(e.path, buildFolderPath);
               gutil.log(gutil.colors.green(`Created file ${buildFolderPath}`));
             } catch (e) {
-              gutil.log(gutil.colors.redBright(`Could not copy file ${e.path}: ` + e.message));
+              gutil.log(gutil.colors.blue(`Could not copy file ${e.path}: ` + e.message));
             }
             break;
           case 'unlink':
@@ -57,7 +58,7 @@ export function watch() {
               await copy(e.path, buildFolderPath);
               gutil.log(gutil.colors.yellow(`Updated file ${buildFolderPath}`));
             } catch (e) {
-              gutil.log(gutil.colors.redBright(`Could not copy file ${e.path}: ` + e.message));
+              gutil.log(gutil.colors.blue(`Could not copy file ${e.path}: ` + e.message));
             }
             break;
         }

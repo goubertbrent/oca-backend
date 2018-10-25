@@ -84,7 +84,7 @@ from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
-    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu
+    SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
 from solutions.common.models.cityapp import CityAppProfile
@@ -402,6 +402,8 @@ def populate_identity(sln_settings, main_branding_key):
             sln_settings.service_user, sln_settings.main_language)
         content_branding_hash = solution_loyalty_settings.branding_key
 
+    branding_settings = SolutionBrandingSettings.get_by_user(sln_settings.service_user)
+
     logging.info('Updating identities')  # idempotent
     identities = [None]
     if sln_settings.identities:
@@ -434,7 +436,7 @@ def populate_identity(sln_settings, main_branding_key):
         identity.menu_branding = main_branding_key
         identity.phone_number = sln_i_settings.phone_number
         identity.phone_number_use_default = False
-        identity.recommend_enabled = True
+        identity.recommend_enabled = branding_settings.recommend_enabled if branding_settings else False
         identity.search_config.enabled = sln_settings.search_enabled
         identity.search_config.keywords = sln_i_settings.search_keywords
         identity.search_config.locations = search_config_locations
@@ -700,6 +702,9 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
     if not sln_settings.activated_modules:
         sln_settings.activated_modules = ActivatedModules()
 
+    branding_settings = SolutionBrandingSettings.get_by_user(sln_settings.service_user)
+    fall_through = branding_settings.left_align_icons if branding_settings else False
+
     service_menu = system.get_menu()
     for provisioned_module in sln_settings.provisioned_modules:
         if provisioned_module not in sln_settings.modules:
@@ -811,10 +816,11 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
         args = [ssmi.icon_name, ssmi.label, ssmi.tag, coords, ssmi.icon_color, ssmi.screen_branding, ssmi.static_flow,
                 ssmi.requires_wifi, ssmi.run_in_background, ssmi.is_broadcast_settings, ssmi.broadcast_branding,
                 ssmi.roles, ssmi.action, ssmi.link]
+        kwargs = dict(fall_through=fall_through)
         if db.is_in_transaction():
-            on_trans_committed(system.put_menu_item, *args)
+            on_trans_committed(system.put_menu_item, *args, **kwargs)
         else:
-            system.put_menu_item(*args)
+            system.put_menu_item(*args, **kwargs)
 
         if coords not in all_taken_coords:
             all_taken_coords.append(coords)
@@ -1068,16 +1074,22 @@ def put_appointment(sln_settings, current_coords, main_branding, default_lang, t
 def put_ask_question(sln_settings, current_coords, main_branding, default_lang, tag):
     logging.info('Creating ASK QUESTION message flow')
 
+    first_flow_message, menu_label = SolutionModuleAppText.get_text(
+        sln_settings.service_user, SolutionModule.ASK_QUESTION,
+        SolutionModuleAppText.FIRST_FLOW_MESSAGE, SolutionModuleAppText.MENU_ITEM_LABEL
+    )
+
     flow_params = dict(branding_key=main_branding.branding_key,
                        language=default_lang,
                        settings=sln_settings,
-                       SolutionModule=SolutionModule)
+                       SolutionModule=SolutionModule,
+                       custom_message=first_flow_message)
+
     flow = JINJA_ENVIRONMENT.get_template('flows/ask_question.xml').render(flow_params)
     ask_question_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
-
     ssmi = SolutionServiceMenuItem(u'fa-comments-o',
                                    sln_settings.menu_item_color,
-                                   common_translate(default_lang, SOLUTION_COMMON, 'ask-question'),
+                                   menu_label or common_translate(default_lang, SOLUTION_COMMON, 'ask-question'),
                                    tag,
                                    static_flow=ask_question_flow.identifier,
                                    action=SolutionModule.action_order(SolutionModule.ASK_QUESTION))
@@ -1357,7 +1369,7 @@ def put_menu_item_image_upload_flow(main_branding_key, language):
     system.put_flow(menu_item_image_flow.encode('utf-8'), multilanguage=False)
 
 
-def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, lang):
+def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, lang, custom_message):
     payment_enabled = False
     identities = [None]
     if sln_settings.identities:
@@ -1520,6 +1532,7 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         payment_enabled=payment_enabled,
         min_amount_for_fee_message=min_amount_for_fee_message,
         flow_name=ORDER_FLOW_NAME,
+        custom_message=custom_message
     )
     flow = JINJA_ENVIRONMENT.get_template('flows/advanced_order.xml').render(flow_params)
     return system.put_flow(flow.encode('utf-8'), multilanguage=False).identifier
@@ -1533,17 +1546,24 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
     sln_order_settings = get_solution_order_settings(sln_settings)
     order_type = sln_order_settings.order_type
 
+    first_flow_message, menu_label = SolutionModuleAppText.get_text(
+        sln_settings.service_user, SolutionModule.ORDER,
+        SolutionModuleAppText.FIRST_FLOW_MESSAGE, SolutionModuleAppText.MENU_ITEM_LABEL
+    )
+
     if order_type == ORDER_TYPE_SIMPLE:
         flow_params = dict(branding_key=main_branding.branding_key,
                            language=default_lang,
-                           text_1=sln_order_settings.text_1,
+                           text_1=first_flow_message or sln_order_settings.text_1,
                            manual_confirmation=sln_order_settings.manual_confirmation,
                            name=sln_settings.name,
-                           flow_name=ORDER_FLOW_NAME)
+                           flow_name=ORDER_FLOW_NAME,
+                           custom_text=first_flow_message)
         order_flow = JINJA_ENVIRONMENT.get_template('flows/order.xml').render(flow_params)
         static_flow_hash = system.put_flow(order_flow.encode('utf-8'), multilanguage=False).identifier
     elif order_type == ORDER_TYPE_ADVANCED:
-        static_flow_hash = _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, default_lang)
+        static_flow_hash = _put_advanced_order_flow(
+            sln_settings, sln_order_settings, main_branding, default_lang, first_flow_message)
         put_menu_item_image_upload_flow(main_branding.branding_key, default_lang)
     else:
         raise Exception('Invalid order type %s' % order_type)
@@ -1556,9 +1576,10 @@ def put_order(sln_settings, current_coords, main_branding, default_lang, tag):
         static_flow = static_flow_hash
     else:
         static_flow = None
+
     ssmi = SolutionServiceMenuItem(u'fa-shopping-basket',
                                    sln_settings.menu_item_color,
-                                   common_translate(default_lang, SOLUTION_COMMON, 'order'),
+                                   menu_label or common_translate(default_lang, SOLUTION_COMMON, 'order'),
                                    tag,
                                    static_flow=static_flow,
                                    action=SolutionModule.action_order(SolutionModule.ORDER))
@@ -1631,6 +1652,12 @@ def _configure_connect_qr_code(sln_settings, welcome_flow_identifier):
            default_lang=unicode, tag=unicode)
 def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
     logging.info('Creating REPAIR message flow')
+
+    first_flow_message, menu_label = SolutionModuleAppText.get_text(
+        sln_settings.service_user, SolutionModule.REPAIR,
+        SolutionModuleAppText.FIRST_FLOW_MESSAGE, SolutionModuleAppText.MENU_ITEM_LABEL
+    )
+
     text_1 = None
     sln_repair_settings = get_solution_repair_settings(sln_settings.service_user)
     if sln_repair_settings:
@@ -1639,6 +1666,7 @@ def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
     if not text_1:
         text_1 = common_translate(default_lang, SOLUTION_COMMON, 'repair-1')
 
+    text_1 = first_flow_message or text_1
     flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, text_1=text_1,
                        settings=sln_settings)
     flow = JINJA_ENVIRONMENT.get_template('flows/repair.xml').render(flow_params)
@@ -1647,7 +1675,7 @@ def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
     logging.info('Creating REPAIR menu item')
     ssmi = SolutionServiceMenuItem(u'fa-wrench',
                                    sln_settings.menu_item_color,
-                                   common_translate(default_lang, SOLUTION_COMMON, 'repair'),
+                                   menu_label or common_translate(default_lang, SOLUTION_COMMON, 'repair'),
                                    tag,
                                    static_flow=repair_flow.identifier,
                                    action=SolutionModule.action_order(SolutionModule.REPAIR))
@@ -1659,7 +1687,18 @@ def put_repair(sln_settings, current_coords, main_branding, default_lang, tag):
            default_lang=unicode, tag=unicode)
 def put_restaurant_reservation(sln_settings, current_coords, main_branding, default_lang, tag):
     logging.info('Creating RESERVE message flow')
-    flow_params = dict(branding_key=main_branding.branding_key, language=default_lang, name=sln_settings.name)
+
+    first_flow_message, menu_label = SolutionModuleAppText.get_text(
+        sln_settings.service_user, SolutionModule.RESTAURANT_RESERVATION,
+        SolutionModuleAppText.FIRST_FLOW_MESSAGE, SolutionModuleAppText.MENU_ITEM_LABEL
+    )
+
+    flow_params = dict(
+        branding_key=main_branding.branding_key,
+        language=default_lang,
+        name=sln_settings.name,
+        custom_message=first_flow_message)
+
     flow = JINJA_ENVIRONMENT.get_template('flows/reservation_part1.xml').render(flow_params)
     reserve_flow_part1 = system.put_flow(flow, multilanguage=False)
     flow = JINJA_ENVIRONMENT.get_template('flows/reservation_part2.xml').render(flow_params)
@@ -1687,7 +1726,7 @@ def put_restaurant_reservation(sln_settings, current_coords, main_branding, defa
 
     return [SolutionServiceMenuItem(u'fa-cutlery',
                                     sln_settings.menu_item_color,
-                                    common_translate(default_lang, SOLUTION_COMMON, 'reserve'),
+                                    menu_label or common_translate(default_lang, SOLUTION_COMMON, 'reserve'),
                                     POKE_TAG_RESERVE_PART1,
                                     static_flow=reserve_flow_part1.identifier,
                                     action=SolutionModule.action_order(SolutionModule.RESTAURANT_RESERVATION)),

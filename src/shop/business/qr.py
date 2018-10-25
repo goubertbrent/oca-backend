@@ -33,7 +33,7 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.settings import get_server_settings
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import send_mail
-from shop.bizz import is_admin
+from shop.business.permissions import is_admin
 from shop.exceptions import NoPermissionException, AppNotFoundException
 from solution_server_settings import get_solution_server_settings
 import xlwt

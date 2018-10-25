@@ -28,7 +28,8 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.transactions import run_in_xg_transaction
 from mcfw.rpc import arguments, returns
-from shop.bizz import create_task, is_admin
+from shop.bizz import create_task
+from shop.business.permissions import is_admin
 from shop.business.legal_entities import get_vat_pct
 from shop.business.service import set_service_enabled
 from shop.exceptions import NoPermissionException

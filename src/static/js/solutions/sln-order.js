@@ -300,6 +300,10 @@ $(function () {
             CommonTranslations.REPLY_TO_MORE_INFO.replace("%(username)s", order.sender_name),
             defaultMessage);
     };
+    
+    function capitalize(s) {
+        return s.charAt(0).toUpperCase() + s.substr(1);
+    }
 
     function orderViewPressed(orderKey) {
         Requests.getOrderSettings().then(function (orderSettings) {
@@ -316,6 +320,7 @@ $(function () {
                 CommonTranslations: CommonTranslations,
                 T: T,
                 formatHtml: sln.formatHtml,
+                transactionStatus: order.transaction ? T(capitalize(order.transaction.status)) : null
             });
             var modal = sln.createModal(html);
 
@@ -532,15 +537,11 @@ $(function () {
     }
 
     function renderPaymentSettings(paymentSettings, paymentProviders) {
-        var settings = paymentProviders.reduce(function (acc, provider) {
-            acc[provider.provider_id] = provider;
-            return acc;
-        }, {});
         var html = $.tmpl(templates['payments'], {
             payconiqHtml: templates['payconiq_nl'],
             paymentSettings: paymentSettings,
             paymentProviders: paymentProviders,
-            settings: settings,
+            settings: paymentProviders,
         });
         $('#section_settings_mobile_payments').html(html);
 
@@ -557,8 +558,16 @@ $(function () {
         sln.configureDelayedInput($("#payconicMerchantId"), savePayconiqSettings);
         sln.configureDelayedInput($("#payconiqAccessToken"), savePayconiqSettings);
         $('#payconiq_enabled').change(savePayconiqSettings);
-        sln.configureDelayedInput($("#threefold_address"), saveThreefoldSettings);
-        $('#threefold_enabled').change(saveThreefoldSettings);
+
+        var tfId = paymentProviders.filter(function(p){
+            return p.provider_id === 'threefold_testnet';
+        }).length === 1 ? 'threefold_testnet' : 'threefold';
+        function _saveTFSettings() {
+            return saveThreefoldSettings(tfId);
+        }
+
+        sln.configureDelayedInput($("#threefold_address"), _saveTFSettings);
+        $('#threefold_enabled').change(_saveTFSettings);
     }
 
     function savePaymentSettings() {
@@ -592,9 +601,9 @@ $(function () {
         });
     };
 
-    function saveThreefoldSettings() {
+    function saveThreefoldSettings(providerId) {
         var data = {
-            provider_id: 'threefold',
+            provider_id: providerId,
             enabled: $('#threefold_enabled').prop('checked'),
             settings: {
                 address: $("#threefold_address").val().trim(),
@@ -606,7 +615,7 @@ $(function () {
                 currency: 'TFT',
             }
         };
-        Requests.savePaymentProvider('threefold', data).then(function () {
+        Requests.savePaymentProvider(providerId, data).then(function () {
             loadPaymentSettings(true);
         });
     }

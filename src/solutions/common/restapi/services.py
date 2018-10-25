@@ -31,8 +31,9 @@ from rogerthat.service.api import system
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, \
     WarningReturnStatusTO
 from rogerthat.utils.channel import send_message_to_session
-from shop.bizz import create_customer_service_to, audit_log, dict_str_for_audit_log, search_customer, \
+from shop.bizz import create_customer_service_to, search_customer, \
     update_contact
+from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.order import cancel_subscription
 from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException, NotOperatingInCountryException, EmptyValueException, \
@@ -187,10 +188,11 @@ def get_service(service_email):
 @returns(WarningReturnStatusTO)
 @arguments(name=unicode, address1=unicode, address2=unicode, zip_code=unicode, city=unicode, user_email=unicode,
            telephone=unicode, language=unicode, customer_id=(int, long, NoneType), organization_type=(int, long),
-           vat=unicode, website=unicode, facebook_page=unicode, force=bool)
+           vat=unicode, modules=[unicode], broadcast_types=[unicode], website=unicode, facebook_page=unicode,
+           force=bool)
 def rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language,
                      customer_id=None, organization_type=OrganizationType.PROFIT, vat=None,
-                     website=None, facebook_page=None, force=False):
+                     modules=None, broadcast_types=None, website=None, facebook_page=None, force=False):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
@@ -206,8 +208,11 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     is_new_service = False
 
     try:
-        broadcast_types = get_allowed_broadcast_types(city_customer)
-        modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
+        if not broadcast_types:
+            broadcast_types = get_allowed_broadcast_types(city_customer)
+        if not modules:
+            modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
+
         service = create_customer_service_to(name, address1, address2, city, zip_code, user_email, language, city_sln_settings.currency,
                                              telephone, organization_type, city_customer.app_id, broadcast_types, modules)
         (customer, email_changed, is_new_service) \
@@ -315,11 +320,12 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
-    lang = city_sln_settings.main_language
+    city_language = city_sln_settings.main_language
+    signup_language = signup.language or city_sln_settings.main_language
 
     azzert(city_sln_settings.can_edit_services(city_customer))
     if not signup:
-        return WarningReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'signup_not_found'))
+        return WarningReturnStatusTO.create(False, translate(city_language, SOLUTION_COMMON, 'signup_not_found'))
 
     error_msg = warning_msg = None
     try:
@@ -331,38 +337,41 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
 
         _fill_signup_data(signup, 'email', 'telephone', 'website', 'facebook_page')
         modules = filter_modules(city_customer, modules, broadcast_types)
-        service = create_customer_service_to(signup.company_name, signup.company_address1, None, signup.company_city,
-                                             signup.company_zip_code, signup.company_email, lang, city_sln_settings.currency,
-                                             signup.company_telephone, signup.company_organization_type, city_customer.app_id,
-                                             broadcast_types, modules=modules)
-        customer = create_customer_with_service(city_customer, None, service, signup.company_name,
-                                                signup.customer_address1, None, signup.company_zip_code,
-                                                signup.company_city, lang, signup.company_organization_type,
-                                                signup.company_vat, signup.company_website,
-                                                signup.company_facebook_page, force=force)[0]
+
+        service = create_customer_service_to(
+            signup.company_name, signup.company_address1, None, signup.company_city,
+            signup.company_zip_code, signup.company_email, signup_language, city_sln_settings.currency,
+            signup.company_telephone, signup.company_organization_type, city_customer.app_id,
+            broadcast_types, modules=modules)
+
+        customer = create_customer_with_service(
+            city_customer, None, service, signup.company_name,
+            signup.customer_address1, None, signup.company_zip_code,
+            signup.company_city, signup_language, signup.company_organization_type,
+            signup.company_vat, signup.company_website, signup.company_facebook_page, force=force)[0]
 
         # update the contact, as it should be created by now
         _update_signup_contact(customer, signup)
 
     except EmptyValueException as ex:
-        val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
-        error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+        val_name = translate(city_language, SOLUTION_COMMON, ex.value_name)
+        error_msg = translate(city_language, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
     except ServiceNameTooBigException:
-        error_msg = translate(lang, SOLUTION_COMMON, 'name_cannot_be_bigger_than_n_characters', n=50)
+        error_msg = translate(city_language, SOLUTION_COMMON, 'name_cannot_be_bigger_than_n_characters', n=50)
     except DuplicateCustomerNameException as ex:
-        warning_msg = translate(lang, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
+        warning_msg = translate(city_language, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
     except NoPermissionException:
-        error_msg = translate(lang, SOLUTION_COMMON, 'no_permission')
+        error_msg = translate(city_language, SOLUTION_COMMON, 'no_permission')
     except InvalidEmailFormatException as ex:
-        error_msg = translate(lang, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
+        error_msg = translate(city_language, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
     except NotOperatingInCountryException as ex:
-        error_msg = translate(lang, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
+        error_msg = translate(city_language, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
     except BusinessException as ex:
         logging.debug('Failed to create service, BusinessException', exc_info=True)
         error_msg = ex.message
     except:
         logging.exception('Failed to create service')
-        error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
+        error_msg = translate(city_language, SOLUTION_COMMON, 'failed_to_create_service')
     finally:
         if error_msg:
             return WarningReturnStatusTO.create(False, error_msg)
@@ -374,11 +383,11 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
                                               skip_email_check=True, rollback=True)
                 deferred.defer(copy_accepted_terms_of_use, signup_key, users.User(result.login), _countdown=5)
             except EmptyValueException as ex:
-                val_name = translate(lang, SOLUTION_COMMON, ex.value_name)
-                error_msg = translate(lang, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+                val_name = translate(city_language, SOLUTION_COMMON, ex.value_name)
+                error_msg = translate(city_language, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
             except:
                 logging.exception('Could not save service service information')
-                error_msg = translate(lang, SOLUTION_COMMON, 'failed_to_create_service')
+                error_msg = translate(city_language, SOLUTION_COMMON, 'failed_to_create_service')
             finally:
                 if error_msg:
                     return WarningReturnStatusTO.create(False, error_msg)

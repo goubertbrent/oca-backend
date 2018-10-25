@@ -15,10 +15,12 @@
 #
 # @@license_version:1.3@@
 
+import webapp2
+
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop import view
-from shop.handlers import StaticFileHandler, GenerateQRCodesHandler, AppBroadcastHandler
+from shop.handlers import StaticFileHandler, GenerateQRCodesHandler, AppBroadcastHandler, QuotationHandler
 from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesHandler, QuestionsHandler, \
     QuestionsDetailHandler, InvoicePdfHandler, authorize_manager, FindProspectsHandler, ProspectsHandler, \
     HistoryTasksHandler, ProspectsUploadHandler, LoyaltySlidesHandler, UploadLoyaltySlideHandler, \
@@ -68,6 +70,7 @@ handlers = [
     ('/internal/shop/customers/generate-qr', GenerateQRCodesHandler),
     ('/internal/shop/customers/app-broadcast', AppBroadcastHandler),
     ('/internal/shop/customers/import', CustomersImportHandler),
+    webapp2.Route('/internal/shop/customers/<customer_id:\d+>/quotations/<quotation_id:\d+>', QuotationHandler),
     (shopOauthDecorator.callback_path, shopOauthDecorator.callback_handler())  # /shop/oauth2callback
 ]
 handlers.extend(rest_functions(restapi_overview))

@@ -81,24 +81,24 @@
             <td class="col1"><img src="{{ logo_path }}" width="200" height="200"/></td>
             <td class="col2">
                 <p>
-                    <b>{{ customer.legal_entity.name }}</b>
+                    <b>{{ legal_entity.name }}</b>
                 </p>
 
                 <p>
-                    {{ customer.legal_entity.address }}<br>
-                    {{ customer.legal_entity.postal_code }} {{ customer.legal_entity.city }}<br>
-                    {{ customer.legal_entity.country(language) }}<br>
+                    {{ legal_entity.address }}<br>
+                    {{ legal_entity.postal_code }} {{ legal_entity.city }}<br>
+                    {{ legal_entity.country(language) }}<br>
                 </p>
 
                 <p>
-                    {% shop_translate language, "telephone_abbr" %}: {{ customer.legal_entity.phone }}<br>
-                    {{ customer.legal_entity.email }}<br>
+                    {% shop_translate language, "telephone_abbr" %}: {{ legal_entity.phone }}<br>
+                    {{ legal_entity.email }}<br>
                 </p>
 
                 <p>
-                    {% shop_translate language, "vat" %}: {{ customer.legal_entity.vat_number }}<br>
-                    IBAN: {{ customer.legal_entity.iban }}<br>
-                    BIC: {{ customer.legal_entity.bic }}<br>
+                    {% shop_translate language, "vat" %}: {{ legal_entity.vat_number }}<br>
+                    IBAN: {{ legal_entity.iban }}<br>
+                    BIC: {{ legal_entity.bic }}<br>
                 </p>
             </td>
             <td class="col3">
@@ -106,7 +106,7 @@
 
                 <p>
                     {{ customer.name }}<br/>
-                    {{ order.contact.first_name }} {{ order.contact.last_name }}<br/>
+                    {{ contact.first_name }} {{ contact.last_name }}<br/>
                 </p>
 
                 <p>
@@ -119,8 +119,8 @@
                 </p>
 
                 <p>
-                    {% shop_translate language, "telephone_abbr" %}: {{ order.contact.phone_number }}<br>
-                    {{ order.contact.email }}<br>
+                    {% shop_translate language, "telephone_abbr" %}: {{ contact.phone_number }}<br>
+                    {{ contact.email }}<br>
                 </p>
 
                 <p>
@@ -136,10 +136,18 @@
     <table border="0" style="padding: 0.5em;">
         <tr>
             <td style="width:50%" align="left" class="clearfix">
-                <h1>{% shop_translate language, "order_number" %}: {{ order.order_number }}</h1>
+            {% if is_quotation %}
+                <h1>{% shop_translate language, "quotation_number" %}: {{ order.order_number }}</h1>
+            {% else %}
+                <h1>{% shop_translate language, "order_number"%}: {{ order.order_number }}</h1>
+            {% endif %}
             </td>
             <td style="width:50%" align="right" class="clearfix">
                 <b>{% shop_translate language, "date" %}: {{ order.date_str }}</b>
+                {% if is_quotation %}
+                <br/><br/>
+                {% shop_translate language, "quotation_note" %}
+                {% endif %}
             </td>
         </tr>
     </table>
@@ -159,21 +167,21 @@
             <td>
                 <p>{{ i.product_description }} </p>
                 <i>{% for line in i.product_comment.splitlines() %}{{line}}<br>{% endfor %}</i></td>
-            <td>{{ i.price_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            <td>{{ i.price_in_euro }} {{ legal_entity.currency_code }}</td>
             <td>{% if i.price == 0 %}&nbsp;{% else %}{{ i.count }}{% endif %}</td>
-            <td>{{ i.total_price_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            <td>{{ i.total_price_in_euro }} {{ legal_entity.currency_code }}</td>
         </tr>
         {% endfor %}
         {% if customer.should_pay_vat %}
             <tr class="text-bold">
                 <td colspan="4" align="right">{% shop_translate language, "total_excl_vat" %}</td>
-                <td>{{ order.amount_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+                <td>{{ order.amount_in_euro }} {{ legal_entity.currency_code }}</td>
             </tr>
         {% endif %}
         <tr class="text-bold">
             <td colspan="4" align="right">{% shop_translate language, "vat_percent" %} ({{ order.vat_pct }}%)</td>
             {% if customer.should_pay_vat %}
-                <td>{{ order.vat_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+                <td>{{ order.vat_in_euro }} {{ legal_entity.currency_code }}</td>
             {% else %}
                 <td>0 ({% shop_translate language, "export" %})</td>
             {% endif %}
@@ -182,7 +190,7 @@
             <td colspan="4" align="right">
                 {% shop_translate language, "total_incl_vat" if customer.should_pay_vat else "total" %}
             </td>
-            <td>{{ order.total_amount_in_euro }} {{ customer.legal_entity.currency_code }}</td>
+            <td>{{ order.total_amount_in_euro }} {{ legal_entity.currency_code }}</td>
         </tr>
     </table>
 </div>
@@ -192,26 +200,7 @@
 {% else %}
 <p style="width:530px; height:150px;">&nbsp;</p>
 {% endif %}
-<h1>{{ order.contact.first_name }} {{ order.contact.last_name }}</h1>
-
-<pdf:nextpage/>
-
-<div style="font-size: 7pt;">
-    <h3>{% shop_translate language, "terms_and_conditions" %}</h3>
-{% if customer.legal_entity.is_mobicage %}
-    {% for i in range(1, 18 if order.total_amount == 0 else 19) %}
-        {% if i == 15 %}
-    <p>{% shop_translate language, "tos_15", "tos_link=" + tos_link %}</p>
-        {% else %}
-    <p>{% shop_translate language, "tos_" + i|string %}</p>
-        {% endif %}
-    {% endfor %}
-{% else %}
-    {% for tos_line in customer.legal_entity.terms_of_use.splitlines() %}
-    <p>{{ tos_line }}</p>
-    {% endfor %}
-{% endif %}
-</div>
+<h1>{{ contact.first_name }} {{ contact.last_name }}</h1>
 
 </body>
 </html>

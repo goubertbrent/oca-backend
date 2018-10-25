@@ -1,3 +1,4 @@
+{{if orderItems.length}}
 <table class="table">
     <thead>
     <tr>
@@ -10,7 +11,7 @@
     </thead>
     <tbody>
     {{each(i, item) orderItems}}
-        <tr data-product-code="${item.product}">
+        <tr data-product-code="${item.product}" class="order-item-row">
             <td class="product_code">${item.product}</td>
             <td>
                 <span class="description">${item.description}</span><br>
@@ -23,7 +24,6 @@
     {{/each}}
     </tbody>
     <tfoot>
-    {{if orderItems.length}}
     <tr>
         <td colspan="4" class="right">Total VAT excl:</td>
         <td id="new_order_total_excl_vat" class="right">${legalEntity.currency} ${ order.total }</td>
@@ -37,8 +37,10 @@
         <td colspan="4" class="right">Total VAT incl:</td>
         <td id="new_order_total_incl_vat" class="right">${legalEntity.currency} ${ order.totalWithVat }</td>
     </tr>
-    {{else}}
-    <p><i>No products selected</i></p>
-    {{/if}}
     </tfoot>
 </table>
+{{else}}
+<p>
+    <i>No products selected</i>
+</p>
+{{/if}}
