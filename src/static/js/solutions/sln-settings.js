@@ -148,7 +148,7 @@ $(function () {
 
     function router(urlHash) {
         var page = urlHash[1];
-        if (['general', 'branding', 'broadcast', 'app', 'roles'].indexOf(page) === -1) {
+        if (['general', 'branding', 'broadcast', 'app', 'roles', 'app_texts'].indexOf(page) === -1) {
             page = 'general';
             window.location.hash = '#/' + urlHash[0] + '/' + page;
             return;
@@ -163,6 +163,8 @@ $(function () {
             renderAppSettings();
         } else if (page == 'roles') {
             renderRolesSettings();
+        } else if (page == 'app_texts') {
+            renderAppTexts();
         }
     }
 
@@ -1982,5 +1984,114 @@ $(function () {
             $('#app_users_count', html).text(data.length);
             container.html(html);
         }
+    }
+
+    function renderAppTexts() {
+        var container = $('#app-texts-container');
+        container.html(TMPL_LOADING_SPINNER);
+        var allTypesLen = CUSTOM_TEXT_TYPES.length;
+
+        function showAppTextForm(options) {
+            var edit = options.edit || false;
+            var submit = options.submit || function() {};
+            var types = options.types || CUSTOM_TEXT_TYPES;
+
+            var formHtml = $.tmpl(templates['settings/module_app_texts_form'], {
+                custom_text_types: types,
+                t: CommonTranslations,
+                edit: edit,
+                text_type: options.text_type,
+                text_value: options.text_value,
+            });
+            var modal = sln.createModal(formHtml);
+
+            $('button[action=submit]', modal).click(function() {
+                var textType = $('#text_type', modal).val();
+                var textValue = $('#text_value', modal).val();
+
+                submit(options.module_name, textType, textValue);
+                modal.modal('hide');
+            });
+            return modal;
+        }
+
+        Requests.getAppTexts().then(function(texts) {
+            var functionalities = TEXT_CUSTOMIZABLE_MODULES.sort().map(function(module_name) {
+                var info = FUNCTIONALITY_INFO[module_name];
+                info.showAddButton = Object.keys(texts[module_name]).length < allTypesLen;
+                return info;
+            });
+
+            var html = $.tmpl(templates['settings/module_app_texts_list'], {
+                functionalities: functionalities,
+                texts: texts,
+                t: CommonTranslations,
+            });
+
+            container.html(html);
+
+            function formAction(callback) {
+                return function() {
+                    var moduleName = $(this).attr('module_name');
+                    var textType = $(this).parent().parent().attr('text_type');
+
+                    callback(moduleName, textType);
+                }
+            }
+
+            function updateAppText(moduleName, textType, textValue) {
+                var newTexts = {};
+                newTexts[textType] = textValue;
+
+                container.html(TMPL_LOADING_SPINNER);
+                Requests.updateAppText({
+                    module_name: moduleName,
+                    texts: newTexts,
+                }).then(renderAppTexts);
+            }
+
+            function removeAppText(moduleName, textType) {
+                container.html(TMPL_LOADING_SPINNER);
+                Requests.removeAppText({
+                    module_name: moduleName,
+                    text_type: textType,
+                }).then(renderAppTexts);
+            }
+
+            $('.add-app-text', container).click(formAction(function(moduleName) {
+                var types = CUSTOM_TEXT_TYPES.filter(function(type) {
+                    return !texts[moduleName][type];
+                });
+
+                showAppTextForm({
+                    edit: false,
+                    module_name: moduleName,
+                    types: types,
+                    submit: updateAppText
+                });
+            }));
+
+            $('.edit-app-text', container).click(formAction(function(moduleName, textType) {
+                showAppTextForm({
+                    edit: true,
+                    module_name: moduleName,
+                    text_type: textType,
+                    text_value: texts[moduleName][textType],
+                    submit: updateAppText,
+                });
+            }));
+
+            $('.remove-app-text', container).click(formAction(function(moduleName, textType) {
+                function doRemoveAppText() {
+                    removeAppText(moduleName, textType);
+                }
+
+                sln.confirm(
+                    CommonTranslations.confirm_delete_x.replace('%(x)s', CommonTranslations[textType]),
+                    doRemoveAppText,
+                );
+            }));
+        });
+
     }
 });

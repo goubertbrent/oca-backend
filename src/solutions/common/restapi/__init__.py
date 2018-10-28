@@ -67,7 +67,7 @@ from solutions.common.bizz import get_next_free_spots_in_service_menu, common_pr
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
     OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
     twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types, \
-    validate_enable_or_disable_solution_module
+    validate_enable_or_disable_solution_module, update_solution_module_app_text, remove_solution_module_app_text
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
@@ -94,7 +94,7 @@ from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
     SolutionSettings, SolutionInboxMessage, SolutionLogo, SolutionAvatar, RestaurantMenu, \
-    SolutionRssScraperSettings, SolutionRssLink
+    SolutionRssScraperSettings, SolutionRssLink, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
@@ -1541,6 +1541,7 @@ def rest_get_branding_settings_and_menu():
     branding_settings = SolutionBrandingSettings.get_by_user(users.get_current_user())
     branding_settings_to = BrandingSettingsTO.from_model(branding_settings)
     service_menu = system.get_menu_item()
+    branding_settings_to.recommend_enabled = bool(service_menu.shareQRId)
     smi_dict = {'x'.join(map(str, smi.coords)): smi for smi in service_menu.items}
     service_menu_items = list()
     z = 0
@@ -1562,9 +1563,8 @@ def rest_get_branding_settings_and_menu():
                         label = service_menu.callLabel or u'Call'
                     iconName = u'fa-phone'
                 elif x == 3:
-                    if service_menu.shareQRId:
-                        label = service_menu.shareLabel or u'Recommend'
-                        iconName = u'fa-thumbs-o-up'
+                    label = service_menu.shareLabel or u'Recommend'
+                    iconName = u'fa-thumbs-o-up'
                 iconUrl = None
             else:
                 smi = smi_dict.get(coords)
@@ -2092,3 +2092,41 @@ def rest_enable_or_disable_module(name, enabled, force=False):
 @arguments()
 def api_get_app_names():
     return get_country_apps(u'be')
+
+
+@rest('/common/settings/app_texts', 'get')
+@returns(dict)
+@arguments()
+def api_get_app_texts():
+    """Returns:
+        dict: {module_name: {text_type: text}}
+    """
+    service_user = users.get_current_user()
+    return {
+        app_text.module_name: app_text.texts for app_text in SolutionModuleAppText.list_by_user(service_user)
+    }
+
+
+@rest('/common/settings/app_texts', 'post')
+@returns(ReturnStatusTO)
+@arguments(module_name=unicode, texts=dict)
+def api_update_app_texts(module_name, texts):
+    try:
+        service_user = users.get_current_user()
+        update_solution_module_app_text(service_user, module_name, texts)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as bex:
+        return ReturnStatusTO.create(False, bex.message)
+
+
+@rest('/common/settings/app_texts/delete', 'post')
+@returns(ReturnStatusTO)
+@arguments(module_name=unicode, text_type=unicode)
+def api_remove_app_texts(module_name, text_type):
+    try:
+        service_user = users.get_current_user()
+        remove_solution_module_app_text(service_user, module_name, text_type)
+        return RETURNSTATUS_TO_SUCCESS
+    except BusinessException as bex:
+        return ReturnStatusTO.create(False, bex.message)
+

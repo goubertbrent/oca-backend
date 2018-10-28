@@ -24,7 +24,7 @@ from datetime import datetime
 from types import NoneType
 
 from google.appengine.api import urlfetch
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
 
 import pytz
@@ -142,8 +142,11 @@ class SolutionModule(Enum):
         JOBS: 'jobs',
     }
 
-    INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
-                     PHARMACY_ORDER, CITY_APP)
+    INBOX_MODULES = (
+        ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
+        PHARMACY_ORDER, CITY_APP
+    )
+
     FACEBOOK_MODULES = (BROADCAST,)
     TWITTER_MODULES = (BROADCAST,)
     PROVISION_ORDER = defaultdict(lambda: 10, {BROADCAST: 20})  # Broadcast should be last for auto broadcast types
@@ -151,10 +154,16 @@ class SolutionModule(Enum):
     # Modules allowed for static content subscriptions
     STATIC_MODULES = {WHEN_WHERE, BILLING, LOYALTY}
     # These are the modules that the customer or cityapp service of the customer can choose themselves
-    ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
-    POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
-                        LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
-                        STATIC_CONTENT, JOYN}
+    ASSOCIATION_MODULES = {
+        AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT
+    }
+
+    POSSIBLE_MODULES = {
+        AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
+        LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
+        STATIC_CONTENT, JOYN
+    }
+
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
@@ -166,9 +175,14 @@ class SolutionModule(Enum):
         PHARMACY_ORDER: 5,
     }
 
-    FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
-                             PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT, JOYN}
+    FUNCTIONALITY_MODULES = {
+        BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
+        PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
+        APPOINTMENT, JOYN}
+
+    TEXT_CUSTOMIZABLE = {
+        ASK_QUESTION, ORDER, REPAIR, RESTAURANT_RESERVATION
+    }
 
     @classmethod
     def all(cls):
@@ -1133,10 +1147,56 @@ def is_demo_app(service_user):
 
 @returns()
 @arguments(service_user=users.User, module_name=unicode, texts=dict)
-def set_solution_module_app_text(service_user, module_name, texts):
-    key = SolutionModuleAppText.create_key(service_user, module_name)
-    app_text = key.get()
-    if not app_text:
-        app_text = SolutionModuleAppText(key=key)
-    app_text.texts = texts
-    app_text.put()
+def update_solution_module_app_text(service_user, module_name, texts):
+
+    @ndb.transactional()
+    def update():
+        if not texts:
+            return
+
+        key = SolutionModuleAppText.create_key(service_user, module_name)
+        app_text = key.get()
+        if not app_text:
+            app_text = SolutionModuleAppText(key=key)
+        if not app_text.texts:
+            app_text.texts = {}
+
+        changed = any([
+            app_text.texts.get(text_type) != text_value for text_type, text_value in texts.iteritems()
+        ])
+
+        if changed:
+            app_text.texts.update(texts)
+            app_text.put()
+        return changed
+
+    if update():
+        sln_settings = get_solution_settings(service_user)
+        sln_settings.updates_pending = True
+        put_and_invalidate_cache(sln_settings)
+        broadcast_updates_pending(sln_settings)
+
+
+
+@returns()
+@arguments(service_user=users.User, module_name=unicode, text_type=unicode)
+def remove_solution_module_app_text(service_user, module_name, text_type):
+
+    @ndb.transactional()
+    def remove():
+        key = SolutionModuleAppText.create_key(service_user, module_name)
+        app_text = key.get()
+        if not app_text or not app_text.texts:
+            return False
+
+        if text_type in app_text.texts:
+            del app_text.texts[text_type]
+            app_text.put()
+            return True
+        return False
+
+    if remove():
+        sln_settings = get_solution_settings(service_user)
+        sln_settings.updates_pending = True
+        put_and_invalidate_cache(sln_settings)
+        broadcast_updates_pending(sln_settings)

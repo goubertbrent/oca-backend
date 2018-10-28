@@ -750,6 +750,7 @@ class SolutionServiceConsentHistory(NdbModel):
 class SolutionModuleAppText(NdbModel):
     MENU_ITEM_LABEL = u'menu_item_label'
     FIRST_FLOW_MESSAGE = u'first_flow_message'
+    ALL_TYPES = [MENU_ITEM_LABEL, FIRST_FLOW_MESSAGE]
 
     texts = ndb.JsonProperty(indexed=False)
 
@@ -765,3 +766,11 @@ class SolutionModuleAppText(NdbModel):
             return [None] * len(text_types)
         return [app_text.texts.get(text_type) for text_type in text_types]
 
+    @classmethod
+    def list_by_user(cls, service_user):
+        parent = parent_ndb_key(service_user, SOLUTION_COMMON)
+        return cls.query(ancestor=parent)
+
+    @property
+    def module_name(self):
+        return self.key.id().decode('utf-8')

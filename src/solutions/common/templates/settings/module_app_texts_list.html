@@ -1,0 +1,44 @@
+{% raw %}
+<div class="accordion" id="app-texts-accordion">
+  {{each(i, functionality) functionalities}}
+  <div class="accordion-group">
+      <div class="accordion-heading">
+          <a class="accordion-toggle" data-toggle="collapse" data-parent="#app-texts-accordion" href="#${functionality.name}-accordion">
+              <h3>${functionality.title}</h3>
+          </a>
+      </div>
+      <div id="${functionality.name}-accordion" class="accordion-body collapse">
+          <div id="${functionality.name}-app-texts" class="accordion-inner">
+              <h3>
+                ${t.custom_texts}
+                {{if functionality.showAddButton}}
+                <button class="btn btn-success add-app-text" module_name="${functionality.name}"><i class="fa fa-plus"></i></button>
+                {{/if}}
+              </h3>
+              <table class="table table-striped table-hover table-bordered">
+                  <thead>
+                  <tr>
+                      <th class="span2">${t.Type}</th>
+                      <th class="span8">${t.value}</th>
+                      <th class="span2"></th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                      {{each(text_type, text_value) texts[functionality.name]}}
+                      <tr text_type="${text_type}">
+                        <td>${t[text_type]}</td>
+                        <td>${text_value}</td>
+                        <td>
+                            <button class="btn btn-success edit-app-text" module_name="${functionality.name}"><i class="fa fa-edit"></i></button>
+                            <button class="btn btn-danger remove-app-text" module_name="${functionality.name}"><i class="fa fa-trash"></i></button>
+                        </td>
+                      </tr>
+                      {{/each}}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+  </div>
+  {{/each}}
+</div>
+{% endraw %}

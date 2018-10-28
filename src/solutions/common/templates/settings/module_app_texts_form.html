@@ -1,0 +1,40 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 id="myModalLabel">${t.custom_texts}</h3>
+    </div>
+    <div class="modal-body" style="overflow-y: visible; max-height: 100%">
+        <form class="form-horizontal row" id="service-form">
+            <fieldset>
+                <div class="control-group">
+                    <label for="text_type" class="control-label">${t.Type}</label>
+
+                    <div class="controls">
+                        <select type="text" id="text_type" name="text_type" required {{if edit}}disabled{{/if}}>
+                            {{each(i, type) custom_text_types}}
+                            <option value="${type}" {{if type === text_type || i === 0}}selected{{/if}}>
+                                ${t[type]}
+                            </option>
+                            {{/each}}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="text_value" class="control-label">${t.value}</label>
+
+                    <div class="controls">
+                        <textarea id="text_value" name="text_value" rows="5">${text_value}</textarea>
+                    </div>
+                </div>
+
+            </fieldset>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${t.CANCEL}</button>
+        <button action="submit" class="btn btn-primary">{{if edit}}${t.UPDATE}{{else}}${t.ADD}{{/if}}</button>
+    </div>
+</div>
+{%- endraw %}

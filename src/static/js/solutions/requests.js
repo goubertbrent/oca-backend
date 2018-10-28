@@ -65,21 +65,26 @@ RequestsService.prototype = {
         }
         return this._requestCache[url];
     },
-    post: function (url, data, options) {
-        var request = this.request(url, 'post', data, options);
-        // Update cache if updatesCache option is set, get and post must use the same url.
+    withCacheUpdate: function(url, method, data, options) {
+        var request = this.request(url, method, data, options);
+
+        // Update cache if updatesCache option is set, get and `method` must use the same url.
         if (options && options.updatesCache) {
             this._requestCache[url] = request;
         }
         return request;
     },
+    clearCache: function(url) {
+        delete this._requestCache[url];
+    },
+    post: function (url, data, options) {
+        return this.withCacheUpdate(url, 'post', data, options);
+    },
     put: function (url, data, options) {
-        var request = this.request(url, 'put', data, options);
-        // Update cache if updatesCache option is set, get and put must use the same url.
-        if (options && options.updatesCache) {
-            this._requestCache[url] = request;
-        }
-        return request;
+        return this.withCacheUpdate(url, 'put', data, options);
+    },
+    delete: function(url, data, options) {
+        return this.withCacheUpdate(url, 'delete', data, options);
     },
     getMenu: function (options) {
         return this.get('/common/menu/load', options);
@@ -136,7 +141,20 @@ RequestsService.prototype = {
         options = options || {};
         options.updatesCache = true;
         return this.put('/common/settings', data, options);
-    }
+    },
+    getAppTexts: function(options) {
+        return this.get('/common/settings/app_texts', options);
+    },
+    updateAppText: function(data, options) {
+        var url = '/common/settings/app_texts';
+        this.clearCache(url);
+        return this.post(url, data, options);
+    },
+    removeAppText: function(data, options) {
+        var url = '/common/settings/app_texts';
+        this.clearCache(url);
+        return this.post(url + '/delete', data, options);
+    },
 };
 
 var Requests = new RequestsService();
