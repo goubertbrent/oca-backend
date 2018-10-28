@@ -357,14 +357,15 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
                                       modules=None, broadcast_types=None, apps=None, owner_user_email=None,
                                       search_enabled=False, qualified_identifier=None, broadcast_to_users=None):
-    if not redeploy:
+    new_service = not redeploy
+    language_updated = False
+    if new_service:
         password, sln_settings = \
             create_solution_service(email, name, branding_url, menu_item_color, address, phone_number,
                                     solution, languages, currency, organization_type=organization_type, modules=modules,
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
                                     search_enabled=search_enabled)
         service_user = sln_settings.service_user
-        #update_reserved_menu_item_labels(sln_settings)
     else:
         service_user = users.User(email)
         language_updated, sln_settings = update_solution_service(
@@ -373,9 +374,11 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
             organization_type=organization_type, name=name, address=address,
             phone_number=phone_number, qualified_identifier=qualified_identifier)
         password = None
-        #if language_updated:
-        #    update_reserved_menu_item_labels(sln_settings)
 
+
+    if new_service or language_updated:
+        deferred.defer(
+            update_reserved_menu_item_labels, sln_settings, _queue=FAST_QUEUE)
 
     deferred.defer(common_provision, service_user, broadcast_to_users=broadcast_to_users,
                    _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
