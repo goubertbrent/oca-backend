@@ -1356,7 +1356,7 @@ translations = \
          u'signup_not_found': u'Customer signup information is not found!',
          u'signup_not_ok': u'Tell the customer about the reason and how he can contact you',
          u'signup_not_ok_fill_reason': u'Please fill in the reason',
-         u'signup_note': u'Welcome, you can register yourself under a city. Select a city and enter the required information to submit the application.\nOn successful submission, you will be contacted very soon.',
+         u'signup_note': u'Welcome. Register your company or association in a few steps.',
          u'signup_request_denial_reason': u'Your signup request has been denied for the following reason:\n\n%(reason)s',
          u'signup_request_denied_by_city': u'Your signup request has been denied by %(city)s',
          u'signup_verify_your_email': u'Thank you for registering with Our City App. To complete the registration process, you need to verify your e-mail address.',
