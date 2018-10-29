@@ -31,6 +31,7 @@ from google.appengine.ext.webapp import template
 from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.consts import MISSING
+from mcfw.exceptions import HttpNotFoundException
 from mcfw.properties import unicode_property
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
@@ -57,9 +58,8 @@ from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.dal import get_all_signup_enabled_apps
-from shop.exceptions import CustomerNotFoundException
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
-    normalize_vat, Quotation
+    normalize_vat, Quotation, AppCss
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
@@ -403,7 +403,23 @@ class PublicPageHandler(webapp2.RequestHandler):
     def render(self, template_name, **params):
         if not params.get('language'):
             params['language'] = self.language
-
+        app_id = self.request.route_kwargs.get('app_id')
+        params['app_id'] = app_id or ''
+        routes = ['signin', 'signup', 'reset_password', 'set_password']
+        for route_name in routes:
+            if app_id:
+                url = self.url_for(route_name + '_app', app_id=app_id)
+            else:
+                url = self.url_for(route_name)
+            params[route_name + '_url'] = url
+        if app_id:
+            custom_css = AppCss.create_key(app_id, 'public').get()
+            if custom_css:
+                params['theme_css'] = custom_css.content
+            else:
+                params['theme_css'] = None
+        else:
+            params['theme_css'] = None
         template_path = 'public/%s.html' % template_name
         return SHOP_JINJA_ENVIRONMENT.get_template(template_path).render(params)
 
@@ -419,13 +435,13 @@ class PublicPageHandler(webapp2.RequestHandler):
 
 class CustomerSigninHandler(PublicPageHandler):
 
-    def get(self):
+    def get(self, app_id=''):
         self.response.write(self.render('signin'))
 
 
 class CustomerSignupHandler(PublicPageHandler):
 
-    def get(self):
+    def get(self, app_id=''):
         language = (self.request.get('language') or self.language).split('_')[0]
 
         email = self.request.get('email')
@@ -446,7 +462,14 @@ class CustomerSignupHandler(PublicPageHandler):
                 'email_verified': True,
             }
         else:
-            apps = get_all_signup_enabled_apps()
+            apps = []
+            # If app id is in the url, only allow choosing that app in the dropdown list.
+            if app_id:
+                app = get_app_by_id(app_id)
+                if app:
+                    apps = [app]
+            if not apps:
+                apps = get_all_signup_enabled_apps()
             solution_server_settings = get_solution_server_settings()
             version = get_current_document_version(DOC_TERMS_SERVICE)
             legal_language = get_legal_language(language)
@@ -456,7 +479,6 @@ class CustomerSignupHandler(PublicPageHandler):
                 'email_verified': False,
                 'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version)
             }
-
         params['language'] = language.lower()
         params['languages'] = [
             (code, name) for code, name in OFFICIALLY_SUPPORTED_LANGUAGES.iteritems() if code in LEGAL_LANGUAGES
@@ -467,14 +489,14 @@ class CustomerSignupHandler(PublicPageHandler):
 
 class CustomerResetPasswordHandler(PublicPageHandler):
 
-    def get(self):
+    def get(self, app_id=''):
         self.response.out.write(self.render('reset_password'))
 
 
 class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
     """Inherit PublicPageHandler first to override SetPasswordHandler return_error()"""
 
-    def get(self):
+    def get(self, app_id=''):
         email = self.request.get('email')
         data = self.request.get('data')
 
@@ -491,10 +513,13 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
             'name': parsed_data['n'],
             'email': email,
             'action': parsed_data['a'],
-            'data': data
+            'data': data,
         }
 
         self.response.out.write(self.render('set_password', **params))
+
+    def post(self, app_id=''):
+        super(CustomerSetPasswordHandler, self).post()
 
 
 class CustomerEmailConsentHandler(PublicPageHandler):
@@ -503,7 +528,7 @@ class CustomerEmailConsentHandler(PublicPageHandler):
         # Don't redirect to dashboard when logged in
         return super(PublicPageHandler, self).dispatch()
 
-    def get(self):
+    def get(self, app_id=''):
         email = self.request.get('email')
         data = self.request.get('data')
 
@@ -520,7 +545,7 @@ class CustomerEmailConsentHandler(PublicPageHandler):
         return self.response.out.write(
             self.render('service_email_consent', email=email, name=customer.name, consents=consents))
 
-    def post(self):
+    def post(self, **kwargs):
         context = u'User email preferences'
         update_customer_consents(self.request.get('email'), {
             SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
@@ -545,21 +570,6 @@ def customer_signup(city_customer_id, company, customer, recaptcha_token, email_
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
-
-
-@rest('/unauthenticated/osa/customer/org/types', 'get', read_only_access=True, authenticated=False)
-@returns(dict)
-@arguments(customer_id=int, language=unicode)
-def customer_get_editable_organization_types(customer_id, language=None):
-    if not language:
-        request = GenericRESTRequestHandler.getCurrentRequest()
-        language = get_languages_from_request(request)[0]
-
-    try:
-        customer = Customer.get_by_id(customer_id)
-        return dict(get_organization_types(customer, language))
-    except CustomerNotFoundException:
-        return {}
 
 
 def parse_euvat_address_eu(address):
@@ -617,6 +627,27 @@ def get_company_info(vat, country=None):
     comp.vat = comp.country + data['vatNumber']
     comp.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
     return comp
+
+
+@rest('/unauthenticated/osa/signup/app-info/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
+@returns(dict)
+@arguments(app_id=unicode, language=unicode)
+def get_customer_info(app_id, language=None):
+    app = get_app_by_id(app_id)
+    if not app:
+        raise HttpNotFoundException('app_not_found', {'app_id': app_id})
+    if not language:
+        request = GenericRESTRequestHandler.getCurrentRequest()
+        language = get_languages_from_request(request)[0]
+    customer = Customer.get_by_service_email(app.main_service)  # type: Customer
+    organization_types = dict(get_organization_types(customer, language))
+    return {
+        'customer': {
+            'id': customer.id,
+            'country': customer.country,
+        },
+        'organization_types': organization_types
+    }
 
 
 class QuotationHandler(webapp2.RequestHandler):

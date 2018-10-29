@@ -1252,6 +1252,14 @@ class ShopAppGridPoints(db.Model):
         return self.shop_app_key.name()
 
 
+class AppCss(NdbModel):
+    content = ndb.TextProperty()
+
+    @classmethod
+    def create_key(cls, type, app_id):
+        return ndb.Key('App', app_id, cls, type)
+
+
 class Prospect(db.Model):
     INVITE_CODE_IN_CALL = -1
     INVITE_CODE_NOT_ATTEMPTED = 0

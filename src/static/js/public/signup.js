@@ -19,6 +19,68 @@
 $(function() {
     'use strict';
 
+    function RequestsService() {
+        this._requestCache = {};
+    }
+
+    RequestsService.prototype = {
+        request: function (url, method, data, options) {
+            if (!options) {
+                options = {};
+            }
+            if (options.showError === undefined) {
+                options.showError = true;
+            }
+            return new Promise(function (resolve, reject) {
+                sln.call({
+                    url: url,
+                    type: method,
+                    data: data,
+                    success: function (data) {
+                        resolve(data);
+                    },
+                    error: function () {
+                        if (options.showError) {
+                            sln.showAjaxError();
+                        }
+                        reject();
+                    }
+                });
+            });
+        },
+        /**
+         * Do a request and cache the result.
+         * If the function is called again with the same url, the previous result will be returned.
+         * @param url{string}
+         * @param options{{cached: boolean, showError: boolean, updatesCache: boolean}}
+         * @return {Promise}
+         */
+        get: function (url, options) {
+            if (!options) {
+                options = {};
+            }
+            if (options.cached === undefined) {
+                options.cached = true;
+            }
+            if (!this._requestCache[url] || !options.cached) {
+                this._requestCache[url] = this.request(url, 'get', null, options);
+            }
+            return this._requestCache[url];
+        },
+        post: function (url, data, options) {
+            var request = this.request(url, 'post', data, options);
+            // Update cache if updatesCache option is set, get and post must use the same url.
+            if (options && options.updatesCache) {
+                this._requestCache[url] = request;
+            }
+            return request;
+        },
+        getAppInfo: function (appId, language, options) {
+            return this.get('/unauthenticated/osa/signup/app-info/' + appId + '?language=' + language, options);
+        }
+    }
+    var requests = new RequestsService();
+
     var TMPL_ORG_TYPE = '<div class="radio">'
         + '<label><input type="radio" name="organization_type" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
         + '</div>';
@@ -26,7 +88,6 @@ $(function() {
     var formElem = $('#signup_form')[0];
     var tabs = [];
     var currentStep = 0;
-    var orgTypesCache = {};
     var recaptchaLoader = new RecaptchaLoader({
         container: 'recaptcha_container',
     });
@@ -43,7 +104,7 @@ $(function() {
         $('#back').click(previousStep);
 
         $('#language').change(languageChanged);
-        $('#app').change(customerSelected);
+        $('#app').change(appSelected);
         $('select').change(validateInput);
         $('input[type!=checkbox][type!=radio]').each(function() {
             var input = this;
@@ -58,6 +119,9 @@ $(function() {
 
         for (var i = 0; i <= 4; i++) {
             tabs.push($('#tab' + i));
+        }
+        if (SIGNUP_APP_ID) {
+            appSelected();
         }
     }
 
@@ -81,44 +145,25 @@ $(function() {
 
     function getSelectedApp() {
         var appElem = $('#app option:selected');
+        if (!appElem || !appElem.val()) {
+            return null;
+        }
         return {
             app_id: appElem.val().trim(),
             name: appElem.text().trim(),
-            customer_id: parseInt(appElem.attr('customer_id')),
-            country: appElem.attr('country')
         };
     }
 
-    function customerSelected() {
+    function appSelected() {
         var app = getSelectedApp();
-
-        if(app.customer_id) {
-            // get editable organization types
-            if(orgTypesCache[app.customer_id]) {
-                setEditableOrganizationTypes(orgTypesCache[app.customer_id]);
-            } else {
-                $('#next').attr('disabled', true);
-                sln.call({
-                    url: '/unauthenticated/osa/customer/org/types',
-                    type: 'GET',
-                    data: {
-                        language: getSelectedLanguage(),
-                        customer_id: app.customer_id
-                    },
-                    success: function(data) {
-                        setEditableOrganizationTypes(data);
-                        orgTypesCache[app.customer_id] = data;
-                        $('#next').attr('disabled', false);
-                    },
-                    error: function(req, status, error) {
-                        sln.showAjaxError();
-                        throw new Error('Status: ' + status + '\n' + error);
-                    }
-                });
-            }
-        } else {
-            throw new Error('Invalid customer id: ' + app.customer_id + ' for: ' + app.name);
+        if (!app) {
+            return;
         }
+
+        requests.getAppInfo(app.app_id, getSelectedLanguage()).then(function (appInfo) {
+            setEditableOrganizationTypes(appInfo.organization_types);
+            $('#next').attr('disabled', false);
+        });
     }
 
     function fillInput(inputId, value) {
@@ -144,52 +189,53 @@ $(function() {
             clearErrors(input);
             return;
         }
-
-        var country = getSelectedApp().country;
-        if(isDigit(vat[0])) {
-            vat = country + vat;
-        }
-
-        $('#next').attr('disabled', true);
-        sln.call({
-            url: '/unauthenticated/osa/company/info',
-            type: 'get',
-            data: {
-                vat: vat,
-                country: country
-            },
-            success: function(data) {
-                var errorMessage, warningMessage;
-                if(data.errormsg && !data.vat) {
-                    errorMessage = SignupTranslations.VAT_INVALID;
-                } else if(data.errormsg && data.vat) {
-                    // vat format is valid, but it's unknown
-                    warningMessage = SignupTranslations.VAT_UNKNOWN;
-                } else if(data.country.toUpperCase() !== country) {
-                    errorMessage = SignupTranslations.VAT_INCORRECT_COUNTRY;
-                } else {
-                    fillInput('enterprise_name', data.name);
-                    fillInput('enterprise_address1', data.address1 + (data.address2 ? ', ' + data.address2 : ''));
-                    fillInput('enterprise_zip_code', data.zip_code);
-                    fillInput('enterprise_city', data.city);
-                }
-
-                if(data.vat) {
-                    $('#enterprise_vat').val(data.vat);
-                }
-
-                $('#next').attr('disabled', false);
-                clearErrors(input);
-                if(errorMessage) {
-                    $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
-                } else if(warningMessage) {
-                    $('<p class="text-warning">' + warningMessage + '</p>').insertAfter(input);
-                }
-            },
-            error: function() {
-                $('#next').attr('disabled', false);
-                sln.showAjaxError();
+        requests.getAppInfo(getSelectedApp().app_id, getSelectedLanguage()).then(function (appInfo) {
+            var country = appInfo.customer.country;
+            if (isDigit(vat[0])) {
+                vat = country + vat;
             }
+
+            $('#next').attr('disabled', true);
+            sln.call({
+                url: '/unauthenticated/osa/company/info',
+                type: 'get',
+                data: {
+                    vat: vat,
+                    country: country
+                },
+                success: function (data) {
+                    var errorMessage, warningMessage;
+                    if (data.errormsg && !data.vat) {
+                        errorMessage = SignupTranslations.VAT_INVALID;
+                    } else if (data.errormsg && data.vat) {
+                        // vat format is valid, but it's unknown
+                        warningMessage = SignupTranslations.VAT_UNKNOWN;
+                    } else if (data.country.toUpperCase() !== country) {
+                        errorMessage = SignupTranslations.VAT_INCORRECT_COUNTRY;
+                    } else {
+                        fillInput('enterprise_name', data.name);
+                        fillInput('enterprise_address1', data.address1 + (data.address2 ? ', ' + data.address2 : ''));
+                        fillInput('enterprise_zip_code', data.zip_code);
+                        fillInput('enterprise_city', data.city);
+                    }
+
+                    if (data.vat) {
+                        $('#enterprise_vat').val(data.vat);
+                    }
+
+                    $('#next').attr('disabled', false);
+                    clearErrors(input);
+                    if (errorMessage) {
+                        $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
+                    } else if (warningMessage) {
+                        $('<p class="text-warning">' + warningMessage + '</p>').insertAfter(input);
+                    }
+                },
+                error: function () {
+                    $('#next').attr('disabled', false);
+                    sln.showAjaxError();
+                }
+            });
         });
     }
 
@@ -205,25 +251,25 @@ $(function() {
     }
 
     function getSignupDetails(recaptchaToken) {
-        var args = {};
-        var app = getSelectedApp();
-
-        if (!app.customer_id) {
-            sln.showAjaxError();
-            throw new Error('Customer id is not set for ' + app.app_id + ' (' + app.name + ')');
-        }
-
-        args.city_customer_id = app.customer_id;
-        args.company = gatherFromInputs('enterprise');
-        args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
-        args.customer = gatherFromInputs('contact');
-        args.customer.language = getSelectedLanguage();
-        args.recaptcha_token = recaptchaToken;
-        args.email_consents = {
-            email_marketing: $('#email_consents_email_marketing').prop('checked'),
-            newsletter: $('#email_consents_newsletter').prop('checked'),
-        };
-        return args;
+        return new Promise(function (resolve, reject) {
+            var app = getSelectedApp();
+            var language = getSelectedLanguage();
+            requests.getAppInfo(app.app_id, language).then(function (appInfo) {
+                var args = {
+                    city_customer_id: appInfo.customer.id,
+                    company: gatherFromInputs('enterprise'),
+                    customer: gatherFromInputs('contact'),
+                    recaptcha_token: recaptchaToken,
+                    email_consents: {
+                        email_marketing: $('#email_consents_email_marketing').prop('checked'),
+                        newsletter: $('#email_consents_newsletter').prop('checked'),
+                    }
+                };
+                args.customer.language = language;
+                args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
+                resolve(args);
+            });
+        });
     }
 
     function doSignup() {
@@ -256,23 +302,25 @@ $(function() {
 
     window.signupCallback = function(recaptchaToken) {
         sln.showProcessing(CommonTranslations.SUBMITTING_DOT_DOT_DOT);
-        sln.call({
-            url: '/unauthenticated/osa/customer/signup',
-            type: 'POST',
-            data: getSignupDetails(recaptchaToken),
-            success: function(result) {
-                sln.hideProcessing();
-                if(!result.success) {
-                    var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
-                    sln.alert(message, null, CommonTranslations.ERROR);
-                } else {
-                    $('#signup_note').removeClass('white-text').parent().addClass('white-box');
-                    $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
-                    $('#signup_box').hide();
-                    $('#go_back').show();
-                }
-            },
-            error: sln.showAjaxError
+        getSignupDetails(recaptchaToken).then(function (signupDetails) {
+            sln.call({
+                url: '/unauthenticated/osa/customer/signup',
+                type: 'POST',
+                data: signupDetails,
+                success: function (result) {
+                    sln.hideProcessing();
+                    if (!result.success) {
+                        var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
+                        sln.alert(message, null, CommonTranslations.ERROR);
+                    } else {
+                        $('#signup_note').removeClass('white-text').parent().addClass('white-box');
+                        $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
+                        $('#signup_box').hide();
+                        $('#go_back').show();
+                    }
+                },
+                error: sln.showAjaxError
+            });
         });
 
         recaptchaLoader.reset();
@@ -305,20 +353,41 @@ $(function() {
         if(isFirstStep()) {
             // redirect to the signup page if the user already in/have an app
             if($('input[name=already_in_app]:checked').val() === 'yes') {
-                window.location = '/customers/signin';
+                // Preserve app id in url
+                window.location.pathname = window.location.pathname.replace('signup', 'signin');
                 return;
             }
         }
 
-        stepChanged(currentStep + 1);
+        var selectedApp = getSelectedApp();
+        if (currentStep === 0 && selectedApp) {
+            requests.getAppInfo(selectedApp.app_id, getSelectedLanguage()).then(function (appInfo) {
+                if (Object.keys(appInfo.organization_types).length === 1) {
+                    stepChanged(currentStep + 2);
+                } else {
+                    stepChanged(currentStep + 1);
+                }
+            });
+        } else {
+            stepChanged(currentStep + 1);
+        }
     }
 
     function previousStep() {
         if(isFirstStep()) {
             return;
         }
-
-        stepChanged(currentStep - 1);
+        if (currentStep === 2) {
+            requests.getAppInfo(getSelectedApp().app_id, getSelectedLanguage()).then(function (appInfo) {
+                if (Object.keys(appInfo.organization_types).length === 1) {
+                    stepChanged(currentStep - 2);
+                } else {
+                    stepChanged(currentStep - 1);
+                }
+            });
+        } else {
+            stepChanged(currentStep - 1);
+        }
     }
 
     function stepChanged(step) {

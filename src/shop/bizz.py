@@ -625,17 +625,22 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             login_url = settings.baseUrl
             for url, path in chunks(settings.customSigninPaths, 2):
                 if path.startswith('/customers/signin'):
-                    login_url = 'https://' + url
-
+                    login_url = 'https://%s/%s/%s' % (url, path, customer.default_app_id)
+                    # TODO properly determine which custom signin path to use
+                    if 'threefold' in customer.default_app_id:
+                        continue
+                    else:
+                        break
             parsed_login_url = urlparse.urlparse(login_url)
             action = shop_translate(customer.language, 'password_reset')
             reset_password_link = password = None
             if not user_exists:
                 # TODO: Change the new customer password handling, sending passwords via
                 # email is a serious security issue.
+                reset_password_route = '/customers/setpassword/%s' % customer.default_app_id
                 url_params = get_reset_password_url_params(customer.name, users.User(user_email), action=action)
                 reset_password_link = '%s://%s%s?%s' % (parsed_login_url.scheme, parsed_login_url.netloc,
-                                                        '/customers/setpassword', url_params)
+                                                        reset_password_route, url_params)
                 password = r.password
 
             # TODO: email with OSA style in header, footer
@@ -2358,6 +2363,7 @@ def calculate_customer_url_digest(data):
 
 
 def send_signup_verification_email(city_customer, signup, host=None):
+    # type: (Customer, CustomerSignup, str) -> None
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
     data['d'] = calculate_customer_url_digest(data)
@@ -2366,8 +2372,8 @@ def send_signup_verification_email(city_customer, signup, host=None):
 
     lang = city_customer.language
     translate = partial(common_translate, lang, SOLUTION_COMMON)
-
-    link = '{}/customers/signup?{}'.format(host or get_server_settings().baseUrl, url_params)
+    base_url = host or get_server_settings().baseUrl
+    link = '{}/customers/signup/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
     subject = city_customer.name + ' - ' + translate('signup')
     params = {
         'language': lang,
@@ -2660,7 +2666,7 @@ def add_service_admin(service_user, owner_user_email, base_url):
         update_password_hash(user_profile, password_hash, now())
         action = common_translate(user_profile.language, SOLUTION_COMMON, 'reset-password')
         url_params = get_reset_password_url_params(user_profile.name, user_profile.user, action=action)
-        reset_password_link = '%s/customers/setpassword?%s' % (base_url, url_params)
+        reset_password_link = '%s/customers/setpassword/%s?%s' % (base_url, user_profile.app_id, url_params)
         params = {
             'service_name': service_identity.name,
             'user_email': owner_user_email,

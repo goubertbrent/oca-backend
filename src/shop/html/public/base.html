@@ -9,15 +9,22 @@
     <link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="/static/css/public/base.css">
+    {% if theme_css %}
+    <style>{{ theme_css }}</style>
+    {% else %}
+    <link rel="stylesheet" href="/static/css/public/oca-theme.css">
+    {% endif %}
     {% block css %}{% endblock %}
 </head>
 <body>
 <div id="main_container">
     <div id="header">
-        <img id="logo" src="/static/images/public/logo.png"/>
-        <a id="home-link" class="pull-right" href="{% translate language, "common", "http://www.ourcityapps.com" %}">
+        <div id="logo"></div>
+        {%if not app_id %}
+        <a id="home-link" class="pull-right" href="{% translate language, 'common', 'http://www.ourcityapps.com' %}">
             <h4 style="color: white;">{% translate language, "common", "home" %}</h4>
         </a>
+        {% endif %}
     </div>
     <div id="body" class="container-fluid">
         {% block content %}{% endblock %}
@@ -47,6 +54,7 @@
         EMAIL: '{% translate language, "common", "Email" %}',
         remember_my_choice: '{% translate language, "common", "remember_my_choice" %}'
     };
+    var SIGNUP_APP_ID = '{{ app_id }}';
 </script>
 
 <script src="/static/js/jquery-1.10.0.min.js"></script>

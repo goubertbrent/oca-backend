@@ -1,0 +1,28 @@
+#main_container {
+    background: url(/static/images/public/background.jpg) no-repeat;
+    background-size: cover;
+}
+
+#header{
+    background-color: #5cc4bf;
+}
+
+#logo{
+    background-image: url(/static/images/public/logo.png);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.btn-wizard {
+    background: #5cc4bf;
+    color: white;
+}
+
+.btn-wizard:hover, .btn-wizard:focus, .btn-wizard:active {
+    background: #44918d;
+    color: white;
+}
+
+.white-box {
+    border: 1px solid #44ca9b;
+}

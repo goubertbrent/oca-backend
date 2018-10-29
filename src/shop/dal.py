@@ -99,16 +99,5 @@ def get_customer_signups(city_customer, done=False):
 @arguments()
 def get_all_signup_enabled_apps():
     signup_enabled_app_keys = ShopApp.all(keys_only=True).filter('signup_enabled', True)
-    signup_enabled_apps = filter(lambda app: app.main_service,
-                                 db.get([App.create_key(app_key.name()) for app_key in signup_enabled_app_keys]))
-
-    for app in reversed(signup_enabled_apps):
-        # TODO: cache Customer.get_by_service_email(app.main_service)
-        customer = Customer.get_by_service_email(app.main_service)
-        if not customer:
-            signup_enabled_apps.remove(app)
-            continue
-        app.customer_id = customer.id
-        app.country = customer.country
-
-    return signup_enabled_apps
+    app_ids = [app_key.name() for app_key in signup_enabled_app_keys]
+    return [app for app in get_apps_by_id(app_ids) if app.main_service]

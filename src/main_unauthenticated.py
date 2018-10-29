@@ -15,6 +15,8 @@
 #
 # @@license_version:1.3@@
 
+from webapp2_extras.routes import RedirectRoute
+
 import shop.handlers
 import solutions.common.restapi
 import solutions.common.restapi.campaignmonitor
@@ -36,8 +38,6 @@ from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
-from webapp2_extras.routes import RedirectRoute
-
 from version.handler import VersionsHandler
 
 handlers = [
@@ -58,12 +58,20 @@ handlers = [
     ('/shop/prospects/discover/callback', ProspectDiscoverCallbackHandler),
     ('/customers/map/([a-z-_]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_]+)', CustomerMapHandler),
-    ('/customers/setpassword', CustomerSetPasswordHandler),
-    ('/customers/resetpassword', CustomerResetPasswordHandler),
-    ('/customers/email_consent', CustomerEmailConsentHandler),
-    RedirectRoute('/customers/signin', name='customers_login', handler=CustomerSigninHandler, strict_slash=True),
-    RedirectRoute('/customers/signup', name='signup', handler=CustomerSignupHandler, strict_slash=True),
-    RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='customers_login', strict_slash=True),
+    RedirectRoute('/customers/setpassword', CustomerSetPasswordHandler, 'set_password', strict_slash=True),
+    RedirectRoute('/customers/setpassword/<app_id:[^/]+>', CustomerSetPasswordHandler, 'set_password_app',
+                  strict_slash=True),
+    RedirectRoute('/customers/resetpassword', CustomerResetPasswordHandler, 'reset_password', strict_slash=True),
+    RedirectRoute('/customers/resetpassword/<app_id:[^/]+>', CustomerResetPasswordHandler, 'reset_password_app',
+                  strict_slash=True),
+    RedirectRoute('/customers/email_consent', CustomerEmailConsentHandler, 'email_consent_app', ),
+    RedirectRoute('/customers/email_consent/<app_id:[^/]+>', CustomerEmailConsentHandler, 'email_consent_app',
+                  strict_slash=True),
+    RedirectRoute('/customers/signin', CustomerSigninHandler, 'signin', strict_slash=True),
+    RedirectRoute('/customers/signin/<app_id:[^/]+>', CustomerSigninHandler, 'signin_app', strict_slash=True),
+    RedirectRoute('/customers/signup', CustomerSignupHandler, 'signup', strict_slash=True),
+    RedirectRoute('/customers/signup/<app_id:[^/]+>', CustomerSignupHandler, 'signup_app', strict_slash=True),
+    RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='signin', strict_slash=True),
     ('/solutions/common/public/attachment/view/(.*)', CloudStorageBlobstoreHandler),
     ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
     ('/version', VersionsHandler)
