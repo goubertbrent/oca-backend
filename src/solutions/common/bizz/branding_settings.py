@@ -67,8 +67,7 @@ def save_branding_settings(service_user, branding_settings_to):
         to_be_put = [branding_settings, sln_settings]
 
         if branding_settings_to.left_align_icons != branding_settings.left_align_icons:
-            static_content = SolutionStaticContent.list_non_deleted(service_user)
-            for static_content  in SolutionStaticContent.list_non_deleted(service_user):
+            for static_content in SolutionStaticContent.list_non_deleted(service_user):
                 static_content.provisioned = False
                 to_be_put.append(static_content)
             branding_settings.left_align_icons = branding_settings_to.left_align_icons

@@ -378,7 +378,8 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
 
     if new_service or language_updated:
         deferred.defer(
-            update_reserved_menu_item_labels, sln_settings, _queue=FAST_QUEUE)
+            update_reserved_menu_item_labels, sln_settings, _queue=FAST_QUEUE,
+            _transactional=db.is_in_transaction())
 
     deferred.defer(common_provision, service_user, broadcast_to_users=broadcast_to_users,
                    _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
