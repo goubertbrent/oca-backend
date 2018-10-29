@@ -14,8 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-
-import mc_unittest
+import oca_unittest
 from rogerthat.models import App
 from rogerthat.rpc import users
 from shop.bizz import create_or_update_customer, create_contact
@@ -26,7 +25,7 @@ from solutions.flex.bizz import create_flex_service
 from test import set_current_user
 
 
-class AssociationsTestCase(mc_unittest.TestCase):
+class AssociationsTestCase(oca_unittest.TestCase):
 
     def test_association_creation(self):
         self.set_datastore_hr_probability(1)
@@ -45,7 +44,6 @@ class AssociationsTestCase(mc_unittest.TestCase):
                                 organization_type=OrganizationType.CITY)
         # Create city customer
         shop_user = users.User(u'regiomanager-test@example.com')
-        customer_id = None
         vat = u''
         name = u'Town Lochristi'
         address1 = u'Dorp - West 52'
@@ -56,9 +54,10 @@ class AssociationsTestCase(mc_unittest.TestCase):
         language = u'nl'
         organization_type = OrganizationType.CITY
         prospect_id = None
-        city_customer = create_or_update_customer(shop_user, customer_id, vat, name, address1, address2, zip_code, city,
+        team_id = RegioManagerTeam.all().get().id
+        city_customer = create_or_update_customer(shop_user, None, vat, name, address1, address2, zip_code, city,
                                                   country, language, organization_type, prospect_id,
-                                                  team_id=RegioManagerTeam.all().get().id)
+                                                  team_id=team_id)
         city_customer.service_email = city_customer.user_email = r.login
         city_customer.default_app_id = apps[0]
         city_customer.app_ids = apps
@@ -82,6 +81,7 @@ class AssociationsTestCase(mc_unittest.TestCase):
         language = u'nl'
         modules = [u'agenda', u'bulk_invite', u'static_content', u'ask_question', u'broadcast']
         set_current_user(users.User(r.login), set_google_user=False)
-        output = rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language, modules)
+        output = rest_put_service(name, address1, address2, zip_code, city, user_email, telephone, language,
+                                  None, organization_type, modules=modules)
         self.assertTrue(output.success, output.errormsg)
         self.assertFalse(output.errormsg)

@@ -16,12 +16,12 @@
 #
 # @@license_version:1.3@@
 
-import mc_unittest
+import oca_unittest
 from shop.translations import shop_translations
 from solutions import translations
 
 
-class I18nTest(mc_unittest.TestCase):
+class I18nTest(oca_unittest.TestCase):
 
     def test_sln_placeholders(self):
         from rogerthat_tests.i18n.test_i18n import Test as RogerthatI18nTest

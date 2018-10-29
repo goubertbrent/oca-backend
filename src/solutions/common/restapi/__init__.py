@@ -53,7 +53,6 @@ from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user,
     get_app_id_from_app_user
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
-from rogerthat.utils.transactions import run_in_transaction
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
 from shop.business.order import get_subscription_order_remaining_length
 from shop.dal import get_customer, get_customer_signups
@@ -85,7 +84,7 @@ from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
-from solutions.common.bizz.settings import save_settings, set_logo, set_avatar
+from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
@@ -95,7 +94,7 @@ from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
     SolutionSettings, SolutionInboxMessage, SolutionLogo, SolutionAvatar, RestaurantMenu, \
-    SolutionRssScraperSettings, SolutionRssLink, SolutionModuleAppText
+    SolutionRssScraperSettings, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
@@ -536,7 +535,7 @@ def rest_get_broadcast_rss_feeds():
     return SolutionRssSettingsTO.from_model(rss_settings)
 
 
-@rest("/common/broadcast/rss", "post", flavor=REST_FLAVOR_TO)
+@rest("/common/broadcast/rss", 'put', flavor=REST_FLAVOR_TO)
 @returns(SolutionRssSettingsTO)
 @arguments(data=SolutionRssSettingsTO)
 def rest_save_broadcast_rss_feeds(data):
@@ -544,30 +543,8 @@ def rest_save_broadcast_rss_feeds(data):
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
-
-    rss_urls = set()
-    for url in data.rss_urls:
-        if url.startswith("http://") or url.startswith("https://"):
-            rss_urls.add(url)
-
-    def trans():
-        rss_settings_key = SolutionRssScraperSettings.create_key(service_user, service_identity)
-        rss_settings = rss_settings_key.get()
-        current_dict = {}
-        if not rss_settings:
-            rss_settings = SolutionRssScraperSettings(key=rss_settings_key)
-        else:
-            for rss_links in rss_settings.rss_links:
-                if not current_dict.get(rss_links.url, False):
-                    current_dict[rss_links.url] = rss_links.dry_runned
-
-        rss_settings.notify = data.notify
-        rss_settings.rss_links = [SolutionRssLink(url=url, dry_runned=current_dict.get(url, False))
-                                  for url in rss_urls]
-        rss_settings.put()
-        return rss_settings
-
-    return SolutionRssSettingsTO.from_model(run_in_transaction(trans))
+    rss_settings = save_rss_urls(service_user, service_identity, data)
+    return SolutionRssSettingsTO.from_model(rss_settings)
 
 
 @rest("/common/broadcast/scheduled/load", "get", read_only_access=True)

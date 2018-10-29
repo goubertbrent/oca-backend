@@ -1565,8 +1565,8 @@ $(function () {
             if (!value.trim())
                 return false;
             getbroadcastRssSettings(function (settings) {
-                settings.rss_urls.push(value);
-                saveRssSettings(settings);
+                var newSettings = Object.assign({}, settings, {rss_urls: settings.rss_urls.concat([value])});
+                saveRssSettings(newSettings);
             });
         }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT);
     }
@@ -1600,15 +1600,19 @@ $(function () {
     }
 
     function saveRssSettings(settings) {
-        sln.call({
-            url: '/common/broadcast/rss',
-            type: 'POST',
-            data: JSON.stringify(settings),
-            success : function(data) {
-                LocalCache.broadcastRssSettings = data;
-                renderRssSettings(data);
-            },
-            error : sln.showAjaxError
+        Requests.saveRssSettings(settings, {showError: false}).then(function (data) {
+            LocalCache.broadcastRssSettings = data;
+            renderRssSettings(data);
+        }).catch(function (error) {
+            if (error.responseJSON) {
+                if (error.responseJSON.error === 'invalid_rss_links') {
+                    sln.alert(T('errors.invalid_rss_link', {url: error.responseJSON.data.invalid_links[0]}));
+                } else {
+                    sln.showAjaxError();
+                }
+            } else {
+                sln.showAjaxError();
+            }
         });
     }
 

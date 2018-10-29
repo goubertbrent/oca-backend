@@ -18,13 +18,13 @@
 import os
 import shutil
 
+import oca_unittest
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.service import UserWithThisEmailAddressAlreadyExistsException
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.utils.app import create_app_user_by_email
-import mc_unittest
 from solutions.common.bizz import create_solution_service
 
 
@@ -45,7 +45,8 @@ def copytree(src, dst, symlinks=False, ignore=None):
             if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
                 shutil.copy2(s, d)
 
-class Test(mc_unittest.TestCase):
+
+class Test(oca_unittest.TestCase):
 
     def testServiceAPIException(self):
         try:

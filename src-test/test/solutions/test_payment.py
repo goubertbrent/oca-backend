@@ -15,7 +15,7 @@
 #
 # @@license_version:1.4@@
 
-import mc_unittest
+import oca_unittest
 from rogerthat.bizz.embedded_applications import delete_embedded_application
 from rogerthat.bizz.payment import get_payment_methods, create_payment_provider, service_put_provider
 from rogerthat.models.properties.forms import BasePaymentMethod
@@ -26,7 +26,7 @@ from rogerthat.to.payment import GetPaymentMethodsRequestTO, PaymentProviderTO, 
 from util import setup_payment_providers, TEST_PROVIDER_ID, TEST_CURRENCY
 
 
-class Test(mc_unittest.TestCase):
+class Test(oca_unittest.TestCase):
     def setUp(self, datastore_hr_probability=0):
         super(Test, self).setUp(datastore_hr_probability)
         self.test_payment_provider = setup_payment_providers()

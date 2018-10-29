@@ -305,7 +305,6 @@ def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items
         logo_path = 'html/img/osa_white_%s_250.jpg' % customer.language
     else:
         logo_path = 'html/img/osa_white_en_250.jpg'
-    solution_server_settings = get_solution_server_settings()
     variables = {
         "customer": customer,
         'legal_entity': legal_entity,

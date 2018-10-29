@@ -37,11 +37,11 @@ RequestsService.prototype = {
                 success: function (data) {
                     resolve(data);
                 },
-                error: function () {
+                error: function (error) {
                     if (options.showError) {
                         sln.showAjaxError();
                     }
-                    reject();
+                    reject(error);
                 }
             });
         });
@@ -141,6 +141,9 @@ RequestsService.prototype = {
         options = options || {};
         options.updatesCache = true;
         return this.put('/common/settings', data, options);
+    },
+    saveRssSettings: function (data, options) {
+        return this.put('/common/broadcast/rss', data, options);
     },
     getAppTexts: function(options) {
         return this.get('/common/settings/app_texts', options);

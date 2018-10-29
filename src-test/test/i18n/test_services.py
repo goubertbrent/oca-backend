@@ -17,7 +17,7 @@
 
 from google.appengine.ext import db
 
-import mc_unittest
+import oca_unittest
 from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.friends import makeFriends
 from rogerthat.bizz.i18n import sync_service_translations, get_editable_translation_set, get_all_translations, \
@@ -52,7 +52,8 @@ def translate_service_strings(service_user):
     service_profile = get_service_profile(service_user)
     assert get_active_translation_set(service_profile)
 
-class Test(mc_unittest.TestCase):
+
+class Test(oca_unittest.TestCase):
 
     def _prepareService(self, email):
         service_user = users.User(unicode(email))

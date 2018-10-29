@@ -304,11 +304,12 @@ def pay_order():
     return db.run_in_transaction_options(xg_on, trans)
 
 
-def generate_and_put_order_pdf_and_send_mail(customer, new_order_key, service_user):
+def generate_and_put_order_pdf_and_send_mail(customer, new_order_key, service_user, contact):
+    # type: (Customer, db.Key, users.User, Contact) -> None
     def trans():
         new_order = Order.get(new_order_key)
         with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, new_order)
+            generate_order_or_invoice_pdf(pdf, customer, new_order, contact)
             new_order.pdf = pdf.getvalue()
 
         new_order.put()

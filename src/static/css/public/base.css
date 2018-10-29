@@ -25,14 +25,10 @@ html, body {
 #main_container {
     min-height: 100%;
     position: relative;
-    background: url(/static/images/public/background.jpg);
-    background-size: cover;
-    background-repeat: no-repeat;
 }
 #header {
     height: 100%;
     width: 100%;
-    background-color: #5cc4bf;
 }
 #body {
     padding: 20px;
@@ -42,40 +38,32 @@ html, body {
     margin: 15px;
     width: 40px;
     height: 40px;
+    display: inline-block;
 }
+
 #home-link {
     margin: 15px;
     text-decoration: none;
 }
 
 form {
-    margin: 0px;
+    margin: 0;
 }
 
 .white-text {
     color: white;
 }
 
-.white-box {
-    background-color: white;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #44ca9b;
-}
-
 .box-small-width {
     max-width: 350px;
 }
 
-.btn-wizard {
-    background: #5cc4bf;
-    color: white;
+.white-box {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
 }
 
-.btn-wizard:hover, .btn-wizard:focus, .btn-wizard:active {
-    background: #44918d;
-    color: white;
-}
 
 [class*="span"] {
     margin-left: 0px;
@@ -101,4 +89,9 @@ form {
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
+}
+
+
+.no-account-yet {
+    margin: 16px 0 0;
 }

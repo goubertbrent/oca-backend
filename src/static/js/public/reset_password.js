@@ -49,13 +49,17 @@
         if(!value.trim()) {
             return;
         }
+        var setPasswordRoute = '/customers/setpassword';
+        if (SIGNUP_APP_ID) {
+            setPasswordRoute += '/' + SIGNUP_APP_ID;
+        }
         sln.call({
             url: '/mobi/rest/user/reset_password',
             type: 'post',
             data: {
                 email: value,
                 sender_name: 'OCA',
-                set_password_route: '/customers/setpassword'
+                set_password_route: setPasswordRoute
             },
             success: function(result) {
                 if(result) {

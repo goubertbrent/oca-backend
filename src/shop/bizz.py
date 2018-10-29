@@ -625,17 +625,22 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             login_url = settings.baseUrl
             for url, path in chunks(settings.customSigninPaths, 2):
                 if path.startswith('/customers/signin'):
-                    login_url = 'https://' + url
-
+                    login_url = 'https://%s/%s/%s' % (url, path, customer.default_app_id)
+                    # TODO properly determine which custom signin path to use
+                    if 'threefold' in customer.default_app_id:
+                        continue
+                    else:
+                        break
             parsed_login_url = urlparse.urlparse(login_url)
             action = shop_translate(customer.language, 'password_reset')
             reset_password_link = password = None
             if not user_exists:
                 # TODO: Change the new customer password handling, sending passwords via
                 # email is a serious security issue.
+                reset_password_route = '/customers/setpassword/%s' % customer.default_app_id
                 url_params = get_reset_password_url_params(customer.name, users.User(user_email), action=action)
                 reset_password_link = '%s://%s%s?%s' % (parsed_login_url.scheme, parsed_login_url.netloc,
-                                                        '/customers/setpassword', url_params)
+                                                        reset_password_route, url_params)
                 password = r.password
 
             # TODO: email with OSA style in header, footer
@@ -763,7 +768,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
 
     def trans():
         order_key = Order.create_key(customer_id, order_number)
-        customer, order = db.get((Customer.create_key(customer_id), order_key))
+        customer, order = db.get((Customer.create_key(customer_id), order_key))  # type: [Customer, Order]
         bizz_check(order, "Order not found!")
 
         bizz_check(not order.signature, "Already signed order!")
@@ -774,7 +779,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
         if not no_charge:
             order.signature = jpg
         with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, order)
+            generate_order_or_invoice_pdf(pdf, customer, order, order.contact)
             order.pdf = pdf.getvalue()
         order.status = Order.STATUS_SIGNED
         order.date_signed = now()
@@ -1006,7 +1011,7 @@ def create_invoice(customer_id, order_number, charge_id, invoice_number, operato
             invoice.paid_timestamp = now()
 
         with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, order, invoice, payment_type=payment_type,
+            generate_order_or_invoice_pdf(pdf, customer, order, contact, invoice, payment_type=payment_type,
                                           payment_note=payment_note, charge=charge)
             invoice.pdf = pdf.getvalue()
 
@@ -1232,7 +1237,7 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
 
     attachments = []
     with closing(StringIO()) as pdf_stream:
-        generate_order_or_invoice_pdf(pdf_stream, customer, order, None, True,
+        generate_order_or_invoice_pdf(pdf_stream, customer, order, contact, None, True,
                                       "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
                                       charge=charge)
         attachments.append(("pro-forma-invoice.pdf",
@@ -1244,8 +1249,9 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
     send_mail(solution_server_settings.shop_billing_email, to, subject, body, attachments=attachments)
 
 
-def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, pro_forma=False,
+def generate_order_or_invoice_pdf(output_stream, customer, order, contact, invoice=None, pro_forma=False,
                                   payment_note=None, payment_type=None, charge=None):
+    # type: (StringIO, Customer, Order, Contact, Invoice, bool, str, int, Charge) -> None
     order_items = OrderItem.all().ancestor(order).fetch(None)
     products_to_get = [i.product_code for i in order_items]
     recurrent = charge and charge.is_recurrent
@@ -1268,7 +1274,7 @@ def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, 
         else:  # new order
             pdf_order_items.append(item)
 
-    legal_entity, contact = db.get((customer.team.legal_entity_key, order.contact_key))
+    legal_entity = db.get(customer.team.legal_entity_key)
     _generate_order_or_invoice_pdf(charge, customer, invoice, order, pdf_order_items, output_stream, path, payment_note,
                                    payment_type, products, recurrent, legal_entity, contact)
 
@@ -2265,7 +2271,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
             order = create_order(customer, contact, order_items)
             order.status = Order.STATUS_SIGNED
             with closing(StringIO()) as pdf:
-                generate_order_or_invoice_pdf(pdf, customer, order)
+                generate_order_or_invoice_pdf(pdf, customer, order, contact)
                 order.pdf = db.Blob(pdf.getvalue())
 
             order.next_charge_date = Order.default_next_charge_date()
@@ -2357,6 +2363,7 @@ def calculate_customer_url_digest(data):
 
 
 def send_signup_verification_email(city_customer, signup, host=None):
+    # type: (Customer, CustomerSignup, str) -> None
     data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
     user = users.User(signup.customer_email)
     data['d'] = calculate_customer_url_digest(data)
@@ -2365,8 +2372,8 @@ def send_signup_verification_email(city_customer, signup, host=None):
 
     lang = city_customer.language
     translate = partial(common_translate, lang, SOLUTION_COMMON)
-
-    link = '{}/customers/signup?{}'.format(host or get_server_settings().baseUrl, url_params)
+    base_url = host or get_server_settings().baseUrl
+    link = '{}/customers/signup/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
     subject = city_customer.name + ' - ' + translate('signup')
     params = {
         'language': lang,
@@ -2659,7 +2666,7 @@ def add_service_admin(service_user, owner_user_email, base_url):
         update_password_hash(user_profile, password_hash, now())
         action = common_translate(user_profile.language, SOLUTION_COMMON, 'reset-password')
         url_params = get_reset_password_url_params(user_profile.name, user_profile.user, action=action)
-        reset_password_link = '%s/customers/setpassword?%s' % (base_url, url_params)
+        reset_password_link = '%s/customers/setpassword/%s?%s' % (base_url, user_profile.app_id, url_params)
         params = {
             'service_name': service_identity.name,
             'user_email': owner_user_email,

@@ -20,7 +20,7 @@ import os
 
 from google.appengine.ext import db
 
-import mc_unittest
+import oca_unittest
 from rogerthat.bizz.service import create_service
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.profile import get_user_profile
@@ -42,7 +42,7 @@ except ImportError:
     from StringIO import StringIO
 
 
-class Test(mc_unittest.TestCase):
+class Test(oca_unittest.TestCase):
 
     def _test_reserve_table(self, service_user, service_identity, user_details, date, people, name, phone, comment, force=False):
         # TODO: race conditions?

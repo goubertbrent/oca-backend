@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2018 Mobicage NV
+# Copyright 2018 GIG Technology NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# @@license_version:1.3@@
+# @@license_version:1.4@@
+from mcfw.exceptions import HttpBadRequestException
 
-import oca_unittest
 
-
-class TestCase(oca_unittest.TestCase):
-
-    def test_no_duplicate_solution_callbacks(self):
-        from add_3_solution_handlers import register_solution_callback_api_handlers
-        register_solution_callback_api_handlers()
-        register_solution_callback_api_handlers()
+class InvalidRssLinksException(HttpBadRequestException):
+    def __init__(self, invalid_links):
+        super(InvalidRssLinksException, self).__init__('invalid_rss_links', {'invalid_links': invalid_links})

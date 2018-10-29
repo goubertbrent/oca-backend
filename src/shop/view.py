@@ -82,7 +82,6 @@ from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
 from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
-from shop.business.i18n import shop_translate, get_languages
 from shop.business.legal_entities import put_legal_entity
 from shop.business.order import get_customer_subscription_length, cancel_subscription, get_subscription_order, \
     set_next_charge_date, list_quotations, cancel_order, create_quotation
@@ -370,8 +369,7 @@ class OrderPdfHandler(BizzManagerHandler):
         self.response.headers[
             'Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
 
-        customer = Customer.get_by_id(customer_id)
-        order = Order.get_by_key_name(order_number, parent=customer)
+        customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
 
         # Audit
         if download:
@@ -382,7 +380,7 @@ class OrderPdfHandler(BizzManagerHandler):
         if order.pdf:
             self.response.out.write(order.pdf)
         else:
-            generate_order_or_invoice_pdf(self.response.out, customer, order)
+            generate_order_or_invoice_pdf(self.response.out, customer, order, order.contact)
 
 
 class ChargesHandler(BizzManagerHandler):
@@ -426,10 +424,10 @@ class InvoicePdfHandler(BizzManagerHandler):
             self.response.out.write(invoice.pdf)
         else:
             logging.info("Invoice not found, generating PRO Forma invoice.")
-            charge = db.get(Charge.create_key(long(charge_id), order_number, customer_id))
             img = generate_transfer_document_image(charge)
             payment_note = "data:image/png;base64,%s" % base64.b64encode(img.getvalue())
-            generate_order_or_invoice_pdf(self.response.out, customer, order, invoice, True, payment_note,
+            contact = order.contact
+            generate_order_or_invoice_pdf(self.response.out, customer, order, contact, invoice, True, payment_note,
                                           charge=charge)
 
 

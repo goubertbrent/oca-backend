@@ -55,11 +55,8 @@
         if(!validateInputs(formElem)) {
             return;
         }
-
-        var email, password, remember;
-        email = $('#email').val();
-        password = $('#password').val();
-        remember = $('#remember_session').is(':checked');
+        var email = $('#email').val();
+        var password = $('#password').val();
 
         sln.call({
             url: '/mobi/rest/user/login',
@@ -67,7 +64,7 @@
             data: {
                 email: email,
                 password: password,
-                remember: remember,
+                remember: true,
             },
             success: function(result) {
                 if(result === LOGIN_SUCCESS) {

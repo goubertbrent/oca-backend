@@ -16,14 +16,14 @@
 # @@license_version:1.3@@
 
 import mcfw.consts
-import mc_unittest
+import oca_unittest
 import pickle
 import sys
 
 def find_Missing_class(klz_module, klz_name):
     getattr(sys.modules[klz_module], klz_name)
 
-class Test(mc_unittest.TestCase):
+class Test(oca_unittest.TestCase):
 
     def test_missing(self):
         m1 = mcfw.consts.MISSING

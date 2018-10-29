@@ -33,7 +33,7 @@
                         {% endif %}
                     </p>
                     <br/>
-                    <a id="go_back" class="btn btn-wizard" href="/customers/signin" style="display: none;">
+                    <a id="go_back" class="btn btn-wizard" href="{{ signin_url }}" style="display: none;">
                         {% translate language, "common", "okay-i-got-it" %}
                     </a>
                 </div>
@@ -77,13 +77,13 @@
                                     <h4>{% translate language, "common", "application" %}</h4>
                                 </div>
                             </div>
-                            <div class="control-group">
+                            <div class="control-group {% if app_id %}hidden{% endif %}">
                                 <label for="app" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
                                 <div class="controls">
-                                    <select id="app" class="input-block-level" required>
+                                    <select id="app" class="input-block-level" required >
                                         <option value="">{% translate language, "common", "Select..." %}</option>
                                         {% for app in apps %}
-                                        <option value="{{ app.app_id }}" city="{{ app.name }}" country="{{ app.country }}" customer_id="{{ app.customer_id }}">{{ app.name }}</option>
+                                        <option value="{{ app.app_id }}" {% if app_id== app.app_id %}selected{% endif%}>{{ app.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -134,7 +134,7 @@
                                 <div class="control-group">
                                     <label for="enterprise_zip_code" class="control-label">{% translate language, "common", "zip_code" %}</label>
                                     <div class="controls">
-                                        <input id="enterprise_zip_code" type="number" class="input-block-level"/>
+                                        <input id="enterprise_zip_code" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
@@ -179,7 +179,7 @@
                                 <div class="control-group">
                                     <label for="contact_zip_code" class="control-label">{% translate language, "common", "zip_code" %}</label>
                                     <div class="controls">
-                                        <input id="contact_zip_code" type="number" class="input-block-level"/>
+                                        <input id="contact_zip_code" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">

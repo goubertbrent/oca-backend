@@ -19,7 +19,7 @@ import base64
 
 from google.appengine.ext import db
 
-import mc_unittest
+import oca_unittest
 from mcfw.consts import MISSING
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
 from rogerthat.models import App
@@ -36,9 +36,9 @@ from solutions.common.restapi.store import add_item_to_order, remove_from_order
 from test import set_current_user
 
 
-class CustomerStoreTestCase(mc_unittest.TestCase):
+class CustomerStoreTestCase(oca_unittest.TestCase):
     def setUp(self, datastore_hr_probability=0):
-        mc_unittest.TestCase.setUp(self, datastore_hr_probability=datastore_hr_probability)
+        oca_unittest.TestCase.setUp(self, datastore_hr_probability=datastore_hr_probability)
 
         self.current_user = users.User('test@example.com')
         create_user_profile(self.current_user, u'test', DEFAULT_LANGUAGE)
@@ -76,6 +76,7 @@ class CustomerStoreTestCase(mc_unittest.TestCase):
                 order_item.count *= 2
             order_item.number = x
             order_item.product = product_code
+            order_item.price = product.price
             items.append(order_item)
 
         order = create_order(customer.id, contact.id, items)

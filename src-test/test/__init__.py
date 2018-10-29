@@ -22,9 +22,10 @@ import uuid
 
 from google.appengine.api import users as gusers
 
-from mc_unittest import init_env
+from oca_unittest import init_env
 
 init_env()
+
 
 def register_tst_mobile(email):
     from rogerthat.rpc.models import Mobile

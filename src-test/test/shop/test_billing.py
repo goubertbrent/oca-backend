@@ -17,34 +17,31 @@
 
 import base64
 import datetime
-from test import set_current_user
-
-from dateutil import relativedelta
 
 from google.appengine.ext import db
-import mc_unittest
+
+import oca_unittest
+from dateutil import relativedelta
 from rogerthat.bizz.profile import create_user_profile, UNKNOWN_AVATAR
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import today, now
-from rogerthat.utils.transactions import run_in_transaction
 from shop.bizz import create_or_update_customer, create_contact, create_order, sign_order, put_service, \
-    _after_service_saved, create_invoice
+    _after_service_saved
 from shop.business.expired_subscription import set_expired_subscription_status
-from shop.dal import get_mobicage_legal_entity
-from shop.handlers import export_invoices
 from shop.jobs import recurrentbilling
 from shop.jobs.recurrentbilling import _create_charge
-from shop.models import Product, ShopTask, ExpiredSubscription, RegioManagerTeam, Charge, Order, InvoiceNumber, Invoice
+from shop.models import Product, ShopTask, ExpiredSubscription, RegioManagerTeam, Charge, Order
 from shop.to import OrderItemTO, CustomerServiceTO
 from solutions.common.bizz import OrganizationType, SolutionModule
+from test import set_current_user
 
 
-class TestCase(mc_unittest.TestCase):
+class TestCase(oca_unittest.TestCase):
 
     def setUp(self, datastore_hr_probability=0):
-        mc_unittest.TestCase.setUp(self, datastore_hr_probability=datastore_hr_probability)
+        oca_unittest.TestCase.setUp(self, datastore_hr_probability=datastore_hr_probability)
 
         self.current_user = users.User('test@example.com')
         create_user_profile(self.current_user, u'test', DEFAULT_LANGUAGE)
@@ -86,6 +83,7 @@ class TestCase(mc_unittest.TestCase):
                 order_item.count *= 2
             order_item.number = x
             order_item.product = product_code
+            order_item.price = product.price
             items.append(order_item)
         return items
 
@@ -187,10 +185,7 @@ class TestCase(mc_unittest.TestCase):
         self._create_order(customer, old_subscription_order.contact_id, self._create_items(customer, [(u'KLUP', 1),
                                                                                                       (u'LSUP', 1)]))
 
-        products_to_order = [(Product.PRODUCT_FREE_SUBSCRIPTION, 1),
-                             (u'XCTY', 1),  # extra city, $5.00
-                             (u'XCTY', 1),  # extra city, $5.00
-                             (u'XCTY', 1)]  # extra city, $5.00
+        products_to_order = [(Product.PRODUCT_FREE_SUBSCRIPTION, 1)]
         order_items = self._create_items(customer, products_to_order)
         new_subscription_order, customer = self._create_order(customer, old_subscription_order.contact_id, order_items,
                                                               replace=True)
@@ -200,22 +195,4 @@ class TestCase(mc_unittest.TestCase):
         # Execute recurrent billing code
         products = Product.get_products_dict()
         charge = _create_charge(new_subscription_order.key(), now(), products)
-        self.assertIsNotNone(charge)
-        expected_charge_amount = 3 * products[u'XCTY'].price  # 3x $5.00
-        self.assertEqual(expected_charge_amount, charge.amount)
-
-        def trans_invoice_number():
-            return InvoiceNumber.next(get_mobicage_legal_entity())
-
-        invoice_number = run_in_transaction(trans_invoice_number)
-        create_invoice(customer.id, new_subscription_order.order_number, charge.id, invoice_number,
-                       new_subscription_order.manager, payment_type=Invoice.PAYMENT_ON_SITE)
-
-        dt = datetime.datetime.utcnow()
-        invoices = export_invoices(dt.year, dt.month)
-        self.assertEqual(1, len(invoices))
-        self.assertEqual(len(products_to_order), len(invoices[0]['order_items']))
-
-        order_items_cost = sum(order_item['price'] * order_item['count']
-                               for order_item in invoices[0]['order_items'])
-        self.assertEqual(expected_charge_amount, order_items_cost)
+        self.assertIsNone(charge)
