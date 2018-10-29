@@ -1148,7 +1148,32 @@ def is_demo_app(service_user):
     return get_app_by_id(get_default_app_id(service_user)).demo
 
 
-@returns()
+@returns(dict)
+@arguments(service_user=users.User, excluded_modules=[unicode])
+def get_solution_module_app_texts(service_user, excluded_modules=None):
+    """Returns:
+        dict: {module_name: {text_type: text}}
+    """
+    sln_settings = get_solution_settings(service_user)
+    if excluded_modules is None:
+        excluded_modules = []
+
+    modules = [m for m in sln_settings.modules if m not in excluded_modules]
+    app_text_keys = [
+        SolutionModuleAppText.create_key(service_user, m) for m in modules
+    ]
+
+    app_texts = {}
+    for t in ndb.get_multi(app_text_keys):
+        if t:
+            app_texts[t.module_name] = t.texts
+
+    return  {
+        m: app_texts.get(m, {}) for m in modules
+    }
+
+
+@returns(SolutionModuleAppText)
 @arguments(service_user=users.User, module_name=unicode, texts=dict)
 def update_solution_module_app_text(service_user, module_name, texts):
 
@@ -1171,14 +1196,15 @@ def update_solution_module_app_text(service_user, module_name, texts):
         if changed:
             app_text.texts.update(texts)
             app_text.put()
-        return changed
+        return changed, app_text
 
-    if update():
+    changed, app_text = update()
+    if changed:
         sln_settings = get_solution_settings(service_user)
         sln_settings.updates_pending = True
         put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
-
+    return app_text
 
 
 @returns()

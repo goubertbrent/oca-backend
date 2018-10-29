@@ -146,14 +146,14 @@ RequestsService.prototype = {
         return this.get('/common/settings/app_texts', options);
     },
     updateAppText: function(data, options) {
-        var url = '/common/settings/app_texts';
-        this.clearCache(url);
-        return this.post(url, data, options);
+        options = options || {};
+        options.updatesCache = true;
+        return this.post('/common/settings/app_texts', data, options);
     },
     removeAppText: function(data, options) {
-        var url = '/common/settings/app_texts';
-        this.clearCache(url);
-        return this.post(url + '/delete', data, options);
+        options = options || {};
+        options.updatesCache = true;
+        return this.delete('/common/settings/app_texts', data, options);
     },
 };
 

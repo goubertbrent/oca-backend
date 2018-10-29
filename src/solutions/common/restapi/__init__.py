@@ -67,7 +67,8 @@ from solutions.common.bizz import get_next_free_spots_in_service_menu, common_pr
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
     OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
     twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types, \
-    validate_enable_or_disable_solution_module, update_solution_module_app_text, remove_solution_module_app_text
+    validate_enable_or_disable_solution_module, get_solution_module_app_texts, remove_solution_module_app_text, \
+    update_solution_module_app_text
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
@@ -2102,31 +2103,30 @@ def api_get_app_texts():
         dict: {module_name: {text_type: text}}
     """
     service_user = users.get_current_user()
-    return {
-        app_text.module_name: app_text.texts for app_text in SolutionModuleAppText.list_by_user(service_user)
-    }
+    return get_solution_module_app_texts(service_user)
 
 
 @rest('/common/settings/app_texts', 'post')
-@returns(ReturnStatusTO)
+@returns(dict)
 @arguments(module_name=unicode, texts=dict)
 def api_update_app_texts(module_name, texts):
     try:
         service_user = users.get_current_user()
-        update_solution_module_app_text(service_user, module_name, texts)
-        return RETURNSTATUS_TO_SUCCESS
+        app_text = update_solution_module_app_text(service_user, module_name, texts)
+        result = get_solution_module_app_texts(service_user, excluded_modules=[module_name])
+        result[app_text.module_name] = app_text.texts
+        return result
     except BusinessException as bex:
-        return ReturnStatusTO.create(False, bex.message)
+        raise HttpBadRequestException(bex.message)
 
 
-@rest('/common/settings/app_texts/delete', 'post')
-@returns(ReturnStatusTO)
+@rest('/common/settings/app_texts', 'delete')
+@returns(dict)
 @arguments(module_name=unicode, text_type=unicode)
 def api_remove_app_texts(module_name, text_type):
     try:
         service_user = users.get_current_user()
         remove_solution_module_app_text(service_user, module_name, text_type)
-        return RETURNSTATUS_TO_SUCCESS
+        return get_solution_module_app_texts(service_user)
     except BusinessException as bex:
-        return ReturnStatusTO.create(False, bex.message)
-
+        raise HttpBadRequestException(bex.message)
