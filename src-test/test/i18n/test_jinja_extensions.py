@@ -14,17 +14,18 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
+import os
+
+import jinja2
 from jinja2 import StrictUndefined
 
-import test  # @UnusedImport
+import oca_unittest
 from rogerthat.consts import DEBUG
 from rogerthat.translations import DEFAULT_LANGUAGE
 from solutions.jinja_extensions import TranslateExtension
-import jinja2
-import mc_unittest
-import os
 
-class TestTranslationExtension(mc_unittest.TestCase):
+
+class TestTranslationExtension(oca_unittest.TestCase):
 
     def test_translation_extension(self):
         sln_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src', 'solutions')

@@ -19,17 +19,17 @@
 import os
 import sys
 
-import mc_unittest
+import oca_unittest
 from mcfw.properties import azzert
 from rogerthat import translations
 from rogerthat.consts import OFFICIALLY_SUPPORTED_LANGUAGES
 from rogerthat.utils import get_full_language_string
 from rogerthat.utils.languages import OFFICIALLY_SUPPORTED_ISO_LANGUAGES, WEB_TO_ISO_LANGUAGES
 
-
 PATH_END = os.path.join('src-test', 'test', 'sourcechecks')
 
-class Test(mc_unittest.TestCase):
+
+class Test(oca_unittest.TestCase):
 
     def get_src_dir(self):
         src_is_ok = os.path.split(__file__)[0].endswith(PATH_END)

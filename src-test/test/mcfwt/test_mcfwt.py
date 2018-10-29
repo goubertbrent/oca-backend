@@ -18,7 +18,7 @@
 import json
 import logging
 
-import mc_unittest
+import oca_unittest
 from mcfw.properties import long_property, unicode_property, bool_property, float_property, unicode_list_property, \
     typed_property, get_hash
 from mcfw.rpc import arguments, returns, parse_parameter, serialize_complex_value
@@ -27,7 +27,7 @@ from rogerthat.to.messaging import ButtonTO
 from rogerthat.to.messaging.forms import SingleSliderTO, FormTO
 
 
-class Test(mc_unittest.TestCase):
+class Test(oca_unittest.TestCase):
 
     def testTypedProperty(self):
         widget = SingleSliderTO()

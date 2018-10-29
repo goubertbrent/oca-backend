@@ -763,7 +763,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
 
     def trans():
         order_key = Order.create_key(customer_id, order_number)
-        customer, order = db.get((Customer.create_key(customer_id), order_key))
+        customer, order = db.get((Customer.create_key(customer_id), order_key))  # type: [Customer, Order]
         bizz_check(order, "Order not found!")
 
         bizz_check(not order.signature, "Already signed order!")
@@ -774,7 +774,7 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
         if not no_charge:
             order.signature = jpg
         with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, order)
+            generate_order_or_invoice_pdf(pdf, customer, order, order.contact)
             order.pdf = pdf.getvalue()
         order.status = Order.STATUS_SIGNED
         order.date_signed = now()
@@ -1006,7 +1006,7 @@ def create_invoice(customer_id, order_number, charge_id, invoice_number, operato
             invoice.paid_timestamp = now()
 
         with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, order, invoice, payment_type=payment_type,
+            generate_order_or_invoice_pdf(pdf, customer, order, contact, invoice, payment_type=payment_type,
                                           payment_note=payment_note, charge=charge)
             invoice.pdf = pdf.getvalue()
 
@@ -1232,7 +1232,7 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
 
     attachments = []
     with closing(StringIO()) as pdf_stream:
-        generate_order_or_invoice_pdf(pdf_stream, customer, order, None, True,
+        generate_order_or_invoice_pdf(pdf_stream, customer, order, contact, None, True,
                                       "data:image/png;base64,%s" % base64.b64encode(transfer_doc_png),
                                       charge=charge)
         attachments.append(("pro-forma-invoice.pdf",
@@ -1244,8 +1244,9 @@ def send_payment_info(customer_id, order_number, charge_id, google_user):
     send_mail(solution_server_settings.shop_billing_email, to, subject, body, attachments=attachments)
 
 
-def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, pro_forma=False,
+def generate_order_or_invoice_pdf(output_stream, customer, order, contact, invoice=None, pro_forma=False,
                                   payment_note=None, payment_type=None, charge=None):
+    # type: (StringIO, Customer, Order, Contact, Invoice, bool, str, int, Charge) -> None
     order_items = OrderItem.all().ancestor(order).fetch(None)
     products_to_get = [i.product_code for i in order_items]
     recurrent = charge and charge.is_recurrent
@@ -1268,7 +1269,7 @@ def generate_order_or_invoice_pdf(output_stream, customer, order, invoice=None, 
         else:  # new order
             pdf_order_items.append(item)
 
-    legal_entity, contact = db.get((customer.team.legal_entity_key, order.contact_key))
+    legal_entity = db.get(customer.team.legal_entity_key)
     _generate_order_or_invoice_pdf(charge, customer, invoice, order, pdf_order_items, output_stream, path, payment_note,
                                    payment_type, products, recurrent, legal_entity, contact)
 
@@ -2265,7 +2266,7 @@ def put_customer_with_service(service, name, address1, address2, zip_code, city,
             order = create_order(customer, contact, order_items)
             order.status = Order.STATUS_SIGNED
             with closing(StringIO()) as pdf:
-                generate_order_or_invoice_pdf(pdf, customer, order)
+                generate_order_or_invoice_pdf(pdf, customer, order, contact)
                 order.pdf = db.Blob(pdf.getvalue())
 
             order.next_charge_date = Order.default_next_charge_date()

@@ -19,17 +19,14 @@ from __future__ import unicode_literals
 
 from google.appengine.ext import db
 
-import mc_unittest
-from test import set_current_user
-
-from rogerthat.dal import parent_key_unsafe
+import oca_unittest
 from rogerthat.consts import WEEK
+from rogerthat.dal import parent_key_unsafe
 from rogerthat.models import App
 from rogerthat.rpc import users
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
-
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, OrganizationType, common_provision
 from solutions.common.bizz.loyalty import add_loyalty_for_user, redeem_lottery_winners
@@ -37,9 +34,10 @@ from solutions.common.cron.loyalty import _pick_winner
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery
 from solutions.common.utils import create_service_identity_user_wo_default
 from solutions.flex.bizz import create_flex_service
+from test import set_current_user
 
 
-class LotteryTest(mc_unittest.TestCase):
+class LotteryTest(oca_unittest.TestCase):
 
     """This should test the lottery flow/logic.
     Needed helpers: create service with certain modules

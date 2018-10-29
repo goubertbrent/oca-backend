@@ -15,10 +15,10 @@
 #
 # @@license_version:1.3@@
 
-import mc_unittest
+import oca_unittest
 
 
-class TestCase(mc_unittest.TestCase):
+class TestCase(oca_unittest.TestCase):
 
     def test_no_duplicate_solution_callbacks(self):
         from add_3_solution_handlers import register_solution_callback_api_handlers

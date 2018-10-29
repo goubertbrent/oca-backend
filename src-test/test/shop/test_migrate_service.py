@@ -15,12 +15,12 @@
 #
 # @@license_version:1.3@@
 
+from google.appengine.ext import db
+
+import oca_unittest
 from rogerthat.rpc import users
 from rogerthat.utils import now
-from google.appengine.ext import db
-import mc_unittest
 from shop.jobs.migrate_service import MigrateServiceJob, _create_new_key
-
 
 from_service_email = u'from@foo.com'
 to_service_email = u'to@foo.com'
@@ -36,7 +36,8 @@ job = MigrateServiceJob(parent=db.Key.from_path(MigrateServiceJob.kind(), Migrat
                         service_enabled=False,
                         start_timestamp=now())
 
-class TestMigrateService(mc_unittest.TestCase):
+
+class TestMigrateService(oca_unittest.TestCase):
 
 
     def test_create_new_key_with_normal_key_name(self):

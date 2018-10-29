@@ -129,7 +129,7 @@ class SolutionMainBrandingHandler(webapp2.RequestHandler):
         self.response.out.write(content)
 
 
-class OrderPdfHandler(webapp.RequestHandler):
+class OrderPdfHandler(webapp2.RequestHandler):
 
     def get(self):
         from shop.models import Customer
@@ -145,19 +145,16 @@ class OrderPdfHandler(webapp.RequestHandler):
         self.response.headers[
             'Content-Disposition'] = str('%s; filename=order_%s.pdf' % ("attachment" if download else "inline", order_number))
 
-        try:
-            customer = Customer.get_by_id(customer_id)
-        except CustomerNotFoundException, exception:
-            logging.exception(exception)
-            self.abort(500)
+        customer, order = db.get((Customer.create_key(customer_id), Order.create_key(customer_id, order_number)))
+        if not customer:
+            logging.error('No customer found for id %d while trying to display order pdf %s', customer_id, order_number)
+            self.abort(404)
             return
         if customer.service_email != service_user.email():
             logging.error("%s attempted to download order of %s", service_user, customer.service_email)
             self.abort(403)
             return
-
-        order = Order.get_by_key_name(order_number, parent=customer)
-        generate_order_or_invoice_pdf(self.response.out, customer, order)
+        generate_order_or_invoice_pdf(self.response.out, customer, order, order.contact)
 
 
 class InvoicePdfHandler(webapp.RequestHandler):

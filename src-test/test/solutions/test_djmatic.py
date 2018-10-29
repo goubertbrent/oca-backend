@@ -15,14 +15,15 @@
 #
 # @@license_version:1.3@@
 
+import base64
 import os
 
+import webapp2
 from google.appengine.api import urlfetch
 
-import webapp2
-import base64
 import main_authenticated
-import mc_unittest
+import oca_unittest
+import rogerthat.bizz.channel
 from rogerthat.bizz.session import create_session
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.pages.legal import get_current_document_version, \
@@ -43,7 +44,8 @@ from test import set_current_user
 class DynObject(object):
     pass
 
-class DJMaticTestCase(mc_unittest.TestCase):
+
+class DJMaticTestCase(oca_unittest.TestCase):
 
     def test_dashboard(self):
         self._test()
@@ -76,6 +78,7 @@ class DJMaticTestCase(mc_unittest.TestCase):
 
         original_fetch = urlfetch.fetch
         urlfetch.fetch = new_fetch
+        rogerthat.bizz.channel.append_firebase_params = lambda params: params
         try:
             print 'Test provisioning'
             common_provision(service_user)

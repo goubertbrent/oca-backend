@@ -15,12 +15,12 @@
 #
 # @@license_version:1.3@@
 
-import mc_unittest
+import oca_unittest
 from shop.handlers import export_products
 from shop.models import Product, LegalEntity
 
 
-class TestCase(mc_unittest.TestCase):
+class TestCase(oca_unittest.TestCase):
 
     def test_export_products(self):
         self.set_datastore_hr_probability(1)

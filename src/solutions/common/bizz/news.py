@@ -734,7 +734,7 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     db.put(to_put)
 
     # Not sure if this is necessary
-    deferred.defer(generate_and_put_order_pdf_and_send_mail, customer, new_order_key, service_user,
+    deferred.defer(generate_and_put_order_pdf_and_send_mail, customer, new_order_key, service_user, contact,
                    _transactional=True)
 
     # No need for signing here, immediately create a charge.

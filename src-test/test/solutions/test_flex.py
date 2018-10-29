@@ -21,7 +21,7 @@ import random
 import webapp2
 
 import main_authenticated
-import mc_unittest
+import oca_unittest
 from rogerthat.bizz.session import create_session
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.models import App
@@ -41,7 +41,7 @@ from test import set_current_user
 from test.solutions.util import setup_payment_providers
 
 
-class FlexTestCase(mc_unittest.TestCase):
+class FlexTestCase(oca_unittest.TestCase):
 
     def setUp(self, datastore_hr_probability=0):
         super(FlexTestCase, self).setUp(datastore_hr_probability)
