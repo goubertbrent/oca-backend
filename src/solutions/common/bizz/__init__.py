@@ -1158,7 +1158,11 @@ def get_solution_module_app_texts(service_user, excluded_modules=None):
     if excluded_modules is None:
         excluded_modules = []
 
-    modules = [m for m in sln_settings.modules if m not in excluded_modules]
+    def include_module(name):
+        return name in sln_settings.modules and name not in excluded_modules
+
+    modules = filter(include_module, SolutionModule.TEXT_CUSTOMIZABLE)
+
     app_text_keys = [
         SolutionModuleAppText.create_key(service_user, m) for m in modules
     ]
