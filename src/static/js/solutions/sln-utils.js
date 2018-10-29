@@ -1005,6 +1005,11 @@ var createLib = function() {
             }
             if ((method === 'POST' || method === 'PUT') && options.data && typeof(options.data) !== 'string') {
                 options.data = JSON.stringify(options.data);
+            } else if (method === 'DELETE' && options.data) {
+                // add data parameters as query string
+                // as some servers will ignore/reject the request with body
+                options.url = options.url + '?' + $.param(options.data);
+                delete options.data;
             }
             if (options.showProcessing)
                 sln.showProcessing();
