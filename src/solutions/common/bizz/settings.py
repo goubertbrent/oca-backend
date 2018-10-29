@@ -18,8 +18,11 @@
 import base64
 import logging
 from types import NoneType
+from xml.dom import minidom
 
-from google.appengine.ext import db, deferred
+from google.appengine.api import urlfetch
+from google.appengine.ext import db, deferred, ndb
+
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import _validate_service_identity
@@ -33,11 +36,11 @@ from rogerthat.utils.zip_utils import replace_file_in_zip_blob
 from solutions.common.bizz import _get_location, broadcast_updates_pending
 from solutions.common.dal import get_solution_settings, get_solution_logo, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
+from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionLogo, SolutionAvatar, SolutionSettings, \
-    SolutionBrandingSettings
-from solutions.common.to import SolutionSettingsTO
+    SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink
+from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
 from solutions.common.utils import is_default_service_identity
-
 
 SLN_LOGO_WIDTH = 640
 SLN_LOGO_HEIGHT = 240
@@ -198,3 +201,69 @@ def _regenerate_branding_with_logo(service_user):
 
     common_settings = run_in_transaction(trans, xg=True)
     broadcast_updates_pending(common_settings)
+
+
+def _validate_rss_urls(urls):
+    # type: (set[str]) -> tuple[list[str], list[str]]
+    rpcs = []
+    invalid_urls = []
+    valid_urls = []
+    for rss_url in urls:
+        rpc = urlfetch.create_rpc(deadline=30)
+        try:
+            urlfetch.make_fetch_call(rpc, rss_url)
+            rpcs.append(rpc)
+        except Exception as e:
+            logging.debug('Error while creating fetch call for %s: %s', rss_url, e.message)
+            rpcs.append(None)
+    for rss_url, rpc in zip(urls, rpcs):
+        if not rpc:
+            invalid_urls.append(rss_url)
+            continue
+        try:
+            response = rpc.get_result()  # type: urlfetch._URLFetchResult
+        except Exception as e:
+            logging.debug('Error while fetching %s: %s', rss_url, e.message)
+            invalid_urls.append(rss_url)
+            continue
+        if response.status_code != 200:
+            invalid_urls.append(rss_url)
+        else:
+            # try and load as rss and check if title, link and description exist and is set
+            try:
+                doc = minidom.parseString(response.content)
+                first_item = doc.getElementsByTagName('item')[0]
+                title = first_item.getElementsByTagName("title")[0].firstChild.nodeValue
+                url = first_item.getElementsByTagName("link")[0].firstChild.nodeValue
+                if not title or not url:
+                    raise Exception('Missing title or url for %s' % rss_url)
+                valid_urls.append(rss_url)
+            except Exception as e:
+                logging.debug('Error while validating url: %s' % e.message, exc_info=True)
+                invalid_urls.append(rss_url)
+    return valid_urls, invalid_urls
+
+
+@ndb.transactional()
+def save_rss_urls(service_user, service_identity, data):
+    # type: (users.User, unicode, SolutionRssSettingsTO) -> SolutionRssScraperSettings
+    rss_settings_key = SolutionRssScraperSettings.create_key(service_user, service_identity)
+    rss_settings = rss_settings_key.get()  # type: SolutionRssScraperSettings
+
+    current_dict = {}
+    if not rss_settings:
+        rss_settings = SolutionRssScraperSettings(key=rss_settings_key)
+    else:
+        for rss_links in rss_settings.rss_links:
+            if not current_dict.get(rss_links.url, False):
+                current_dict[rss_links.url] = rss_links.dry_runned
+    valid_urls, invalid_urls = _validate_rss_urls({url for url in data.rss_urls if url not in current_dict})
+    if invalid_urls:
+        raise InvalidRssLinksException(invalid_urls)
+
+    all_urls = current_dict.keys() + valid_urls
+    saved_urls = [url for url in all_urls if url in data.rss_urls]
+    rss_settings.notify = data.notify
+    rss_settings.rss_links = [SolutionRssLink(url=url, dry_runned=current_dict.get(url, False)) for url in saved_urls]
+    rss_settings.put()
+    return rss_settings
