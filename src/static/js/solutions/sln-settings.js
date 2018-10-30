@@ -2022,7 +2022,10 @@ $(function () {
         Requests.getAppTexts().then(function(texts) {
             var functionalities = TEXT_CUSTOMIZABLE_MODULES.sort().map(function(module_name) {
                 var info = FUNCTIONALITY_INFO[module_name];
-                info.showAddButton = Object.keys(texts[module_name]).length < allTypesLen;
+                var moduleTexts = texts[module_name];
+                if (moduleTexts) {
+                    info.showAddButton = Object.keys(moduleTexts).length < allTypesLen;
+                }
                 return info;
             });
 
@@ -2040,7 +2043,7 @@ $(function () {
                     var textType = $(this).parent().parent().attr('text_type');
 
                     callback(moduleName, textType);
-                }
+                };
             }
 
             function updateAppText(moduleName, textType, textValue) {
