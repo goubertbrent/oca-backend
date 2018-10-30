@@ -2706,7 +2706,6 @@ def import_customer(
 
     try:
         language = city_customer.language
-        country = city_customer.country
         org_type = get_org_type(language, org_type_name)
         email = email or contact_email
         address = address or contact_address
