@@ -1181,30 +1181,20 @@ def get_solution_module_app_texts(service_user, excluded_modules=None):
 @returns(SolutionModuleAppText)
 @arguments(service_user=users.User, module_name=unicode, texts=dict)
 def update_solution_module_app_text(service_user, module_name, texts):
+    key = SolutionModuleAppText.create_key(service_user, module_name)
+    app_text = key.get()
+    if not app_text:
+        app_text = SolutionModuleAppText(key=key)
+    if not app_text.texts:
+        app_text.texts = {}
 
-    @ndb.transactional()
-    def update():
-        if not texts:
-            return
+    changed = any([
+        app_text.texts.get(text_type) != text_value for text_type, text_value in texts.iteritems()
+    ])
 
-        key = SolutionModuleAppText.create_key(service_user, module_name)
-        app_text = key.get()
-        if not app_text:
-            app_text = SolutionModuleAppText(key=key)
-        if not app_text.texts:
-            app_text.texts = {}
-
-        changed = any([
-            app_text.texts.get(text_type) != text_value for text_type, text_value in texts.iteritems()
-        ])
-
-        if changed:
-            app_text.texts.update(texts)
-            app_text.put()
-        return changed, app_text
-
-    changed, app_text = update()
     if changed:
+        app_text.texts.update(texts)
+        app_text.put()
         sln_settings = get_solution_settings(service_user)
         sln_settings.updates_pending = True
         put_and_invalidate_cache(sln_settings)
@@ -1215,21 +1205,14 @@ def update_solution_module_app_text(service_user, module_name, texts):
 @returns()
 @arguments(service_user=users.User, module_name=unicode, text_type=unicode)
 def remove_solution_module_app_text(service_user, module_name, text_type):
+    key = SolutionModuleAppText.create_key(service_user, module_name)
+    app_text = key.get()
+    if not app_text or not app_text.texts:
+        return
 
-    @ndb.transactional()
-    def remove():
-        key = SolutionModuleAppText.create_key(service_user, module_name)
-        app_text = key.get()
-        if not app_text or not app_text.texts:
-            return False
-
-        if text_type in app_text.texts:
-            del app_text.texts[text_type]
-            app_text.put()
-            return True
-        return False
-
-    if remove():
+    if text_type in app_text.texts:
+        del app_text.texts[text_type]
+        app_text.put()
         sln_settings = get_solution_settings(service_user)
         sln_settings.updates_pending = True
         put_and_invalidate_cache(sln_settings)
