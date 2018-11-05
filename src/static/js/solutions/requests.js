@@ -154,11 +154,14 @@ RequestsService.prototype = {
         return this.post('/common/billing/card', data, options);
     },
     getContacts: function(options){
-      return this.get('/common/billing/contacts', options);
+        return this.get('/common/billing/contacts', options);
     },
     getStoreProducts: function(options){
         return this.get('/common/store/products', options);
     },
+    getOrderItems: function (options) {
+        return this.get('/common/store/order_items', options);
+    }
 };
 
 var Requests = new RequestsService();

@@ -23,7 +23,9 @@ ROUTES.shop = shopRouter;
 function shopRouter(urlHash) {
     $('#shoplink').click();
     var page = urlHash[1];
-    getOrderItems(function () {
+    // todo should be able to enable cache
+    Requests.getOrderItems({cached: false}).then(function (data) {
+        cart = data;
         switch (page) {
             case 'product':
                 renderItem(urlHash[2]);
@@ -326,19 +328,6 @@ function removeItemFromCart(item, renderFx){
             // show generic error msg
             renderFx({error: CommonTranslations.ERROR_OCCURED_UNKNOWN});
         }
-    };
-    sln.call(options);
-}
-
-function getOrderItems(callback) {
-    var options = {
-        method: 'GET',
-        url: '/common/store/order_items',
-        success: function(data){
-            cart = data;
-            callback();
-        },
-        error: sln.showAjaxError
     };
     sln.call(options);
 }

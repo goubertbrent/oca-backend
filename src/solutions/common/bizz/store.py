@@ -51,6 +51,7 @@ from solutions.common.models.payment import PayconiqPayment, PayconiqPaymentStat
 
 def generate_payconiq_signature(merchant_id, currency, amount, secret_key, webhook_id):
     # type: (str, str, str, str, str) -> str
+    # See https://github.com/payconiq/python_signature/blob/master/signature_validation_python/api.py
     shasum = sha256()
     signature = '{merchant_id}{webhook_id}{currency}{amount}{secret_key}'.format(merchant_id=merchant_id,
                                                                                  webhook_id=webhook_id,
