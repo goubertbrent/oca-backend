@@ -21,7 +21,6 @@ import webapp2
 from rogerthat.utils import try_or_defer
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.store import verify_payconiq_signature, handle_payconiq_callback
-from solutions.common.consts import PAYCONIQ_CERTIFICATES
 
 
 # See https://dev.payconiq.com/online-payments-dock/#merchant-callback-webhooks-
@@ -43,8 +42,7 @@ class PayconiqCallbackHandler(webapp2.RequestHandler):
             self.abort(400)
             return
         merchant_id = get_solution_server_settings().payconiq_merchant_id
-        public_key = PAYCONIQ_CERTIFICATES[key_url]
-        if not verify_payconiq_signature(public_key, merchant_id, timestamp, self.request.body, signature):
+        if not verify_payconiq_signature(key_url, merchant_id, timestamp, self.request.body, signature):
             logging.debug('Invalid signature')
             self.abort(400)
         try_or_defer(handle_payconiq_callback, webhook_id, transaction_id, status)

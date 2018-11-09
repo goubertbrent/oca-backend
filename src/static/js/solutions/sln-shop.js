@@ -191,10 +191,10 @@ function renderCart(checkout, paymentMethod) {
                 var resultPromise;
                 if (paymentMethod === 'payconiq') {
                     resultPromise = payWithPayconiq();
-            } else {
+                } else {
                     resultPromise = payWithCreditcard();
-            }
-                button.prop('disabled', true)
+                }
+                button.prop('disabled', true);
                 resultPromise.then(function () {
                     sln.alert(T('thank_you_for_your_order'), onClose, T('order_complete'));
 
@@ -204,10 +204,12 @@ function renderCart(checkout, paymentMethod) {
                         window.location.hash = '/shop/';
                     }
                 }).catch(function (err) {
-                    sln.alert(err, null, T('Error'));
+                    if (err) {
+                        sln.alert(err, null, T('Error'));
+                    }
                 }).finally(function () {
                     button.prop('disabled', false);
-            });
+                });
             });
         }
     });
@@ -246,6 +248,7 @@ function payWithPayconiq() {
                 .on('success', onSuccess)
                 .on('error', onError)
                 .on('failed', onFailed)
+                .on('close', onClosed)
                 .load();
 
             function onSuccess() {
@@ -260,6 +263,10 @@ function payWithPayconiq() {
             function onFailed(error) {
                 console.error(error.message, error);
                 reject(error.message);
+            }
+
+            function onClosed() {
+                reject();
             }
         });
     });

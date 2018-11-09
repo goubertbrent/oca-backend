@@ -20,12 +20,13 @@ from StringIO import StringIO
 from base64 import b64encode
 from contextlib import closing
 from hashlib import sha256
+from urlparse import urlparse
 
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 
 from mcfw.properties import azzert
-from rogerthat.bizz.payment.providers.payconiq.api import _verify_sign
+from rogerthat.bizz.payment.providers.payconiq.api import get_public_key, _verify_sign
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.models.utils import copy_model_properties, allocate_id
@@ -86,15 +87,18 @@ def get_payconiq_info(service_user):
     }
 
 
-def verify_payconiq_signature(public_key, merchant_id, timestamp, body, signature):
+def verify_payconiq_signature(key_url, merchant_id, timestamp, body, signature):
     # From https://github.com/payconiq/merchant-callback-verification-python
     crc32 = '{:8x}'.format(binascii.crc32(body.encode('utf-8')) & 0xffffffff)
     expected_sig = '{}|{}|{}'.format(merchant_id, timestamp, crc32).encode('utf-8')
+    hostname = urlparse(key_url).netloc
+    public_key = get_public_key(hostname)
     return _verify_sign(public_key, signature, expected_sig)
 
 
 def handle_payconiq_callback(webhook_id, transaction_id, status):
-    payment = PayconiqPayment.create_key(webhook_id).get()  # type: PayconiqPayment
+    # type: (str, str, int) -> object
+    payment = PayconiqPayment.create_key(int(webhook_id)).get()  # type: PayconiqPayment
     payment.transaction_id = transaction_id
     if payment.status not in FINAL_STATUSES:
         logging.info('Updating status from %s to %s', payment.status, status)
@@ -103,6 +107,7 @@ def handle_payconiq_callback(webhook_id, transaction_id, status):
         logging.warning('Not updating transaction %s status to %s: status is already %s', webhook_id, status,
                         payment.status)
         return
+    payment.put()
     if payment.status == PayconiqPaymentStatus.SUCCEEDED:
         process_order(False)
 

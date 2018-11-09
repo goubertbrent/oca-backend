@@ -160,6 +160,9 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     payconiq_secret = add_meta(db.StringProperty(indexed=False),
                                doc="Payconiq secret (used to create transactions)",
                                order=1704)
+    payconiq_api_key = add_meta(db.StringProperty(indexed=False),
+                                doc="Payconiq api key",
+                                order=1705)
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
