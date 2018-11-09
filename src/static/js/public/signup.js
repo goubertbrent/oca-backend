@@ -120,7 +120,7 @@ $(function() {
         for (var i = 0; i <= 4; i++) {
             tabs.push($('#tab' + i));
         }
-        if (SIGNUP_APP_ID) {
+        if (typeof SIGNUP_APP_ID !== 'undefined' && SIGNUP_APP_ID) {
             appSelected();
         }
     }
