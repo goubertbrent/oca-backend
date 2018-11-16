@@ -16,36 +16,37 @@
 # @@license_version:1.3@@
 
 import base64
+from collections import OrderedDict
+from contextlib import closing
 import csv
 import datetime
+from functools import partial
 import hashlib
 import json
 import logging
 import os
+from types import NoneType
 import urllib
 import urlparse
-from collections import OrderedDict
-from contextlib import closing
-from functools import partial
-from types import NoneType
+
+from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
+from dateutil.relativedelta import relativedelta
+import httplib2
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
+import stripe
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from google.appengine.ext import ndb
-
-import cloudstorage
-import httplib2
-import stripe
-from babel.dates import format_datetime, get_timezone, format_date
-from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
+from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -110,6 +111,7 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
+
 
 try:
     from cStringIO import StringIO
@@ -297,8 +299,10 @@ def create_or_update_customer(current_user, customer_id, vat, name, address1, ad
     customer.country = country
     customer.language = language
     customer.organization_type = organization_type
-    customer.website = website
-    customer.facebook_page = facebook_page
+    if website is not None:
+        customer.website = website
+    if facebook_page is not None:
+        customer.facebook_page = facebook_page
     if prospect_id is not None:
         customer.prospect_id = prospect_id
     customer.put()
@@ -349,7 +353,7 @@ def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replac
 
     all_products = get_products()
     validate_and_sanitize_order_items(customer, all_products, items)
-    price, total, vat, total_vat_incl = calculate_order_totals(vat_pct, items, all_products)
+    _, total, vat, total_vat_incl = calculate_order_totals(vat_pct, items, all_products)
     is_subscription = False
     is_subscription_extension_order = False
     for item in items:
