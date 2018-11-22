@@ -231,6 +231,9 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'loyalty_slides',
         'loyalty_slide_add'
     ],
+    SolutionModule.POLLS: [
+        'polls/poll_form',
+    ],
 }
 
 

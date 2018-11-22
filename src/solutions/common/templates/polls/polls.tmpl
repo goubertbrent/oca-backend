@@ -1,0 +1,41 @@
+<div id="polls" class="page" style="display: none;">
+    <div id="polls-list-container">
+        <h2> {% translate language, "common", "polls" %}</h2>
+
+        <div class="span12">
+            <div class="pull-right create-poll">
+                <a class="btn search-polls"><i class="fa fa-search"></i>
+                    {% translate language, "common", "Search" %}
+                </a>
+                <a class="btn btn-success" href="#/polls/add"><i class="fa fa-plus"></i>
+                    {% translate language, "common", "create_poll" %}
+                </a>
+            </div>
+        </div>
+
+        <ul id="polls_tab" class="nav nav-tabs">
+            <li class="active">
+                <a href="#pending-polls" data-toggle="tab">{% translate language, "common", "Pending" %}</a>
+            </li>
+            <li>
+                <a href="#running-polls" data-toggle="tab">{% translate language, "common", "running" %}</a>
+            </li>
+            <li>
+                <a href="#previous-polls" data-toggle="tab">{% translate language, "common", "previous" %}</a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div id="pending-polls" class="tab-pane polls-list active"></div>
+            <div id="running-polls" class="tab-pane polls-list"></div>
+            <div id="previous-polls" class="tab-pane polls-list"></div>
+        </div>
+
+        <div id="polls_loading_indicator" style="display: block"></div>
+    </div>
+
+    <div id="poll-form-container" class="span8 center"></div>
+
+</div>
+
+<script src="/static/js/solutions/sln-polls.js"></script>

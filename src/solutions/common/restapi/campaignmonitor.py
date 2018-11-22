@@ -42,12 +42,12 @@ def api_get_list_webhook_callback(webhook_id):
     webhook = CampaignMonitorWebhook.get_by_id(list_id)  # type: CampaignMonitorWebhook
     if not webhook:
         raise HttpBadRequestException()
-    
+
     current_request = GenericRESTRequestHandler.getCurrentRequest()
     list_events = json.loads(current_request.body)
     events_list_id = list_events['ListID']
     events = list_events['Events']
-    
+
     if organization_type is None:
         if webhook.list_id != events_list_id:
             logging.warn('Invalid list id %s, expected %s', events_list_id, webhook.list_id)

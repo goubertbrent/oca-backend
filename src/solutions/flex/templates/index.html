@@ -208,6 +208,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     {% if SolutionModule.CITY_VOUCHERS in sln_settings.modules and not loyalty %}
                         <li menu="city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
     {% endif %}
+    {% if SolutionModule.POLLS in sln_settings.modules %}
+                        <li menu="polls"><a href="#/polls">{% translate language, "common", "polls" %}</a></li>
+    {% endif %}
 {% endif %}
 
 {% if not loyalty %}
@@ -307,6 +310,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     {% endif %}
     {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
         {%- include 'restaurant_reservation.tmpl' %}
+    {% endif %}
+    {% if SolutionModule.POLLS in sln_settings.modules %}
+        {%- include 'polls/polls.tmpl' %}
     {% endif %}
 {% endif %}
 

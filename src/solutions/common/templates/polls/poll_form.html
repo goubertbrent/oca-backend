@@ -1,0 +1,32 @@
+{% raw %}
+<form class="form-horizontal row" id="poll-form">
+
+    <fieldset class="span6">
+
+        <legend><a href="#/polls" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${t.back}</a>
+            {{if edit}}${t.Edit}{{else}}${t.create_poll}{{/if}}
+        </legend>
+
+        <div class="control-group">
+            <label for="poll-name" class="control-label">${t['reservation-name']}</label>
+
+            <div class="controls">
+                <input type="text" id="poll-name" name="poll-name" value="">
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="poll-questions" class="control-label">${t.questions}</label>
+            <div class="controls">
+                <button id="add_question" type="button" class="btn btn-default">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="control-group">
+                <button type="button" id="poll-submit" class="btn btn-success pull-right"
+                        style="margin-top: 10px;">{{if edit}}${t.Save}{{else}}${t.create_poll}{{/if}}
+            </div>
+        </div>
+    </fieldset>
+</form>
+{% endraw %}

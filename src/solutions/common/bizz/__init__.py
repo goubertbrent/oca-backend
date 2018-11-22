@@ -114,6 +114,7 @@ class SolutionModule(Enum):
     STATIC_CONTENT = u'static_content'
     WHEN_WHERE = u'when_where'
     JOBS = u'jobs'
+    POLLS = u'polls'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -140,6 +141,7 @@ class SolutionModule(Enum):
         WHEN_WHERE: 'when-where',
         JOYN: 'joyn',
         JOBS: 'jobs',
+        POLLS: 'polls',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
