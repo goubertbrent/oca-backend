@@ -23,7 +23,7 @@ from rogerthat.dal import parent_ndb_key
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz.polls import update_poll, start_poll, stop_poll
+from solutions.common.bizz.polls import update_poll, start_poll, stop_poll, PollNotFoundException
 from solutions.common.models.polls import Poll, PollStatus
 from solutions.common.to.polls import PollTO, PollsListTO
 
@@ -71,8 +71,10 @@ def api_start_poll(poll_id):
     try:
         service_user = users.get_current_user()
         return start_poll(service_user, poll_id)
+    except PollNotFoundException:
+        raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:
-        return HttpBadRequestException(bex.message)
+        raise HttpBadRequestException(bex.message)
 
 
 @rest('/common/polls/<poll_id:[^/]+>', 'put')
@@ -82,5 +84,7 @@ def api_stop_poll(poll_id):
     try:
         service_user = users.get_current_user()
         return stop_poll(service_user, poll_id)
+    except PollNotFoundException:
+        raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:
-        return HttpBadRequestException(bex.message)
+        raise HttpBadRequestException(bex.message)

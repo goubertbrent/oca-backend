@@ -76,6 +76,7 @@ class PollTO(TO):
     @classmethod
     def from_model(cls, poll):
         to = cls()
+        to.id = poll.id
         to.name = poll.name
         to.status = poll.status
         if poll.questions is MISSING:

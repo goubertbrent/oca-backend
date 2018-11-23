@@ -22,6 +22,10 @@ from solutions.common.models.polls import Poll, PollStatus, Vote, QuestionTypeEx
 from solutions.common.to.polls import PollTO, MultipleChoiceQuestionTO
 
 
+class PollNotFoundException(BusinessException):
+    pass
+
+
 @returns(PollTO)
 @arguments(service_user=users.User, poll=PollTO)
 def update_poll(service_user, poll):
@@ -56,7 +60,8 @@ def start_poll(service_user, poll_id):
             raise BusinessException('poll_started_or_completed')
         poll.status = PollStatus.RUNNING
         poll.put()
-    return PollTO.from_model(poll)
+        return PollTO.from_model(poll)
+    raise PollNotFoundException
 
 
 @returns(PollTO)
@@ -68,4 +73,5 @@ def stop_poll(service_user, poll_id):
             raise BusinessException('poll_pending_or_completed')
         poll.status = PollStatus.COMPLELTED
         poll.put()
-    return PollTO.from_model(poll)
+        return PollTO.from_model(poll)
+    raise PollNotFoundException
