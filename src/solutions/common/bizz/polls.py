@@ -21,6 +21,7 @@ def update_poll(service_user, poll):
         new_poll = type_(key=key)
 
     try:
+        new_poll.name = poll.name
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
         poll.id = new_poll.id

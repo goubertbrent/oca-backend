@@ -32,6 +32,7 @@ import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.statistics
 import solutions.common.restapi.store
+import solutions.common.restapi.polls
 import solutions.djmatic.restapi
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
@@ -95,6 +96,7 @@ handlers.extend(rest_functions(solutions.common.restapi.reservation))
 handlers.extend(rest_functions(solutions.common.restapi.qanda))
 handlers.extend(rest_functions(solutions.common.restapi.store))
 handlers.extend(rest_functions(solutions.common.restapi.statistics))
+handlers.extend(rest_functions(solutions.common.restapi.polls))
 handlers.extend(rest_functions(solutions.djmatic.restapi))
 
 app = AuthenticatedRogerthatWSGIApplication(handlers, name="main_authenticated")
