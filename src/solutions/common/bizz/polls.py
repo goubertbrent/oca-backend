@@ -36,7 +36,7 @@ def update_poll(service_user, poll):
     if poll.is_vote:
         type_ = Vote
 
-    key = type_.create_key(service_user)
+    key = type_.create_key(service_user, poll.id)
     new_poll = key.get()
     if not new_poll:
         new_poll = type_(key=key)
@@ -45,7 +45,8 @@ def update_poll(service_user, poll):
         new_poll.name = poll.name
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
-        poll.id = new_poll.id
+        if not poll.id:
+            poll.id = new_poll.id
     except QuestionTypeException:
         raise BusinessException('vote_question_types_error')
     return poll

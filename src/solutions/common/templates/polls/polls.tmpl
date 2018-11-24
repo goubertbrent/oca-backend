@@ -21,14 +21,14 @@
                 <a href="#running-polls" data-toggle="tab">{% translate language, "common", "running" %}</a>
             </li>
             <li>
-                <a href="#previous-polls" data-toggle="tab">{% translate language, "common", "previous" %}</a>
+                <a href="#completed-polls" data-toggle="tab">{% translate language, "common", "previous" %}</a>
             </li>
         </ul>
 
         <div class="tab-content">
             <div id="pending-polls" class="tab-pane polls-list active"></div>
             <div id="running-polls" class="tab-pane polls-list"></div>
-            <div id="previous-polls" class="tab-pane polls-list"></div>
+            <div id="completed-polls" class="tab-pane polls-list"></div>
         </div>
 
         <div id="polls_loading_indicator" style="display: block"></div>
@@ -38,4 +38,5 @@
 
 </div>
 
+<script src="/static/js/solutions/sln-polls-requests.js"></script>
 <script src="/static/js/solutions/sln-polls.js"></script>

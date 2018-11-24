@@ -44,9 +44,8 @@ def api_get_polls(status, cursor=None, limit=20):
 @rest('/common/polls', 'post', flavor=REST_FLAVOR_TO)
 @returns(PollTO)
 @arguments(data=PollTO)
-def api_create_or_update_poll(data):
+def api_create_poll(data):
     try:
-        import pdb; pdb.set_trace()
         service_user = users.get_current_user()
         return update_poll(service_user, poll=data)
     except BusinessException as bex:
@@ -57,33 +56,46 @@ def api_create_or_update_poll(data):
 @returns
 @arguments(poll_id=(int, long))
 def api_get_poll(poll_id):
-    service_user = users.get_current_userrr
+    service_user = users.get_current_user()
     poll = Poll.create_key(service_user, poll_id).get()
     if not poll:
         raise HttpNotFoundException('poll_not_found')
     return poll
 
 
-@rest('/common/polls/<poll_id:[^/]+>', 'post')
+@rest('/common/polls/<poll_id:[^/]+>', 'post', flavor=REST_FLAVOR_TO)
 @returns(PollTO)
-@arguments(poll_id=(int, long))
-def api_start_poll(poll_id):
+@arguments(poll_id=(int, long), data=PollTO)
+def api_update_poll(poll_id, data):
+    data.id = poll_id
+    return api_create_poll(data)
+
+
+@rest('/common/polls/<poll_id:[^/]+>', 'put')
+@returns(PollTO)
+@arguments(poll_id=(int, long), data=PollTO)
+def api_start_or_stop_poll(poll_id, data):
     try:
         service_user = users.get_current_user()
-        return start_poll(service_user, poll_id)
+        if data.status == PollStatus.RUNNING:
+            return start_poll(service_user, poll_id)
+        elif data.status == PollStatus.COMPLELTED:
+            return stop_poll(service_user, poll_id)
+        else:
+            raise BusinessException('poll_invalid_status')
     except PollNotFoundException:
         raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:
         raise HttpBadRequestException(bex.message)
 
 
-@rest('/common/polls/<poll_id:[^/]+>', 'put')
+@rest('/common/polls/<poll_id:[^/]+>', 'delete')
 @returns(PollTO)
 @arguments(poll_id=(int, long))
-def api_stop_poll(poll_id):
+def api_remove_poll(poll_id):
     try:
         service_user = users.get_current_user()
-        return stop_poll(service_user, poll_id)
+        # TODO: remove poll and all related records
     except PollNotFoundException:
         raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:

@@ -16,26 +16,38 @@
  * @@license_version:1.3@@
  */
 
-function PollsList(status) {
+function PollsList(status, container) {
     this.status = status;
+    this.container = container;
+
     this.polls = [];
+    this.cursor = null;
+    this.has_more = true;
 }
 
 PollsList.prototype = {
     loadPolls: function() {
+        PollsRequests.getPolls(this.status, this.cursor).then(function(data) {
+            this.polls = this.polls.concat(data.results);
+            this.cursor = data.cursor;
+            this.has_more = data.more;
+            this.renderPolls(data.results);
+        }.bind(this));
+    },
 
+    renderPolls: function(polls) {
+        var self = this;
+        $.each(polls, function(i, poll) {
+            var row = $.tmpl(templates['polls/poll_row'], {
+                poll: poll
+            });
+            self.container.append(row);
+        });
     },
 
     validateLoadMore: function() {
 
     },
-};
-
-
-var POLL_STATUS = {
-    pending: 1,
-    running: 2,
-    previous: 3,
 };
 
 $(function() {
@@ -69,8 +81,10 @@ $(function() {
     function initPollsList() {
         $('.polls-list').each(function(i, container) {
             var name = $(this).attr('id').split('-')[0];
-            var status = POLL_STATUS[name];
-            lists[status] = new PollsList(status, $(container));
+            var status = PollStatus[name];
+            var list = new PollsList(status, $(container));
+            lists[status] = list;
+            list.loadPolls();
         });
     }
 
