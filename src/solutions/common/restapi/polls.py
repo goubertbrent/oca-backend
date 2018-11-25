@@ -49,18 +49,18 @@ def api_create_poll(data):
         service_user = users.get_current_user()
         return update_poll(service_user, poll=data)
     except BusinessException as bex:
-        return HttpBadRequestException(bex.message)
+        raise HttpBadRequestException(bex.message)
 
 
 @rest('/common/polls/<poll_id:[^/]+>', 'get')
-@returns
+@returns(PollTO)
 @arguments(poll_id=(int, long))
 def api_get_poll(poll_id):
     service_user = users.get_current_user()
     poll = Poll.create_key(service_user, poll_id).get()
     if not poll:
         raise HttpNotFoundException('poll_not_found')
-    return poll
+    return PollTO.from_model(poll)
 
 
 @rest('/common/polls/<poll_id:[^/]+>', 'post', flavor=REST_FLAVOR_TO)

@@ -16,22 +16,40 @@
  * @@license_version:1.3@@
  */
 
+var QuestionType = {
+    multiple_choice: 1,
+    checkboxes: 2,
+    short_text: 3,
+    long_text: 4
+}
+
 function PollsList(status, container) {
     this.status = status;
     this.container = container;
 
-    this.polls = [];
     this.cursor = null;
-    this.has_more = true;
+    this.isLoading = false;
+    this.hasMore = true;
 }
 
 PollsList.prototype = {
+    showLoading: function() {
+        this.isLoading = true;
+        $('#polls_loading_indicator').html(TMPL_LOADING_SPINNER);
+    },
+
+    hideLoading: function() {
+        this.isLoading = false;
+        $('#polls_loading_indicator').empty();
+    },
+
     loadPolls: function() {
+        this.showLoading();
         PollsRequests.getPolls(this.status, this.cursor).then(function(data) {
-            this.polls = this.polls.concat(data.results);
             this.cursor = data.cursor;
-            this.has_more = data.more;
+            this.hasMore = data.more;
             this.renderPolls(data.results);
+            this.hideLoading();
         }.bind(this));
     },
 
@@ -39,6 +57,7 @@ PollsList.prototype = {
         var self = this;
         $.each(polls, function(i, poll) {
             var row = $.tmpl(templates['polls/poll_row'], {
+                t: CommonTranslations,
                 poll: poll
             });
             self.container.append(row);
@@ -46,13 +65,26 @@ PollsList.prototype = {
     },
 
     validateLoadMore: function() {
+        var lastPoll = this.container.find('.poll').last();
+        if(sln.isOnScreen(lastPoll) && this.hasMore && !this.isLoading) {
+            this.loadPolls();
+        }
+    },
 
+    reloadPolls: function() {
+        this.cursor = null;
+        PollsRequests.clearGetPolls(this.status);
+        this.container.empty();
+        this.loadPolls();
     },
 };
 
 $(function() {
     'use strict';
     var lists = {};
+    var currentPoll = {
+        status: PollStatus.pending
+    };
 
     function init() {
         ROUTES.polls = router;
@@ -69,10 +101,10 @@ $(function() {
                 renderPollsForm();
                 break;
             case 'edit':
-                renderPollsForm();
+                renderPollsForm(parseInt(urlHash[2]));
                 break;
             default:
-                loadPolls();
+                showLists();
                 break;
 
         }
@@ -88,24 +120,129 @@ $(function() {
         });
     }
 
-    function renderPollsForm() {
-        $('#polls-list-container').hide();
-        $('#poll-form-container').show();
 
-        var html = $.tmpl(templates['polls/poll_form'], {
-            t: CommonTranslations,
-        });
-
-        $('#poll-form-container').html(html);
-    }
-
-    function loadPolls() {
-        renderPollsList();
-    }
-
-    function renderPollsList() {
+    function showLists() {
         $('#polls-list-container').show();
         $('#poll-form-container').hide();
+    }
+
+    function getCurrentList() {
+        return lists[currentPoll.status];
+    }
+
+    function populateFormData() {
+        currentPoll.name = $('#poll-name').val();
+        currentPoll.is_vote = $('#poll-is-vote').is(':checked');
+    }
+
+    function updateSuccess() {
+        hideLoading();
+        window.location.href = '#/polls';
+        getCurrentList().reloadPolls();
+    }
+
+    function showLoading() {
+        getCurrentList().showLoading();
+    }
+
+    function hideLoading() {
+        getCurrentList().hideLoading();
+    }
+
+    function renderPollsForm(pollId) {
+        var formContainer = $('#poll-form-container');
+        $('#polls-list-container').hide();
+        formContainer.show()
+
+        function render() {
+            var html = $.tmpl(templates['polls/poll_form'], {
+                t: CommonTranslations,
+                PollStatus: PollStatus,
+                poll: currentPoll,
+                edit: !!pollId,
+            });
+            formContainer.html(html);
+        }
+
+        if (pollId) {
+            showLoading();
+            PollsRequests.getPoll(pollId).then(function(poll) {
+                hideLoading();
+                currentPoll = poll;
+                render();
+            });
+        } else {
+            currentPoll = {
+                id: null,
+                name: '',
+                questions: [],
+                is_vote: false,
+                status: PollStatus.pending,
+            };
+            render();
+        }
+    }
+
+    function savePoll() {
+        populateFormData();
+        if (currentPoll.id) {
+            PollsRequests.updatePoll(currentPoll).then(updateSuccess);
+        } else {
+            PollsRequests.createPoll(currentPoll).then(updateSuccess);
+        }
+    }
+
+    function startPoll() {
+        var pollId = parseInt($(this).parent().attr('poll_id'));
+        PollsRequests.startPoll(pollId).then(function(poll) {
+            lists[PollStatus.pending].reloadPolls();
+            lists[poll.status].reloadPolls();
+        });
+    }
+
+    function stopPoll() {
+        var pollId = parseInt($(this).parent().attr('poll_id'));
+        PollsRequests.stopPoll(pollId).then(function(poll) {
+            lists[PollStatus.running].reloadPolls();
+            lists[poll.status].reloadPolls();
+        });
+    }
+
+    $(document).on('click', '#poll-submit', savePoll);
+    $(document).on('click', '.run-poll', function() {
+        sln.confirm(CommonTranslations.poll_start_are_you_sure, startPoll.bind(this));
+    });
+    $(document).on('click', '.stop-poll', function() {
+        sln.confirm(CommonTranslations.poll_stop_are_you_sure, stopPoll.bind(this));
+    });
+
+
+
+    $(document).on('click', '#add-question', function() {
+        renderQuestionModal(0, {
+            text: '',
+            type: QuestionType.multiple_choice,
+            choices: [],
+        });
+    });
+    $(document).on('click', '.edit-question', function() {
+        var questionId = parseInt($(this).attr('question_id'));
+        renderQuestionModal(questionId, currentPoll.questions[questionId]);
+    });
+    $(document).on('click', '.remove-question', function() {
+        var questionId = parseInt($(this).attr('question_id'));
+        var question = currentPoll.questions[questionId];
+        sln.confirm(CommonTranslations.confirm_delete_x.replace('%(x)s', question.text));
+    });
+
+    function renderQuestionModal(questionId, question) {
+        var html = $.tmpl(templates['polls/question_form'], {
+            t: CommonTranslations,
+            QuestionType: QuestionType,
+            question: question,
+        })
+
+        sln.createModal(html);
     }
 
 });

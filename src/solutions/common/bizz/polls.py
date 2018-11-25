@@ -45,11 +45,9 @@ def update_poll(service_user, poll):
         new_poll.name = poll.name
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
-        if not poll.id:
-            poll.id = new_poll.id
     except QuestionTypeException:
         raise BusinessException('vote_question_types_error')
-    return poll
+    return PollTO.from_model(new_poll)
 
 
 @returns(PollTO)
@@ -59,6 +57,8 @@ def start_poll(service_user, poll_id):
     if poll:
         if poll.status != PollStatus.PENDING:
             raise BusinessException('poll_started_or_completed')
+        if not poll.questions:
+            raise BusinessException('poll_has_no_questions')
         poll.status = PollStatus.RUNNING
         poll.put()
         return PollTO.from_model(poll)

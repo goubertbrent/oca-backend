@@ -11,14 +11,39 @@
             <label for="poll-name" class="control-label">${t['reservation-name']}</label>
 
             <div class="controls">
-                <input type="text" id="poll-name" name="poll-name" value="">
+                <input type="text" id="poll-name" name="poll-name" value="${poll.name}">
             </div>
         </div>
+
+        <div class="control-group">
+            <label for="poll-is-vote" class="control-label">${t.vote}</label>
+            <div class="controls">
+                <div class="checkbox">
+                    <input type="checkbox" id="poll-is-vote" name="poll-is-vote" {{if poll.is_vote}}checked{{/if}} {{if edit}}disabled{{/if}}>
+                </div>
+            </div>
+        </div>
+
         <div class="control-group">
             <label for="poll-questions" class="control-label">${t.questions}</label>
             <div class="controls">
-                <button id="add_question" type="button" class="btn btn-default">
-                    <i class="fa fa-plus"></i>
+                {{if poll.questions.length > 0}}
+                <div class="row" style="padding: 5px;">
+                    {{each(i, question) poll.questions}}
+                    <ul>
+                        <li>
+                            <b>${question.text}</b>
+                            <div class="pull-right">
+                                <button class="btn btn-primary edit-question" type="button" question_id="${i}"><i class="fa fa-edit"></i></button>
+                                <button class="btn btn-danger remove-question" type="button" question_id="${i}"><i class="fa fa-trash"></i></button>
+                            </div>
+                            {{/each}}
+                        </li>
+                    </ul>
+                </div>
+                {{/if}}
+                <button id="add-question" type="button" class="btn btn-default">
+                        <i class="fa fa-plus"></i>
                 </button>
             </div>
         </div>

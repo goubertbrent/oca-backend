@@ -1,55 +1,28 @@
 {% raw %}
-<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="poll-form-modal-label" aria-hidden="true">
+<div class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="question-form-modal-label" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h3 id="poll-form-modal-label">${t.create_poll}</h3>
+        <h3 id="question-form-modal-label">${t.question}</h3>
     </div>
 
     <div class="modal-body">
-        <div class="questions"></div>
-        <button action="add_question" class="btn" style="margin-bottom: 20px;">
-            <i class="fa fa-plus"></i>
-        </button>
-
         <div class="control-group">
-            <label class="control-label" for="eventTitle">${CommonTranslations.TITLE}</label>
-            <input type="text" id="eventTitle" style="width: 300px;" required>
+            <label class="control-label" for="question-text">${t.text}</label>
+            <input type="text" id="question-text" name="question-text">
         </div>
-
         <div class="control-group">
-            <label class="control-label" for="eventDescription">${CommonTranslations.DESCRIPTION}</label>
-            <textarea rows="3" id="eventDescription" style="width: 300px;"></textarea>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="eventPlace">${CommonTranslations.EVENT_PLACE}
-                ${CommonTranslations.OPTIONAL_BRACES}</label>
-            <input type="text" id="eventPlace" style="width: 300px;">
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="eventOrganizer">${CommonTranslations.EVENT_ORGANIZER}
-                ${CommonTranslations.OPTIONAL_BRACES}</label>
-            <input type="text" id="eventOrganizer" style="width: 300px;">
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="eventUrl">${CommonTranslations.URL}
-                ${CommonTranslations.OPTIONAL_BRACES}</label>
-            <input type="text" id="eventUrl" style="width: 300px;">
-        </div>
-
-        <div class="control-group" id="pictureerror">
-            <label class="control-label" for="eventPicture">${CommonTranslations.PICTURE}
-                ${CommonTranslations.OPTIONAL_BRACES}</label>
-            <div id="existingEventPicture"><img style="max-width: 200px; max-height: 200px;" /> <button class="btn btn-warning">${CommonTranslations.REMOVE}</button></div>
-            <input type="file" id="eventPicture" accept="image/*" style="width: 300px;">
+            <label class="control-label" for="question-text">${t.answer_type}</label>
+            <select value="1">
+                {{each(name, value) QuestionType}}
+                <option value="${value}">${t[name]}</option>
+                {{/each}}
+            </select>
         </div>
     </div>
 
     <div class="modal-footer">
-        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${cancelBtn}</button>
-        <button action="submit" class="btn btn-primary">${submitBtn}</button>
+        <button action="cancel" class="btn" data-dismiss="modal" aria-hidden="true">${t.CANCEL}</button>
+        <button action="submit" class="btn btn-primary">${t.SAVE}</button>
     </div>
 </div>
 {%- endraw %}

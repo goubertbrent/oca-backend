@@ -28,7 +28,19 @@ PollsRequestsService.prototype.getDefaultOptions = function(options) {
 };
 PollsRequestsService.prototype.request = function(url, method, data, options) {
     options = this.getDefaultOptions(options);
-    return RequestsService.prototype.request.call(this, url, method, data, options);
+    var result = RequestsService.prototype.request.call(this, url, method, data, options);
+    return result.catch(this.showError.bind(this));
+};
+PollsRequestsService.prototype.showError = function(error) {
+    var errorMsg;
+    if (error.status === 404 || error.status === 400 && error.responseJSON) {
+        errorMsg = error.responseJSON.error;
+        sln.alert(CommonTranslations[errorMsg], null, CommonTranslations.ERROR);
+    } else {
+        errorMsg = 'unknown error'
+        sln.showAjaxError();
+    }
+    throw new Error('polls requests error, ' + errorMsg);
 };
 PollsRequestsService.prototype.getPolls = function(status, cursor, limit) {
     var params = {status: status};
@@ -40,6 +52,14 @@ PollsRequestsService.prototype.getPolls = function(status, cursor, limit) {
     }
     return this.get(`${this.baseUrl}?${$.param(params)}`);
 };
+PollsRequestsService.prototype.clearGetPolls = function(status) {
+    var self = this;
+    $.each(self._requestCache, function(url, _) {
+        if (url.startsWith(`${self.baseUrl}?status=${status}`)) {
+            self.clearCache(url);
+        }
+    });
+};
 PollsRequestsService.prototype.createPoll = function(poll) {
     return this.post(this.baseUrl, poll);
 };
@@ -47,7 +67,7 @@ PollsRequestsService.prototype.getPoll = function(pollId) {
     return this.get(`${this.baseUrl}/${pollId}`);
 };
 PollsRequestsService.prototype.updatePoll = function(poll) {
-    return this.post(`${this.baseUrl}/${pollId}`, poll);
+    return this.post(`${this.baseUrl}/${poll.id}`, poll);
 };
 PollsRequestsService.prototype.startPoll = function(pollId) {
     return this.put(`${this.baseUrl}/${pollId}`, {status: PollStatus.running});
