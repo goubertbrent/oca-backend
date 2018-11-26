@@ -287,7 +287,7 @@ class ProcessOutputPipeline(pipeline.Pipeline):
         for output in outputs:
             result.extend([Stats.from_dict(stats) for stats in output])
 
-        min_date = time.mktime((date.today() - relativedelta(days=30)).timetuple())
+        min_date = int(time.mktime((date.today() - relativedelta(days=30)).timetuple()))
         logging.debug('Getting stats starting from %s', min_date)
         news_stats = get_news_reads(min_date)
         loyalty_stats = get_loyalty_actions(min_date)
