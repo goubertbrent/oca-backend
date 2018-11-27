@@ -23,7 +23,7 @@ from rogerthat.dal import parent_ndb_key
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz.polls import update_poll, start_poll, stop_poll, PollNotFoundException
+from solutions.common.bizz.polls import update_poll, start_poll, stop_poll, remove_poll, PollNotFoundException
 from solutions.common.models.polls import Poll, PollStatus
 from solutions.common.to.polls import PollTO, PollsListTO
 
@@ -90,12 +90,12 @@ def api_start_or_stop_poll(poll_id, data):
 
 
 @rest('/common/polls/<poll_id:[^/]+>', 'delete')
-@returns(PollTO)
+@returns()
 @arguments(poll_id=(int, long))
 def api_remove_poll(poll_id):
     try:
         service_user = users.get_current_user()
-        # TODO: remove poll and all related records
+        remove_poll(service_user, poll_id)
     except PollNotFoundException:
         raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:

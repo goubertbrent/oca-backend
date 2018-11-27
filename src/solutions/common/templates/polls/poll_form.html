@@ -1,7 +1,7 @@
 {% raw %}
 <form class="form-horizontal row" id="poll-form">
 
-    <fieldset class="span6">
+    <fieldset class="span12 center">
 
         <legend><a href="#/polls" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${t.back}</a>
             {{if edit}}${t.Edit}{{else}}${t.create_poll}{{/if}}
@@ -27,7 +27,7 @@
         <div class="control-group">
             <label for="poll-questions" class="control-label">${t.questions}</label>
             <div class="controls">
-                <button id="add-question" type="button" class="btn btn-default">
+                <button id="add-question" type="button" class="btn btn-success">
                     <i class="fa fa-plus"></i>
                 </button>
                 <div id="question-list"></div>

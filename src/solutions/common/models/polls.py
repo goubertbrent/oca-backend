@@ -115,6 +115,13 @@ class PollRegister(NdbModel):
     updated_on = ndb.DateTimeProperty(auto_now=True)
 
     @classmethod
-    def create_key(cls, app_user, service_user, poll_id):
-        parent = Poll.create_key(service_user, poll_id)
-        return ndb.Key(cls, app_user.email(), parent=parent)
+    def create_key(cls, app_user, poll_id):
+        return ndb.Key(cls, app_user.email(), 'Poll', poll_id)
+
+    @classmethod
+    def create(cls, app_user, poll_id):
+        return cls(key=cls.create_key(app_user, poll_id)).put()
+
+    @classmethod
+    def exists(cls, app_user, poll_id):
+        return bool(cls.create_key(app_user, poll_id).get())

@@ -5,7 +5,7 @@
         {{if poll.is_vote}}
         <span class="label label-info">${t.vote}</span>
         {{/if}}
-        <div poll_id="${poll.id}" class="pull-right">
+        <div poll_id="${poll.id}" poll_status="${poll.status}" class="pull-right">
             {{if poll.status === PollStatus.pending}}
             <button class="btn btn-success run-poll"><i class="fa fa-play"></i></button>
             {{/if}}
@@ -15,7 +15,9 @@
             {{if poll.status === PollStatus.pending}}
             <a class="btn btn-primary" href="#/polls/edit/${poll.id}"><i class="fa fa-edit"></i></a>
             {{/if}}
+            {{if poll.status !== PollStatus.running}}
             <a class="btn btn-danger remove-poll"><i class="fa fa-trash"></i></a>
+            {{/if}}
             {{if poll.status !== PollStatus.pending}}
             <button class="btn btn-success show-poll-results"><i class="fa fa-list-ul"></i></button>
             {{/if}}

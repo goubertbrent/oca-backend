@@ -1,14 +1,35 @@
 {% raw %}
 {{if questions.length > 0}}
-<table class="table" style="padding-top: 10px">
+<table class="table table-condensed" style="padding-top: 10px">
     <thead>
+        <th></th>
+        <th width="5%"></th>
+        <th width="5%"></th>
+        <th width="5%"></th>
+        <th width="5%"></th>
     </thead>
     <tbody>
         {{each(i, question) questions}}
         <tr>
             <td>${question.text}</td>
-            <td><button class="btn btn-primary edit-question" type="button" question_id="${i}"><i class="fa fa-edit"></i></button>                </td>
-            <td><button class="btn btn-danger remove-question" type="button" question_id="${i}"><i class="fa fa-trash"></i></button></td>
+            <td>
+                <button class="btn btn-primary btn-small edit-question" type="button" question_id="${i}"><i class="fa fa-edit"></i></button>
+            </td>
+            {{if questions.length > 1}}
+            <td>
+                {{if i > 0}}
+                <button class="btn btn-success btn-small up-question" type="button" question_id="${i}"><i class="fa fa-arrow-up"></i></button>
+                {{/if}}
+            </td>
+            <td>
+                {{if i < questions.length - 1}}
+                <button class="btn btn-success btn-small down-question" type="button" question_id="${i}"><i class="fa fa-arrow-down"></i></button>
+                {{/if}}
+            </td>
+            {{/if}}
+            <td>
+                <button class="btn btn-danger btn-small remove-question" type="button" question_id="${i}"><i class="fa fa-trash"></i></button>
+            </td>
         </tr>
         {{/each}}
     </tbody>

@@ -131,7 +131,7 @@ $(function() {
     }
 
     function populateFormData() {
-        currentPoll.name = $('#poll-name').val();
+        currentPoll.name = $('#poll-name').val().trim();
         currentPoll.is_vote = $('#poll-is-vote').is(':checked');
     }
 
@@ -197,6 +197,15 @@ $(function() {
 
     function savePoll() {
         populateFormData();
+        if (!currentPoll.name) {
+            sln.alert(CommonTranslations.NAME_REQUIRED, null, CommonTranslations.ERROR);
+            return;
+        }
+        if (!currentPoll.questions.length) {
+            sln.alert(CommonTranslations.poll_has_no_questions, null, CommonTranslations.ERROR);
+            return;
+        }
+
         if (currentPoll.id) {
             PollsRequests.updatePoll(currentPoll).then(updateSuccess);
         } else {
@@ -220,12 +229,24 @@ $(function() {
         });
     }
 
+    function removePoll() {
+        var pollId = parseInt($(this).parent().attr('poll_id'));
+        var status = parseInt($(this).parent().attr('poll_status'));
+        PollsRequests.removePoll(pollId).then(function() {
+            lists[status].reloadPolls();
+        });
+    }
+
     function confirmStartPoll() {
         sln.confirm(CommonTranslations.poll_start_are_you_sure, startPoll.bind(this));
     }
 
     function confirmStopPoll() {
         sln.confirm(CommonTranslations.poll_stop_are_you_sure, stopPoll.bind(this));
+    }
+
+    function confirmRemovePoll() {
+        sln.confirm(CommonTranslations.poll_remove_are_you_sure, removePoll.bind(this));
     }
 
     function addQuestion() {
@@ -245,6 +266,23 @@ $(function() {
             currentPoll.questions[questionId] = question;
             populateQuestionList();
         });
+    }
+
+    function swapQuestions(aIndex, bIndex) {
+        var aQuestion = currentPoll.questions[aIndex];
+        currentPoll.questions[aIndex] = currentPoll.questions[bIndex];
+        currentPoll.questions[bIndex] = aQuestion;
+        populateQuestionList();
+    }
+
+    function moveQuestionUp() {
+        var questionId = parseInt($(this).attr('question_id'));
+        swapQuestions(questionId - 1, questionId);
+    }
+
+    function moveQuestionDown() {
+        var questionId = parseInt($(this).attr('question_id'));
+        swapQuestions(questionId + 1, questionId);
     }
 
     function removeQuestion() {
@@ -268,6 +306,8 @@ $(function() {
 
         var modal = sln.createModal(html);
         var choicesContainer = $('#question-choices', modal);
+        var choiceInput = $('#new-choice-text', modal);
+        var addChoiceButton = $('#add-choice', modal);
         renderChoices();
 
         function getQuestionData() {
@@ -276,7 +316,7 @@ $(function() {
             }).get();
 
             return {
-                text: $('#question-text', modal).val(),
+                text: $('#question-text', modal).val().trim(),
                 type: parseInt($('#question-type', modal).val()),
                 choices: choices,
             }
@@ -305,21 +345,17 @@ $(function() {
         }
 
         function saveQuestion() {
-            callback(getQuestionData());
-            modal.modal('hide');
-        }
-
-        function addChoice() {
             var question = getQuestionData();
-            var textInput = $('#new-choice-text', modal);
-            var choice = renderChoice(question.type, textInput.val(), );
-            choicesContainer.append(choice);
-            textInput.val('');
-        }
-
-        function removeChoice() {
-            var choice = $(this).attr('choice');
-            $(`.question-choice[choice="${choice}"]`).remove();
+            if (!question.text) {
+                sln.alert(CommonTranslations.text_is_required, null, CommonTranslations.ERROR);
+                return;
+            }
+            if (hasChoices(question.type) && !question.choices.length) {
+                sln.alert(CommonTranslations.add_1_choice_at_least, null, CommonTranslations.ERROR);
+                return;
+            }
+            callback(question);
+            modal.modal('hide');
         }
 
         function questionTypeChanged() {
@@ -327,16 +363,36 @@ $(function() {
             renderChoices(question.type, question.choices);
         }
 
+        function addChoice() {
+            var question = getQuestionData();
+            var choice = renderChoice(question.type, choiceInput.val());
+            choicesContainer.append(choice);
+            choiceInput.val('');
+        }
+
+        function removeChoice() {
+            var choice = $(this).attr('choice');
+            $(`.question-choice[choice="${choice}"]`).remove();
+        }
+
+        function choiceInputChanged() {
+            addChoiceButton.prop('disabled', !choiceInput.val().trim());
+        }
+
         $('button[action=submit]', modal).click(saveQuestion);
-        $('#add-choice', modal).click(addChoice);
         $('#question-type', modal).change(questionTypeChanged);
+        choiceInput.keyup(choiceInputChanged);
+        addChoiceButton.click(addChoice);
         $(modal).on('click', '.remove-choice', removeChoice);
     }
 
     $(document).on('click', '#poll-submit', savePoll);
     $(document).on('click', '.run-poll', confirmStartPoll);
     $(document).on('click', '.stop-poll', confirmStopPoll);
+    $(document).on('click', '.remove-poll', confirmRemovePoll);
     $(document).on('click', '#add-question', addQuestion);
     $(document).on('click', '.edit-question', editQuestion);
+    $(document).on('click', '.up-question', moveQuestionUp);
+    $(document).on('click', '.down-question', moveQuestionDown);
     $(document).on('click', '.remove-question', removeQuestion);
 });

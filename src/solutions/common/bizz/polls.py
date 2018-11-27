@@ -15,6 +15,7 @@
 #
 # @@license_version:1.3@@
 
+from google.appengine.ext import ndb
 from mcfw.rpc import arguments, returns
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -76,3 +77,20 @@ def stop_poll(service_user, poll_id):
         poll.put()
         return PollTO.from_model(poll)
     raise PollNotFoundException
+
+
+@ndb.transactional()
+@returns()
+@arguments(service_user=users.User, poll_id=(int, long))
+def remove_poll(service_user, poll_id):
+    key = Poll.create_key(service_user, poll_id)
+    poll = key.get()
+    if not poll:
+        return
+
+    if poll.status == PollStatus.RUNNING:
+        raise BusinessException('poll_running_cannot_delete')
+    elif poll.status == PollStatus.COMPLELTED:
+        pass
+
+    key.delete()
