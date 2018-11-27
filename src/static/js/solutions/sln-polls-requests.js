@@ -29,7 +29,11 @@ PollsRequestsService.prototype.getDefaultOptions = function(options) {
 PollsRequestsService.prototype.request = function(url, method, data, options) {
     options = this.getDefaultOptions(options);
     var result = RequestsService.prototype.request.call(this, url, method, data, options);
-    return result.catch(this.showError.bind(this));
+    var self = this;
+    return result.catch(function(error) {
+        self.clearCache(url);
+        self.showError(error);
+    });
 };
 PollsRequestsService.prototype.showError = function(error) {
     var errorMsg;

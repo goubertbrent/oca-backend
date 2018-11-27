@@ -1,0 +1,25 @@
+{% raw %}
+<div choice="${choice}" class="question-choice" style="padding: 5px 20px;">
+    <div class="row">
+        <div>
+            {{if type === QuestionType.checkboxes}}
+            <label class="checkbox">
+                <input type="checkbox">${choice}
+                <button type="button" class="btn btn-danger pull-right remove-choice" choice="${choice}">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </label>
+            {{else}}
+            <div class="radio">
+                <label>
+                    <input type="radio" name="choice" value="${choice}">${choice}
+                    <button type="button" class="btn btn-danger pull-right remove-choice" choice="${choice}">
+                            <i class="fa fa-trash"></i>
+                    </button>
+                </label>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+</div>
+{% endraw %}

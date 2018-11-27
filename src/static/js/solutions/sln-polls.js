@@ -149,6 +149,17 @@ $(function() {
         getCurrentList().hideLoading();
     }
 
+    function renderQuestionList() {
+        return $.tmpl(templates['polls/question_list'], {
+            questions: currentPoll.questions,
+            t: CommonTranslations,
+        });
+    }
+
+    function populateQuestionList() {
+        $('#poll-form-container').find('#question-list').html(renderQuestionList());
+    }
+
     function renderPollsForm(pollId) {
         var formContainer = $('#poll-form-container');
         $('#polls-list-container').hide();
@@ -162,6 +173,7 @@ $(function() {
                 edit: !!pollId,
             });
             formContainer.html(html);
+            populateQuestionList();
         }
 
         if (pollId) {
@@ -208,41 +220,123 @@ $(function() {
         });
     }
 
-    $(document).on('click', '#poll-submit', savePoll);
-    $(document).on('click', '.run-poll', function() {
+    function confirmStartPoll() {
         sln.confirm(CommonTranslations.poll_start_are_you_sure, startPoll.bind(this));
-    });
-    $(document).on('click', '.stop-poll', function() {
+    }
+
+    function confirmStopPoll() {
         sln.confirm(CommonTranslations.poll_stop_are_you_sure, stopPoll.bind(this));
-    });
+    }
 
-
-
-    $(document).on('click', '#add-question', function() {
-        renderQuestionModal(0, {
+    function addQuestion() {
+        renderQuestionModal({
             text: '',
             type: QuestionType.multiple_choice,
             choices: [],
+        }, function(question) {
+            currentPoll.questions.push(question);
+            populateQuestionList();
         });
-    });
-    $(document).on('click', '.edit-question', function() {
+    }
+
+    function editQuestion() {
         var questionId = parseInt($(this).attr('question_id'));
-        renderQuestionModal(questionId, currentPoll.questions[questionId]);
-    });
-    $(document).on('click', '.remove-question', function() {
+        renderQuestionModal(currentPoll.questions[questionId], function(question) {
+            currentPoll.questions[questionId] = question;
+            populateQuestionList();
+        });
+    }
+
+    function removeQuestion() {
         var questionId = parseInt($(this).attr('question_id'));
         var question = currentPoll.questions[questionId];
-        sln.confirm(CommonTranslations.confirm_delete_x.replace('%(x)s', question.text));
-    });
+        sln.confirm(CommonTranslations.confirm_delete_x.replace('%(x)s', question.text), function() {
+            currentPoll.questions.splice(questionId, 1);
+            populateQuestionList();
+        });
+    }
 
-    function renderQuestionModal(questionId, question) {
+    function hasChoices(type) {
+        return type === QuestionType.multiple_choice || type === QuestionType.checkboxes;
+    }
+
+    function renderQuestionModal(question, callback) {
         var html = $.tmpl(templates['polls/question_form'], {
             t: CommonTranslations,
-            QuestionType: QuestionType,
             question: question,
         })
 
-        sln.createModal(html);
+        var modal = sln.createModal(html);
+        var choicesContainer = $('#question-choices', modal);
+        renderChoices();
+
+        function getQuestionData() {
+            var choices = $('.question-choice', modal).map(function(i, el) {
+                return $(el).attr('choice');
+            }).get();
+
+            return {
+                text: $('#question-text', modal).val(),
+                type: parseInt($('#question-type', modal).val()),
+                choices: choices,
+            }
+        }
+
+        function renderChoice(type, choice) {
+            return $.tmpl(templates['polls/question_choice'], {
+                choice: choice,
+                type: type,
+                QuestionType: QuestionType,
+            });
+        }
+
+        function renderChoices(questionType, choices) {
+            questionType = questionType || question.type;
+            choices = choices || question.choices;
+            var showChoices = hasChoices(questionType);
+            $('#question-choices-group', modal).toggle(showChoices);
+
+            if (showChoices) {
+                choicesContainer.empty();
+                $.each(choices, function(i, choice) {
+                    choicesContainer.append(renderChoice(questionType, choice));
+                });
+            }
+        }
+
+        function saveQuestion() {
+            callback(getQuestionData());
+            modal.modal('hide');
+        }
+
+        function addChoice() {
+            var question = getQuestionData();
+            var textInput = $('#new-choice-text', modal);
+            var choice = renderChoice(question.type, textInput.val(), );
+            choicesContainer.append(choice);
+            textInput.val('');
+        }
+
+        function removeChoice() {
+            var choice = $(this).attr('choice');
+            $(`.question-choice[choice="${choice}"]`).remove();
+        }
+
+        function questionTypeChanged() {
+            var question = getQuestionData();
+            renderChoices(question.type, question.choices);
+        }
+
+        $('button[action=submit]', modal).click(saveQuestion);
+        $('#add-choice', modal).click(addChoice);
+        $('#question-type', modal).change(questionTypeChanged);
+        $(modal).on('click', '.remove-choice', removeChoice);
     }
 
+    $(document).on('click', '#poll-submit', savePoll);
+    $(document).on('click', '.run-poll', confirmStartPoll);
+    $(document).on('click', '.stop-poll', confirmStopPoll);
+    $(document).on('click', '#add-question', addQuestion);
+    $(document).on('click', '.edit-question', editQuestion);
+    $(document).on('click', '.remove-question', removeQuestion);
 });

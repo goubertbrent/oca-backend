@@ -6,18 +6,38 @@
     </div>
 
     <div class="modal-body">
-        <div class="control-group">
-            <label class="control-label" for="question-text">${t.text}</label>
-            <input type="text" id="question-text" name="question-text">
-        </div>
-        <div class="control-group">
-            <label class="control-label" for="question-text">${t.answer_type}</label>
-            <select value="1">
-                {{each(name, value) QuestionType}}
-                <option value="${value}">${t[name]}</option>
-                {{/each}}
-            </select>
-        </div>
+        <form class="form-horizontal row">
+            <fieldset class="span6">
+                <div class="control-group">
+                    <label class="control-label" for="question-text">${t.text}</label>
+                    <div class="controls">
+                        <textarea rows="2" id="question-text" name="question-text" required>${question.text}</textarea>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="question-type">${t.Type}</label>
+                    <div class="controls">
+                        <select id="question-type" name="question-type" required>
+                            {{each(name, value) QuestionType}}
+                            <option value="${value}" {{if value === question.type}}selected{{/if}}>${t[name]}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                </div>
+                <div class="control-group" id="question-choices-group">
+                    <label class="control-label">${t.choices}</label>
+                    <div class="controls">
+                        <div id="question-choices"></div>
+                        <div>
+                            <input type="text" id="new-choice-text" placeholder="${t.new_choice}">
+                            <button id="add-choice" type="button" class="btn btn-default">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+        </form>
     </div>
 
     <div class="modal-footer">
