@@ -19,7 +19,7 @@ from mcfw.rpc import arguments, returns
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from solutions.common.models.polls import Poll, PollStatus, Vote, QuestionTypeException
-from solutions.common.to.polls import PollTO, MultipleChoiceQuestionTO
+from solutions.common.to.polls import PollTO
 
 
 class PollNotFoundException(BusinessException):

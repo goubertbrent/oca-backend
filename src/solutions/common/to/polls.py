@@ -26,6 +26,7 @@ from solutions.common.models.polls import Vote, PollStatus, MultipleChoiceQuesti
 class QuestionTO(TO):
     type = long_property('1')
     text = unicode_property('2')
+    choices = unicode_list_property('3')
 
     @classmethod
     def from_model(cls, question):
@@ -36,32 +37,10 @@ class QuestionTO(TO):
     def to_model(self):
         cls = QUESTION_TYPE_MAPPING[self.type]
         data = self.to_dict()
-        data.pop('type')
+        for prop in data.keys():
+            if not hasattr(cls, prop):
+                del data[prop]
         return cls(**data)
-
-
-class MultipleChoiceQuestionTO(QuestionTO):
-    choices = unicode_list_property('3')
-
-
-class CheckboxesQuestionTO(MultipleChoiceQuestionTO):
-    pass
-
-
-class ShortTextQuestionTO(QuestionTO):
-    pass
-
-
-class LongTextQuestionTO(QuestionTO):
-    pass
-
-
-QUESTION_TYPE_TO_MAPPING = {
-    QuestionType.MULTIPLE_CHOICE: MultipleChoiceQuestionTO,
-    QuestionType.CHECKBOXES: CheckboxesQuestionTO,
-    QuestionType.SHORT_TEXT: ShortTextQuestionTO,
-    QuestionType.LONG_TEXT: LongTextQuestionTO,
-}
 
 
 class PollTO(TO):
@@ -81,7 +60,7 @@ class PollTO(TO):
         to.status = poll.status
         if poll.questions is MISSING:
             poll.questions = []
-        to.questions = [QUESTION_TYPE_TO_MAPPING[q.TYPE].from_model(q) for q in poll.questions]
+        to.questions = [QuestionTO.from_model(q) for q in poll.questions]
         to.created_on = get_epoch_from_datetime(poll.created_on)
         to.updated_on = get_epoch_from_datetime(poll.updated_on)
         to.is_vote = isinstance(poll, Vote)
