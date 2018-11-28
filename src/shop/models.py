@@ -37,6 +37,7 @@ from mcfw.serialization import deserializer, ds_model, serializer, s_model, regi
 from mcfw.utils import chunks
 from oauth2client.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile
 from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
@@ -553,6 +554,7 @@ class Customer(db.Model):
 
 
 class CustomerSignup(db.Model):
+    EXPIRE_TIME = DAY * 3
     DEFAULT_MODULES = [SolutionModule.BROADCAST, SolutionModule.BULK_INVITE,
                        SolutionModule.QR_CODES, SolutionModule.STATIC_CONTENT,
                        SolutionModule.WHEN_WHERE, SolutionModule.ASK_QUESTION,
