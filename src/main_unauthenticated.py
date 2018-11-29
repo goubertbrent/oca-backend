@@ -36,12 +36,13 @@ from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, Loyal
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-from solutions.djmatic.handlers import DJMaticHomeHandler
+from solutions.djmatic.handlers import DJMaticHomeHandler, DJMaticWarningHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 
 handlers = [
-    ('/djmatic/', DJMaticHomeHandler),
+    ('/djmatic/home', DJMaticHomeHandler),
+    ('/djmatic/', DJMaticWarningHandler),
     ('/flex/', FlexHomeHandler),
     ('/unauthenticated/loyalty/slide', LoyaltySlideDownloadHandler),
     ('/unauthenticated/loyalty/no_mobiles/unsubscribe_email', LoyaltyNoMobilesUnsubscribeEmailHandler),

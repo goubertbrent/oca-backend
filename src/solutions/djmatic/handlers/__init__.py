@@ -22,7 +22,6 @@ import os
 import jinja2
 import webapp2
 from google.appengine.api import users as gae_users
-from jinja2 import StrictUndefined
 
 from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
@@ -52,6 +51,11 @@ from solutions.jinja_extensions import TranslateExtension
 JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates'),
                                                                        os.path.join(os.path.dirname(__file__), '..', '..', 'common', 'templates')]),
                                        extensions=[TranslateExtension])
+
+
+class DJMaticWarningHandler(webapp2.RequestHandler):
+    def get(self):
+        self.response.write(JINJA_ENVIRONMENT.get_template('djmatic_warning.html').render())
 
 
 class DJMaticHomeHandler(webapp2.RequestHandler):

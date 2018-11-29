@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>DJ-Matic notice</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div id="wrap">
+    <div class="container">
+        <div class="row">
+            <div class="navbar">
+                <div class="navbar-inner">
+                    <div class="container">
+                        <img alt="DJ-Matic logo" src="/static/images/logo-djmatic.png"
+                             style="margin: 5px 10px 0px 0px; height: 30px;"
+                             class="pull-left"/>
+                        <a class="brand">{% translate language, "djmatic", "title" %}</a>
+                        <ul id="topmenu" class="nav">
+                        </ul>
+                        <ul class="nav pull-right">
+                            <li class="divider-vertical"></li>
+                            <li>
+                                <a href="/logout" class="">{% translate language, "common", "Log out" %}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <h2>Notice</h2>
+        <p>The contract with DJ-Matic will end on 31 December 2018. As a result you may no longer be able to access
+            this dashboard after this date.</p>
+        <a class="btn btn-default" href="/djmatic/home">Continue to dashboard</a>
+    </div>
+</div>
+</body>
+</html>
