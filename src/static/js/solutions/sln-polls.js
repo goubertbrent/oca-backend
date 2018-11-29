@@ -150,14 +150,24 @@ $(function() {
     }
 
     function renderQuestionList() {
-        return $.tmpl(templates['polls/question_list'], {
-            questions: currentPoll.questions,
-            t: CommonTranslations,
-        });
+        return lockIfReadonly(
+            $.tmpl(templates['polls/question_list'], {
+                questions: currentPoll.questions,
+                t: CommonTranslations,
+            })
+        );
     }
 
     function populateQuestionList() {
         $('#poll-form-container').find('#question-list').html(renderQuestionList());
+    }
+
+    function lockIfReadonly(container) {
+        if (currentPoll.status !== PollStatus.pending) {
+            container.find('button').prop('disabled', true);
+            container.find('fieldset').prop('disabled', true);
+        }
+        return container;
     }
 
     function renderPollsForm(pollId) {
@@ -166,12 +176,12 @@ $(function() {
         formContainer.show()
 
         function render() {
-            var html = $.tmpl(templates['polls/poll_form'], {
+            var html = lockIfReadonly($.tmpl(templates['polls/poll_form'], {
                 t: CommonTranslations,
-                PollStatus: PollStatus,
-                poll: currentPoll,
                 edit: !!pollId,
-            });
+                readonly: currentPoll.status !== PollStatus.pending,
+                poll: currentPoll,
+            }));
             formContainer.html(html);
             populateQuestionList();
         }
@@ -299,10 +309,11 @@ $(function() {
     }
 
     function renderQuestionModal(question, callback) {
-        var html = $.tmpl(templates['polls/question_form'], {
+        var html = lockIfReadonly($.tmpl(templates['polls/question_form'], {
             t: CommonTranslations,
             question: question,
-        })
+            readonly: currentPoll.status !== PollStatus.pending,
+        }));
 
         var modal = sln.createModal(html);
         var choicesContainer = $('#question-choices', modal);
@@ -323,11 +334,11 @@ $(function() {
         }
 
         function renderChoice(type, choice) {
-            return $.tmpl(templates['polls/question_choice'], {
+            return lockIfReadonly($.tmpl(templates['polls/question_choice'], {
                 choice: choice,
                 type: type,
                 QuestionType: QuestionType,
-            });
+            }));
         }
 
         function renderChoices(questionType, choices) {

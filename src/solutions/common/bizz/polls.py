@@ -17,8 +17,10 @@
 
 from google.appengine.ext import ndb
 from mcfw.rpc import arguments, returns
+from rogerthat.dal import parent_ndb_key
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
+from solutions.common import SOLUTION_COMMON
 from solutions.common.models.polls import Poll, PollStatus, Vote, QuestionTypeException
 from solutions.common.to.polls import PollTO
 
@@ -27,7 +29,18 @@ class PollNotFoundException(BusinessException):
     pass
 
 
-@returns(PollTO)
+@returns(tuple)
+@arguments(service_user=users.User, status=int, cursor=unicode, limit=int)
+def get_polls(service_user, status, cursor=None, limit=20):
+    parent_service = parent_ndb_key(service_user, SOLUTION_COMMON)
+    qry = Poll.query(ancestor=parent_service).filter(Poll.status == status)
+    results, new_cursor, has_more = qry.fetch_page(limit, start_cursor=cursor)
+    if new_cursor:
+        new_cursor = unicode(new_cursor.urlsafe())
+    return results, new_cursor, has_more
+
+
+@returns(Poll)
 @arguments(service_user=users.User, poll=PollTO)
 def update_poll(service_user, poll):
     if poll.status != PollStatus.PENDING:
@@ -48,10 +61,10 @@ def update_poll(service_user, poll):
         new_poll.put()
     except QuestionTypeException:
         raise BusinessException('vote_question_types_error')
-    return PollTO.from_model(new_poll)
+    return new_poll
 
 
-@returns(PollTO)
+@returns(Poll)
 @arguments(service_user=users.User, poll_id=(int, long))
 def start_poll(service_user, poll_id):
     poll = Poll.create_key(service_user, poll_id).get()
@@ -62,11 +75,11 @@ def start_poll(service_user, poll_id):
             raise BusinessException('poll_has_no_questions')
         poll.status = PollStatus.RUNNING
         poll.put()
-        return PollTO.from_model(poll)
+        return poll
     raise PollNotFoundException
 
 
-@returns(PollTO)
+@returns(Poll)
 @arguments(service_user=users.User, poll_id=(int, long))
 def stop_poll(service_user, poll_id):
     poll = Poll.create_key(service_user, poll_id).get()
@@ -75,7 +88,7 @@ def stop_poll(service_user, poll_id):
             raise BusinessException('poll_pending_or_completed')
         poll.status = PollStatus.COMPLELTED
         poll.put()
-        return PollTO.from_model(poll)
+        return poll
     raise PollNotFoundException
 
 
@@ -94,3 +107,10 @@ def remove_poll(service_user, poll_id):
         pass
 
     key.delete()
+
+
+@returns([Poll])
+@arguments(service_user=users.User)
+def get_running_polls(service_user):
+    parent = parent_ndb_key(service_user, SOLUTION_COMMON)
+    return Poll.query(ancestor=parent).filter(Poll.status == PollStatus.RUNNING)

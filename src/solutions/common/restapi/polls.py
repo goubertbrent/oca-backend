@@ -19,11 +19,10 @@ from mcfw.consts import REST_FLAVOR_TO
 from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns
-from rogerthat.dal import parent_ndb_key
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz.polls import update_poll, start_poll, stop_poll, remove_poll, PollNotFoundException
+from solutions.common.bizz.polls import get_polls, update_poll, start_poll, stop_poll, remove_poll, \
+    PollNotFoundException
 from solutions.common.models.polls import Poll, PollStatus
 from solutions.common.to.polls import PollTO, PollsListTO
 
@@ -33,11 +32,7 @@ from solutions.common.to.polls import PollTO, PollsListTO
 @arguments(status=int, cursor=unicode, limit=int)
 def api_get_polls(status, cursor=None, limit=20):
     service_user = users.get_current_user()
-    parent_service = parent_ndb_key(service_user, SOLUTION_COMMON)
-    qry = Poll.query(ancestor=parent_service).filter(Poll.status == status)
-    results, new_cursor, has_more = qry.fetch_page(limit, start_cursor=cursor)
-    if new_cursor:
-        new_cursor = unicode(new_cursor.urlsafe())
+    results, new_cursor, has_more = get_polls(service_user, status, cursor, limit)
     return PollsListTO(results, new_cursor, has_more)
 
 
@@ -47,7 +42,7 @@ def api_get_polls(status, cursor=None, limit=20):
 def api_create_poll(data):
     try:
         service_user = users.get_current_user()
-        return update_poll(service_user, poll=data)
+        PollTO.from_model(update_poll(service_user, poll=data))
     except BusinessException as bex:
         raise HttpBadRequestException(bex.message)
 
@@ -78,11 +73,12 @@ def api_start_or_stop_poll(poll_id, data):
     try:
         service_user = users.get_current_user()
         if data.status == PollStatus.RUNNING:
-            return start_poll(service_user, poll_id)
+            poll = start_poll(service_user, poll_id)
         elif data.status == PollStatus.COMPLELTED:
-            return stop_poll(service_user, poll_id)
+            poll = stop_poll(service_user, poll_id)
         else:
             raise BusinessException('poll_invalid_status')
+        return PollTO.from_model(poll)
     except PollNotFoundException:
         raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:

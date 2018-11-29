@@ -70,7 +70,6 @@ RequestsService.prototype = {
 
         // Update cache if updatesCache option is set, get and `method` must use the same url.
         if (options && options.updatesCache) {
-            console.log(request);
             this._requestCache[url] = request;
         }
         return request;

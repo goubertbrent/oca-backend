@@ -35,6 +35,10 @@ PollsRequestsService.prototype.request = function(url, method, data, options) {
         self.showError(error);
     });
 };
+PollsRequestsService.prototype.withCacheUpdate = function(url, method, data, options) {
+    options = this.getDefaultOptions(options);
+    return RequestsService.prototype.withCacheUpdate.call(this, url, method, data, options);
+};
 PollsRequestsService.prototype.showError = function(error) {
     var errorMsg;
     if (error.status === 404 || error.status === 400 && error.responseJSON) {

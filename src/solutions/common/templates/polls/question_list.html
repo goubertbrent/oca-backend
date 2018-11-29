@@ -11,7 +11,7 @@
     <tbody>
         {{each(i, question) questions}}
         <tr>
-            <td>${question.text}</td>
+            <td><a class="edit-question" question_id="${i}">${question.text}</a></td>
             <td>
                 <button class="btn btn-primary btn-small edit-question" type="button" question_id="${i}"><i class="fa fa-edit"></i></button>
             </td>

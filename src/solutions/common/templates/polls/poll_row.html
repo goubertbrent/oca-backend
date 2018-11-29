@@ -1,7 +1,7 @@
 {% raw %}
 <div class="row poll" style="padding: 5px;">
     <div class="span12">
-        <a href="{{if poll.status === PollStatus.pending}}#/polls/edit/${poll.id}{{else}}#{{/if}}">${poll.name}</a>
+        <a href="#/polls/edit/${poll.id}">${poll.name}</a>
         {{if poll.is_vote}}
         <span class="label label-info">${t.vote}</span>
         {{/if}}

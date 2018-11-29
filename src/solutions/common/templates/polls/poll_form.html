@@ -4,7 +4,11 @@
     <fieldset class="span12 center">
 
         <legend><a href="#/polls" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${t.back}</a>
+            {{if readonly}}
+            ${t.View}
+            {{else}}
             {{if edit}}${t.Edit}{{else}}${t.create_poll}{{/if}}
+            {{/if}}
         </legend>
 
         <div class="control-group">
