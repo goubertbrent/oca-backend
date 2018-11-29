@@ -83,6 +83,7 @@ from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solu
 from solutions.common.bizz.menu import set_menu_item_image
 from solutions.common.bizz.order import order_received, poke_order
 from solutions.common.bizz.pharmacy.order import pharmacy_order_received
+from solutions.common.bizz.polls import poll_answer_received
 from solutions.common.bizz.repair import repair_order_received
 from solutions.common.bizz.reservation import reservation_part1, my_reservations_poke, my_reservations_overview_updated, \
     my_reservations_detail_updated
@@ -114,6 +115,7 @@ POKE_TAG_EVENTS = u'agenda'
 POKE_TAG_NEW_EVENT = u'agenda.new_event'
 POKE_TAG_ORDER = u"__sln__.order"
 POKE_TAG_PHARMACY_ORDER = u"__sln__.pharmacy_order"
+POKE_TAG_POLLS = u'__sln__.polls'
 
 POKE_TAG_EVENTS_CONNECT_VIA_SCAN = u'agenda.connect_via_scan'
 
@@ -146,6 +148,7 @@ FMR_POKE_TAG_MAPPING[POKE_TAG_ORDER] = order_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_PHARMACY_ORDER] = pharmacy_order_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_NEW_EVENT] = new_event_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_MENU_ITEM_IMAGE_UPLOAD] = set_menu_item_image
+FMR_POKE_TAG_MAPPING[POKE_TAG_POLLS] = poll_answer_received
 POKE_TAG_MAPPING = {
     POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
     POKE_TAG_NEW_EVENT: poke_new_event,

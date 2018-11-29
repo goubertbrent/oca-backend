@@ -1,0 +1,99 @@
+{% macro render_question(question, poll) %}
+    <formMessage id="{{poll.id}}_question_{{question.id}}"
+                 brandingKey="{{branding_key}}"
+                 autoLock="true" vibrate="false"
+                 alertType="SILENT"
+                 alertIntervalType="NONE"
+                 positiveReference="{% if question.next %}{{ '%d_question_%d' % (poll.id, question.next.id)}}{% else %}flush_{{poll.id}}{% endif %}"
+                 negativeReference="end_{{poll.id}}">
+        <content>{{ question.text }}</content>
+        <form positiveButtonCaption="{% if question.next %}Next{% else %}Submit{% endif %}"
+              positiveButtonConfirmation=""
+              negativeButtonCaption="Cancel"
+              negativeButtonConfirmation="">
+            {{ caller() }}
+            <javascriptValidation></javascriptValidation>
+        </form>
+    </formMessage>
+{%- endmacro -%}
+
+{% macro render_muliple_choice(question, poll) %}
+    {% call render_question(question, poll) %}
+        <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SelectSingleWidget">
+            {% for choice in question.choices %}
+                <choice value="{{choice}}" label="{{choice}}"/>
+            {%- endfor %}
+        </widget>
+    {% endcall %}
+{%- endmacro -%}
+
+{% macro render_checkboxes(question, poll) %}
+    {% call render_question(question, poll) %}
+        <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SelectMultiWidget">
+        {% for choice in question.choices %}
+            <choice value="{{choice}}" label="{{choice}}"/>
+        {%- endfor %}
+        </widget>
+    {%- endcall %}
+{%- endmacro -%}
+
+{% macro render_short_text(question, poll) %}
+    {% call render_question(question, poll) %}
+        <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextLineWidget" maxChars="50" keyboardType="DEFAULT"/>
+    {%- endcall %}
+{%- endmacro -%}
+
+{% macro render_long_text(question, poll) %}
+    {% call render_question(question, poll) %}
+        <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextBlockWidget" maxChars="1000" keyboardType="DEFAULT"/>
+    {%- endcall %}
+{%- endmacro -%}
+
+{% macro render_polls_list(polls) %}
+    <message id="flow_start"
+             allowDismiss="false"
+             brandingKey="{{ branding_key }}"
+             autoLock="true"
+             vibrate="false"
+             alertType="SILENT"
+             alertIntervalType="NONE">
+        {% if polls %}
+            <content>Current running polls</content>
+            {% for poll in polls %}
+                <answer caption="{{poll.name}}" action="" id="{{poll.id}}" reference="{{poll.id}}_question_0" color=""/>
+            {%- endfor %}
+        {% else %}
+            <content>No running polls for now!</content>
+            <answer caption="Go back" action="" id="0" reference="end_end" color=""/>
+        {%- endif %}
+    </message>
+    {% for poll in polls %}
+        <!-- flow flush/end for every poll sub-flow -->
+        <end id="end_{{poll.id}}"/>
+        <resultsFlush id="flush_{{poll.id}}" reference="end_{{poll.id}}"/>
+        {% for question in poll.flow_questions %}
+            {% if question.type == QuestionType.MULTIPLE_CHOICE %}
+                {{ render_muliple_choice(question, poll) }}
+            {% endif %}
+            {% if question.type == QuestionType.CHECKBOXES %}
+                {{ render_checkboxes(question, poll) }}
+            {% endif %}
+            {% if question.type == QuestionType.SHORT_TEXT %}
+                {{ render_short_text(question, poll) }}
+            {% endif %}
+            {% if question.type == QuestionType.LONG_TEXT %}
+                {{ render_long_text(question, poll) }}
+            {% endif %}
+        {%- endfor %}
+    {%- endfor %}
+
+    {% if not polls %}
+        <end id="end_end"/>
+    {%- endif %}
+{%- endmacro -%}
+<?xml version="1.0" encoding="utf-8"?>
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition name="polls_flow" startReference="flow_start" language="{{ language }}">
+        {{ render_polls_list(polls) }}
+    </definition>
+</messageFlowDefinitionSet>

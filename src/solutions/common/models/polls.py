@@ -98,16 +98,25 @@ class Vote(Poll):
 
 
 class Answer(NdbModel):
+    question = ndb.LocalStructuredProperty(Question)
     values = ndb.StringProperty(repeated=True)
 
     @classmethod
-    def create_key(cls, question_id):
-        parent = ndb.Key(Question, question_id)
+    def create_key(cls, service_user, poll_id):
+        parent = Poll.create_key(service_user, poll_id)
         return ndb.Key(cls, cls.allocate_ids(1)[0], parent=parent)
 
     @classmethod
-    def create(cls, question_id, *values):
-        return Answer(key=cls.create_key(question_id), values=values)
+    def create(cls, service_user, poll_id, question, *values):
+        return Answer(
+            key=cls.create_key(service_user, poll_id),
+            question=question,
+            values=values)
+
+    @classmethod
+    def list_by_poll(cls, service_user, poll_id):
+        parent = Poll.create_key(service_user, poll_id)
+        return cls.query(ancestor=parent)
 
 
 class PollRegister(NdbModel):

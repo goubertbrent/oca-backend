@@ -65,9 +65,10 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
-    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
+    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_POLLS
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
+from solutions.common.bizz.polls import get_running_polls_for_flow
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
@@ -93,6 +94,7 @@ from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
     SolutionLoyaltyIdentitySettings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe
+from solutions.common.models.polls import QuestionType
 from solutions.common.models.properties import MenuItem, ActivatedModules, \
     ActivatedModule
 from solutions.common.models.reservation import RestaurantProfile
@@ -134,6 +136,7 @@ POKE_TAGS = {
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
     SolutionModule.JOYN: None,
     SolutionModule.JOBS: None,
+    SolutionModule.POLLS: POKE_TAG_POLLS,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -2005,6 +2008,38 @@ def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, de
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_polls(sln_settings, current_coords, main_branding, default_lang, tag):
+    logging.info('Creating polls message flow')
+
+    flow_params = dict(
+        branding_key=main_branding.branding_key,
+        language=default_lang,
+        polls=get_running_polls_for_flow(sln_settings.service_user),
+        QuestionType=QuestionType
+    )
+
+    flow = JINJA_ENVIRONMENT.get_template('flows/polls_flow.xml').render(flow_params)
+    logging.warning(flow)
+    polls_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
+    ssmi = SolutionServiceMenuItem(
+        u'fa-list-ul',
+        sln_settings.menu_item_color,
+        common_translate(default_lang, SOLUTION_COMMON, u'polls'),
+        tag,
+        static_flow=polls_flow.identifier,
+        action=SolutionModule.action_order(SolutionModule.POLLS))
+    return [ssmi]
+
+
+@returns(NoneType)
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
+def delete_polls(sln_settings, current_coords, service_menu):
+    pass
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -2053,7 +2088,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
     SolutionModule.JOYN: _dummy_put,
     SolutionModule.JOBS: _dummy_put,
-    SolutionModule.POLLS: _dummy_put,
+    SolutionModule.POLLS: put_polls,
 }
 
 MODULES_DELETE_FUNCS = {
