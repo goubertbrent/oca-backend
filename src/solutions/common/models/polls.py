@@ -125,7 +125,7 @@ class PollRegister(NdbModel):
 
     @classmethod
     def create_key(cls, app_user, poll_id):
-        return ndb.Key(cls, app_user.email(), 'Poll', poll_id)
+        return ndb.Key(cls, app_user.email(), cls, poll_id)
 
     @classmethod
     def create(cls, app_user, poll_id):

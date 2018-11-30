@@ -75,6 +75,11 @@ class PollsListTO(PaginatedResultTO):
         self.results = map(PollTO.from_model, polls)
 
 
+class AnswerTO(TO):
+    question_id = long_property('1')
+    values = unicode_list_property('2')
+
+
 class FlowQuestionTO(QuestionTO):
     id = long_property('id')
     next = typed_property('next', QuestionTO, False)

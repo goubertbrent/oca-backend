@@ -20,16 +20,19 @@ from google.appengine.ext import deferred, ndb
 from mcfw.rpc import arguments, returns
 from mcfw.properties import object_factory
 from rogerthat.dal import parent_ndb_key
+from rogerthat.models import Message
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from rogerthat.to.messaging.service_callback_results import FlowMemberResultCallbackResultTO
+from rogerthat.to.messaging.service_callback_results import MessageCallbackResultTypeTO, \
+    FlowMemberResultCallbackResultTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.service import UserDetailsTO
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz.general_counter import increment, get_count
+from solutions.common import SOLUTION_COMMON
+from solutions.common.dal import get_solution_main_branding
 from solutions.common.models.polls import Answer, Poll, PollRegister, PollStatus, Vote, Question, \
     QuestionType, QuestionTypeException
-from solutions.common.to.polls import PollTO, FlowPollTO
+from solutions.common.to.polls import AnswerTO, FlowPollTO, PollTO
 
 
 class PollNotFoundException(BusinessException):
@@ -130,36 +133,40 @@ def get_running_polls(service_user):
 @returns(Answer)
 @arguments(service_user=users.User, poll_id=(int, long), question=Question, values=[unicode])
 def create_answer(service_user, poll_id, question, values):
-    answer = Answer.create(service_user, poll_id, question, values)
+    answer = Answer.create(service_user, poll_id, question, *values)
     answer.put()
     return answer
 
 
-@ndb.transactional()
+
+def has_choices(question_type):
+    return question_type == QuestionType.MULTIPLE_CHOICE or \
+        question_type == QuestionType.CHECKBOXES
+
+
+@ndb.transactional(xg=True)
 @returns()
-@arguments(service_user=users.User, app_user=users.User, poll_id=(int, long), values=[unicode])
-def register_answer(service_user, app_user, poll_id, values):
-    if PollRegister.exists(app_user, poll_id):
+@arguments(service_user=users.User, app_user=users.User, poll=Poll, answers=[AnswerTO])
+def register_answer(service_user, app_user, poll, answers):
+    if PollRegister.exists(app_user, poll.id):
         raise DuplicatePollAnswerException
 
-
     def question_choice_counter_name(question_id, choice):
-        return 'poll_%d_question_%d_%s' % (poll_id, question_id, choice)
+        return 'poll_%d_question_%d_%s' % (poll.id, question_id, choice)
 
-    PollRegister.create(app_user, poll_id)
-    poll = Poll.create_key(service_user, poll_id).get()
-    if not poll:
-        raise PollNotFoundException
+    PollRegister.create(app_user, poll.id)
 
-    for i in range(0, poll.questions):
-        question = poll.questions[i]
-        if question.TYPE == QuestionType.MULTIPLE_CHOICE or \
-            question.TYPE == QuestionType.CHECKBOXES:
-            choice = values[i]
-            if choice:
-                increment(question_choice_counter_name(i, choice))
+    for answer in answers:
+        question = poll.questions[answer.question_id]
+        values = answer.values
+        if all(value is None for value in values):
+            continue
+        if has_choices(question.TYPE):
+            for choice in question.choices:
+                if choice and choice in answer.values:
+                    increment(question_choice_counter_name(answer.question_id, choice))
         else:
-            create_answer(service_user, poll_id, question, values)
+            deferred.defer(create_answer, service_user, poll.id, question, values)
 
 
 @returns(FlowPollTO)
@@ -189,4 +196,49 @@ def get_running_polls_for_flow(service_user):
 def poll_answer_received(
     service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
     tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
-    pass
+
+    from solutions.common.bizz.messaging import _get_step_with_id, POKE_TAG_POLLS
+
+    def result_message(message):
+        result = FlowMemberResultCallbackResultTO()
+        result.type = u'message'
+        result.value = MessageCallbackResultTypeTO()
+        result.value.message = unicode(message)
+        result.value.answers = []
+        result.value.attachments = []
+        result.value.flags = Message.FLAG_ALLOW_DISMISS
+        result.value.alert_flags = 1
+        result.value.branding = get_solution_main_branding(service_user).branding_key
+        result.value.dismiss_button_ui_flags = 0
+        result.value.step_id = u''
+        result.value.tag = POKE_TAG_POLLS
+        return result
+
+    first_step = _get_step_with_id(steps, 'flow_start')
+    if not first_step:
+        return
+
+    poll_id = int(first_step.answer_id)
+    poll = Poll.create_key(service_user, poll_id).get()
+    if not poll:
+        return
+
+    def step_id_for_question(question_id):
+        return '%d_question_%d' % (poll_id, question_id)
+
+    answers = []
+    for i in range(0, len(poll.questions)):
+        question = poll.questions[i]
+        step = _get_step_with_id(steps, step_id_for_question(i))
+        if question.TYPE == QuestionType.CHECKBOXES:
+            values = step.form_result.result.values
+        else:
+            values = [step.form_result.result.value]
+        answers.append(AnswerTO(question_id=i, values=values))
+
+    try:
+        register_answer(
+            service_user, user_details[0].toAppUser(), poll, answers)
+        return result_message('answer_registered')
+    except DuplicatePollAnswerException:
+        return result_message('duplicate_answer')
