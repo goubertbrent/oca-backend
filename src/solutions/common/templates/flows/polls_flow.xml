@@ -12,7 +12,28 @@
               negativeButtonCaption="Cancel"
               negativeButtonConfirmation="">
             {{ caller() }}
-            <javascriptValidation></javascriptValidation>
+            <javascriptValidation>
+            {% if question.required %}/**
+            * Checks if the input value is not empty
+            */
+            function run(result, rogerthat) {
+                var hasValue = false;
+                if (result.values) {
+                    hasValue = result.values.length &gt; 0;
+                } else {
+                    if (typeof result === 'number') {
+                        hasValue = result !== 0;
+                    } else {
+                        hasValue = !!(result.value || '').toString().trim();
+                    }
+                }
+                if (!hasValue) {
+                    return rogerthat.util.translate('This is a required field');
+                }
+                return true;
+            }
+            {% endif %}
+            </javascriptValidation>
         </form>
     </formMessage>
 {%- endmacro -%}

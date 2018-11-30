@@ -1223,6 +1223,7 @@ translations = \
          u'replies': u'Replies',
          u'reply-to-more-info': u'Reply to %(username)s to get more information',
          u'request_loyalty_device': u'Request a loyalty system',
+         u'Required': u'Required',
          u'required': u'Required fields are missing!',
          u'required-lower': u'required',
          u'reservation': u'Reservation',

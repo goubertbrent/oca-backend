@@ -37,6 +37,7 @@ class QuestionType(Enum):
 class Question(polymodel.PolyModel):
     TYPE = None
     text = ndb.StringProperty(indexed=False)
+    required = ndb.BooleanProperty(indexed=False, default=False)
 
 
 class MultipleChoiceQuestion(Question):

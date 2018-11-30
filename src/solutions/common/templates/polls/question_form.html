@@ -24,6 +24,14 @@
                         </select>
                     </div>
                 </div>
+                <div class="control-group">
+                    <label for="question-required" class="control-label">${t.Required}</label>
+                    <div class="controls">
+                        <div class="checkbox">
+                            <input type="checkbox" id="question-required" name="question-required" {{if question.required}}checked{{/if}}>
+                        </div>
+                    </div>
+                </div>
                 <div class="control-group" id="question-choices-group">
                     <label class="control-label">${t.choices}</label>
                     <div class="controls">

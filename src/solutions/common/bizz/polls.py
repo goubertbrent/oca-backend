@@ -27,9 +27,10 @@ from rogerthat.to.messaging.service_callback_results import MessageCallbackResul
     FlowMemberResultCallbackResultTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.service import UserDetailsTO
+from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.bizz.general_counter import increment, get_count
 from solutions.common import SOLUTION_COMMON
-from solutions.common.dal import get_solution_main_branding
+from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models.polls import Answer, Poll, PollRegister, PollStatus, Vote, Question, \
     QuestionType, QuestionTypeException
 from solutions.common.to.polls import AnswerTO, FlowPollTO, PollTO
@@ -78,6 +79,15 @@ def update_poll(service_user, poll):
     return new_poll
 
 
+@returns()
+@arguments(service_user=users.User)
+def set_updates_pending(service_user):
+    sln_settings = get_solution_settings(service_user)
+    sln_settings.updates_pending = True
+    sln_settings.put()
+    broadcast_updates_pending(sln_settings)
+
+
 @returns(Poll)
 @arguments(service_user=users.User, poll_id=(int, long))
 def start_poll(service_user, poll_id):
@@ -89,6 +99,7 @@ def start_poll(service_user, poll_id):
             raise BusinessException('poll_has_no_questions')
         poll.status = PollStatus.RUNNING
         poll.put()
+        set_updates_pending(service_user)
         return poll
     raise PollNotFoundException
 
@@ -102,6 +113,7 @@ def stop_poll(service_user, poll_id):
             raise BusinessException('poll_pending_or_completed')
         poll.status = PollStatus.COMPLELTED
         poll.put()
+        set_updates_pending(service_user)
         return poll
     raise PollNotFoundException
 
@@ -221,6 +233,9 @@ def poll_answer_received(
     poll_id = int(first_step.answer_id)
     poll = Poll.create_key(service_user, poll_id).get()
     if not poll:
+        return
+
+    if poll.status != PollStatus.RUNNING:
         return
 
     def step_id_for_question(question_id):

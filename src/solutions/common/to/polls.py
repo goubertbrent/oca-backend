@@ -27,6 +27,7 @@ class QuestionTO(TO):
     type = long_property('1')
     text = unicode_property('2')
     choices = unicode_list_property('3')
+    required = bool_property('4')
 
     @classmethod
     def from_model(cls, question):

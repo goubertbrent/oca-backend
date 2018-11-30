@@ -329,6 +329,7 @@ $(function() {
             return {
                 text: $('#question-text', modal).val().trim(),
                 type: parseInt($('#question-type', modal).val()),
+                required: $('#question-required').is(':checked'),
                 choices: choices,
             }
         }
