@@ -19,7 +19,9 @@
             <a class="btn btn-danger remove-poll"><i class="fa fa-trash"></i></a>
             {{/if}}
             {{if poll.status !== PollStatus.pending}}
-            <button class="btn btn-success show-poll-results"><i class="fa fa-list-ul"></i></button>
+            <a class="btn btn-success show-poll-results" href="#/polls/result/${poll.id}">
+                <i class="fa fa-list-ul"></i>
+            </a>
             {{/if}}
         </div>
     </div>

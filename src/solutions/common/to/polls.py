@@ -76,9 +76,37 @@ class PollsListTO(PaginatedResultTO):
         self.results = map(PollTO.from_model, polls)
 
 
-class AnswerTO(TO):
+class QuestionAnswerTO(TO):
     question_id = long_property('1')
-    values = unicode_list_property('2')
+    value = unicode_property('2')
+
+    @classmethod
+    def from_model(cls, question_answer):
+        return cls(question_id=question_answer.question_id, value=question_answer.value)
+
+
+class PollAnswerTO(TO):
+    question_answers = typed_property('1', QuestionAnswerTO, True)
+
+    @classmethod
+    def from_model(cls, poll_answer):
+        return cls(
+            question_answers=map(QuestionAnswerTO.from_model, poll_answer.question_answers)
+        )
+
+
+class PollAnswerResultTO(PaginatedResultTO):
+    results = typed_property('results', PollAnswerTO, True)
+
+
+class ChoiceCountTO(TO):
+    choice = unicode_property('1')
+    count = long_property('2')
+
+
+class QuestionCountResultTO(TO):
+    question_id = long_property('1')
+    counts = typed_property('2', ChoiceCountTO, True)
 
 
 class FlowQuestionTO(QuestionTO):

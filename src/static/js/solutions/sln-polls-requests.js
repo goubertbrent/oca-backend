@@ -104,5 +104,24 @@ PollsRequestsService.prototype.stopPoll = function(pollId) {
 PollsRequestsService.prototype.removePoll = function(pollId) {
     return this.delete(`${this.baseUrl}/${pollId}`);
 };
+PollsRequestsService.prototype.getPollCounts = function(pollId) {
+    return this.get(`${this.baseUrl}/counts/${pollId}`, {
+        cached: false
+    });
+};
+PollsRequestsService.prototype.getPollAnswers = function(pollId, cursor, limit) {
+    var url = `${this.baseUrl}/answers/${pollId}`;
+    var params = {};
+    if (cursor) {
+        params.cursor = cursor;
+    }
+    if (limit) {
+        params.limit = limit;
+    }
 
+    if (Object.keys(params).length) {
+        url += `${url}?${$.param(params)}`;
+    }
+    return this.get(url, {cached: false});
+};
 PollsRequests = new PollsRequestsService();

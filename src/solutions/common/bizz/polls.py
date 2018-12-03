@@ -31,9 +31,10 @@ from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.bizz.general_counter import increment, get_count
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
-from solutions.common.models.polls import Answer, Poll, PollRegister, PollStatus, Vote, Question, \
-    QuestionType, QuestionTypeException
-from solutions.common.to.polls import AnswerTO, FlowPollTO, PollTO
+from solutions.common.models.polls import Poll, PollAnswer, PollRegister, PollStatus, Vote, Question, \
+    QuestionAnswer, QuestionType, QuestionChoicesException, QuestionTypeException
+from solutions.common.to.polls import ChoiceCountTO, FlowPollTO, PollTO, \
+   PollAnswerTO, PollAnswerResultTO, QuestionAnswerTO, QuestionCountResultTO
 
 
 class PollNotFoundException(BusinessException):
@@ -76,6 +77,8 @@ def update_poll(service_user, poll):
         new_poll.put()
     except QuestionTypeException:
         raise BusinessException('vote_question_types_error')
+    except QuestionChoicesException:
+        raise BusinessException('add_2_choices_at_least')
     return new_poll
 
 
@@ -130,6 +133,7 @@ def remove_poll(service_user, poll_id):
     if poll.status == PollStatus.RUNNING:
         raise BusinessException('poll_running_cannot_delete')
     elif poll.status == PollStatus.COMPLELTED:
+        # TODO: remove all related answers, counters...etc
         pass
 
     key.delete()
@@ -142,43 +146,124 @@ def get_running_polls(service_user):
     return list(Poll.query(ancestor=parent).filter(Poll.status == PollStatus.RUNNING))
 
 
-@returns(Answer)
-@arguments(service_user=users.User, poll_id=(int, long), question=Question, values=[unicode])
-def create_answer(service_user, poll_id, question, values):
-    answer = Answer.create(service_user, poll_id, question, *values)
-    answer.put()
-    return answer
-
-
-
 def has_choices(question_type):
     return question_type == QuestionType.MULTIPLE_CHOICE or \
         question_type == QuestionType.CHECKBOXES
 
 
+def question_choice_counter_name(poll_id, question_id, choice):
+    return 'poll_%d_question_%d_%s' % (poll_id, question_id, choice)
+
+
+def create_poll_answer(service_user, poll_id, question_answers):
+    return PollAnswer.create(service_user, poll_id, *question_answers).put()
+
+
 @ndb.transactional(xg=True)
 @returns()
-@arguments(service_user=users.User, app_user=users.User, poll=Poll, answers=[AnswerTO])
-def register_answer(service_user, app_user, poll, answers):
+@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[list])
+def register_answer(service_user, app_user, poll, answer_values):
+    """
+    Register an answer for a given poll
+    This will take every question answers as a list, then will create/count
+    possible
+
+    Args:
+        service_user (users.User)
+        app_user (users.User)
+        poll (Poll)
+        answer_values (list of list): with all possible values for every question
+
+    Raises:
+        DuplicatePollAnswerException: in case of duplicate answer for the same app_user/poll
+    """
     if PollRegister.exists(app_user, poll.id):
         raise DuplicatePollAnswerException
 
-    def question_choice_counter_name(question_id, choice):
-        return 'poll_%d_question_%d_%s' % (poll.id, question_id, choice)
-
     PollRegister.create(app_user, poll.id)
 
-    for answer in answers:
-        question = poll.questions[answer.question_id]
-        values = answer.values
-        if all(value is None for value in values):
-            continue
+    question_answers = []
+    for question_id in range(0, len(answer_values)):
+        question = poll.questions[question_id]
+        values = answer_values[question_id]
+        # for counting
         if has_choices(question.TYPE):
             for choice in question.choices:
-                if choice and choice in answer.values:
-                    increment(question_choice_counter_name(answer.question_id, choice))
-        else:
-            deferred.defer(create_answer, service_user, poll.id, question, values)
+                if choice in values:
+                    # increment counting
+                    increment(question_choice_counter_name(poll.id, question_id, choice))
+        # for listing
+        question_answers.append(
+            QuestionAnswer(question_id=question_id, value=', '.join(values)))
+
+    deferred.defer(create_poll_answer, service_user, poll.id, question_answers)
+
+
+@returns(PollAnswerResultTO)
+@arguments(service_user=users.User, poll_id=(int, long), cursor=unicode, limit=int)
+def get_poll_answers(service_user, poll_id, cursor=None, limit=50):
+    """
+    Get poll answers
+
+    Args:
+        service_user (users.User)
+        poll_id (long)
+        cursor (unicode): start cursor
+        limit (long)
+
+    Returns:
+        QuestionAnswerResultTO:
+            a paginated result of poll answers
+
+    Raises:
+        PollNotFoundException: in case the poll with `poll_id` is not found
+    """
+    parent = Poll.create_key(service_user, poll_id)
+    poll = parent.get()
+    if not poll:
+        raise PollNotFoundException
+
+    qry = PollAnswer.query(ancestor=parent)
+    results, new_cursor, has_more = qry.fetch_page(limit, start_cursor=cursor)
+    if new_cursor:
+        new_cursor = unicode(new_cursor.urlsafe())
+
+    return PollAnswerResultTO(
+        results=map(PollAnswerTO.from_model, results),
+        cursor=new_cursor, more=has_more)
+
+
+@returns([QuestionCountResultTO])
+@arguments(service_user=users.User, poll_id=(int,long))
+def get_poll_counts(service_user, poll_id):
+    """
+    Get poll counts
+
+    Args:
+        service_user (users.User)
+        poll_id (long)
+
+    Returns:
+        list of QuestionCountResultTO: total counts of for every question with choices
+
+    Raises:
+        PollNotFoundException: in case the poll with `poll_id` is not found
+    """
+    poll = Poll.create_key(service_user, poll_id).get()
+    if not poll:
+        raise PollNotFoundException
+
+    question_counts = []
+    for question_id in range(0, len(poll.questions)):
+        choice_counts = []
+        question = poll.questions[question_id]
+        if not has_choices(question.TYPE):
+            continue
+        for choice in question.choices:
+            counter_name = question_choice_counter_name(poll_id, question_id, choice)
+            choice_counts.append(ChoiceCountTO(choice=choice, count=get_count(counter_name)))
+        question_counts.append(QuestionCountResultTO(question_id=question_id, counts=choice_counts))
+    return question_counts
 
 
 @returns(FlowPollTO)
@@ -187,8 +272,8 @@ def get_flow_poll(poll):
     flow_poll = FlowPollTO.from_model(poll)
 
     question_len = len(flow_poll.questions)
-    for i in range(0, question_len - 1):
-        flow_poll.flow_questions[i].next = flow_poll.flow_questions[i + 1]
+    for question_id in range(0, question_len - 1):
+        flow_poll.flow_questions[question_id].next = flow_poll.flow_questions[question_id + 1]
     flow_poll.flow_questions[-1].next = None
     return flow_poll
 
@@ -242,14 +327,15 @@ def poll_answer_received(
         return '%d_question_%d' % (poll_id, question_id)
 
     answers = []
-    for i in range(0, len(poll.questions)):
-        question = poll.questions[i]
-        step = _get_step_with_id(steps, step_id_for_question(i))
+    for question_id in range(0, len(poll.questions)):
+        question = poll.questions[question_id]
+        step = _get_step_with_id(steps, step_id_for_question(question_id))
         if question.TYPE == QuestionType.CHECKBOXES:
             values = step.form_result.result.values
         else:
-            values = [step.form_result.result.value]
-        answers.append(AnswerTO(question_id=i, values=values))
+            values = [step.form_result.result.value or '']
+        # all possible values of answers for this question
+        answers.append(values)
 
     try:
         register_answer(

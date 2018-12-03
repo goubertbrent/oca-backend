@@ -234,6 +234,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
     SolutionModule.POLLS: [
         'polls/poll_form',
         'polls/poll_row',
+        'polls/poll_result',
         'polls/question_list',
         'polls/question_form',
         'polls/question_choice',

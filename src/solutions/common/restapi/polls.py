@@ -22,9 +22,13 @@ from mcfw.rpc import arguments, returns
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from solutions.common.bizz.polls import get_polls, update_poll, start_poll, stop_poll, remove_poll, \
-    PollNotFoundException
-from solutions.common.models.polls import Poll, PollStatus
-from solutions.common.to.polls import PollTO, PollsListTO
+    get_poll_answers, get_poll_counts, PollNotFoundException
+from solutions.common.models.polls import Poll, PollStatus, QuestionTypeException
+from solutions.common.to.polls import PollTO, PollsListTO, PollAnswerResultTO, QuestionCountResultTO
+
+
+
+HTTP_POLL_NOT_FOUND = HttpNotFoundException('poll_not_found')
 
 
 @rest('/common/polls', 'get')
@@ -54,7 +58,7 @@ def api_get_poll(poll_id):
     service_user = users.get_current_user()
     poll = Poll.create_key(service_user, poll_id).get()
     if not poll:
-        raise HttpNotFoundException('poll_not_found')
+        raise HTTP_POLL_NOT_FOUND
     return PollTO.from_model(poll)
 
 
@@ -80,7 +84,7 @@ def api_start_or_stop_poll(poll_id, data):
             raise BusinessException('poll_invalid_status')
         return PollTO.from_model(poll)
     except PollNotFoundException:
-        raise HttpNotFoundException('poll_not_found')
+        raise HTTP_POLL_NOT_FOUND
     except BusinessException as bex:
         raise HttpBadRequestException(bex.message)
 
@@ -92,7 +96,31 @@ def api_remove_poll(poll_id):
     try:
         service_user = users.get_current_user()
         remove_poll(service_user, poll_id)
-    except PollNotFoundException:
-        raise HttpNotFoundException('poll_not_found')
     except BusinessException as bex:
         raise HttpBadRequestException(bex.message)
+
+
+@rest('/common/polls/counts/<poll_id:[^/]+>', 'get')
+@returns([QuestionCountResultTO])
+@arguments(poll_id=(int, long))
+def api_get_poll_counts(poll_id):
+    try:
+        service_user = users.get_current_user()
+        return get_poll_counts(service_user, poll_id)
+    except PollNotFoundException:
+        raise HTTP_POLL_NOT_FOUND
+    except QuestionTypeException:
+        raise HttpBadRequestException('poll_invalid_question_type')
+
+
+@rest('/common/polls/answers/<poll_id:[^/]+>', 'get')
+@returns(PollAnswerResultTO)
+@arguments(poll_id=(int, long), cursor=unicode, limit=int)
+def api_get_poll_answers(poll_id, cursor=None, limit=50):
+    try:
+        service_user = users.get_current_user()
+        return get_poll_answers(service_user, poll_id, cursor, limit)
+    except PollNotFoundException:
+        raise HTTP_POLL_NOT_FOUND
+    except QuestionTypeException:
+        raise HttpBadRequestException('poll_invalid_question_type')

@@ -27,6 +27,10 @@ class QuestionTypeException(ValueError):
     pass
 
 
+class QuestionChoicesException(ValueError):
+    pass
+
+
 class QuestionType(Enum):
     MULTIPLE_CHOICE = 1
     CHECKBOXES = 2
@@ -71,9 +75,16 @@ class PollStatus(Enum):
     COMPLELTED = 3
 
 
+def validate_question_choices(prop, value):
+    if not isinstance(value, MultipleChoiceQuestion):
+        return
+    if len(value.choices) < 2:
+        raise QuestionChoicesException('a qeustion should has at least two choices')
+
+
 class Poll(polymodel.PolyModel):
     name = ndb.StringProperty(indexed=False)
-    questions = ndb.LocalStructuredProperty(Question, repeated=True)
+    questions = ndb.LocalStructuredProperty(Question, repeated=True, validator=validate_question_choices)
     status = ndb.IntegerProperty(choices=PollStatus.all(), default=PollStatus.PENDING, indexed=True)
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     updated_on = ndb.DateTimeProperty(auto_now=True)
@@ -92,15 +103,20 @@ class Poll(polymodel.PolyModel):
 def validate_vote_question(prop, value):
     if not isinstance(value, MultipleChoiceQuestion):
         raise QuestionTypeException('a vote poll should only contain choice question type')
+    validate_question_choices(prop, value)
 
 
 class Vote(Poll):
     questions = ndb.LocalStructuredProperty(Question, repeated=True, validator=validate_vote_question)
 
 
-class Answer(NdbModel):
-    question = ndb.LocalStructuredProperty(Question)
-    values = ndb.StringProperty(repeated=True)
+class QuestionAnswer(NdbModel):
+    question_id = ndb.IntegerProperty()
+    value = ndb.StringProperty(indexed=False)
+
+
+class PollAnswer(NdbModel):
+    question_answers = ndb.StructuredProperty(QuestionAnswer, repeated=True)
 
     @classmethod
     def create_key(cls, service_user, poll_id):
@@ -108,11 +124,10 @@ class Answer(NdbModel):
         return ndb.Key(cls, cls.allocate_ids(1)[0], parent=parent)
 
     @classmethod
-    def create(cls, service_user, poll_id, question, *values):
-        return Answer(
+    def create(cls, service_user, poll_id, *question_answers):
+        return PollAnswer(
             key=cls.create_key(service_user, poll_id),
-            question=question,
-            values=values)
+            question_answers=question_answers)
 
     @classmethod
     def list_by_poll(cls, service_user, poll_id):

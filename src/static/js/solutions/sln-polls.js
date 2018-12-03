@@ -23,60 +23,60 @@ var QuestionType = {
     long_text: 4
 }
 
-function PollsList(status, container) {
-    this.status = status;
-    this.container = container;
 
-    this.cursor = null;
-    this.isLoading = false;
-    this.hasMore = true;
+var PollsIndicator = new LoadingIndicator($('#polls_loading_indicator'));
+
+function PollsList(status, container) {
+    'use strict';
+
+    ScrollableList.call(this, container, {
+        itemClass: 'poll',
+    });
+
+    this.status = status;
 }
 
-PollsList.prototype = {
-    showLoading: function() {
-        this.isLoading = true;
-        $('#polls_loading_indicator').html(TMPL_LOADING_SPINNER);
-    },
-
-    hideLoading: function() {
+PollsList.prototype = Object.create(ScrollableList.prototype);
+PollsList.prototype.constructor = PollsList;
+PollsList.prototype.load = function() {
+    PollsIndicator.show();
+    this.isLoading = true;
+    PollsRequests.getPolls(this.status, this.cursor).then(function(data) {
+        this.cursor = data.cursor;
+        this.hasMore = data.more;
+        this.render(data.results);
         this.isLoading = false;
-        $('#polls_loading_indicator').empty();
-    },
-
-    loadPolls: function() {
-        this.showLoading();
-        PollsRequests.getPolls(this.status, this.cursor).then(function(data) {
-            this.cursor = data.cursor;
-            this.hasMore = data.more;
-            this.renderPolls(data.results);
-            this.hideLoading();
-        }.bind(this));
-    },
-
-    renderPolls: function(polls) {
-        var self = this;
-        $.each(polls, function(i, poll) {
-            var row = $.tmpl(templates['polls/poll_row'], {
-                t: CommonTranslations,
-                poll: poll
-            });
-            self.container.append(row);
+        PollsIndicator.hide();
+    }.bind(this));
+};
+PollsList.prototype.render = function(polls) {
+    var self = this;
+    $.each(polls, function(i, poll) {
+        var row = $.tmpl(templates['polls/poll_row'], {
+            t: CommonTranslations,
+            poll: poll
         });
-    },
+        self.container.append(row);
+    });
+};
+PollsList.prototype.reload = function() {
+    this.reset();
+    PollsRequests.clearGetPolls(this.status);
+    this.container.empty();
+    this.load();
+};
 
-    validateLoadMore: function() {
-        var lastPoll = this.container.find('.poll').last();
-        if(sln.isOnScreen(lastPoll) && this.hasMore && !this.isLoading) {
-            this.loadPolls();
-        }
-    },
 
-    reloadPolls: function() {
-        this.cursor = null;
-        PollsRequests.clearGetPolls(this.status);
-        this.container.empty();
-        this.loadPolls();
-    },
+function PollAnswerList(poll, container) {
+    ScrollableList.call(this, container);
+
+    this.poll = poll;
+}
+
+PollAnswerList.prototype = Object.create(ScrollableList.prototype);
+PollAnswerList.prototype.constructor = PollAnswerList;
+PollAnswerList.prototype.load = function() {
+
 };
 
 $(function() {
@@ -103,6 +103,9 @@ $(function() {
             case 'edit':
                 renderPollsForm(parseInt(urlHash[2]));
                 break;
+            case 'result':
+                renderResultsForPoll(parseInt(urlHash[2]));
+                break;
             default:
                 showLists();
                 break;
@@ -116,14 +119,14 @@ $(function() {
             var status = PollStatus[name];
             var list = new PollsList(status, $(container));
             lists[status] = list;
-            list.loadPolls();
+            list.load();
         });
     }
 
 
     function showLists() {
+        $('.polls-container').hide();
         $('#polls-list-container').show();
-        $('#poll-form-container').hide();
     }
 
     function getCurrentList() {
@@ -136,17 +139,9 @@ $(function() {
     }
 
     function updateSuccess() {
-        hideLoading();
+        PollsIndicator.hide();
         window.location.href = '#/polls';
-        getCurrentList().reloadPolls();
-    }
-
-    function showLoading() {
-        getCurrentList().showLoading();
-    }
-
-    function hideLoading() {
-        getCurrentList().hideLoading();
+        getCurrentList().reload();
     }
 
     function renderQuestionList() {
@@ -172,7 +167,7 @@ $(function() {
 
     function renderPollsForm(pollId) {
         var formContainer = $('#poll-form-container');
-        $('#polls-list-container').hide();
+        $('.polls-container').hide();
         formContainer.show()
 
         function render() {
@@ -187,9 +182,9 @@ $(function() {
         }
 
         if (pollId) {
-            showLoading();
+            PollsIndicator.show();
             PollsRequests.getPoll(pollId).then(function(poll) {
-                hideLoading();
+                PollsIndicator.hide();
                 currentPoll = poll;
                 render();
             });
@@ -226,16 +221,16 @@ $(function() {
     function startPoll() {
         var pollId = parseInt($(this).parent().attr('poll_id'));
         PollsRequests.startPoll(pollId).then(function(poll) {
-            lists[PollStatus.pending].reloadPolls();
-            lists[poll.status].reloadPolls();
+            lists[PollStatus.pending].reload();
+            lists[poll.status].reload();
         });
     }
 
     function stopPoll() {
         var pollId = parseInt($(this).parent().attr('poll_id'));
         PollsRequests.stopPoll(pollId).then(function(poll) {
-            lists[PollStatus.running].reloadPolls();
-            lists[poll.status].reloadPolls();
+            lists[PollStatus.running].reload();
+            lists[poll.status].reload();
         });
     }
 
@@ -243,7 +238,7 @@ $(function() {
         var pollId = parseInt($(this).parent().attr('poll_id'));
         var status = parseInt($(this).parent().attr('poll_status'));
         PollsRequests.removePoll(pollId).then(function() {
-            lists[status].reloadPolls();
+            lists[status].reload();
         });
     }
 
@@ -362,8 +357,8 @@ $(function() {
                 sln.alert(CommonTranslations.text_is_required, null, CommonTranslations.ERROR);
                 return;
             }
-            if (hasChoices(question.type) && !question.choices.length) {
-                sln.alert(CommonTranslations.add_1_choice_at_least, null, CommonTranslations.ERROR);
+            if (hasChoices(question.type) && question.choices.length < 2) {
+                sln.alert(CommonTranslations.add_2_choices_at_least, null, CommonTranslations.ERROR);
                 return;
             }
             callback(question);
@@ -377,9 +372,12 @@ $(function() {
 
         function addChoice() {
             var question = getQuestionData();
-            var choice = renderChoice(question.type, choiceInput.val());
-            choicesContainer.append(choice);
-            choiceInput.val('');
+            var value = choiceInput.val().trim();
+            if (value) {
+                var choice = renderChoice(question.type, choiceInput.val());
+                choicesContainer.append(choice);
+                choiceInput.val('');
+            }
         }
 
         function removeChoice() {
@@ -396,6 +394,43 @@ $(function() {
         choiceInput.keyup(choiceInputChanged);
         addChoiceButton.click(addChoice);
         $(modal).on('click', '.remove-choice', removeChoice);
+    }
+
+    function renderResultsForPoll(pollId) {
+        var resultsContainer = $('#poll-results-container');
+        $('.polls-container').hide();
+        resultsContainer.show();
+
+        PollsIndicator.show();
+        PollsRequests.getPoll(pollId).then(function(poll) {
+            currentPoll = poll;
+            var html = $.tmpl(templates['polls/poll_result'], {
+                t: CommonTranslations,
+                poll: poll,
+            });
+            PollsIndicator.hide();
+            resultsContainer.html(html);
+            renderPollAnswers(poll);
+        });
+
+        function renderPollAnswers() {
+
+        }
+
+        function renderPollCounts() {
+
+        }
+
+        var answersContainers = $('#poll-answers', resultsContainer);
+        var countsContainers = $('#poll-counts', resultsContainer);
+        $('#show-poll-answers', resultsContainer).click(function() {
+            answersContainers.show();
+            countsContainers.hide();
+        });
+        $('#show-poll-counts', resultsContainer).click(function() {
+            answersContainers.hide();
+            countsContainers.show();
+        });
     }
 
     $(document).on('click', '#poll-submit', savePoll);
