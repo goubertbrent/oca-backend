@@ -447,9 +447,6 @@ $(function() {
 
             function renderPollCounts() {
                 function drawChart(containerId, title, chartData) {
-                    var maxValue = Math.max(chartData.map(function(data) {
-                        return data[data.length - 1];
-                    }));
                     var wrapper = new google.visualization.ChartWrapper({
                         chartType: 'BarChart',
                         dataTable: google.visualization.arrayToDataTable(chartData),
@@ -458,7 +455,7 @@ $(function() {
                             legend: {
                                 position: 'none'
                             },
-                            width: 500,
+                            width: 600,
                             animation: {duration: 1000, easing: 'out', startup: true}
                         },
                         containerId: containerId,
