@@ -235,6 +235,8 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'polls/poll_form',
         'polls/poll_row',
         'polls/poll_result',
+        'polls/poll_answer_row',
+        'polls/poll_count_graph',
         'polls/question_list',
         'polls/question_form',
         'polls/question_choice',

@@ -13,7 +13,7 @@
         </div>
     </legend>
 
-    <div id="poll-answers">
+    <div id="poll-answers" style="display: none;">
         <table class="table table-bordered">
             <thead>
                 {{each(i, question) poll.questions}}
@@ -25,7 +25,7 @@
             </tbody>
         </table>
     </div>
-    <div id="poll-counts" style="display: none;">
+    <div id="poll-counts" class="span7 offset2" style="display: none; text-align: center;">
     </div>
 </div>
 {% endraw %}

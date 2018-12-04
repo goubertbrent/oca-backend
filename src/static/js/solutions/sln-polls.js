@@ -39,13 +39,10 @@ function PollsList(status, container) {
 PollsList.prototype = Object.create(ScrollableList.prototype);
 PollsList.prototype.constructor = PollsList;
 PollsList.prototype.load = function() {
-    PollsIndicator.show();
     this.isLoading = true;
+    PollsIndicator.show();
     PollsRequests.getPolls(this.status, this.cursor).then(function(data) {
-        this.cursor = data.cursor;
-        this.hasMore = data.more;
-        this.render(data.results);
-        this.isLoading = false;
+        this.onLoaded(data);
         PollsIndicator.hide();
     }.bind(this));
 };
@@ -76,8 +73,24 @@ function PollAnswerList(poll, container) {
 PollAnswerList.prototype = Object.create(ScrollableList.prototype);
 PollAnswerList.prototype.constructor = PollAnswerList;
 PollAnswerList.prototype.load = function() {
-
+    this.isLoading = true;
+    PollsIndicator.show();
+    PollsRequests.getPollAnswers(this.poll.id, this.cursor).then(function(data) {
+        this.onLoaded(data);
+        PollsIndicator.hide();
+    }.bind(this));
 };
+PollAnswerList.prototype.render = function(answers) {
+    var self = this;
+    var rows = $.tmpl(templates['polls/poll_answer_row'], {answers: answers})
+    self.container.append(rows);
+};
+PollAnswerList.prototype.reload = function() {
+    this.reset();
+    this.container.empty();
+    this.load();
+};
+
 
 $(function() {
     'use strict';
@@ -401,35 +414,99 @@ $(function() {
         $('.polls-container').hide();
         resultsContainer.show();
 
-        PollsIndicator.show();
-        PollsRequests.getPoll(pollId).then(function(poll) {
-            currentPoll = poll;
+        function render(poll) {
             var html = $.tmpl(templates['polls/poll_result'], {
                 t: CommonTranslations,
                 poll: poll,
             });
-            PollsIndicator.hide();
             resultsContainer.html(html);
-            renderPollAnswers(poll);
-        });
+            var answersContainer = $('#poll-answers', resultsContainer);
+            var countsContainer = $('#poll-counts', resultsContainer);
+            var showAnswersButton = $('#show-poll-answers', resultsContainer);
+            var showCountsButton = $('#show-poll-counts', resultsContainer);
+            var answerList;
 
-        function renderPollAnswers() {
+            function showHideContainers(isCounts) {
+                answersContainer.toggle(!isCounts);
+                countsContainer.toggle(isCounts);
+                showAnswersButton.toggleClass('active', !isCounts);
+                showCountsButton.toggleClass('active', isCounts);
+            }
 
+            function renderPollAnswers() {
+                showHideContainers(false);
+
+                if (!answerList) {
+                    var container = resultsContainer.find('#answers_container');
+                    answerList = new PollAnswerList(poll, container, {
+                        itemClass: 'poll-answer',
+                    });
+                    answerList.load();
+                }
+            }
+
+            function renderPollCounts() {
+                function drawChart(containerId, title, chartData) {
+                    var maxValue = Math.max(chartData.map(function(data) {
+                        return data[data.length - 1];
+                    }));
+                    var wrapper = new google.visualization.ChartWrapper({
+                        chartType: 'BarChart',
+                        dataTable: google.visualization.arrayToDataTable(chartData),
+                        options: {
+                            title: title,
+                            legend: {
+                                position: 'none'
+                            },
+                            width: 500,
+                            animation: {duration: 1000, easing: 'out', startup: true}
+                        },
+                        containerId: containerId,
+                    });
+                    wrapper.draw();
+                }
+
+                showHideContainers(true);
+                countsContainer.empty();
+                PollsIndicator.show();
+                PollsRequests.getPollCounts(poll.id).then(function(questionCounts) {
+                    PollsIndicator.hide();
+                    $.each(questionCounts, function(i, questionCount) {
+                        var questionText = poll.questions[questionCount.question_id].text;
+                        var container = $.tmpl(templates['polls/poll_count_graph'], {
+                                poll: poll,
+                                question_count: questionCount,
+                        });
+                        countsContainer.append(container);
+                        var containerId = container.find('.poll-graph').attr('id');
+
+                        var chartData = [['', '', { role: 'annotation' }]];
+                        $.each(questionCount, function(j, choiceCounts) {
+                            $.each(choiceCounts, function(k, choiceCount) {
+                                chartData.push([choiceCount.choice, choiceCount.count, choiceCount.count]);
+                            });
+                        });
+
+                        drawChart(containerId, questionText, chartData);
+                    });
+                });
+            }
+
+            showAnswersButton.click(renderPollAnswers);
+            showCountsButton.click(renderPollCounts);
+
+            if (poll.is_vote) {
+                renderPollCounts();
+            } else {
+                renderPollAnswers();
+            }
         }
 
-        function renderPollCounts() {
-
-        }
-
-        var answersContainers = $('#poll-answers', resultsContainer);
-        var countsContainers = $('#poll-counts', resultsContainer);
-        $('#show-poll-answers', resultsContainer).click(function() {
-            answersContainers.show();
-            countsContainers.hide();
-        });
-        $('#show-poll-counts', resultsContainer).click(function() {
-            answersContainers.hide();
-            countsContainers.show();
+        PollsIndicator.show();
+        PollsRequests.getPoll(pollId).then(function(poll) {
+            currentPoll = poll;
+            PollsIndicator.hide();
+            render(poll);
         });
     }
 

@@ -259,10 +259,15 @@ def get_poll_counts(service_user, poll_id):
         question = poll.questions[question_id]
         if not has_choices(question.TYPE):
             continue
+
         for choice in question.choices:
             counter_name = question_choice_counter_name(poll_id, question_id, choice)
-            choice_counts.append(ChoiceCountTO(choice=choice, count=get_count(counter_name)))
-        question_counts.append(QuestionCountResultTO(question_id=question_id, counts=choice_counts))
+            count = get_count(counter_name)
+            choice_counts.append(ChoiceCountTO(choice=choice, count=count))
+
+        question_counts.append(
+            QuestionCountResultTO(question_id=question_id, counts=choice_counts))
+
     return question_counts
 
 
