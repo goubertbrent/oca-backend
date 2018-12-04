@@ -7,9 +7,9 @@
                  positiveReference="{% if question.next %}{{ '%d_question_%d' % (poll.id, question.next.id)}}{% else %}flush_{{poll.id}}{% endif %}"
                  negativeReference="end_{{poll.id}}">
         <content>{{ question.text }}</content>
-        <form positiveButtonCaption="{% if question.next %}Next{% else %}Submit{% endif %}"
+        <form positiveButtonCaption="{% if question.next %}{% translate language, 'common', 'Next' %}{% else %}{% translate language, 'common', 'Submit' %}{% endif %}"
               positiveButtonConfirmation=""
-              negativeButtonCaption="Cancel"
+              negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
               negativeButtonConfirmation="">
             {{ caller() }}
             <javascriptValidation>{% if question.required %}
@@ -59,7 +59,7 @@
 
 {% macro render_short_text(question, poll) %}
     {% call render_question(question, poll) %}
-        <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextLineWidget" maxChars="50" keyboardType="DEFAULT"/>
+        <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextLineWidget" maxChars="150" keyboardType="DEFAULT"/>
     {%- endcall %}
 {%- endmacro -%}
 
@@ -78,18 +78,18 @@
              alertType="SILENT"
              alertIntervalType="NONE">
         {% if polls %}
-            <content>Current running polls</content>
+            <content>{% translate language, 'common', 'current_polls' %}</content>
             {% for poll in polls %}
                 <answer caption="{{poll.name}}" action="" id="{{poll.id}}" reference="{{poll.id}}_question_0" color=""/>
             {%- endfor %}
         {% else %}
-            <content>No running polls for now!</content>
-            <answer caption="Go back" action="" id="0" reference="end_end" color=""/>
+            <content>{% translate language, 'common', 'no_running_polls' %}</content>
+            <answer caption="{% translate language, 'common', 'back' %}" action="" id="0" reference="end_end" color=""/>
         {%- endif %}
     </message>
     {% for poll in polls %}
         <!-- flow flush/end for every poll sub-flow -->
-        <end id="end_{{poll.id}}"/>
+        <end id="end_{{poll.id}}" waitForFollowUpMessage="true"/>
         <resultsFlush id="flush_{{poll.id}}" reference="end_{{poll.id}}"/>
         {% for question in poll.flow_questions %}
             {% if question.type == QuestionType.MULTIPLE_CHOICE %}

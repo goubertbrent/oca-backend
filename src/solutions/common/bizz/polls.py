@@ -27,6 +27,8 @@ from rogerthat.to.messaging.service_callback_results import MessageCallbackResul
     FlowMemberResultCallbackResultTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.service import UserDetailsTO
+from solutions import translate as common_translate
+from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.bizz.general_counter import increment, get_count
 from solutions.common import SOLUTION_COMMON
@@ -300,12 +302,15 @@ def poll_answer_received(
     tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
 
     from solutions.common.bizz.messaging import _get_step_with_id, POKE_TAG_POLLS
+    user_detail = user_details[0]
 
-    def result_message(message):
+    def result_message(message, **kwargs):
         result = FlowMemberResultCallbackResultTO()
         result.type = u'message'
         result.value = MessageCallbackResultTypeTO()
-        result.value.message = unicode(message)
+        result.value.message = unicode(
+            common_translate(user_detail.language, SOLUTION_COMMON, message, **kwargs)
+        )
         result.value.answers = []
         result.value.attachments = []
         result.value.flags = Message.FLAG_ALLOW_DISMISS
@@ -344,7 +349,7 @@ def poll_answer_received(
 
     try:
         register_answer(
-            service_user, user_details[0].toAppUser(), poll, answers)
-        return result_message('answer_registered')
+            service_user, user_detail.toAppUser(), poll, answers)
+        return result_message('poll_answer_registered', name=poll.name)
     except DuplicatePollAnswerException:
-        return result_message('duplicate_answer')
+        return result_message('poll_duplicate_answer', name=poll.name)
