@@ -16,57 +16,31 @@
 # @@license_version:1.3@@
 
 from google.appengine.ext import ndb
-from google.appengine.ext.ndb import polymodel
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
 from solutions.common import SOLUTION_COMMON
 
 
-class QuestionTypeException(ValueError):
-    pass
-
-
 class QuestionChoicesException(ValueError):
     pass
 
 
-class QuestionType(Enum):
+class AnswerType(Enum):
     MULTIPLE_CHOICE = 1
     CHECKBOXES = 2
-    SHORT_TEXT = 3
-    LONG_TEXT = 4
 
 
-class Question(polymodel.PolyModel):
-    TYPE = None
+class Choice(NdbModel):
     text = ndb.StringProperty(indexed=False)
-    required = ndb.BooleanProperty(indexed=False, default=False)
+    count = ndb.IntegerProperty(indexed=False)
 
 
-class MultipleChoiceQuestion(Question):
-    TYPE = QuestionType.MULTIPLE_CHOICE
-    choices = ndb.StringProperty(repeated=True)
-
-
-class CheckboxesQuestion(MultipleChoiceQuestion):
-    TYPE = QuestionType.CHECKBOXES
-
-
-class ShortTextQuestion(Question):
-    TYPE = QuestionType.LONG_TEXT
-
-
-class LongTextQuestion(Question):
-    TYPE = QuestionType.LONG_TEXT
-
-
-QUESTION_TYPE_MAPPING = {
-    QuestionType.MULTIPLE_CHOICE: MultipleChoiceQuestion,
-    QuestionType.CHECKBOXES: CheckboxesQuestion,
-    QuestionType.SHORT_TEXT: ShortTextQuestion,
-    QuestionType.LONG_TEXT: LongTextQuestion,
-}
+class Question(NdbModel):
+    answer_type = ndb.IntegerProperty(indexed=False, choices=AnswerType.all())
+    text = ndb.StringProperty(indexed=False)
+    choices = ndb.LocalStructuredProperty(Choice, repeated=True)
+    optional = ndb.BooleanProperty(indexed=False, default=False)
 
 
 class PollStatus(Enum):
@@ -76,77 +50,55 @@ class PollStatus(Enum):
 
 
 def validate_question_choices(prop, value):
-    if not isinstance(value, MultipleChoiceQuestion):
+    if not isinstance(value, Question):
         return
     if len(value.choices) < 2:
         raise QuestionChoicesException('a qeustion should has at least two choices')
 
 
-class Poll(polymodel.PolyModel):
+class Poll(NdbModel):
     name = ndb.StringProperty(indexed=False)
     questions = ndb.LocalStructuredProperty(Question, repeated=True, validator=validate_question_choices)
     status = ndb.IntegerProperty(choices=PollStatus.all(), default=PollStatus.PENDING, indexed=True)
+    ends_on = ndb.DateTimeProperty(indexed=False)
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     updated_on = ndb.DateTimeProperty(auto_now=True)
 
     @classmethod
-    def create_key(cls, service_user, id_=None):
+    def create_key(cls, service_user, id_):
         parent = parent_ndb_key(service_user, SOLUTION_COMMON)
-        id_ = id_ or cls.allocate_ids(1)[0]
         return ndb.Key(cls, id_, parent=parent)
+
+    @classmethod
+    def create(cls, service_user):
+        return cls(parent=parent_ndb_key(service_user, SOLUTION_COMMON))
 
     @property
     def id(self):
         return self.key.id()
 
 
-def validate_vote_question(prop, value):
-    if not isinstance(value, MultipleChoiceQuestion):
-        raise QuestionTypeException('a vote poll should only contain choice question type')
-    validate_question_choices(prop, value)
-
-
-class Vote(Poll):
-    questions = ndb.LocalStructuredProperty(Question, repeated=True, validator=validate_vote_question)
-
-
-class QuestionAnswer(NdbModel):
-    question_id = ndb.IntegerProperty()
-    value = ndb.StringProperty(indexed=False)
-
-
 class PollAnswer(NdbModel):
-    question_answers = ndb.StructuredProperty(QuestionAnswer, repeated=True)
+    poll_id = ndb.IntegerProperty(indexed=True)
+    values = ndb.StringProperty(repeated=True)
 
     @classmethod
-    def create_key(cls, service_user, poll_id):
-        parent = Poll.create_key(service_user, poll_id)
-        return ndb.Key(cls, cls.allocate_ids(1)[0], parent=parent)
-
-    @classmethod
-    def create(cls, service_user, poll_id, *question_answers):
+    def create(cls, app_user, poll_id, *values):
         return PollAnswer(
-            key=cls.create_key(service_user, poll_id),
-            question_answers=question_answers)
+            parent=parent_ndb_key(app_user, SOLUTION_COMMON),
+            poll_id=poll_id,
+            values=values)
 
     @classmethod
-    def list_by_poll(cls, service_user, poll_id):
-        parent = Poll.create_key(service_user, poll_id)
+    def get_by_poll(cls, app_user, poll_id):
+        parent = parent_ndb_key(app_user, SOLUTION_COMMON)
+        return cls.query(ancestor=parent).filter(cls.poll_id == poll_id).get()
+
+    @classmethod
+    def list_by_app_user(cls, app_user):
+        parent = parent_ndb_key(app_user, SOLUTION_COMMON)
         return cls.query(ancestor=parent)
 
-
-class PollRegister(NdbModel):
-    created_on = ndb.DateTimeProperty(auto_now_add=True)
-    updated_on = ndb.DateTimeProperty(auto_now=True)
-
     @classmethod
-    def create_key(cls, app_user, poll_id):
-        return ndb.Key(cls, app_user.email(), cls, poll_id)
-
-    @classmethod
-    def create(cls, app_user, poll_id):
-        return cls(key=cls.create_key(app_user, poll_id)).put()
-
-    @classmethod
-    def exists(cls, app_user, poll_id):
-        return bool(cls.create_key(app_user, poll_id).get())
+    def list_by_poll(cls, poll_id):
+        return cls.query().filter(cls.poll_id == poll_id)

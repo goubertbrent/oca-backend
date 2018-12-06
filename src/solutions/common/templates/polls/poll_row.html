@@ -1,7 +1,18 @@
 {% raw %}
 <div class="row poll" style="padding: 5px;">
     <div class="span12">
-        <a href="#/polls/edit/${poll.id}">${poll.name}</a>
+        <a href="#/polls/edit/${poll.id}">
+            ${poll.name}
+            {{if poll.status === PollStatus.pending}}
+            <span class="label label-info">${t.Pending}</span>
+            {{/if}}
+            {{if poll.status === PollStatus.running}}
+            <span class="label label-success">${t.running}</span>
+            {{/if}}
+            {{if poll.status === PollStatus.completed}}
+            <span class="label label-danger">${t.completed}</span>
+            {{/if}}
+        </a>
         {{if poll.is_vote}}
         <span class="label label-info">${t.vote}</span>
         {{/if}}
@@ -15,10 +26,10 @@
             {{if poll.status === PollStatus.pending}}
             <a class="btn btn-primary" href="#/polls/edit/${poll.id}"><i class="fa fa-edit"></i></a>
             {{/if}}
-            {{if poll.status !== PollStatus.running}}
+            {{if poll.status === PollStatus.pending}}
             <a class="btn btn-danger remove-poll"><i class="fa fa-trash"></i></a>
             {{/if}}
-            {{if poll.status !== PollStatus.pending}}
+            {{if poll.status === PollStatus.completed}}
             <a class="btn btn-success show-poll-results" href="#/polls/result/${poll.id}">
                 <i class="fa fa-list-ul"></i>
             </a>

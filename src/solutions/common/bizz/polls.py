@@ -30,13 +30,11 @@ from rogerthat.to.service import UserDetailsTO
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending
-from solutions.common.bizz.general_counter import increment, get_count
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
-from solutions.common.models.polls import Poll, PollAnswer, PollRegister, PollStatus, Vote, Question, \
-    QuestionAnswer, QuestionType, QuestionChoicesException, QuestionTypeException
-from solutions.common.to.polls import ChoiceCountTO, FlowPollTO, PollTO, \
-   PollAnswerTO, PollAnswerResultTO, QuestionAnswerTO, QuestionCountResultTO
+from solutions.common.models.polls import AnswerType, Poll, PollAnswer, PollStatus, Question, \
+    QuestionChoicesException
+from solutions.common.to.polls import FlowPollTO, PollTO
 
 
 class PollNotFoundException(BusinessException):
@@ -48,10 +46,10 @@ class DuplicatePollAnswerException(BusinessException):
 
 
 @returns(tuple)
-@arguments(service_user=users.User, status=int, cursor=unicode, limit=int)
-def get_polls(service_user, status, cursor=None, limit=20):
+@arguments(service_user=users.User, cursor=unicode, limit=int)
+def get_polls(service_user, cursor=None, limit=20):
     parent_service = parent_ndb_key(service_user, SOLUTION_COMMON)
-    qry = Poll.query(ancestor=parent_service).filter(Poll.status == status)
+    qry = Poll.query(ancestor=parent_service)
     results, new_cursor, has_more = qry.fetch_page(limit, start_cursor=cursor)
     if new_cursor:
         new_cursor = unicode(new_cursor.urlsafe())
@@ -64,21 +62,17 @@ def update_poll(service_user, poll):
     if poll.status != PollStatus.PENDING:
         raise BusinessException('poll_started_cannot_update')
 
-    type_ = Poll
-    if poll.is_vote:
-        type_ = Vote
+    new_poll = None
+    if poll.id:
+        new_poll = Poll.create_key(service_user, poll.id).get()
 
-    key = type_.create_key(service_user, poll.id)
-    new_poll = key.get()
     if not new_poll:
-        new_poll = type_(key=key)
+        new_poll = Poll.create(service_user)
 
     try:
         new_poll.name = poll.name
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
-    except QuestionTypeException:
-        raise BusinessException('vote_question_types_error')
     except QuestionChoicesException:
         raise BusinessException('add_2_choices_at_least')
     return new_poll
@@ -148,30 +142,23 @@ def get_running_polls(service_user):
     return list(Poll.query(ancestor=parent).filter(Poll.status == PollStatus.RUNNING))
 
 
-def has_choices(question_type):
-    return question_type == QuestionType.MULTIPLE_CHOICE or \
-        question_type == QuestionType.CHECKBOXES
+def has_choices(answer_type):
+    return answer_type == AnswerType.MULTIPLE_CHOICE or \
+        answer_type == AnswerType.CHECKBOXES
 
 
 def question_choice_counter_name(poll_id, question_id, choice):
     return 'poll_%d_question_%d_%s' % (poll_id, question_id, choice)
 
 
-def create_poll_answer(service_user, poll_id, question_answers):
-    return PollAnswer.create(service_user, poll_id, *question_answers).put()
-
-
-@ndb.transactional(xg=True)
+@ndb.transactional()
 @returns()
-@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[list])
+@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[unicode])
 def register_answer(service_user, app_user, poll, answer_values):
     """
     Register an answer for a given poll
-    This will take every question answers as a list, then will create/count
-    possible
 
     Args:
-        service_user (users.User)
         app_user (users.User)
         poll (Poll)
         answer_values (list of list): with all possible values for every question
@@ -179,98 +166,9 @@ def register_answer(service_user, app_user, poll, answer_values):
     Raises:
         DuplicatePollAnswerException: in case of duplicate answer for the same app_user/poll
     """
-    if PollRegister.exists(app_user, poll.id):
+    if PollAnswer.get_by_poll(app_user, poll.id):
         raise DuplicatePollAnswerException
-
-    PollRegister.create(app_user, poll.id)
-
-    question_answers = []
-    for question_id in range(0, len(answer_values)):
-        question = poll.questions[question_id]
-        values = answer_values[question_id]
-        # for counting
-        if has_choices(question.TYPE):
-            for choice in question.choices:
-                if choice in values:
-                    # increment counting
-                    increment(question_choice_counter_name(poll.id, question_id, choice))
-        # for listing
-        question_answers.append(
-            QuestionAnswer(question_id=question_id, value=', '.join(values)))
-
-    deferred.defer(create_poll_answer, service_user, poll.id, question_answers)
-
-
-@returns(PollAnswerResultTO)
-@arguments(service_user=users.User, poll_id=(int, long), cursor=unicode, limit=int)
-def get_poll_answers(service_user, poll_id, cursor=None, limit=50):
-    """
-    Get poll answers
-
-    Args:
-        service_user (users.User)
-        poll_id (long)
-        cursor (unicode): start cursor
-        limit (long)
-
-    Returns:
-        QuestionAnswerResultTO:
-            a paginated result of poll answers
-
-    Raises:
-        PollNotFoundException: in case the poll with `poll_id` is not found
-    """
-    parent = Poll.create_key(service_user, poll_id)
-    poll = parent.get()
-    if not poll:
-        raise PollNotFoundException
-
-    qry = PollAnswer.query(ancestor=parent)
-    results, new_cursor, has_more = qry.fetch_page(limit, start_cursor=cursor)
-    if new_cursor:
-        new_cursor = unicode(new_cursor.urlsafe())
-
-    return PollAnswerResultTO(
-        results=map(PollAnswerTO.from_model, results),
-        cursor=new_cursor, more=has_more)
-
-
-@returns([QuestionCountResultTO])
-@arguments(service_user=users.User, poll_id=(int,long))
-def get_poll_counts(service_user, poll_id):
-    """
-    Get poll counts
-
-    Args:
-        service_user (users.User)
-        poll_id (long)
-
-    Returns:
-        list of QuestionCountResultTO: total counts of for every question with choices
-
-    Raises:
-        PollNotFoundException: in case the poll with `poll_id` is not found
-    """
-    poll = Poll.create_key(service_user, poll_id).get()
-    if not poll:
-        raise PollNotFoundException
-
-    question_counts = []
-    for question_id in range(0, len(poll.questions)):
-        choice_counts = []
-        question = poll.questions[question_id]
-        if not has_choices(question.TYPE):
-            continue
-
-        for choice in question.choices:
-            counter_name = question_choice_counter_name(poll_id, question_id, choice)
-            count = get_count(counter_name)
-            choice_counts.append(ChoiceCountTO(choice=choice, count=count))
-
-        question_counts.append(
-            QuestionCountResultTO(question_id=question_id, counts=choice_counts))
-
-    return question_counts
+    PollAnswer.create(app_user, poll.id, *answer_values).put()
 
 
 @returns(FlowPollTO)
@@ -340,12 +238,12 @@ def poll_answer_received(
     for question_id in range(0, len(poll.questions)):
         question = poll.questions[question_id]
         step = _get_step_with_id(steps, step_id_for_question(question_id))
-        if question.TYPE == QuestionType.CHECKBOXES:
+        if question.answer_type == AnswerType.CHECKBOXES:
             values = step.form_result.result.values
         else:
             values = [step.form_result.result.value or '']
         # all possible values of answers for this question
-        answers.append(values)
+        answers.extend(values)
 
     try:
         register_answer(

@@ -3,28 +3,8 @@
     <legend>
         <a href="#/polls" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${t.back}</a>
         ${t.results}
-        <div class="btn-group pull-right" data-toggle="buttons-radio">
-            <button id="show-poll-answers" type="button" class="btn btn-primary active">
-                <i class="fa fa-table"> ${t['reservation-table']}</i>
-            </button>
-            <button id="show-poll-counts" type="button" class="btn btn-primary">
-                <i class="fa fa-signal"> ${t.graph}</i>
-            </button>
-        </div>
     </legend>
 
-    <div id="poll-answers" style="display: none;">
-        <table class="table table-bordered">
-            <thead>
-                {{each(i, question) poll.questions}}
-                <th>${question.text}</th>
-                {{/each}}
-            </thead>
-            <tbody id="answers_container">
-
-            </tbody>
-        </table>
-    </div>
     <div id="poll-counts" class="span7 offset2" style="display: none; text-align: center;">
     </div>
 </div>

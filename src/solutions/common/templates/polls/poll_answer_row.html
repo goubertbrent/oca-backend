@@ -1,9 +1,0 @@
-{% raw %}
-{{each(i, answer) answers}}
-<tr class="poll-answer">
-    {{each(j, question_answer) answer.question_answers}}
-    <td>${question_answer.value}</td>
-    {{/each}}
-</tr>
-{{/each}}
-{% endraw %}

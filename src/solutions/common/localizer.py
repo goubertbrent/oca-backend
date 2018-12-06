@@ -239,6 +239,7 @@ translations = \
          u'poll_not_found': u'Poll is not found',
          u'poll_started_cannot_update': u'Cannot updated a running poll',
          u'vote_question_types_error': u'Vote should contain only multiple choice questions',
+         u'completed': u'Completed',
          u'poll_started_or_completed': u'Poll has already started or completed',
          u'poll_pending_or_completed': u'Poll is pending or completed',
          u'poll_invalid_status': u'Invalid poll status',

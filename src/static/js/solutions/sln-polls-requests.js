@@ -68,26 +68,33 @@ PollsRequestsService.prototype.showError = function(error) {
     }
     throw new Error('polls requests error, ' + errorMsg);
 };
-PollsRequestsService.prototype.getPolls = function(status, cursor, limit) {
-    var params = {status: status};
+PollsRequestsService.prototype.getPolls = function(cursor, limit) {
+    var url = this.baseUrl;
+    var params = {};
     if (cursor) {
         params.cursor = cursor;
     }
     if (limit) {
         params.limit = limit;
     }
-    return this.get(`${this.baseUrl}?${$.param(params)}`);
+    if (Object.keys(params).length) {
+        url += `?${$.param(params)}`;
+    }
+    return this.get(url);
 };
-PollsRequestsService.prototype.clearGetPolls = function(status) {
+PollsRequestsService.prototype.clearGetPolls = function() {
     var self = this;
     $.each(self._requestCache, function(url, _) {
-        if (url.startsWith(`${self.baseUrl}?status=${status}`)) {
+        if (url.startsWith(`${self.baseUrl}?`) || url === self.baseUrl) {
             self.clearCache(url);
         }
     });
 };
 PollsRequestsService.prototype.createPoll = function(poll) {
-    return this.post(this.baseUrl, poll);
+    poll.id = null;
+    return this.post(this.baseUrl, poll, {
+        updatesCache: false,
+    });
 };
 PollsRequestsService.prototype.getPoll = function(pollId) {
     return this.get(`${this.baseUrl}/${pollId}`);
@@ -103,25 +110,5 @@ PollsRequestsService.prototype.stopPoll = function(pollId) {
 };
 PollsRequestsService.prototype.removePoll = function(pollId) {
     return this.delete(`${this.baseUrl}/${pollId}`);
-};
-PollsRequestsService.prototype.getPollCounts = function(pollId) {
-    return this.get(`${this.baseUrl}/counts/${pollId}`, {
-        cached: false
-    });
-};
-PollsRequestsService.prototype.getPollAnswers = function(pollId, cursor, limit) {
-    var url = `${this.baseUrl}/answers/${pollId}`;
-    var params = {};
-    if (cursor) {
-        params.cursor = cursor;
-    }
-    if (limit) {
-        params.limit = limit;
-    }
-
-    if (Object.keys(params).length) {
-        url += `${url}?${$.param(params)}`;
-    }
-    return this.get(url, {cached: false});
 };
 PollsRequests = new PollsRequestsService();

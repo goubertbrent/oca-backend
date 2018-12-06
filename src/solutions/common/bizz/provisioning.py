@@ -94,7 +94,7 @@ from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
     SolutionLoyaltyIdentitySettings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe
-from solutions.common.models.polls import QuestionType
+from solutions.common.models.polls import AnswerType
 from solutions.common.models.properties import MenuItem, ActivatedModules, \
     ActivatedModule
 from solutions.common.models.reservation import RestaurantProfile
@@ -2017,7 +2017,7 @@ def put_polls(sln_settings, current_coords, main_branding, default_lang, tag):
         branding_key=main_branding.branding_key,
         language=default_lang,
         polls=get_running_polls_for_flow(sln_settings.service_user),
-        QuestionType=QuestionType
+        AnswerType=AnswerType
     )
 
     flow = JINJA_ENVIRONMENT.get_template('flows/polls_flow.xml').render(flow_params)
