@@ -111,4 +111,7 @@ PollsRequestsService.prototype.stopPoll = function(pollId) {
 PollsRequestsService.prototype.removePoll = function(pollId) {
     return this.delete(`${this.baseUrl}/${pollId}`);
 };
+PollsRequestsService.prototype.getPollResult = function(pollId) {
+    return this.get(`${this.baseUrl}/result/${pollId}`);
+}
 PollsRequests = new PollsRequestsService();

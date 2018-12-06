@@ -24,7 +24,7 @@ from rogerthat.rpc.service import BusinessException
 from solutions.common.bizz.polls import get_polls, update_poll, start_poll, stop_poll, remove_poll, \
     PollNotFoundException
 from solutions.common.models.polls import Poll, PollStatus
-from solutions.common.to.polls import PollTO, PollsListTO
+from solutions.common.to.polls import PollTO, PollsListTO, QuestionTO
 
 
 HTTP_POLL_NOT_FOUND = HttpNotFoundException('poll_not_found')
@@ -97,3 +97,10 @@ def api_remove_poll(poll_id):
         remove_poll(service_user, poll_id)
     except BusinessException as bex:
         raise HttpBadRequestException(bex.message)
+
+
+@rest('/common/polls/result/<poll_id:[^/]+>', 'get')
+@returns([QuestionTO])
+@arguments(poll_id=(int, long))
+def api_get_poll_result(poll_id):
+    return api_get_poll(poll_id).questions

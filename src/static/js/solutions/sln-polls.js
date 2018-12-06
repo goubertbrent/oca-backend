@@ -375,38 +375,35 @@ $(function() {
         $('.polls-container').hide();
         resultsContainer.show();
 
-        function render(poll) {
+        function drawChart(containerId, title, chartData) {
+            var wrapper = new google.visualization.ChartWrapper({
+                chartType: 'BarChart',
+                dataTable: google.visualization.arrayToDataTable(chartData),
+                options: {
+                    title: title,
+                    legend: {
+                        position: 'none'
+                    },
+                    width: 600,
+                    animation: {duration: 1000, easing: 'out', startup: true}
+                },
+                containerId: containerId,
+            });
+            wrapper.draw();
+        }
+
+        function render(questions) {
             var html = $.tmpl(templates['polls/poll_result'], {
                 t: CommonTranslations,
-                poll: poll,
             });
             resultsContainer.html(html);
             var countsContainer = $('#poll-counts', resultsContainer);
 
-            function drawChart(containerId, title, chartData) {
-                var wrapper = new google.visualization.ChartWrapper({
-                    chartType: 'BarChart',
-                    dataTable: google.visualization.arrayToDataTable(chartData),
-                    options: {
-                        title: title,
-                        legend: {
-                            position: 'none'
-                        },
-                        width: 600,
-                        animation: {duration: 1000, easing: 'out', startup: true}
-                    },
-                    containerId: containerId,
-                });
-                wrapper.draw();
-            }
-
-            countsContainer.show();
-            countsContainer.empty();
-            PollsIndicator.hide();
-
-            $.each(poll.questions, function(i, question) {
+            countsContainer.show().empty();
+            $.each(questions, function(questionId, question) {
                 var container = $.tmpl(templates['polls/poll_count_graph'], {
-                        poll: poll,
+                        pollId: pollId,
+                        questionId: questionId,
                 });
                 countsContainer.append(container);
                 var containerId = container.find('.poll-graph').attr('id');
@@ -418,12 +415,13 @@ $(function() {
 
                 drawChart(containerId, question.text, chartData);
             });
+
+            PollsIndicator.hide();
         }
 
         PollsIndicator.show();
-        PollsRequests.getPoll(pollId).then(function(poll) {
-            currentPoll = poll;
-            render(poll);
+        PollsRequests.getPollResult(pollId).then(function(questions) {
+            render(questions);
         });
     }
 

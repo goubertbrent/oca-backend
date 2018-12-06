@@ -240,8 +240,8 @@ def poll_answer_received(
         step = _get_step_with_id(steps, step_id_for_question(question_id))
         if question.answer_type == AnswerType.CHECKBOXES:
             values = step.form_result.result.values
-        else:
-            values = [step.form_result.result.value or '']
+        elif step.form_result.result.value:
+            values = [step.form_result.result.value]
         # all possible values of answers for this question
         answers.extend(values)
 
