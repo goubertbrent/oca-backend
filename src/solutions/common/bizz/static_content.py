@@ -16,8 +16,8 @@
 # @@license_version:1.3@@
 
 import base64
-import logging
 from contextlib import closing
+import logging
 from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -102,10 +102,13 @@ def put_static_content(service_user, static_content):
 @returns(NoneType)
 @arguments(service_user=users.User, static_content_id=(int, long))
 def _delete_static_content(service_user, static_content_id):
-    sln_settings, sc = db.get((SolutionSettings.create_key(service_user),
-                               SolutionStaticContent.create_key(service_user, static_content_id)))
 
     def trans():
+        sln_settings, sc = db.get((SolutionSettings.create_key(service_user),
+                                   SolutionStaticContent.create_key(service_user, static_content_id)))
+        if not sc:
+            return sln_settings
+
         sc.provisioned = False
         sc.deleted = True
         sln_settings.updates_pending = True
