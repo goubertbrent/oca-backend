@@ -1,0 +1,24 @@
+@import '../../styles.scss';
+
+oca-nav-item .mat-expansion-panel-body {
+  padding: 0;
+}
+
+oca-nav-item .mat-expansion-panel-header {
+  padding: 0 16px;
+}
+
+.nav-item-title {
+  .mat-icon {
+    padding: 4px;
+  }
+}
+
+.nav-item-title-text {
+  line-height: 32px;
+  padding-left: 16px;
+}
+
+oca-nav-item .router-link-active {
+  color: map-get($oca-dashboard-primary, 500) !important;
+}

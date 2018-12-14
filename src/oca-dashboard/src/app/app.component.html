@@ -1,0 +1,23 @@
+<mat-sidenav-container class="root-nav">
+  <mat-sidenav [mode]="sideNavMode$ | async" opened="false">
+    <!-- TODO separate component for this-->
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="24px" style="height: 64px;">
+      <img src="https://marketplace.topdesk.com/wp-content/uploads/2018/09/Our-city-app-logo.jpg" width="48px"
+           height="48px">
+      <span>Our City App</span>
+    </div>
+    <mat-divider></mat-divider>
+    <mat-nav-list class="no-icon-padding">
+      <mat-accordion [displayMode]="'flat'">
+        <oca-nav-item [item]="item" *ngFor="let item of sidebarItems$ | async"></oca-nav-item>
+      </mat-accordion>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-toolbar color="primary" class="mat-elevation-z6 root-toolbar">
+    <button mat-icon-button (click)="sideNav.toggle()">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span>{{ toolbarTitle | translate }}</span>
+  </mat-toolbar>
+  <router-outlet></router-outlet>
+</mat-sidenav-container>
