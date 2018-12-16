@@ -72,7 +72,7 @@ class PollTO(TO):
         if poll.questions is MISSING:
             poll.questions = []
         to.questions = [QuestionTO.from_model(q) for q in poll.questions]
-        to.ends_on = get_epoch_from_datetime(poll.created_on)
+        to.ends_on = get_epoch_from_datetime(poll.ends_on) if poll.ends_on else None
         to.created_on = get_epoch_from_datetime(poll.created_on)
         to.updated_on = get_epoch_from_datetime(poll.updated_on)
         return to

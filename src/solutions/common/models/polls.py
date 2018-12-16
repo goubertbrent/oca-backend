@@ -60,7 +60,7 @@ class Poll(NdbModel):
     name = ndb.StringProperty(indexed=False)
     questions = ndb.LocalStructuredProperty(Question, repeated=True, validator=validate_question_choices)
     status = ndb.IntegerProperty(choices=PollStatus.all(), default=PollStatus.PENDING, indexed=True)
-    ends_on = ndb.DateTimeProperty(indexed=False)
+    ends_on = ndb.DateTimeProperty()
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     updated_on = ndb.DateTimeProperty(auto_now=True)
 

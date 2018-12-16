@@ -107,6 +107,9 @@ $(function() {
 
     function populateFormData() {
         currentPoll.name = $('#poll-name').val().trim();
+        if ($('#poll-end-date input').val().trim()) {
+            currentPoll.ends_on = $('#poll-end-date').data('datepicker').date.valueOf() / 1000;
+        }
     }
 
     function updateSuccess() {
@@ -147,8 +150,15 @@ $(function() {
                 edit: !!pollId,
                 readonly: currentPoll.status !== PollStatus.pending,
                 poll: currentPoll,
+                dateFormat: sln.getLocalDateFormat(),
             }));
             formContainer.html(html);
+            var datePicker = $('.date').datepicker({
+                format : sln.getLocalDateFormat()
+            })
+            if (currentPoll.ends_on) {
+                datePicker.datepicker('setValue', new Date(currentPoll.ends_on * 1000));
+            }
             populateQuestionList();
         }
 
@@ -174,6 +184,10 @@ $(function() {
         populateFormData();
         if (!currentPoll.name) {
             sln.alert(CommonTranslations.NAME_REQUIRED, null, CommonTranslations.ERROR);
+            return;
+        }
+        if (!currentPoll.ends_on) {
+            sln.alert(CommonTranslations.poll_has_no_end_date, null, CommonTranslations.ERROR);
             return;
         }
         if (!currentPoll.questions.length) {

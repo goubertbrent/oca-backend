@@ -16,6 +16,7 @@
 # @@license_version:1.3@@
 from __future__ import unicode_literals
 
+import datetime
 import json
 from google.appengine.ext import deferred, ndb
 from mcfw.rpc import arguments, returns, serialize_complex_value
@@ -79,6 +80,7 @@ def update_poll(service_user, poll):
 
     try:
         new_poll.name = poll.name
+        new_poll.ends_on = datetime.datetime.fromtimestamp(poll.ends_on)
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
     except QuestionChoicesException:
