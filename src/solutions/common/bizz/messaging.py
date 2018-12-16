@@ -83,7 +83,7 @@ from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solu
 from solutions.common.bizz.menu import set_menu_item_image
 from solutions.common.bizz.order import order_received, poke_order
 from solutions.common.bizz.pharmacy.order import pharmacy_order_received
-from solutions.common.bizz.polls import poll_answer_received
+from solutions.common.bizz.polls import api_load_polls, api_submit_poll, API_METHOD_SOLUTION_LOAD_POLLS, API_METHOD_SOLUTION_SUBMIT_POLL
 from solutions.common.bizz.repair import repair_order_received
 from solutions.common.bizz.reservation import reservation_part1, my_reservations_poke, my_reservations_overview_updated, \
     my_reservations_detail_updated
@@ -148,7 +148,6 @@ FMR_POKE_TAG_MAPPING[POKE_TAG_ORDER] = order_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_PHARMACY_ORDER] = pharmacy_order_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_NEW_EVENT] = new_event_received
 FMR_POKE_TAG_MAPPING[POKE_TAG_MENU_ITEM_IMAGE_UPLOAD] = set_menu_item_image
-FMR_POKE_TAG_MAPPING[POKE_TAG_POLLS] = poll_answer_received
 POKE_TAG_MAPPING = {
     POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
     POKE_TAG_NEW_EVENT: poke_new_event,
@@ -186,6 +185,9 @@ API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_REDEEM] = solution_voucher_redeem
 API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM] = solution_voucher_confirm_redeem
 API_METHOD_MAPPING[API_METHOD_SOLUTION_COUPON_REDEEM] = solution_coupon_redeem
 API_METHOD_MAPPING[API_METHOD_SOLUTION_COUPON_RESOLVE] = solution_coupon_resolve
+API_METHOD_MAPPING[API_METHOD_SOLUTION_LOAD_POLLS] = api_load_polls
+API_METHOD_MAPPING[API_METHOD_SOLUTION_SUBMIT_POLL] = api_submit_poll
+
 
 FLOW_STATISTICS_MAPPING = {
     POKE_TAG_ORDER: SolutionModule.ORDER,

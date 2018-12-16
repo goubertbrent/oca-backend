@@ -14,28 +14,36 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-
 from __future__ import unicode_literals
+
+import json
 from google.appengine.ext import deferred, ndb
-from mcfw.rpc import arguments, returns
-from mcfw.properties import object_factory
+from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.dal import parent_ndb_key
-from rogerthat.models import Message
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from rogerthat.to.messaging.service_callback_results import MessageCallbackResultTypeTO, \
-    FlowMemberResultCallbackResultTO
-from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
-from rogerthat.to.service import UserDetailsTO
+from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
-from solutions.common.bizz import broadcast_updates_pending
+from solutions.common.bizz import put_branding
+from solutions.common.bizz.branding import HTMLBranding, Resources, Javascript, Stylesheet
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models.polls import AnswerType, Poll, PollAnswer, PollStatus, Question, \
     QuestionChoicesException
-from solutions.common.to.polls import FlowPollTO, PollTO
+from solutions.common.to.polls import PollTO, UserPollTO
 
+
+API_METHOD_SOLUTION_LOAD_POLLS = 'solutions.polls.load'
+API_METHOD_SOLUTION_SUBMIT_POLL = 'solutions.polls.submit'
+
+
+BRANDING_TEMPLATES = [
+    'poll_item',
+    'poll_page',
+    'poll_questions',
+    'poll_popup',
+]
 
 class PollNotFoundException(BusinessException):
     pass
@@ -78,15 +86,6 @@ def update_poll(service_user, poll):
     return new_poll
 
 
-@returns()
-@arguments(service_user=users.User)
-def set_updates_pending(service_user):
-    sln_settings = get_solution_settings(service_user)
-    sln_settings.updates_pending = True
-    sln_settings.put()
-    broadcast_updates_pending(sln_settings)
-
-
 @returns(Poll)
 @arguments(service_user=users.User, poll_id=(int, long))
 def start_poll(service_user, poll_id):
@@ -98,7 +97,6 @@ def start_poll(service_user, poll_id):
             raise BusinessException('poll_has_no_questions')
         poll.status = PollStatus.RUNNING
         poll.put()
-        set_updates_pending(service_user)
         return poll
     raise PollNotFoundException
 
@@ -112,7 +110,6 @@ def stop_poll(service_user, poll_id):
             raise BusinessException('poll_pending_or_completed')
         poll.status = PollStatus.COMPLELTED
         poll.put()
-        set_updates_pending(service_user)
         return poll
     raise PollNotFoundException
 
@@ -153,7 +150,7 @@ def question_choice_counter_name(poll_id, question_id, choice):
 
 @ndb.transactional()
 @returns()
-@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[unicode])
+@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[list])
 def register_answer(service_user, app_user, poll, answer_values):
     """
     Register an answer for a given poll
@@ -171,83 +168,91 @@ def register_answer(service_user, app_user, poll, answer_values):
     PollAnswer.create(app_user, poll.id, *answer_values).put()
 
 
-@returns(FlowPollTO)
-@arguments(poll=Poll)
-def get_flow_poll(poll):
-    flow_poll = FlowPollTO.from_model(poll)
+@returns([UserPollTO])
+@arguments(service_user=users.User, app_user=users.User)
+def get_user_polls(service_user, app_user):
+    # first get the polls user
+    polls = {
+        poll.id: UserPollTO.from_model(poll) for poll in get_running_polls(service_user)
+    }
 
-    question_len = len(flow_poll.questions)
-    for question_id in range(0, question_len - 1):
-        flow_poll.flow_questions[question_id].next = flow_poll.flow_questions[question_id + 1]
-    flow_poll.flow_questions[-1].next = None
-    return flow_poll
+    user_answers = PollAnswer.list_by_app_user(app_user)
+    answered_poll_keys = [
+        Poll.create_key(service_user, answer.poll_id) for answer in user_answers]
+
+    for poll in ndb.get_multi(answered_poll_keys):
+        if polls.get(poll.id):
+            polls[poll.id].answered = True
+        else:
+            polls[poll.id] = UserPollTO.from_model(poll, answered=True)
+
+    return polls.values()
 
 
-@returns([FlowPollTO])
-@arguments(service_user=users.User)
-def get_running_polls_for_flow(service_user):
-    return map(get_flow_poll, get_running_polls(service_user))
-
-
-@returns(FlowMemberResultCallbackResultTO)
+@returns(SendApiCallCallbackResultTO)
 @arguments(
-    service_user=users.User, message_flow_run_id=unicode, member=unicode,
-    steps=[object_factory("step_type", FLOW_STEP_MAPPING)], end_id=unicode, end_message_flow_id=unicode,
-    parent_message_key=unicode, tag=unicode, result_key=unicode, flush_id=unicode, flush_message_flow_id=unicode,
+    service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
     service_identity=unicode, user_details=[UserDetailsTO])
-def poll_answer_received(
-    service_user, message_flow_run_id, member, steps, end_id, end_message_flow_id, parent_message_key,
-    tag, result_key, flush_id, flush_message_flow_id, service_identity, user_details):
+def api_load_polls(service_user, email, method, params, tag, service_identity, user_details):
+    app_user = user_details[0].toAppUser()
+    polls = get_user_polls(service_user, app_user)
 
-    from solutions.common.bizz.messaging import _get_step_with_id, POKE_TAG_POLLS
-    user_detail = user_details[0]
+    r = SendApiCallCallbackResultTO()
+    r.result = json.dumps(
+        serialize_complex_value(polls, UserPollTO, True)
+    ).decode('utf-8')
+    r.error = None
+    return r
 
-    def result_message(message, **kwargs):
-        result = FlowMemberResultCallbackResultTO()
-        result.type = u'message'
-        result.value = MessageCallbackResultTypeTO()
-        result.value.message = unicode(
-            common_translate(user_detail.language, SOLUTION_COMMON, message, **kwargs)
-        )
-        result.value.answers = []
-        result.value.attachments = []
-        result.value.flags = Message.FLAG_ALLOW_DISMISS
-        result.value.alert_flags = 1
-        result.value.branding = get_solution_main_branding(service_user).branding_key
-        result.value.dismiss_button_ui_flags = 0
-        result.value.step_id = u''
-        result.value.tag = POKE_TAG_POLLS
-        return result
 
-    first_step = _get_step_with_id(steps, 'flow_start')
-    if not first_step:
-        return
-
-    poll_id = int(first_step.answer_id)
+@returns(SendApiCallCallbackResultTO)
+@arguments(
+    service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+    service_identity=unicode, user_details=[UserDetailsTO])
+def api_submit_poll(service_user, email, method, params, tag, service_identity, user_details):
+    app_user = user_details[0].toAppUser()
+    answer = json.loads(params)
+    poll_id = answer['poll_id']
     poll = Poll.create_key(service_user, poll_id).get()
     if not poll:
         return
 
-    if poll.status != PollStatus.RUNNING:
-        return
-
-    def step_id_for_question(question_id):
-        return '%d_question_%d' % (poll_id, question_id)
-
-    answers = []
-    for question_id in range(0, len(poll.questions)):
-        question = poll.questions[question_id]
-        step = _get_step_with_id(steps, step_id_for_question(question_id))
-        if question.answer_type == AnswerType.CHECKBOXES:
-            values = step.form_result.result.values
-        elif step.form_result.result.value:
-            values = [step.form_result.result.value]
-        # all possible values of answers for this question
-        answers.extend(values)
+    r = SendApiCallCallbackResultTO()
 
     try:
-        register_answer(
-            service_user, user_detail.toAppUser(), poll, answers)
-        return result_message('poll_answer_registered', name=poll.name)
+        register_answer(service_user, app_user, poll, answer['values'])
+        r.result = json.dumps(
+            serialize_complex_value(UserPollTO.from_model(poll, answered=True), UserPollTO, False)
+        ).decode('utf-8')
+        r.error = None
     except DuplicatePollAnswerException:
-        return result_message('poll_duplicate_answer', name=poll.name)
+        r.result = None
+        r.error = 'duplicate_answer'
+
+    return r
+
+
+
+def provision_polls_branding(solution_settings, main_branding, language):
+    """
+    Args:
+        solution_settings (SolutionSettings)
+        main_branding (solutions.common.models.SolutionMainBranding)
+        language (unicode)
+    """
+    if True:#not solution_settings.polls_branding_hash:
+        with HTMLBranding(main_branding, 'polls', *Resources.all()) as html_branding:
+            templates = json.dumps({
+                name: html_branding.render_template('%s.html' % name) for name in BRANDING_TEMPLATES
+            })
+            html_branding.add_resource(Javascript('app', minified=False))
+            html_branding.add_resource(
+                Javascript('app_templates', minified=False, is_template=True),
+                templates=templates)
+            html_branding.add_resource(
+                Javascript('app_translations', minified=False, is_template=True),
+                language=language)
+            polls_template = html_branding.render_template('polls.tmpl', language=language)
+            branding_content = html_branding.compressed(polls_template)
+            solution_settings.polls_branding_hash = put_branding('Polls App', branding_content).id
+            solution_settings.put()

@@ -337,6 +337,7 @@ class SolutionSettings(SolutionIdentitySettings):
     # Branding
     events_branding_hash = db.StringProperty(indexed=False)
     loyalty_branding_hash = db.StringProperty(indexed=False)
+    polls_branding_hash = db.StringProperty(indexed=False)
 
     service_disabled = db.BooleanProperty(default=False)
 

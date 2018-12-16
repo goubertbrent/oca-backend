@@ -68,7 +68,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_POLLS
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
-from solutions.common.bizz.polls import get_running_polls_for_flow
+from solutions.common.bizz.polls import provision_polls_branding
 from solutions.common.bizz.reservation import put_default_restaurant_settings
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type, validate_sandwiches
 from solutions.common.bizz.system import generate_branding
@@ -2011,24 +2011,16 @@ def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, de
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def put_polls(sln_settings, current_coords, main_branding, default_lang, tag):
-    logging.info('Creating polls message flow')
+    logging.info('Povision polls app')
 
-    flow_params = dict(
-        branding_key=main_branding.branding_key,
-        language=default_lang,
-        polls=get_running_polls_for_flow(sln_settings.service_user),
-        AnswerType=AnswerType
-    )
+    provision_polls_branding(sln_settings, main_branding, default_lang)
 
-    flow = JINJA_ENVIRONMENT.get_template('flows/polls_flow.xml').render(flow_params)
-    logging.warning(flow)
-    polls_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
     ssmi = SolutionServiceMenuItem(
         u'fa-list-ul',
         sln_settings.menu_item_color,
         common_translate(default_lang, SOLUTION_COMMON, u'polls'),
         tag,
-        static_flow=polls_flow.identifier,
+        screen_branding=sln_settings.polls_branding_hash,
         action=SolutionModule.action_order(SolutionModule.POLLS))
     return [ssmi]
 

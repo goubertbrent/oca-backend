@@ -86,24 +86,11 @@ class PollsListTO(PaginatedResultTO):
         self.results = map(PollTO.from_model, polls)
 
 
-class FlowQuestionTO(QuestionTO):
-    id = long_property('id')
-    next = typed_property('next', QuestionTO, False)
-
-    @property
-    def is_first(self):
-        return id == 0
-
-
-class FlowPollTO(PollTO):
-    flow_questions = typed_property('3', FlowQuestionTO, True)
+class UserPollTO(PollTO):
+    answered = bool_property('answered')
 
     @classmethod
-    def from_model(cls, poll):
-        to = super(FlowPollTO, cls).from_model(poll)
-        to.flow_questions = []
-        for i in range(0, len(poll.questions)):
-            flow_question_to = FlowQuestionTO.from_model(poll.questions[i])
-            flow_question_to.id = i
-            to.flow_questions.append(flow_question_to)
+    def from_model(cls, poll, answered=False):
+        to = super(UserPollTO, cls).from_model(poll)
+        to.answered = answered
         return to

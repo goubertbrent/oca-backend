@@ -23,7 +23,6 @@ import os
 import re
 import time
 from types import FunctionType, NoneType
-from zipfile import ZipFile, ZIP_DEFLATED
 
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
@@ -32,7 +31,6 @@ from google.appengine.ext import db, deferred
 from googleapiclient.errors import HttpError
 import httplib2
 from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
-from lxml import etree, html
 from oauth2client import client
 from oauth2client.client import HttpAccessTokenRefreshError
 import pytz
@@ -55,7 +53,7 @@ from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO
     TYPE_FLOW, FlowCallbackResultTypeTO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import send_mail, file_get_contents, now, get_epoch_from_datetime, \
+from rogerthat.utils import send_mail, now, get_epoch_from_datetime, \
     replace_url_with_forwarded_server
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
@@ -64,11 +62,11 @@ from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import render_common_content, put_branding, \
     assign_app_user_role, revoke_app_user_role, SolutionModule, \
     get_default_app_id, get_organization_type
+from solutions.common.bizz.branding import get_branding_resource
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
     get_solution_main_branding, get_solution_calendars_for_user, get_solution_settings_or_identity_settings
@@ -447,7 +445,7 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
     sln_settings = get_solution_settings(service_user)
     jsondata = json.loads(params)
     cursor = jsondata.get('cursor', None)
-    
+
     count = 50
     qry = None
     if SolutionModule.CITY_APP in sln_settings.modules:
@@ -456,7 +454,7 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
         if city_app_profile and city_app_profile.gather_events_enabled:
             si = get_service_identity(create_service_identity_user(service_user, service_identity))
             qry = Event.get_app_events(cursor, si.defaultAppId)
-    
+
     if not qry:
         qry = Event.get_service_events(cursor, service_user, sln_settings.solution)
 
@@ -920,13 +918,6 @@ def new_event_received(service_user, message_flow_run_id, member, steps, end_id,
     return None
 
 
-def get_branding_resource(filename):
-    path = os.path.join(os.path.dirname(solutions.__file__),
-                        'common', 'templates', 'brandings',
-                        filename)
-    return file_get_contents(path)
-
-
 def provision_events_branding(solution_settings, main_branding, language):
     """
     Args:
@@ -934,69 +925,20 @@ def provision_events_branding(solution_settings, main_branding, language):
         main_branding (solutions.common.models.SolutionMainBranding)
         language (unicode)
     """
+    from solutions.common.bizz.branding import HTMLBranding, Resources, Javascript, Stylesheet
     if not solution_settings.events_branding_hash:
         logging.info("Storing EVENTS branding")
-        stream = ZipFile(StringIO(main_branding.blob))
-        try:
-            new_zip_stream = StringIO()
-            zip_ = ZipFile(new_zip_stream, 'w', compression=ZIP_DEFLATED)
-            try:
-                zip_.writestr("jquery.tmpl.min.js", get_branding_resource("app_jquery.tmpl.js"))
-                zip_.writestr("moment-with-locales.min.js", get_branding_resource("moment-with-locales.min.js"))
-                zip_.writestr("app-translations.js", JINJA_ENVIRONMENT.get_template("brandings/app_events_translations.js").render({'language': language}).encode("utf-8"))
-                zip_.writestr("app.js", '\n\n'.join(map(get_branding_resource, ["app_polyfills.js", "app_events.js"])))
 
-                for file_name in set(stream.namelist()):
-                    str_ = stream.read(file_name)
-                    if file_name == 'branding.html':
-                        html_ = str_
-                        # Remove previously added dimensions:
-                        html_ = re.sub("<meta\\s+property=\\\"rt:dimensions\\\"\\s+content=\\\"\\[\\d+,\\d+,\\d+,\\d+\\]\\\"\\s*/>", "", html_)
-                        html_ = re.sub('<head>', """<head>
-<link href="jquery/jquery.mobile.inline-png-1.4.2.min.css" rel="stylesheet" media="screen"/>
-<style type="text/css">
-div.backgoundLight{background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gEYDyEEzIMX+AAAACZpVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVAgb24gYSBNYWOV5F9bAAAADUlEQVQI12NgYGCQBAAAHgAaOwrXiAAAAABJRU5ErkJggg==");}
-div.backgoundDark{background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3gEYDyIY868YdAAAACZpVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVAgb24gYSBNYWOV5F9bAAAADUlEQVQI12P4//+/JAAJFQMXEGL3cQAAAABJRU5ErkJggg==");}
-</style>
-<script type="text/javascript" src="jquery/jquery-1.11.0.min.js">
-</script>
-<script type="text/javascript" src="jquery/jquery.mobile-1.4.2.min.js">
-</script>
-<script type="text/javascript" src="jquery.tmpl.min.js">
-</script>
-<script type="text/javascript" src="moment-with-locales.min.js">
-</script>
-<script type="text/javascript" src="rogerthat/rogerthat-1.0.js">
-</script>
-<script type="text/javascript" src="rogerthat/rogerthat.api-1.0.js">
-</script>
-<script type="text/javascript" src="app-translations.js">
-</script>
-<script type="text/javascript" src="app.js">
-</script>
-""", html_)
+        with HTMLBranding(main_branding, 'events', *Resources.all()) as html_branding:
+            html_branding.add_resource(Stylesheet('background', minified=False))
+            app_translations = Javascript('app_translations', is_template=True, minified=False)
+            html_branding.add_resource(app_translations, language=language)
+            html_branding.add_resource(Javascript('app', minified=False))
+            events_body = render_common_content(language, 'brandings/events/events.tmpl', {})
 
-                        doc = html.fromstring(html_)
-                        h = doc.find('./head')
-
-                        html__ = """<!DOCTYPE html>
-<html>"""
-                        html__ += etree.tostring(h)
-                        html__ += render_common_content(language, 'brandings/events.tmpl', {})
-                        html__ += "</html>"
-                        zip_.writestr('app.html', html__.encode('utf8'))
-                    else:
-                        zip_.writestr(file_name, str_)
-            finally:
-                zip_.close()
-
-            events_branding_content = new_zip_stream.getvalue()
-            new_zip_stream.close()
-
-            solution_settings.events_branding_hash = put_branding(u"Events App", base64.b64encode(events_branding_content)).id
+            branding_content = html_branding.compressed(events_body)
+            solution_settings.events_branding_hash = put_branding(u"Events App", branding_content).id
             solution_settings.put()
-        finally:
-            stream.close()
 
 
 @returns(unicode)

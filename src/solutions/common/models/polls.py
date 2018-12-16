@@ -53,7 +53,7 @@ def validate_question_choices(prop, value):
     if not isinstance(value, Question):
         return
     if len(value.choices) < 2:
-        raise QuestionChoicesException('a qeustion should has at least two choices')
+        raise QuestionChoicesException('a question should has at least two choices')
 
 
 class Poll(NdbModel):
@@ -78,16 +78,27 @@ class Poll(NdbModel):
         return self.key.id()
 
 
+class PollQuestionAnswer(NdbModel):
+    question_id = ndb.IntegerProperty(indexed=False)
+    values = ndb.StringProperty(repeated=True)
+
+
 class PollAnswer(NdbModel):
     poll_id = ndb.IntegerProperty(indexed=True)
-    values = ndb.StringProperty(repeated=True)
+    question_answers = ndb.LocalStructuredProperty(PollQuestionAnswer, repeated=True)
+    created_on = ndb.DateTimeProperty(auto_now_add=True)
+    notify_result = ndb.BooleanProperty(default=False)
 
     @classmethod
     def create(cls, app_user, poll_id, *values):
+        question_answers = []
+        for i in range(0, len(values)):
+            question_answers.append(PollQuestionAnswer(question_id=i, values=values[i]))
+
         return PollAnswer(
             parent=parent_ndb_key(app_user, SOLUTION_COMMON),
             poll_id=poll_id,
-            values=values)
+            question_answers=question_answers)
 
     @classmethod
     def get_by_poll(cls, app_user, poll_id):

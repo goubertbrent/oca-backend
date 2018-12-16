@@ -1,0 +1,24 @@
+{% raw %}
+<div id="${ID(poll.id)}" data-role="page">
+
+    <div data-role="header">
+        <h1>${poll.name}</h1>
+    </div>
+
+    <div role="main" class="ui-content">
+        {{if poll.status === PollStatus.running}}
+            {{if poll.answered}}
+                <p>You already voted, wait for results</p>
+            {{else}}
+                <p><a href="#${ID(poll.id, 0)}" class="ui-btn ui-shadow ui-corner-all">Vote now</a></p>
+            {{/if}}
+        {{else}}
+            <p><a href="#" class="ui-btn ui-shadow ui-corner-all">Show results</a></p>
+        {{/if}}
+    </div>
+
+    <div data-role="footer">
+        <h4><a href="#polls">Back to polls</a></h4>
+    </div>
+</div>
+{% endraw %}
