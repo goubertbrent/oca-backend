@@ -90,7 +90,7 @@ class PollAnswer(NdbModel):
     notify_result = ndb.BooleanProperty(default=False)
 
     @classmethod
-    def create(cls, app_user, poll_id, *values):
+    def create(cls, app_user, poll_id, values, notify_result=False):
         question_answers = []
         for i in range(0, len(values)):
             question_answers.append(PollQuestionAnswer(question_id=i, values=values[i]))
@@ -98,7 +98,8 @@ class PollAnswer(NdbModel):
         return PollAnswer(
             parent=parent_ndb_key(app_user, SOLUTION_COMMON),
             poll_id=poll_id,
-            question_answers=question_answers)
+            question_answers=question_answers,
+            notify_result=notify_result)
 
     @classmethod
     def get_by_poll(cls, app_user, poll_id):

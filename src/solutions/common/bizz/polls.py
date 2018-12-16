@@ -150,8 +150,8 @@ def question_choice_counter_name(poll_id, question_id, choice):
 
 @ndb.transactional()
 @returns()
-@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[list])
-def register_answer(service_user, app_user, poll, answer_values):
+@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[list], notify_result=bool)
+def register_answer(service_user, app_user, poll, answer_values, notify_result=False):
     """
     Register an answer for a given poll
 
@@ -165,7 +165,7 @@ def register_answer(service_user, app_user, poll, answer_values):
     """
     if PollAnswer.get_by_poll(app_user, poll.id):
         raise DuplicatePollAnswerException
-    PollAnswer.create(app_user, poll.id, *answer_values).put()
+    PollAnswer.create(app_user, poll.id, answer_values, notify_result).put()
 
 
 @returns([UserPollTO])
@@ -220,7 +220,7 @@ def api_submit_poll(service_user, email, method, params, tag, service_identity, 
     r = SendApiCallCallbackResultTO()
 
     try:
-        register_answer(service_user, app_user, poll, answer['values'])
+        register_answer(service_user, app_user, poll, answer['values'], answer['notify'])
         r.result = json.dumps(
             serialize_complex_value(UserPollTO.from_model(poll, answered=True), UserPollTO, False)
         ).decode('utf-8')
@@ -240,7 +240,7 @@ def provision_polls_branding(solution_settings, main_branding, language):
         main_branding (solutions.common.models.SolutionMainBranding)
         language (unicode)
     """
-    if True:#not solution_settings.polls_branding_hash:
+    if solution_settings.polls_branding_hash:
         with HTMLBranding(main_branding, 'polls', *Resources.all()) as html_branding:
             templates = json.dumps({
                 name: html_branding.render_template('%s.html' % name) for name in BRANDING_TEMPLATES

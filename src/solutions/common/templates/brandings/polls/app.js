@@ -33,11 +33,6 @@ $(function () {
     var API_METHOD_LOAD = 'solutions.polls.load';
     var API_METHOD_SUBMIT = 'solutions.polls.submit';
     var methodCallbacks = {};
-
-    var language = window.navigator.languages ? window.navigator.languages[0] : null;
-    language = language || window.navigator.language || window.navigator.browserLanguage || window.navigator.userLanguage;
-    moment.locale(language);
-
     var polls = [];
     var currentPoll = {};
     var currentAnswer = {};
@@ -49,8 +44,6 @@ $(function () {
         }
 
         rogerthat.callbacks.ready(onRogerthatReady);
-        rogerthat.callbacks.backPressed(backPressed);
-        rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
     }
 
     init();
@@ -63,6 +56,9 @@ $(function () {
 
     function onRogerthatReady() {
         console.log("onRogerthatReady()");
+
+        rogerthat.callbacks.backPressed(backPressed);
+        rogerthat.api.callbacks.resultReceived(onReceivedApiResult);
 
         loadPolls();
     }
@@ -109,6 +105,11 @@ $(function () {
     }
 
     function renderPollList(polls) {
+        if (!polls || !polls.length) {
+            $('#polls-empty').show();
+            return;
+        }
+
         $.each(polls, function(i, poll) {
             var item = render('poll_item', {
                 poll: poll,
@@ -140,7 +141,7 @@ $(function () {
     }
 
     function loadPolls() {
-        showLoading('Loading polls...');
+        showLoading(PollsTranslations.loading_polls);
         rogerthat.api.call(API_METHOD_LOAD, '', '');
     }
 
@@ -192,15 +193,15 @@ $(function () {
     function submitAnswer(answer) {
         answer.poll_id = currentPoll.id;
         rogerthat.api.call(API_METHOD_SUBMIT, JSON.stringify(answer), '');
-        showLoading('Submitting answer...');
+        showLoading(PollsTranslations.submitting_answer);
     }
 
     function next() {
         var pollId = currentPoll.id;
         var questionId = parseInt($(this).attr('question_id'));
         var question = currentPoll.questions[questionId];
-
         var values = [];
+
         $.each(question.choices, function(choiceId, choice) {
             var el = $('#' + ID(pollId, questionId, choiceId));
             if (el.is(':checked')) {
@@ -209,21 +210,30 @@ $(function () {
         });
 
         if (!values.length && !question.optional) {
-            showDialog('Requried', 'An answer is required for this question');
+            showDialog(PollsTranslations.required, PollsTranslations.answer_is_required);
             return;
         }
 
+        currentAnswer = currentAnswer || {};
         currentAnswer.values = currentAnswer.values || [];
         currentAnswer.values[questionId] = values;
+
         if (questionId === currentPoll.questions.length - 1) {
-            currentPoll.answered = true;
-            $(this).prop('disabled', true);
-            submitAnswer(currentAnswer);
+            $.mobile.navigate('#' + ID(pollId, 'result-notification'));
         } else {
             $.mobile.navigate('#' + ID(pollId, questionId + 1));
         }
     }
 
+    function submit() {
+        var pollId = currentPoll.id;
+        $(this).prop('disabled', true);
+        currentPoll.answered = true;
+        currentAnswer.notify = $('#' + ID(pollId, 'notify-results-yes')).is(':checked');
+        submitAnswer(currentAnswer);
+    }
+
     $(document).on('click', '.poll-open', open);
+    $(document).on('click', '.poll-submit', submit);
     $(document).on('click', '.question-next', next);
 });

@@ -1,44 +1,64 @@
 {% raw %}
 {{each(questionId, question) poll.questions}}
-    <div id="${ID(poll.id, questionId)}" data-role="page">
+<div id="${ID(poll.id, questionId)}" data-role="page">
 
-        <div data-role="header">
-            <h1>${poll.name}</h1>
-        </div>
-
-        <div role="main" class="ui-content">
-            <form>
-                <p>${question.text}</p>
-                <fieldset data-role="controlgroup">
-                    {{if question.answer_type === AnswerType.checkboxes}}
-                        {{each(choiceId, choice) question.choices}}
-                            <input type="checkbox" name="choice-${choiceId}" id="${ID(poll.id, questionId, choiceId)}" value="${choice.text}">
-                            <label for="${ID(poll.id, questionId, choiceId)}">${choice.text}</label>
-                        {{/each}}
-                    {{else}}
-                        {{each(choiceId, choice) question.choices}}
-                            <input type="radio" name="${ID(poll.id, questionId)}-choice" id="${ID(poll.id, questionId, choiceId)}" value="${choice.text}">
-                            <label for="${ID(poll.id, questionId, choiceId)}">${choice.text}</label>
-                        {{/each}}
-                    {{/if}}
-                </fieldset>
-            </form>
-
-            <p>
-                <button class="ui-btn ui-shadow ui-corner-all question-next" question_id="${questionId}">
-                    {{if questionId < poll.questions.length - 1}}Next{{else}}Submit{{/if}}
-                </button>
-            </p>
-
-            {{if questionId > 0}}
-            <p><a href="#${ID(poll.id, questionId - 1)}" class="ui-btn ui-shadow ui-corner-all">Previous</a></p>
-            {{/if}}
-
-        </div>
-
-        <div data-role="footer">
-            <h4><a href="#polls">Back to polls</a></h4>
-        </div>
+    <div data-role="header">
+        <h1>${poll.name}</h1>
     </div>
+
+    <div role="main" class="ui-content">
+        <form>
+            <p>${question.text}</p>
+            <fieldset data-role="controlgroup">
+                {{if question.answer_type === AnswerType.checkboxes}}
+                {{each(choiceId, choice) question.choices}}
+                <input type="checkbox" name="choice-${choiceId}" id="${ID(poll.id, questionId, choiceId)}" value="${choice.text}">
+                <label for="${ID(poll.id, questionId, choiceId)}">${choice.text}</label>
+                {{/each}}
+                {{else}}
+                {{each(choiceId, choice) question.choices}}
+                <input type="radio" name="${ID(poll.id, questionId)}-choice" id="${ID(poll.id, questionId, choiceId)}"
+                    value="${choice.text}">
+                <label for="${ID(poll.id, questionId, choiceId)}">${choice.text}</label>
+                {{/each}}
+                {{/if}}
+            </fieldset>
+        </form>
+
+        <p><button class="ui-btn ui-shadow ui-corner-all question-next" question_id="${questionId}">${t.next}</button></p>
+        {{if questionId > 0}}
+        <p><a href="#${ID(poll.id, questionId - 1)}" class="ui-btn ui-shadow ui-corner-all">${t.previous}</a></p>
+        {{/if}}
+    </div>
+
+    <div data-role="footer">
+        <h4><a href="#polls">${t.back}</a></h4>
+    </div>
+</div>
 {{/each}}
+<div id="${ID(poll.id)}-result-notification" data-role="page">
+
+    <div data-role="header">
+        <h1>${poll.name}</h1>
+    </div>
+
+    <div role="main" class="ui-content">
+        <form>
+            <p>${t.polls_notify_results}</p>
+            <fieldset data-role="controlgroup">
+                <input type="radio" name="notify-results" id="${ID(poll.id)}-notify-results-yes">
+                <label for="${ID(poll.id)}-notify-results-yes">${t.yes}</label>
+                <input type="radio" name="notify-results" id="${ID(poll.id)}-notify-results-no" checked>
+                <label for="${ID(poll.id)}-notify-results-no">${t.no}</label>
+            </fieldset>
+        </form>
+
+        <p><button class="ui-btn ui-shadow ui-corner-all poll-submit">${t.submit}</button></p>
+        <p><a href="#${ID(poll.id, poll.questions.length - 1)}" class="ui-btn ui-shadow ui-corner-all">${t.previous}</a></p>
+    </div>
+
+    <div data-role="footer">
+        <h4><a href="#polls">${t.back}</a></h4>
+    </div>
+</div>
 {% endraw %}

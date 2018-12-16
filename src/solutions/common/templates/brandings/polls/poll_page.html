@@ -5,20 +5,20 @@
         <h1>${poll.name}</h1>
     </div>
 
-    <div role="main" class="ui-content">
+    <div role="main" class="ui-content" style="text-align: center;">
         {{if poll.status === PollStatus.running}}
             {{if poll.answered}}
-                <p>You already voted, wait for results</p>
+                <h3>${t.poll_you_already_voted}</h3>
             {{else}}
-                <p><a href="#${ID(poll.id, 0)}" class="ui-btn ui-shadow ui-corner-all">Vote now</a></p>
+                <p><a href="#${ID(poll.id, 0)}" class="ui-btn ui-shadow ui-corner-all">${t.vote_now}</a></p>
             {{/if}}
         {{else}}
-            <p><a href="#" class="ui-btn ui-shadow ui-corner-all">Show results</a></p>
+            <p><a href="#" class="ui-btn ui-shadow ui-corner-all">${t.show_results}</a></p>
         {{/if}}
     </div>
 
     <div data-role="footer">
-        <h4><a href="#polls">Back to polls</a></h4>
+        <h3><a href="#polls">${t.back}</a></h3>
     </div>
 </div>
 {% endraw %}

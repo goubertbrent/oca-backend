@@ -1,10 +1,14 @@
 {% raw %}
-<div data-role="popup" class="popupDialog" id="popupDialog" data-overlay-theme="b" data-theme="b" data-dismissible="true" style="max-width:400px;">
+<div data-role="popup" class="popupDialog" id="popupDialog" data-overlay-theme="b" data-theme="b" data-dismissible="true"
+    style="max-width:400px;">
     <div data-role="header" data-theme="a">
+        <h4 style="text-align: center;">${title}</h4>
     </div>
     <div role="main" class="ui-content" data-theme="a">
-        <p>${message}</p>
-        <a href="#" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">Ok</a>
+        <div style="text-align: center;">
+            <p>${message}</p>
+            <a href="#" class="ui-btn ui-corner-all ui-shadow ui-btn-inline ui-btn-b" data-rel="back">${t.ok}</a>
+        </div>
     </div>
 </div>
 {% endraw %}

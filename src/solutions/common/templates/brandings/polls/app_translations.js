@@ -1,3 +1,17 @@
 var PollsTranslations = {
-
-}
+    poll_you_already_voted: "{% translate language, 'common', 'poll_you_already_voted' %}",
+    vote_now: "{% translate language, 'common', 'vote_now' %}",
+    show_results: "{% translate language, 'common', 'show_results' %}",
+    back: "{% translate language, 'common', 'back' %}",
+    ok: "{% translate language, 'common', 'okay-i-got-it' %}",
+    next: "{% translate language, 'common', 'Next' %}",
+    previous: "{% translate language, 'common', 'previous' %}",
+    submit: "{% translate language, 'common', 'Submit' %}",
+    loading_polls: "{% translate language, 'common', 'polls_loading' %}",
+    submitting_answer: "{% translate language, 'common', 'submitting_answer' %}",
+    required: "{% translate language, 'common', 'Required' %}",
+    answer_is_required: "{% translate language, 'common', 'answer_is_required' %}",
+    polls_notify_results: "{% translate language, 'common', 'polls_notify_results' %}",
+    yes: "{% translate language, 'common', 'Yes' %}",
+    no: "{% translate language, 'common', 'No' %}",
+};
