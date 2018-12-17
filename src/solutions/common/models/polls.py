@@ -78,27 +78,23 @@ class Poll(NdbModel):
         return self.key.id()
 
 
-class PollQuestionAnswer(NdbModel):
+class AnswerChoice(NdbModel):
     question_id = ndb.IntegerProperty(indexed=False)
-    values = ndb.StringProperty(repeated=True)
+    choice_id = ndb.IntegerProperty(indexed=False)
 
 
 class PollAnswer(NdbModel):
     poll_id = ndb.IntegerProperty(indexed=True)
-    question_answers = ndb.LocalStructuredProperty(PollQuestionAnswer, repeated=True)
+    choices = ndb.LocalStructuredProperty(AnswerChoice, repeated=True)
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     notify_result = ndb.BooleanProperty(default=False)
 
     @classmethod
-    def create(cls, app_user, poll_id, values, notify_result=False):
-        question_answers = []
-        for i in range(0, len(values)):
-            question_answers.append(PollQuestionAnswer(question_id=i, values=values[i]))
-
+    def create(cls, app_user, poll_id, choices, notify_result=False):
         return PollAnswer(
             parent=parent_ndb_key(app_user, SOLUTION_COMMON),
             poll_id=poll_id,
-            question_answers=question_answers,
+            choices=choices,
             notify_result=notify_result)
 
     @classmethod

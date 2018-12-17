@@ -30,7 +30,7 @@ from solutions.common.bizz import put_branding
 from solutions.common.bizz.branding import HTMLBranding, Resources, Javascript, Stylesheet
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
-from solutions.common.models.polls import AnswerType, Poll, PollAnswer, PollStatus, Question, \
+from solutions.common.models.polls import AnswerChoice, AnswerType, Poll, PollAnswer, PollStatus, Question, \
     QuestionChoicesException
 from solutions.common.to.polls import PollTO, UserPollTO
 
@@ -152,22 +152,22 @@ def question_choice_counter_name(poll_id, question_id, choice):
 
 @ndb.transactional()
 @returns()
-@arguments(service_user=users.User, app_user=users.User, poll=Poll, answer_values=[list], notify_result=bool)
-def register_answer(service_user, app_user, poll, answer_values, notify_result=False):
+@arguments(service_user=users.User, app_user=users.User, poll=Poll, choices=[AnswerChoice], notify_result=bool)
+def register_answer(service_user, app_user, poll, choices, notify_result=False):
     """
     Register an answer for a given poll
 
     Args:
         app_user (users.User)
         poll (Poll)
-        answer_values (list of list): with all possible values for every question
-
+        choices (list of AnswerChoice): with all possible choices for every question
+        notify_result (bool)
     Raises:
         DuplicatePollAnswerException: in case of duplicate answer for the same app_user/poll
     """
     if PollAnswer.get_by_poll(app_user, poll.id):
         raise DuplicatePollAnswerException
-    PollAnswer.create(app_user, poll.id, answer_values, notify_result).put()
+    PollAnswer.create(app_user, poll.id, choices, notify_result).put()
 
 
 @returns([UserPollTO])
@@ -219,10 +219,10 @@ def api_submit_poll(service_user, email, method, params, tag, service_identity, 
     if not poll:
         return
 
+    choices = [AnswerChoice(**choice) for choice in answer['choices']]
     r = SendApiCallCallbackResultTO()
-
     try:
-        register_answer(service_user, app_user, poll, answer['values'], answer['notify'])
+        register_answer(service_user, app_user, poll, choices, answer['notify'])
         r.result = json.dumps(
             serialize_complex_value(UserPollTO.from_model(poll, answered=True), UserPollTO, False)
         ).decode('utf-8')
@@ -230,7 +230,6 @@ def api_submit_poll(service_user, email, method, params, tag, service_identity, 
     except DuplicatePollAnswerException:
         r.result = None
         r.error = 'duplicate_answer'
-
     return r
 
 
@@ -242,7 +241,7 @@ def provision_polls_branding(solution_settings, main_branding, language):
         main_branding (solutions.common.models.SolutionMainBranding)
         language (unicode)
     """
-    if not solution_settings.polls_branding_hash:
+    if solution_settings.polls_branding_hash:
         with HTMLBranding(main_branding, 'polls', *Resources.all()) as html_branding:
             templates = json.dumps({
                 name: html_branding.render_template('%s.html' % name) for name in BRANDING_TEMPLATES

@@ -51,7 +51,7 @@ indexes:
   - name: app_ids
   - name: deleted
   - name: first_start_date
-  
+
 - kind: Event
   properties:
   - name: deleted
@@ -62,7 +62,7 @@ indexes:
   properties:
   - name: deleted
   - name: first_start_date
-  
+
 - kind: Event
   ancestor: yes
   properties:
@@ -816,3 +816,8 @@ indexes:
   ancestor: yes
   properties:
   - name: date
+
+- kind: PollAnswer
+  properties:
+  - name: poll_id
+  - name: __scatter__

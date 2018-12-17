@@ -200,23 +200,26 @@ $(function () {
         var pollId = currentPoll.id;
         var questionId = parseInt($(this).attr('question_id'));
         var question = currentPoll.questions[questionId];
-        var values = [];
+        var choices = [];
 
         $.each(question.choices, function(choiceId, choice) {
             var el = $('#' + ID(pollId, questionId, choiceId));
             if (el.is(':checked')) {
-                values.push(choice.text);
+                choices.push({
+                    question_id: questionId,
+                    choice_id: choiceId
+                });
             }
         });
 
-        if (!values.length && !question.optional) {
+        if (!choices.length && !question.optional) {
             showDialog(PollsTranslations.required, PollsTranslations.answer_is_required);
             return;
         }
 
         currentAnswer = currentAnswer || {};
-        currentAnswer.values = currentAnswer.values || [];
-        currentAnswer.values[questionId] = values;
+        currentAnswer.choices = currentAnswer.choices || [];
+        currentAnswer.choices = currentAnswer.choices.concat(choices);
 
         if (questionId === currentPoll.questions.length - 1) {
             $.mobile.navigate('#' + ID(pollId, 'result-notification'));
