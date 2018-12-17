@@ -129,6 +129,7 @@ class ProcessOutputPipeline(pipeline.Pipeline):
 
         if DEBUG:
             logging.debug('Saving poll counts, %s', poll)
+        poll.answers_collected = True
         poll.put()
 
 
