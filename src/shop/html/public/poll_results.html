@@ -1,0 +1,18 @@
+{% extends 'public/base.html' %}
+
+{% block title %}{% translate language, "common", "polls" %}{% endblock %}
+
+{% block js %}
+    <script>
+        var currentPoll = {{ poll }};
+    </script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="/static/js/solutions/sln-polls-charts.js"></script>
+    <script src="/static/js/solutions/sln-polls-public-results.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div id="results_container" class="span6" style="float: none; margin: 0 auto;">
+        <h4 class="answer-pending" style="display: none; text-align: center">{% translate language, "common", "polls_processing_answers" %}</h4>
+    </div>
+{% endblock %}

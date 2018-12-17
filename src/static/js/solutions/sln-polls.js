@@ -389,23 +389,6 @@ $(function() {
         $('.polls-container').hide();
         resultsContainer.show();
 
-        function drawChart(containerId, title, chartData) {
-            var wrapper = new google.visualization.ChartWrapper({
-                chartType: 'BarChart',
-                dataTable: google.visualization.arrayToDataTable(chartData),
-                options: {
-                    title: title,
-                    legend: {
-                        position: 'none'
-                    },
-                    width: 600,
-                    animation: {duration: 1000, easing: 'out', startup: true}
-                },
-                containerId: containerId,
-            });
-            wrapper.draw();
-        }
-
         function render(questions) {
             var html = $.tmpl(templates['polls/poll_result'], {
                 t: CommonTranslations,
@@ -434,7 +417,7 @@ $(function() {
                     chartData.push([choice.text, choice.count, choice.count]);
                 });
 
-                drawChart(containerId, question.text, chartData);
+                PollCharts.drawChart(containerId, question.text, chartData);
             });
 
             PollsIndicator.hide();

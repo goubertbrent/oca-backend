@@ -127,6 +127,7 @@ class HTMLBranding(object):
         self.main_branding_stream = StringIO(main_branding.blob)
         self.main_branding_zip = zipfile.ZipFile(self.main_branding_stream)
         self.base_dir = base_dir
+        self.meta = []
         self.resources = []
 
         map(self.add_resource, resources)
@@ -166,9 +167,14 @@ class HTMLBranding(object):
                 pass
         self.resources.append(resource)
 
+    def add_meta(self, **attrs):
+        self.meta.append(
+            Resource.create_element('meta', **attrs)
+        )
+
     @property
     def head_elements(self):
-        return [resource.element for resource in self.resources]
+        return self.meta + [resource.element for resource in self.resources]
 
     def create_doc(self, branding_doc, new_body, only_replace_message=False):
         # remove previously added dimensions

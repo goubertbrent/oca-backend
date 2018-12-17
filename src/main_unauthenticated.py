@@ -36,6 +36,7 @@ from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, Loyal
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
+from solutions.common.handlers.polls import PollResultsHandler
 from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
@@ -50,6 +51,7 @@ handlers = [
     ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
     ('/unauthenticated/osa/callback/twitter', SolutionsCallbackTwitterHandler),
     ('/unauthenticated/osa/flanders', FlandersHandler),
+    ('/unauthenticated/osa/poll', PollResultsHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/solutions/djmatic/api/1', solutions.djmatic.api.DJMaticApiHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),

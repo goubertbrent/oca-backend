@@ -64,6 +64,7 @@ class PollTO(TO):
     updated_on = long_property('7')
     answers_collected = bool_property('8')
     users_notified = bool_property('9')
+    service_user_email = unicode_property('10')
 
     @classmethod
     def from_model(cls, poll):
@@ -79,6 +80,7 @@ class PollTO(TO):
         to.updated_on = get_epoch_from_datetime(poll.updated_on)
         to.answers_collected = poll.answers_collected
         to.users_notified = poll.users_notified
+        to.service_user_email = unicode(poll.service_user.email())
         return to
 
 
