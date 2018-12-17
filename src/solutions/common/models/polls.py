@@ -19,6 +19,7 @@ from google.appengine.ext import ndb
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
+from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 
 
@@ -76,6 +77,10 @@ class Poll(NdbModel):
     @property
     def id(self):
         return self.key.id()
+
+    @property
+    def service_user(self):
+        return users.User(self.key.parent().id())
 
 
 class AnswerChoice(NdbModel):

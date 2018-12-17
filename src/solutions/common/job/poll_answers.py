@@ -25,18 +25,17 @@ from mapreduce import mapreduce_pipeline
 from pipeline import pipeline
 from pipeline.common import List
 from rogerthat.consts import DEFAULT_QUEUE, DEBUG
-from rogerthat.models import App
+from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
-from rogerthat.utils import guid, log_offload
-from rogerthat.utils.app import get_app_id_from_app_user
-from solutions.common.models.polls import PollAnswer
+from rogerthat.utils import guid
+from solutions.common.models.polls import Poll, PollAnswer
 
 
-def start_job(poll_id):
+def start_job(poll):
     current_date = datetime.datetime.now()
-    key = '%d_poll_answers_%s_%s' % (poll_id, current_date.strftime('%Y-%m-%d'), guid())
+    key = 'poll_answers_%s_%s' % (current_date.strftime('%Y-%m-%d'), guid())
     bucket_name = 'oca-mr'
-    counter = PollAnswersPipeline(bucket_name, key, time.mktime(current_date.timetuple()))
+    counter = PollAnswersPipeline(bucket_name, key, time.mktime(current_date.timetuple()), poll.id, poll.service_user.email())
     task = counter.start(idempotence_key=key, return_task=True)
     task.add(queue_name=DEFAULT_QUEUE)  # TBD
 
@@ -47,10 +46,9 @@ def start_job(poll_id):
 
 def mapper(poll_answer):
     # type: (PollAnswer) -> GeneratorType
-    for question_answer in poll_answer.question_answers:
-        for value in question_answer.values:
-            answer_key = '%d_%s' % (question_answer.question_id, value)
-            yield answer_key, 1
+    for choice in poll_answer.choices:
+        choice_key = '%d_%d' % (choice.question_id, choice.choice_id)
+        yield choice_key, 1
 
 
 def combiner(key, new_values, previously_combined_values):
@@ -64,18 +62,17 @@ def combiner(key, new_values, previously_combined_values):
     yield combined
 
 
-def reducer(answer_key, values):
+def reducer(choice_key, values):
     # type: (str, list[int]) -> GeneratorType
     total_count = sum(values)
     if DEBUG:
-        logging.debug('REDUCER %s: %s', answer_key, total_count)
-    yield '%s:%d\n' % (answer_key, total_count)
+        logging.debug('REDUCER %s: %s', choice_key, total_count)
+    yield '%s:%d\n' % (choice_key, total_count)
 
 
 class PollAnswersPipeline(pipeline.Pipeline):
-    def run(self, bucket_name, key, current_date):
+    def run(self, bucket_name, key, current_date, poll_id, service_user_email):
         # type: (str, str, long) -> GeneratorType
-        poll_id = long(key.split('_')[0])
         params = {
             'mapper_spec': 'solutions.common.job.poll_answers.mapper',
             'mapper_params': {
@@ -99,7 +96,7 @@ class PollAnswersPipeline(pipeline.Pipeline):
 
         output = yield mapreduce_pipeline.MapreducePipeline(key, **params)
 
-        process_output_pipeline = yield ProcessOutputPipeline(output, current_date)
+        process_output_pipeline = yield ProcessOutputPipeline(output, current_date, poll_id, service_user_email)
         with pipeline.After(process_output_pipeline):
             yield CleanupGoogleCloudStorageFiles(output)
 
@@ -112,7 +109,7 @@ class PollAnswersPipeline(pipeline.Pipeline):
 
 class ProcessOutputPipeline(pipeline.Pipeline):
 
-    def run(self, output, current_date):
+    def run(self, output, current_date, poll_id, service_user_email):
         results = []
         for filename in output:
             results.append((yield ProcessFilePipeline(filename)))
@@ -121,28 +118,35 @@ class ProcessOutputPipeline(pipeline.Pipeline):
     def finalized(self):
         if DEBUG:
             logging.debug('ProcessOutputPipeline: self.outputs.default.value = %s', self.outputs.default.value)
-        # list of dicts with key answer_key, value int count
+        # list of dicts with key choice_key, value int count
         outputs = self.outputs.default.value  # type: list[list[dict]]
-        import logging
+        poll_id, service_user_email = self.args[-2:]
+        poll = Poll.create_key(users.User(service_user_email), poll_id).get()
         for output in outputs:
-            logging.warning(output)
+            for choice_key, count in output.iteritems():
+                question_id, choice_id = map(int, choice_key.split('_'))
+                poll.questions[question_id].choices[choice_id].count = count
+
+        if DEBUG:
+            logging.debug('Saving poll counts, %s', poll)
+        poll.put()
 
 
 class ProcessFilePipeline(pipeline.Pipeline):
 
     def run(self, filename):
-        counts_per_answer = {}
+        counts_per_choice = {}
         with cloudstorage.open(filename, "r") as f:
             for line in f:
-                answer_key, count = line.strip().split(':')
+                choice_key, count = line.strip().split(':')
                 count = long(count)
-                if answer_key in counts_per_answer:
-                    count += counts_per_answer[answer_key]
-                counts_per_answer[answer_key] = count
+                if choice_key in counts_per_choice:
+                    count += counts_per_choice[choice_key]
+                counts_per_choice[choice_key] = count
 
         if DEBUG:
-            logging.debug('ProcessFilePipeline: %s', counts_per_answer)
-        return counts_per_answer
+            logging.debug('ProcessFilePipeline: %s', counts_per_choice)
+        return counts_per_choice
 
 
 class CleanupGoogleCloudStorageFiles(pipeline.Pipeline):
