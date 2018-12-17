@@ -103,4 +103,7 @@ def api_remove_poll(poll_id):
 @returns([QuestionTO])
 @arguments(poll_id=(int, long))
 def api_get_poll_result(poll_id):
-    return api_get_poll(poll_id).questions
+    poll = api_get_poll(poll_id)
+    if not poll.answers_collected:
+        return []
+    return poll.questions

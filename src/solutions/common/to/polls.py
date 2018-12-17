@@ -62,6 +62,8 @@ class PollTO(TO):
     ends_on = long_property('5')
     created_on = long_property('6')
     updated_on = long_property('7')
+    answers_collected = bool_property('8')
+    users_notified = bool_property('9')
 
     @classmethod
     def from_model(cls, poll):
@@ -75,6 +77,8 @@ class PollTO(TO):
         to.ends_on = get_epoch_from_datetime(poll.ends_on) if poll.ends_on else None
         to.created_on = get_epoch_from_datetime(poll.created_on)
         to.updated_on = get_epoch_from_datetime(poll.updated_on)
+        to.answers_collected = poll.answers_collected
+        to.users_notified = poll.users_notified
         return to
 
 

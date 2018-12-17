@@ -112,6 +112,8 @@ PollsRequestsService.prototype.removePoll = function(pollId) {
     return this.delete(`${this.baseUrl}/${pollId}`);
 };
 PollsRequestsService.prototype.getPollResult = function(pollId) {
-    return this.get(`${this.baseUrl}/result/${pollId}`);
+    return this.get(`${this.baseUrl}/result/${pollId}`, {
+        cached: false,
+    });
 }
 PollsRequests = new PollsRequestsService();

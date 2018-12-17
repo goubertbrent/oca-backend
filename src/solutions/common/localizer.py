@@ -254,6 +254,7 @@ translations = \
          u'poll_you_already_voted': u'You already voted, results will be available once this poll has ended',
          u'polls_loading': u'Loading polls...',
          u'polls_notify_results': u'Do you want to be notified of these results?',
+         u'polls_processing_answers': u'Still processing answers, try again later...',
          u'answer_is_required': u'An answer is required',
          u'submitting_answer': u'Submitting answer...',
          u'vote_now': u'Vote now',

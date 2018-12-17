@@ -412,6 +412,13 @@ $(function() {
             });
             resultsContainer.html(html);
             var countsContainer = $('#poll-counts', resultsContainer);
+            if (!questions.length) {
+                PollsIndicator.hide();
+                // still collecting answers
+                countsContainer.html(`<h4>${CommonTranslations.polls_processing_answers}</h4>`);
+                countsContainer.show();
+                return;
+            }
 
             countsContainer.show().empty();
             $.each(questions, function(questionId, question) {

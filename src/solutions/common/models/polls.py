@@ -64,6 +64,8 @@ class Poll(NdbModel):
     ends_on = ndb.DateTimeProperty()
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     updated_on = ndb.DateTimeProperty(auto_now=True)
+    answers_collected = ndb.BooleanProperty(default=False)
+    users_notified = ndb.BooleanProperty(default=False)
 
     @classmethod
     def create_key(cls, service_user, id_):

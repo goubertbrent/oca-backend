@@ -30,6 +30,7 @@ from solutions.common.bizz import put_branding
 from solutions.common.bizz.branding import HTMLBranding, Resources, Javascript, Stylesheet
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
+from solutions.common.job import poll_answers
 from solutions.common.models.polls import AnswerChoice, AnswerType, Poll, PollAnswer, PollStatus, Question, \
     QuestionChoicesException
 from solutions.common.to.polls import PollTO, UserPollTO
@@ -112,6 +113,7 @@ def stop_poll(service_user, poll_id):
             raise BusinessException('poll_pending_or_completed')
         poll.status = PollStatus.COMPLELTED
         poll.put()
+        poll_answers.start_job(poll)
         return poll
     raise PollNotFoundException
 
