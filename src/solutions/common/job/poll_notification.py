@@ -38,7 +38,7 @@ def poll_answers_query(poll_id):
 
 
 def notify_poll_answer_user(
-    poll_answer_key, poll_name, service_user, language, main_branding_key, dry_run=False):
+    poll_answer_key, poll_name, service_user_email, language, main_branding_key, dry_run=False):
     poll_answer = poll_answer_key.get()
     if not poll_answer:
         return
@@ -49,7 +49,7 @@ def notify_poll_answer_user(
     if not dry_run:
         message = common_translate(
             language, SOLUTION_COMMON, u'polls_results_available', name=poll_name)
-        with users.set_user(service_user):
+        with users.set_user(users.User(service_user_email)):
             messaging.send(
                 parent_key=None,
                 parent_message_key=None,
@@ -73,4 +73,4 @@ def notify_poll_results(poll, dry_run=False):
     run_job(
         poll_answers_query, [poll.id],
         notify_poll_answer_user, [
-            poll.name, service_user, sln_settings.main_language, main_branding_key, dry_run])
+            poll.name, service_user.email(), sln_settings.main_language, main_branding_key, dry_run])

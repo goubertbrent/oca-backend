@@ -61,7 +61,7 @@ cron:
 
 - description: Solution auto-close polls
   url: /admin/cron/rpc/solutions_auto_close_polls
-  schedule: every day 00:00
+  schedule: every 10 minutes
 
 - description: Shop export reseller invoices
   url: /admin/cron/rpc/shop_export_reseller_invoices

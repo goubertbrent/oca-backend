@@ -81,7 +81,7 @@ class Poll(NdbModel):
 
     @property
     def service_user(self):
-        return users.User(self.key.parent().id())
+        return users.User(unicode(self.key.parent().id()))
 
 
 class AnswerChoice(NdbModel):
