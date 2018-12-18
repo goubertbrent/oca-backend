@@ -108,7 +108,8 @@ $(function() {
     function populateFormData() {
         currentPoll.name = $('#poll-name').val().trim();
         if ($('#poll-end-date input').val().trim()) {
-            currentPoll.ends_on = $('#poll-end-date').data('datepicker').date.valueOf() / 1000;
+            var timestamp = $('#poll-end-date').data('datetimepicker').getLocalDate().getTime() / 1000;
+            currentPoll.ends_on = parseInt(timestamp);
         }
     }
 
@@ -153,11 +154,12 @@ $(function() {
                 dateFormat: sln.getLocalDateFormat(),
             }));
             formContainer.html(html);
-            var datePicker = $('.date').datepicker({
-                format : sln.getLocalDateFormat()
-            })
+            $('.date', formContainer).datetimepicker({
+                format: 'yyyy-MM-dd hh:mm',
+                pickSeconds : false,
+            });
             if (currentPoll.ends_on) {
-                datePicker.datepicker('setValue', new Date(currentPoll.ends_on * 1000));
+                $('.date', formContainer).data('datetimepicker').setLocalDate(new Date(currentPoll.ends_on * 1000));
             }
             populateQuestionList();
         }

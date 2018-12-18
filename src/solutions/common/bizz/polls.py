@@ -80,11 +80,8 @@ def update_poll(service_user, poll):
         new_poll = Poll.create(service_user)
 
     try:
-        sln_settings = get_solution_settings(service_user)
-        tz = get_timezone(sln_settings.timezone)
-        ends_on = datetime.datetime.fromtimestamp(poll.ends_on, tz=tz)
         new_poll.name = poll.name
-        new_poll.ends_on = ends_on.replace(tzinfo=None)
+        new_poll.ends_on = datetime.datetime.utcfromtimestamp(poll.ends_on)
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
     except QuestionChoicesException:

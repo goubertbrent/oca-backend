@@ -22,7 +22,7 @@ from google.appengine.ext import ndb, webapp
 
 from rogerthat.bizz.job import run_job
 from rogerthat.rpc import users
-from rogerthat.utils import today
+from rogerthat.utils import now
 from solutions.common.models.polls import Poll, PollAnswer, PollStatus
 from solutions.common.bizz.polls import stop_poll
 
@@ -33,10 +33,10 @@ class PollAutoCloseHandler(webapp.RequestHandler):
         auto_close_polls()
 
 
-def finished_polls_query(day_date):
+def finished_polls_query(_now):
     return Poll.query(
         Poll.status == PollStatus.RUNNING,
-        Poll.ends_on <= datetime.datetime.utcfromtimestamp(day_date)
+        Poll.ends_on <= datetime.datetime.utcfromtimestamp(_now)
     )
 
 
@@ -48,5 +48,5 @@ def auto_close_poll(poll_key, dry_run=False):
 
 
 def auto_close_polls(dry_run=False):
-    _today = today()
-    run_job(finished_polls_query, [_today], auto_close_poll, [dry_run])
+    _now = now()
+    run_job(finished_polls_query, [_now], auto_close_poll, [dry_run])
