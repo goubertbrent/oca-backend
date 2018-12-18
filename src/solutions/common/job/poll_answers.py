@@ -21,6 +21,7 @@ import time
 from types import GeneratorType
 
 import cloudstorage
+from google.appengine.ext import deferred
 from mapreduce import mapreduce_pipeline
 from pipeline import pipeline
 from pipeline.common import List
@@ -28,6 +29,7 @@ from rogerthat.consts import DEFAULT_QUEUE, DEBUG
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import guid
+from solutions.common.job.poll_notification import notify_poll_results
 from solutions.common.models.polls import Poll, PollAnswer
 
 
@@ -131,6 +133,7 @@ class ProcessOutputPipeline(pipeline.Pipeline):
             logging.debug('Saving poll counts, %s', poll)
         poll.answers_collected = True
         poll.put()
+        deferred.defer(notify_poll_results, poll)
 
 
 class ProcessFilePipeline(pipeline.Pipeline):

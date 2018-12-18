@@ -65,7 +65,6 @@ class Poll(NdbModel):
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     updated_on = ndb.DateTimeProperty(auto_now=True)
     answers_collected = ndb.BooleanProperty(default=False)
-    users_notified = ndb.BooleanProperty(default=False)
 
     @classmethod
     def create_key(cls, service_user, id_):
@@ -117,3 +116,7 @@ class PollAnswer(NdbModel):
     @classmethod
     def list_by_poll(cls, poll_id):
         return cls.query().filter(cls.poll_id == poll_id)
+
+    @property
+    def app_user(self):
+        return users.User(unicode(self.key.parent().id()))
