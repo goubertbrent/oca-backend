@@ -31,6 +31,7 @@ from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdat
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
 from solutions.common.cron.news.rss import SolutionRssScraper
+from solutions.common.cron.polls.auto_close import PollAutoCloseHandler
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
@@ -60,6 +61,7 @@ handlers = [
     ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/rpc/solutions_news_budget_updater', BudgetCheckHandler),
+    ('/admin/cron/rpc/solutions_auto_close_polls', PollAutoCloseHandler),
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),

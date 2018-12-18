@@ -14,7 +14,7 @@ cron:
 - description: Solution Loyalty lottery loot
   url: /admin/cron/rpc/solution_loyalty_lottery_loot
   schedule: every 1 hours
-  
+
 - description: Solution rss scraper
   url: /admin/cron/rpc/solution_rss_scraper
   schedule: every 15 minutes
@@ -57,6 +57,10 @@ cron:
 
 - description: Solution regional news budget check/update
   url: /admin/cron/rpc/solutions_news_budget_updater
+  schedule: every day 00:00
+
+- description: Solution auto-close polls
+  url: /admin/cron/rpc/solutions_auto_close_polls
   schedule: every day 00:00
 
 - description: Shop export reseller invoices

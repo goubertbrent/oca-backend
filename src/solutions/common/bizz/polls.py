@@ -18,6 +18,7 @@ from __future__ import unicode_literals
 
 import datetime
 import json
+from babel.dates import get_timezone
 from google.appengine.ext import deferred, ndb
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.dal import parent_ndb_key
@@ -29,8 +30,7 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import put_branding
 from solutions.common.bizz.branding import HTMLBranding, Resources, Javascript, Stylesheet
-from solutions.common import SOLUTION_COMMON
-from solutions.common.dal import get_solution_main_branding, get_solution_settings
+from solutions.common.dal import get_solution_settings
 from solutions.common.job import poll_answers
 from solutions.common.models.polls import AnswerChoice, AnswerType, Poll, PollAnswer, PollStatus, Question, \
     QuestionChoicesException
@@ -81,8 +81,11 @@ def update_poll(service_user, poll):
         new_poll = Poll.create(service_user)
 
     try:
+        sln_settings = get_solution_settings(service_user)
+        tz = get_timezone(sln_settings.timezone)
+        ends_on = datetime.datetime.fromtimestamp(poll.ends_on, tz=tz)
         new_poll.name = poll.name
-        new_poll.ends_on = datetime.datetime.fromtimestamp(poll.ends_on)
+        new_poll.ends_on = ends_on.replace(tzinfo=None)
         new_poll.questions = [q.to_model() for q in poll.questions]
         new_poll.put()
     except QuestionChoicesException:

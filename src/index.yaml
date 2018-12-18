@@ -821,3 +821,8 @@ indexes:
   properties:
   - name: poll_id
   - name: __scatter__
+
+- kind: Poll
+  properties:
+  - name: status
+  - name: ends_on
