@@ -239,6 +239,7 @@ translations = \
          u'add_2_choices_at_least': u'Add at least two choices',
          u'poll_not_found': u'Poll is not found',
          u'poll_started_cannot_update': u'Cannot updated a running poll',
+         u'poll_started_or_completed_cannot_delete': u'Cannot delete a running or completed poll',
          u'vote_question_types_error': u'Vote should contain only multiple choice questions',
          u'completed': u'Completed',
          u'poll_started_or_completed': u'Poll has already started or completed',

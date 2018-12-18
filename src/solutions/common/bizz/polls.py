@@ -130,11 +130,8 @@ def remove_poll(service_user, poll_id):
     if not poll:
         return
 
-    if poll.status == PollStatus.RUNNING:
-        raise BusinessException('poll_running_cannot_delete')
-    elif poll.status == PollStatus.COMPLELTED:
-        # TODO: remove all related answers, counters...etc
-        pass
+    if poll.status != PollStatus.PENDING:
+        raise BusinessException('poll_started_or_completed_cannot_delete')
 
     key.delete()
 

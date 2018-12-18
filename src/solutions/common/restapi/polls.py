@@ -45,7 +45,7 @@ def api_get_polls(cursor=None, limit=20):
 def api_create_poll(data):
     try:
         service_user = users.get_current_user()
-        PollTO.from_model(update_poll(service_user, poll=data))
+        return PollTO.from_model(update_poll(service_user, poll=data))
     except BusinessException as bex:
         raise HttpBadRequestException(bex.message)
 
