@@ -48,11 +48,12 @@ from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, Loyalty
     LoyaltySlideOverlayHandler, ExportLoyaltyHandler
 from solutions.common.handlers.menu import ExportMenuHandler
 from solutions.common.handlers.service import LoginAsServiceHandler
-from solutions.djmatic.handlers import DJMaticHomeHandler
+from solutions.djmatic.handlers import DJMaticHomeHandler, DJMaticWarningHandler
 from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler, TermsAndConditionsHandler
 
 handlers = [
-    ('/djmatic/', DJMaticHomeHandler),
+    ('/djmatic/home', DJMaticHomeHandler),
+    ('/djmatic/', DJMaticWarningHandler),
     ('/flex/', FlexHomeHandler),
     ('/flex/logout', FlexLogoutHandler),
     ('/common/login_as', LoginAsServiceHandler),
