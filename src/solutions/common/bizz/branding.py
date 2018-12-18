@@ -10,7 +10,6 @@ from StringIO import StringIO
 
 from mcfw.utils import Enum
 
-from rogerthat.bizz.branding import get_branding_blob_stream
 from rogerthat.utils import file_get_contents
 
 import solutions
