@@ -14,12 +14,13 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-
+import urllib
 from google.appengine.ext import ndb
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
+from rogerthat.settings import get_server_settings
 from solutions.common import SOLUTION_COMMON
 
 
@@ -82,6 +83,16 @@ class Poll(NdbModel):
     @property
     def service_user(self):
         return users.User(unicode(self.key.parent().id()))
+
+    @property
+    def results_url(self):
+        return '?'.join([
+            get_server_settings().baseUrl + '/unauthenticated/osa/poll',
+            urllib.urlencode({
+                'service_user': self.service_user.email(),
+                'poll_id': self.id
+            })
+        ])
 
 
 class AnswerChoice(NdbModel):

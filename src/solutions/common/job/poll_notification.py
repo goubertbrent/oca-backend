@@ -21,10 +21,9 @@ import logging
 from google.appengine.ext import ndb, webapp
 
 from rogerthat.bizz.job import run_job
-from rogerthat.models import Message
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
-from rogerthat.to.messaging import MemberTO
+from rogerthat.to.messaging import AnswerTO, MemberTO
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models.polls import PollAnswer, PollStatus
@@ -38,7 +37,7 @@ def poll_answers_query(poll_id):
 
 
 def notify_poll_answer_user(
-    poll_answer_key, poll_name, service_user_email, language, main_branding_key, dry_run=False):
+    poll_answer_key, poll_name, results_url, service_user_email, language, main_branding_key, dry_run=False):
     poll_answer = poll_answer_key.get()
     if not poll_answer:
         return
@@ -49,13 +48,21 @@ def notify_poll_answer_user(
     if not dry_run:
         message = common_translate(
             language, SOLUTION_COMMON, u'polls_results_available', name=poll_name)
+
+        show_results = AnswerTO()
+        show_results.caption = common_translate(language, SOLUTION_COMMON, u'show_results')
+        show_results.type = u'button'
+        show_results.action = results_url
+        show_results.ui_flags = 0
+        show_results.id = u'show_results'
+
         with users.set_user(users.User(service_user_email)):
             messaging.send(
                 parent_key=None,
                 parent_message_key=None,
                 message=message,
-                answers=[],
-                flags=Message.FLAG_ALLOW_DISMISS,
+                answers=[show_results],
+                flags=0,
                 members=[MemberTO.from_user(poll_answer.app_user)],
                 branding=main_branding_key,
                 tag=None,
@@ -73,4 +80,7 @@ def notify_poll_results(poll, dry_run=False):
     run_job(
         poll_answers_query, [poll.id],
         notify_poll_answer_user, [
-            poll.name, service_user.email(), sln_settings.main_language, main_branding_key, dry_run])
+            poll.name, poll.results_url, service_user.email(),
+            sln_settings.main_language, main_branding_key, dry_run
+        ]
+    )

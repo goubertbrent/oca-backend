@@ -13,7 +13,7 @@
                 <p><a href="#${ID(poll.id, 0)}" class="ui-btn ui-shadow ui-corner-all">${t.vote_now}</a></p>
             {{/if}}
         {{else}}
-            <p><a href="${baseUrl}/unauthenticated/osa/poll?service_user=${poll.service_user_email}&poll_id=${poll.id}" class="ui-btn ui-shadow ui-corner-all">${t.show_results}</a></p>
+            <p><a href="${poll.results_url}" class="ui-btn ui-shadow ui-corner-all">${t.show_results}</a></p>
         {{/if}}
     </div>
 
