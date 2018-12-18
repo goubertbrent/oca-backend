@@ -189,6 +189,8 @@ def get_user_polls(service_user, app_user):
         Poll.create_key(service_user, answer.poll_id) for answer in user_answers]
 
     for poll in ndb.get_multi(answered_poll_keys):
+        if not poll:
+            continue
         if polls.get(poll.id):
             polls[poll.id].answered = True
         else:
