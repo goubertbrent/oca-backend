@@ -244,7 +244,7 @@ def provision_polls_branding(solution_settings, main_branding, language):
         main_branding (solutions.common.models.SolutionMainBranding)
         language (unicode)
     """
-    if solution_settings.polls_branding_hash:
+    if not solution_settings.polls_branding_hash:
         with HTMLBranding(main_branding, 'polls', *Resources.all()) as html_branding:
             templates = json.dumps({
                 name: html_branding.render_template('%s.html' % name) for name in BRANDING_TEMPLATES
