@@ -74,7 +74,10 @@ $(function() {
     init();
 
     function router(urlHash) {
-        var page = urlHash[1];
+        var page;
+        if (urlHash) {
+            page = urlHash[1];
+        }
 
         switch(page) {
             case 'add':
