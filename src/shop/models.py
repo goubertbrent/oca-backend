@@ -678,12 +678,16 @@ class OsaSequenceBaseModel(db.Model):
         return u"OSA.%s.%s" % (number.year, number.last_number)
 
 
-class InvoiceNumber(OsaSequenceBaseModel):
-    pass
-
-
 class OrderNumber(OsaSequenceBaseModel):
     pass
+
+
+class InvoiceNumber(OsaSequenceBaseModel):
+
+    @classmethod
+    def next(cls, legal_entity):
+        number = cls._next_number(legal_entity)
+        return str(number.year)[-2:] + str(number.last_number).rjust(6, '0')
 
 
 class ChargeNumber(OsaSequenceBaseModel):
