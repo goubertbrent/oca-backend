@@ -34,7 +34,7 @@ from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
-from solutions.common.handlers.admin.services import ServiceTools, NewJukeboxAppBranding
+from solutions.common.handlers.admin.services import ServiceTools
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
@@ -61,7 +61,6 @@ handlers = [
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),
     ('/admin/cron/match_joyn', MatchJoynMerchantsHandler),
     ('/admin/services', ServiceTools),
-    ('/admin/new_jukebox_app_branding', NewJukeboxAppBranding),
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
