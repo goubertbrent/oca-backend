@@ -17,10 +17,6 @@
 
 from webapp2_extras.routes import RedirectRoute
 
-import shop.handlers
-import solutions.common.restapi
-import solutions.common.restapi.campaignmonitor
-import solutions.djmatic.api
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
@@ -30,19 +26,19 @@ from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler
+import shop.handlers
 from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-from solutions.djmatic.handlers import DJMaticHomeHandler, DJMaticWarningHandler
+import solutions.common.restapi
+import solutions.common.restapi.campaignmonitor
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 
 handlers = [
-    ('/djmatic/home', DJMaticHomeHandler),
-    ('/djmatic/', DJMaticWarningHandler),
     ('/flex/', FlexHomeHandler),
     ('/unauthenticated/loyalty/slide', LoyaltySlideDownloadHandler),
     ('/unauthenticated/loyalty/no_mobiles/unsubscribe_email', LoyaltyNoMobilesUnsubscribeEmailHandler),
@@ -52,7 +48,6 @@ handlers = [
     ('/unauthenticated/osa/callback/twitter', SolutionsCallbackTwitterHandler),
     ('/unauthenticated/osa/flanders', FlandersHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
-    ('/solutions/djmatic/api/1', solutions.djmatic.api.DJMaticApiHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),
     ('/shop/products/export', ExportProductsHandler),
     ('/shop/prospects/callback', ProspectCallbackHandler),

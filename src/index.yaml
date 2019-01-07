@@ -30,22 +30,6 @@ indexes:
   properties:
   - name: first_name
 
-- kind: DjMaticProfile
-  properties:
-  - name: status
-  - name: creation_time
-
-- kind: DjMaticProfile
-  properties:
-  - name: status
-  - name: creation_time
-    direction: desc
-
-- kind: DjMaticProfile
-  properties:
-  - name: status
-  - name: start_trial_time
-
 - kind: Event
   properties:
   - name: app_ids

@@ -24,16 +24,14 @@ $(document).ready(function () {
     });
 
     var hash = window.location.hash.replace('#/', '').split('/');
-    if (SOLUTION != 'djmatic') {
-        var defaultLocation = '#/functionalities';
+    var defaultLocation = '#/functionalities';
 
-        if (!hash) {
-            window.location.hash = defaultLocation;
-            return;
-        } else if (hash[0] === '') {
-            window.location.hash = defaultLocation;
-            return;
-        }
+    if (!hash) {
+        window.location.hash = defaultLocation;
+        return;
+    } else if (hash[0] === '') {
+        window.location.hash = defaultLocation;
+        return;
     }
     routingHandler(hash);
 });

@@ -25,29 +25,15 @@ handlers:
   script: main_unauthenticated.app
   secure: always
 
-- url: /(djmatic|common|flex)/
+- url: /(common|flex)/
   script: main_unauthenticated.app
   secure: always
 
-- url: /(djmatic|common|flex)/.*
+- url: /(common|flex)/.*
   script: main_authenticated.app
   secure: always
 
 - url: /solutions/common/public/.*
-  script: main_unauthenticated.app
-  secure: always
-
-- url: /djmatic_overview
-  script: main_google_authenticated.app
-  login: required
-  secure: always
-
-- url: /djmatic_overview/.*
-  script: main_google_authenticated.app
-  login: required
-  secure: always
-
-- url: /solutions/djmatic/api/1.*
   script: main_unauthenticated.app
   secure: always
 
@@ -95,9 +81,3 @@ admin_console:
   pages:
   - name: OSA Launcher
     url: /admin/osa/launcher/apps
-
-  - name: DJMatic overview logs
-    url: /admin/djmatic_overview_logs
-
-  - name: DJMatic export
-    url: /admin/djmatic_export
