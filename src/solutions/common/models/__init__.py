@@ -134,7 +134,8 @@ class SolutionInboxMessage(db.Model):
             logging.error("SolutionInboxMessage icon not found for category '%s' key '%s'", self.category, self.key())
         return None
 
-    def icon_color(self, solution):  # todo ruben remove solution
+    @property
+    def icon_color(self):
         if self.category:
             return u"#000000"
         return None
