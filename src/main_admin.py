@@ -35,9 +35,6 @@ from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 from solutions.common.handlers.admin.services import ServiceTools, NewJukeboxAppBranding
-from solutions.djmatic.cron import CheckDjmaticTrialMode
-from solutions.djmatic.handlers.admin import djmatic
-from solutions.djmatic.handlers.admin.djmatic import DjmaticOverviewLogsHandler, DjmaticExportHandler
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
@@ -46,7 +43,6 @@ handlers = [
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_events_publish_data', SolutionEventsDataPublisher),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
-    ('/admin/cron/rpc/check_djmatic_trial_mode', CheckDjmaticTrialMode),
     ('/admin/cron/rpc/shop_notify_extention_needed', NotifyExtentionNeededHandler),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
     ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),
@@ -66,13 +62,9 @@ handlers = [
     ('/admin/cron/match_joyn', MatchJoynMerchantsHandler),
     ('/admin/services', ServiceTools),
     ('/admin/new_jukebox_app_branding', NewJukeboxAppBranding),
-    ('/admin/djmatic_overview_logs', DjmaticOverviewLogsHandler),
-    ('/admin/djmatic_export', DjmaticExportHandler),
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
 ]
-
-handlers.extend(rest_functions(djmatic))
 
 app = RogerthatWSGIApplication(handlers, True, name="main_admin", google_authenticated=True)

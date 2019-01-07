@@ -20,7 +20,6 @@ import os
 import urllib
 
 from google.appengine.ext import webapp
-from solutions.djmatic.bizz import add_new_jukebox_app_branding
 from google.appengine.ext.webapp import template
 
 
@@ -37,16 +36,3 @@ class ServiceTools(webapp.RequestHandler):
         context = dict(((key, self.request.get(key, default)) for key, default in self.ARGS))
         path = os.path.join(os.path.dirname(__file__), 'services.html')
         self.response.out.write(template.render(path, context))
-
-class NewJukeboxAppBranding(ServiceTools):
-
-    def post(self):
-        branding_url = self.request.get('branding_url')
-        logging.info("New jukebox branding: %s" % branding_url)
-
-        try:
-            add_new_jukebox_app_branding(branding_url)
-            self.redirect(result='New jukebox app branding succesfully added!')
-        except Exception, e:
-            logging.warn(str(e), exc_info=1)
-            self.redirect(result=str(e))

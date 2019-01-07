@@ -15,9 +15,8 @@
 #
 # @@license_version:1.1@@
 # Do not touch the indentation here
-import solutions.djmatic.api
+
 from rogerthat.rpc.service import register_service_api_calls
 from solutions.common.restapi import yourservicehere
 
-register_service_api_calls(solutions.djmatic.api)
 register_service_api_calls(yourservicehere)

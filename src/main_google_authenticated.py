@@ -29,11 +29,8 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     SalesStatisticsHandler, OrderableAppsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
     ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, JoynReferralsHandler, \
     JoynMerchantMatchesHandler, JoynMerchantMatchesDeleteHandler, CustomersImportHandler
-from solutions.djmatic import restapi_overview
-from solutions.djmatic.handlers import DJMaticOverviewHandler
 
 handlers = [
-    ('/djmatic_overview', DJMaticOverviewHandler),
     ('/internal/shop/?', BizzAdminHandler),
     ('/internal/shop/logout', ShopLogoutHandler),
     ('/internal/shop/invoices/open', OpenInvoicesHandler),
@@ -73,7 +70,6 @@ handlers = [
     webapp2.Route('/internal/shop/customers/<customer_id:\d+>/quotations/<quotation_id:\d+>', QuotationHandler),
     (shopOauthDecorator.callback_path, shopOauthDecorator.callback_handler())  # /shop/oauth2callback
 ]
-handlers.extend(rest_functions(restapi_overview))
 handlers.extend(rest_functions(view, authorized_function=authorize_manager))
 
 app = RogerthatWSGIApplication(
