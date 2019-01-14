@@ -36,12 +36,12 @@ def _check_for_news(service_user, rss_url=None):
         rss_url = u"http://www.dendermonde.be/rssout.aspx?cat=N"
 
     sln_settings = get_solution_settings(service_user)
-    if BROADCAST_TYPE_NEWS not in sln_settings.broadcast_types:
-        logging.info(sln_settings.broadcast_types)
-        logging.error("check_for_news_in_be_dendermonde failed no broadcast type found with name '%s' for service %s", BROADCAST_TYPE_NEWS, service_user)
-        return
-
     broadcast_type = transl(BROADCAST_TYPE_NEWS, sln_settings.main_language)
+    if broadcast_type not in sln_settings.broadcast_types:
+        logging.info(sln_settings.broadcast_types)
+        logging.error("check_for_news_in_be_dendermonde failed no broadcast type found with name '%s' for service %s",
+                      broadcast_type, service_user)
+        return
 
     response = urlfetch.fetch(rss_url, deadline=60)
     if response.status_code != 200:
@@ -77,7 +77,7 @@ def _check_for_news(service_user, rss_url=None):
             tree = html.fromstring(response.content.decode("utf8"))
             div = tree.xpath('//div[@class="short box"]')
             if not div:
-                logging.error('News scraper for dendermonde needs to be updated rss url %s', rss_url)
+                logging.error('News scraper for dendermonde needs to be updated rss url %s', rss_url, _suppress=False)
                 continue
             message = u'%s' % div[0].text
         except Exception:
