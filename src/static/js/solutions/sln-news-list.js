@@ -27,7 +27,7 @@ function NewsList(tag, container, options) {
     this.newsItems = {};
     this.cursor = null;
 
-    this.title = this.options.title || T('previous_news_items')
+    this.title = this.options.title || T('previous_news_items');
     this.baseLink = '#/' + this.tag;
     $(window).scroll(this.validateLoadMore.bind(this));
 }
@@ -41,7 +41,7 @@ NewsList.prototype = {
     loadNews: function(loadMore) {
         if (loadMore) {
             this.container.append(TMPL_LOADING_SPINNER);
-            this.getElement('.load_more_news').hide();
+            this.getElement('#load_more_news').hide();
         } else {
             this.container.html(TMPL_LOADING_SPINNER);
         }
@@ -102,7 +102,7 @@ NewsList.prototype = {
             scheduledAt: scheduledAt
         });
         this.container.html(html);
-        this.getElement('.load_more_news').click(this.validateLoadMore.bind(this)).toggle(this.hasMoreNews);
+        this.getElement('#load_more_news').click(this.validateLoadMore.bind(this)).toggle(this.hasMoreNews);
         this.getElement('.delete_news_button').click(this.deleteItem.bind(this));
         this.getElement('.show_more_stats_button').click(this.showMoreStatsClicked.bind(this));
 

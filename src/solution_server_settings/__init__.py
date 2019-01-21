@@ -57,9 +57,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_payment_admin_emails = add_meta(db.StringListProperty(indexed=False),
                                          doc="The email addresses that can set the payment status of an order",
                                          order=308)
-    shop_privacy_policy_url = add_meta(db.StringProperty(indexed=False),
-                                      doc="Privacy policy url",
-                                      order=309)
     shop_new_prospect_sik = add_meta(db.StringProperty(indexed=False),
                                       doc="New prospect sik",
                                       order=310)

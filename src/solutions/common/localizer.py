@@ -4406,7 +4406,7 @@ translations = \
          u'deny': u'Annuleren',
          u'deselect_all': u'Alles deselecteren',
          u'disable_notifications': u'Aanwezigheidsmeldingen ingeschakeld',
-         u'disable_ordering_outside_hours': u"u'Bestellingen enkel toelaten tijdens de afhaalmomenten",
+         u'disable_ordering_outside_hours': u"Bestellingen enkel toelaten tijdens de afhaalmomenten",
          u'disable_placing_orders': u'Schakel het plaatsen van bestellingen uit',
          u'discounts': u'Kortingen',
          u'discussion_group_choices': u'Selecteer de discussiegroepen die u wilt volgen.',
