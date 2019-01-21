@@ -22,7 +22,8 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 
 from lxml import html
-from solutions.common.cron.news import BROADCAST_TYPE_NEWS, transl, create_news_item
+from lxml.html import HtmlElement
+from solutions.common.cron.news import BROADCAST_TYPE_NEWS, transl, create_news_item, html_to_markdown
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionNewsScraperSettings
 
@@ -56,7 +57,6 @@ def _check_for_news(service_user, rss_url=None):
             return []
 
         return sln_news_scraper_settings.urls
-
     urls = db.run_in_transaction(trans)
 
     doc = minidom.parseString(response.content)
@@ -75,11 +75,11 @@ def _check_for_news(service_user, rss_url=None):
                 continue
 
             tree = html.fromstring(response.content.decode("utf8"))
-            div = tree.xpath('//div[@class="short box"]')
+            div = tree.xpath('//div[@class="long box"]')  # type: list[HtmlElement]
             if not div:
-                logging.error('News scraper for dendermonde needs to be updated rss url %s', rss_url, _suppress=False)
+                logging.error('News scraper for dendermonde needs to be updated rss url %s', url, _suppress=False)
                 continue
-            message = u'%s' % div[0].text
+            message = html_to_markdown(html.tostring((div[0])))
         except Exception:
             logging.debug("title: %s", title)
             logging.debug(item.childNodes)

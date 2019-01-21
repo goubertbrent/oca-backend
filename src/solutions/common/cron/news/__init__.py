@@ -17,12 +17,11 @@
 
 import importlib
 import logging
-import re
 from HTMLParser import HTMLParser
 
 from google.appengine.ext import webapp
 
-import html2text
+from markdownify import markdownify
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
 from rogerthat.dal.service import get_default_service_identity
@@ -101,56 +100,8 @@ def html_unescape(s):
     return HTMLParser().unescape(s)
 
 
-def parse_html_content(html_content):
+def html_to_markdown(html_content):
     if not html_content:
-        return html_content, [], []
+        return html_content
 
-    if not isinstance(html_content, unicode):
-        html_content = html_content.decode('utf8')
-
-    html_content = html_content.replace("<strong>", "").replace("</strong>", "")
-    html_content = html_content.replace("<em>", "").replace("</em>", "")
-    html_content = html_content.replace("<hr />", "")
-
-    m = True
-    while m:
-        m = re.search('(?i)<img([^>]+)/>', html_content)
-        if m:
-            html_content = html_content.replace(m.group(), "")
-
-    m = True
-    while m:
-        m = re.search('(?i)<a([^>]+)></a>', html_content)
-        if m:
-            html_content = html_content.replace(m.group(), "")
-
-    mailtos = dict()
-    m = True
-    while m:
-        m = re.search('<a href=[\'\"]mailto:(.+)[\'\"]>(.+)</a>', html_content)
-        if m:
-            action = m.group(1)
-            name = m.group(2)
-            mailtos[name] = action
-            html_content = html_content.replace(m.group(), name)
-
-    hrefs = dict()
-    m = True
-    while m:
-        m = re.search('(?i)<a([^>]+)>(.+?)</a>', html_content)
-        if m:
-            found = False
-            m_attributes = m.group(1)
-            name = m.group(2)
-            m_href = re.search('\\s*(?i)href\\s*=\\s*\"([^\"]*)\"', m_attributes)
-            if m_href:
-                action = m_href.group(1)
-                found = True
-                hrefs[name] = action
-
-            if not found:
-                logging.error("We need a better filter ...")
-                logging.debug(m.group(0))
-
-            html_content = html_content.replace(m.group(), name)
-    return html2text.html2text(html_unescape(html_content), None, 0), mailtos.items(), hrefs.items()
+    return markdownify(html_content)

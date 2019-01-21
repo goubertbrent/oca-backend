@@ -26,7 +26,7 @@ from google.appengine.ext.deferred import deferred
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.utils import now
-from solutions.common.cron.news import html_unescape, parse_html_content, transl, \
+from solutions.common.cron.news import html_unescape, html_to_markdown, transl, \
     create_news_item
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
@@ -92,7 +92,7 @@ def _worker(rss_settings_key):
                     logging.info('description not found or empty for %s', item.childNodes)
                     continue
                 description_html = description_tags[0].firstChild.nodeValue
-                message, _, _ = parse_html_content(description_html)
+                message = html_to_markdown(description_html)
 
             except:
                 logging.debug(item.childNodes)

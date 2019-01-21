@@ -6,7 +6,11 @@ pushd ../mobicage-backend
 #git checkout ${VERSION}
 popd
 
-pip2 install -U --target=build/lib -r ../mobicage-backend/requirements.txt --prefix=
+requirements1=`cat ../mobicage-backend/requirements.txt`
+requirements2=`cat requirements.txt`
+requirements="${requirements1} ${requirements2}"
+
+pip2 install -U --target=build/lib ${requirements} --prefix=
 npm install
 npm run build
 pushd build/static
