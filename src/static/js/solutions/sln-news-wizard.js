@@ -630,7 +630,7 @@ NewsWizard.prototype = {
                     return;
                 }
                 $.each(response.data, function(i, page) {
-                    if($.inArray('CREATE_CONTENT', page.perms) > -1) {
+                    if(page.tasks.indexOf('CREATE_CONTENT') > -1) {
                         elemFacebookPage.append($('<option>', {text: page.name, value: page.access_token}));
                     }
                 });

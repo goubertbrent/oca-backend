@@ -316,7 +316,7 @@ $(function () {
                                     for (var i = 0; i < response.data.length; i++) {
                                         if (response.data[i].id === facebookPageId) {
                                             userIsAdmin = true;
-                                            if (response.data[i].perms.indexOf("MODERATE_CONTENT") > 0) {
+                                            if (response.data[i].tasks.indexOf("MODERATE_CONTENT") > -1) {
                                                 userHasModeratePermissions = true;
                                             }
                                             break;
