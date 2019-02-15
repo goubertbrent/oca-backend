@@ -219,7 +219,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
         organizer_settings_keys = set()
         for k in (uitdatabank_created_by, uitdatabank_lastupdated_by, uitdatabank_organizer_name, uitdatabank_organizer_cdbid):
             if k:
-                organizer_settings_keys.extend(uitdatabank_actors.get(k, []))
+                organizer_settings_keys.update(uitdatabank_actors.get(k, []))
 
         organizer_settings = db.get(organizer_settings_keys) if organizer_settings_keys else []
 
