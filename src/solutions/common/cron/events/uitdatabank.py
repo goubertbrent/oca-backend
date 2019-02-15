@@ -215,6 +215,13 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
         logging.debug("uitdatabank_organizer_name: %s", uitdatabank_organizer_name)
         logging.debug("uitdatabank_organizer_cdbid: %s", uitdatabank_organizer_cdbid)
 
+    logging.debug('Organizer info: %r', {
+        'created_by': uitdatabank_created_by,
+        'lastupdated_by': uitdatabank_lastupdated_by,
+        'organizer_name': uitdatabank_organizer_name,
+        'organizer_cbdid': uitdatabank_organizer_cdbid,
+    })
+
     if uitdatabank_created_by or uitdatabank_lastupdated_by:
         organizer_settings_keys = set()
         for k in (uitdatabank_created_by, uitdatabank_lastupdated_by, uitdatabank_organizer_name, uitdatabank_organizer_cdbid):
@@ -223,7 +230,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
         organizer_settings = db.get(organizer_settings_keys) if organizer_settings_keys else []
 
-        logging.debug("len(organizer_settings): %s", len(organizer_settings))
+        logging.debug("organizer_settings: %s", map(repr, organizer_settings))
         for organizer_sln_settings in organizer_settings:
             organizer_event_parent_key = parent_key(organizer_sln_settings.service_user,
                                                     organizer_sln_settings.solution)
@@ -235,7 +242,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
                                         external_id=external_id)
 
             organizer_event.app_ids = [get_default_app_id(sln_settings.service_user)]
-            organizer_event.organization_type = get_organization_type(sln_settings.service_user)
+            organizer_event.organization_type = get_organization_type(organizer_sln_settings.service_user)
             organizer_event.calendar_id = organizer_sln_settings.default_calendar
             events.append(organizer_event)
 
