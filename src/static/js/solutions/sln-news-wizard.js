@@ -1310,13 +1310,15 @@ NewsWizard.prototype = {
                     imageSmoothingEnabled: true,
                     imageSmoothingQuality: 'high',
                 });
-                var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', 0.8);
-                elemImagePreview.attr('src', resizedImageDataUrl).css({'max-width': 350, height: 131.25});
-                elemImagePreview.cropper('destroy');
-                elemButtonSaveImage.hide();
-                elemInputImage.val('');
-                if (event) {
-                    renderPreview();
+                if (croppedImageCanvas) {
+                    var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', 0.8);
+                    elemImagePreview.attr('src', resizedImageDataUrl).css({'max-width': 350, height: 131.25});
+                    elemImagePreview.cropper('destroy');
+                    elemButtonSaveImage.hide();
+                    elemInputImage.val('');
+                    if (event) {
+                        renderPreview();
+                    }
                 }
             }
         }
