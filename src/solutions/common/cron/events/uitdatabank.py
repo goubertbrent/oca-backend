@@ -204,16 +204,12 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     # Matching organizers based on createdby, lastupdatedby, organiser.label.value and organiser.label.cbid
     uitdatabank_created_by = detail_result.get("createdby")
-    logging.debug("uitdatabank_created_by: %s", uitdatabank_created_by)
     uitdatabank_lastupdated_by = detail_result.get("lastupdatedby")
-    logging.debug("uitdatabank_lastupdated_by: %s", uitdatabank_lastupdated_by)
 
     uitdatabank_organizer_name = uitdatabank_organizer_cdbid = None
     if detail_result.get('organiser') and detail_result['organiser'].get('label'):
         uitdatabank_organizer_name = detail_result['organiser']['label'].get('value')
         uitdatabank_organizer_cdbid = detail_result['organiser']['label'].get('cdbid')
-        logging.debug("uitdatabank_organizer_name: %s", uitdatabank_organizer_name)
-        logging.debug("uitdatabank_organizer_cdbid: %s", uitdatabank_organizer_cdbid)
 
     logging.debug('Organizer info: %r', {
         'created_by': uitdatabank_created_by,
