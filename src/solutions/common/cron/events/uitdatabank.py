@@ -259,23 +259,21 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     event_description = r_event_detail.get("shortdescription", r_event_detail.get("longdescription", u""))
 
     location = detail_result["location"]["address"].get("physical")
+
+    def join(sep, parts):
+        return sep.join(filter(bool, parts))  # filtering None and empty strings
+
+    def value(str_or_dict):
+        if isinstance(str_or_dict, dict):
+            return str_or_dict['value']
+        return str_or_dict
+
     if location:
-        if location.get("street", None):
-            if uitdatabank_secret:
-                event_place = "%s %s, %s %s" % (location["street"]["value"],
-                                                location.get("housenr", ""),
-                                                location["zipcode"],
-                                                location["city"]["value"])
-            else:
-                event_place = "%s %s, %s %s" % (location["street"],
-                                                location.get("housenr", ""),
-                                                location["zipcode"],
-                                                location["city"])
-        else:
-            if uitdatabank_secret:
-                event_place = "%s %s" % (location["zipcode"], location["city"]["value"])
-            else:
-                event_place = "%s %s" % (location["zipcode"], location["city"])
+        street = location.get("street")
+        if street:
+            street = join(' ', (value(street), location.get('housenr')))
+        city = join(' ', (location["zipcode"], value(location["city"])))
+        event_place = join(', ', (street, city))
     else:
         event_place = detail_result["location"]["address"]["virtual"]["title"]
 
