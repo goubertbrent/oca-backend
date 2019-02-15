@@ -18,10 +18,10 @@
 import datetime
 import logging
 
+from babel.dates import format_date, format_time
 from google.appengine.ext import db, deferred
 import webapp2
 
-from babel.dates import format_date, format_time
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import parent_key
 from rogerthat.models import Message
@@ -31,6 +31,7 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
 from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.models import delete_all
+from solutions.common.bizz import timezone_offset
 from solutions.common.bizz.events import update_events_from_google
 from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
@@ -86,6 +87,8 @@ def _get_event_reminder_query():
 
 def _process_event_reminder(reminder_key):
     reminder = EventReminder.get(reminder_key)
+    if reminder.status != EventReminder.STATUS_PENDING:
+        return
 
     service_user = reminder.service_user
     settings = get_solution_settings(service_user)

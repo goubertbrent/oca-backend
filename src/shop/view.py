@@ -2319,7 +2319,7 @@ def log_error(description, errorMessage, timestamp, user_agent):
     request.platform = 0
     request.platformVersion = user_agent
     request.timestamp = timestamp
-    return logErrorBizz(request, gusers.get_current_user(), session=users.get_current_session(), shop=True)
+    return logErrorBizz(request, gusers.get_current_user(), session=users.get_current_session())
 
 
 @rest("/internal/shop/orders/load_all", "get")

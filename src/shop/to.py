@@ -288,9 +288,11 @@ class OrderTO(TO):
     full_date_canceled_str = unicode_property('4')
     amount = unicode_property('5')
     next_charge_date = long_property('6')
+    can_cancel = bool_property('7')
 
     @staticmethod
     def fromOrderModel(obj):
+        # type: (Order) -> OrderTO
         i = OrderTO()
         i.customer_id = obj.customer_id
         i.order_number = obj.order_number
@@ -298,6 +300,7 @@ class OrderTO(TO):
         i.full_date_canceled_str = unicode(obj.full_date_canceled_str)
         i.amount = obj.total_amount_in_euro
         i.next_charge_date = obj.next_charge_date or 0
+        i.can_cancel = not obj.is_subscription_order and obj.is_subscription_extension_order and obj.status == Order.STATUS_SIGNED
         return i
 
 
