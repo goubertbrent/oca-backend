@@ -835,28 +835,24 @@ def sign_order(customer_id, order_number, signature, no_charge=False):
                 order.next_charge_date = sub_order.next_charge_date
         order.put()
 
-        if not no_charge:
-            deferred.defer(send_order_email, order_key, gusers.get_current_user(), _transactional=True,
-                           _queue=FAST_QUEUE)
+        if not no_charge and order.total_amount > 0:
+            charge = Charge(parent=order_key)
+            charge.date = now()
+            charge.type = Charge.TYPE_ORDER_DELIVERY
+            charge.amount = order.amount
+            charge.vat_pct = order.vat_pct
+            charge.vat = order.vat
+            charge.total_amount = order.total_amount
+            charge.manager = order.manager
+            charge.team_id = order.team_id
+            charge.charge_number = ChargeNumber.next(customer.team.legal_entity_key)
+            charge.currency_code = customer.team.legal_entity.currency_code
+            charge.put()
 
-            if order.total_amount > 0:
-                charge = Charge(parent=order_key)
-                charge.date = now()
-                charge.type = Charge.TYPE_ORDER_DELIVERY
-                charge.amount = order.amount
-                charge.vat_pct = order.vat_pct
-                charge.vat = order.vat
-                charge.total_amount = order.total_amount
-                charge.manager = order.manager
-                charge.team_id = order.team_id
-                charge.charge_number = ChargeNumber.next(customer.team.legal_entity_key)
-                charge.currency_code = customer.team.legal_entity.currency_code
-                charge.put()
-
-                # Update the regio manager statistics
-                deferred.defer(update_regiomanager_statistic, gained_value=order.amount / 100, manager=order.manager,
-                               _transactional=True)
-                return customer, charge
+            # Update the regio manager statistics
+            deferred.defer(update_regiomanager_statistic, gained_value=order.amount / 100, manager=order.manager,
+                           _transactional=True)
+            return customer, charge
 
         return None, None
 

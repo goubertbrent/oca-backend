@@ -1000,7 +1000,7 @@ def create_apls_product(legal_entity_id, code_prefix=''):
 
 def create_appl_product(legal_entity_id, code_prefix=''):
     p = Product(key_name=code_prefix + 'APPL')
-    p.price = 9900 / 12
+    p.price = 1000
     p.default_count = 1
     p.default = False
     p.possible_counts = range(1, 13)

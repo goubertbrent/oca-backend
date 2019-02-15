@@ -1494,6 +1494,25 @@ var renderBilling = function () {
             }
         });
     });
+    $('button.cancel-order').unbind('click').click(function () {
+        var $this = $(this);
+        var orderNumber = $this.attr('order_number');
+        sln.confirm('Are you sure you want to cancel order ' + orderNumber + '?', onConfirm);
+
+        function onConfirm() {
+            sln.call({
+                url: '/internal/shop/rest/order/cancel',
+                method: 'POST',
+                data: {
+                    customer_id: parseInt($this.attr('customer_id')),
+                    order_number: orderNumber,
+                },
+                success: function () {
+                    loadOrdersAndInvoices();
+                }
+            });
+        }
+    });
 };
 
 var loadOrdersAndInvoices = function () {
