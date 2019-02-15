@@ -124,8 +124,10 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
 @returns(ReturnStatusTO)
 @arguments(news_id=(int, long))
 def rest_delete_news(news_id):
+    session_ = users.get_current_session()
+    service_identity = session_.service_identity
     try:
-        delete_news(news_id)
+        delete_news(news_id, service_identity)
         return ReturnStatusTO.create(True, None)
     except ServiceApiException as e:
         logging.exception(e)

@@ -19,9 +19,9 @@ import base64
 import datetime
 import json
 import logging
-from babel.dates import format_datetime, get_timezone
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
@@ -766,8 +766,8 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     channel.send_message(service_user, 'common.billing.orders.update')
 
 
-def delete_news(news_id):
-    news.delete(news_id)
+def delete_news(news_id, service_identity=None):
+    news.delete(news_id, service_identity)
 
 
 @returns(SponsoredNewsItemCount)
