@@ -1,12 +1,8 @@
-import { copy, remove } from 'fs-extra';
+import { copy, mkdirp, remove } from 'fs-extra';
 import * as gulp from 'gulp';
 import * as gutil from 'gulp-util';
-import * as gulpWatch from 'gulp-watch';
 import { join } from 'path';
 import { config } from '../config/config';
-
-const deleteEmpty = require('delete-empty');
-const debounce = require('lodash.debounce');
 
 if (process.platform === 'darwin') {
   try {
@@ -21,52 +17,68 @@ if (process.platform === 'darwin') {
  * Ensures changes are in sync with the source root by copying changed files and removing deleted files.
  */
 export function watch() {
-  const debouncedClean = debounce(cleanEmptyFolders, 200);
   return function () {
     let paths: string[] = [
       '!' + config.BUILD_ROOT,
-      ...config.SOURCE_ROOTS.map(root => join(root, '**')),
-      ...config.TEMP_FILES.map(temp => '!' + temp) ];
+      ...config.SOURCE_ROOTS.map(root => join(root, '**')) ];
 
-    gulpWatch(paths, async (e) => {
-      if (e.path.endsWith('.yaml')) {
-        gulp.task('merge.yaml')(() => {
-          gutil.log('Rebuild yaml files');
-        });
-      } else {
-        const sourceRoot = config.SOURCE_ROOTS.find(root => e.path.startsWith(root));
-        const buildFolderPath = e.path.replace(sourceRoot, config.BUILD_ROOT);
-        switch (e.event) {
-          case 'add':
-            try {
-              await copy(e.path, buildFolderPath);
-              gutil.log(gutil.colors.green(`Created file ${buildFolderPath}`));
-            } catch (e) {
-              gutil.log(gutil.colors.blue(`Could not copy file ${e.path}: ` + e.message));
-            }
-            break;
-          case 'unlink':
-            await remove(buildFolderPath);
-            gutil.log(gutil.colors.red(`Removed file ${buildFolderPath}`));
-            if (buildFolderPath.endsWith('.py')) {
-              await remove(buildFolderPath.replace('.py', '.pyc'));
-            }
-            debouncedClean();
-            break;
-          case 'change':
-            try {
-              await copy(e.path, buildFolderPath);
-              gutil.log(gutil.colors.yellow(`Updated file ${buildFolderPath}`));
-            } catch (e) {
-              gutil.log(gutil.colors.blue(`Could not copy file ${e.path}: ` + e.message));
-            }
-            break;
-        }
-      }
-    });
+    gulp.watch(paths, { ignored: config.IGNORED_FILES })
+      .on('change', async (file) => await processChange('change', file))
+      .on('add', async (file) => await processChange('add', file))
+      .on('unlink', async (file) => await processChange('unlink', file))
+      .on('addDir', async (file) => await processChange('addDir', file))
+      .on('unlinkDir', async (file) => await processChange('unlinkDir', file));
   };
 }
 
-export function cleanEmptyFolders() {
-  return deleteEmpty.sync(config.BUILD_ROOT);
+async function processChange(event: 'add' | 'unlink' | 'change' | 'addDir' | 'unlinkDir', path: string) {
+  if (path.endsWith('.yaml')) {
+    gulp.task('merge.yaml')(() => {
+      gutil.log('Rebuild yaml files');
+    });
+  } else {
+    const sourceRoot = config.SOURCE_ROOTS.find(root => path.startsWith(root));
+    const buildFolderPath = path.replace(sourceRoot, config.BUILD_ROOT);
+    switch (event) {
+      case 'add':
+        try {
+          await copy(path, buildFolderPath);
+          gutil.log(gutil.colors.green(`Created file ${buildFolderPath}`));
+        } catch (e) {
+          gutil.log(gutil.colors.blue(`Could not copy file ${path}: ` + e.message));
+        }
+        break;
+      case 'unlink':
+        await remove(buildFolderPath);
+        gutil.log(gutil.colors.red(`Removed file ${buildFolderPath}`));
+        if (buildFolderPath.endsWith('.py')) {
+          await remove(buildFolderPath.replace('.py', '.pyc'));
+        }
+        break;
+      case 'change':
+        try {
+          await copy(path, buildFolderPath);
+          gutil.log(gutil.colors.yellow(`Updated file ${buildFolderPath}`));
+        } catch (e) {
+          gutil.log(gutil.colors.blue(`Could not copy file ${path}: ` + e.message));
+        }
+        break;
+      case 'addDir':
+        try {
+          await mkdirp(buildFolderPath);
+          gutil.log(gutil.colors.green(`Created directory ${buildFolderPath}`));
+        } catch (e) {
+          gutil.log(gutil.colors.blue(`Could not create directory ${buildFolderPath}: ` + e.message));
+        }
+        break;
+      case 'unlinkDir':
+        try {
+          await remove(buildFolderPath);
+          gutil.log(gutil.colors.red(`Removed directory ${buildFolderPath}`));
+        } catch (e) {
+          gutil.log(gutil.colors.blue(`Could not remove directory ${buildFolderPath}: ` + e.message));
+        }
+        break;
+    }
+  }
 }
