@@ -202,17 +202,25 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     event.calendar_id = sln_settings.default_calendar
     events = [event]
 
-    uitdatabank_created_by = detail_result.get("createdby", None)
+    # Matching organizers based on createdby, lastupdatedby, organiser.label.value and organiser.label.cbid
+    uitdatabank_created_by = detail_result.get("createdby")
     logging.debug("uitdatabank_created_by: %s", uitdatabank_created_by)
-    uitdatabank_lastupdated_by = detail_result.get("lastupdatedby", None)
+    uitdatabank_lastupdated_by = detail_result.get("lastupdatedby")
     logging.debug("uitdatabank_lastupdated_by: %s", uitdatabank_lastupdated_by)
 
+    uitdatabank_organizer_name = uitdatabank_organizer_cdbid = None
+    if detail_result.get('organiser') and detail_result['organiser'].get('label'):
+        uitdatabank_organizer_name = detail_result['organiser']['label'].get('value')
+        uitdatabank_organizer_cdbid = detail_result['organiser']['label'].get('cdbid')
+        logging.debug("uitdatabank_organizer_name: %s", uitdatabank_organizer_name)
+        logging.debug("uitdatabank_organizer_cdbid: %s", uitdatabank_organizer_cdbid)
+
     if uitdatabank_created_by or uitdatabank_lastupdated_by:
-        organizer_settings_keys = []
-        if uitdatabank_created_by:
-            organizer_settings_keys.extend(uitdatabank_actors.get(uitdatabank_created_by, []))
-        if uitdatabank_lastupdated_by and uitdatabank_created_by != uitdatabank_lastupdated_by:
-            organizer_settings_keys.extend(uitdatabank_actors.get(uitdatabank_lastupdated_by, []))
+        organizer_settings_keys = set()
+        for k in (uitdatabank_created_by, uitdatabank_lastupdated_by, uitdatabank_organizer_name, uitdatabank_organizer_cdbid):
+            if k:
+                organizer_settings_keys.extend(uitdatabank_actors.get(k, []))
+
         organizer_settings = db.get(organizer_settings_keys) if organizer_settings_keys else []
 
         logging.debug("len(organizer_settings): %s", len(organizer_settings))
