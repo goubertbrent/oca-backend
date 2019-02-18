@@ -73,7 +73,8 @@ def get_businesses(app_id, zip_codes, page):
            "Got response status code %s and response content: %s" % (response.status_code, response.content))
     logging.info("Got response: %s" % response.content)
     businesses_json = json.loads(response.content)
-    schedule_tasks([create_task(find_match, app_id, business) for business in businesses_json['content']])
+    schedule_tasks([create_task(find_match, app_id, business) for business in businesses_json['content']],
+                   queue_name=HIGH_LOAD_WORKER_QUEUE)
     return businesses_json['totalPages']
 
 
@@ -115,7 +116,8 @@ def find_match(app_id, business):
 
 def find_matches(app_id, zip_codes):
     total_pages = get_businesses(app_id, zip_codes, 0)
-    schedule_tasks([create_task(get_businesses, app_id, zip_codes, page) for page in xrange(1, total_pages)])
+    schedule_tasks([create_task(get_businesses, app_id, zip_codes, page) for page in xrange(1, total_pages)],
+                   queue_name=HIGH_LOAD_WORKER_QUEUE)
 
 
 def find_all_joyn_matches():
@@ -133,8 +135,6 @@ def find_matches_for_shopapp(shop_app_key):
 
 def _get_shop_apps():
     return ShopApp.all(keys_only=True)
-
-
 
 
 def _add_joyn_module(customer_id):
