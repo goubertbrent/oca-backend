@@ -18,7 +18,7 @@ import time
 
 from google.appengine.ext import db
 
-from shop.models import OrderItem, Order, Product
+from shop.models import OrderItem, Product
 
 
 def f_date(timestamp):

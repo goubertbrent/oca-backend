@@ -351,18 +351,17 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
                                     search_enabled=search_enabled)
         service_user = sln_settings.service_user
-        #update_reserved_menu_item_labels(sln_settings)
+        # update_reserved_menu_item_labels(sln_settings)
     else:
         service_user = users.User(email)
-        language_updated, sln_settings = update_solution_service(
+        _, sln_settings = update_solution_service(
             service_user, branding_url, menu_item_color, solution, languages, currency,
             modules=modules, broadcast_types=broadcast_types, apps=apps,
             organization_type=organization_type, name=name, address=address,
             phone_number=phone_number, qualified_identifier=qualified_identifier)
         password = None
-        #if language_updated:
+        # if language_updated:
         #    update_reserved_menu_item_labels(sln_settings)
-
 
     deferred.defer(common_provision, service_user, broadcast_to_users=broadcast_to_users,
                    _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)

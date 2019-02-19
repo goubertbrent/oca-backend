@@ -33,7 +33,7 @@ from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, Loyal
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-import solutions.common.restapi
+import solutions.common.restapi  # @UnusedImport
 import solutions.common.restapi.campaignmonitor
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler

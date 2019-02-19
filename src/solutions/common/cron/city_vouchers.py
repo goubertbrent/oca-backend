@@ -73,7 +73,7 @@ def create_voucher_export_pdfs():
                        sln_settings.main_language, first_day_of_last_month, first_day_of_current_month)
 
 
-def format_timestamp(timestamp, sln_settings, format='EEE d MMM yyyy HH:mm'):
+def format_timestamp(timestamp, sln_settings, format='EEE d MMM yyyy HH:mm'):  # @ReservedAssignment
     return format_datetime(timestamp, format,
                            tzinfo=get_timezone(sln_settings.timezone),
                            locale=sln_settings.main_language)

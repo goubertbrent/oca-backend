@@ -27,8 +27,7 @@ from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.service.api.payments import list_providers, put_provider
-from rogerthat.to.payment import ServicePaymentProviderTO, PAYMENT_SETTINGS_MAPPING, ThreeFoldSettingsTO, \
-    ServicePaymentProviderFeeTO
+from rogerthat.to.payment import ServicePaymentProviderTO, PAYMENT_SETTINGS_MAPPING, ServicePaymentProviderFeeTO
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user
 from solutions.common.bizz import broadcast_updates_pending

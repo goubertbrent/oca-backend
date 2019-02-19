@@ -43,7 +43,6 @@ from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from google.appengine.ext import ndb
 from mcfw.cache import cached
-from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
@@ -2706,7 +2705,6 @@ def import_customer(
 
     try:
         language = city_customer.language
-        country = city_customer.country
         org_type = get_org_type(language, org_type_name)
         email = email or contact_email
         address = address or contact_address
@@ -2721,7 +2719,7 @@ def import_customer(
             name, address, '', city, zip_code, email, language, currency,
             phone, org_type, app_id, broadcast_types, modules)
 
-        customer, email_changed, is_new_service = create_customer_with_service(
+        customer, _, is_new_service = create_customer_with_service(
             city_customer, None, service, name, contact_address, '', contact_zipcode,
             contact_city, language, org_type, vat, website=website, facebook_page=facebook_page
         )

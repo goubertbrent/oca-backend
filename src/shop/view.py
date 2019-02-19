@@ -2432,7 +2432,7 @@ def rest_import_customers(import_id, app_id, file_data):
     customer_count = 0
     for row in reader:
         try:
-            id_, org_type_name, name, vat, email, phone, address, zip_code, \
+            _, org_type_name, name, vat, email, phone, address, zip_code, \
                 city, website, facebook_page, contact_name, contact_address, contact_zipcode, \
                 contact_city, contact_email, contact_phone = map(unicode, [v.decode('utf-8') for v in row])
         except ValueError:

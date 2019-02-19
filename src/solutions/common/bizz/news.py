@@ -22,18 +22,17 @@ import logging
 from types import NoneType
 
 from babel.dates import format_datetime, get_timezone
+
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
-from rogerthat.bizz.service import re_index
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_ndb_key
-from rogerthat.dal.service import get_service_identity, get_default_service_identity
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
@@ -41,7 +40,6 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO
-from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -49,7 +47,7 @@ from shop.bizz import update_regiomanager_statistic, get_payed
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
-from shop.exceptions import NoCreditCardException, AppNotFoundException
+from shop.exceptions import NoCreditCardException
 from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
 from shop.to import OrderItemTO
 from solutions import translate as common_translate
@@ -67,6 +65,7 @@ from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_m
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
     NewsStatsTO, NewsAppTO
 from solutions.flex import SOLUTION_FLEX
+
 
 FREE_SPONSORED_ITEMS_PER_APP = 5
 SPONSOR_DAYS = 7

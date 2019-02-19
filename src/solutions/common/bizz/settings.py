@@ -39,7 +39,7 @@ from solutions.common.dal import get_solution_settings, get_solution_logo, get_s
 from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionLogo, SolutionAvatar, SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink
-from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
+from solutions.common.to import SolutionSettingsTO
 from solutions.common.utils import is_default_service_identity
 
 SLN_LOGO_WIDTH = 640

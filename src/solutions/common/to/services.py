@@ -17,8 +17,6 @@
 
 from mcfw.properties import typed_property, unicode_list_property, long_property, unicode_property
 
-from rogerthat.to import ReturnStatusTO
-
 from solutions.common.to.qanda import ModuleTO
 
 

@@ -15,7 +15,6 @@
 #
 # @@license_version:1.3@@
 
-from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.cron import RecurrentBilling, NotifyExtentionNeededHandler, \
     ExportResellerInvoicesHandler, CleanupUnverifiedSignupRequests, MatchJoynMerchantsHandler
