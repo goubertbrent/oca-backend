@@ -189,6 +189,14 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     if DEBUG:
         logging.warn("detail result: %s", detail_result)
 
+    def filtered_join(sep, parts):
+        return sep.join(filter(bool, parts))  # filtering None and empty strings
+
+    def value(str_or_dict):
+        if isinstance(str_or_dict, dict):
+            return str_or_dict['value']
+        return str_or_dict
+
     event_parent_key = parent_key(sln_settings.service_user, sln_settings.solution)
     event = Event.all().ancestor(event_parent_key).filter(
         "source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
@@ -207,9 +215,13 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     uitdatabank_lastupdated_by = detail_result.get("lastupdatedby")
 
     uitdatabank_organizer_name = uitdatabank_organizer_cdbid = None
-    if detail_result.get('organiser') and detail_result['organiser'].get('label'):
-        uitdatabank_organizer_name = detail_result['organiser']['label'].get('value')
-        uitdatabank_organizer_cdbid = detail_result['organiser']['label'].get('cdbid')
+    if detail_result.get('organiser'):
+        organizer = detail_result['organiser'].get('label')
+        if isinstance(organizer, dict):
+            uitdatabank_organizer_name = detail_result['organiser']['label'].get('value')
+            uitdatabank_organizer_cdbid = detail_result['organiser']['label'].get('cdbid')
+        else:
+            uitdatabank_organizer_name = organizer
 
     logging.debug('Organizer info: %r', {
         'created_by': uitdatabank_created_by,
@@ -220,7 +232,10 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     if uitdatabank_created_by or uitdatabank_lastupdated_by:
         organizer_settings_keys = set()
-        for k in (uitdatabank_created_by, uitdatabank_lastupdated_by, uitdatabank_organizer_name, uitdatabank_organizer_cdbid):
+        for k in (uitdatabank_created_by,
+                  uitdatabank_lastupdated_by,
+                  uitdatabank_organizer_name,
+                  uitdatabank_organizer_cdbid):
             if k:
                 organizer_settings_keys.update(uitdatabank_actors.get(k, []))
 
@@ -260,20 +275,12 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     location = detail_result["location"]["address"].get("physical")
 
-    def join(sep, parts):
-        return sep.join(filter(bool, parts))  # filtering None and empty strings
-
-    def value(str_or_dict):
-        if isinstance(str_or_dict, dict):
-            return str_or_dict['value']
-        return str_or_dict
-
     if location:
         street = location.get("street")
         if street:
-            street = join(' ', (value(street), location.get('housenr')))
-        city = join(' ', (location["zipcode"], value(location["city"])))
-        event_place = join(', ', (street, city))
+            street = filtered_join(' ', (value(street), location.get('housenr')))
+        city = filtered_join(' ', (location["zipcode"], value(location["city"])))
+        event_place = filtered_join(', ', (street, city))
     else:
         event_place = detail_result["location"]["address"]["virtual"]["title"]
 
