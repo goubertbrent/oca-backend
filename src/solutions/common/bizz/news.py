@@ -22,6 +22,8 @@ import logging
 from types import NoneType
 
 from babel.dates import format_datetime, get_timezone
+from bs4 import BeautifulSoup
+from markdown import markdown
 
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
@@ -61,7 +63,6 @@ from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_f
 from solutions.common.models import SolutionInboxMessage, SolutionScheduledBroadcast
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview
-from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
     NewsStatsTO, NewsAppTO
 from solutions.flex import SOLUTION_FLEX
@@ -544,6 +545,13 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
             coupon, should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token, **kwargs)
 
 
+def remove_markdown(text):
+    if not isinstance(text, unicode):
+        text = text.decode('utf-8')
+    html = markdown(text)
+    return ''.join(BeautifulSoup(html).findAll(text=True))
+
+
 @returns()
 @arguments(service_user=users.User, on_facebook=bool, on_twitter=bool,
            facebook_access_token=unicode, news_id=(int, long))
@@ -558,7 +566,7 @@ def post_to_social_media(service_user, on_facebook, on_twitter,
         logging.warn('Cannot post to social media for a coupon news type')
         return
 
-    message = news_item.title + '\n' + news_item.message
+    message = news_item.title + '\n' + remove_markdown(news_item.message)
     image_content = None
     if news_item.image_id:
         news_item_image = NewsItemImage.get_by_id(news_item.image_id)
@@ -733,6 +741,7 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     db.put(to_put)
 
     # Not sure if this is necessary
+    from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
     deferred.defer(generate_and_put_order_pdf_and_send_mail, customer, new_order_key, service_user, contact,
                    _transactional=True)
 
