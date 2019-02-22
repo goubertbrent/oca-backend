@@ -68,7 +68,7 @@ from solutions.common.models import SolutionServiceConsent
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    from StringIO import StringIO  # @UnusedImport
 
 
 class ExportProductsHandler(webapp2.RequestHandler):

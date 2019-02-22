@@ -30,6 +30,7 @@ from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
+from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
 from shop.models import ShopApp, Customer
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import enable_or_disable_solution_module, SolutionModule
@@ -72,7 +73,8 @@ def get_businesses(app_id, zip_codes, page):
            "Got response status code %s and response content: %s" % (response.status_code, response.content))
     logging.info("Got response: %s" % response.content)
     businesses_json = json.loads(response.content)
-    run_tasks([create_task(find_match, app_id, business) for business in businesses_json['content']])
+    schedule_tasks([create_task(find_match, app_id, business) for business in businesses_json['content']],
+                   queue_name=HIGH_LOAD_WORKER_QUEUE)
     return businesses_json['totalPages']
 
 
@@ -114,7 +116,8 @@ def find_match(app_id, business):
 
 def find_matches(app_id, zip_codes):
     total_pages = get_businesses(app_id, zip_codes, 0)
-    run_tasks([create_task(get_businesses, app_id, zip_codes, page) for page in xrange(1, total_pages)])
+    schedule_tasks([create_task(get_businesses, app_id, zip_codes, page) for page in xrange(1, total_pages)],
+                   queue_name=HIGH_LOAD_WORKER_QUEUE)
 
 
 def find_all_joyn_matches():
@@ -132,18 +135,6 @@ def find_matches_for_shopapp(shop_app_key):
 
 def _get_shop_apps():
     return ShopApp.all(keys_only=True)
-
-
-def run_tasks(tasks, worker_queue=HIGH_LOAD_WORKER_QUEUE):
-    results = []
-    for chunk in chunks(tasks, taskqueue.MAX_TASKS_PER_ADD):
-        results.extend(taskqueue.Queue(worker_queue).add(chunk))
-    return results
-
-
-def create_task(worker_function, *args, **kwargs):
-    pickled = deferred.serialize(worker_function, *args, **kwargs)
-    return taskqueue.Task(payload=pickled, url=deferred._DEFAULT_URL, headers=deferred._TASKQUEUE_HEADERS)
 
 
 def _add_joyn_module(customer_id):

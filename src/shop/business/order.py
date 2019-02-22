@@ -19,7 +19,6 @@ import datetime
 import logging
 from StringIO import StringIO
 
-from google.appengine.api import users as gusers
 from google.appengine.ext import db
 
 import cloudstorage
@@ -46,8 +45,7 @@ from shop.exceptions import NoSubscriptionException, EmptyValueException, \
     ProductNotAllowedException, InvalidProductAmountException, InvalidProductQuantityException, \
     MissingProductDependencyException, NoProductsSelectedException
 from shop.models import Customer, Order, Quotation, Contact, Product, OrderItem, RegioManagerTeam, QuotationItem, \
-    Invoice, Charge, LegalEntity
-from shop.to import CreateQuotationTO
+    Charge
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.jobs import delete_solution
 from xhtml2pdf import pisa
@@ -248,7 +246,7 @@ def create_quotation(customer_id, data, google_user):
     all_products = {p.code: p for p in Product.list_by_legal_entity(team.legal_entity_id)}
     validate_and_sanitize_order_items(customer, all_products, data.order_items)
     vat_pct = get_vat_pct(customer, team)
-    price, total, vat, total_vat_incl = calculate_order_totals(vat_pct, data.order_items, all_products)
+    _, total, vat, total_vat_incl = calculate_order_totals(vat_pct, data.order_items, all_products)
     audit_log(customer.id, u"Creating new quotation.")
 
     def trans():

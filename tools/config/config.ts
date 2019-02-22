@@ -14,10 +14,10 @@ export class Config {
     join(this.BUILD_ROOT, 'lib'),
     join(this.BUILD_ROOT, 'static', 'node_modules'),
   ];
-  TEMP_FILES: string[] = [
+  IGNORED_FILES: string[] = [
     '**/*___jb_tmp___',
     '**/*~',
-    '*.pyc',
+    '**/*.pyc',
   ];
 }
 

@@ -23,15 +23,12 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import UNIT_SYMBOLS
 from solutions.common.localizer import translations as common_translations
-from solutions.djmatic import SOLUTION_DJMATIC
-from solutions.djmatic.localizer import translations as djmatic_translations
 from solutions.flex import SOLUTION_FLEX
 from solutions.flex.localizer import translations as flex_translations
 
-SOLUTIONS = [SOLUTION_DJMATIC, SOLUTION_FLEX]
+SOLUTIONS = [SOLUTION_FLEX]
 
 translations = {
-    SOLUTION_DJMATIC: djmatic_translations,
     SOLUTION_COMMON: common_translations,
     SOLUTION_FLEX: flex_translations
 }

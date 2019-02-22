@@ -116,7 +116,7 @@ class SolutionInboxMessageTO(object):
             to.sender_email = sln_i_settings.qualified_identifier
 
         to.icon = message.icon
-        to.icon_color = message.icon_color(sln_settings.solution)
+        to.icon_color = message.icon_color
         to.size = 1 + (len(message.child_messages) if message.child_messages else 0)
 
         to.picture_urls = message.picture_urls

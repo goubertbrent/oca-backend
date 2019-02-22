@@ -21,7 +21,7 @@ from xml.dom import minidom
 from google.appengine.api import urlfetch
 from google.appengine.ext.deferred import deferred
 
-from solutions.common.cron.news import parse_html_content
+from solutions.common.cron.news import html_to_markdown
 from solutions.common.cron.news.NewsScraper import NewsScraper
 
 
@@ -44,8 +44,8 @@ class BeZottegemNewsScraper(NewsScraper):
             content_html = u'%s' % item.getElementsByTagName('content')[0].firstChild.nodeValue
             description_html = item.getElementsByTagName('description')[0].firstChild.nodeValue
             permalink = u'%s' % item.getElementsByTagName('link')[0].firstChild.nodeValue
-            content, _, _ = parse_html_content(content_html)
-            description, _, _ = parse_html_content(description_html)
+            content = html_to_markdown(content_html)
+            description = html_to_markdown(description_html)
             if len(description) > len(content):
                 message = description
             else:

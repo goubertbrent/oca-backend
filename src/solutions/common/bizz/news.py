@@ -19,21 +19,22 @@ import base64
 import datetime
 import json
 import logging
-from babel.dates import format_datetime, get_timezone
 from types import NoneType
+
+from babel.dates import format_datetime, get_timezone
+from bs4 import BeautifulSoup
+from markdown import markdown
 
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
-from rogerthat.bizz.service import re_index
 from rogerthat.consts import SCHEDULED_QUEUE
 from rogerthat.dal import parent_ndb_key
-from rogerthat.dal.service import get_service_identity, get_default_service_identity
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem, NewsItemImage
 from rogerthat.rpc import users
@@ -41,7 +42,6 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO
-from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
@@ -49,7 +49,7 @@ from shop.bizz import update_regiomanager_statistic, get_payed
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
-from shop.exceptions import NoCreditCardException, AppNotFoundException
+from shop.exceptions import NoCreditCardException
 from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
 from shop.to import OrderItemTO
 from solutions import translate as common_translate
@@ -63,10 +63,10 @@ from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_f
 from solutions.common.models import SolutionInboxMessage, SolutionScheduledBroadcast
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview
-from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
     NewsStatsTO, NewsAppTO
 from solutions.flex import SOLUTION_FLEX
+
 
 FREE_SPONSORED_ITEMS_PER_APP = 5
 SPONSOR_DAYS = 7
@@ -545,6 +545,13 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
             coupon, should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token, **kwargs)
 
 
+def remove_markdown(text):
+    if not isinstance(text, unicode):
+        text = text.decode('utf-8')
+    html = markdown(text)
+    return ''.join(BeautifulSoup(html).findAll(text=True))
+
+
 @returns()
 @arguments(service_user=users.User, on_facebook=bool, on_twitter=bool,
            facebook_access_token=unicode, news_id=(int, long))
@@ -559,7 +566,7 @@ def post_to_social_media(service_user, on_facebook, on_twitter,
         logging.warn('Cannot post to social media for a coupon news type')
         return
 
-    message = news_item.title + '\n' + news_item.message
+    message = news_item.title + '\n' + remove_markdown(news_item.message)
     image_content = None
     if news_item.image_id:
         news_item_image = NewsItemImage.get_by_id(news_item.image_id)
@@ -734,6 +741,7 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     db.put(to_put)
 
     # Not sure if this is necessary
+    from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
     deferred.defer(generate_and_put_order_pdf_and_send_mail, customer, new_order_key, service_user, contact,
                    _transactional=True)
 
@@ -766,8 +774,8 @@ def create_and_pay_news_order(service_user, news_item_id, order_items_to):
     channel.send_message(service_user, 'common.billing.orders.update')
 
 
-def delete_news(news_id):
-    news.delete(news_id)
+def delete_news(news_id, service_identity=None):
+    news.delete(news_id, service_identity)
 
 
 @returns(SponsoredNewsItemCount)

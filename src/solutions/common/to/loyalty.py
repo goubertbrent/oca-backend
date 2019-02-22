@@ -19,10 +19,11 @@ from datetime import datetime, date
 import json
 
 from babel.dates import format_date
+import pytz
+
 from mcfw.properties import unicode_list_property, unicode_property, long_property, typed_property, bool_property, \
     long_list_property, object_factory, float_property
 from mcfw.rpc import parse_complex_value
-import pytz
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import today
 from rogerthat.utils.app import create_app_user_by_email
@@ -257,9 +258,8 @@ class LoyaltyScanTO(object):
         saved_points.visit_count = 0
         # XXX: don't use get_profile_infos
         profile_info = get_profile_info(obj.app_user)
-        saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info)
         app_info = get_app_info_cached(saved_points.user_details.app_id)
-        saved_points.user_details.app_name = app_info.name
+        saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info, app_info.name)
 
         if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
             x_discount = 5 if loyalty_settings.x_discount is None else loyalty_settings.x_discount

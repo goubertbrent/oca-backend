@@ -19,7 +19,6 @@ import datetime
 import json
 import logging
 import time
-from types import GeneratorType
 
 import cloudstorage
 from mapreduce import mapreduce_pipeline
@@ -29,7 +28,6 @@ from rogerthat.consts import STATS_QUEUE, DEBUG
 from rogerthat.dal.service import get_service_identities
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import guid, log_offload
-from solutions.common.models import SolutionSettings
 
 
 def start_job():
@@ -95,6 +93,7 @@ def reducer(app_id, values):
 
 
 class ModuleStatsPipeline(pipeline.Pipeline):
+
     def run(self, bucket_name, key, current_date):
         # type: (str, str, long) -> GeneratorType
         params = {
@@ -161,6 +160,7 @@ class ProcessFilePipeline(pipeline.Pipeline):
 
 
 class CleanupGoogleCloudStorageFiles(pipeline.Pipeline):
+
     def run(self, output):
         for filename in output:
             cloudstorage.delete(filename)

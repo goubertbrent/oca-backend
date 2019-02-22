@@ -58,9 +58,10 @@ def _get_cityapp_uitdatabank_enabled_query():
 
 def _process_cityapp_uitdatabank_events(cap_key, page):
     try:
-        uitdatabank_actors = defaultdict(list)
-        for sln_settings in SolutionSettings.all().filter("uitdatabank_actor_id !=", None):
-            uitdatabank_actors[sln_settings.uitdatabank_actor_id].append(sln_settings)
+        uitdatabank_actors = defaultdict(list)  # type: dict[str, list[db.Key]]
+        # Projection query - avoids need to fetch models
+        for sln_settings in SolutionSettings.all(projection=('uitdatabank_actor_id',)).filter('uitdatabank_actor_id >', ''):
+            uitdatabank_actors[sln_settings.uitdatabank_actor_id].append(sln_settings.key())
 
         pagelength = 50
         cap = CityAppProfile.get(cap_key)
@@ -76,7 +77,7 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
             return
 
         sln_settings = get_solution_settings(cap.service_user)
-        to_put = list()
+        to_put = []
 
         result_count = 0
         updated_events_count = 0
@@ -172,7 +173,9 @@ def get_event_start_and_end_dates(timestamps, v2=False):
     return event_start_dates, event_end_dates
 
 
-def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, external_id, uitdatabank_actors, changed_since):
+def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, external_id, uitdatabank_actors,
+                         changed_since):
+    # type: (SolutionSettings, str, str, str, {str, [db.Key]}, int) -> [Event]
     logging.debug("process event with id: %s", external_id)
     detail_success, detail_result = _get_uitdatabank_events_detail(uitdatabank_secret, uitdatabank_key, external_id)
     if not detail_success:
@@ -185,6 +188,14 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     if DEBUG:
         logging.warn("detail result: %s", detail_result)
+
+    def filtered_join(sep, parts):
+        return sep.join(filter(bool, parts))  # filtering None and empty strings
+
+    def value(str_or_dict):
+        if isinstance(str_or_dict, dict):
+            return str_or_dict['value']
+        return str_or_dict
 
     event_parent_key = parent_key(sln_settings.service_user, sln_settings.solution)
     event = Event.all().ancestor(event_parent_key).filter(
@@ -199,25 +210,39 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     event.calendar_id = sln_settings.default_calendar
     events = [event]
 
-    uitdatabank_created_by = detail_result.get("createdby", None)
-    logging.debug("uitdatabank_created_by: %s", uitdatabank_created_by)
-    uitdatabank_lastupdated_by = detail_result.get("lastupdatedby", None)
-    logging.debug("uitdatabank_lastupdated_by: %s", uitdatabank_lastupdated_by)
+    # Matching organizers based on createdby, lastupdatedby, organiser.label.value and organiser.label.cbid
+    uitdatabank_created_by = detail_result.get("createdby")
+    uitdatabank_lastupdated_by = detail_result.get("lastupdatedby")
+
+    uitdatabank_organizer_name = uitdatabank_organizer_cdbid = None
+    if detail_result.get('organiser'):
+        organizer = detail_result['organiser'].get('label')
+        if isinstance(organizer, dict):
+            uitdatabank_organizer_name = detail_result['organiser']['label'].get('value')
+            uitdatabank_organizer_cdbid = detail_result['organiser']['label'].get('cdbid')
+        else:
+            uitdatabank_organizer_name = organizer
+
+    logging.debug('Organizer info: %r', {
+        'created_by': uitdatabank_created_by,
+        'lastupdated_by': uitdatabank_lastupdated_by,
+        'organizer_name': uitdatabank_organizer_name,
+        'organizer_cbdid': uitdatabank_organizer_cdbid,
+    })
 
     if uitdatabank_created_by or uitdatabank_lastupdated_by:
-        if uitdatabank_created_by and uitdatabank_created_by not in uitdatabank_actors:
-            uitdatabank_actors[uitdatabank_created_by] = []
-        if uitdatabank_lastupdated_by and uitdatabank_lastupdated_by not in uitdatabank_actors:
-            uitdatabank_actors[uitdatabank_lastupdated_by] = []
+        organizer_settings_keys = set()
+        for k in (uitdatabank_created_by,
+                  uitdatabank_lastupdated_by,
+                  uitdatabank_organizer_name,
+                  uitdatabank_organizer_cdbid):
+            if k:
+                organizer_settings_keys.update(uitdatabank_actors.get(k, []))
 
-        origanizer_settings = []
-        if uitdatabank_created_by:
-            origanizer_settings.extend(uitdatabank_actors[uitdatabank_created_by])
-        if uitdatabank_lastupdated_by and uitdatabank_created_by != uitdatabank_lastupdated_by:
-            origanizer_settings.extend(uitdatabank_actors[uitdatabank_lastupdated_by])
+        organizer_settings = db.get(organizer_settings_keys) if organizer_settings_keys else []
 
-        logging.debug("len(origanizer_settings): %s", len(origanizer_settings))
-        for organizer_sln_settings in origanizer_settings:
+        logging.debug("organizer_settings: %s", map(repr, organizer_settings))
+        for organizer_sln_settings in organizer_settings:
             organizer_event_parent_key = parent_key(organizer_sln_settings.service_user,
                                                     organizer_sln_settings.solution)
             organizer_event = Event.all().ancestor(organizer_event_parent_key).filter(
@@ -228,7 +253,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
                                         external_id=external_id)
 
             organizer_event.app_ids = [get_default_app_id(sln_settings.service_user)]
-            organizer_event.organization_type = get_organization_type(sln_settings.service_user)
+            organizer_event.organization_type = get_organization_type(organizer_sln_settings.service_user)
             organizer_event.calendar_id = organizer_sln_settings.default_calendar
             events.append(organizer_event)
 
@@ -249,23 +274,13 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     event_description = r_event_detail.get("shortdescription", r_event_detail.get("longdescription", u""))
 
     location = detail_result["location"]["address"].get("physical")
+
     if location:
-        if location.get("street", None):
-            if uitdatabank_secret:
-                event_place = "%s %s, %s %s" % (location["street"]["value"],
-                                                location.get("housenr", ""),
-                                                location["zipcode"],
-                                                location["city"]["value"])
-            else:
-                event_place = "%s %s, %s %s" % (location["street"],
-                                                location.get("housenr", ""),
-                                                location["zipcode"],
-                                                location["city"])
-        else:
-            if uitdatabank_secret:
-                event_place = "%s %s" % (location["zipcode"], location["city"]["value"])
-            else:
-                event_place = "%s %s" % (location["zipcode"], location["city"])
+        street = location.get("street")
+        if street:
+            street = filtered_join(' ', (value(street), location.get('housenr')))
+        city = filtered_join(' ', (location["zipcode"], value(location["city"])))
+        event_place = filtered_join(', ', (street, city))
     else:
         event_place = detail_result["location"]["address"]["virtual"]["title"]
 

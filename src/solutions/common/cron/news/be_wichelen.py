@@ -16,11 +16,12 @@
 # @@license_version:1.3@@
 
 import logging
-from lxml import html
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
+from lxml import html
 
+from rogerthat.utils import now
 from solutions.common.cron.news import BROADCAST_TYPE_NEWS, transl, create_news_item
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionNewsScraperSettings
@@ -45,7 +46,8 @@ def _get_news_details(url):
 def check_for_news(service_user):
     deferred.defer(_check_for_news, service_user)
 
-def _check_for_news(service_user):
+
+def _check_for_news(service_user, dry_run=False):
     sln_settings = get_solution_settings(service_user)
     if BROADCAST_TYPE_NEWS not in sln_settings.broadcast_types:
         logging.error("check_for_news_in_be_wichelen failed no broadcast type found with name '%s'", BROADCAST_TYPE_NEWS)
@@ -53,7 +55,7 @@ def _check_for_news(service_user):
 
     broadcast_type = transl(BROADCAST_TYPE_NEWS, sln_settings.main_language)
 
-    url = u"http://www.wichelen.be"
+    url = u"http://www.wichelen.be?t=%s" % now()
     response = urlfetch.fetch(url, deadline=60)
     if response.status_code != 200:
         logging.error("Could not check for news in be_wichelen.\n%s" % response.content)
@@ -94,7 +96,8 @@ def _check_for_news(service_user):
             if url not in sln_news_scraper_settings.urls:
                 sln_news_scraper_settings.urls.append(url)
                 sln_news_scraper_settings.put()
-                deferred.defer(create_news_item, sln_settings, broadcast_type, news_short, title, url,
-                               _transactional=True)
+                if not dry_run:
+                    deferred.defer(create_news_item, sln_settings, broadcast_type, news_short, title, url,
+                                   _transactional=True)
 
         db.run_in_transaction(trans)

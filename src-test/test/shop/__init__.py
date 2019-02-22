@@ -37,18 +37,18 @@ class TestCase(oca_unittest.TestCase):
         self.assertIsNotNone(LegalEntity.get_mobicage())  # from cache
 
         mobicage_entity = LegalEntity(is_mobicage=True,
-                              name=u'Mobicage NV',
-                              address=u'Antwerpsesteenweg 19',
-                              postal_code=u'9080',
-                              city=u'Lochristi',
-                              country_code=u'BE',
-                              phone=u'+32 9 324 25 64',
-                              email=u'info@example.com',
-                              iban=u'BE85 3630 8576 4006',
-                              bic=u'BBRUBEBB',
-                              terms_of_use=None,
-                              vat_number=u'BE 0835 560 572',
-                              vat_percent=21)
+                                      name=u'Mobicage NV',
+                                      address=u'Antwerpsesteenweg 19',
+                                      postal_code=u'9080',
+                                      city=u'Lochristi',
+                                      country_code=u'BE',
+                                      phone=u'+32 9 324 25 64',
+                                      email=u'info@example.com',
+                                      iban=u'BE85 3630 8576 4006',
+                                      bic=u'BBRUBEBB',
+                                      terms_of_use=None,
+                                      vat_number=u'BE 0835 560 572',
+                                      vat_percent=21)
         mobicage_entity.put()
         self.assertIsNotNone(LegalEntity.get_mobicage())
         self.assertIsNotNone(LegalEntity.get_mobicage())  # from cache

@@ -18,7 +18,6 @@
 import datetime
 import logging
 import time
-from types import GeneratorType
 
 import cloudstorage
 from mapreduce import mapreduce_pipeline
@@ -30,7 +29,6 @@ from rogerthat.models import App
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import guid, log_offload
 from rogerthat.utils.app import get_app_id_from_app_user
-from solutions.common.models.loyalty import CustomLoyaltyCard
 
 
 def start_job():
@@ -73,6 +71,7 @@ def reducer(app_id, values):
 
 
 class LoyaltyCardsPipeline(pipeline.Pipeline):
+
     def run(self, bucket_name, key, current_date):
         # type: (str, str, long) -> GeneratorType
         shards = max(1, round(App.all().count() / 100))
@@ -146,6 +145,7 @@ class ProcessFilePipeline(pipeline.Pipeline):
 
 
 class CleanupGoogleCloudStorageFiles(pipeline.Pipeline):
+
     def run(self, output):
         for filename in output:
             cloudstorage.delete(filename)

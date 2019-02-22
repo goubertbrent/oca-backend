@@ -21,7 +21,7 @@ from google.appengine.api import urlfetch
 from google.appengine.ext.deferred import deferred, db
 
 from rogerthat.rpc.service import BusinessException
-from solutions.common.cron.news import create_news_item, BROADCAST_TYPE_NEWS, transl, parse_html_content
+from solutions.common.cron.news import create_news_item, BROADCAST_TYPE_NEWS, transl, html_to_markdown
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionNewsScraperSettings
 
@@ -85,7 +85,7 @@ class NewsScraper(object):
         """
         paragraphs = []
         for paragraph in container.xpath(selector):  # type: HtmlElement
-            text = parse_html_content(paragraph.text_content())[0].strip()
+            text = html_to_markdown(paragraph.text_content())[0].strip()
             if text:
                 paragraphs.append(text)
         return '\n\n'.join(paragraphs)

@@ -2319,7 +2319,7 @@ def log_error(description, errorMessage, timestamp, user_agent):
     request.platform = 0
     request.platformVersion = user_agent
     request.timestamp = timestamp
-    return logErrorBizz(request, gusers.get_current_user(), session=users.get_current_session(), shop=True)
+    return logErrorBizz(request, gusers.get_current_user(), session=users.get_current_session())
 
 
 @rest("/internal/shop/orders/load_all", "get")
@@ -2432,7 +2432,7 @@ def rest_import_customers(import_id, app_id, file_data):
     customer_count = 0
     for row in reader:
         try:
-            id_, org_type_name, name, vat, email, phone, address, zip_code, \
+            _, org_type_name, name, vat, email, phone, address, zip_code, \
                 city, website, facebook_page, contact_name, contact_address, contact_zipcode, \
                 contact_city, contact_email, contact_phone = map(unicode, [v.decode('utf-8') for v in row])
         except ValueError:

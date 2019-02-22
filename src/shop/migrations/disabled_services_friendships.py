@@ -22,8 +22,6 @@ from rogerthat.dal.service import get_friend_service_identity_connections_of_ser
     get_service_identities
 from rogerthat.bizz.friends import breakFriendShip
 from rogerthat.bizz.job import run_job
-from rogerthat.models import ServiceProfile
-from rogerthat.utils import now
 from shop.models import Customer
 
 

@@ -15,6 +15,9 @@
 #
 # @@license_version:1.3@@
 
+from setup_devserver import init_env
+init_env()
+
 import base64
 import os
 import pprint
@@ -24,10 +27,6 @@ import unittest
 
 from google.appengine.ext import db
 
-from setup_devserver import init_env
-
-init_env()
-
 from mcfw.cache import _tlocal
 from rogerthat.bizz.qrtemplate import store_template
 from rogerthat.bizz.service import create_qr_template_key_name
@@ -35,6 +34,7 @@ from rogerthat.bizz.system import DEFAULT_QR_CODE_OVERLAY, DEFAULT_QR_CODE_COLOR
 from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
 from rogerthat.utils import now, guid
+
 from shop.bizz import put_app_signup_enabled
 from shop.models import RegioManagerTeam, RegioManager, LegalEntity
 from shop.products import add_all_products
@@ -90,7 +90,6 @@ class TestCase(unittest.TestCase):
         ss.dashboardEmail = u"dashboard@example.com"
         ss.supportEmail = u"support@example.com"
         ss.supportWorkers = ["test@example.com"]
-        ss.serviceCreators = ["djmatic", "djmatic@example.com", "", "test@example.com"]
         ss.staticPinCodes = ["0666", "test@example.com"]
         ss.userEncryptCipherPart1 = base64.b64encode(u'userEncryptCipherPart1')
         ss.userEncryptCipherPart2 = base64.b64encode(u'userEncryptCipherPart2')

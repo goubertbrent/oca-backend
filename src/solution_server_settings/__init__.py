@@ -57,9 +57,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_payment_admin_emails = add_meta(db.StringListProperty(indexed=False),
                                          doc="The email addresses that can set the payment status of an order",
                                          order=308)
-    shop_privacy_policy_url = add_meta(db.StringProperty(indexed=False),
-                                      doc="Privacy policy url",
-                                      order=309)
     shop_new_prospect_sik = add_meta(db.StringProperty(indexed=False),
                                       doc="New prospect sik",
                                       order=310)
@@ -88,20 +85,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_sync_calendar_events_client_secret = add_meta(db.StringProperty(indexed=False),
                                             doc="Client secret to sync calendar events",
                                             order=608)
-
-    djmatic_service_email = add_meta(db.StringProperty(indexed=False),
-                                     doc="The main DJ-Matic service email",
-                                     order=901)
-    djmatic_secret = add_meta(db.StringProperty(indexed=False),
-                              doc="The secret used for incoming api requests",
-                              order=902)
-    djmatic_overview_emails = add_meta(db.StringListProperty(indexed=False),
-                                       doc="The google emails that have access to view and update DJ-Matic statuses",
-                                       order=903)
-    djmatic_category_id = add_meta(db.StringProperty(indexed=False),
-                                   doc="The main DJ-Matic service email",
-                                   order=904)
-
 
     tropo_token = add_meta(db.StringProperty(indexed=False),
                            doc="The token used to in api request to tropo",

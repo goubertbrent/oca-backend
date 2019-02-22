@@ -489,8 +489,7 @@ $(function () {
                         place_id.val("");
                         saveSettings();
                     }
-                    var searchType = (SOLUTION == "djmatic") ? "place" : "page";
-                    FB.api('/search?q=' + encodeURIComponent(query) + "&type=" + searchType + "&access_token="
+                    FB.api('/search?q=' + encodeURIComponent(query) + "&type=page&access_token="
                         + encodeURIComponent(fbAccessToken), function (res) {
                         fbPlaces = {};
                         fbPlacesLabels = [];

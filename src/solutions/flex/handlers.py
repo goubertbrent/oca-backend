@@ -21,7 +21,7 @@ import os
 
 import jinja2
 import webapp2
-from jinja2 import StrictUndefined
+from jinja2 import StrictUndefined  # @UnusedImport
 
 from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value

@@ -43,10 +43,6 @@ cron:
   url: /admin/cron/rpc/solution_events_scraper
   schedule: every day 01:00
 
-- description: Check DJ-Matic trial mode
-  url: /admin/cron/rpc/check_djmatic_trial_mode
-  schedule: every day 07:00
-
 - description: Solution events cleanup
   url: /admin/cron/rpc/cleanup_solution_events
   schedule: every day 08:00

@@ -18,12 +18,10 @@
 import logging
 
 from google.appengine.ext import db
+
 from rogerthat.bizz.job import run_job
 from rogerthat.utils import now
 from shop.models import CustomerSignup
-
-
-DAY = 24 * 3600
 
 
 def all_pending_signups():
@@ -35,7 +33,7 @@ def all_pending_signups():
 def remove_if_expired(signup_key, at):
     signup = CustomerSignup.get(signup_key)
     timestamp = signup.timestamp
-    if not timestamp or (at - timestamp) > DAY:
+    if not timestamp or (at - timestamp) > CustomerSignup.EXPIRE_TIME:
         logging.info('Deleting CustomerSignup:\n%s', db.to_dict(signup))
         db.delete(signup)
 

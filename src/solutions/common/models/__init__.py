@@ -18,10 +18,10 @@
 import json
 import logging
 
-from google.appengine.ext import db, ndb
-
 from babel import Locale
 from babel.dates import get_timezone
+from google.appengine.ext import db, ndb
+
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
@@ -134,10 +134,10 @@ class SolutionInboxMessage(db.Model):
             logging.error("SolutionInboxMessage icon not found for category '%s' key '%s'", self.category, self.key())
         return None
 
-    def icon_color(self, solution):
+    @property
+    def icon_color(self):
         if self.category:
-            color = u"#FFFFFF" if solution == u"djmatic" else u"#000000"
-            return color
+            return u"#000000"
         return None
 
     @property

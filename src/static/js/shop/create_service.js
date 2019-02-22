@@ -497,6 +497,7 @@ var customerSelected = function(customer) {
             }
         });
     } else {
+        $('#tab-service').find('#service_currency').val('EUR');
         ShopRequests.getContacts(customer.id).then(contacts => prefillServiceData(customer, contacts[0]));
 
         sln.call({

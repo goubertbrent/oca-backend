@@ -270,7 +270,7 @@
                         </label>
                         <br>
                         <label class="checkbox">
-                            <input id="checkbox_regional_news" type="checkbox" {{if newsItem.id}}disabled{{/if}}>
+                            <input id="checkbox_regional_news" type="checkbox" {{if newsItem.id}}disabled{{/if}} {{if apps.length > 1}}checked{{/if}}>
                             <strong>${T('broadcast-regionally')}</strong>
                             <br>
                             ${T('broadcast-regionally-description')}

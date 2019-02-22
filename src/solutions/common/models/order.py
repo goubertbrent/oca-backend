@@ -53,7 +53,7 @@ class SolutionOrderSettings(db.Model):
     # properties names are for easy conversion to ndb model later
     pause_settings_enabled = db.BooleanProperty(name='pause_settings.enabled', indexed=False, default=False)
     pause_settings_paused_until = db.DateTimeProperty(name='pause_settings.paused_until', indexed=False)
-    pause_settings_message = db.StringProperty(name='pause_settings.message', indexed=False)
+    pause_settings_message = db.TextProperty(name='pause_settings.message')
 
     @classmethod
     def create_key(cls, service_user):

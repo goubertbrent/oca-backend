@@ -15,6 +15,20 @@
 #
 # @@license_version:1.3@@
 
+from mcfw.restapi import rest_functions
+from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
+from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
+    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
+    FlowStatisticsExportHandler
+from solutions.common.handlers.broadcast import UploadAttachmentHandler
+from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
+    ExportVoucherHandler
+from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
+from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
+from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
+    LoyaltySlideOverlayHandler, ExportLoyaltyHandler
+from solutions.common.handlers.menu import ExportMenuHandler
+from solutions.common.handlers.service import LoginAsServiceHandler
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -32,26 +46,9 @@ import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.statistics
 import solutions.common.restapi.store
-import solutions.djmatic.restapi
-from mcfw.restapi import rest_functions
-from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
-from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
-    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
-    FlowStatisticsExportHandler
-from solutions.common.handlers.broadcast import UploadAttachmentHandler
-from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
-    ExportVoucherHandler
-from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
-from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
-from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
-    LoyaltySlideOverlayHandler, ExportLoyaltyHandler
-from solutions.common.handlers.menu import ExportMenuHandler
-from solutions.common.handlers.service import LoginAsServiceHandler
-from solutions.djmatic.handlers import DJMaticHomeHandler
 from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler, TermsAndConditionsHandler
 
 handlers = [
-    ('/djmatic/', DJMaticHomeHandler),
     ('/flex/', FlexHomeHandler),
     ('/flex/logout', FlexLogoutHandler),
     ('/common/login_as', LoginAsServiceHandler),
@@ -95,6 +92,5 @@ handlers.extend(rest_functions(solutions.common.restapi.reservation))
 handlers.extend(rest_functions(solutions.common.restapi.qanda))
 handlers.extend(rest_functions(solutions.common.restapi.store))
 handlers.extend(rest_functions(solutions.common.restapi.statistics))
-handlers.extend(rest_functions(solutions.djmatic.restapi))
 
 app = AuthenticatedRogerthatWSGIApplication(handlers, name="main_authenticated")

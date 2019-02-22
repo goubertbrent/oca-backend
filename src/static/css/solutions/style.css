@@ -463,8 +463,9 @@ select.disabled {
     padding-top: 8px;
 }
 
-.text_align_center{
-	text-align: center;
+.news_load_more_container{
+	display: flex;
+    justify-content: center;
 }
 
 .error {

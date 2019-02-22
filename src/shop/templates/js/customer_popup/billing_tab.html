@@ -47,6 +47,9 @@
             <td>
                 <a class="btn btn-primary" target="_blank"
                    href="/internal/shop/order/pdf?customer_id=${order.customer_id}&order_number=${order.order_number}&download=false">View</a>
+                {{if order.can_cancel}}
+                <button class="btn btn-danger cancel-order" order_number="${order.order_number}" customer_id="${order.customer_id}">Cancel extension order</button>
+                {{/if}}
             </td>
         </tr>
         {{/each}}

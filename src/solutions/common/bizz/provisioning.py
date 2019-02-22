@@ -16,23 +16,22 @@
 # @@license_version:1.3@@
 
 import base64
+from contextlib import closing
+from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
+import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import jinja2
-from google.appengine.ext import db, deferred
-
-import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from babel.numbers import format_currency
+from google.appengine.ext import db, deferred
+import jinja2
+
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -52,6 +51,7 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
@@ -101,7 +101,6 @@ from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, SolutionCalendarTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
-from solutions.djmatic import SOLUTION_DJMATIC
 from solutions.jinja_extensions import TranslateExtension
 
 try:
@@ -180,54 +179,49 @@ def get_and_complete_solution_settings(service_user, solution):
 @returns(SolutionMainBranding)
 @arguments(service_user=users.User)
 def get_and_store_main_branding(service_user):
-    sln_settings, main_branding, branding_settings = db.get([SolutionSettings.create_key(service_user),
-                                                             SolutionMainBranding.create_key(service_user),
-                                                             SolutionBrandingSettings.create_key(service_user)])
+    main_branding, branding_settings = db.get([SolutionMainBranding.create_key(service_user),
+                                               SolutionBrandingSettings.create_key(service_user)])
 
     must_store_branding = not main_branding.branding_key or not main_branding.branding_creation_time
 
-    if sln_settings.solution == SOLUTION_DJMATIC:
-        if branding_settings:
-            logging.warn('DJ-Matic services should not have SolutionBrandingSettings')
-    else:
-        if branding_settings and branding_settings.modification_time >= main_branding.branding_creation_time:
-            logging.info('Using SolutionBrandingSettings: %s', db.to_dict(branding_settings))
-            with closing(StringIO()) as stream:
-                with closing(ZipFile(stream, 'w', compression=ZIP_DEFLATED)) as zip_:
-                    main_branding_dir = os.path.join(os.path.dirname(__file__), '..', 'templates', 'main_branding')
-                    for f_name in os.listdir(main_branding_dir):
-                        content = None
-                        if f_name == 'branding.html':
-                            content = _render_branding_html(main_branding_dir,
-                                                            'branding.html',
-                                                            branding_settings.color_scheme,
-                                                            branding_settings.background_color,
-                                                            branding_settings.text_color,
-                                                            branding_settings.menu_item_color,
-                                                            branding_settings.show_avatar,
-                                                            {'show_identity_name': branding_settings.show_identity_name})
-                            content = content.encode('utf8')
-                            logging.debug('Generated %s: %s', f_name, content)
-                        elif f_name == 'logo.jpg':
-                            solution_logo = get_solution_logo(service_user)
-                            if solution_logo:
-                                content = str(solution_logo.picture)
+    if branding_settings and branding_settings.modification_time >= main_branding.branding_creation_time:
+        logging.info('Using SolutionBrandingSettings: %s', db.to_dict(branding_settings))
+        with closing(StringIO()) as stream:
+            with closing(ZipFile(stream, 'w', compression=ZIP_DEFLATED)) as zip_:
+                main_branding_dir = os.path.join(os.path.dirname(__file__), '..', 'templates', 'main_branding')
+                for f_name in os.listdir(main_branding_dir):
+                    content = None
+                    if f_name == 'branding.html':
+                        content = _render_branding_html(main_branding_dir,
+                                                        'branding.html',
+                                                        branding_settings.color_scheme,
+                                                        branding_settings.background_color,
+                                                        branding_settings.text_color,
+                                                        branding_settings.menu_item_color,
+                                                        branding_settings.show_avatar,
+                                                        {'show_identity_name': branding_settings.show_identity_name})
+                        content = content.encode('utf8')
+                        logging.debug('Generated %s: %s', f_name, content)
+                    elif f_name == 'logo.jpg':
+                        solution_logo = get_solution_logo(service_user)
+                        if solution_logo:
+                            content = str(solution_logo.picture)
 
-                        elif f_name == 'avatar.jpg':
-                            if not branding_settings.show_avatar:
-                                continue
-                            solution_avatar = get_solution_avatar(service_user)
-                            if solution_avatar:
-                                content = str(solution_avatar.picture)
+                    elif f_name == 'avatar.jpg':
+                        if not branding_settings.show_avatar:
+                            continue
+                        solution_avatar = get_solution_avatar(service_user)
+                        if solution_avatar:
+                            content = str(solution_avatar.picture)
 
-                        if not content:
-                            # just take the file from disk
-                            with open(os.path.join(main_branding_dir, f_name)) as f:
-                                content = f.read()
+                    if not content:
+                        # just take the file from disk
+                        with open(os.path.join(main_branding_dir, f_name)) as f:
+                            content = f.read()
 
-                        zip_.writestr(f_name, content)
-                main_branding.blob = db.Blob(stream.getvalue())
-            must_store_branding = True
+                    zip_.writestr(f_name, content)
+            main_branding.blob = db.Blob(stream.getvalue())
+        must_store_branding = True
 
     if must_store_branding:
         logging.info('Storing MAIN branding')
@@ -1126,7 +1120,6 @@ def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag
     broadcast_types = map(transl, sln_settings.broadcast_types)
     broadcast_types.extend(auto_broadcast_types)
 
-    system.put_broadcast_types(broadcast_types)
 
     ssmi = SolutionServiceMenuItem(u'fa-bell',
                                    sln_settings.menu_item_color,
@@ -1139,6 +1132,7 @@ def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag
     create_news_ssmi = _configure_broadcast_create_news(sln_settings, main_branding,
                                                         default_lang, POKE_TAG_BROADCAST_CREATE_NEWS)
 
+    system.put_broadcast_types(broadcast_types)
     return [ssmi, create_news_ssmi]
 
 
