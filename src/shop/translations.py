@@ -606,7 +606,7 @@ shop_translations = \
          u'XCTY.description': u'Uitbreiding maandelijks abonnement voor extra stad',
          u'XTRA.description': u'Lay-out, IT of integratiewerk door OSA.',
          u'amount': u'Aantal',
-         u'manual_invoice_will_be_created': u'Hartelijk dank voor uw bestelling. Wij zullen hiervoor een factuur opmaken en u die binnen de 5 werkdagen doormailen.',
+         u'manual_invoice_will_be_created': u'Hartelijk dank voor uw bestelling. Wij zullen hiervoor een factuur opmaken en u deze binnen de 5 werkdagen doormailen.',
          u'appointment_confirmed_via_phone': u'Naar aanleiding van de correspondentie van vandaag bevestig ik hierbij onze afspraak op %(date)s.',
          u'appointment_with_osa': u'Afspraak met Onze Stad App bij %(prospect_name)s',
          u'association': u'Vereniging',
