@@ -2006,7 +2006,12 @@ def get_payed(customer_id, order_or_number, charge_or_id):
                 charge.put()
 
         if invoice is None:
-            invoice_number = InvoiceNumber.next(customer.team.legal_entity_key)
+            legal_entity = db.get(customer.team.legal_entity_key)
+            if legal_entity.is_mobicage:
+                logging.warn('Automatic invoices are disabled')
+                invoice_number = None
+            else:
+                invoice_number = InvoiceNumber.next(customer.team.legal_entity_key)
         else:
             invoice_number = invoice.invoice_number
 
@@ -2031,17 +2036,25 @@ def get_payed(customer_id, order_or_number, charge_or_id):
                 charge_executed = True
         else:
             try:
+                metadata = {
+                    'osa_charge_id': charge_id,
+                    'osa_customer_id': customer_id,
+                    'osa_order_number': order_number,
+                }
+                if invoice_number:
+                    metadata['osa_invoice_number'] = invoice_number
+                    statement_descriptor = description = invoice_number
+                else:
+                    description = '%s %s' % (shop_translate(customer.language, 'order_number'), order_number)
+                    statement_descriptor = order_number
                 stripe_charge = stripe.Charge.create(api_key=solution_server_settings.stripe_secret_key,
                                                      amount=charge.total_amount,
                                                      currency="eur",
                                                      customer=customer.stripe_id,
-                                                     description=invoice_number,
+                                                     description=description,
                                                      capture=False,
-                                                     metadata=dict(osa_charge_id=charge_id,
-                                                                   osa_customer_id=customer_id,
-                                                                   osa_order_number=order_number,
-                                                                   osa_invoice_number=invoice_number),
-                                                     statement_descriptor=invoice_number,
+                                                     metadata=metadata,
+                                                     statement_descriptor=statement_descriptor,
                                                      source=customer.stripe_credit_card_id)
             except Exception as e:
                 logging.exception(e)
@@ -2059,8 +2072,37 @@ def get_payed(customer_id, order_or_number, charge_or_id):
         charge.date_executed = now()
         charge.put()
 
-        deferred.defer(create_invoice, customer_id, order_number, charge_id, invoice_number, guser,
-                       Invoice.PAYMENT_STRIPE, _transactional=True, _queue=FAST_QUEUE)
+        if invoice_number:
+            deferred.defer(create_invoice, customer_id, order_number, charge_id, invoice_number, guser,
+                           Invoice.PAYMENT_STRIPE, _transactional=True, _queue=FAST_QUEUE)
+        else:
+            logging.debug('Sending mail to support')
+            send_mail(solution_server_settings.shop_billing_email,
+                      customer.team.support_manager,
+                      u'New manual invoice to be created',
+                      u'A new invoice has to be created and sent to customer %s (%s). See order %s for more details.'
+                      % (customer.name, customer.id, order_number),
+                      transactional=True)
+            logging.debug('Sending mail to customer')
+
+            contact = order.contact
+            to = [contact.email]
+            to.extend(solution_server_settings.shop_payment_admin_emails)
+
+            with closing(StringIO()) as sb:
+                sb.write(shop_translate(customer.language, 'dear_name',
+                                        name="%s %s" % (contact.first_name, contact.last_name)).encode('utf-8'))
+                sb.write('\n\n')
+                sb.write(shop_translate(customer.language, 'manual_invoice_will_be_created',
+                                        contact_email=solution_server_settings.shop_reply_to_email).encode('utf-8'))
+                sb.write('\n\n')
+                sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
+                sb.write('\n')
+                sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
+                body = sb.getvalue()
+
+            subject = '%s %s' % (shop_translate(customer.language, 'order_number'), order_number)
+            send_mail(solution_server_settings.shop_billing_email, to, subject, body)
 
     run_in_transaction(trans, True)
 
