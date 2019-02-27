@@ -254,15 +254,6 @@ def clear_cache():
     deferred.defer(_clear_cache, _queue=MIGRATION_QUEUE)
 
 
-def nuke_news():
-    for keys in chunks(list(NewsItem.all(keys_only=True)), 200):
-        db.delete(keys)
-    for keys in chunks(list(NewsCoupon.all(keys_only=True)), 200):
-        db.delete(keys)
-    for keys in chunks(list(NewsItemImage.all(keys_only=True)), 200):
-        db.delete(keys)
-
-
 def _clear_cache():
     chunks = list()
     qry = DSCache.all(keys_only=True)

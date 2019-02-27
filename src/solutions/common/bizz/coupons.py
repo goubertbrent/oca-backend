@@ -21,7 +21,6 @@ import logging
 from mcfw.rpc import arguments, serialize_complex_value
 from mcfw.rpc import returns
 from rogerthat.bizz.service import get_and_validate_service_identity_user
-from rogerthat.models import KVStore
 from rogerthat.rpc import users
 from rogerthat.service.api import news
 from rogerthat.to.messaging import BaseMemberTO
@@ -34,7 +33,7 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.exceptions.news import NewsCouponNotFoundException, NewsCouponAlreadyUsedException
-from solutions.common.models.news import NewsCoupon
+from solutions.common.models.news import NewsCoupon, RedeemedBy
 from solutions.common.to.coupons import NewsCouponTO
 
 API_METHOD_SOLUTION_COUPON_RESOLVE = 'solutions.coupons.resolve'
@@ -105,21 +104,13 @@ def solution_coupon_redeem(service_user, email, method, params, tag, service_ide
 @returns(NewsCoupon)
 @arguments(coupon_id=(int, long), service_identity_user=users.User, redeeming_user=users.User)
 def get_and_validate_news_coupon(coupon_id, service_identity_user, redeeming_user):
-    """
-    Args:
-        coupon_id (long)
-        service_identity_user (users.User)
-        redeeming_user (users.User)
-    Returns:
-        NewsCoupon
-    """
-    coupon = NewsCoupon.get(NewsCoupon.create_key(coupon_id, service_identity_user))
+    # type: (long, users.User, users.User) -> NewsCoupon
+    coupon = NewsCoupon.create_key(coupon_id, service_identity_user).get()
     if not coupon:
         raise NewsCouponNotFoundException()
     if coupon.redeemed_by:
-        kv_store = coupon.redeemed_by.to_json_dict()
         redeeming_email = redeeming_user.email()
-        redeemed_user = [value for value in kv_store['users'] if value['user'] == redeeming_email]
+        redeemed_user = [value for value in coupon.redeemed_by if value.user == redeeming_email]
         if redeemed_user:
             raise NewsCouponAlreadyUsedException()
     return coupon
@@ -141,18 +132,11 @@ def redeem_news_coupon(coupon_id, service_identity_user, redeeming_user):
 
     def trans():
         coupon = get_and_validate_news_coupon(coupon_id, service_identity_user, redeeming_user)
-        if not coupon.redeemed_by:
-            coupon.redeemed_by = KVStore(coupon.key())
-            kv_store = {'users': []}
-        else:
-            kv_store = coupon.redeemed_by.to_json_dict()
-
-        redeemed_object = {
-            'user': redeeming_user.email(),
-            'redeemed_on': now()
-        }
-        kv_store['users'].append(redeemed_object)
-        coupon.redeemed_by.from_json_dict(kv_store)
+        redeemed_object = RedeemedBy(
+            user=redeeming_user.email(),
+            redeemed_on=now()
+        )
+        coupon.redeemed_by.append(redeemed_object)
         coupon.put()
         user, app_id = get_app_user_tuple(redeeming_user)
         member = BaseMemberTO(user.email(), app_id)
@@ -165,5 +149,5 @@ def redeem_news_coupon(coupon_id, service_identity_user, redeeming_user):
 @returns()
 @arguments(coupon_id=(int, long), service_identity_user=users.User, member=BaseMemberTO)
 def disable_news_with_coupon(coupon_id, service_identity_user, member):
-    coupon = NewsCoupon.get(NewsCoupon.create_key(coupon_id, service_identity_user))
+    coupon = NewsCoupon.create_key(coupon_id, service_identity_user).get()
     news.disable_news(coupon.news_id, [member], get_identity_from_service_identity_user(service_identity_user))

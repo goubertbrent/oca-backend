@@ -51,31 +51,17 @@ class SolutionScheduledBroadcastTO(object):
         return ssb
 
 
-class SubscriptionInfoTO(object):
-    expiration_date = unicode_property('1')
-    months_left = long_property('2')
-    has_signed = bool_property('3')
-
-    def __init__(self, expiration_date=None, months_left=None, has_signed=False):
-        self.expiration_date = expiration_date
-        self.months_left = months_left
-        self.has_signed = has_signed
-
-
 class BroadcastOptionsTO(TO):
     broadcast_types = unicode_list_property('1')
     editable_broadcast_types = unicode_list_property('2')
     news_promotion_product = typed_property('3', ProductTO, False)
     news_enabled = bool_property('5')
-    subscription_info = typed_property('6', SubscriptionInfoTO, False)
-    can_order_extra_apps = bool_property('7')
     roles = typed_property('8', RoleTO, True)
     news_settings = typed_property('9', dict)
     regional_news_enabled = bool_property('regional_news_enabled')
 
     def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
-                 news_enabled=False, subscription_info=None, can_order_extra_apps=True, roles=None, news_settings=None,
-                 regional_news_enabled=False):
+                 news_enabled=False, roles=None, news_settings=None, regional_news_enabled=False):
         if editable_broadcast_types is None:
             editable_broadcast_types = []
         if broadcast_types is None:
@@ -87,8 +73,6 @@ class BroadcastOptionsTO(TO):
         self.editable_broadcast_types = editable_broadcast_types
         self.news_promotion_product = news_promotion_product
         self.news_enabled = news_enabled
-        self.subscription_info = subscription_info
-        self.can_order_extra_apps = can_order_extra_apps
         self.roles = roles
         self.news_settings = news_settings.to_dict() if news_settings else {}
         self.regional_news_enabled = regional_news_enabled

@@ -28,7 +28,8 @@ from markdown import markdown
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-from mcfw.consts import MISSING
+
+from mcfw.consts import MISSING, MissingClass
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
@@ -41,10 +42,9 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, MediaType
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
-from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import update_regiomanager_statistic, get_payed
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import STORE_MANAGER
@@ -186,6 +186,7 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
     qr_code_caption = kwargs.get('qr_code_caption')
     scheduled_at = kwargs.get('scheduled_at')
 
+    @ndb.transactional(xg=True)
     def trans():
         news_item = news.publish(accept_missing=True, sticky=sticky, **kwargs)
         if should_save_coupon:
@@ -210,7 +211,7 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
         return news_item
 
     try:
-        news_item = run_in_xg_transaction(trans)
+        news_item = trans()
         if broadcast_on_facebook or broadcast_on_twitter:
             if scheduled_at is not MISSING and scheduled_at > 0:
                 schedule_post_to_social_media(service_user, host, broadcast_on_facebook,
@@ -356,11 +357,11 @@ def publish_item_from_review(review_key):
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
            facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode,
-           tag=unicode)
+           tag=unicode, media=(BaseMediaTO, MissingClass, NoneType))
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
                   broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
-                  host=None, tag=None):
+                  host=None, tag=None, media=MISSING):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -386,6 +387,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         role_ids (list of long) the list of role ids to filter sending the news to their members
         host (unicode): host of the api request (used for social media apps)
         tag(unicode)
+        media (rogerthat.to.news.MediaTO)
 
     Returns:
         news_item (NewsBroadcastItemTO)
@@ -467,6 +469,7 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         'target_audience': target_audience,
         'role_ids': role_ids,
         'tags': [tag],
+        'media': media,
     }
 
     if news_type == NewsItem.TYPE_QR_CODE:
@@ -532,8 +535,10 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
                     if feed_names and app_id in feed_names:
                         del feed_names[app_id]
 
+        from rogerthat.consts import DEBUG
         if new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
-            raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
+            if not DEBUG:
+                raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
 
     # for the rest
     kwargs['feed_names'] = feed_names.values()
@@ -568,10 +573,11 @@ def post_to_social_media(service_user, on_facebook, on_twitter,
 
     message = news_item.title + '\n' + remove_markdown(news_item.message)
     image_content = None
-    if news_item.image_id:
-        news_item_image = NewsItemImage.get_by_id(news_item.image_id)
-        if news_item_image:
-            image_content = news_item_image.image
+    if news_item.media:
+        if news_item.media.type == MediaType.IMAGE:
+            news_item_image = NewsItemImage.get_by_id(news_item.media.content)
+            if news_item_image:
+                image_content = news_item_image.image
 
     if on_facebook and facebook_access_token:
         facebook.post_to_facebook(facebook_access_token, message, image_content)

@@ -15,10 +15,10 @@
 #
 # @@license_version:1.3@@
 
-from base64 import b64encode
-from datetime import datetime
 import json
 import logging
+from base64 import b64encode
+from datetime import datetime
 from types import NoneType
 
 from google.appengine.api import urlfetch
@@ -26,10 +26,10 @@ from google.appengine.ext import deferred, db
 from google.appengine.ext.deferred import PermanentTaskFailure
 
 import cloudstorage
+import pytz
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
-import pytz
 from rogerthat.bizz.messaging import CanOnlySendToFriendsException
 from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
@@ -47,6 +47,7 @@ from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
     FormCallbackResultTypeTO, FormAcknowledgedCallbackResultTO, PokeCallbackResultTO, \
     FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO, FlowCallbackResultTypeTO
+from rogerthat.to.news import MediaType, BaseMediaTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, try_or_defer
@@ -441,10 +442,11 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
                                                              service_identity)
 
     try:
+        media = BaseMediaTO(type=MediaType.IMAGE, content=image) if image else None
         put_news_item(service_identity_user, title, message, broadcast_type,
-                      sponsored=False, image=image, action_button=None,
+                      sponsored=False, image=None, action_button=None,
                       order_items=None, news_type=news_type, qr_code_caption=title,
-                      app_ids=app_ids, scheduled_at=0, news_id=None)
+                      app_ids=app_ids, scheduled_at=0, news_id=None, media=media)
         message = common_translate(user_details.language,
                                    SOLUTION_COMMON, u'news_item_published')
         result = result_message(message)

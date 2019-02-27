@@ -54,8 +54,9 @@
                         </div>
                     </div>
                     <div id="news_image_editor_container" class="control-group">
-                        <div style="width: 480px; max-height:180px;">
-                            <img id="news_image_preview" style="max-width: 480px;" src="${newsItem.image_url}"/>
+                        <div>
+
+                            <img id="news_image_preview" style="max-height: 180px;" {{if newsItem.media}}src="${newsItem.media.content}"{{/if}}/>
                         </div>
                         <div class="controls padding-top">
                             <button class="btn btn-danger" type="button" id="news_button_remove_image">${T('Remove')}

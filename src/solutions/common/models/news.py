@@ -15,40 +15,44 @@
 #
 # @@license_version:1.3@@
 
-from google.appengine.ext import db, ndb
+from google.appengine.ext import ndb
 
 from mcfw.utils import Enum
-from rogerthat.dal import parent_key_unsafe, parent_ndb_key
-from rogerthat.models import KeyValueProperty
+from rogerthat.dal import parent_ndb_key, parent_ndb_key_unsafe
 from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
 from solutions import SOLUTION_COMMON
 
 
-class NewsCoupon(db.Model):
-    redeemed_by = KeyValueProperty()  # [{user: 'user1@example.com', 'redeemed_on': 1473674157}]
-    news_id = db.IntegerProperty()
-    content = db.StringProperty(indexed=False)  # Copy of NewsItem.qr_code_caption
+class RedeemedBy(NdbModel):
+    user = ndb.StringProperty()
+    redeemed_on = ndb.IntegerProperty()
+
+
+class NewsCoupon(NdbModel):
+    content = ndb.StringProperty(indexed=False)  # Copy of NewsItem.qr_code_caption
+    news_id = ndb.IntegerProperty()
+    redeemed_by = ndb.LocalStructuredProperty(RedeemedBy, compressed=True, repeated=True)  # type: list[RedeemedBy]
 
     @property
     def id(self):
-        return self.key().id()
+        return self.key.id()
 
     @classmethod
     def create_key(cls, coupon_id, service_identity_user):
-        return db.Key.from_path(cls.kind(), coupon_id, parent=cls.create_parent_key(service_identity_user))
+        return ndb.Key(cls, coupon_id, parent=cls.create_parent_key(service_identity_user))
 
     @classmethod
     def create_parent_key(cls, service_identity_user):
-        return parent_key_unsafe(service_identity_user, SOLUTION_COMMON)
+        return parent_ndb_key_unsafe(service_identity_user, SOLUTION_COMMON)
 
     @classmethod
     def list_by_service(cls, service_identity_user):
-        return cls.all().ancestor(cls.create_parent_key(service_identity_user))
+        return cls.query(ancestor=cls.create_parent_key(service_identity_user))
 
     @classmethod
     def get_by_news_id(cls, service_identity_user, news_id):
-        return cls.list_by_service(service_identity_user).filter('news_id', news_id).get()
+        return cls.list_by_service(service_identity_user).filter(cls.news_id == news_id).get()
 
 
 class SolutionNewsItem(NdbModel):

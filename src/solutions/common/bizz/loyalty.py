@@ -2031,6 +2031,9 @@ def is_joyn_available(country, modules, app_ids):
 @returns(bool)
 @arguments(joyn_available=bool, sln_settings=SolutionSettings)
 def is_oca_loyalty_limited(joyn_available, sln_settings):
+    from add_1_monkey_patches import DEBUG
+    if DEBUG:
+        return False
     if SolutionModule.JOYN in sln_settings.modules:
         return True
 

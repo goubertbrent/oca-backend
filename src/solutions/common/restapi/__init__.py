@@ -16,14 +16,12 @@
 # @@license_version:1.3@@
 
 import base64
-import datetime
 import logging
 from collections import defaultdict
 from types import NoneType
 
 from google.appengine.ext import db, deferred
 
-from babel.dates import format_date
 from babel.numbers import format_currency
 from mcfw.consts import MISSING, REST_FLAVOR_TO
 from mcfw.exceptions import HttpBadRequestException
@@ -54,17 +52,16 @@ from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user,
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
-from shop.business.order import get_subscription_order_remaining_length
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
-from shop.models import Product, Order
+from shop.models import Product
 from shop.to import ProductTO
 from shop.view import get_current_http_host
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
-    OrganizationType, create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
+    create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
     twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types, \
     validate_enable_or_disable_solution_module
 from solutions.common.bizz.branding_settings import save_branding_settings
@@ -112,7 +109,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
     AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
-from solutions.common.to.broadcast import BroadcastOptionsTO, SubscriptionInfoTO
+from solutions.common.to.broadcast import BroadcastOptionsTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
@@ -494,33 +491,9 @@ def rest_get_broadcast_options():
         broadcast_types.extend(abt_agenda.broadcast_types)
     news_promotion_product_to = ProductTO.create(news_promotion_product, sln_settings.main_language)
     news_enabled = sln_settings.solution == SOLUTION_FLEX
-    customer = get_customer(service_user)
-    remaining_length = 0
-    sub_order = None
-    can_order_extra_apps = True
-    has_signed_order = False
-    if customer and customer.organization_type != OrganizationType.CITY:
-        if customer.subscription_cancel_pending_date != 0 and customer.subscription_order_number:
-            can_order_extra_apps = False
-            has_signed_order = False
-        else:
-            remaining_length, sub_order = get_subscription_order_remaining_length(customer.id,
-                                                                                  customer.subscription_order_number)
-            has_signed_order = sub_order.status == Order.STATUS_SIGNED if sub_order else False
-            if has_signed_order:
-                can_order_extra_apps = False
-    else:
-        can_order_extra_apps = False
-
-    subscription_order_charge_date = None
-    if has_signed_order:
-        subscription_order_charge_date = format_date(datetime.datetime.utcfromtimestamp(sub_order.next_charge_date),
-                                                     locale=sln_settings.main_language)
-    subscription_info = SubscriptionInfoTO(subscription_order_charge_date, remaining_length, has_signed_order)
     roles = get_user_defined_roles()
     return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
-                              news_enabled, subscription_info, can_order_extra_apps,
-                              roles, news_settings, regional_news_enabled)
+                              news_enabled, roles, news_settings, regional_news_enabled)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)

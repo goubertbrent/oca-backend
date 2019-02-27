@@ -5,8 +5,10 @@
                 {{if newsItem.type === 2}}
                 <div class="news_coupon"><span>${T('coupon')}</span></div>
                 {{/if}}
-                <div class="news_image" {{if !newsItem.image && ! newsItem.image_url}}style="display:none;"{{/if}}>
-                    <img src="${newsItem.image || newsItem.image_url}"/>
+                <div class="news_image_container">
+                    <div class="news_image" {{if !newsItem.image  && ! newsItem.media }}style="display: none;"{{/if}}>
+                        <img src="${newsItem.image || (newsItem.media && newsItem.media.content)}"/>
+                    </div>
                 </div>
                 {{if newsItem.type === 2}}
                 <div class="news_qr">

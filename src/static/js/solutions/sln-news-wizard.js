@@ -98,15 +98,14 @@ function NewsWizard(newsList, options) {
         item_published: 'news_item_published',
         item_scheduled: 'news_item_scheduled_for_datetime',
         item_publish_error: 'could_not_publish_newsitem',
-    }
+    };
 
-    this.randomReachCount = Math.floor(Math.random() * (5001 - 1500) + 1500);
     this.promotedNews = {};
     modules.broadcast.registerAttachmentUploadedHandler(this.attachmentUploaded.bind(this));
 }
 
 NewsWizard.prototype = {
-    edit: function(newsId) {
+    edit: function (newsId) {
         newsId = parseInt(newsId);
         var newsItem;
         if (newsId) {
@@ -120,15 +119,15 @@ NewsWizard.prototype = {
         }
     },
 
-    goToOverview: function() {
-        window.location.hash = this.newsList.baseLink +  '/overview';
+    goToOverview: function () {
+        window.location.hash = this.newsList.baseLink + '/overview';
     },
 
-    goToShop: function() {
+    goToShop: function () {
         window.location.hash = '#/shop';
     },
 
-    getActionButtonValue: function(actionButton) {
+    getActionButtonValue: function (actionButton) {
         if (!actionButton) {
             return '';
         }
@@ -143,54 +142,12 @@ NewsWizard.prototype = {
     },
 
 
-    isPresentInApp: function(app_id) {
+    isPresentInApp: function (app_id) {
         return ACTIVE_APPS.indexOf(app_id) !== -1;
     },
 
-    getTotalReach: function(canOrderApps, originalNewsItem, newAdditionalApps) {
-        newAdditionalApps = newAdditionalApps || [];
-        var apps;
-        if (canOrderApps) {
-            apps = JSON.parse(JSON.stringify(ALL_APPS)).filter(function (a) {
-                return a.id !== 'rogerthat';
-            });
-        } else {
-            apps = JSON.parse(JSON.stringify(ALL_APPS)).filter(function (a) {
-                return a.id !== 'rogerthat' && ACTIVE_APPS.indexOf(a.id) !== -1;
-            });
-        }
-        var totalReach = 0;
-        self = this;
-        $.each(apps, function (i, app) {
-            var stats = self.appStatistics.filter(function (a) {
-                return a.app_id === app.id;
-            })[0];
-            if (stats) {
-                app.visible = true;
-                if (isDemoApp) {
-                    app.total_user_count = self.randomReachCount;
-                } else {
-                    app.total_user_count = stats.total_user_count;
-                }
-                var hasOrderedApp = originalNewsItem && originalNewsItem.app_ids.indexOf(app.id) !== -1;
-                if (hasOrderedApp || self.isPresentInApp(app.id) && !originalNewsItem) {
-                    app.checked = 'checked';
-                }
-                if (hasOrderedApp) {
-                    app.disabled = 'disabled';
-                }
-                if (hasOrderedApp || newAdditionalApps.indexOf(app.id) !== -1) {
-                    totalReach += app.total_user_count;
-                }
-            } else {
-                app.visible = false;
-            }
-        });
-        return [apps, totalReach];
-    },
-
     getCityAppTotalReach: function (appIds) {
-        return this.appStatistics.reduce(function(result, app) {
+        return this.appStatistics.reduce(function (result, app) {
             if (appIds.indexOf(app.app_id) !== -1) {
                 return result + app.total_user_count;
             }
@@ -198,25 +155,25 @@ NewsWizard.prototype = {
         }, 0);
     },
 
-    freeRegionalNews: function() {
+    freeRegionalNews: function () {
         var tags = this.broadcastOptions.news_settings.tags || [];
         return tags.indexOf(CONSTS.NEWS_TAGS.FREE_REGIONAL_NEWS) > -1;
     },
 
-    showBudget: function() {
+    showBudget: function () {
         var self = this;
         if (self.freeRegionalNews()) {
             self.$('#news_current_budget').text(CommonTranslations.unlimited);
             self.$('#news_views').hide();
         } else {
-            Requests.getBudget().then(function(budget) {
+            Requests.getBudget().then(function (budget) {
                 self.$('#news_current_budget').text(budget.balance * CONSTS.BUDGET_RATE);
                 self.$('#news_views').show();
             });
         }
     },
 
-    attachmentUploaded: function(url, name) {
+    attachmentUploaded: function (url, name) {
         // set the attachment name and trigger a keyup
         // to re-render the preview
         this.$('#news_action_attachment_caption').val(name);
@@ -228,22 +185,19 @@ NewsWizard.prototype = {
         this.$('#news_action_add_attachment').hide();
     },
 
-    render: function(newsItem) {
-        var actionButtonId, actionButton, actionButtonLabel, flowParams, canOrderApps, result,
-            restaurantReservationDate, selectedSandwich, actionButtonValue;
+    render: function (newsItem) {
+        var actionButtonId, actionButton, actionButtonLabel, flowParams, restaurantReservationDate, selectedSandwich,
+            actionButtonValue;
         restaurantReservationDate = new Date().getTime() / 1000;
         var promotionProduct = this.broadcastOptions.news_promotion_product;
         actionButton = newsItem ? newsItem.buttons[0] : null;
         actionButtonId = actionButton ? actionButton.id : null;
         actionButtonValue = this.getActionButtonValue(actionButton);
         actionButtonLabel = actionButton ? actionButton.caption : '';
-        canOrderApps = this.broadcastOptions.subscription_info.has_signed && this.broadcastOptions.can_order_extra_apps;
         this.citySelect = null;
-        // old promoted news related
-        // result = this.getTotalReach(canOrderApps, newsItem);
         var appIds, apps;
         if (newsItem) {
-            apps = []
+            apps = [];
             appIds = newsItem.app_ids;
             for (var appName in CONSTS.CITY_APPS) {
                 if (appIds.indexOf(CONSTS.CITY_APPS[appName]) !== -1) {
@@ -313,14 +267,14 @@ NewsWizard.prototype = {
             value: 'attachment',
             type: 'url',
             translation: T('Attachment'),
-            defaultLabel:T('Attachment')
+            defaultLabel: T('Attachment')
         }];
         if (MODULES.includes('joyn')) {
             allowedButtonActions.push({
                 value: 'joyn_coupon',
                 type: 'url',
                 translation: T('joyn-coupon'),
-                defaultLabel:T('activate')
+                defaultLabel: T('activate')
             });
         }
         actionButton = {
@@ -333,7 +287,6 @@ NewsWizard.prototype = {
             var params = {
                 T: T,
                 serviceMenu: self.serviceMenu,
-                canPromote: canOrderApps,
                 canSendNewsItem: self.broadcastOptions.next_news_item_time * 1000 < new Date().getTime(),
                 nextNewsItemTime: self.broadcastOptions.next_news_item_time,
                 broadcastTypes: self.broadcastOptions.editable_broadcast_types,
@@ -375,13 +328,13 @@ NewsWizard.prototype = {
         });
     },
 
-    $: function(selector) {
+    $: function (selector) {
         return this.newsList.getElement(selector);
     },
 
     getCityAppStats: function () {
         if (!this.appStats) {
-            this.appStats = this.appStatistics.reduce(function(result, app) {
+            this.appStats = this.appStatistics.reduce(function (result, app) {
                 result[app.app_id] = app.total_user_count;
                 return result;
             }, {});
@@ -389,7 +342,7 @@ NewsWizard.prototype = {
         return this.appStats;
     },
 
-    setupEventHandlers: function(originalNewsItem) {
+    setupEventHandlers: function (originalNewsItem) {
         var self = this;
 
         var elemRadioNewsType = self.$('input[name=news_select_type]'),
@@ -436,18 +389,17 @@ NewsWizard.prototype = {
             elemBroadcastOnTwitter = $("#broadcast_message_on_twitter").find("input"),
             elemFacebookPage = self.$('#facebook_page'),
             elemConfigureTargetAudience = self.$('#configure_target_audience'),
-            hasSignedOrder = self.broadcastOptions.subscription_info.has_signed,
             restaurantReservationDate;
 
         var itemIsPublished = originalNewsItem && originalNewsItem.published;
 
         elemButtonSaveImage.hide();
-        elemButtonRemoveImage.toggle(!(!originalNewsItem || !originalNewsItem.image_url));
+        elemButtonRemoveImage.toggle(!(!originalNewsItem || !originalNewsItem.media));
         elemButtonSubmit.hide();
 
         var renderPreview = sln.debounce(doRenderPreview, 250);
         elemCheckboxPromote.change(paidContentChanged);
-        elemButtonSubmit.click(function(e) {
+        elemButtonSubmit.click(function (e) {
             newsFormSubmitted(e, !originalNewsItem || !originalNewsItem.id);
         });
         elemInputImage.change(imageChanged);
@@ -514,23 +466,25 @@ NewsWizard.prototype = {
         });
 
         function plusClick(elem) {
-            return function() {
+            return function () {
                 elem.val(parseInt(elem.val()) + 1);
             };
         }
+
         function minClick(elem) {
-            return function() {
+            return function () {
                 var value = parseInt(elem.val());
                 elem.val(value > 0 ? value - 1 : 0);
             };
         }
+
         self.$('#age_max_plus').click(plusClick(self.$('#age_max')));
         self.$('#age_min_plus').click(plusClick(self.$('#age_min')));
         self.$('#age_max_min').click(minClick(self.$('#age_max')));
         self.$('#age_min_min').click(minClick(self.$('#age_min')));
 
         var checboxLocalNews = self.$('#checkbox_local_news');
-        checboxLocalNews.click(function() {
+        checboxLocalNews.click(function () {
             if (self.citySelect) {
                 var defaultApp = self.apps[0];
                 self.citySelect.setSelection(defaultApp.name, checboxLocalNews.is(':checked'));
@@ -548,7 +502,7 @@ NewsWizard.prototype = {
                     renderPreview();
                 }
             } else {
-                initAppSelect(function() {
+                initAppSelect(function () {
                     var selectDefaultApp = checboxLocalNews.is(':checked');
                     self.citySelect.setSelection(self.apps[0].name, selectDefaultApp);
                 });
@@ -559,8 +513,9 @@ NewsWizard.prototype = {
         self.$('#charge_budget').click(goToBudgetProduct);
 
         elemConfigureTargetAudience.change(configureTargetAudience);
+
         function configureTargetAudience() {
-            if(elemConfigureTargetAudience.is(':checked')) {
+            if (elemConfigureTargetAudience.is(':checked')) {
                 self.$('#target_audience').show();
             } else {
                 self.$('#target_audience').hide();
@@ -570,12 +525,12 @@ NewsWizard.prototype = {
         function checkFacebookPermissions(permissionsList) {
             var errors = [];
 
-            if(permissionsList.indexOf('manage_pages') === -1 ||
+            if (permissionsList.indexOf('manage_pages') === -1 ||
                 permissionsList.indexOf('publish_pages') === -1) {
                 errors.push(T('facebook-manage-pages-required'));
             }
 
-            if(errors.length > 0) {
+            if (errors.length > 0) {
                 sln.alert(errors.join('<br/>'));
                 return false;
             } else {
@@ -585,25 +540,25 @@ NewsWizard.prototype = {
 
         function loginToFacebook() {
             FB.login(function (response) {
-                if(response && response.authResponse) {
-                    if(checkFacebookPermissions(response.authResponse.grantedScopes)) {
-                        loadFacebookPages(response.authResponse.accessToken);
+                    if (response && response.authResponse) {
+                        if (checkFacebookPermissions(response.authResponse.grantedScopes)) {
+                            loadFacebookPages(response.authResponse.accessToken);
+                        } else {
+                            elemCheckPostToFacebook.attr('checked', false);
+                        }
                     } else {
                         elemCheckPostToFacebook.attr('checked', false);
                     }
-                } else {
-                    elemCheckPostToFacebook.attr('checked', false);
-                }
-                sln.hideProcessing();
-            },
-            {
-                scope: 'manage_pages,publish_pages',
-                return_scopes: true
-            });
+                    sln.hideProcessing();
+                },
+                {
+                    scope: 'manage_pages,publish_pages',
+                    return_scopes: true
+                });
         }
 
         function checkForFacebookLogin() {
-            if(elemCheckPostToFacebook.is(':checked')) {
+            if (elemCheckPostToFacebook.is(':checked')) {
                 sln.showProcessing(CommonTranslations.LOADING_DOT_DOT_DOT);
                 loginToFacebook();
             } else {
@@ -612,9 +567,9 @@ NewsWizard.prototype = {
         }
 
         function checkForTwitterLogin() {
-            if(elemCheckPostToTwitter.is(':checked')) {
+            if (elemCheckPostToTwitter.is(':checked')) {
                 var userName = elemBroadcastOnTwitter.val();
-                if(!userName) {
+                if (!userName) {
                     sln.alert(CommonTranslations.TWITTER_PAGE_REQUIRED);
                     elemCheckPostToTwitter.attr('checked', false);
                 }
@@ -624,13 +579,13 @@ NewsWizard.prototype = {
         function loadFacebookPages(userAccessToken) {
             elemFacebookPage.html('');
             var param = '/me/accounts?access_token=' + userAccessToken;
-            FB.api(param, function(response) {
-                if(!response || response.error) {
+            FB.api(param, function (response) {
+                if (!response || response.error) {
                     elemCheckPostToFacebook.attr('checked', false);
                     return;
                 }
-                $.each(response.data, function(i, page) {
-                    if(page.tasks.indexOf('CREATE_CONTENT') > -1) {
+                $.each(response.data, function (i, page) {
+                    if (page.tasks.indexOf('CREATE_CONTENT') > -1) {
                         elemFacebookPage.append($('<option>', {text: page.name, value: page.access_token}));
                     }
                 });
@@ -644,10 +599,9 @@ NewsWizard.prototype = {
         }).timepicker('setTime', scheduleDate.getHours() + ':' + scheduleDate.getMinutes());
         currentStep = 0;
         stepChanged(getNewsFormData());
-        // appsChanged();
         cityAppsChanged();
 
-        if (originalNewsItem && originalNewsItem.image_url) {
+        if (originalNewsItem && originalNewsItem.media) {
             elemImageEditorContainer.show();
         }
 
@@ -679,7 +633,7 @@ NewsWizard.prototype = {
                 } else if (selectedAction[0] === 'reserve1') {
                     self.$('#news_action_restaurant_reservation').show();
                 }
-            renderPreview();
+                renderPreview();
             });
         }
 
@@ -768,10 +722,16 @@ NewsWizard.prototype = {
                 // update image or leave old image
                 if (elemImagePreview.attr('src').indexOf('data:image/jpeg') === 0) {
                     data.image = elemImagePreview.attr('src');
+                    data.media = {
+                        type: 'image',
+                        content: elemImagePreview.attr('src'),
+                        height: elemImagePreview.prop('naturalHeight'),
+                        width: elemImagePreview.prop('naturalWidth'),
+                    };
                 }
             } else {
                 // delete image
-                data.image = null;
+                data.media = null;
             }
             var selectedActionButtonId = elemSelectButton.val() || '';
             if (selectedActionButtonId) {
@@ -815,13 +775,13 @@ NewsWizard.prototype = {
                         }
                         scheme += url.split('/collect-coupon/')[1];
                         actionValue = JSON.stringify({
-                        	original_url: url,
-                        	action_type: "open",
-                        	action: "app",
-                        	android_app_id: "com.thanksys.joyn.user",
-                        	android_scheme: scheme,
-                        	ios_app_id: "id1157594279",
-                        	ios_scheme: scheme
+                            original_url: url,
+                            action_type: "open",
+                            action: "app",
+                            android_app_id: "com.thanksys.joyn.user",
+                            android_scheme: scheme,
+                            ios_app_id: "id1157594279",
+                            ios_scheme: scheme
                         });
                         actionCaption = $('#news_action_joyn_coupon_caption').val();
                         break;
@@ -907,29 +867,31 @@ NewsWizard.prototype = {
 
             var newAppIds = [];
             if (!originalNewsItem) {
-                if(self.citySelect && self.$('#checkbox_regional_news').is(':checked')) {
+                if (self.citySelect && self.$('#checkbox_regional_news').is(':checked')) {
                     newAppIds = self.citySelect.getSelectedAppIds();
-                    newAppIds = newAppIds.filter(function (n) { return n!=null; }); // remove NULL
+                    newAppIds = newAppIds.filter(function (n) {
+                        return n != null;
+                    }); // remove NULL
                 } else if (self.$('#checkbox_local_news').is(':checked')) {
                     newAppIds = [ACTIVE_APPS[0]]; // default app
                 }
             }
             data.app_ids = newAppIds;
 
-            if(elemCheckPostToFacebook.is(':checked')) {
+            if (elemCheckPostToFacebook.is(':checked')) {
                 data.broadcast_on_facebook = true;
                 data.facebook_access_token = elemFacebookPage.val();
             } else {
                 data.broadcast_on_facebook = false;
             }
 
-            if(elemCheckPostToTwitter.is(':checked')) {
+            if (elemCheckPostToTwitter.is(':checked')) {
                 data.broadcast_on_twitter = true;
             } else {
                 data.broadcast_on_twitter = false;
             }
 
-            if(elemConfigureTargetAudience.is(':checked')) {
+            if (elemConfigureTargetAudience.is(':checked')) {
                 data.target_audience = {
                     min_age: parseInt(self.$('#age_min').val()),
                     max_age: parseInt(self.$('#age_max').val()),
@@ -937,8 +899,8 @@ NewsWizard.prototype = {
                     connected_users_only: self.$('#connected_users_only').is(':checked')
                 };
             }
-            data.role_ids = []
-            elemCheckboxesRoles.filter(':checked').each(function() {
+            data.role_ids = [];
+            elemCheckboxesRoles.filter(':checked').each(function () {
                 data.role_ids.push(parseInt($(this).val()));
             });
             return data;
@@ -949,17 +911,20 @@ NewsWizard.prototype = {
             var data = getNewsFormData();
             // validate the scheduled date/time again
             // as the user may publish after the scheduled date/time has passed
-            if(!validateScheduledAt(data)) {
+            if (!validateScheduledAt(data)) {
                 sln.alert(T('date_must_be_in_future'), null, CommonTranslations.ERROR);
                 previousStep();
                 return;
             }
             // check for facebook access token even if the post on facebook is checked
-            if(!elemCheckPostToFacebook.is(':disabled')) {
-                if(data.broadcast_on_facebook && !data.facebook_access_token) {
+            if (!elemCheckPostToFacebook.is(':disabled')) {
+                if (data.broadcast_on_facebook && !data.facebook_access_token) {
                     sln.alert(T('Login with facebook first'), null, CommonTranslations.ERROR);
                     return;
                 }
+            }
+            if (data.image) {
+                delete data.image;
             }
             submitNews(data, undefined, isNew);
         }
@@ -1125,6 +1090,7 @@ NewsWizard.prototype = {
                         };
                         manageCreditCard();
                     }
+
                     function loading() {
                         $this.find('.normal').hide();
                         $this.find('.loading').show();
@@ -1151,7 +1117,7 @@ NewsWizard.prototype = {
 
         function getReviewApps(itemAppIds, publishedAppIds) {
             var reviewApps = [];
-            $.each(CONSTS.CITY_APPS, function(appName, appId) {
+            $.each(CONSTS.CITY_APPS, function (appName, appId) {
                 if (itemAppIds.indexOf(appId) > -1 && publishedAppIds.indexOf(appId) === -1) {
                     reviewApps.push(appName);
                 }
@@ -1183,7 +1149,7 @@ NewsWizard.prototype = {
                 data: data,
                 success: function (result) {
                     sln.hideProcessing();
-                    if(result.errormsg && !result.success) {
+                    if (result.errormsg && !result.success) {
                         sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                         // re-enable the submit button
                         elemButtonSubmit.attr('disabled', false);
@@ -1276,9 +1242,11 @@ NewsWizard.prototype = {
 
         function removeImage() {
             elemImagePreview.cropper('destroy');
+            elemImagePreview.attr('src', '');
             elemInputImage.val('');
             elemImageEditorContainer.hide();
             elemInputUseCoverPhoto.show();
+            $('.news_image img').attr('src', '');
             doRenderPreview();
         }
 
@@ -1289,30 +1257,41 @@ NewsWizard.prototype = {
                 rotatable: true,
                 autoCropArea: 1.0,
                 minContainerWidth: 480,
-                minContainerHeight: 180,
-                aspectRatio: 16 / 6,
+                minContainerHeight: 270,
                 preview: '.news_image'
             };
             sln.readFile(this, elemImagePreview, 'dataURL', function () {
                 self.$('.news_image').show().find('img').remove();
-                elemImagePreview.css({'max-width': 480, height: 180});
+                elemImagePreview.css({'max-width': 480, height: 270});
                 elemImagePreview.cropper('destroy');
                 elemImagePreview.cropper(CROP_OPTIONS);
                 elemImageEditorContainer.show();
                 elemButtonRemoveImage.show();
                 elemButtonSaveImage.show().unbind('click').click(resizeImage);
+                var preview = self.$('.news_image');
+                elemImagePreview.off('load').on('load', function () {
+                    var height = 480 / elemImagePreview.prop('naturalWidth') * elemImagePreview.prop('naturalHeight');
+                    preview.css({height: height});
+                });
             });
         }
+
         function resizeImage(event) {
             if (elemInputImage.get(0).files.length !== 0) {
-                var croppedImageCanvas = elemImagePreview.cropper('getCroppedCanvas', {
-                    width: 1440,
+                var options = {
                     imageSmoothingEnabled: true,
                     imageSmoothingQuality: 'high',
-                });
+                };
+                var data = elemImagePreview.cropper('getData');
+                if (data.height > data.width) {
+                    options.maxHeight = 1440;
+                } else {
+                    options.maxWidth = 1440;
+                }
+                var croppedImageCanvas = elemImagePreview.cropper('getCroppedCanvas', options);
                 if (croppedImageCanvas) {
-                    var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', 0.8);
-                    elemImagePreview.attr('src', resizedImageDataUrl).css({'max-width': 350, height: 131.25});
+                    var resizedImageDataUrl = croppedImageCanvas.toDataURL('image/jpeg', .85);
+                    elemImagePreview.attr('src', resizedImageDataUrl);
                     elemImagePreview.cropper('destroy');
                     elemButtonSaveImage.hide();
                     elemInputImage.val('');
@@ -1320,21 +1299,6 @@ NewsWizard.prototype = {
                         renderPreview();
                     }
                 }
-            }
-        }
-
-        // old promoted news related
-        function appsChanged(e) {
-            var selectedAppIds = [];
-            elemCheckboxesApps.filter(':checked').each(function () {
-                selectedAppIds.push(this.value);
-            });
-            var result = self.getTotalReach(hasSignedOrder, originalNewsItem, selectedAppIds);
-            var totalReach = result[1];
-            self.$('#news_estimated_reach, .news_reach > b').text(totalReach);
-            // check if 'next' or 'send' button should be shown.
-            if (e) {
-                paidContentChanged();
             }
         }
 
@@ -1347,7 +1311,7 @@ NewsWizard.prototype = {
             }
 
             defaultApp = ALL_APPS[0];
-            defaultAppIsSelected = selectedAppIds.indexOf(defaultApp.id) > -1
+            defaultAppIsSelected = selectedAppIds.indexOf(defaultApp.id) > -1;
             if (self.citySelect && self.citySelect.getEnabledApps()[defaultApp.name]) {
                 self.$('#checkbox_local_news').prop('checked', defaultAppIsSelected);
             }
@@ -1370,7 +1334,7 @@ NewsWizard.prototype = {
             if (self.mapData) {
                 return callback(self.mapData);
             }
-            $.getJSON('/static/js/shop/libraries/' + mapFile, function(data) {
+            $.getJSON('/static/js/shop/libraries/' + mapFile, function (data) {
                 self.mapData = data;
                 callback(data);
             });
@@ -1378,7 +1342,7 @@ NewsWizard.prototype = {
 
         function initCitySelect(previewContainer, data) {
             var preselected, stats;
-            preselected = self.apps.map(function(app) {
+            preselected = self.apps.map(function (app) {
                 return app.name;
             });
             stats = self.getCityAppStats();
@@ -1405,15 +1369,16 @@ NewsWizard.prototype = {
             }
 
             if (!callback) {
-                callback = function() {};
+                callback = function () {
+                };
             }
 
-            var mapFile =  CONSTS.MAP_FILE;
+            var mapFile = CONSTS.MAP_FILE;
             var previewContainer = self.$('#app_select_preview');
             if (mapFile) {
                 previewContainer.append(TMPL_LOADING_SPINNER);
                 elemButtonSubmit.attr('disabled', true);
-                getMapData(mapFile, function(data) {
+                getMapData(mapFile, function (data) {
                     elemButtonSubmit.attr('disabled', false);
                     initCitySelect(previewContainer, data);
                     callback();
@@ -1436,7 +1401,7 @@ NewsWizard.prototype = {
             });
 
             var modal = sln.createModal(html);
-            $('button[action=submit]', modal).click(function() {
+            $('button[action=submit]', modal).click(function () {
                 modal.modal('hide');
                 goToBudgetProduct();
             });
@@ -1445,7 +1410,6 @@ NewsWizard.prototype = {
         function editCityApps() {
             if (self.citySelect) {
                 self.citySelect.show();
-                return;
             }
         }
 
@@ -1459,7 +1423,7 @@ NewsWizard.prototype = {
             if (self.freeRegionalNews()) {
                 callback();
             } else {
-                modules.billing.loadBudget(function(budget) {
+                modules.billing.loadBudget(function (budget) {
                     if (budget.balance <= 0) {
                         showBudgetBalanceWarning();
                     } else {
@@ -1512,13 +1476,9 @@ NewsWizard.prototype = {
             return !error;
         }
 
-        function requestLoyaltyDevice() {
-            modules.loyalty.requestLoyaltyDevice('News coupons');
-        }
-
         function autoRequireActionButtonRoles() {
             var tag = elemSelectButton.val();
-            var menuItem = self.serviceMenu.items.filter(function(item) {
+            var menuItem = self.serviceMenu.items.filter(function (item) {
                 return item.tag === tag;
             })[0];
 
@@ -1526,7 +1486,7 @@ NewsWizard.prototype = {
                 return;
             }
 
-            $.each(menuItem.roles, function() {
+            $.each(menuItem.roles, function () {
                 elemCheckboxesRoles.parent().find('input[type=checkbox][value=' + this + ']').prop('required', true);
             });
         }
@@ -1545,7 +1505,7 @@ NewsWizard.prototype = {
             if (step.tab === 0) {
                 // do not show post to social media if news type is coupon
                 var elemPostToSocialMedia = self.$('#post_to_social_media');
-                if(data.type === NEWS_TYPE_QR) {
+                if (data.type === NEWS_TYPE_QR) {
                     elemCheckPostToFacebook.attr('checked', false);
                     elemCheckPostToTwitter.attr('checked', false);
                     elemPostToSocialMedia.hide();
@@ -1560,19 +1520,19 @@ NewsWizard.prototype = {
 
             // check if the attachment is provided
             // the attachment url is hidden
-            if(step.tab === 4) {
+            if (step.tab === 4) {
                 elemCheckboxesRoles.prop('required', false);
 
-                if(data.action_button) {
-                    if(data.action_button.id === 'attachment') {
+                if (data.action_button) {
+                    if (data.action_button.id === 'attachment') {
                         var attachmentUrl = self.$('#news_action_attachment_value').val().trim();
-                        if(attachmentUrl === '') {
+                        if (attachmentUrl === '') {
                             sln.alert(T('please_add_attachment'), null, CommonTranslations.ERROR);
                             return;
                         }
                     }
 
-                    if(data.action_button.action.startsWith('smi')) {
+                    if (data.action_button.action.startsWith('smi')) {
                         autoRequireActionButtonRoles();
                     }
                 }
@@ -1600,7 +1560,7 @@ NewsWizard.prototype = {
             if (step.tab === 0 && (MODULES.indexOf('loyalty') === -1 || OCA_LOYALTY_LIMITTED)) {
                 nextStep();
                 return;
-        	}
+            }
 
             var LAST_STEP = self.steps.length - 1;
             var isLastStep = currentStep === LAST_STEP;
@@ -1658,15 +1618,14 @@ NewsWizard.prototype = {
 
         function doRenderPreview() {
             Requests.getSettings().then(r);
+
             function r(settings) {
                 var newsItem = getNewsFormData();
                 var imageUrl = elemImagePreview.attr('src') || '';
                 if (imageUrl.indexOf('http') === 0) {
-                    newsItem.image_url = imageUrl;
+                    newsItem.media = originalNewsItem.media;
                 }
                 newsItem.title = newsItem.title || T('events-title');
-                // old promoted news related
-                // var result = self.getTotalReach(hasSignedOrder, originalNewsItem, selectedAppIds);
                 var totalReach = self.getCityAppTotalReach(newsItem.app_ids);
                 var html = $.tmpl(templates['broadcast/broadcast_news_preview'], {
                     defaultButtons: self.defaultButtons,
@@ -1678,7 +1637,7 @@ NewsWizard.prototype = {
                     messageHtml: messageEditor.markdown(newsItem.message),
                 });
                 elemNewsPreview.html(html);
-                $(elemNewsPreview).find('a').attr( 'target','_blank');
+                $(elemNewsPreview).find('a').attr('target', '_blank');
 
                 var elemShowMore = self.$('.news_read_more_text'),
                     elemNewsContent = self.$('.news_content');

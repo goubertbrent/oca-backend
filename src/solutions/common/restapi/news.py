@@ -18,14 +18,14 @@
 import logging
 from types import NoneType
 
-from mcfw.consts import MISSING
+from mcfw.consts import MISSING, MissingClass
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
 from shop.to import OrderItemTO
@@ -66,16 +66,16 @@ def rest_get_news_statistics(news_id):
 
 @rest('/common/news', 'post', silent_result=True)
 @returns((NewsBroadcastItemTO, WarningReturnStatusTO))
-@arguments(title=unicode, message=unicode, broadcast_type=unicode, image=(unicode, type(MISSING)), sponsored=bool,
+@arguments(title=unicode, message=unicode, broadcast_type=unicode, image=(unicode, MissingClass), sponsored=bool,
            action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
            type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)),
            app_ids=[unicode], scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
            broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO,
-           role_ids=[(int, long)], tag=unicode)
+           role_ids=[(int, long)], tag=unicode, media=(BaseMediaTO, MissingClass, NoneType))
 def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
                        type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
                        scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
-                       facebook_access_token=None, target_audience=None, role_ids=None, tag=None):
+                       facebook_access_token=None, target_audience=None, role_ids=None, tag=None, media=MISSING):
     """
     Args:
         title (unicode)
@@ -96,6 +96,7 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
         target_audience (NewsTargetAudienceTO)
         role_ids (list of long)
         tag (unicode)
+        media (BaseMediaTO)
     """
     service_user = users.get_current_user()
     session_ = users.get_current_session()
@@ -111,7 +112,7 @@ def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, a
             service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
             order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
             broadcast_on_twitter, facebook_access_token, target_audience=target_audience, role_ids=role_ids,
-            host=host, tag=tag, accept_missing=True)
+            host=host, tag=tag, media=media, accept_missing=True)
     except AllNewsSentToReviewWarning as ex:
         return WarningReturnStatusTO.create(True, warningmsg=ex.message)
     except BusinessException as ex:
