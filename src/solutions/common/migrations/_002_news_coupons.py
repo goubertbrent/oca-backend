@@ -54,8 +54,10 @@ def migrate(dry_run=True):
                                      content=coupon.content,
                                      redeemed_by=[RedeemedBy(user=r['user'], redeemed_on=r['redeemed_on']) for r in
                                                   redeemed_by]))
-            for blob_bucket_ids in coupon.redeemed_by._blob_keys.itervalues():
-                to_delete.extend([KVBlobBucket.create_key(i, coupon.redeemed_by._ancestor) for i in blob_bucket_ids])
+            if coupon.redeemed_by:
+                for blob_bucket_ids in coupon.redeemed_by._blob_keys.itervalues():
+                    to_delete.extend([KVBlobBucket.create_key(i, coupon.redeemed_by._ancestor)
+                                      for i in blob_bucket_ids])
 
     run_in_transaction(trans, xg=True)
     if dry_run:
