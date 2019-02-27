@@ -18,10 +18,10 @@
 import json
 import logging
 
-from babel import Locale
-from babel.dates import get_timezone
 from google.appengine.ext import db, ndb
 
+from babel import Locale
+from babel.dates import get_timezone
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
@@ -680,7 +680,7 @@ class SolutionRssLink(NdbModel):
 
 
 class SolutionRssScraperSettings(NdbModel):
-    rss_links = ndb.LocalStructuredProperty(SolutionRssLink, repeated=True)
+    rss_links = ndb.LocalStructuredProperty(SolutionRssLink, repeated=True)  # type: list[SolutionRssLink]
     notify = ndb.BooleanProperty(default=True, indexed=False)
 
     @property
@@ -711,12 +711,27 @@ class SolutionRssScraperSettings(NdbModel):
 class SolutionRssScraperItem(NdbModel):
     timestamp = ndb.IntegerProperty(indexed=True)
     dry_run = ndb.BooleanProperty(indexed=True)
+    news_id = ndb.IntegerProperty()
+    hash = ndb.StringProperty()
+    date = ndb.DateTimeProperty()
+    rss_url = ndb.StringProperty()
+
+    @classmethod
+    def create_parent_key(cls, service_user, service_identity):
+        return SolutionRssScraperSettings.create_key(service_user, service_identity)
 
     @classmethod
     def create_key(cls, service_user, service_identity, unique_identifier):
         return ndb.Key(cls,
                        unique_identifier,
-                       parent=SolutionRssScraperSettings.create_key(service_user, service_identity))
+                       parent=cls.create_parent_key(service_user, service_identity))
+
+    @classmethod
+    def list_after_date(cls, service_user, service_identity, date):
+        # newest first
+        return cls.query(ancestor=cls.create_parent_key(service_user, service_identity)) \
+            .filter(cls.date > date) \
+            .order(-cls.date)
 
 
 class SolutionServiceConsent(NdbModel):

@@ -12,7 +12,8 @@
   "author": "",
   "scripts": {
     "build": "gulp build",
-    "start": "gulp watch"
+    "start": "gulp watch",
+    "ts-node": "ts-node"
   },
   "devDependencies": {
     "@types/del": "^3.0.1",
@@ -21,10 +22,13 @@
     "@types/gulp-concat": "^0.0.32",
     "@types/gulp-newer": "^0.0.31",
     "@types/gulp-util": "^3.0.34",
+    "@types/gulp-watch": "^4.1.34",
     "@types/js-yaml": "^3.12.0",
-    "@types/node": "^10.12.24",
+    "@types/node": "^10.12.19",
+    "@types/rimraf": "^2.0.2",
     "@types/shelljs": "^0.8.2",
     "del": "^3.0.0",
+    "delete-empty": "^2.0.0",
     "fs-extra": "^7.0.1",
     "gulp": "^4.0.0",
     "gulp-concat": "^2.6.1",
@@ -33,10 +37,13 @@
     "gulp-util": "^3.0.8",
     "isstream": "^0.1.2",
     "js-yaml": "^3.12.1",
+    "lodash.debounce": "^4.0.8",
+    "lodash.merge": "^4.6.1",
     "lodash.mergewith": "^4.6.1",
+    "rimraf": "^2.6.3",
     "shelljs": "^0.8.3",
     "ts-node": "^8.0.2",
     "tslint": "^5.12.1",
-    "typescript": "^3.3.3"
+    "typescript": "^3.2.4"
   }
 }

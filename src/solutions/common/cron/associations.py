@@ -40,7 +40,8 @@ class CreateNonProfitStatistics(webapp.RequestHandler):
 def get_news_of_last_month(published=True):
     return NewsItem.all().filter('timestamp <', now()) \
         .filter('timestamp >', now() - 2592000) \
-        .filter('published', published)
+        .filter('published', published) \
+        .filter('deleted', False)
 
 
 def update_statistic():

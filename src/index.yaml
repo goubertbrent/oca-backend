@@ -800,3 +800,9 @@ indexes:
   ancestor: yes
   properties:
   - name: date
+
+- kind: SolutionRssScraperItem
+  ancestor: yes
+  properties:
+  - name: date
+    direction: desc
