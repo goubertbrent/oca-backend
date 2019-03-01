@@ -22,8 +22,9 @@ import urllib
 
 from babel.dates import format_datetime
 from dateutil.relativedelta import relativedelta
-
 from google.appengine.ext import db
+import xlwt
+
 from mcfw.utils import chunks
 from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile
@@ -32,7 +33,6 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import get_epoch_from_datetime, months_between, send_mail, now
 from shop.models import Order
 from solution_server_settings import get_solution_server_settings
-import xlwt
 
 
 try:
@@ -87,7 +87,7 @@ def job():
         sheet.write(row, 1, "Months to renewal")
         for customer in customers:
             row += 1
-            sheet.write(row, 0, xlwt.Formula('HYPERLINK("%s";"%s")' % ("%s/internal/shop/?%s" % (settings.baseUrl, urllib.urlencode(((('customer_id', customer.id),)))), customer.name)))
+            sheet.write(row, 0, xlwt.Formula('HYPERLINK("%s";"%s")' % ("%s/internal/shop/?%s" % (settings.baseUrl, urllib.urlencode(((('customer_id', customer.id),)))), customer.name.replace('"', "'"))))
             sheet.write(row, 1, orders_by_order_number[customer.subscription_order_number])
     if apps:
         excel = StringIO()
