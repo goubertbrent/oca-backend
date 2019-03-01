@@ -32,11 +32,11 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from PIL.Image import Image
 from babel import Locale
 from babel.dates import format_date, format_datetime, get_timezone
+from google.appengine.ext import deferred, db
 from lxml import etree, html
 import pytz
 from xhtml2pdf import pisa
 
-from google.appengine.ext import deferred, db
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
@@ -1794,16 +1794,14 @@ def create_loyalty_statistics_for_service(service_user, service_identity, first_
                                             "winnings": s.winnings.replace('\n', '<br />') if s.winnings else u""}
     coupons = {}
     for coupon in coupons_ds:
-        if coupon.redeemed_by:
-            redeemed_by = coupon.redeemed_by.to_json_dict()
-            for user in redeemed_by['users']:
-                if first_day_of_last_month < user['redeemed_on'] < first_day_of_current_month:
-                    if coupon.id not in coupons:
-                        coupons[coupon.id] = {
-                            'content': coupon.content,
-                            'count': 0
-                        }
-                    coupons[coupon.id]['count'] += 1
+        for rb in coupon.redeemed_by:
+            if first_day_of_last_month < rb.redeemed_on < first_day_of_current_month:
+                if coupon.id not in coupons:
+                    coupons[coupon.id] = {
+                        'content': coupon.content,
+                        'count': 0
+                    }
+                coupons[coupon.id]['count'] += 1
 
     if len(revenue_discounts) == 0 and len(lottery) == 0 and len(stamps) == 0 and len(coupons) is 0:
         # customer did not use the loyalty system in this month
