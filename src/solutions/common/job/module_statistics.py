@@ -24,7 +24,8 @@ import cloudstorage
 from mapreduce import mapreduce_pipeline
 from pipeline import pipeline
 from pipeline.common import List
-from rogerthat.consts import STATS_QUEUE, DEBUG
+
+from rogerthat.consts import STATS_QUEUE, DEBUG, PIPELINE_BUCKET
 from rogerthat.dal.service import get_service_identities
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import guid, log_offload
@@ -33,8 +34,7 @@ from rogerthat.utils import guid, log_offload
 def start_job():
     current_date = datetime.datetime.now()
     key = 'module_stats_%s_%s' % (current_date.strftime('%Y-%m-%d'), guid())
-    bucket_name = 'oca-mr'
-    counter = ModuleStatsPipeline(bucket_name, key, time.mktime(current_date.timetuple()))
+    counter = ModuleStatsPipeline(PIPELINE_BUCKET, key, time.mktime(current_date.timetuple()))
     task = counter.start(idempotence_key=key, return_task=True)
     task.add(queue_name=STATS_QUEUE)
 

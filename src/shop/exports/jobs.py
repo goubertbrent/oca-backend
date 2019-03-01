@@ -21,14 +21,14 @@ import json
 import logging
 
 import cloudstorage
+from google.appengine.ext import db
 from mapreduce import mapreduce_pipeline
 from mapreduce.main import pipeline
 from pipeline.common import List
 import xlwt
 
-from google.appengine.ext import db
 from rogerthat.bizz.job.send_unread_messages import CleanupGoogleCloudStorageFiles
-from rogerthat.consts import MIGRATION_QUEUE, DEBUG
+from rogerthat.consts import MIGRATION_QUEUE, DEBUG, PIPELINE_BUCKET
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import ServiceIdentityStatistic, ServiceIdentity
@@ -36,7 +36,7 @@ from rogerthat.settings import get_server_settings
 from rogerthat.utils import now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from solutions.common import SOLUTION_COMMON
-from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyVisitRevenueDiscount,\
+from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyVisitRevenueDiscount, \
     SolutionLoyaltyVisitLottery, SolutionLoyaltyVisitStamps, SolutionCityWideLotteryVisit
 
 
@@ -64,13 +64,12 @@ def export(email):
 class ExportCityServicesPipeline(pipeline.Pipeline):
 
     def run(self, key, email):
-        bucket_name = "rogerthat-send_unread_messages"
         mapper_params = {
             "entity_kind": "shop.models.Customer"
         }
         reducer_params = {
             "output_writer": {
-                "bucket_name": bucket_name,
+                "bucket_name": PIPELINE_BUCKET,
             }
         }
 

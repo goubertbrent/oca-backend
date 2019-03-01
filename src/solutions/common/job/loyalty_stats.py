@@ -23,8 +23,9 @@ import cloudstorage
 from mapreduce import mapreduce_pipeline
 from pipeline import pipeline
 from pipeline.common import List
+
 from rogerthat.bizz.statistics import get_country_code_from_app_id
-from rogerthat.consts import STATS_QUEUE, DEBUG
+from rogerthat.consts import STATS_QUEUE, DEBUG, PIPELINE_BUCKET
 from rogerthat.models import App
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import guid, log_offload
@@ -34,8 +35,7 @@ from rogerthat.utils.app import get_app_id_from_app_user
 def start_job():
     current_date = datetime.datetime.now()
     key = 'loyalty_stats_%s_%s' % (current_date.strftime('%Y-%m-%d'), guid())
-    bucket_name = 'oca-mr'
-    counter = LoyaltyCardsPipeline(bucket_name, key, time.mktime(current_date.timetuple()))
+    counter = LoyaltyCardsPipeline(PIPELINE_BUCKET, key, time.mktime(current_date.timetuple()))
     task = counter.start(idempotence_key=key, return_task=True)
     task.add(queue_name=STATS_QUEUE)
 
