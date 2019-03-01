@@ -73,7 +73,8 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
         logging.info("process_cityapp_uitdatabank_events for %s page %s", cap.service_user, page)
         success, result = get_uitdatabank_events(cap, page, pagelength, cap.uitdatabank_last_query or None)
         if not success:
-            logging.exception(result, _suppress=False)
+            if page == 1:
+                logging.exception(result, _suppress=False)
             return
 
         sln_settings = get_solution_settings(cap.service_user)
