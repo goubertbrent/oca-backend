@@ -18,7 +18,7 @@
 import logging
 from types import NoneType
 
-from mcfw.consts import MISSING, MissingClass
+from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -66,13 +66,13 @@ def rest_get_news_statistics(news_id):
 
 @rest('/common/news', 'post', silent_result=True)
 @returns((NewsBroadcastItemTO, WarningReturnStatusTO))
-@arguments(title=unicode, message=unicode, broadcast_type=unicode, image=(unicode, MissingClass), sponsored=bool,
+@arguments(title=unicode, message=unicode, broadcast_type=unicode, image=unicode, sponsored=bool,
            action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
-           type=(int, long, type(MISSING)), qr_code_caption=(unicode, type(MISSING)),
+           type=(int, long), qr_code_caption=unicode,
            app_ids=[unicode], scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
            broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO,
-           role_ids=[(int, long)], tag=unicode, media=(BaseMediaTO, MissingClass, NoneType))
-def rest_put_news_item(title, message, broadcast_type, image, sponsored=False, action_button=None, order_items=None,
+           role_ids=[(int, long)], tag=unicode, media=BaseMediaTO)
+def rest_put_news_item(title, message, broadcast_type, image=MISSING, sponsored=False, action_button=None, order_items=None,
                        type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
                        scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
                        facebook_access_token=None, target_audience=None, role_ids=None, tag=None, media=MISSING):

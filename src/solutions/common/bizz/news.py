@@ -22,14 +22,13 @@ import logging
 from types import NoneType
 
 from babel.dates import format_datetime, get_timezone
-from bs4 import BeautifulSoup
-from markdown import markdown
-
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
-from mcfw.consts import MISSING, MissingClass
+from bs4 import BeautifulSoup
+from markdown import markdown
+from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
@@ -357,7 +356,7 @@ def publish_item_from_review(review_key):
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
            facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode,
-           tag=unicode, media=(BaseMediaTO, MissingClass, NoneType))
+           tag=unicode, media=BaseMediaTO)
 def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
                   broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
