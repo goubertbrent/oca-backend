@@ -180,7 +180,7 @@ class SolutionCalendar(db.Model):
 
     @property
     def calendar_id(self):
-        return self.key().id()
+        return long(self.key().id())
 
     @classmethod
     def create_key(cls, calendar_id, service_user, solution):
