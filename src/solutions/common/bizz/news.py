@@ -553,7 +553,7 @@ def remove_markdown(text):
     if not isinstance(text, unicode):
         text = text.decode('utf-8')
     html = markdown(text)
-    return ''.join(BeautifulSoup(html).findAll(text=True))
+    return ''.join(BeautifulSoup(html, features='lxml').findAll(text=True))
 
 
 @returns()
