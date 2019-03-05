@@ -18,6 +18,7 @@ export class Config {
     '**/*___jb_tmp___',
     '**/*~',
     '**/*.pyc',
+    join(this.SOURCE_ROOTS[ 0 ], 'lib'),
   ];
 }
 

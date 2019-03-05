@@ -18,7 +18,7 @@
 {% endif %}
 <link rel="stylesheet" type="text/css" href="/static/js/cropperjs/cropper.min.css"/>
 {% if functionality_modules %}
-<link href="https://fonts.googleapis.com/css?family=Roboto:700" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
 <link href="/static/css/solutions/flex/functionalities.css" rel="stylesheet">
 {% endif %}
 <link href="/static/css/solutions/style.css" rel="stylesheet" media="screen">
@@ -90,7 +90,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
 
 <body>
     <div id="wrap">
-        <div class="container" style="padding-bottom:80px;">
+        <div class="container">
             <div class="navbar navbar-fixed-top">
                 <div class="navbar-inner" {% if debug %}style="background: #e5ffe5;"{% endif %}>
                     <ul id="topmenu" class="nav">
@@ -152,6 +152,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     {% endif %}
 {% endif %}
 
+{% if SolutionModule.FORMS in sln_settings.modules and not loyalty %}
+                        <li menu="forms"><a href="#/forms">{% translate language, "common", "forms" %}</a></li>
+{% endif %}
 {% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
                         <li menu="static_content"><a href="#" help="aBXQnE69UEE">{% translate language, "common", "static-content" %}</a></li>
 {% endif %}
@@ -357,6 +360,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     {% if SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
         {%- include 'city_vouchers/city_vouchers.tmpl' %}
     {% endif %}
+    {% if SolutionModule.FORMS in sln_settings.modules %}
+        {%- include 'forms.tmpl' %}
+    {% endif %}
 {% endif %}
 
 {% if not loyalty %}
@@ -544,15 +550,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
  {% endif %}
             </div>
         </div>
-        <div id="push"></div>
     </div>
-    {% if not loyalty %}
-    <div id="footer">
-        <div style="text-align: center;">
-            <img alt="Rogerthat logo" src="/static/images/solution-header.png" />
-        </div>
-    </div>
-    {% endif %}
     <div id="fb-root"></div>
     <div id="help-video" class="modal hide fade" style="display: none; width: 670px;">
         <div class="modal-header">

@@ -1,0 +1,16 @@
+<div [formGroup]="formGroup">
+  <mat-form-field style="width: 400px;">
+    <mat-label>{{ 'oca.follower_name_or_email' | translate }}</mat-label>
+    <input matInput [formControl]="formControl" [matAutocomplete]="auto">
+  </mat-form-field>
+</div>
+<mat-autocomplete #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" autoActiveFirstOption
+                  [displayWith]="displayWith">
+  <mat-option *ngFor="let user of results$ | async" [value]="user">
+    <img class="user-pic" aria-hidden [src]="user.avatar_url" height="25">
+    <span>{{ user.name }}</span> |
+    <small>{{ user.email }}</small>
+    |
+    <small>{{ user.app_id }}</small>
+  </mat-option>
+</mat-autocomplete>

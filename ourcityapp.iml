@@ -21,6 +21,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src-test" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src-tools" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/client/oca-forms/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/client/oca-forms/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
     </content>
     <content url="file://$MODULE_DIR$/../rogerthat-backend">
@@ -33,6 +35,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Google App Engine SDK" level="project" />
+    <orderEntry type="library" name="simplemde" level="application" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="myDocStringFormat" value="Google" />

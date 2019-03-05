@@ -53,7 +53,7 @@ NewsList.prototype = {
             var data = {
                 cursor: loadMore ? self.cursor : null,
                 tag: self.tag,
-            }
+            };
             sln.call({
                 url: '/common/news',
                 data: data,
@@ -89,6 +89,10 @@ NewsList.prototype = {
 
     addItem: function(newsItem) {
         this.items.unshift(newsItem);
+    },
+
+    clear: function () {
+        this.items = [];
     },
 
     renderItems: function(newsItems) {

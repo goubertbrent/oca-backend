@@ -178,7 +178,7 @@ $(function () {
             });
         },
         CommonTranslations.REPLY, CommonTranslations.REPLY,
-        CommonTranslations.NAME + ": " + m.sender_name, CommonTranslations.NO_MORE_SANDWICHES,
+        CommonTranslations.NAME + ": " + m.sender_name, CommonTranslations['no-more-sandwiches'],
         orderString, null, true);
     }
 

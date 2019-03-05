@@ -29,6 +29,7 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 import pytz
+from rogerthat.to import TO
 from xhtml2pdf import pisa
 
 from mcfw.cache import cached
@@ -114,6 +115,7 @@ class SolutionModule(Enum):
     STATIC_CONTENT = u'static_content'
     WHEN_WHERE = u'when_where'
     JOBS = u'jobs'
+    FORMS = u'forms'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -140,6 +142,7 @@ class SolutionModule(Enum):
         WHEN_WHERE: 'when-where',
         JOYN: 'joyn',
         JOBS: 'jobs',
+        FORMS: 'forms',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
@@ -154,7 +157,7 @@ class SolutionModule(Enum):
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
-                        STATIC_CONTENT, JOYN}
+                        STATIC_CONTENT, JOYN, FORMS}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
@@ -168,7 +171,7 @@ class SolutionModule(Enum):
 
     FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT, JOYN}
+                             APPOINTMENT, JOYN, FORMS}
 
     @classmethod
     def all(cls):
@@ -220,7 +223,7 @@ class OrganizationType(Enum):
         }
 
 
-class SolutionServiceMenuItem(object):
+class SolutionServiceMenuItem(TO):
     icon_name = unicode_property('1')
     icon_color = unicode_property('2')
     label = unicode_property('3')
@@ -248,11 +251,11 @@ class SolutionServiceMenuItem(object):
         self.requires_wifi = requires_wifi
         self.run_in_background = run_in_background
         self.static_flow = static_flow
-        self.roles = list() if roles is None else roles
+        self.roles = [] if roles is None else roles
         self.is_broadcast_settings = is_broadcast_settings
         self.broadcast_branding = broadcast_branding
-        self.broadcast_types = list() if broadcast_types is None else broadcast_types
-        self.coords = list() if coords is None else coords
+        self.broadcast_types = [] if broadcast_types is None else broadcast_types
+        self.coords = [] if coords is None else coords
         self.action = action
         self.link = link
 

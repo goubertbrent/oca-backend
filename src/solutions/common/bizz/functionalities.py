@@ -21,7 +21,6 @@ from solutions import translate as common_translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.loyalty import is_joyn_available
 
-
 OTHER_LANGUAGES = ['nl']
 
 
@@ -161,23 +160,20 @@ def sort_modules(name):
 def get_functionalities(country, language, my_modules, activated_modules, app_ids):
     # we need the broadcast module to be the first
     modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
-    functionalities = [Functionality(country, language, activated_modules, module) for module in modules]
-    info = {
-        func.name: func.to_dict() for func in functionalities
-    }
 
     if SolutionModule.CITY_APP in my_modules:
         modules.remove(SolutionModule.LOYALTY)
-        del info[SolutionModule.LOYALTY]
         modules.remove(SolutionModule.JOYN)
-        del info[SolutionModule.JOYN]
 
     elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
-        del info[SolutionModule.HIDDEN_CITY_WIDE_LOTTERY]
 
     if SolutionModule.JOYN in modules and not is_joyn_available(country, my_modules, app_ids):
         modules.remove(SolutionModule.JOYN)
-        del info[SolutionModule.JOYN]
 
+    # TODO proper logic
+    modules.remove(SolutionModule.FORMS)
+
+    functionalities = [Functionality(country, language, activated_modules, module) for module in modules]
+    info = {func.name: func.to_dict() for func in functionalities}
     return modules, info

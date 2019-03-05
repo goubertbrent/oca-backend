@@ -33,6 +33,7 @@ import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
 import solutions.common.restapi.discussion_groups
+import solutions.common.restapi.forms
 import solutions.common.restapi.hints
 import solutions.common.restapi.holiday
 import solutions.common.restapi.locations
@@ -80,6 +81,7 @@ handlers.extend(rest_functions(solutions.common.restapi.billing))
 handlers.extend(rest_functions(solutions.common.restapi.cityapp))
 handlers.extend(rest_functions(solutions.common.restapi.city_vouchers))
 handlers.extend(rest_functions(solutions.common.restapi.discussion_groups))
+handlers.extend(rest_functions(solutions.common.restapi.forms))
 handlers.extend(rest_functions(solutions.common.restapi.hints))
 handlers.extend(rest_functions(solutions.common.restapi.holiday))
 handlers.extend(rest_functions(solutions.common.restapi.locations))

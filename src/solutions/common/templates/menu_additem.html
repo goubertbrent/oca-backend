@@ -10,7 +10,7 @@
 			<input type="text" id="itemName" value="${item.name}">
 		</div>
 		<div class="control-group" id="priceerror">
-			<label class="control-label" for="itemPrice">${CommonTranslations.PRICE}</label>
+			<label class="control-label" for="itemPrice">${CommonTranslations.Price}</label>
 			<label class="checkbox">${CommonTranslations.show_price}
 				<input type="checkbox" name="itemShowPrice" id="itemShowPrice" {{if item.has_price || item.has_price === undefined}}checked{{/if}}>
 			</label>
@@ -54,7 +54,7 @@
 			</label>
 		</div>
 		<div class="control-group">
-			<textarea rows="3" id="itemdescription" style="width: 97%;" placeholder="${CommonTranslations.DESCRIPTION} ${CommonTranslations.OPTIONAL_BRACES}">${item.description}</textarea>
+			<textarea rows="3" id="itemdescription" style="width: 97%;" placeholder="${CommonTranslations.description} ${CommonTranslations.OPTIONAL_BRACES}">${item.description}</textarea>
 		</div>
 	</div>
 	<div class="modal-footer">

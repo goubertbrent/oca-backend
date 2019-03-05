@@ -75,7 +75,7 @@ def get_broadcast_statistics_excel(service_user, service_identity):
     messages_sheet.write(0, column_received, transl('received'), bold_style)
     messages_sheet.write(0, column_read, transl('Read'), bold_style)
     # messages_sheet.write(0, column_acknowledged, transl('acknowledged'), bold_style)
-    messages_sheet.write(0, column_message, transl('inbox-message'), bold_style)
+    messages_sheet.write(0, column_message, transl('message'), bold_style)
     messages_sheet.col(column_timestamp).width = 6000
     messages_sheet.col(column_sent).width = 5000
     messages_sheet.col(column_received).width = 5000

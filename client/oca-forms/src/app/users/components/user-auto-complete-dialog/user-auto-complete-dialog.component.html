@@ -1,0 +1,17 @@
+<h2 matDialogTitle>{{ data.title }}</h2>
+<form (ngSubmit)="submit()" #form="ngForm">
+  <mat-dialog-content>
+    <p [innerHTML]="data.message"></p>
+    <oca-user-autocomplete (optionSelected)="onOptionSelected($event)"></oca-user-autocomplete>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button type="button" mat-raised-button *ngIf="data.cancel" (click)="close()">
+      {{ data.cancel }}
+    </button>
+    <button mat-raised-button color="primary">
+      {{ data.ok }}
+    </button>
+  </mat-dialog-actions>
+</form>
+
+

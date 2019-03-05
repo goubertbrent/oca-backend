@@ -310,7 +310,7 @@ $(function () {
             var order = ordersDict[orderKey];
             order.takeaway_time_formatted = sln.format(new Date(order.takeaway_time * 1000));
             var html = $.tmpl(templates.order, {
-                header: CommonTranslations.DETAILS,
+                header: CommonTranslations.details,
                 closeBtn: CommonTranslations.CLOSE,
                 sendMessageBtn: CommonTranslations.REPLY,
                 sendOrderReadyBtn: CommonTranslations.READY_FOR_COLLECTION,

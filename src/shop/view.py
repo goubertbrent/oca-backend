@@ -40,7 +40,7 @@ from babel import Locale
 from babel.dates import format_date, format_datetime
 from googleapiclient.discovery import build
 from mcfw.cache import cached
-from mcfw.consts import MISSING, REST_FLAVOR_TO
+from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
@@ -1601,7 +1601,7 @@ def rest_link_stripe_to_customer(customer_id, stripe_token, stripe_token_created
         return exception.message
 
 
-@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts', 'post', flavor=REST_FLAVOR_TO)
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts', 'post', type=REST_TYPE_TO)
 @returns(ContactTO)
 @arguments(customer_id=(int, long), data=ContactTO)
 def new_contact(customer_id, data):
@@ -1613,7 +1613,7 @@ def new_contact(customer_id, data):
         raise HttpBadRequestException(e.message)
 
 
-@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts/<contact_id:[^/]+>', 'put', flavor=REST_FLAVOR_TO)
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts/<contact_id:[^/]+>', 'put', type=REST_TYPE_TO)
 @returns(ContactTO)
 @arguments(customer_id=(int, long), contact_id=(int, long), data=ContactTO)
 def save_contact(customer_id, contact_id, data):
@@ -1651,7 +1651,7 @@ def rest_list_quotations(customer_id):
     return [QuotationTO.from_model(model, customer_id, base_url) for model in list_quotations(customer_id)]
 
 
-@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/quotations', 'post', flavor=REST_FLAVOR_TO)
+@rest('/internal/shop/rest/customers/<customer_id:[^/]+>/quotations', 'post', type=REST_TYPE_TO)
 @returns(QuotationTO)
 @arguments(customer_id=(int, long), data=CreateQuotationTO)
 def rest_create_quotation(customer_id, data):
@@ -2372,7 +2372,7 @@ def set_surrounding_apps(app):
     return RETURNSTATUS_TO_SUCCESS
 
 
-@rest('/internal/shop/rest/products', 'get', silent_result=True, flavor=REST_FLAVOR_TO)
+@rest('/internal/shop/rest/products', 'get', silent_result=True, type=REST_TYPE_TO)
 @returns([ProductTO])
 @arguments(language=unicode)
 def get_product_translations(language):

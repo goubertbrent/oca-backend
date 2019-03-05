@@ -84,23 +84,11 @@ $(function() {
         $(this).addClass('disabled');
     });
 
+    window.onmessage = function (e) {
+        if (e.data && e.data.type === 'oca.news.create_news') {
+            delete Requests._requestCache['/common/get_menu'];
+            window.initialNewsData = e.data.data;
+            window.location.hash = '#/news/add';
+        }
+    };
 });
-
-// Load the IFrame Player API code asynchronously.
-var tag = document.createElement('script');
-tag.src = "https://www.youtube.com/player_api";
-var firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-// Replace the 'ytplayer' element with an <iframe> and
-// YouTube player after the API code downloads.
-var player;
-var yt_player_ready = false;
-function onYouTubePlayerAPIReady() {
-    yt_player_ready = true;
-    // player = new YT.Player('ytplayer', {
-    // height: '390',
-    // width: '640',
-    // videoId: 'M7lc1UVf-VE'
-    // });
-}

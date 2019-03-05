@@ -1,0 +1,6 @@
+<div class="spinner-container" *ngIf="loadable.loading">
+  <mat-spinner [diameter]="50"></mat-spinner>
+</div>
+<ng-container *ngIf="loadable.data">
+  <ng-content></ng-content>
+</ng-container>

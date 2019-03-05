@@ -1,0 +1,90 @@
+<fieldset *ngIf="component">
+  <div class="title-field-container">
+    <mat-form-field class="component-title">
+      <mat-label>{{ (component.type === FormComponentType.PARAGRAPH ? 'oca.title' : 'oca.question') | translate }}</mat-label>
+      <input [name]="name + '_title'" matInput [(ngModel)]="component.title" (ngModelChange)="titleChanged($event)"
+             required #title="ngModel">
+      <mat-error *ngIf="title.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'oca.type' | translate }}</mat-label>
+      <mat-select #compType [name]="name + '_type'" [(ngModel)]="componentType"
+                  (selectionChange)="componentTypeChanged($event)"
+                  required>
+        <mat-select-trigger>
+          <mat-icon>{{ componentType.icon }}</mat-icon>
+          {{ componentType.label | translate }}
+        </mat-select-trigger>
+        <mat-option *ngFor="let compType of COMPONENT_TYPES" [value]="compType">
+          <mat-icon>{{ compType.icon }}</mat-icon>
+          {{ compType.label | translate }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <mat-form-field class="field" *ngIf="showDescription">
+    <mat-label>{{ 'oca.description' | translate }}</mat-label>
+    <textarea matInput [name]="name + '_description'" [(ngModel)]="component.description"
+              matTextareaAutosize></textarea>
+  </mat-form-field>
+  <ng-container [ngSwitch]="component.type">
+    <ng-container *ngSwitchCase="FormComponentType.PARAGRAPH"></ng-container>
+    <ng-container *ngSwitchCase="FormComponentType.TEXT_INPUT">
+      <mat-form-field class="field">
+        <mat-label>{{ 'oca.placeholder' | translate }}</mat-label>
+        <input matInput [name]="name + '_placeholder'" [(ngModel)]="component.placeholder">
+      </mat-form-field>
+      <div>
+        <mat-slide-toggle [name]="name + '_multiline'" [(ngModel)]="component.multiline">
+          {{ 'oca.allow_multiple_lines' | translate }}
+        </mat-slide-toggle>
+      </div>
+      <mat-form-field>
+        <mat-label>{{ 'oca.keyboard_type' | translate }}</mat-label>
+        <mat-select [(ngModel)]="component.keyboard_type" [name]="name + '_keyboard_type'"
+                    (ngModelChange)="keyboardTypeChanged()">
+          <mat-option *ngFor="let keyboardType of KEYBOARD_TYPES"
+                      [value]="keyboardType.value">{{ keyboardType.label | translate }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </ng-container>
+    <ng-container *ngSwitchCase="FormComponentType.SINGLE_SELECT">
+      <oca-select-input-list [name]="name + '_choices'" [(ngModel)]="component.choices"
+                             (ngModelChange)="changed()"></oca-select-input-list>
+    </ng-container>
+    <ng-container *ngSwitchCase="FormComponentType.MULTI_SELECT">
+      <oca-select-input-list [name]="name + '_choices'" [(ngModel)]="component.choices" (ngModelChange)="changed()"
+                             multiple="true"></oca-select-input-list>
+    </ng-container>
+    <ng-container *ngSwitchDefault>
+      Coming soon
+    </ng-container>
+  </ng-container>
+  <!--hiding until completely implemented-->
+  <ng-container *ngIf="showValidators && false">
+    <oca-form-validators [(ngModel)]="component.validators" [validatorTypes]="validatorTypes"></oca-form-validators>
+  </ng-container>
+  <mat-divider></mat-divider>
+  <div class="icons-row">
+    <button type="button" mat-icon-button (click)="removeComponent.emit(component)">
+      <mat-icon>delete</mat-icon>
+    </button>
+    <mat-slide-toggle [(ngModel)]="isRequired" (ngModelChange)="setRequired()" [ngModelOptions]="{standalone: true}"
+                      *ngIf="showRequired">
+      {{ 'oca.required' | translate }}
+    </mat-slide-toggle>
+    <button type="button" mat-icon-button [matMenuTriggerFor]="optionsMenu">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+  </div>
+
+  <mat-menu #optionsMenu=matMenu>
+    <ng-template matMenuContent>
+      <button type="button" mat-menu-item *ngFor="let item of optionsMenuItems" role="menuitemcheckbox"
+              (click)="menuOptionClicked(item)">
+        <mat-icon *ngIf="item.checked">check</mat-icon>
+        <span>{{ item.label | translate}}</span>
+      </button>
+    </ng-template>
+  </mat-menu>
+</fieldset>

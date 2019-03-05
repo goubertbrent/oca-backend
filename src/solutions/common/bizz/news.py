@@ -234,7 +234,7 @@ def get_news_review_message(lang, timezone, header=None, **data):
 
     message = u'{}\n\n'.format(header or trans('news_review_requested'))
     message += u'{}: {}\n'.format(trans('events-title'), data['title'])
-    message += u'{}: {}\n'.format(trans('inbox-message'), data['message'])
+    message += u'{}: {}\n'.format(trans('message'), data['message'])
 
     action_buttons = [
         '{}'.format(button.caption) for button in data['action_buttons']

@@ -17,7 +17,7 @@
 
 import logging
 
-from mcfw.consts import REST_FLAVOR_TO
+from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
@@ -63,7 +63,7 @@ def rest_get_providers():
     return get_providers_settings(users.get_current_user(), service_identity)
 
 
-@rest('/common/payments/providers/<provider_id:[^/]+>', 'put', flavor=REST_FLAVOR_TO)
+@rest('/common/payments/providers/<provider_id:[^/]+>', 'put', type=REST_TYPE_TO)
 @returns(ServicePaymentProviderTO)
 @arguments(provider_id=unicode, data=ServicePaymentProviderTO)
 def rest_put_provider_settings(provider_id, data):

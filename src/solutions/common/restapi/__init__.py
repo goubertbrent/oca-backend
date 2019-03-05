@@ -23,7 +23,7 @@ from types import NoneType
 from google.appengine.ext import db, deferred
 
 from babel.numbers import format_currency
-from mcfw.consts import MISSING, REST_FLAVOR_TO
+from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
@@ -88,6 +88,7 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
     get_admins_of_solution_calendars, get_solution_news_publishers, get_user_from_key
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
+from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
     SolutionSettings, SolutionInboxMessage, SolutionLogo, SolutionAvatar, RestaurantMenu, \
     SolutionRssScraperSettings
@@ -507,7 +508,7 @@ def rest_get_broadcast_rss_feeds():
     return SolutionRssSettingsTO.from_model(rss_settings)
 
 
-@rest("/common/broadcast/rss", 'put', flavor=REST_FLAVOR_TO)
+@rest("/common/broadcast/rss", 'put', type=REST_TYPE_TO)
 @returns(SolutionRssSettingsTO)
 @arguments(data=SolutionRssSettingsTO)
 def rest_save_broadcast_rss_feeds(data):
@@ -1085,10 +1086,10 @@ def broadcast_subscribed(broadcast_type, min_age, max_age, gender, broadcast_to_
     return flrto
 
 
-@rest("/common/users/search", "post", read_only_access=True)
+@rest('/common/users/search', 'get', read_only_access=True)
 @returns([UserDetailsTO])
-@arguments(name_or_email_term=unicode, app_id=unicode)
-def search_connected_users(name_or_email_term, app_id=None):
+@arguments(query=unicode, app_id=unicode)
+def search_connected_users(query, app_id=None):
     from rogerthat.bizz.profile import search_users_via_friend_connection_and_name_or_email
     service_user = users.get_current_user()
     session_ = users.get_current_session()
@@ -1096,7 +1097,7 @@ def search_connected_users(name_or_email_term, app_id=None):
     if service_identity is None:
         service_identity = ServiceIdentity.DEFAULT
     connection = remove_slash_default(create_service_identity_user(service_user, service_identity)).email()
-    return search_users_via_friend_connection_and_name_or_email(connection, name_or_email_term, app_id, True)
+    return search_users_via_friend_connection_and_name_or_email(connection, query, app_id, True)
 
 
 @rest("/common/users/roles/load", "get")
@@ -1956,7 +1957,7 @@ def rest_get_menu():
         return all([role_id in user_role_ids for role_id in item.roles])
 
     def include_item(item):
-        return '__rt__.' not in item.tag and has_user_defined_roles_only(item)
+        return has_user_defined_roles_only(item)
 
     service_menu.items = filter(include_item, service_menu.items)
     return service_menu
@@ -2042,3 +2043,15 @@ def rest_enable_or_disable_module(name, enabled, force=False):
 @arguments()
 def api_get_app_names():
     return get_country_apps(u'be')
+
+
+@rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
+      silent_result=True)
+@returns(dict)
+@arguments(lang=unicode)
+def api_get_translations(lang):
+    prefix = 'oca.'
+    mapping = ['follower_name_or_email', 'Cancel', 'details', 'Url', 'Type', 'statistics', 'phone_number', 'Date',
+               'description', 'Email', 'Error', 'Minimum', 'Maximum']
+    return {(key if key.startswith(prefix) else (prefix + key).lower()): translation for key, translation in
+            translations.get(lang, {}).iteritems() if key.startswith(prefix) or key in mapping}

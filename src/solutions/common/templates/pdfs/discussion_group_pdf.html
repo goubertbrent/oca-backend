@@ -32,7 +32,7 @@
 <body>
 <div>
     <h2>{% translate language, 'common', 'topic' %}: {{ discussion_group.topic }}</h2>
-    <i>{% translate language, 'common', 'events-description' %}: {{ discussion_group.description }}</i>
+    <i>{% translate language, 'common', 'description' %}: {{ discussion_group.description }}</i>
     <br><br><br>
     {% for message in messages %}
         {% if message.sender %}

@@ -70,6 +70,7 @@ from solutions.common.bizz.events import new_event_received, poke_new_event, API
     solution_event_guest_status, API_METHOD_SOLUTION_EVENTS_GUESTS, solution_event_guests, \
     API_METHOD_SOLUTION_CALENDAR_BROADCAST, solution_calendar_broadcast, \
     API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events
+from solutions.common.bizz.forms import poke_forms
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
@@ -115,6 +116,7 @@ POKE_TAG_EVENTS = u'agenda'
 POKE_TAG_NEW_EVENT = u'agenda.new_event'
 POKE_TAG_ORDER = u"__sln__.order"
 POKE_TAG_PHARMACY_ORDER = u"__sln__.pharmacy_order"
+POKE_TAG_FORMS = u'__sln__.forms'
 
 POKE_TAG_EVENTS_CONNECT_VIA_SCAN = u'agenda.connect_via_scan'
 
@@ -123,6 +125,8 @@ POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX = u"inbox_forwarding_reply_text_box"
 POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN = u"inbox_forwarder_connect_via_scan"
 POKE_TAG_LOYALTY_ADMIN = u"loyalty_admin"
 POKE_TAG_LOYALTY_REMINDERS = u"loyalty_reminders"
+
+POKE_TAG_FORM_TOMBOLA_WINNER = u'form_tombola_winner'
 
 POKE_TAG_RESERVE_PART1 = u'reserve1'
 POKE_TAG_RESERVE_PART2 = u'reserve2'
@@ -138,52 +142,57 @@ MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT = u'my-reservations-edit-comment'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE = u'my-reservations-edit-people'
 MESSAGE_TAG_DENY_SIGNUP = u'deny-signup'
 
-FMR_POKE_TAG_MAPPING = dict()
-FMR_POKE_TAG_MAPPING[POKE_TAG_SANDWICH_BAR] = order_sandwich_received
-FMR_POKE_TAG_MAPPING[POKE_TAG_APPOINTMENT] = appointment_asked
-FMR_POKE_TAG_MAPPING[POKE_TAG_REPAIR] = repair_order_received
-FMR_POKE_TAG_MAPPING[POKE_TAG_RESERVE_PART1] = reservation_part1
-FMR_POKE_TAG_MAPPING[POKE_TAG_ORDER] = order_received
-FMR_POKE_TAG_MAPPING[POKE_TAG_PHARMACY_ORDER] = pharmacy_order_received
-FMR_POKE_TAG_MAPPING[POKE_TAG_NEW_EVENT] = new_event_received
-FMR_POKE_TAG_MAPPING[POKE_TAG_MENU_ITEM_IMAGE_UPLOAD] = set_menu_item_image
+FMR_POKE_TAG_MAPPING = {
+    POKE_TAG_SANDWICH_BAR: order_sandwich_received,
+    POKE_TAG_APPOINTMENT: appointment_asked,
+    POKE_TAG_REPAIR: repair_order_received,
+    POKE_TAG_RESERVE_PART1: reservation_part1,
+    POKE_TAG_ORDER: order_received,
+    POKE_TAG_PHARMACY_ORDER: pharmacy_order_received,
+    POKE_TAG_NEW_EVENT: new_event_received,
+    POKE_TAG_MENU_ITEM_IMAGE_UPLOAD: set_menu_item_image,
+}
+
 POKE_TAG_MAPPING = {
     POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
     POKE_TAG_NEW_EVENT: poke_new_event,
     POKE_TAG_DISCUSSION_GROUPS: poke_discussion_groups,
     POKE_TAG_ORDER: poke_order,
+    POKE_TAG_FORMS: poke_forms,
 }
 
-MESSAGE_TAG_MAPPING = dict()
-MESSAGE_TAG_MAPPING[MESSAGE_TAG_SANDWICH_ORDER_NOW] = sandwich_order_from_broadcast_pressed
-MESSAGE_TAG_MAPPING[MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW] = my_reservations_overview_updated
-MESSAGE_TAG_MAPPING[MESSAGE_TAG_MY_RESERVATIONS_DETAIL] = my_reservations_detail_updated
-MESSAGE_TAG_MAPPING[MESSAGE_TAG_DENY_SIGNUP] = deny_signup
-MESSAGE_TAG_MAPPING[POKE_TAG_LOYALTY_REMINDERS] = stop_loyalty_reminders
-MESSAGE_TAG_MAPPING[POKE_TAG_DISCUSSION_GROUPS] = follow_discussion_groups
+MESSAGE_TAG_MAPPING = {
+    MESSAGE_TAG_SANDWICH_ORDER_NOW: sandwich_order_from_broadcast_pressed,
+    MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW: my_reservations_overview_updated,
+    MESSAGE_TAG_MY_RESERVATIONS_DETAIL: my_reservations_detail_updated,
+    MESSAGE_TAG_DENY_SIGNUP: deny_signup,
+    POKE_TAG_LOYALTY_REMINDERS: stop_loyalty_reminders,
+    POKE_TAG_DISCUSSION_GROUPS: follow_discussion_groups
+}
 
-API_METHOD_MAPPING = dict()
-API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_LOAD] = solution_load_events
-API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_REMIND] = solution_remind_event
-API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER] = solution_add_to_calender_event
-API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_REMOVE] = solution_event_remove
-API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_GUEST_STATUS] = solution_event_guest_status
-API_METHOD_MAPPING[API_METHOD_SOLUTION_EVENTS_GUESTS] = solution_event_guests
-API_METHOD_MAPPING[API_METHOD_SOLUTION_CALENDAR_BROADCAST] = solution_calendar_broadcast
-API_METHOD_MAPPING[API_METHOD_GROUP_PURCHASE_PURCHASE] = solution_group_purchcase_purchase
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_LOAD] = solution_loyalty_load
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_SCAN] = solution_loyalty_scan
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_PUT] = solution_loyalty_put
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_REDEEM] = solution_loyalty_redeem
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE] = solution_loyalty_lottery_chance
-API_METHOD_MAPPING[API_METHOD_SOLUTION_LOYALTY_COUPLE] = solution_loyalty_couple
-API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_RESOLVE] = solution_voucher_resolve
-API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE] = solution_voucher_pin_activate
-API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_ACTIVATE] = solution_voucher_activate
-API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_REDEEM] = solution_voucher_redeem
-API_METHOD_MAPPING[API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM] = solution_voucher_confirm_redeem
-API_METHOD_MAPPING[API_METHOD_SOLUTION_COUPON_REDEEM] = solution_coupon_redeem
-API_METHOD_MAPPING[API_METHOD_SOLUTION_COUPON_RESOLVE] = solution_coupon_resolve
+API_METHOD_MAPPING = {
+    API_METHOD_SOLUTION_EVENTS_LOAD: solution_load_events,
+    API_METHOD_SOLUTION_EVENTS_REMIND: solution_remind_event,
+    API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER: solution_add_to_calender_event,
+    API_METHOD_SOLUTION_EVENTS_REMOVE: solution_event_remove,
+    API_METHOD_SOLUTION_EVENTS_GUEST_STATUS: solution_event_guest_status,
+    API_METHOD_SOLUTION_EVENTS_GUESTS: solution_event_guests,
+    API_METHOD_SOLUTION_CALENDAR_BROADCAST: solution_calendar_broadcast,
+    API_METHOD_GROUP_PURCHASE_PURCHASE: solution_group_purchcase_purchase,
+    API_METHOD_SOLUTION_LOYALTY_LOAD: solution_loyalty_load,
+    API_METHOD_SOLUTION_LOYALTY_SCAN: solution_loyalty_scan,
+    API_METHOD_SOLUTION_LOYALTY_PUT: solution_loyalty_put,
+    API_METHOD_SOLUTION_LOYALTY_REDEEM: solution_loyalty_redeem,
+    API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE: solution_loyalty_lottery_chance,
+    API_METHOD_SOLUTION_LOYALTY_COUPLE: solution_loyalty_couple,
+    API_METHOD_SOLUTION_VOUCHER_RESOLVE: solution_voucher_resolve,
+    API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE: solution_voucher_pin_activate,
+    API_METHOD_SOLUTION_VOUCHER_ACTIVATE: solution_voucher_activate,
+    API_METHOD_SOLUTION_VOUCHER_REDEEM: solution_voucher_redeem,
+    API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM: solution_voucher_confirm_redeem,
+    API_METHOD_SOLUTION_COUPON_REDEEM: solution_coupon_redeem,
+    API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve
+}
 
 FLOW_STATISTICS_MAPPING = {
     POKE_TAG_ORDER: SolutionModule.ORDER,

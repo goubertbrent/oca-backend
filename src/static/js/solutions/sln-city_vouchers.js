@@ -208,7 +208,7 @@ $(function() {
                         }
                     });
                     var html = $.tmpl(templates['city_vouchers/city_vouchers_transactions'], {
-                        header: CommonTranslations.HISTORY,
+                        header: CommonTranslations.History,
                         cancelBtn: CommonTranslations.CANCEL,
                         CommonTranslations: CommonTranslations,
                         voucher: data

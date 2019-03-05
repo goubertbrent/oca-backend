@@ -1,0 +1,21 @@
+  <mat-toolbar color="primary">
+    <button mat-icon-button [routerLink]="['..']">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1 class="flex-grow">{{ 'oca.edit_form' | translate }}</h1>
+    <span class="icons-row">
+          <button type="button" mat-icon-button [matTooltip]="'oca.create_news_item' | translate" (click)="createNews()"
+                  *ngIf="showCreateNewsButton$ | async">
+            <mat-icon>rss_feed</mat-icon>
+          </button>
+          <button type="button" mat-icon-button [matTooltip]="'oca.preview_form' | translate" (click)="testForm()">
+            <mat-icon>visibility</mat-icon>
+          </button>
+        </span>
+  </mat-toolbar>
+<ng-container *ngIf="form$ | async as form">
+  <oca-form-detail [form]="form.data" *ngIf="form.data"
+                   [statistics]="formStatistics$ | async"
+                   [tombolaWinners]="tombolaWinners$ | async" (save)="onSave($event)"
+                   (tabChanged)="onTabChanged($event)"></oca-form-detail>
+</ng-container>

@@ -637,13 +637,7 @@ var createLib = function() {
                         typingCallback(query);
                     }
                     sln.call({
-                        url : "/common/users/search",
-                        type : "POST",
-                        data : {
-                            data : JSON.stringify({
-                                name_or_email_term : query
-                            })
-                        },
+                        url : '/common/users/search?query=' + query,
                         success : function(data) {
                             var usersKeys = [];
                             searchDict = {};

@@ -1,7 +1,6 @@
-import { config } from '../config/config';
-import { join } from 'path';
-
 import * as del from 'del';
+import { join } from 'path';
+import { config } from '../config/config';
 
 export = () => {
   // Cleanup everything in the build folder except for libraries

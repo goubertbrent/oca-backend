@@ -487,7 +487,7 @@ $(function() {
         "use strict";
         getIconList(function (icons) {
             var html = $.tmpl(templates['static_content/static_content_select_icon'], {
-                header: CommonTranslations.SELECT_ICON,
+                header: CommonTranslations['select-icon'],
                 CommonTranslations: CommonTranslations,
                 icons: icons
             });

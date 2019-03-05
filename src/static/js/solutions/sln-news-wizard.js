@@ -29,6 +29,7 @@ function NewsWizard(newsList, options) {
     this.appStatistics = this.options.appStatistics;
     this.menu = null;  // loaded when editing / adding news
     this.sandwichSettings = this.options.sandwichSettings;
+    this.initialData = null;
 
     this.newsTypes = {
         1: T('normal'),
@@ -105,7 +106,8 @@ function NewsWizard(newsList, options) {
 }
 
 NewsWizard.prototype = {
-    edit: function (newsId) {
+    edit: function (newsId, initialData) {
+        this.initialData = initialData;
         newsId = parseInt(newsId);
         var newsItem;
         if (newsId) {
@@ -189,6 +191,9 @@ NewsWizard.prototype = {
         var actionButtonId, actionButton, actionButtonLabel, flowParams, restaurantReservationDate, selectedSandwich,
             actionButtonValue;
         restaurantReservationDate = new Date().getTime() / 1000;
+        if (!newsItem && this.initialData) {
+            newsItem = this.initialData;
+        }
         var promotionProduct = this.broadcastOptions.news_promotion_product;
         actionButton = newsItem ? newsItem.buttons[0] : null;
         actionButtonId = actionButton ? actionButton.id : null;
@@ -196,7 +201,7 @@ NewsWizard.prototype = {
         actionButtonLabel = actionButton ? actionButton.caption : '';
         this.citySelect = null;
         var appIds, apps;
-        if (newsItem) {
+        if (newsItem && newsItem.id) {
             apps = [];
             appIds = newsItem.app_ids;
             for (var appName in CONSTS.CITY_APPS) {
@@ -324,7 +329,7 @@ NewsWizard.prototype = {
             };
             var html = $.tmpl(templates['broadcast/broadcast_news'], params);
             self.newsList.container.html(html);
-            self.setupEventHandlers(newsItem);
+            self.setupEventHandlers(newsItem && newsItem.id ? newsItem : null);
         });
     },
 
@@ -1184,15 +1189,7 @@ NewsWizard.prototype = {
                             ACTIVE_APPS.push(orderItem.app_id);
                         }
                     });
-                    if (originalNewsItem) {
-                        for (var prop in originalNewsItem) {
-                            if (originalNewsItem.hasOwnProperty(prop)) {
-                                originalNewsItem[prop] = result[prop];
-                            }
-                        }
-                    } else {
-                        self.newsList.addItem(result);
-                    }
+                    self.newsList.clear();
                 },
                 error: function () {
                     sln.hideProcessing();

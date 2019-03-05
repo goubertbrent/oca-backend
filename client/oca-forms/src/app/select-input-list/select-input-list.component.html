@@ -1,0 +1,24 @@
+<div *ngFor="let value of values; let i = index; trackBy: trackValues">
+  <ng-container [ngSwitch]="multiple">
+    <mat-radio-button checked="false" disabled="true" *ngSwitchCase="false"></mat-radio-button>
+    <mat-checkbox checked="false" disabled="true" *ngSwitchCase="true"></mat-checkbox>
+  </ng-container>
+  <mat-form-field appearance="legacy">
+    <input [name]="'value_' + i" matInput [(ngModel)]="value.label"
+           (ngModelChange)="valueUpdated($event, i)" #valueInput>
+  </mat-form-field>
+  <button type="button" mat-icon-button *ngIf="values.length !== 1" (click)="removeValue(values[i])">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+<div>
+  <ng-container [ngSwitch]="multiple">
+    <mat-radio-button checked="false" disabled="true" *ngSwitchCase="false"></mat-radio-button>
+    <mat-checkbox checked="false" disabled="true" *ngSwitchCase="true"></mat-checkbox>
+  </ng-container>
+  <mat-form-field appearance="legacy">
+    <input matInput [placeholder]="'oca.add_option' | translate" autocomplete="off" [(ngModel)]="temporaryValue"
+           (click)="addChoice()" (keydown.enter)="addChoice()"
+           [ngModelOptions]="{standalone: true}" (keydown.tab)="addChoice()">
+  </mat-form-field>
+</div>

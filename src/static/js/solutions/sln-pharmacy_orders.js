@@ -128,7 +128,7 @@ $(function() {
         var order = getOrder(orderKey);
         
         var html = $.tmpl(templates.pharmacy_order, {
-            header : CommonTranslations.DETAILS,
+            header : CommonTranslations.details,
             closeBtn : CommonTranslations.CLOSE,
             sendMessageBtn : CommonTranslations.REPLY,
             sendOrderReadyBtn : CommonTranslations.READY_FOR_COLLECTION,

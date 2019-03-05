@@ -1,0 +1,50 @@
+<p>{{ 'oca.form_tombola_info' | translate }}</p>
+<div class="slide-toggle-margin">
+  <mat-slide-toggle [checked]="hasTombola" (change)="toggleTombola($event)" [disabled]="settings.finished">
+    {{ 'oca.enable_tombola' | translate }}
+  </mat-slide-toggle>
+</div>
+<ng-container *ngIf="settings.tombola">
+  <form #ngForm="ngForm" (ngSubmit)="saveChanges()">
+    <mat-form-field>
+      <mat-label>{{ 'oca.amount_of_winners' | translate }}</mat-label>
+      <input type="number" name="tombola.winner_count" matInput [(ngModel)]="settings.tombola.winner_count" step="1"
+             min="1" [disabled]="settings.finished">
+    </mat-form-field>
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.message' | translate }}</mat-label>
+      <textarea name="winner_message" matInput [(ngModel)]="settings.tombola.winner_message" matTextareaAutosize
+                [disabled]="settings.finished"></textarea>
+      <mat-hint>{{ 'oca.winner_message_details' | translate }}</mat-hint>
+    </mat-form-field>
+    <div class="field">
+      <mat-form-field>
+        <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
+        <input name="tombola.visible_until" matInput [matDatepicker]="picker" [(ngModel)]="dateInput"
+               [min]="minDate" (ngModelChange)="updateDate()" required [disabled]="settings.finished">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'oca.end_time' | translate }}</mat-label>
+        <input name="tombola.time" type="time" matInput required #timeInput (change)="updateDate()"
+               [disabled]="settings.finished">
+      </mat-form-field>
+      <div class="fab-bottom-right">
+        <button mat-fab [disabled]="settings.finished">
+          <mat-icon>save</mat-icon>
+        </button>
+      </div>
+    </div>
+  </form>
+  <ng-container *ngIf="settings.finished">
+    <h2>{{ 'oca.tombola_winners' | translate }}</h2>
+    <mat-list *ngFor="let winner of tombolaWinners; trackBy: trackByWinner">
+      <mat-list-item>
+        <img matListAvatar [src]="winner.avatar_url" [alt]="winner.name">
+        <h3 matLine>{{ winner.name }}</h3>
+        <p matLine>{{ winner.email }}</p>
+      </mat-list-item>
+    </mat-list>
+  </ng-container>
+</ng-container>

@@ -240,7 +240,7 @@ def _send_order_confirmation(service_user, lang, message_flow_run_id, member, st
         messaging.send(parent_key=parent_message_key,
                        parent_message_key=parent_message_key,
                        message=u'%s\n\n%s:\n%s' % (translate(lang, SOLUTION_COMMON, u'order_complete_will_notify'),
-                                                   translate(lang, SOLUTION_COMMON, u'usage-detail'),
+                                                   translate(lang, SOLUTION_COMMON, u'details'),
                                                    order_details),
                        answers=list(),
                        flags=Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK,

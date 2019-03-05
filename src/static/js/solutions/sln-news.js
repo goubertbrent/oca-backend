@@ -25,10 +25,6 @@ $(function () {
     var newsWizard;
 
     function init() {
-        Requests.getServiceMenu().then(function (serviceMenu) {
-            createNewsWizard(serviceMenu);
-        });
-
         ROUTES.news = router;
         modules.news = {};
     }
@@ -36,15 +32,18 @@ $(function () {
     init();
 
     function createNewsWizard(serviceMenu) {
-        if (typeof NewsWizard === "undefined") {
-            setTimeout(function () {
-                createNewsWizard(serviceMenu);
-            }, 200);
-        } else {
-            newsWizard = new NewsWizard(newsList, {
-                serviceMenu: serviceMenu,
-            });
-        }
+        return new Promise(function (resolve) {
+            if (typeof NewsWizard === "undefined") {
+                setTimeout(function () {
+                    createNewsWizard(serviceMenu);
+                }, 200);
+            } else {
+                var wizard = new NewsWizard(newsList, {
+                    serviceMenu: serviceMenu,
+                });
+                resolve(wizard);
+            }
+        });
     }
 
     function router(urlHash) {
@@ -63,20 +62,26 @@ $(function () {
         if (page === 'overview') {
             newsList.loadNews();
         } else if (page === 'edit') {
-            showEdit(urlHash[2]);
+            _showEdit(urlHash[2], null);
         } else if (page === 'add') {
-            showEdit();
+            var data = window.initialNewsData;
+            window.initialNewsData = null;
+            _showEdit(null, data);
         }
     }
 
+    function _showEdit(newsId, data) {
+        newsWizard = null;
+        Requests.getServiceMenu().then(function (serviceMenu) {
+            createNewsWizard(serviceMenu).then(function (wizard) {
+                newsWizard = wizard;
+                showEdit(newsId, data);
+            });
+        });
+    }
 
-    function showEdit(newsId) {
-        if (!newsWizard) {
-            setTimeout(function () {
-                showEdit(newsId);
-            }, 200);
-            return;
-        }
+
+    function showEdit(newsId, initialData) {
         var broadcastPromise = Requests.getBroadcastOptions();
         var appStatsPromise = Requests.getAppStatistics();
         var sandwichSettingsPromise = Requests.getSandwichSettings();
@@ -97,7 +102,7 @@ $(function () {
             newsWizard.appStatistics = appStatistics;
             newsWizard.menu = menu;
             newsWizard.sandwichSettings = sandwichSettings;
-            newsWizard.edit(newsId);
+            newsWizard.edit(newsId, initialData);
         });
     }
 

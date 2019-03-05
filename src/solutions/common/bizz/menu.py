@@ -58,7 +58,7 @@ except ImportError:
     from StringIO import StringIO
 
 # translation keys used in export/import
-MENU_HEADER = [u'category', u'item', u'events-description', u'unit', u'Price', u'image_optional']
+MENU_HEADER = [u'category', u'item', u'description', u'unit', u'Price', u'image_optional']
 
 
 @returns()

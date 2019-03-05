@@ -1,0 +1,43 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body {
+  font-family: Roboto, sans-serif;
+  width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+.icons-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-direction: row;
+}
+
+.flex-grow {
+  display: flex;
+  flex-grow: 1;
+}
+
+.add-section-button {
+  margin: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.fab-bottom-right {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+}
+
+fieldset {
+  border: none;
+}
+
+.slide-toggle-margin {
+  margin: 16px;
+}

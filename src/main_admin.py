@@ -27,6 +27,7 @@ from solutions.common.cron.events import SolutionEventsScraper
 from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
     SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, SolutionEventsDataPublisher
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
+from solutions.common.cron.forms import FinishFormsCron
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
 from solutions.common.cron.news.rss import SolutionRssScraper
@@ -59,6 +60,7 @@ handlers = [
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),
     ('/admin/cron/match_joyn', MatchJoynMerchantsHandler),
+    ('/admin/cron/finish_forms', FinishFormsCron),
     ('/admin/services', ServiceTools),
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),

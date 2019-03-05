@@ -45,7 +45,7 @@ $(function () {
         + '</a>'
         + '<div id="facebookPlaceStep2"><input type="text" id="place-input" autocomplete="off" />	<input type="hidden" id="place-input-id" value="" /></div>';
 
-    var TMPL_SET_DESCRIPTION = '<label>' + CommonTranslations.DESCRIPTION
+    var TMPL_SET_DESCRIPTION = '<label>' + CommonTranslations.description
         + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
         + '" rows="6"></textarea>';
     var TMPL_SET_OPENINGHOURS = '<label>' + CommonTranslations.OPENING_HOURS
@@ -1332,7 +1332,7 @@ $(function () {
         // Check phone_number
         if ($('.sln-set-phone-number').attr('required_setting') && !$('.sln-set-phone-number input').val()) {
             $('.sln-set-phone-number input').addClass("error");
-            $('#required_fields').append('<li>' + CommonTranslations.PHONE_REQUIRED + '</li>');
+            $('#required_fields').append('<li>' + CommonTranslations['phone-required'] + '</li>');
             allOK = false;
         } else {
             $('.sln-set-phone-number input').removeClass("error");

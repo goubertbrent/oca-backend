@@ -157,7 +157,7 @@ $(function() {
         var repairOrder = repair_orders[orderKey];
 
         var html = $.tmpl(templates.repair_order, {
-            header : CommonTranslations.DETAILS,
+            header : CommonTranslations.details,
             closeBtn : CommonTranslations.CLOSE,
             sendMessageBtn : CommonTranslations.REPLY,
             sendOrderReadyBtn : CommonTranslations.READY_FOR_COLLECTION,

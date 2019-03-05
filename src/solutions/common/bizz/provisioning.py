@@ -133,6 +133,7 @@ POKE_TAGS = {
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
     SolutionModule.JOYN: None,
     SolutionModule.JOBS: None,
+    SolutionModule.FORMS: None,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -2046,7 +2047,8 @@ MODULES_PUT_FUNCS = {
     SolutionModule.WHEN_WHERE: put_when_where,
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
     SolutionModule.JOYN: _dummy_put,
-    SolutionModule.JOBS: _dummy_put
+    SolutionModule.JOBS: _dummy_put,
+    SolutionModule.FORMS: _dummy_put,
 }
 
 MODULES_DELETE_FUNCS = {
@@ -2073,4 +2075,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
     SolutionModule.JOYN: _default_delete,
     SolutionModule.JOBS: _default_delete,
+    SolutionModule.FORMS: _default_delete,
 }

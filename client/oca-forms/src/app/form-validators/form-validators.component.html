@@ -1,0 +1,7 @@
+<div *ngFor="let validator of validators">
+  <mat-select [(ngModel)]="validator.type">
+    <mat-option *ngFor="let validatorType of validatorTypes" [value]="validatorType.type">
+      {{ validatorType.label | translate }}
+    </mat-option>
+  </mat-select>
+</div>
