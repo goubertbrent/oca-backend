@@ -24,6 +24,8 @@ from rogerthat.bizz.job.delete_service import validate_delete_service
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
+from shop.bizz import re_index_customer
+from shop.dal import get_customer
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
 from solutions.common.utils import create_service_identity_user_wo_default
@@ -45,12 +47,25 @@ def _delete_solution(service_user, delete_svc):
 
     def trans():
         service_profile = get_service_profile(service_user, False)
+        deferred.defer(_reset_customer_model, service_user, _transactional=True)
         for service_identity in identities:
             deferred.defer(_delete_solution_models, service_user, service_identity,
                            [service_profile.solution, SOLUTION_COMMON], delete_svc, _transactional=True)
         service_profile.solution = None
         service_profile.put()
     db.run_in_transaction(trans)
+
+
+def _reset_customer_model(service_user):
+    customer = get_customer(service_user)
+    if customer:
+        customer.user_email = None
+        customer.service_email = None
+        customer.default_app_id = None
+        customer.app_ids = []
+        customer.put()
+
+        re_index_customer(customer.key())
 
 
 def _delete_solution_models(service_user, service_identity, solutions, delete_svc):
