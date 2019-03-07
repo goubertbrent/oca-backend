@@ -24,7 +24,6 @@ from rogerthat.bizz.job.delete_service import validate_delete_service
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
-from shop.bizz import re_index_customer
 from shop.dal import get_customer
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
@@ -57,6 +56,7 @@ def _delete_solution(service_user, delete_svc):
 
 
 def _reset_customer_model(service_user):
+    from shop.bizz import re_index_customer
     customer = get_customer(service_user)
     if customer:
         customer.user_email = None
