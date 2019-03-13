@@ -14,13 +14,14 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
-import hashlib
-import importlib
-import logging
 from HTMLParser import HTMLParser
 from base64 import b64encode
+import hashlib
+import imghdr
+import importlib
+import logging
 
-from google.appengine.api import urlfetch
+from google.appengine.api import urlfetch, images
 from google.appengine.ext import webapp, ndb
 
 from markdownify import markdownify
@@ -131,12 +132,24 @@ def _get_media(image_url):
     if not image_url:
         return None
     result = urlfetch.fetch(image_url, deadline=10)  # type: urlfetch._URLFetchResult
-    if result.status_code == 200:
-        image = result.content
-        content_type = result.headers.get('Content-Type', 'image/jpeg')
-        encoded = u'data:%s;base64,%s' % (content_type, b64encode(image))
-        return BaseMediaTO(type=MediaType.IMAGE, content=encoded)
-    raise Exception('Invalid response while download image: %s %s' % (result.status_code, result.content))
+    if result.status_code != 200:
+        return None
+
+    decoded_image = result.content
+    try:
+        img = images.Image(decoded_image)
+        orig_width = img.width
+        orig_height = img.height
+    except:
+        logging.warn('Failed to get media for %s', image_url, exc_info=True)
+        return None
+    aspect_ratio = float(orig_width) / float(orig_height)
+    if aspect_ratio > 3 or aspect_ratio < 1.0 / 3.0:
+        return None
+
+    content_type = result.headers.get('Content-Type', 'image/jpeg')
+    encoded = u'data:%s;base64,%s' % (content_type, b64encode(decoded_image))
+    return BaseMediaTO(type=MediaType.IMAGE, content=encoded)
 
 
 @arguments(news_id=(int, long), service_user=users.User)
