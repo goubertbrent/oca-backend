@@ -13,17 +13,22 @@
     </tr>
     </thead>
 <tbody>
-{{each(i, rss_url) rss_urls}}
+{{each(i, scraper) scrapers}}
 <tr>
     <td>
         <div class="span9">
-            <h4>${rss_url}</h4>
+            <h4>${ T('Url') }: ${scraper.url}</h4>
+            <h4>${ T('Broadcast type') }: ${scraper.group_type}</h4>
+            <h4>${ T('app') }:</h4>
+            {{each(i, app_id) scraper.app_ids}}
+            	<p>${app_id}</p>
+            {{/each}}
         </div>
     </td>
     <td>
         <div class="span2">
             <div class="btn-group item-controls">
-                <button rss_url="${rss_url}" action="deleteRssUrl" class="btn">
+                <button rss_url="${scraper.url}" action="deleteRssUrl" class="btn">
                     <i class="icon-trash"></i>
                 </button>
             </div>

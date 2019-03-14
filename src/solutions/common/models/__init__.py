@@ -18,10 +18,10 @@
 import json
 import logging
 
-from google.appengine.ext import db, ndb
-
 from babel import Locale
 from babel.dates import get_timezone
+from google.appengine.ext import db, ndb
+
 from mcfw.cache import invalidate_cache, CachedModelMixIn
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, parse_complex_value
@@ -677,6 +677,8 @@ class SolutionNewsScraperSettings(db.Model):
 class SolutionRssLink(NdbModel):
     url = ndb.StringProperty()
     dry_runned = ndb.BooleanProperty(default=False)
+    group_type = ndb.StringProperty(default=None, indexed=False)
+    app_ids = ndb.StringProperty(repeated=True, indexed=False)
 
 
 class SolutionRssScraperSettings(NdbModel):

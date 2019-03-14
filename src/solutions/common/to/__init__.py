@@ -210,14 +210,26 @@ class SolutionSettingsTO(TO):
         return to
 
 
+class SolutionRssScraperTO(TO):
+    url = unicode_property('url')
+    group_type = unicode_property('group_type')
+    app_ids = unicode_list_property('app_ids')
+
+
 class SolutionRssSettingsTO(TO):
-    rss_urls = unicode_list_property('rss_urls')
     notify = bool_property('notify')
+    scrapers = typed_property('scrapers', SolutionRssScraperTO, True)
 
     @classmethod
     def from_model(cls, model):
-        return cls(rss_urls=[l.url for l in model.rss_links] if model else [],
-                   notify=model.notify if model else False)
+        if not model:
+            return cls(notify=False,
+                       scrapers=[])
+
+        return cls(notify=model.notify,
+                   scrapers=[SolutionRssScraperTO(url=l.url,
+                                                  group_type=l.group_type,
+                                                  app_ids=l.app_ids if l.app_ids else []) for l in model.rss_links])
 
 
 class ProvisionResponseTO(object):

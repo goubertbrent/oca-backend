@@ -1491,21 +1491,34 @@ $(function () {
     }
 
     function addRssUrl() {
-        sln.input(function (value) {
-            if (!value.trim())
-                return false;
-            getbroadcastRssSettings(function (settings) {
-                var newSettings = Object.assign({}, settings, {rss_urls: settings.rss_urls.concat([value])});
-                saveRssSettings(newSettings);
-            });
-        }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT);
+    	var html = $.tmpl(templates.broadcast_rss_add_scraper, {
+            header: CommonTranslations.ADD,
+            cancelBtn: CommonTranslations.CANCEL,
+            submitBtn: CommonTranslations.SAVE,
+            CommonTranslations: CommonTranslations
+        });
+
+        var modal = sln.createModal(html);
+        $('button[action="submit"]', modal).click(function () {
+        	var newRSSScraper = {
+        		url: $("#rss-scraper-url").val(),
+        		group_type: $("#rss-scraper-group_type").val(),
+        		app_ids: $("#rss-scraper-app_ids").val().split("\n")
+        	};
+        	
+        	getbroadcastRssSettings(function (settings) {
+        		var newSettings = Object.assign({}, settings, {scrapers: settings.scrapers.concat([newRSSScraper])});
+        		saveRssSettings(newSettings);
+        		modal.modal('hide');
+        	});
+        });
     }
 
     function renderRssSettings(settings) {
         var htmlElement = $('#sln-set-broadcast-rss-urls');
         var html = $.tmpl(templates.broadcast_rss_settings, {
-            rss_urls: settings.rss_urls,
-            notify: settings.notify,
+        	notify: settings.notify,
+        	scrapers: settings.scrapers,
             T: T,
 	    });
         htmlElement.html(html);
@@ -1522,8 +1535,8 @@ $(function () {
     function deleteRssUrl() {
         var url = $(this).attr('rss_url');
         getbroadcastRssSettings(function (settings) {
-            settings.rss_urls = settings.rss_urls.filter(function (u) {
-                return u !== url;
+            settings.scrapers = settings.scrapers.filter(function (scraper) {
+                return scraper.url !== url;
             });
             saveRssSettings(settings);
         });

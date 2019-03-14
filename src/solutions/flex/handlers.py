@@ -19,11 +19,11 @@ import json
 import logging
 import os
 
+from babel import dates, Locale
+from jinja2 import StrictUndefined  # @UnusedImport
 import jinja2
 import webapp2
-from jinja2 import StrictUndefined  # @UnusedImport
 
-from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
@@ -131,6 +131,7 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'broadcast_schedule_items',
         'broadcast_settings_list',
         'broadcast_rss_settings',
+        'broadcast_rss_add_scraper',
         'broadcast/broadcast_news',
         'broadcast/broadcast_news_overview',
         'broadcast/broadcast_news_preview',

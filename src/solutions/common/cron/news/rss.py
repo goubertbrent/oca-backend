@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
+from datetime import datetime
 import logging
 import rfc822
-from datetime import datetime
 from xml.dom import minidom
 
 from google.appengine.api import urlfetch
@@ -25,6 +25,7 @@ from google.appengine.ext import webapp, ndb
 from bs4 import BeautifulSoup
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
+from rogerthat.models.news import NewsGroup
 from rogerthat.utils import now
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions.common.cron.news import html_unescape, html_to_markdown, transl, \
@@ -33,6 +34,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 
 BROADCAST_TYPE_NEWS = u"News"
+BROADCAST_TYPE_PRESS = u"Press"
 
 
 class SolutionRssScraper(webapp.RequestHandler):
@@ -51,17 +53,9 @@ def _worker(rss_settings_key):
         return
     service_user = rss_settings.service_user
     service_identity = rss_settings.service_identity
-
     sln_settings = get_solution_settings(service_user)
-    if BROADCAST_TYPE_NEWS not in sln_settings.broadcast_types:
-        logging.info(sln_settings.broadcast_types)
-        logging.error("process_rss_links failed for '%s' no broadcast type found with name '%s'",
-                      service_user,
-                      BROADCAST_TYPE_NEWS)
-        return
-    broadcast_type = transl(BROADCAST_TYPE_NEWS, sln_settings.main_language)
-    must_update_settings = False
 
+    must_update_settings = False
     scraped_items = []
     tasks = []
     to_put = []
@@ -69,6 +63,21 @@ def _worker(rss_settings_key):
     can_delete = True
 
     for rss_link in rss_settings.rss_links:
+        broadcast_type_key = BROADCAST_TYPE_NEWS
+        if rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_PRESS:
+            broadcast_type_key = BROADCAST_TYPE_PRESS
+
+        if broadcast_type_key not in sln_settings.broadcast_types:
+            logging.info(sln_settings.broadcast_types)
+            logging.error("process_rss_links failed for '%s' and url '%s' no broadcast type found with name '%s'",
+                          service_user,
+                          rss_link.url,
+                          broadcast_type_key)
+            can_delete = False
+            continue
+
+        broadcast_type = transl(broadcast_type_key, sln_settings.main_language)
+
         dry_run = not rss_link.dry_runned
         if dry_run:
             must_update_settings = True
@@ -112,7 +121,7 @@ def _worker(rss_settings_key):
                 if not dry_run:
                     tasks.append(create_task(create_news_item, sln_settings, broadcast_type, scraped_item.message,
                                              scraped_item.title, scraped_item.url, rss_settings.notify,
-                                             scraped_item.image_url, new_key))
+                                             scraped_item.image_url, new_key, app_ids=rss_link.app_ids if rss_link.app_ids else None))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first

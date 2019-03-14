@@ -62,9 +62,9 @@ def transl(key, language):
 
 @returns()
 @arguments(sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode, permalink=unicode,
-           image_url=unicode, notify=bool, item_key=ndb.Key)
+           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode])
 def create_news_item(sln_settings, broadcast_type, message, title, permalink, notify=False, image_url=None,
-                     item_key=None):
+                     item_key=None, app_ids=None):
     service_user = sln_settings.service_user
     logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s - %s - Notification: %s', service_user, message,
                  title, broadcast_type, permalink, image_url, notify)
@@ -73,7 +73,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
         link_caption = transl(u'More info', sln_settings.main_language)
         action_button = NewsActionButtonTO(u'url', link_caption, permalink)
         si = get_default_service_identity(service_user)
-        app_ids = si.appIds
+        news_app_ids = app_ids if app_ids else si.appIds
 
         title = limit_string(title, NewsItem.MAX_TITLE_LENGTH)
         flags = NewsItem.DEFAULT_FLAGS
@@ -90,7 +90,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
                                  qr_code_content=None,
                                  qr_code_caption=None,
                                  scheduled_at=0,
-                                 app_ids=app_ids,
+                                 app_ids=news_app_ids,
                                  media=_get_media(image_url),
                                  accept_missing=True)
         if item_key:

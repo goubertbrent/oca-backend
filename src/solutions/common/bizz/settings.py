@@ -257,13 +257,14 @@ def save_rss_urls(service_user, service_identity, data):
         for rss_links in rss_settings.rss_links:
             if not current_dict.get(rss_links.url, False):
                 current_dict[rss_links.url] = rss_links.dry_runned
-    valid_urls, invalid_urls = _validate_rss_urls({url for url in data.rss_urls if url not in current_dict})
+    _, invalid_urls = _validate_rss_urls({scraper.url for scraper in data.scrapers if scraper.url not in current_dict})
     if invalid_urls:
         raise InvalidRssLinksException(invalid_urls)
 
-    all_urls = current_dict.keys() + valid_urls
-    saved_urls = [url for url in all_urls if url in data.rss_urls]
     rss_settings.notify = data.notify
-    rss_settings.rss_links = [SolutionRssLink(url=url, dry_runned=current_dict.get(url, False)) for url in saved_urls]
+    rss_settings.rss_links = [SolutionRssLink(url=scraper.url,
+                                              dry_runned=current_dict.get(scraper.url, False),
+                                              group_type=scraper.group_type if scraper.group_type else None,
+                                              app_ids=[app_id for app_id in scraper.app_ids if app_id]) for scraper in data.scrapers]
     rss_settings.put()
     return rss_settings

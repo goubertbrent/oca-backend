@@ -1,0 +1,29 @@
+{% raw %}
+<div class="modal hide fade" tabindex="-1" role="dialog"
+	aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal"
+			aria-hidden="true">&times;</button>
+		<h3 id="myModalLabel">${header}</h3>
+	</div>
+	<div class="modal-body">
+		<div class="control-group">
+            <label class="control-label" for="rss-scraper-url">${CommonTranslations.URL}</label>
+			<input type="text" id="rss-scraper-url" style="width: 300px;" required>
+		</div>
+		<div class="control-group">
+            <label class="control-label" for="rss-scraper-group_type">${CommonTranslations.BROADCAST_TYPE}</label>
+			<input type="text" id="rss-scraper-group_type" style="width: 300px;" required>
+		</div>
+		<div class="control-group">
+            <label class="control-label" for="rss-scraper-app_ids">${CommonTranslations.APP}</label>
+			<textarea rows="3" id="rss-scraper-app_ids" style="width: 300px;"></textarea>
+		</div>
+	</div>
+	<div class="modal-footer">
+		<button action="cancel" class="btn" data-dismiss="modal"
+			aria-hidden="true">${cancelBtn}</button>
+		<button action="submit" class="btn btn-primary">${submitBtn}</button>
+	</div>
+</div>
+{%- endraw %}
