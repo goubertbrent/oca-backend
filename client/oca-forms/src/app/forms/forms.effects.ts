@@ -3,10 +3,8 @@ import { MatDialog, MatSnackBar } from '@angular/material';
 import { Router } from '@angular/router';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs/internal/observable/of';
-import { switchMap } from 'rxjs/internal/operators/switchMap';
-import { tap } from 'rxjs/internal/operators/tap';
-import { catchError, map } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
 import {
   CreateFormAction,
@@ -84,7 +82,10 @@ export class FormsEffects {
     tap(() => this.snackbar.open(this.translate.instant('oca.saving_form'), null, { duration: 3000 })),
     switchMap(action => this.formsService.createForm(action.form).pipe(
       map(form => new CreateFormCompleteAction(form)),
-      tap(createAction => this.router.navigate([ 'forms', createAction.form.form.id ])),
+      tap(createAction => {
+        this.router.navigate([ 'forms', createAction.form.form.id ]);
+        this.snackbar.open(this.translate.instant('oca.form_created'), this.translate.instant('oca.ok'), { duration: 3000 });
+      }),
       catchError(err => of(new CreateFormFailedAction(err))))),
   );
 

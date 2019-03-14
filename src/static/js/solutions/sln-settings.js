@@ -349,9 +349,9 @@ $(function () {
 
     var toggleUpdatesPending = function (updatesPending) {
         if (updatesPending) {
-            $(".sln-updates-pending-warning").fadeIn('slow');
+            $("#sln-updates-pending-warning").fadeIn('slow');
         } else {
-            $(".sln-updates-pending-warning").fadeOut('fast');
+            $("#sln-updates-pending-warning").fadeOut('fast');
         }
     };
 
@@ -664,7 +664,6 @@ $(function () {
             $('#eventsInvisible').addClass("btn-danger").text(CommonTranslations.AGENDA_DISABLED);
             $("#topmenu li[menu|='events']").css('display', 'none');
         }
-        sln.resize_header();
     }
 
     function setEventNotifications(enabled) {
@@ -993,11 +992,11 @@ $(function () {
     $(".sln-set-description").html(TMPL_SET_DESCRIPTION);
     $(".sln-set-openinghours").html(TMPL_SET_OPENINGHOURS);
     $('.sln-set-address').html(TMPL_SET_ADDRESS);
-    $(".sln-updates-pending-warning").html(TMPL_UPDATES_PENDING).hide();
-    $(".sln-updates-pending-warning #publish_changes").click(publishChanges);
-    $(".sln-updates-pending-warning #try_publish_changes").click(tryPublishChanges);
+    $("#sln-updates-pending-warning").html(TMPL_UPDATES_PENDING).hide();
+    $("#sln-updates-pending-warning #publish_changes").click(publishChanges);
+    $("#sln-updates-pending-warning #try_publish_changes").click(tryPublishChanges);
 
-    $(".sln-required-warning").html(TMPL_REQUIRED_PENDING).hide();
+    $("#sln-required-warning").html(TMPL_REQUIRED_PENDING).hide();
 
     $("#settings").find("> ul > li > a").click(settingTabPress);
     $(".sln-set-visibility").html(TMPL_SET_VISIBLE);
@@ -1043,11 +1042,6 @@ $(function () {
     // Bulk invite
     sln.configureDelayedInput($('#blukEmails'), testBulkInvites, $("#blukEmailsLabel"), false);
     $('#sendBulkEmailInvitations').click(sendBulkInvites);
-
-    // Fix screen
-    $(window).resize(sln.resize_header);
-    sln.resize_header();
-
 
     var settingsBranding,
         COLOR_REGEX = /^(([A-F0-9]{2}){3})$/i;
@@ -1339,11 +1333,11 @@ $(function () {
         }
 
         if (!allOK) {
-            $(".sln-required-warning").fadeIn('slow');
-            $(".sln-updates-pending-warning").fadeOut('fast');
+            $("#sln-required-warning").fadeIn('slow');
+            $("#sln-updates-pending-warning").fadeOut('fast');
             return;
         }
-        $(".sln-required-warning").fadeOut('fast');
+        $("#sln-required-warning").fadeOut('fast');
         // do post
         var data = {
             name: $('.sln-set-name input').val(),

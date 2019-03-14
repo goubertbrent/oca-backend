@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
-import { CreateDynamicForm, DynamicForm, FormStatistics, OcaForm } from '../interfaces/forms.interfaces';
+import { CreateDynamicForm, FormSettings, FormStatistics, OcaForm } from '../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 export const enum FormsActionTypes {
@@ -34,7 +34,7 @@ export class GetFormsAction implements Action {
 export class GetFormsCompleteAction implements Action {
   readonly type = FormsActionTypes.GET_FORMS_COMPLETE;
 
-  constructor(public forms: DynamicForm[]) {
+  constructor(public forms: FormSettings[]) {
   }
 }
 

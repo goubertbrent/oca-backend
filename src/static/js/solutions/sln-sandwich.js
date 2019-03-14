@@ -141,7 +141,6 @@ $(function () {
             sandwichesElem.find('button[action="ready"]').click(readySandwichOrderPressed);
             sandwichesElem.find('button[action="delete"]').click(deleteSandwichOrderPressed);
             $('.sln-sandwich-badge').text(localSandwichOrders.length || '');
-            sln.resize_header();
         });
     }
 
@@ -264,7 +263,6 @@ $(function () {
         var badge = $('.sln-sandwich-badge');
         var newBadgeValue = badge.text() - 1;
         badge.text(newBadgeValue > 0 ? newBadgeValue : '');
-        sln.resize_header();
     }
 
     function setSandwichSettingsEvents(settings) {

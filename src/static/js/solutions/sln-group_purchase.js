@@ -214,7 +214,6 @@ $(function() {
                     });
 
                     $('.sln-group-purchase-badge').text(data.length || '');
-                    sln.resize_header();
                 })
             },
             error : sln.showAjaxError
@@ -475,7 +474,6 @@ $(function() {
         var badge = $('.sln-group-purchase-badge');
         var newBadgeValue = badge.text() - 1;
         badge.text(newBadgeValue > 0 ? newBadgeValue : '');
-        sln.resize_header();
     };
     
     var setGroupPurchaseVisible = function(newEnabled) {
@@ -489,7 +487,6 @@ $(function() {
             $('#groupPurchaseInvisible').addClass("btn-danger").text(CommonTranslations.GROUP_PURCHASE_DISABLED);
             $("#topmenu li[menu|='group_purchase']").css('display', 'none');
         }
-        sln.resize_header();
     };
     
     var loadSettings = function() {

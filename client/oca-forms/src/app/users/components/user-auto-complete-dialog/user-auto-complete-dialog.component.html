@@ -2,10 +2,18 @@
 <form (ngSubmit)="submit()" #form="ngForm">
   <mat-dialog-content>
     <p [innerHTML]="data.message"></p>
-    <oca-user-autocomplete (optionSelected)="onOptionSelected($event)"></oca-user-autocomplete>
+    <mat-list *ngIf="selectedUser">
+      <mat-list-item>
+        <img matListAvatar [src]="selectedUser.avatar_url" [alt]="selectedUser.name">
+        <h3 matLine>{{ selectedUser.name }}</h3>
+        <p matLine>{{ selectedUser.email }}</p>
+      </mat-list-item>
+    </mat-list>
+    <oca-user-autocomplete (optionSelected)="onOptionSelected($event)" [required]="true"></oca-user-autocomplete>
+    <mat-error *ngIf="showError">{{ 'oca.please_select_an_email_address' | translate }}</mat-error>
   </mat-dialog-content>
   <mat-dialog-actions>
-    <button type="button" mat-raised-button *ngIf="data.cancel" (click)="close()">
+    <button type="button" mat-raised-button (click)="close()">
       {{ data.cancel }}
     </button>
     <button mat-raised-button color="primary">

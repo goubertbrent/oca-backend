@@ -28,7 +28,8 @@ function ServicesList(organizationType, container) {
     this.services = []; // cache
     this.servicesContainer = container;
 
-    $(window).scroll(this.validateLoadMoreServices.bind(this));
+    document.getElementById('content-container').addEventListener('scroll', this.validateLoadMoreServices.bind(this),
+        {passive: true});
 }
 
 ServicesList.prototype = {

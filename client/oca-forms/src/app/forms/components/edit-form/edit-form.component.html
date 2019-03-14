@@ -1,0 +1,111 @@
+<form #formElement="ngForm" class="component-margin">
+  <mat-form-field class="form-title-field">
+    <mat-label>{{ 'oca.form_title' | translate }}</mat-label>
+    <input matInput #title name="title" [(ngModel)]="form.form.title" required maxlength="16">
+    <mat-hint align="end">{{ title.value.length }} / 16</mat-hint>
+  </mat-form-field>
+  <div *ngFor="let section of form.form.sections; let i = index; trackBy: trackBySection">
+    <mat-menu #sectionSettingsMenu="matMenu">
+      <ng-template matMenuContent>
+        <button mat-menu-item (click)="moveSection()">
+          <mat-icon>import_export</mat-icon>
+          <span>{{ 'oca.move_section' | translate }}</span>
+        </button>
+        <button mat-menu-item (click)="deleteSection(i, section)">
+          <mat-icon>delete</mat-icon>
+          <span>{{ 'oca.delete_section' | translate }}</span>
+        </button>
+      </ng-template>
+    </mat-menu>
+    <mat-toolbar color="primary">
+        <span class="flex-grow">
+          {{ 'oca.section_x_of_y' | translate : {current: i + 1, total: form.form.sections.length} }}
+        </span>
+      <span class="icons-row" *ngIf="form.form.sections.length > 1">
+          <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+        </span>
+    </mat-toolbar>
+    <oca-edit-form-section [name]="'section_' + i" [(ngModel)]="form.form.sections[i]"></oca-edit-form-section>
+  </div>
+  <div class="add-section-button">
+    <button type="button" mat-raised-button (click)="addSection()">{{ 'oca.add_section' | translate }}</button>
+  </div>
+
+  <div class="mat-elevation-z8 settings-container">
+    <div class="slide-toggle-margin">
+      <mat-slide-toggle name="settings.visible" [checked]="form.settings.visible" (change)="visibleChanged($event)"
+                        [disabled]="form.settings.finished">
+        {{ 'oca.place_form_in_app' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <ng-container *ngIf="form.settings.visible || hasTombola">
+      <div class="slide-toggle-margin">
+        <mat-slide-toggle [checked]="hasTombola" (change)="toggleTombola($event)" [disabled]="form.settings.finished">
+          {{ 'oca.enable_tombola' | translate }}
+        </mat-slide-toggle>
+        <p>{{ 'oca.form_tombola_info' | translate }}</p>
+      </div>
+      <ng-container *ngIf="form.settings.tombola">
+        <mat-form-field>
+          <mat-label>{{ 'oca.amount_of_winners' | translate }}</mat-label>
+          <input type="number" name="settings.tombola.winner_count" matInput
+                 [(ngModel)]="form.settings.tombola.winner_count"
+                 step="1" min="1" max="100" [disabled]="form.settings.finished">
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>{{ 'oca.message_to_winners' | translate }}</mat-label>
+          <textarea name="settings.tombola.winner_message" matInput [(ngModel)]="form.settings.tombola.winner_message"
+                    matTextareaAutosize
+                    [disabled]="form.settings.finished"></textarea>
+          <mat-hint>{{ 'oca.winner_message_details' | translate }}</mat-hint>
+        </mat-form-field>
+      </ng-container>
+      <div class="slide-toggle-margin">
+        <mat-slide-toggle name="hide_form_after_date" [checked]="!!form.settings.visible_until"
+                          (toggleChange)="toggleEndDate()"
+                          [disabled]="form.settings.finished || form.settings.tombola !== null"
+                          [matTooltip]="form.settings.tombola ? ('oca.readonly_for_tombola' | translate) : null">
+          {{ 'oca.hide_form_after_date' | translate }}
+        </mat-slide-toggle>
+      </div>
+      <ng-container *ngIf="hasEndDate">
+        <mat-form-field>
+          <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
+          <input name="visible_until" matInput [matDatepicker]="picker" [(ngModel)]="dateInput"
+                 [disabled]="form.settings.finished"
+                 [min]="minDate" (ngModelChange)="updateDate()" required>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>{{ 'oca.end_time' | translate }}</mat-label>
+          <input name="time" type="time" matInput required #timeInput (change)="updateDate()"
+                 [disabled]="form.settings.finished">
+        </mat-form-field>
+        <p>{{ 'oca.visible_until_details' | translate }}</p>
+      </ng-container>
+    </ng-container>
+    <div class="slide-toggle-margin">
+      <mat-slide-toggle [checked]="form.form.max_submissions >  0" (change)="limitResponsesChanged($event)"
+                        [disabled]="form.settings.finished || form.settings.tombola !== null"
+                        [matTooltip]="form.settings.tombola ? ('oca.readonly_for_tombola' | translate) : null">
+        {{ 'oca.limit_to_one_response' | translate }}
+      </mat-slide-toggle>
+    </div>
+
+    <div class="slide-toggle-margin">
+      <mat-slide-toggle [checked]="form.form.submission_section !== null" (change)="toggleSubmissionSection($event)">
+        {{ 'oca.show_confirmation' | translate }}
+      </mat-slide-toggle>
+    </div>
+    <oca-edit-form-section name="submission_section" [(ngModel)]="form.form.submission_section"
+                           canAddComponents="false" *ngIf="form.form.submission_section"></oca-edit-form-section>
+  </div>
+  <div class="fab-bottom-right" *ngIf="!form.settings.finished">
+    <button mat-fab type="button" (click)="saveForm()">
+      <mat-icon>save</mat-icon>
+    </button>
+  </div>
+</form>

@@ -137,7 +137,6 @@ $(function() {
                 }
 
                 $('.sln-repair-badge').text(data.length || '');
-                sln.resize_header();
             },
             error : sln.showAjaxError
         });
@@ -150,7 +149,6 @@ $(function() {
         var badge = $('.sln-repair-badge');
         var newBadgeValue = badge.text() - 1;
         badge.text(newBadgeValue > 0 ? newBadgeValue : '');
-        sln.resize_header();
     };
     
     var viewRepairOrderPressed = function(orderKey) {

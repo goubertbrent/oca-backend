@@ -1056,7 +1056,7 @@ $(function() {
         }
     };
 
-    $(window).scroll(function() {
+    document.getElementById('content-container').addEventListener('scroll', function() {
         validateLoadMore();
-    });
+    }, {passive: true});
 });

@@ -1,0 +1,15 @@
+<h2 matDialogTitle>{{ 'oca.reorder_sections' | translate }}</h2>
+<mat-dialog-content>
+  <mat-list cdkDropList (cdkDropListDropped)="drop($event)" class="item-list">
+    <mat-list-item *ngFor="let item of list; let i = index;" cdkDrag class="item">
+      <div class="custom-placeholder" *cdkDragPlaceholder></div>
+      <mat-icon>drag_indicator</mat-icon>
+      <h4 matLine>{{ item.title }}</h4>
+      <p matLine>{{ 'oca.section_x_of_y' | translate : {current: i + 1, total: list.length} }}</p>
+    </mat-list-item>
+  </mat-list>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button matDialogClose>{{ 'oca.cancel' | translate }}</button>
+  <button mat-button (click)="save()" color="primary">{{ 'oca.save' | translate }}</button>
+</mat-dialog-actions>

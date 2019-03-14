@@ -1,0 +1,7 @@
+<mat-list>
+  <mat-list-item *ngFor="let answer of statistics.value">
+    <ng-container *ngIf="answer.value">
+      {{ (answer.value | date : statistics.format) + (answer.amount === 1 ? '' : ' (' + answer.amount + ')') }}
+    </ng-container>
+  </mat-list-item>
+</mat-list>

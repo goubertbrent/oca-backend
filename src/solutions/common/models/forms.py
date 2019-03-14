@@ -16,6 +16,8 @@
 # @@license_version:1.4@@
 from __future__ import unicode_literals
 
+from random import randint
+
 from google.appengine.ext import ndb
 
 from rogerthat.dal import parent_ndb_key
@@ -78,3 +80,54 @@ class TombolaWinner(NdbModel):
     @classmethod
     def list_by_form_id(cls, form_id):
         return cls.query(cls.form_id == form_id)
+
+
+# TODO: delete when deleting service
+
+class FormSubmission(NdbModel):
+    form_id = ndb.IntegerProperty()
+    user = ndb.StringProperty()
+    sections = ndb.JsonProperty()
+    submitted_date = ndb.DateTimeProperty(auto_now_add=True)
+    version = ndb.IntegerProperty(default=0)
+
+    @classmethod
+    def list(cls, form_id):
+        return cls.query(cls.form_id == form_id).order(-cls.submitted_date)
+
+    @classmethod
+    def list_by_user(cls, form_id, user):
+        return cls.query(cls.form_id == form_id).filter(cls.user == user)
+
+
+class FormStatisticsShard(NdbModel):
+    SHARD_KEY_TEMPLATE = '%d-%d'
+    count = ndb.IntegerProperty(default=0)
+    data = ndb.JsonProperty(compressed=True)
+
+    @classmethod
+    def create_key(cls, shard_key):
+        return ndb.Key(cls, shard_key)
+
+
+class FormStatisticsShardConfig(NdbModel):
+    shard_count = ndb.IntegerProperty(default=5)  # increase as needed. 5 => ~5 writes (form submissions) / sec
+
+    # add a 'full_shards' (list of shard indexes) property should the problem of a shard being > 1MB ever arise
+
+    def get_random_shard(self):
+        return randint(0, self.shard_count - 1)
+
+    @classmethod
+    def create_key(cls, form_id):
+        return ndb.Key(cls, form_id)
+
+    @classmethod
+    def get_all_keys(cls, form_id):
+        key = cls.create_key(form_id)
+        config = key.get()
+        if not config:
+            config = cls(key=key)
+            config.put()
+        shard_key_strings = [FormStatisticsShard.SHARD_KEY_TEMPLATE % (form_id, i) for i in range(config.shard_count)]
+        return [FormStatisticsShard.create_key(shard_key) for shard_key in shard_key_strings]

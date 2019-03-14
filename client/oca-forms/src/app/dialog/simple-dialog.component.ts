@@ -11,10 +11,12 @@ export interface SimpleDialogData {
   inputType?: string;
 }
 
-export interface SimpleDialogResult {
+export interface SimpleDialogResultValue {
   submitted: boolean;
   value: string;
 }
+
+export type SimpleDialogResult = undefined | SimpleDialogResultValue;
 
 @Component({
   selector: 'oca-simple-dialog',

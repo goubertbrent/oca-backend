@@ -105,7 +105,6 @@ $(function() {
         });
         pharmacyOrdersElem.find('button[action="delete"]').click(orderDeletePressed);
         $('.sln-pharmacy_orders-badge').text(unreadPharmacyOrders.length || '');
-        sln.resize_header();
     }
 
     function getOrder (orderKey) {
@@ -121,7 +120,6 @@ $(function() {
         var badge = $('.sln-pharmacy_orders-badge');
         var newBadgeValue = badge.text() - 1;
         badge.text(newBadgeValue > 0 ? newBadgeValue : '');
-        sln.resize_header();
     };
 
     var orderViewPressed = function(orderKey) {

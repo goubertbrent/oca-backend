@@ -1,4 +1,4 @@
-import { DateFormat, FileType, FormComponentType, KeyboardType, LocationMode } from './enums';
+import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
 import { FormValidator } from './validators.interfaces';
 
 export interface ParagraphComponent {
@@ -67,7 +67,6 @@ export interface DatetimeComponent extends BaseInputComponent {
 
 export interface LocationComponent extends BaseInputComponent {
   type: FormComponentType.LOCATION;
-  options: LocationMode[];
 }
 
 export interface FileComponent extends BaseInputComponent {
@@ -109,8 +108,17 @@ export interface FormStatisticsNumber {
   [ key: string ]: number;
 }
 
-export type FormStatisticsArray = [ string, string, string ];
-export type FormStatisticsValue = FormStatisticsNumber | FormStatisticsArray;
+export type FormStatisticsFileArray = [ string, string, string ][];
+export type FormStatisticsLocationArray = [ number, number ][];
+export type FormStatisticsValue = FormStatisticsNumber | FormStatisticsFileArray | FormStatisticsLocationArray;
+
+export function isFormStatisticsNumber(value: FormStatisticsValue): value is FormStatisticsNumber {
+  return !Array.isArray(value);
+}
+
+export function isFormStatisticsLocationArray(value: FormStatisticsValue): value is FormStatisticsLocationArray {
+  return Array.isArray(value) && value.length > 0 && value[ 0 ].length === 2;
+}
 
 export interface FormStatistics {
   submissions: number;
@@ -121,6 +129,85 @@ export interface FormStatistics {
   };
 }
 
+export enum ComponentStatsType {
+  VALUES,
+  CHOICES,
+  FILES,
+  LOCATIONS,
+  DATES,
+  TIMES,
+}
+
+export interface ValueComponentStatistics {
+  type: ComponentStatsType.VALUES;
+  value: ValueAmount[];
+}
+
+export interface ValueAmount {
+  value: string;
+  amount: number;
+}
+
+export interface ChoicesComponentStatistics {
+  type: ComponentStatsType.CHOICES;
+  value: ValueAmount[];
+}
+
+export interface FilesComponentStatistics {
+  type: ComponentStatsType.FILES;
+  value: FormStatisticsFileArray;
+}
+
+export interface LocationsComponentStatistics {
+  type: ComponentStatsType.LOCATIONS;
+  value: {
+    lat: number;
+    lng: number;
+  }[];
+}
+
+export interface DatesComponentStatistics {
+  type: ComponentStatsType.DATES;
+  value: {
+    value: Date | null;
+    amount: number;
+  }[];
+  format: string;
+}
+
+export interface TimesComponentStatistics {
+  type: ComponentStatsType.TIMES;
+  value: {
+    value: Date | null;
+    amount: number;
+  }[];
+  format: string;
+}
+
+export interface ComponentStatistics {
+  id: string;
+  title: string;
+  responses: number;
+  values: null
+    | ValueComponentStatistics
+    | ChoicesComponentStatistics
+    | FilesComponentStatistics
+    | LocationsComponentStatistics
+    | DatesComponentStatistics
+    | TimesComponentStatistics;
+}
+
+export interface SectionStatistics {
+  title: string;
+  id: string;
+  components: ComponentStatistics[];
+}
+
+export interface FormStatisticsView {
+  submissions: number;
+  sections: SectionStatistics [];
+}
+
 export interface FormTombola {
   winner_message: string;
   winner_count: number;
@@ -128,6 +215,7 @@ export interface FormTombola {
 
 export interface FormSettings {
   id: number;
+  title: string;
   visible: boolean;
   visible_until: string | Date;
   finished: boolean;

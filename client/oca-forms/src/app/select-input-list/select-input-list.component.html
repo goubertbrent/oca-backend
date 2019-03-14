@@ -5,7 +5,7 @@
   </ng-container>
   <mat-form-field appearance="legacy">
     <input [name]="'value_' + i" matInput [(ngModel)]="value.label"
-           (ngModelChange)="valueUpdated($event, i)" #valueInput>
+           (ngModelChange)="valueUpdated($event, i)" #valueInput (keydown.enter)="selectNext(i)">
   </mat-form-field>
   <button type="button" mat-icon-button *ngIf="values.length !== 1" (click)="removeValue(values[i])">
     <mat-icon>close</mat-icon>
@@ -17,8 +17,8 @@
     <mat-checkbox checked="false" disabled="true" *ngSwitchCase="true"></mat-checkbox>
   </ng-container>
   <mat-form-field appearance="legacy">
-    <input matInput [placeholder]="'oca.add_option' | translate" autocomplete="off" [(ngModel)]="temporaryValue"
-           (click)="addChoice()" (keydown.enter)="addChoice()"
-           [ngModelOptions]="{standalone: true}" (keydown.tab)="addChoice()">
+    <mat-label>{{ 'oca.add_option' | translate }}</mat-label>
+    <input matInput #newInput autocomplete="off" [(ngModel)]="temporaryValue" [ngModelOptions]="{standalone: true}"
+           (click)="addChoice()" (keydown.enter)="addChoice()" (keydown.tab)="addChoice()">
   </mat-form-field>
 </div>

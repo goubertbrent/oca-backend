@@ -28,6 +28,7 @@ from rogerthat.bizz.messaging import parse_to_human_readable_tag
 from rogerthat.models.properties.forms import FormResult
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
+from rogerthat.to.forms import FormSubmittedCallbackResultTO, DynamicFormValueTO
 from rogerthat.to.messaging import AnswerTO, AttachmentTO, MemberTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import FlowMemberResultCallbackResultTO, \
@@ -41,6 +42,7 @@ from solutions.common.bizz.bulk_invite import bulk_invite_result
 from solutions.common.bizz.customer_signups import process_updated_customer_signup_message
 from solutions.common.bizz.discussion_groups import discussion_group_deleted
 from solutions.common.bizz.events import solution_add_admin_to_calendar
+from solutions.common.bizz.forms import create_form_submission
 from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.bizz.loyalty import loyalty_qr_register, loyalty_qr_register_result, redeem_lottery_winners
 from solutions.common.bizz.messaging import API_METHOD_MAPPING, POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX, \
@@ -280,3 +282,10 @@ def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, 
     elif sim_parent.category == SolutionInboxMessage.CATEGORY_CUSTOMER_SIGNUP:
         try_or_defer(process_updated_customer_signup_message, service_user, service_identity, info['message_key'],
                      app_user, user_details[0].name, answer_id, sim_parent)
+
+
+@returns(FormSubmittedCallbackResultTO)
+@arguments(user_details=[UserDetailsTO], form=DynamicFormValueTO)
+def common_form_submitted(user_details, form):
+    # type: (list[UserDetailsTO], DynamicFormValueTO) -> FormSubmittedCallbackResultTO
+    return create_form_submission(users.get_current_user(), user_details, form)

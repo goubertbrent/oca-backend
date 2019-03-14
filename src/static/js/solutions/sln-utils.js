@@ -259,10 +259,6 @@ var supportsColorInput = (function() {
 var createLib = function() {
     return {
         processingTimeout: null,
-        resize_header: function() {
-            var navbar_height = $("div.navbar.navbar-fixed-top").height() + 5;
-            $("#push-down").css('height', navbar_height + 'px');
-        },
         day: 24 * 3600,
         timezoneOffset: function(utcTimestamp) {
             return 60 * new Date(utcTimestamp * 1000).getTimezoneOffset()
@@ -1073,8 +1069,17 @@ var createLib = function() {
                 return false;
             }
             var curTop = curPos.top;
-            var screenHeight = $(window).scrollTop() + $(window).height();
-            return (curTop < screenHeight);
+            var container = $('#content-container');
+            if (container) {
+                if (curTop === 0) {
+                    return false;
+                }
+                return curTop < container.scrollTop() + container.height();
+            } else {
+                var $window = $(window);
+                var screenHeight = $window.scrollTop() + $window.height();
+                return (curTop < screenHeight);
+            }
         },
         readFile: function readFile(input, targetElement, type, callback) {
             if (input.files && input.files[0]) {

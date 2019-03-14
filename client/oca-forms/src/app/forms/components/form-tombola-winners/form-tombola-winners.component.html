@@ -1,0 +1,10 @@
+<div class="component-margin">
+  <h2>{{ 'oca.tombola_winners' | translate }}</h2>
+  <mat-list *ngFor="let winner of tombolaWinners; trackBy: trackByWinner">
+    <mat-list-item>
+      <img matListAvatar [src]="winner.avatar_url" [alt]="winner.name">
+      <h3 matLine>{{ winner.name }}</h3>
+      <p matLine>{{ winner.email }}</p>
+    </mat-list-item>
+  </mat-list>
+</div>

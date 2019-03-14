@@ -101,7 +101,7 @@ $(function() {
         }
     };
 
-    $(window).scroll(function() {
+    document.getElementById('content-container').addEventListener('scroll', function() {
         if (!cursor)
             return;
         var users = $("#statistics #users");
@@ -109,7 +109,7 @@ $(function() {
         if (isItemVisible(last_child)) {
             loadUsers();
         }
-    });
+    }, {passive: true});
 
     var isItemVisible = function(elem) {
         var $window = $(window);

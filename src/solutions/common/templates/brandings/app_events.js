@@ -60,22 +60,17 @@
         }
         rogerthat.callbacks.ready(onRogerthatReady);
         rogerthat.callbacks.backPressed(backPressed);
-
-        $(window).scroll(function() {
+        window.addEventListener('scroll', function() {
             validateLoadMore();
-        });
+        }, {passive: true});
     }
 
     function backPressed() {
         console.log("BACK pressed");
         var activePage = $.mobile.activePage.attr('id');
         var newPage = null;
-        if (activePage == "events") {
-        } else if (activePage == "detail") {
-            newPage = "events";
-        } else if (activePage === "broadcast") {
-            newPage = "events";
-        } else if (activePage === "calendars") {
+        if (activePage === "events") {
+        } else if (activePage === "detail" || activePage === "broadcast" || activePage === "calendars") {
             newPage = "events";
         } else if (activePage === "guests") {
             newPage = "detail";
@@ -102,12 +97,12 @@
 
     function validateLoadMore() {
     	var activePage = $.mobile.activePage.attr('id');
-        if (activePage == "events") {
+        if (activePage === "events") {
         	if (isOnScreen($("#events-listview").find("li:last"))) {
                 loadEvents(serverEventsCursor, false);
             }
         }
-    };
+    }
 
     function caseInsensitiveStringSort(a, b) {
         var lowerCaseA = a.toLowerCase();

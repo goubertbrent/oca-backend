@@ -226,7 +226,6 @@ $(function () {
         } else {
             badge.text(localOrders.length || '');
         }
-        sln.resize_header();
         updateShowHideOrders();
         $("#ordersShowTodo, #ordersShowAll").click(function () {
             showAllOrders = !showAllOrders;
@@ -275,7 +274,6 @@ $(function () {
         var badge = $('.sln-orders-badge');
         var newBadgeValue = badge.text() - 1;
         badge.text(newBadgeValue > 0 ? newBadgeValue : '');
-        sln.resize_header();
     };
 
     var sendMessage = function (order, defaultMessage) {

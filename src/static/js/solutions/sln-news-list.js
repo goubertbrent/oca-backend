@@ -29,7 +29,7 @@ function NewsList(tag, container, options) {
 
     this.title = this.options.title || T('previous_news_items');
     this.baseLink = '#/' + this.tag;
-    $(window).scroll(this.validateLoadMore.bind(this));
+    document.getElementById('content-container').addEventListener('scroll', this.validateLoadMore.bind(this), {passive: true});
 }
 
 
@@ -118,7 +118,7 @@ NewsList.prototype = {
         this.validateLoadMore();
     },
 
-    validateLoadMore: function() {
+    validateLoadMore: function (e) {
         var lastNewsItem = this.getElement('.news-card').last();
         if(sln.isOnScreen(lastNewsItem) && this.hasMoreNews && !this.isLoadingNews) {
             this.loadNews(true);

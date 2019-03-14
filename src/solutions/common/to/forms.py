@@ -15,8 +15,8 @@
 #
 # @@license_version:1.4@@
 from mcfw.properties import bool_property, unicode_property, typed_property, long_property
-from rogerthat.to import TO
-from rogerthat.to.forms import DynamicFormTO
+from rogerthat.to import TO, PaginatedResultTO
+from rogerthat.to.forms import DynamicFormTO, FormSectionValueTO
 from solutions.common.models.forms import OcaForm
 
 
@@ -27,6 +27,7 @@ class FormTombolaTO(TO):
 
 class FormSettingsTO(TO):
     id = long_property('id')
+    title = unicode_property('title')
     icon = unicode_property('icon', default=OcaForm.icon._default)
     visible = bool_property('visible')
     visible_until = unicode_property('visible_until')
@@ -41,3 +42,19 @@ class FormSettingsTO(TO):
 class OcaFormTO(TO):
     form = typed_property('form', DynamicFormTO)  # type: DynamicFormTO
     settings = typed_property('settings', FormSettingsTO)  # type: FormSettingsTO
+
+
+class FormSubmissionTO(TO):
+    user = unicode_property('user')
+    sections = typed_property('sections', FormSectionValueTO, True)
+    submitted_date = unicode_property('submitted_date')
+    version = long_property('version')
+
+
+class FormSubmissionListTO(PaginatedResultTO):
+    results = typed_property('results', FormSubmissionTO, True)
+
+
+class FormStatisticsTO(TO):
+    submissions = long_property('submissions')
+    statistics = typed_property('statistics', dict)

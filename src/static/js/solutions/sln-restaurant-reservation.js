@@ -457,7 +457,6 @@ $(function() {
                         $("#reservations_menu span.badge").removeClass("badge-success").removeClass("badge-warning")
                                 .removeClass("badge-important").addClass('badge-' + badge_class).text(
                                         Math.round(rate) + '%');
-                        sln.resize_header();
                     }
 
                     var div = $("#" + when + "-capacity");

@@ -20,7 +20,7 @@ from rogerthat.rpc.solutions import service_api_callback_handler
 from solutions.common.api_callback_handlers import common_friend_invited, common_messaging_flow_member_result, \
     common_system_api_call, common_messaging_form_update, common_messaging_update, common_messaging_poke, \
     common_friend_invite_result, common_friend_register, common_friend_register_result, common_new_chat_message, \
-    common_chat_deleted
+    common_chat_deleted, common_form_submitted
 from solutions.flex import SOLUTION_FLEX
 
 
@@ -59,3 +59,5 @@ new_chat_message = wrap_common_callback_handler(common_new_chat_message,
 
 messaging_chat_deleted = wrap_common_callback_handler(common_chat_deleted,
                                                       ServiceProfile.CALLBACK_MESSAGING_CHAT_DELETED)
+
+form_submitted = wrap_common_callback_handler(common_form_submitted, ServiceProfile.CALLBACK_FORM_SUBMITTED)

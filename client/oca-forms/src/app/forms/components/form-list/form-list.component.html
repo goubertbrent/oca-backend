@@ -1,0 +1,37 @@
+<mat-tab-group mat-align-tabs="center">
+  <mat-tab *ngFor="let tab of tabs" [label]="tab.label | translate">
+    <a [routerLink]="['create']">
+      <mat-card class="form-card create-card" color="primary">
+        <mat-card-header>
+          <mat-card-title>{{ 'oca.create_form' | translate }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-actions align="end">
+          <a mat-button [routerLink]="['create']">{{ 'oca.create' | translate }}</a>
+        </mat-card-actions>
+      </mat-card>
+    </a>
+    <a *ngFor="let form of tab.list" [routerLink]="[form.id]">
+      <mat-card class="form-card">
+        <mat-card-title>{{ form.title }}</mat-card-title>
+        <mat-card-content>
+          <mat-chip-list>
+            <mat-chip [color]="form.visible ? 'primary': 'warn'" selected>
+              {{ (form.visible ? 'oca.active' : 'oca.inactive') | translate }}
+            </mat-chip>
+          </mat-chip-list>
+          <ng-container *ngIf="form.visible_until">
+            <p *ngIf="form.visible_until > now">
+              {{ 'oca.ends_on_date' | translate : {date: form.visible_until | date : 'medium'} }}
+            </p>
+            <p *ngIf="form.visible_until < now">
+              {{ 'oca.ended_on_date' | translate : {date: form.visible_until | date : 'medium'} }}
+            </p>
+          </ng-container>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <a mat-button [routerLink]="[form.id]">{{ 'oca.details' | translate }}</a>
+        </mat-card-actions>
+      </mat-card>
+    </a>
+  </mat-tab>
+</mat-tab-group>

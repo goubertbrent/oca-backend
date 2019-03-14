@@ -234,7 +234,6 @@ $(function() {
                 $('.sln-inbox-badge').text(newCount || '');
             }
         }
-        sln.resize_header();
 
         if(inboxData[fromInbox].has_more) {
             var _tmpCount = fromCount > 10 ? 10 : fromCount;
@@ -451,9 +450,9 @@ $(function() {
         }
     };
 
-    $(window).scroll(function() {
+    document.getElementById('content-container').addEventListener('scroll', function () {
         validateLoadMore();
-    });
+    }, {passive: true});
 
     inboxOverview.find(".nav li a").on("click", function () {
         inboxOverview.find(".nav li").removeClass("active");

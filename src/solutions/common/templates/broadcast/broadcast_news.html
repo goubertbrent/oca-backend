@@ -3,7 +3,8 @@
         <li><a href="${baseLink}/overview">${title}</a> <span class="divider">/</span></li>
         <li class="active">${T(newsItem.id ? 'Update': 'create')}</li>
     </ul>
-    <div class="span6" id="news_form_container">
+<div class="news-editor">
+    <div id="news_form_container">
         <form id="form_broadcast_news" autocomplete="off" class="row">
             <h2>${T(newsItem.id ? 'Update': 'create')}</h2>
             <h3 id="step_title"></h3>
@@ -388,6 +389,7 @@
             </div>
         </form>
     </div>
-    <div class="span6" id="news_preview"></div>
+    <div id="news_preview"></div>
+</div>
 
 {% endraw %}

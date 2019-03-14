@@ -1,0 +1,52 @@
+<div *ngIf="statistics" class="component-margin">
+  <p>{{ 'oca.total_responses_x' | translate : {count: statistics.submissions} }}</p>
+  <ng-container *ngFor="let section of statistics.sections">
+    <mat-toolbar>{{ section.title }}</mat-toolbar>
+    <ng-container *ngFor="let component of section.components">
+      <mat-card class="component-card" *ngIf="component.id">
+        <mat-card-header>
+          <mat-card-title>{{ component.title }} </mat-card-title>
+          <mat-card-subtitle>
+            {{ component.responses | i18nPlural : responseCountMapping | translate : {count: component.responses} }}
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content
+          *ngIf="component.values">
+          <ng-container [ngSwitch]="component.values.type">
+            <ng-container *ngSwitchCase="ComponentStatsType.CHOICES">
+              <oca-form-statistics-number-chart [values]="component.values.value"></oca-form-statistics-number-chart>
+            </ng-container>
+            <ng-container *ngSwitchCase="ComponentStatsType.VALUES">
+              <mat-list>
+                <mat-list-item *ngFor="let answer of component.values.value">
+                  <ng-container *ngIf="answer.value">
+                    {{ answer.value + (answer.amount === 1 ? '' : ' (' + answer.amount + ')') }}
+                  </ng-container>
+                </mat-list-item>
+              </mat-list>
+            </ng-container>
+            <ng-container *ngSwitchCase="ComponentStatsType.FILES">
+              <!-- Not implemented -->
+            </ng-container>
+            <ng-container *ngSwitchCase="ComponentStatsType.LOCATIONS">
+              <agm-map [fitBounds]="true">
+                <agm-marker *ngFor="let marker of component.values.value"
+                            [agmFitBounds]="marker"
+                            [markerDraggable]="false"
+                            [latitude]="marker.lat"
+                            [longitude]="marker.lng">
+                </agm-marker>
+              </agm-map>
+            </ng-container>
+            <ng-container *ngSwitchCase="ComponentStatsType.DATES">
+              <oca-date-statistics-list [statistics]="component.values"></oca-date-statistics-list>
+            </ng-container>
+            <ng-container *ngSwitchCase="ComponentStatsType.TIMES">
+              <oca-date-statistics-list [statistics]="component.values"></oca-date-statistics-list>
+            </ng-container>
+          </ng-container>
+        </mat-card-content>
+      </mat-card>
+    </ng-container>
+  </ng-container>
+</div>

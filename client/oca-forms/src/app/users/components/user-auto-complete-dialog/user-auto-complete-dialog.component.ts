@@ -7,7 +7,7 @@ export interface UserDialogData {
   title?: string;
   message: string;
   ok: string;
-  cancel?: string;
+  cancel: string;
 }
 
 @Component({
@@ -18,6 +18,7 @@ export interface UserDialogData {
 })
 export class UserAutoCompleteDialogComponent {
   selectedUser: UserDetailsTO | null = null;
+  showError = false;
 
   constructor(private dialogRef: MatDialogRef<UserAutocompleteComponent>,
               @Inject(MAT_DIALOG_DATA) public data: UserDialogData) {
@@ -25,6 +26,7 @@ export class UserAutoCompleteDialogComponent {
 
   onOptionSelected(user: UserDetailsTO) {
     this.selectedUser = user;
+    this.showError = false;
   }
 
   close() {
@@ -32,7 +34,11 @@ export class UserAutoCompleteDialogComponent {
   }
 
   submit() {
-    this.dialogRef.close(this.selectedUser);
+    if (this.selectedUser) {
+      this.dialogRef.close(this.selectedUser);
+    } else {
+      this.showError = true;
+    }
   }
 
 }

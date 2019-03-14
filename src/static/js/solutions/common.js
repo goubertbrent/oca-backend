@@ -60,9 +60,9 @@ $(function() {
         var menu = li.attr("menu");
         userClickedBeforeNewsLoaded = true;
         $("#topmenu li").removeClass("active");
-        $("div.page, #newspage").hide();
+        $("#content-container>.page").hide();
         li.addClass("active");
-        $("div#" + menu).show();
+        $("#" + menu).show();
         if (event.target.id === "shoplink") {
             $('#shoplink').addClass('active');
         } else if (!event.target.id) {

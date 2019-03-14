@@ -1,8 +1,0 @@
-<mat-card class="form-card" *ngFor="let form of forms.data">
-  <mat-card-header>
-    <mat-card-title>{{ form.title }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-actions>
-    <a mat-button [routerLink]="[form.id]">{{ 'oca.details' | translate }}</a>
-  </mat-card-actions>
-</mat-card>

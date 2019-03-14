@@ -1,13 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { CreateDynamicForm, DynamicForm, FormStatistics, OcaForm } from '../interfaces/forms.interfaces';
+import { TranslateService } from '@ngx-translate/core';
+import { Observable } from 'rxjs';
+import { first, map } from 'rxjs/operators';
+import { FormComponentType } from '../interfaces/enums';
+import { CreateDynamicForm, FormSettings, FormStatistics, OcaForm, SingleSelectComponent } from '../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class FormsService {
 
   getForms() {
-    return this.http.get<DynamicForm[]>('/common/forms');
+    return this.http.get<FormSettings[]>('/common/forms');
   }
 
   getForm(formId: number) {
@@ -30,10 +34,52 @@ export class FormsService {
     return this.http.post<OcaForm>(`/common/forms`, form);
   }
 
-  constructor(private http: HttpClient) {
-  }
-
   getTombolaWinners(formId: number) {
     return this.http.get <UserDetailsTO[ ]>(`/common/forms/${formId}/tombola/winners`);
+  }
+
+  getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
+    const keys = [ 'oca.untitled_form', 'oca.untitled_section', 'oca.option_x', 'oca.untitled_question', 'oca.thank_you',
+      'oca.your_response_has_been_recorded' ];
+    return this.translate.get(keys, { number: 1 }).pipe(
+      first(),
+      map(results => ({
+        form: {
+          title: results[ 'oca.untitled_form' ],
+          max_submissions: -1,
+          sections: [ {
+            id: '0',
+            title: results[ 'oca.untitled_section' ],
+            description: null,
+            components: [ {
+              type: FormComponentType.SINGLE_SELECT,
+              id: results[ 'oca.untitled_question' ],
+              title: results[ 'oca.untitled_question' ],
+              validators: [],
+              choices: [ {
+                label: results[ 'oca.option_x' ],
+                value: results[ 'oca.option_x' ],
+              } ],
+              description: null,
+            } as SingleSelectComponent ],
+          } ],
+          submission_section: {
+            title: results[ 'oca.thank_you' ],
+            description: results[ 'oca.your_response_has_been_recorded' ],
+            components: [],
+          },
+        },
+        settings: {
+          title: results[ 'oca.untitled_form' ],
+          visible: false,
+          visible_until: null,
+          finished: false,
+          tombola: null,
+          id: 0,
+        },
+      })));
+  }
+
+  constructor(private http: HttpClient, private translate: TranslateService) {
   }
 }

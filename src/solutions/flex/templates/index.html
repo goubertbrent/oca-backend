@@ -89,9 +89,7 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
 </head>
 
 <body>
-    <div id="wrap">
-        <div class="container">
-            <div class="navbar navbar-fixed-top">
+            <div class="navbar">
                 <div class="navbar-inner" {% if debug %}style="background: #e5ffe5;"{% endif %}>
                     <ul id="topmenu" class="nav">
 
@@ -252,12 +250,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
                     {% endif %}
                 </div>
             </div>
-            <div class="row">
-                <div id="push-down"></div>
-            </div>
-            <div class="row">
+            <div id="content-container">
             {% if not loyalty %}
-                <div class="sln-updates-pending-warning"></div>
+                <div id="sln-updates-pending-warning"></div>
                 <div class="sln-required-warning"></div>
             {% endif %}
                 <div class="sln-loyalty-scans" style="display: none;">
@@ -549,8 +544,6 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
                     </div>
  {% endif %}
             </div>
-        </div>
-    </div>
     <div id="fb-root"></div>
     <div id="help-video" class="modal hide fade" style="display: none; width: 670px;">
         <div class="modal-header">

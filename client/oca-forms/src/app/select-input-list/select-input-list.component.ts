@@ -9,6 +9,7 @@ import {
   Input,
   OnDestroy,
   QueryList,
+  ViewChild,
   ViewChildren,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -30,6 +31,7 @@ import { Value } from '../interfaces/forms.interfaces';
 })
 export class SelectInputListComponent implements AfterViewInit, ControlValueAccessor, OnDestroy {
   @ViewChildren('valueInput') valueInputElements: QueryList<ElementRef<HTMLInputElement>>;
+  @ViewChild('newInput') newInput: ElementRef<HTMLInputElement>;
 
   @Input()
   set multiple(value: any) {
@@ -86,7 +88,8 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   ngAfterViewInit(): void {
     this.valueChanges$ = this.valueInputElements.changes;
     this.valueFocusSubscription = this.valueChanges$.pipe(withLatestFrom(this.valueFocus$)).subscribe(([ queryList ]) => {
-      queryList.last.nativeElement.select();
+      // Timeout because for some reason it doesn't always work (e.g. when triggered from click event)
+      setTimeout(() => queryList.last.nativeElement.select(), 0);
     });
   }
 
@@ -105,6 +108,15 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
 
   removeValue(value: Value) {
     this.values = this.values.filter(v => v !== value);
+  }
+
+  selectNext(index: number) {
+    const element = this.valueInputElements.toArray()[ index + 1 ];
+    if (element) {
+      element.nativeElement.focus();
+    } else {
+      this.newInput.nativeElement.focus();
+    }
   }
 
   addChoice() {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatAutocompleteSelectedEvent } from '@angular/material';
 import { Observable } from 'rxjs';
@@ -16,6 +16,9 @@ export class UserAutocompleteComponent implements OnInit {
   results$: Observable<UserDetailsTO[]>;
   formGroup: FormGroup;
   formControl: FormControl;
+
+  @ViewChild('input') input: ElementRef<HTMLInputElement>;
+  @Input() required = false;
   @Output() optionSelected = new EventEmitter<UserDetailsTO>();
 
   constructor(private usersService: UsersService) {
@@ -32,6 +35,7 @@ export class UserAutocompleteComponent implements OnInit {
 
   onOptionSelected(event: MatAutocompleteSelectedEvent) {
     this.optionSelected.emit(event.option.value);
+    this.input.nativeElement.value = '';
   }
 
   displayWith(value?: UserDetailsTO) {

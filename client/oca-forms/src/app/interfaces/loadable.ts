@@ -12,11 +12,18 @@ export const DEFAULT_LOADABLE: Loadable<null> = {
   error: null,
 };
 
-export function onLoadableLoad(): Loadable<null> {
+export const DEFAULT_LIST_LOADABLE: Loadable<any[]> = {
+  loading: false,
+  success: false,
+  data: [],
+  error: null,
+};
+
+export function onLoadableLoad<T>(data: T): Loadable<T> {
   return {
+    data,
     loading: true,
     success: false,
-    data: null,
     error: null,
   };
 }
