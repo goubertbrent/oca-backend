@@ -24,7 +24,7 @@ from rogerthat.bizz.profile import create_user_profile, update_password_hash
 from rogerthat.bizz.user import delete_account
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.mobile import get_user_active_mobiles
-from rogerthat.dal.profile import _get_profile_not_cached, get_service_profile
+from rogerthat.dal.profile import _get_db_profile_not_cached, get_service_profile
 from rogerthat.dal.service import get_default_service_identity_not_cached
 from rogerthat.models import UserProfile
 from rogerthat.rpc import users
@@ -42,7 +42,7 @@ def migrate(executor_user, from_user, to_user, service_email, customer_id=None):
     bizz_check(from_user.email() != to_user.email(), 'FROM and TO should not be equal')
 
     def trans():
-        from_profile = _get_profile_not_cached(from_user)
+        from_profile = _get_db_profile_not_cached(from_user)
         if from_profile:
             bizz_check(isinstance(from_profile, UserProfile),
                        'Profile %s is not of expected type UserProfile, but of type %s' % (from_user, from_profile.kind()))
@@ -50,7 +50,7 @@ def migrate(executor_user, from_user, to_user, service_email, customer_id=None):
             logging.warn('UserProfile for %s not found! Weird...', from_user.email())
 
         to_put = set()
-        to_profile = _get_profile_not_cached(to_user)
+        to_profile = _get_db_profile_not_cached(to_user)
         if to_profile:
             bizz_check(isinstance(to_profile, UserProfile),
                        'Profile %s is not of expected type UserProfile, but of type %s' % (to_user, to_profile.kind()))

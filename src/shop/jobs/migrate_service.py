@@ -33,7 +33,7 @@ from rogerthat.bizz.profile import create_user_profile, update_password_hash
 from rogerthat.bizz.service import remove_service_identity_from_index, re_index, get_shorturl_for_qr
 from rogerthat.consts import HIGH_LOAD_CONTROLLER_QUEUE, MIGRATION_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
-from rogerthat.dal.profile import _get_profile_not_cached, get_service_profile, is_trial_service, get_user_profile, \
+from rogerthat.dal.profile import _get_db_profile_not_cached, get_service_profile, is_trial_service, get_user_profile, \
     get_profile_info
 from rogerthat.dal.service import get_all_service_friend_keys_query, get_service_identities_query, \
     get_default_service_identity_not_cached
@@ -148,7 +148,7 @@ def _validate_job(from_service_user, to_service_user):
                'FROM and TO should not be equal')
 
     # FROM should exist and be a ServiceProfile
-    from_service_profile = _get_profile_not_cached(from_service_user)
+    from_service_profile = _get_db_profile_not_cached(from_service_user)
     bizz_check(from_service_profile,
                'ServiceProfile %s not found' % from_service_user)
     bizz_check(isinstance(from_service_profile, ServiceProfile),
@@ -156,7 +156,7 @@ def _validate_job(from_service_user, to_service_user):
                                                                                       from_service_profile.kind()))
 
     # TO should not exist
-    to_profile = _get_profile_not_cached(to_service_user)
+    to_profile = _get_db_profile_not_cached(to_service_user)
     if to_profile:
         raise BusinessException('%s %s already exists' % (to_profile.kind(), to_service_user))
 
@@ -981,14 +981,14 @@ def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
     from shop.models import Customer
     bizz_check(from_service_user.email() != to_user.email(), 'FROM and TO should not be equal')
 
-    from_profile = _get_profile_not_cached(from_service_user)
+    from_profile = _get_db_profile_not_cached(from_service_user)
     bizz_check(from_profile, 'ServiceProfile %s not found' % from_service_user)
     bizz_check(isinstance(from_profile, ServiceProfile),
                'Profile %s is not of expected type ServiceProfile, but of type %s' % (from_service_user, from_profile.kind()))
 
     service_email = u"service-%s@rogerth.at" % uuid.uuid4()
 
-    to_profile = _get_profile_not_cached(to_user)
+    to_profile = _get_db_profile_not_cached(to_user)
     if to_profile:
         bizz_check(isinstance(to_profile, UserProfile),
                    'Profile %s is not of expected type UserProfile, but of type %s' % (to_user, to_profile.kind()))
