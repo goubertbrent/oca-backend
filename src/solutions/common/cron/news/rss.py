@@ -14,24 +14,27 @@
 # limitations under the License.
 #
 # @@license_version:1.3@@
+
 from datetime import datetime
 import logging
 import rfc822
 from xml.dom import minidom
 
+from bs4 import BeautifulSoup
+import dateutil.parser
+
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
-
-from bs4 import BeautifulSoup
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
-from rogerthat.utils import now
+from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions.common.cron.news import html_unescape, html_to_markdown, transl, \
     create_news_item, update_news_item, news_item_hash, delete_news_item
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
+
 
 BROADCAST_TYPE_NEWS = u"News"
 BROADCAST_TYPE_PRESS = u"Press"
@@ -192,6 +195,7 @@ def get_deleted_rss_items(oldest_dates, scraped_items, service_identity, service
 
 
 class ScrapedItem(object):
+
     def __init__(self, title, url, guid, message, date, rss_url, image_url):
         self.title = title
         self.url = url
@@ -229,7 +233,13 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
             image_url = get_image_url(item, description_html)
             if date_tags:
                 date_str = item.getElementsByTagName('pubDate')[0].firstChild.nodeValue
-                date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
+                try:
+                    date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
+                except TypeError:
+                    date = dateutil.parser.parse(date_str)
+                    # this date contains tzinfo and needs to be removed
+                    epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
+                    date = datetime.utcfromtimestamp(epoch)
             else:
                 date = None
         except:
