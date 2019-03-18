@@ -5,6 +5,7 @@ import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } fro
 import { TranslateService } from '@ngx-translate/core';
 import { FormComponentType } from '../../../interfaces/enums';
 import { FormComponent, FormSection } from '../../../interfaces/forms.interfaces';
+import { FormValidatorType } from '../../../interfaces/validators.interfaces';
 
 @Component({
   selector: 'oca-edit-form-section',
@@ -66,7 +67,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
         type: FormComponentType.SINGLE_SELECT,
         description: null,
         choices,
-        validators: [],
+        validators: [ { type: FormValidatorType.REQUIRED } ],
         title,
         id: title,
       } ],

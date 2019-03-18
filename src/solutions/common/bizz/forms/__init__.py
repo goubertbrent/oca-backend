@@ -64,6 +64,8 @@ def create_form(data, service_user):
                                                data.form.max_submissions)
     oca_form = OcaForm(key=OcaForm.create_key(created_form.id, service_user))
     _update_form(oca_form, created_form, data.settings)
+    if oca_form.visible:
+        _create_form_menu_item(oca_form)
     return OcaFormTO(form=created_form, settings=FormSettingsTO.from_model(oca_form))
 
 
