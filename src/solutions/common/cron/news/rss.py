@@ -20,11 +20,11 @@ import logging
 import rfc822
 from xml.dom import minidom
 
-from bs4 import BeautifulSoup
 import dateutil.parser
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
+
+from bs4 import BeautifulSoup
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
@@ -66,9 +66,12 @@ def _worker(rss_settings_key):
     can_delete = True
 
     for rss_link in rss_settings.rss_links:
+        app_ids = rss_link.app_ids if rss_link.app_ids else None
+        feed_name = None
         broadcast_type_key = BROADCAST_TYPE_NEWS
         if rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_PRESS:
             broadcast_type_key = BROADCAST_TYPE_PRESS
+            feed_name = u'press'
 
         if broadcast_type_key not in sln_settings.broadcast_types:
             logging.info(sln_settings.broadcast_types)
@@ -124,7 +127,7 @@ def _worker(rss_settings_key):
                 if not dry_run:
                     tasks.append(create_task(create_news_item, sln_settings, broadcast_type, scraped_item.message,
                                              scraped_item.title, scraped_item.url, rss_settings.notify,
-                                             scraped_item.image_url, new_key, app_ids=rss_link.app_ids if rss_link.app_ids else None))
+                                             scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first

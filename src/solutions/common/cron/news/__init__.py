@@ -31,7 +31,8 @@ from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models.news import NewsItem
 from rogerthat.rpc import users
 from rogerthat.service.api import news
-from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, MediaType
+from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, MediaType, \
+    NewsFeedNameTO
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -62,9 +63,9 @@ def transl(key, language):
 
 @returns()
 @arguments(sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode, permalink=unicode,
-           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode])
+           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode], feed_name=unicode)
 def create_news_item(sln_settings, broadcast_type, message, title, permalink, notify=False, image_url=None,
-                     item_key=None, app_ids=None):
+                     item_key=None, app_ids=None, feed_name=None):
     service_user = sln_settings.service_user
     logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s - %s - Notification: %s', service_user, message,
                  title, broadcast_type, permalink, image_url, notify)
@@ -74,6 +75,13 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
         action_button = NewsActionButtonTO(u'url', link_caption, permalink)
         si = get_default_service_identity(service_user)
         news_app_ids = app_ids if app_ids else si.appIds
+
+        if feed_name:
+            feed_names = []
+            for app_id in news_app_ids:
+                feed_names.append(NewsFeedNameTO(app_id, feed_name))
+        else:
+            feed_names = None
 
         title = limit_string(title, NewsItem.MAX_TITLE_LENGTH)
         flags = NewsItem.DEFAULT_FLAGS
@@ -91,6 +99,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
                                  qr_code_caption=None,
                                  scheduled_at=0,
                                  app_ids=news_app_ids,
+                                 feed_names=feed_names,
                                  media=_get_media(image_url),
                                  accept_missing=True)
         if item_key:
