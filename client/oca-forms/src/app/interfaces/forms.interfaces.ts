@@ -84,11 +84,17 @@ export type InputComponents =
 
 export type FormComponent = ParagraphComponent | InputComponents;
 
+export interface SectionBranding {
+  logo_url: string;
+  avatar_url: string | null;
+}
+
 export interface FormSection {
   id?: string;
   title: string;
   description?: string | null;
   components: FormComponent[];
+  branding: SectionBranding | null;
 }
 
 export interface CreateDynamicForm {
@@ -234,4 +240,20 @@ export function isInputComponent(component: FormComponent): component is InputCo
 
 export function isCreateForm(component: OcaForm<CreateDynamicForm> | OcaForm<DynamicForm>): component is OcaForm<CreateDynamicForm> {
   return (component as any).form.id === undefined;
+}
+
+
+export interface UploadedFormFile {
+  id: number;
+  form_id: number;
+  content_type: string;
+  size: number;
+  url: string;
+}
+
+
+export interface UploadedFile {
+  content_type: string;
+  size: number;
+  url: string;
 }

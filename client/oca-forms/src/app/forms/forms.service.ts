@@ -1,14 +1,25 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { first, map } from 'rxjs/operators';
 import { FormComponentType } from '../interfaces/enums';
-import { CreateDynamicForm, FormSettings, FormStatistics, OcaForm, SingleSelectComponent } from '../interfaces/forms.interfaces';
+import {
+  CreateDynamicForm,
+  FormSettings,
+  FormStatistics,
+  OcaForm,
+  SingleSelectComponent,
+  UploadedFile,
+  UploadedFormFile,
+} from '../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class FormsService {
+
+  constructor(private http: HttpClient, private translate: TranslateService) {
+  }
 
   getForms() {
     return this.http.get<FormSettings[]>('/common/forms');
@@ -51,6 +62,7 @@ export class FormsService {
             id: '0',
             title: results[ 'oca.untitled_section' ],
             description: null,
+            branding: null,
             components: [ {
               type: FormComponentType.SINGLE_SELECT,
               id: results[ 'oca.untitled_question' ],
@@ -67,6 +79,7 @@ export class FormsService {
             title: results[ 'oca.thank_you' ],
             description: results[ 'oca.your_response_has_been_recorded' ],
             components: [],
+            branding: null,
           },
         },
         settings: {
@@ -80,6 +93,17 @@ export class FormsService {
       })));
   }
 
-  constructor(private http: HttpClient, private translate: TranslateService) {
+  deleteAllResponses(formId: number) {
+    return this.http.delete(`/common/forms/${formId}/submissions`);
+  }
+
+  uploadImage(formId: number, image: Blob): Observable<HttpEvent<UploadedFormFile>> {
+    const data = new FormData();
+    data.append('file', image);
+    return this.http.request(new HttpRequest('POST', `/common/forms/${formId}/image`, data, { reportProgress: true }));
+  }
+
+  getImages() {
+    return this.http.get<UploadedFile[]>(`/common/images/forms`);
   }
 }

@@ -22,12 +22,16 @@
           {{ 'oca.section_x_of_y' | translate : {current: i + 1, total: form.form.sections.length} }}
         </span>
       <span class="icons-row" *ngIf="form.form.sections.length > 1">
+        <button type="button" mat-icon-button (click)="sectionComponent.openHeaderImageDialog()">
+          <mat-icon>image</mat-icon>
+        </button>
           <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu">
             <mat-icon>more_vert</mat-icon>
           </button>
         </span>
     </mat-toolbar>
-    <oca-edit-form-section [name]="'section_' + i" [(ngModel)]="form.form.sections[i]"></oca-edit-form-section>
+    <oca-edit-form-section [name]="'section_' + i" [(ngModel)]="form.form.sections[i]"
+                           [formId]="form.form.id" #sectionComponent></oca-edit-form-section>
   </div>
   <div class="add-section-button">
     <button type="button" mat-raised-button (click)="addSection()">{{ 'oca.add_section' | translate }}</button>
@@ -100,7 +104,7 @@
         {{ 'oca.show_confirmation' | translate }}
       </mat-slide-toggle>
     </div>
-    <oca-edit-form-section name="submission_section" [(ngModel)]="form.form.submission_section"
+    <oca-edit-form-section name="submission_section" [(ngModel)]="form.form.submission_section" [formId]="form.form.id"
                            canAddComponents="false" *ngIf="form.form.submission_section"></oca-edit-form-section>
   </div>
   <div class="fab-bottom-right" *ngIf="!form.settings.finished">

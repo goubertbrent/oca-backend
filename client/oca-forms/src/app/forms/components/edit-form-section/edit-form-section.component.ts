@@ -1,11 +1,13 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
 import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } from '@angular/forms';
+import { MatDialog, MatDialogConfig } from '@angular/material';
 import { TranslateService } from '@ngx-translate/core';
 import { FormComponentType } from '../../../interfaces/enums';
 import { FormComponent, FormSection } from '../../../interfaces/forms.interfaces';
 import { FormValidatorType } from '../../../interfaces/validators.interfaces';
+import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-dialog.component';
 
 @Component({
   selector: 'oca-edit-form-section',
@@ -30,6 +32,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   @Input() name: string;
+  @Input() formId?: number;
   @Input() set canAddComponents(value: any) {
     this._canAddComponents = coerceBooleanProperty(value);
   }
@@ -45,7 +48,9 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   private onTouched = () => {
   };
 
-  constructor(private _translate: TranslateService) {
+  constructor(private _translate: TranslateService,
+              private _matDialog: MatDialog,
+              private _changeDetectorRef: ChangeDetectorRef) {
   }
 
   onRemoveComponent(index: number) {
@@ -103,5 +108,21 @@ export class EditFormSectionComponent implements ControlValueAccessor {
 
   dropped(event: CdkDragDrop<FormComponent[ ]>) {
     moveItemInArray(this.section.components, event.previousIndex, event.currentIndex);
+  }
+
+  removeHeaderImage() {
+    this.section = { ...this.section, branding: null };
+  }
+
+  openHeaderImageDialog() {
+    const config: MatDialogConfig = {
+      data: this.formId,
+    };
+    this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: string) => {
+      if (result) {
+        this.section = { ...this.section, branding: { logo_url: result, avatar_url: null } };
+        this._changeDetectorRef.markForCheck();
+      }
+    });
   }
 }

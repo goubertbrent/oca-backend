@@ -9,6 +9,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { MatTabChangeEvent } from '@angular/material';
+import { OptionsMenuOption } from '../../../interfaces/consts';
 import { FormStatisticsView, OcaForm } from '../../../interfaces/forms.interfaces';
 import { Loadable } from '../../../interfaces/loadable';
 import { UserDetailsTO } from '../../../users/interfaces';
@@ -32,6 +33,7 @@ export class FormDetailComponent implements OnChanges {
   @Input() tombolaWinners: UserDetailsTO[];
   @Output() save = new EventEmitter<OcaForm>();
   @Output() tabChanged = new EventEmitter<number>();
+  @Output() menuOptionClicked = new EventEmitter<OptionsMenuOption>();
   showTombolaWinners = false;
 
   ngOnChanges(changes: SimpleChanges): void {

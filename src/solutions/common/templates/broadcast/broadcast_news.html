@@ -98,6 +98,12 @@
                                 </option>
                                 {{/each}}
                             </select>
+                            <label for="news_button_caption">${T('Label')}</label>
+                            <input type="text"
+                                   value="${actionButton.label}"
+                                   id="news_button_caption"
+                                   name="news_button_caption"
+                                   minlength="4" maxlength="15" required>
                         </div>
                     </div>
                     {{if menu}}
@@ -137,21 +143,10 @@
                     {{each(i, action) allowedButtonActions}}
                     <div class="control-group news_action" id="news_action_${action.value}"
                          {{if actionButton.id !== action.value}}style="display: none;"{{/if}}>
-                        <label class="control-label" for="news_action_${action.value}_caption">${T('Label')}
                             {{if action.value === 'attachment'}}
                             <button type="button" class="btn btn-mini btn-success" id="news_action_add_attachment"><i class="fa fa-plus"></i></button>
                             <button type="button" class="btn btn-mini btn-danger" id="news_action_remove_attachment" style="display: none"><i class="fa fa-trash"></i></button>
                             {{/if}}
-                        </label>
-                        <div class="controls">
-                            <input type="text"
-                                   news_action_render_preview="true"
-                                   minlength="4" maxlength="15"
-                                   id="news_action_${action.value}_caption"
-                                   name="news_action_${action.value}_caption"
-                                   value="${actionButton.id === action.value ? actionButton.label : action.defaultLabel}"
-                                   required>
-                        </div>
                         {{if action.value !== 'attachment'}}
                         <label class="control-label" for="news_action_${action.value}_field">${action.translation}
                         	{{if action.help }}

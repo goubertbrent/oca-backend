@@ -93,11 +93,14 @@ function getSectionStatistics(form: OcaForm, statistics: FormStatistics): Sectio
         components.push(stats);
       }
     }
-    sections.push({
-      id: section.id,
-      title: section.title,
-      components,
-    });
+    // SKip sections without any components
+    if (components.length) {
+      sections.push({
+        id: section.id,
+        title: section.title,
+        components,
+      });
+    }
   }
   return sections;
 }

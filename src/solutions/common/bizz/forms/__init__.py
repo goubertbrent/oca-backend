@@ -14,20 +14,24 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
+from cgi import FieldStorage
+from datetime import datetime
 import json
 import logging
 import random
 import time
-from datetime import datetime
+
+import cloudstorage
+import dateutil
 
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
-
-import dateutil
+from mcfw.consts import MISSING
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.features import mobile_supports_feature, Features
+from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import SCHEDULED_QUEUE, MC_RESERVED_TAG_PREFIX
 from rogerthat.dal import parent_ndb_key
@@ -42,14 +46,15 @@ from rogerthat.to.messaging import MemberTO
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, TYPE_MESSAGE, \
     MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import try_or_defer
+from rogerthat.utils import try_or_defer, read_file_in_chunks
 from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_in_service_menu
 from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics
+from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
-from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission
+from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
@@ -80,6 +85,10 @@ def update_form(form_id, data, service_user):
         if oca_form.finished:
             form = service_api.get_form(form_id)
             return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
+        for section in data.form.sections:
+            if MISSING.default(section.branding, None) and section.branding.logo_url:
+                # TODO: default image
+                section.branding.avatar_url = None
         updated_form = service_api.update_form(form_id, data.form.title, data.form.sections,
                                                data.form.submission_section, data.form.max_submissions)
         _delete_scheduled_task(oca_form)
@@ -135,6 +144,12 @@ def list_responses(service_user, form_id, cursor, page_size):
     get_form(form_id, service_user)  # validate user
     return FormSubmission.list(form_id).fetch_page(page_size,
                                                    start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
+
+
+def delete_submissions(service_user, form_id):
+    # type: (users.User, long) -> None
+    get_form(form_id, service_user)
+    _delete_form_submissions(form_id)
 
 
 @returns(FormStatisticsTO)
@@ -292,6 +307,10 @@ def poke_forms(service_user, email, tag, result_key, context, service_identity, 
 def delete_form(form_id, service_user):
     with users.set_user(service_user):
         service_api.delete_form(form_id)
+    _delete_form_submissions(form_id)
+
+
+def _delete_form_submissions(form_id):
     run_job(_get_form_submissions, [form_id], _delete_submissions, [], mode=MODE_BATCH,
             batch_size=datastore_rpc.Connection.MAX_DELETE_KEYS)
     to_delete = get_all_statistic_keys(form_id)
@@ -320,3 +339,31 @@ def create_form_submission(service_user, user_details, form):
     submission.put()
     try_or_defer(update_form_statistics, submission)
     return FormSubmittedCallbackResultTO()
+
+
+def upload_form_image(service_user, form_id, uploaded_file):
+    # type: (users.User, long, FieldStorage) -> UploadedFile
+    content_type = uploaded_file.type or 'image/jpeg'
+    extension = '.jpg' if content_type == 'image/jpeg' else '.png'
+    image_id = UploadedFile.allocate_ids(1)[0]
+    cloudstorage_path = '/%s/services/%s/forms/%d/%d%s' % (OCA_FILES_BUCKET, service_user.email(), form_id, image_id,
+                                                           extension)
+
+    form_key = OcaForm.create_key(form_id, service_user)
+    form = form_key.get()
+    if not form:
+        raise FormNotFoundException(form_id)
+    form_image = UploadedFile(key=UploadedFile.create_key(service_user, image_id), reference=form_key,
+                              content_type=content_type,
+                              cloudstorage_path=cloudstorage_path)
+    with cloudstorage.open(form_image.cloudstorage_path, 'w', content_type=content_type) as f:
+        for chunk in read_file_in_chunks(uploaded_file.file):
+            f.write(chunk)
+    form_image.put()
+    return form_image
+
+
+def list_images(service_user, folder):
+    # type: (users.User, str) -> list[cloudstorage.GCSFileStat]
+    prefix = '/%s/services/%s/%s' % (OCA_FILES_BUCKET, service_user.email(), folder)
+    return [f for f in cloudstorage.listbucket(prefix)]

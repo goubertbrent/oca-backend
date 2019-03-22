@@ -58,3 +58,17 @@ class FormSubmissionListTO(PaginatedResultTO):
 class FormStatisticsTO(TO):
     submissions = long_property('submissions')
     statistics = typed_property('statistics', dict)
+
+
+class FormImageTO(TO):
+    id = long_property('id')
+    form_id = long_property('form_id')
+    content_type = unicode_property('content_type')
+    size = long_property('size')
+    url = unicode_property('url')
+
+
+class GcsFileTO(TO):
+    url = unicode_property('url')
+    content_type = unicode_property('content_type')
+    size = long_property('size')

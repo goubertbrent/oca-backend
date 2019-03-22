@@ -40,6 +40,8 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
       return { ...state, tombolaWinners: onLoadableSuccess(action.payload) };
     case FormsActionTypes.GET_TOMBOLA_WINNERS_FAILED:
       return { ...state, tombolaWinners: onLoadableError(action.error) };
+    case FormsActionTypes.DELETE_ALL_RESPONSES_COMPLETE:
+      return { ...state, formStatistics: onLoadableSuccess({ submissions: 0, statistics: {} }) };
   }
   return state;
 }

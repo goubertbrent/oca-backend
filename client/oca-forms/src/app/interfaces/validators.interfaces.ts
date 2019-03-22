@@ -1,4 +1,4 @@
-export const enum FormValidatorType {
+export enum FormValidatorType {
   REQUIRED = 'required',
   MIN = 'min',
   MAX = 'max',
@@ -17,7 +17,6 @@ export interface BaseValidator {
 export interface RequiredValidator extends BaseValidator {
   type: FormValidatorType.REQUIRED;
 }
-
 
 export interface MinValidator extends BaseValidator {
   type: FormValidatorType.MIN;

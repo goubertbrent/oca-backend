@@ -1,6 +1,6 @@
-import { ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
+import { Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { FormValidator, ValidatorType } from '../../../interfaces/validators.interfaces';
+import { FormValidator, FormValidatorType, ValidatorType } from '../../../interfaces/validators.interfaces';
 
 @Component({
   selector: 'oca-form-validators',
@@ -14,9 +14,20 @@ import { FormValidator, ValidatorType } from '../../../interfaces/validators.int
 })
 export class FormValidatorsComponent implements ControlValueAccessor {
 
-  @Input() set validators(value: FormValidator[]) {
-    this._validators = value;
-    this._changeDetectorRef.markForCheck();
+  set validators(value: FormValidator[]) {
+    if (value) {
+      if (this._validators) {
+        this.onChange(value);
+      }
+      this._validators = [ ...value ];
+      const currentTypes = value.map(v => v.type);
+      // @ts-ignore
+      this.allowedTypes = this.validatorTypes.filter(v => !currentTypes.includes(v.type));
+      this.validatorNames = this.validatorTypes.reduce((previousValue, currentValue) => ({
+        ...previousValue,
+        [ currentValue.type ]: currentValue.label,
+      }), {});
+    }
   }
 
   get validators() {
@@ -24,16 +35,17 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   }
 
   @Input() validatorTypes: ValidatorType[];
+  @Input() name: string;
 
-  private _validators: FormValidator[];
+  private _validators: FormValidator[] = [];
+  allowedTypes: ValidatorType[] = [];
+  validatorNames: { [key in FormValidatorType]?: string };
+  FormValidatorType = FormValidatorType;
 
   private onChange = (_: any) => {
   };
   private onTouched = () => {
   };
-
-  constructor(private _changeDetectorRef: ChangeDetectorRef) {
-  }
 
   registerOnChange(fn: any): void {
     this.onChange = fn;
@@ -47,6 +59,35 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   }
 
   writeValue(values: FormValidator[]): void {
-    this._validators = values;
+    this.validators = values;
+  }
+
+  addValidator(validatorType: FormValidatorType) {
+    let validator: FormValidator;
+    switch (validatorType) {
+      case FormValidatorType.MAX:
+        validator = { type: FormValidatorType.MAX, value: 2 };
+        break;
+      case FormValidatorType.MAXLENGTH:
+        validator = { type: FormValidatorType.MAXLENGTH, value: 200 };
+        break;
+      case FormValidatorType.MIN:
+        validator = { type: FormValidatorType.MIN, value: 2 };
+        break;
+      case FormValidatorType.MINLENGTH:
+        validator = { type: FormValidatorType.MINLENGTH, value: 10 };
+        break;
+      default:
+        return;
+    }
+    this.validators = [ ...this.validators, validator ];
+  }
+
+  removeValidator(validator: FormValidator) {
+    this.validators = this.validators.filter(v => v.type !== validator.type);
+  }
+
+  trackByType(index: number, item: FormValidator) {
+    return item.type;
   }
 }

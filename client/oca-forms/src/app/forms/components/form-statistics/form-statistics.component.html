@@ -1,5 +1,12 @@
 <div *ngIf="statistics" class="component-margin">
-  <p>{{ 'oca.total_responses_x' | translate : {count: statistics.submissions} }}</p>
+  <div class="flex">
+    <h2 class="flex-grow">{{ 'oca.total_responses_x' | translate : {count: statistics.submissions} }}</h2>
+    <span class="icons-row">
+        <button type="button" mat-icon-button [matMenuTriggerFor]="optionsMenu">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+    </span>
+  </div>
   <ng-container *ngFor="let section of statistics.sections">
     <mat-toolbar>{{ section.title }}</mat-toolbar>
     <ng-container *ngFor="let component of section.components">
@@ -50,3 +57,13 @@
     </ng-container>
   </ng-container>
 </div>
+
+<mat-menu #optionsMenu=matMenu>
+  <ng-template matMenuContent>
+    <button type="button" mat-menu-item *ngFor="let item of optionsMenuItems" role="menuitemcheckbox"
+            (click)="menuOptionClicked.emit(item)">
+      <mat-icon *ngIf="item.checked">check</mat-icon>
+      <span>{{ item.label | translate}}</span>
+    </button>
+  </ng-template>
+</mat-menu>

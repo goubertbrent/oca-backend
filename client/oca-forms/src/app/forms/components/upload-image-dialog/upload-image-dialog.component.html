@@ -1,0 +1,24 @@
+<h2 mat-dialog-title>{{ 'oca.add_header_image' | translate }}</h2>
+<mat-dialog-content>
+  <mat-tab-group>
+    <mat-tab [label]="'oca.upload_image' | translate">
+      <button mat-button (click)="fileElement.click()"
+              class="choose-button">{{ 'oca.choose_image' | translate }}</button>
+      <input type="file" [accept]="accept" #fileElement class="hidden-file-input" (change)="onFileSelected($event)">
+      <oca-image-cropper [imageUrl]="selectedImageUrl" [cropperOptions]="cropOptions"
+                         *ngIf="selectedImageUrl"></oca-image-cropper>
+      <div *ngIf="showProgress">
+        <span *ngIf="progressMode === 'determinate'">{{ 'oca.uploading' | translate }}</span>
+        <mat-progress-bar [value]="uploadPercent" [mode]="progressMode"></mat-progress-bar>
+      </div>
+      <p *ngIf="uploadError">{{ uploadError }}</p>
+    </mat-tab>
+    <mat-tab [label]="'oca.previously_upload_images' | translate">
+      <img [src]="image.url" mat-card-image class="uploaded-image" *ngFor="let image of images$ | async" (click)="imagePicked(image)">
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button matDialogClose [disabled]="showProgress">{{ 'oca.cancel' | translate }}</button>
+  <button mat-button (click)="save()" color="primary" [disabled]="showProgress">{{ 'oca.save' | translate }}</button>
+</mat-dialog-actions>

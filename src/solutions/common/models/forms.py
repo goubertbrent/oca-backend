@@ -20,6 +20,7 @@ from random import randint
 
 from google.appengine.ext import ndb
 
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
@@ -98,6 +99,34 @@ class FormSubmission(NdbModel):
     @classmethod
     def list_by_user(cls, form_id, user):
         return cls.query(cls.form_id == form_id).filter(cls.user == user)
+
+
+class UploadedFile(NdbModel):
+    reference = ndb.KeyProperty()
+    content_type = ndb.StringProperty(indexed=False)
+    cloudstorage_path = ndb.StringProperty(indexed=False)
+    created_on = ndb.DateTimeProperty(auto_now_add=True)
+
+    @property
+    def id(self):
+        return self.key.id()
+
+    @property
+    def url(self):
+        return get_serving_url(self.cloudstorage_path)
+
+    @classmethod
+    def create_key(cls, service_user, form_id):
+        return ndb.Key(cls, form_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
+
+    @classmethod
+    def list_by_reference(cls, key):
+        # type: (ndb.Key) -> list[UploadedFile]
+        return cls.query(cls.reference == key)
+
+    @classmethod
+    def list_by_user(cls, service_user):
+        return cls.query(ancestor=parent_ndb_key(service_user, SOLUTION_COMMON))
 
 
 class FormStatisticsShard(NdbModel):

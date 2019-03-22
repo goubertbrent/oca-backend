@@ -18,6 +18,7 @@ from types import NoneType
 
 from google.appengine.ext import deferred, db
 
+import cloudstorage
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.job import delete_service
 from rogerthat.bizz.job.delete_service import validate_delete_service
@@ -26,6 +27,7 @@ from rogerthat.dal.profile import get_service_profile
 from rogerthat.rpc import users
 from shop.dal import get_customer
 from solutions.common import SOLUTION_COMMON
+from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
 from solutions.common.utils import create_service_identity_user_wo_default
 
@@ -70,6 +72,7 @@ def _reset_customer_model(service_user):
 
 def _delete_solution_models(service_user, service_identity, solutions, delete_svc):
     solution = solutions.pop(0)
+    _cleanup_gcs(service_user)
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     key = parent_key_unsafe(service_identity_user, solution)
 
@@ -87,3 +90,10 @@ def _delete_solution_models(service_user, service_identity, solutions, delete_sv
             return False
     while db.run_in_transaction(trans):
         pass
+
+
+def _cleanup_gcs(service_user):
+    path = '/%s/services/%s' % (OCA_FILES_BUCKET, service_user.email())
+    all_files = [f for f in cloudstorage.listbucket(path)]
+    for f in all_files:
+        cloudstorage.delete(f.filename)

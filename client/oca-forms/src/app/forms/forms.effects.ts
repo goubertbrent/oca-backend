@@ -10,6 +10,9 @@ import {
   CreateFormAction,
   CreateFormCompleteAction,
   CreateFormFailedAction,
+  DeleteAllResponsesAction,
+  DeleteAllResponsesCompleteAction,
+  DeleteAllResponsesFailedAction,
   FormsActions,
   FormsActionTypes,
   GetFormAction,
@@ -27,6 +30,8 @@ import {
   SaveFormAction,
   SaveFormCompleteAction,
   SaveFormFailedAction,
+  ShowDeleteAllResponsesAction,
+  ShowDeleteAllResponsesCanceledAction,
   TestFormAction,
   TestFormCompleteAction,
   TestFormFailedAction,
@@ -110,13 +115,33 @@ export class FormsEffects {
       catchError(err => of(new GetTombolaWinnersFailedAction(err))))),
   );
 
+
+  @Effect() showDeleteAllResponsesDialog$ = this.actions$.pipe(
+    ofType<ShowDeleteAllResponsesAction>(FormsActionTypes.SHOW_DELETE_ALL_RESPONSES),
+    switchMap(action => this.matDialog.open(SimpleDialogComponent, {
+        data: {
+          ok: this.translate.instant('oca.yes'),
+          message: action.message,
+          title: this.translate.instant('oca.confirm_deletion'),
+          cancel: this.translate.instant('oca.no'),
+        } as SimpleDialogData,
+      }).afterClosed().pipe(
+      map(result => result.submitted ? new DeleteAllResponsesAction(action.formId) : new ShowDeleteAllResponsesCanceledAction())),
+    ),
+  );
+
+  @Effect() deleteAllResponses$ = this.actions$.pipe(
+    ofType<DeleteAllResponsesAction>(FormsActionTypes.DELETE_ALL_RESPONSES),
+    switchMap(action => this.formsService.deleteAllResponses(action.formId).pipe(
+      map(data => new DeleteAllResponsesCompleteAction()),
+      catchError(err => of(new DeleteAllResponsesFailedAction(err))))),
+  );
+
   constructor(private actions$: Actions<FormsActions>,
               private formsService: FormsService,
               private snackbar: MatSnackBar,
               private translate: TranslateService,
               private router: Router,
               private matDialog: MatDialog) {
-
   }
-
 }

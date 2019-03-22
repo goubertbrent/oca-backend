@@ -25,6 +25,11 @@ export const enum FormsActionTypes {
   TEST_FORM = '[forms] Test form',
   TEST_FORM_COMPLETE = '[forms] Test form complete',
   TEST_FORM_FAILED = '[forms] Test form failed',
+  SHOW_DELETE_ALL_RESPONSES = '[forms] Show delete all responses',
+  SHOW_DELETE_ALL_RESPONSES_CANCELED = '[forms] Show delete all responses canceled',
+  DELETE_ALL_RESPONSES = '[forms] Delete all responses',
+  DELETE_ALL_RESPONSES_COMPLETE = '[forms] Delete all responses complete',
+  DELETE_ALL_RESPONSES_FAILED = '[forms] Delete all responses failed',
 }
 
 export class GetFormsAction implements Action {
@@ -168,6 +173,35 @@ export class TestFormFailedAction implements Action {
   }
 }
 
+export class ShowDeleteAllResponsesAction implements Action {
+  readonly type = FormsActionTypes.SHOW_DELETE_ALL_RESPONSES;
+
+  constructor(public formId: number, public message: string) {
+  }
+}
+
+export class ShowDeleteAllResponsesCanceledAction implements Action {
+  readonly type = FormsActionTypes.SHOW_DELETE_ALL_RESPONSES_CANCELED;
+}
+
+export class DeleteAllResponsesAction implements Action {
+  readonly type = FormsActionTypes.DELETE_ALL_RESPONSES;
+
+  constructor(public formId: number) {
+  }
+}
+
+export class DeleteAllResponsesCompleteAction implements Action {
+  readonly type = FormsActionTypes.DELETE_ALL_RESPONSES_COMPLETE;
+}
+
+export class DeleteAllResponsesFailedAction implements Action {
+  readonly type = FormsActionTypes.DELETE_ALL_RESPONSES_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
+
 
 export type FormsActions =
   GetFormsAction
@@ -190,4 +224,9 @@ export type FormsActions =
   | GetTombolaWinnersFailedAction
   | TestFormAction
   | TestFormCompleteAction
-  | TestFormFailedAction;
+  | TestFormFailedAction
+  | ShowDeleteAllResponsesAction
+  | ShowDeleteAllResponsesCanceledAction
+  | DeleteAllResponsesAction
+  | DeleteAllResponsesCompleteAction
+  | DeleteAllResponsesFailedAction;

@@ -1,7 +1,35 @@
-<div *ngFor="let validator of validators">
-  <mat-select [(ngModel)]="validator.type">
-    <mat-option *ngFor="let validatorType of validatorTypes" [value]="validatorType.type">
-      {{ validatorType.label | translate }}
-    </mat-option>
-  </mat-select>
+<div *ngFor="let validator of validators; trackBy: trackByType; let i = index;" class="validator-container">
+  <ng-container *ngIf="validator.type !== FormValidatorType.REQUIRED">
+    <h4 class="validator-type">{{ validatorNames[validator.type] | translate }}</h4>
+    <ng-container
+      *ngIf="validator.type === FormValidatorType.MINLENGTH || validator.type === FormValidatorType.MIN ||  validator.type === FormValidatorType.MAX || validator.type === FormValidatorType.MAXLENGTH">
+      <mat-form-field style="width: 100px;" class="number-input">
+        <mat-label>{{ 'oca.number' | translate }}</mat-label>
+        <input matInput [name]="name + '_value' + validator.type" type="number" [(ngModel)]="validator.value"
+               (ngModelChange)="onChange(validators)">
+      </mat-form-field>
+    </ng-container>
+    <mat-form-field class="custom-error-message">
+      <mat-label>{{ 'oca.custom_error_text' | translate }}</mat-label>
+      <input matInput [name]="name + '_error_message' + validator.type" [(ngModel)]="validator.error_message"
+             (ngModelChange)="onChange(validators)">
+    </mat-form-field>
+    <button mat-icon-button (click)="removeValidator(validator)">
+      <mat-icon>close</mat-icon>
+    </button>
+  </ng-container>
 </div>
+<div *ngIf="allowedTypes.length > 0">
+  <button mat-button type="button" [matMenuTriggerFor]="validatorChoiceMenu">
+    {{ 'oca.add_validator' | translate }}
+  </button>
+</div>
+
+<mat-menu #validatorChoiceMenu=matMenu>
+  <ng-template matMenuContent>
+    <button type="button" mat-menu-item *ngFor="let item of allowedTypes" role="menuitemcheckbox"
+            (click)="addValidator(item.type)">
+      {{ item.label | translate}}
+    </button>
+  </ng-template>
+</mat-menu>

@@ -106,6 +106,39 @@ function NewsWizard(newsList, options) {
 }
 
 NewsWizard.prototype = {
+
+    getAllowedButtonActions: function () {
+        var allowedButtonActions = [{
+            value: 'url',
+            type: 'url',
+            translation: T('WEBSITE'),
+            defaultLabel: T('open_website')
+        }, {
+            value: 'phone',
+            type: 'tel',
+            translation: T('phone_number'),
+            defaultLabel: T('Call')
+        }, {
+            value: 'email',
+            type: 'email',
+            translation: T('email_address'),
+            defaultLabel: T('send_email')
+        }, {
+            value: 'attachment',
+            type: 'url',
+            translation: T('Attachment'),
+            defaultLabel: T('Attachment')
+        }];
+        if (MODULES.includes('joyn')) {
+            allowedButtonActions.push({
+                value: 'joyn_coupon',
+                type: 'url',
+                translation: T('joyn-coupon'),
+                defaultLabel: T('activate')
+            });
+        }
+        return allowedButtonActions;
+    },
     edit: function (newsId, initialData) {
         this.initialData = initialData;
         newsId = parseInt(newsId);
@@ -253,35 +286,6 @@ NewsWizard.prototype = {
                 };
             }
         }
-        var allowedButtonActions = [{
-            value: 'url',
-            type: 'url',
-            translation: T('WEBSITE'),
-            defaultLabel: T('open_website')
-        }, {
-            value: 'phone',
-            type: 'tel',
-            translation: T('phone_number'),
-            defaultLabel: T('Call')
-        }, {
-            value: 'email',
-            type: 'email',
-            translation: T('email_address'),
-            defaultLabel: T('send_email')
-        }, {
-            value: 'attachment',
-            type: 'url',
-            translation: T('Attachment'),
-            defaultLabel: T('Attachment')
-        }];
-        if (MODULES.includes('joyn')) {
-            allowedButtonActions.push({
-                value: 'joyn_coupon',
-                type: 'url',
-                translation: T('joyn-coupon'),
-                defaultLabel: T('activate')
-            });
-        }
         actionButton = {
             id: actionButtonId,
             value: actionButtonValue,
@@ -321,7 +325,7 @@ NewsWizard.prototype = {
                 sandwichSettings: self.sandwichSettings,
                 selectedSandwich: selectedSandwich || {},
                 isFlagSet: sln.isFlagSet,
-                allowedButtonActions: allowedButtonActions,
+                allowedButtonActions: self.getAllowedButtonActions(),
                 roles: self.broadcastOptions.roles,
                 baseLink: self.newsList.baseLink,
                 title: self.title,
@@ -357,6 +361,7 @@ NewsWizard.prototype = {
             elemInputImage = self.$('#news_input_image'),
             elemInputUseCoverPhoto = self.$('#news_button_cover_photo'),
             elemSelectButton = self.$('#select_broadcast_button'),
+            elemButtonCaption = self.$('#news_button_caption'),
             elemCheckboxPromote = self.$('#checkbox_promote'),
             elemImagePreview = self.$('#news_image_preview'),
             elemImageEditorContainer = self.$('#news_image_editor_container'),
@@ -383,7 +388,6 @@ NewsWizard.prototype = {
             elemNewsActionSandwichType = self.$('#news_action_sandwich_bar_types'),
             elemNewsActionSandwichTopping = self.$('#news_action_sandwich_bar_toppings'),
             elemNewsActionSandwichOptions = $('input[name=news_action_sandwich_bar_options]'),
-            elemActionButtonInputs = self.$('.news_action').find('[news_action_render_preview]'),
             elemCheckboxSchedule = self.$('#news_send_later'),
             elemInputScheduleDate = self.$('#news_scheduled_at_date'),
             elemInputScheduleTime = self.$('#news_scheduled_at_time'),
@@ -422,7 +426,7 @@ NewsWizard.prototype = {
         elemSelectBroadcastType.change(renderPreview);
         elemSelectButton.change(actionButtonChanged);
         elemInputTitle.on('input paste keyup', renderPreview);
-        elemActionButtonInputs.on('input paste keyup', renderPreview);
+        elemButtonCaption.on('input paste keyup', renderPreview);
 
         elemInputActionButtonUrl.keyup(actionButtonUrlChanged);
 
@@ -463,7 +467,7 @@ NewsWizard.prototype = {
             initialValue: originalNewsItem && originalNewsItem.message,
             spellChecker: false,
             status: false,
-            toolbar: ['bold', 'italic', 'strikethrough', 'unordered-list', 'link', 'table'],
+            toolbar: ['bold', 'italic', 'strikethrough', 'unordered-list', 'link'],
         });
 
         messageEditor.codemirror.on('change', function () {
@@ -625,6 +629,7 @@ NewsWizard.prototype = {
                 self.$('.news_action').hide();
                 var defaultActions = ['url', 'email', 'phone', 'attachment', 'joyn_coupon'];
                 var isDefaultAction = defaultActions.includes(selectedAction[0]);
+                var defaultButtonText = elemSelectButton.find(':selected').text().trim();
                 if (selectedAction[0].startsWith('__sln__') || isDefaultAction) {
                     var showElem = true;
                     if (isDefaultAction) {
@@ -635,9 +640,14 @@ NewsWizard.prototype = {
                         }
                         self.$('#news_action_' + selectedAction[1]).toggle(showElem);
                     }
+                    var action = self.getAllowedButtonActions().find(b => b.value === selectedAction[0]);
+                    if (action) {
+                        defaultButtonText = action.defaultLabel;
+                    }
                 } else if (selectedAction[0] === 'reserve1') {
                     self.$('#news_action_restaurant_reservation').show();
                 }
+                elemButtonCaption.val(defaultButtonText);
                 renderPreview();
             });
         }
@@ -741,15 +751,13 @@ NewsWizard.prototype = {
             var selectedActionButtonId = elemSelectButton.val() || '';
             if (selectedActionButtonId) {
                 var actionPrefix = 'smi',
-                    actionValue = selectedActionButtonId,
-                    actionCaption = elemSelectButton.find(':selected').text().trim();
+                    actionValue = selectedActionButtonId;
                 switch (selectedActionButtonId) {
                     case 'attachment':
                     case 'url':
                         var url_or_attachment = selectedActionButtonId === 'url' ? 'url' : 'attachment';
                         var elemValue = self.$('#news_action_' + url_or_attachment + '_value');
                         actionValue = elemValue.val();
-                        actionCaption = self.$('#news_action_' + url_or_attachment + '_caption').val();
                         try {
                             var splitAction = actionValue.match(/https?:\/\/(.*)/);
                             var isHttps = splitAction.length ? splitAction[0].indexOf('https') === 0 : false;
@@ -764,12 +772,10 @@ NewsWizard.prototype = {
                     case 'email':
                         actionPrefix = 'mailto';
                         actionValue = self.$('#news_action_email_value').val();
-                        actionCaption = self.$('#news_action_email_caption').val();
                         break;
                     case 'phone':
                         actionPrefix = 'tel';
                         actionValue = self.$('#news_action_phone_value').val();
-                        actionCaption = self.$('#news_action_phone_caption').val();
                         break;
                     case 'joyn_coupon':
                         actionPrefix = 'open';
@@ -788,12 +794,11 @@ NewsWizard.prototype = {
                             ios_app_id: "id1157594279",
                             ios_scheme: scheme
                         });
-                        actionCaption = $('#news_action_joyn_coupon_caption').val();
                         break;
                 }
                 var actionButton = {
                     id: selectedActionButtonId,
-                    caption: actionCaption,
+                    caption: elemButtonCaption.val() && elemButtonCaption.val().trim(),
                     action: actionPrefix + '://' + actionValue,
                     flow_params: ''
                 };

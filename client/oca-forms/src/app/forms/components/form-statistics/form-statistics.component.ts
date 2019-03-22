@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { DELETE_ALL_RESPONSES_OPTION, OptionsMenuOption } from '../../../interfaces/consts';
 import { FormComponentType } from '../../../interfaces/enums';
 import { ComponentStatsType, FormStatisticsView } from '../../../interfaces/forms.interfaces';
 
@@ -11,6 +12,7 @@ import { ComponentStatsType, FormStatisticsView } from '../../../interfaces/form
 export class FormStatisticsComponent {
   FormComponentType = FormComponentType;
   @Input() statistics: FormStatisticsView;
+  @Output() menuOptionClicked = new EventEmitter<OptionsMenuOption>();
   ComponentStatsType = ComponentStatsType;
 
   private responseCountMapping = {
@@ -19,4 +21,5 @@ export class FormStatisticsComponent {
     other: 'oca.response_count.plural',
   };
 
+  optionsMenuItems = [ DELETE_ALL_RESPONSES_OPTION ];
 }

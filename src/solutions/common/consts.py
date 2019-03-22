@@ -76,6 +76,9 @@ CURRENCY_NAMES = {
 }
 
 
+OCA_FILES_BUCKET = 'oca-files'
+
+
 def get_currency_name(locale, currency_symbol):
     name = locale.currencies.get(currency_symbol)
     return name or CURRENCY_NAMES.get(currency_symbol, currency_symbol)

@@ -22,11 +22,12 @@
       </mat-select>
     </mat-form-field>
   </div>
-  <mat-form-field class="field" *ngIf="showDescription">
-    <mat-label>{{ 'oca.description' | translate }}</mat-label>
-    <textarea matInput [name]="name + '_description'" [(ngModel)]="component.description"
-              matTextareaAutosize></textarea>
-  </mat-form-field>
+  <div class="field" *ngIf="showDescription">
+    <p>{{ 'oca.description' | translate }}</p>
+    <div class="description-editor">
+      <simplemde [name]="name + '_description'" [(ngModel)]="component.description"></simplemde>
+    </div>
+  </div>
   <ng-container [ngSwitch]="component.type">
     <ng-container *ngSwitchCase="FormComponentType.PARAGRAPH"></ng-container>
     <ng-container *ngSwitchCase="FormComponentType.TEXT_INPUT">
@@ -74,8 +75,9 @@
     </ng-container>
   </ng-container>
   <!--hiding until completely implemented-->
-  <ng-container *ngIf="showValidators && false">
-    <oca-form-validators [(ngModel)]="component.validators" [validatorTypes]="validatorTypes"></oca-form-validators>
+  <ng-container *ngIf="showValidators">
+    <oca-form-validators [name]="name + '_validators'" [(ngModel)]="component.validators"
+                         [validatorTypes]="validatorTypes" (ngModelChange)="changed()"></oca-form-validators>
   </ng-container>
   <mat-divider></mat-divider>
   <div class="icons-row">

@@ -1,10 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatDialog } from '@angular/material';
 import { ActivatedRoute } from '@angular/router';
+import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subscription } from 'rxjs';
-import { first, map, withLatestFrom } from 'rxjs/operators';
+import { tap } from 'rxjs/internal/operators/tap';
+import { first, map, take, withLatestFrom } from 'rxjs/operators';
+import { SimpleDialogComponent, SimpleDialogData } from '../../../dialog/simple-dialog.component';
+import { OptionsMenuOption } from '../../../interfaces/consts';
+import { OptionType } from '../../../interfaces/enums';
 import { FormStatisticsView, OcaForm } from '../../../interfaces/forms.interfaces';
 import { Loadable } from '../../../interfaces/loadable';
 import {
@@ -14,7 +19,17 @@ import {
 import { UserDetailsTO } from '../../../users/interfaces';
 import { createAppUser } from '../../../util/rogerthat';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
-import { GetFormAction, GetFormStatisticsAction, GetTombolaWinnersAction, SaveFormAction, TestFormAction } from '../../forms.actions';
+import {
+  DeleteAllResponsesAction,
+  FormsActions,
+  FormsActionTypes,
+  GetFormAction,
+  GetFormStatisticsAction,
+  GetTombolaWinnersAction,
+  SaveFormAction,
+  ShowDeleteAllResponsesAction,
+  TestFormAction,
+} from '../../forms.actions';
 import { FormsState, getForm, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
 
 @Component({
@@ -28,18 +43,26 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   formStatistics$: Observable<Loadable<FormStatisticsView>>;
   tombolaWinners$: Observable<UserDetailsTO[]>;
   showCreateNewsButton$: Observable<boolean>;
+  formId: number;
+  wasVisible: null | boolean = null;
 
   private _subscription: Subscription = Subscription.EMPTY;
 
   constructor(private store: Store<FormsState>,
+              private actions$: Actions<FormsActions>,
               private route: ActivatedRoute,
               private matDialog: MatDialog,
               private translate: TranslateService) {
   }
 
   ngOnInit() {
-    this.store.dispatch(new GetFormAction(this.route.snapshot.params.id));
-    this.form$ = this.store.pipe(select(getForm));
+    this.formId = this.route.snapshot.params.id;
+    this.store.dispatch(new GetFormAction(this.formId));
+    this.form$ = this.store.pipe(select(getForm), tap(form => {
+      if (form.success && this.wasVisible === null) {
+        this.wasVisible = form.data.settings.visible;
+      }
+    }));
     this.tombolaWinners$ = this.store.pipe(select(getTombolaWinners));
     this.formStatistics$ = this.store.pipe(select(getTransformedStatistics));
     this.showCreateNewsButton$ = this.form$.pipe(map(loadable => loadable.success && loadable.data.settings.visible));
@@ -50,7 +73,32 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   }
 
   onSave(form: OcaForm) {
-    this.store.dispatch(new SaveFormAction(form));
+    if (!this.wasVisible && form.settings.visible) {
+      // Changed from invisible to visible - ask to delete responses
+      this.store.dispatch(new GetFormStatisticsAction(this.formId));
+      this.actions$.pipe(ofType(FormsActionTypes.GET_FORM_STATISTICS_COMPLETE), take(1)).subscribe(result => {
+        if (result.stats.submissions === 0) {
+          this.store.dispatch(new SaveFormAction(form));
+        } else {
+          this.matDialog.open(SimpleDialogComponent, {
+            data: {
+              ok: this.translate.instant('oca.yes'),
+              message: this.translate.instant('oca.responses_found_for_form', { responseCount: result.stats.submissions }),
+              title: this.translate.instant('oca.confirm_deletion'),
+              cancel: this.translate.instant('oca.no'),
+            } as SimpleDialogData,
+          }).afterClosed().subscribe(dialogResult => {
+            if (dialogResult.submitted) {
+              this.store.dispatch(new DeleteAllResponsesAction(this.formId));
+            }
+            this.store.dispatch(new SaveFormAction(form));
+          });
+        }
+      });
+    } else {
+      this.store.dispatch(new SaveFormAction(form));
+    }
+    this.wasVisible = form.settings.visible;
   }
 
   onTabChanged(tabIndex: number) {
@@ -61,8 +109,16 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
         });
         break;
       case FormDetailTab.STATISTICS:
-        this.store.dispatch(new GetFormStatisticsAction(this.route.snapshot.params.id));
+        this.store.dispatch(new GetFormStatisticsAction(this.formId));
         break;
+    }
+  }
+
+  onMenuOptionClicked(option: OptionsMenuOption) {
+    if (option.id === OptionType.DELETE_ALL_RESPONSES) {
+      this.form$.pipe(first()).subscribe(form => {
+        this.store.dispatch(new ShowDeleteAllResponsesAction(this.formId, this.translate.instant('oca.confirm_delete_responses')));
+      });
     }
   }
 

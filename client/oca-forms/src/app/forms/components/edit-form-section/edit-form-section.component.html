@@ -1,14 +1,28 @@
 <fieldset *ngIf="section">
+  <mat-card *ngIf="formId && section.branding" class="header-card">
+    <mat-card-header>
+      <mat-card-title>{{ 'oca.header_image' | translate }}</mat-card-title>
+    </mat-card-header>
+    <img mat-card-image [src]="section.branding.logo_url">
+    <mat-card-actions align="end">
+      <button mat-button type="button" color="warn" (click)="removeHeaderImage()">
+        {{ 'oca.delete' | translate }}
+      </button>
+      <button mat-button type="button" (click)="openHeaderImageDialog()">
+        {{ 'oca.modify' | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
   <mat-form-field class="field">
     <mat-label>{{ 'oca.title' | translate }}</mat-label>
-    <input [name]="name + '_title'" matInput [(ngModel)]="section.title" required
-           #title="ngModel">
-    <mat-error *ngIf="title.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
+    <input [name]="name + '_title'" matInput [(ngModel)]="section.title" maxlength="80" #title="ngModel">
   </mat-form-field>
-  <mat-form-field class="field">
-    <mat-label>{{ 'oca.description' | translate }}</mat-label>
-    <textarea [name]="name + '_description'" matInput [(ngModel)]="section.description" matTextareaAutosize></textarea>
-  </mat-form-field>
+  <div class="field">
+    <p>{{ 'oca.description' | translate }}</p>
+    <div class="description-editor">
+      <simplemde [name]="name + '_description'" [(ngModel)]="section.description"></simplemde>
+    </div>
+  </div>
   <div class="component-container" cdkDropList (cdkDropListDropped)="dropped($event)">
     <div *ngFor="let component of section.components; let i = index; trackBy: trackByIndex"
          class="component mat-app-background mat-elevation-z8" cdkDrag>

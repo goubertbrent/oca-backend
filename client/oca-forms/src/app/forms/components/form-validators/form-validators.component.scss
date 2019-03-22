@@ -1,0 +1,18 @@
+.validator-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.validator-type {
+  display: inline;
+  margin: 0 16px;
+}
+
+.number-input {
+  margin: 0 16px;
+}
+
+.custom-error-message {
+  flex-grow: 1;
+}

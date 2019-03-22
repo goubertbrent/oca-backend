@@ -16,9 +16,9 @@
     <mat-radio-button checked="false" disabled="true" *ngSwitchCase="false"></mat-radio-button>
     <mat-checkbox checked="false" disabled="true" *ngSwitchCase="true"></mat-checkbox>
   </ng-container>
-  <mat-form-field appearance="legacy">
+  <mat-form-field appearance="legacy" (click)="addChoice()">
     <mat-label>{{ 'oca.add_option' | translate }}</mat-label>
     <input matInput #newInput autocomplete="off" [(ngModel)]="temporaryValue" [ngModelOptions]="{standalone: true}"
-           (click)="addChoice()" (keydown.enter)="addChoice()" (keydown.tab)="addChoice()">
+           (keydown.enter)="addChoice()" (keydown.tab)="addChoice()">
   </mat-form-field>
 </div>

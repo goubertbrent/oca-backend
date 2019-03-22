@@ -18,7 +18,7 @@ import { MatDialog, MatInput, MatSlideToggleChange } from '@angular/material';
 import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../dialog/simple-dialog.component';
 import { CreateDynamicForm, DynamicForm, FormSection, isCreateForm, OcaForm } from '../../../interfaces/forms.interfaces';
-import { ArrangeSectionsDialogComponent } from '../arange-sections/arrange-sections-dialog.component';
+import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({
   selector: 'oca-edit-form',
@@ -78,7 +78,7 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
   addSection() {
     const id = this.getNextSectionId(this.form.form.sections);
     const title = this._translate.instant('oca.untitled_section');
-    this.form.form.sections.push({ id, title, components: [] });
+    this.form.form.sections.push({ id, title, components: [], branding: null });
   }
 
   moveSection() {
@@ -112,6 +112,7 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
         title: this._translate.instant('oca.thank_you'),
         description: this._translate.instant('oca.your_response_has_been_recorded'),
         components: [],
+        branding: null,
       };
     } else {
       this.form.form.submission_section = null;

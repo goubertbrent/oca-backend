@@ -60,3 +60,9 @@ export const GOTO_SECTION_OPTION: OptionsMenuOption = {
   label: 'oca.go_to_section_based_on_answer',
   checked: false,
 };
+
+export const DELETE_ALL_RESPONSES_OPTION: OptionsMenuOption = {
+  id: OptionType.DELETE_ALL_RESPONSES,
+  label: 'oca.delete_all_responses',
+  checked: false,
+};

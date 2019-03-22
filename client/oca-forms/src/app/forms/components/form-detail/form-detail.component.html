@@ -10,7 +10,7 @@
 <!--  </mat-tab>-->
   <mat-tab [label]="'oca.statistics' | translate">
     <oca-loadable [loadable]="statistics">
-      <oca-form-statistics [statistics]="statistics.data"></oca-form-statistics>
+      <oca-form-statistics [statistics]="statistics.data" (menuOptionClicked)="menuOptionClicked.emit($event)"></oca-form-statistics>
     </oca-loadable>
   </mat-tab>
 </mat-tab-group>

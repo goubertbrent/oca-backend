@@ -9,6 +9,7 @@ import {
   KEYBOARD_TYPES,
   OptionsMenuOption,
   SHOW_DESCRIPTION_OPTION,
+  VALIDATION_OPTION,
 } from '../../../interfaces/consts';
 import { DateFormat, FormComponentType, KeyboardType, OptionType } from '../../../interfaces/enums';
 import { FormComponent, isInputComponent, SingleSelectComponent } from '../../../interfaces/forms.interfaces';
@@ -145,16 +146,16 @@ export class FormFieldComponent {
 
   private prepareOptionsMenu() {
     this.optionsMenuItems = [ { ...SHOW_DESCRIPTION_OPTION, checked: this.showDescription } ];
-    // hiding rest of the options until they're completely implemented
-    // if (this.component.type !== FormComponentType.PARAGRAPH) {
-    //   this.optionsMenuItems.push({
-    //     ...VALIDATION_OPTION,
-    //     checked: this.component.validators.filter(v => v.type !== FormValidatorType.REQUIRED).length !== 0,
-    //   });
-    //   if (this.component.type === FormComponentType.SINGLE_SELECT) {
-    //     this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action !== null) });
-    //   }
-    // }
+    if (this.component.type !== FormComponentType.PARAGRAPH && this.component.type !== FormComponentType.SINGLE_SELECT) {
+      this.optionsMenuItems.push({
+        ...VALIDATION_OPTION,
+        checked: this.component.validators.filter(v => v.type !== FormValidatorType.REQUIRED).length !== 0,
+      });
+      // TODO implement
+      // if (this.component.type === FormComponentType.SINGLE_SELECT) {
+      //   this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action !== null) });
+      // }
+    }
   }
 
   private onComponentChange(type: FormComponentType) {
@@ -169,6 +170,11 @@ export class FormFieldComponent {
         comp.validators = [];
       }
       switch (comp.type) {
+        case FormComponentType.TEXT_INPUT:
+          if (!comp.keyboard_type) {
+            comp = { ...comp, keyboard_type: KeyboardType.DEFAULT };
+          }
+          break;
         case FormComponentType.SINGLE_SELECT:
         case FormComponentType.MULTI_SELECT:
           if (!comp.choices) {
@@ -204,8 +210,8 @@ export class FormFieldComponent {
         break;
       case FormComponentType.MULTI_SELECT:
         validatorTypes = [ ...validatorTypes,
-          { type: FormValidatorType.MIN, label: 'oca.minimum' },
-          { type: FormValidatorType.MAX, label: 'oca.maximum' },
+          { type: FormValidatorType.MIN, label: 'oca.select_at_least' },
+          { type: FormValidatorType.MAX, label: 'oca.select_at_most' },
         ];
         break;
     }
