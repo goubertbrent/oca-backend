@@ -25,7 +25,8 @@
   <div class="field" *ngIf="showDescription">
     <p>{{ 'oca.description' | translate }}</p>
     <div class="description-editor">
-      <simplemde [name]="name + '_description'" [(ngModel)]="component.description"></simplemde>
+      <simplemde [name]="name + '_description'" [(ngModel)]="component.description"
+                 (ngModelChange)="changed()"></simplemde>
     </div>
   </div>
   <ng-container [ngSwitch]="component.type">
@@ -33,10 +34,10 @@
     <ng-container *ngSwitchCase="FormComponentType.TEXT_INPUT">
       <mat-form-field class="field">
         <mat-label>{{ 'oca.placeholder' | translate }}</mat-label>
-        <input matInput [name]="name + '_placeholder'" [(ngModel)]="component.placeholder">
+        <input matInput [name]="name + '_placeholder'" [(ngModel)]="component.placeholder" (ngModelChange)="changed()">
       </mat-form-field>
       <div>
-        <mat-slide-toggle [name]="name + '_multiline'" [(ngModel)]="component.multiline">
+        <mat-slide-toggle [name]="name + '_multiline'" [(ngModel)]="component.multiline" (ngModelChange)="changed()">
           {{ 'oca.allow_multiple_lines' | translate }}
         </mat-slide-toggle>
       </div>

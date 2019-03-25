@@ -42,7 +42,6 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     return this._multiple;
   }
 
-  @Input()
   set values(values: Value[]) {
     // Don't set 'changed' in case of initial value
     if (this._values) {
@@ -82,7 +81,8 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   }
 
   writeValue(values: Value[]): void {
-    this.values = values;
+    this._values = values;
+    this._changeDetectorRef.markForCheck();
   }
 
   ngAfterViewInit(): void {
@@ -122,7 +122,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   addChoice() {
     let value = this.temporaryValue;
     if (value) {
-      this.temporaryValue = null;
+      this.temporaryValue = '';
     } else {
       const count = this.values.length + 1;
       value = this._translate.instant('oca.option_x', { number: count });

@@ -79,14 +79,17 @@ export class UploadImageDialogComponent implements OnDestroy {
     this.imageCropper.getCroppedImage('blob', .9, options).then(croppedImage => {
       this.progressMode = 'determinate';
       this._changeDetectorRef.markForCheck();
+      if (!croppedImage.blob) {
+        return;
+      }
       this._formsService.uploadImage(this._formId, croppedImage.blob).pipe(takeUntil(this._destroyed)).subscribe(event => {
         switch (event.type) {
           case HttpEventType.UploadProgress:
-            this.uploadPercent = (100 * event.loaded) / event.total;
+            this.uploadPercent = (100 * event.loaded) / (event.total as number);
             break;
           case HttpEventType.Response:
             this.showProgress = false;
-            const body: UploadedFormFile = event.body;
+            const body: UploadedFormFile = event.body as UploadedFormFile;
             this._dialogRef.close(body.url);
             break;
         }

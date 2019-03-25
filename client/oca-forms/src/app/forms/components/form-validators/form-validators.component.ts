@@ -16,28 +16,19 @@ export class FormValidatorsComponent implements ControlValueAccessor {
 
   set validators(value: FormValidator[]) {
     if (value) {
-      if (this._validators) {
-        this.onChange(value);
-      }
-      this._validators = [ ...value ];
-      const currentTypes = value.map(v => v.type);
-      // @ts-ignore
-      this.allowedTypes = this.validatorTypes.filter(v => !currentTypes.includes(v.type));
-      this.validatorNames = this.validatorTypes.reduce((previousValue, currentValue) => ({
-        ...previousValue,
-        [ currentValue.type ]: currentValue.label,
-      }), {});
+      this.updateValues(value);
+      this.onChange(value);
     }
   }
 
   get validators() {
-    return this._validators;
+    return this._validators || [];
   }
 
   @Input() validatorTypes: ValidatorType[];
   @Input() name: string;
 
-  private _validators: FormValidator[] = [];
+  private _validators: FormValidator[];
   allowedTypes: ValidatorType[] = [];
   validatorNames: { [key in FormValidatorType]?: string };
   FormValidatorType = FormValidatorType;
@@ -59,7 +50,9 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   }
 
   writeValue(values: FormValidator[]): void {
-    this.validators = values;
+    if (values !== this.validators) {
+      this.updateValues(values);
+    }
   }
 
   addValidator(validatorType: FormValidatorType) {
@@ -89,5 +82,16 @@ export class FormValidatorsComponent implements ControlValueAccessor {
 
   trackByType(index: number, item: FormValidator) {
     return item.type;
+  }
+
+  private updateValues(value: FormValidator[] | null) {
+    this._validators = value ? [ ...value ] : [];
+    const currentTypes = this._validators.map(v => v.type);
+    // @ts-ignore
+    this.allowedTypes = this.validatorTypes.filter(v => !currentTypes.includes(v.type));
+    this.validatorNames = this.validatorTypes.reduce((previousValue, currentValue) => ({
+      ...previousValue,
+      [ currentValue.type ]: currentValue.label,
+    }), {});
   }
 }

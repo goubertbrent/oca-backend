@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
-import { CreateDynamicForm, FormSettings, FormStatistics, OcaForm } from '../interfaces/forms.interfaces';
+import { CreateDynamicForm, FormSettings, FormStatistics, OcaForm, SaveForm } from '../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 export const enum FormsActionTypes {
@@ -95,7 +95,7 @@ export class GetFormStatisticsFailedAction implements Action {
 export class SaveFormAction implements Action {
   readonly type = FormsActionTypes.SAVE_FORM;
 
-  constructor(public form: OcaForm) {
+  constructor(public payload: SaveForm) {
   }
 }
 

@@ -2,6 +2,7 @@ import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { DateFormat, FormComponentType } from '../interfaces/enums';
 import {
   ComponentStatistics,
+  ComponentStatisticsValues,
   ComponentStatsType,
   DatesComponentStatistics,
   DatetimeComponent,
@@ -42,7 +43,7 @@ const featureSelector = createFeatureSelector<FormsState>('forms');
 
 export const getForms = createSelector(featureSelector, s => ({
   ...s.forms,
-  data: s.forms.data.map(f => ({ ...f, visible_until: f.visible_until ? new Date(f.visible_until) : null }
+  data: (s.forms.data || []).map(f => ({ ...f, visible_until: f.visible_until ? new Date(f.visible_until) : null }
   )),
 }));
 export const getForm = createSelector(featureSelector, s => s.form);
@@ -63,8 +64,8 @@ export const getTransformedStatistics = createSelector(getForm, getRawFormStatis
     success: true,
     error: null,
     data: {
-      submissions: statistics.data.submissions,
-      sections: getSectionStatistics(form.data, statistics.data),
+      submissions: (statistics.data as FormStatistics).submissions,
+      sections: getSectionStatistics(form.data as OcaForm, statistics.data as FormStatistics),
     },
   } as Loadable<FormStatisticsView>;
 });
@@ -135,7 +136,7 @@ function getDateTimeComponentValues(component: DatetimeComponent, stats: { [ key
 }
 
 function getComponentStatsValues(component: FormComponent, componentStats: FormStatisticsValue) {
-  let values = null;
+  let values: ComponentStatisticsValues = null;
   let responseCount = 0;
   if (isFormStatisticsNumber(componentStats)) {
     responseCount = Object.values<number>(componentStats).reduce((partial, val) => partial + val);

@@ -23,20 +23,14 @@ import { FormValidator, FormValidatorType, ValidatorType } from '../../../interf
   viewProviders: [ { provide: ControlContainer, useExisting: NgForm } ],
 })
 export class FormFieldComponent {
-  @Input()
+  @Input() set value(value: FormComponent) {
+    this.setComponent(value);
+  }
+
   set component(value: FormComponent) {
     if (value !== this._component) {
-      const previousType = this._component && this._component.type;
-      this._component = value;
-      this.showDescription = this._shouldShowDescription(this._component);
-      if (value && (previousType !== value.type)) {
-        this.componentType = COMPONENT_TYPES.find(c => c.value === this._component.type);
-        this.onComponentChange(this._component.type);
-        this.init();
-      }
-      if (previousType != null) {
-        this.changed();
-      }
+      this.setComponent(value);
+      this.changed();
     }
   }
 
@@ -98,14 +92,17 @@ export class FormFieldComponent {
     switch (option.id) {
       case OptionType.SHOW_DESCRIPTION:
         if (option.checked) {
-          this.component.description = null;
+          this.component = { ...this.component, description: null };
         }
         this.showDescription = !option.checked;
         break;
       case OptionType.ENABLE_VALIDATION:
         if (option.checked) {
           if (isInputComponent(this.component)) {
-            this.component.validators = this.component.validators.filter(v => v.type === FormValidatorType.REQUIRED);
+            this.component = {
+              ...this.component,
+              validators: this.component.validators.filter(v => v.type === FormValidatorType.REQUIRED),
+            };
           }
         }
         this.showValidators = !option.checked;
@@ -130,6 +127,18 @@ export class FormFieldComponent {
 
   keyboardTypeChanged() {
     this.setValidatorTypes();
+    this.changed();
+  }
+
+  private setComponent(value: FormComponent) {
+    const previousType = this._component && this._component.type;
+    this._component = value;
+    this.showDescription = this._shouldShowDescription(this._component);
+    if (value && (previousType !== value.type)) {
+      this.componentType = COMPONENT_TYPES.find(c => c.value === this._component.type) as ComponentTypeItem;
+      this.onComponentChange(this._component.type);
+      this.init();
+    }
   }
 
   private addValidator(validator: FormValidator) {
@@ -164,7 +173,7 @@ export class FormFieldComponent {
     this.showDescription = this._shouldShowDescription(comp);
     if (isInputComponent(comp)) {
       if (!comp.id) {
-        comp.id = comp.title;
+        comp.id = comp.title as string;
       }
       if (!comp.validators) {
         comp.validators = [];
@@ -193,7 +202,7 @@ export class FormFieldComponent {
   }
 
   private setValidatorTypes() {
-    let validatorTypes = [];
+    let validatorTypes: ValidatorType[] = [];
     switch (this.component.type) {
       case FormComponentType.TEXT_INPUT:
         if ([ KeyboardType.NUMBER, KeyboardType.DECIMAL ].includes(this.component.keyboard_type)) {

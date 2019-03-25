@@ -15,12 +15,14 @@
   </mat-card>
   <mat-form-field class="field">
     <mat-label>{{ 'oca.title' | translate }}</mat-label>
-    <input [name]="name + '_title'" matInput [(ngModel)]="section.title" maxlength="80" #title="ngModel">
+    <input [name]="name + '_title'" matInput [(ngModel)]="section.title"
+           (ngModelChange)="changed('title', $event)" maxlength="80">
   </mat-form-field>
   <div class="field">
     <p>{{ 'oca.description' | translate }}</p>
     <div class="description-editor">
-      <simplemde [name]="name + '_description'" [(ngModel)]="section.description"></simplemde>
+      <simplemde [name]="name + '_description'" [(ngModel)]="section.description"
+                 (ngModelChange)="changed('description', $event)"></simplemde>
     </div>
   </div>
   <div class="component-container" cdkDropList (cdkDropListDropped)="dropped($event)">
@@ -29,7 +31,7 @@
       <div class="drag-handle" cdkDragHandle>
         <mat-icon [matTooltip]="'oca.drag_to_change_order' | translate">drag_handle</mat-icon>
       </div>
-      <oca-form-field [component]="component" [name]="section.id + '_component_' + i"
+      <oca-form-field [value]="component" [name]="section.id + '_component_' + i"
                       (componentChange)="componentChanged($event, i)"
                       (removeComponent)="onRemoveComponent(i)"></oca-form-field>
     </div>

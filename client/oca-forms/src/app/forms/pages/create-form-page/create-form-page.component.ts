@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { CreateDynamicForm, OcaForm } from '../../../interfaces/forms.interfaces';
+import { CreateDynamicForm, OcaForm, SaveForm } from '../../../interfaces/forms.interfaces';
 import { CreateFormAction } from '../../forms.actions';
 import { FormsService } from '../../forms.service';
 import { FormsState } from '../../forms.state';
@@ -15,7 +15,7 @@ import { FormsState } from '../../forms.state';
       </button>
       <h1>{{ 'oca.create_form' | translate }}</h1>
     </mat-toolbar>
-    <oca-edit-form [form]="form" (create)="onCreate($event)" *ngIf="form$ | async as form"></oca-edit-form>`,
+    <oca-edit-form [value]="form" (save)="onCreate($event)" *ngIf="form$ | async as form"></oca-edit-form>`,
 })
 export class CreateFormPageComponent {
   form$: Observable<OcaForm<CreateDynamicForm>>;
@@ -24,8 +24,8 @@ export class CreateFormPageComponent {
     this.form$ = formsService.getDefaultForm();
   }
 
-  onCreate(form: OcaForm<CreateDynamicForm>) {
-    this.store.dispatch(new CreateFormAction(form));
+  onCreate(form: SaveForm) {
+    this.store.dispatch(new CreateFormAction(form.data));
   }
 
 }

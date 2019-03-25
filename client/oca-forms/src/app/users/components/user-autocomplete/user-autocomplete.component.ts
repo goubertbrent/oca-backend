@@ -17,7 +17,7 @@ export class UserAutocompleteComponent implements OnInit {
   formGroup: FormGroup;
   formControl: FormControl;
 
-  @ViewChild('input') input: ElementRef<HTMLInputElement>;
+  @ViewChild('input') userEmail: ElementRef<HTMLInputElement>;
   @Input() required = false;
   @Output() optionSelected = new EventEmitter<UserDetailsTO>();
 
@@ -26,7 +26,7 @@ export class UserAutocompleteComponent implements OnInit {
 
   ngOnInit() {
     this.formControl = new FormControl();
-    this.formGroup = new FormGroup({ input: this.formControl });
+    this.formGroup = new FormGroup({ userEmail: this.formControl });
     this.results$ = this.formControl.valueChanges.pipe(
       debounceTime(500),
       switchMap(value => this.usersService.searchUsers(value)),
@@ -35,7 +35,7 @@ export class UserAutocompleteComponent implements OnInit {
 
   onOptionSelected(event: MatAutocompleteSelectedEvent) {
     this.optionSelected.emit(event.option.value);
-    this.input.nativeElement.value = '';
+    this.userEmail.nativeElement.value = '';
   }
 
   displayWith(value?: UserDetailsTO) {

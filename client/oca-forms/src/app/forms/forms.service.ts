@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { first, map } from 'rxjs/operators';
 import { FormComponentType } from '../interfaces/enums';
 import {
+  CompletedFormStepType,
   CreateDynamicForm,
   FormSettings,
   FormStatistics,
@@ -89,6 +90,7 @@ export class FormsService {
           finished: false,
           tombola: null,
           id: 0,
+          steps: [ { step_id: CompletedFormStepType.CONTENT } ],
         },
       })));
   }

@@ -9,7 +9,7 @@ export interface ParagraphComponent {
 
 export interface BaseInputComponent {
   id: string;
-  title: string | null;
+  title: string;
   description: string | null;
   validators: FormValidator[];
 }
@@ -89,18 +89,21 @@ export interface SectionBranding {
   avatar_url: string | null;
 }
 
-export interface FormSection {
-  id?: string;
+export interface SubmissionSection {
   title: string;
   description?: string | null;
   components: FormComponent[];
   branding: SectionBranding | null;
 }
 
+export interface FormSection extends SubmissionSection {
+  id: string;
+}
+
 export interface CreateDynamicForm {
   title: string;
   sections: FormSection[];
-  submission_section: FormSection | null;
+  submission_section: SubmissionSection | null;
   max_submissions: number;
 }
 
@@ -190,17 +193,19 @@ export interface TimesComponentStatistics {
   format: string;
 }
 
+export type ComponentStatisticsValues = null
+  | ValueComponentStatistics
+  | ChoicesComponentStatistics
+  | FilesComponentStatistics
+  | LocationsComponentStatistics
+  | DatesComponentStatistics
+  | TimesComponentStatistics;
+
 export interface ComponentStatistics {
   id: string;
   title: string;
   responses: number;
-  values: null
-    | ValueComponentStatistics
-    | ChoicesComponentStatistics
-    | FilesComponentStatistics
-    | LocationsComponentStatistics
-    | DatesComponentStatistics
-    | TimesComponentStatistics;
+  values: ComponentStatisticsValues;
 }
 
 export interface SectionStatistics {
@@ -219,13 +224,34 @@ export interface FormTombola {
   winner_count: number;
 }
 
+export const enum CompletedFormStepType {
+  CONTENT = 'content',
+  TEST = 'test',
+  SETTINGS = 'settings',
+  ACTION = 'action',
+  LAUNCH = 'launch',
+}
+
+export const COMPLETED_STEP_MAPPING = [
+  CompletedFormStepType.CONTENT,
+  CompletedFormStepType.TEST,
+  CompletedFormStepType.SETTINGS,
+  CompletedFormStepType.ACTION,
+  CompletedFormStepType.LAUNCH,
+];
+
+export interface CompletedFormStep {
+  step_id: CompletedFormStepType;
+}
+
 export interface FormSettings {
   id: number;
   title: string;
   visible: boolean;
-  visible_until: string | Date;
+  visible_until: string | Date | null;
   finished: boolean;
   tombola: FormTombola | null;
+  steps: CompletedFormStep[];
 }
 
 export interface OcaForm<T = DynamicForm> {
@@ -233,15 +259,14 @@ export interface OcaForm<T = DynamicForm> {
   settings: FormSettings;
 }
 
+export interface SaveForm {
+  data: OcaForm | OcaForm<CreateDynamicForm>;
+  silent?: boolean;
+}
+
 export function isInputComponent(component: FormComponent): component is InputComponents {
   return component.type !== FormComponentType.PARAGRAPH;
 }
-
-
-export function isCreateForm(component: OcaForm<CreateDynamicForm> | OcaForm<DynamicForm>): component is OcaForm<CreateDynamicForm> {
-  return (component as any).form.id === undefined;
-}
-
 
 export interface UploadedFormFile {
   id: number;

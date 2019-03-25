@@ -20,6 +20,7 @@ from random import randint
 
 from google.appengine.ext import ndb
 
+from mcfw.utils import Enum
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
@@ -32,6 +33,18 @@ class FormTombola(NdbModel):
     winner_count = ndb.IntegerProperty(default=1)
 
 
+class CompletedFormStepType(Enum):
+    CONTENT = 'content'
+    TEST = 'test'
+    SETTINGS = 'settings'
+    ACTION = 'action'
+    LAUNCH = 'launch'
+
+
+class CompletedFormStep(NdbModel):
+    step_id = ndb.StringProperty(choices=CompletedFormStepType.all())
+
+
 class OcaForm(NdbModel):
     title = ndb.StringProperty(indexed=False)  # Copy from Form.title
     icon = ndb.StringProperty(indexed=False, default='fa-list')
@@ -40,6 +53,7 @@ class OcaForm(NdbModel):
     version = ndb.IntegerProperty()
     finished = ndb.BooleanProperty(default=False)
     tombola = ndb.StructuredProperty(FormTombola, default=None)  # type: FormTombola
+    steps = ndb.LocalStructuredProperty(CompletedFormStep, repeated=True)
 
     @property
     def id(self):

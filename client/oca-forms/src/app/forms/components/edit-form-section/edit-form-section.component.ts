@@ -23,8 +23,11 @@ import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-
 })
 export class EditFormSectionComponent implements ControlValueAccessor {
   set section(value: FormSection) {
+    if (this._section) {
+      this.onChange(value);
+    }
     this._section = value;
-    this.onChange(value);
+    this._changeDetectorRef.markForCheck();
   }
 
   get section() {
@@ -53,6 +56,10 @@ export class EditFormSectionComponent implements ControlValueAccessor {
               private _changeDetectorRef: ChangeDetectorRef) {
   }
 
+  changed(property: keyof FormSection, value: any) {
+    this.section = { ...this.section, [ property ]: value };
+  }
+
   onRemoveComponent(index: number) {
     const copy = this.section.components;
     copy.splice(index, 1);
@@ -66,17 +73,14 @@ export class EditFormSectionComponent implements ControlValueAccessor {
     const option = this._translate.instant('oca.option_x', { number: 1 });
     const title = this._translate.instant('oca.untitled_question');
     const choices = [ { label: option, value: option } ];
-    this.section = {
-      ...this.section,
-      components: [ ...this.section.components, {
+    this.changed('components', [ ...this.section.components, {
         type: FormComponentType.SINGLE_SELECT,
         description: null,
         choices,
         validators: [ { type: FormValidatorType.REQUIRED } ],
         title,
         id: title,
-      } ],
-    };
+    } ]);
   }
 
 
@@ -93,7 +97,8 @@ export class EditFormSectionComponent implements ControlValueAccessor {
 
   writeValue(obj: any): void {
     if (obj !== this._section) {
-      this.section = obj;
+      this._section = obj;
+      this._changeDetectorRef.markForCheck();
     }
   }
 

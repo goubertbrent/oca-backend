@@ -1,7 +1,10 @@
 <div [formGroup]="formGroup">
   <mat-form-field style="width: 400px;">
     <mat-label>{{ 'oca.follower_name_or_email' | translate }}</mat-label>
-    <input matInput [formControl]="formControl" [matAutocomplete]="auto" [required]="required" #input>
+    <!-- attempt to disable the autocomplete by providing a random value -->
+    <!-- It's not very effective but at least goes away once our autocomplete shows up-->
+    <input matInput [formControl]="formControl" [matAutocomplete]="auto" [required]="required" #input
+           autocomplete="absolutely-nothing">
   </mat-form-field>
 </div>
 <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)" autoActiveFirstOption

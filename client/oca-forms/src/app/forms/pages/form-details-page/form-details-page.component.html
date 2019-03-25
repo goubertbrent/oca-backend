@@ -4,10 +4,6 @@
   </button>
   <h1 class="flex-grow">{{ 'oca.edit_form' | translate }}</h1>
   <span class="icons-row">
-    <button type="button" mat-icon-button [matTooltip]="'oca.create_news_item' | translate" (click)="createNews()"
-            *ngIf="showCreateNewsButton$ | async">
-      <mat-icon>rss_feed</mat-icon>
-    </button>
     <button type="button" mat-icon-button [matTooltip]="'oca.preview_form' | translate" (click)="testForm()">
       <mat-icon>visibility</mat-icon>
     </button>
@@ -19,5 +15,7 @@
                    [tombolaWinners]="tombolaWinners$ | async"
                    (save)="onSave($event)"
                    (tabChanged)="onTabChanged($event)"
-                   (menuOptionClicked)="onMenuOptionClicked($event)"></oca-form-detail>
+                   (menuOptionClicked)="onMenuOptionClicked($event)"
+                   (createNews)="createNews()"
+                   (testForm)="onTestForm($event)"></oca-form-detail>
 </ng-container>

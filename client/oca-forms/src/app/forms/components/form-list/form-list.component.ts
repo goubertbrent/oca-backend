@@ -24,8 +24,10 @@ export class FormListComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.forms && changes.forms.currentValue) {
       const forms: Loadable<FormSettings[]> = changes.forms.currentValue;
-      this.tabs[ 0 ].list = forms.data.filter(f => !f.visible_until || f.visible_until > this.now);
-      this.tabs[ 1 ].list = forms.data.filter(f => f.visible_until && f.visible_until <= this.now);
+      if(forms.data) {
+        this.tabs[ 0 ].list = forms.data.filter(f => !f.visible_until || f.visible_until > this.now);
+        this.tabs[ 1 ].list = forms.data.filter(f => f.visible_until && f.visible_until <= this.now);
+      }
     }
   }
 }

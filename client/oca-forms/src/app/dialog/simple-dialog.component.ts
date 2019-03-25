@@ -13,7 +13,7 @@ export interface SimpleDialogData {
 
 export interface SimpleDialogResultValue {
   submitted: boolean;
-  value: string;
+  value: string | null;
 }
 
 export type SimpleDialogResult = undefined | SimpleDialogResultValue;

@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
+import { OcaForm } from '../interfaces/forms.interfaces';
 import {
   CreateFormAction,
   CreateFormCompleteAction,
@@ -63,10 +64,10 @@ export class FormsEffects {
 
   @Effect() saveForm$ = this.actions$.pipe(
     ofType<SaveFormAction>(FormsActionTypes.SAVE_FORM),
-    tap(() => this.snackbar.open(this.translate.instant('oca.saving_form'), null, { duration: 5000 })),
-    switchMap(action => this.formsService.saveForm(action.form).pipe(
+    tap(action => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.saving_form'), undefined, { duration: 5000 })),
+    switchMap(action => this.formsService.saveForm(action.payload.data as OcaForm).pipe(
+      tap(() => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.form_saved'), this.translate.instant('oca.ok'), { duration: 3000 })),
       map(form => new SaveFormCompleteAction(form)),
-      tap(() => this.snackbar.open(this.translate.instant('oca.form_saved'), this.translate.instant('oca.ok'), { duration: 3000 })),
       catchError(err => of(new SaveFormFailedAction(err))))),
   );
 
@@ -74,7 +75,7 @@ export class FormsEffects {
     ofType<TestFormAction>(FormsActionTypes.TEST_FORM),
     tap(action => {
       const params = { user: action.testers.join(',') };
-      this.snackbar.open(this.translate.instant('oca.sending_test_form_to_x', params), null, { duration: 5000 });
+      this.snackbar.open(this.translate.instant('oca.sending_test_form_to_x', params), undefined, { duration: 5000 });
     }),
     switchMap(action => this.formsService.testForm(action.formId, action.testers).pipe(
       tap(() => this.snackbar.open(this.translate.instant('oca.form_sent'), this.translate.instant('oca.ok'), { duration: 5000 })),
@@ -84,7 +85,7 @@ export class FormsEffects {
 
   @Effect() createForm$ = this.actions$.pipe(
     ofType<CreateFormAction>(FormsActionTypes.CREATE_FORM),
-    tap(() => this.snackbar.open(this.translate.instant('oca.saving_form'), null, { duration: 3000 })),
+    tap(() => this.snackbar.open(this.translate.instant('oca.saving_form'), undefined, { duration: 3000 })),
     switchMap(action => this.formsService.createForm(action.form).pipe(
       map(form => new CreateFormCompleteAction(form)),
       tap(createAction => {

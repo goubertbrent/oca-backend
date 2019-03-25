@@ -14,20 +14,20 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
-from cgi import FieldStorage
-from datetime import datetime
 import json
 import logging
 import random
 import time
-
-import cloudstorage
-import dateutil
+from cgi import FieldStorage
+from datetime import datetime
 
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
+
+import cloudstorage
+import dateutil
 from mcfw.consts import MISSING
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.features import mobile_supports_feature, Features
@@ -54,7 +54,8 @@ from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_
 from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
-from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile
+from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile, \
+    CompletedFormStep, CompletedFormStepType
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
@@ -120,7 +121,8 @@ def _update_form(model, created_form, settings):
     model.populate(icon=settings.icon or OcaForm.icon._default,
                    visible=settings.visible,
                    visible_until=settings.visible_until and _get_utc_datetime(settings.visible_until),
-                   tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()))
+                   tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()),
+                   steps=[CompletedFormStep(step_id=step.step_id) for step in settings.steps])
 
     if created_form:
         model.populate(
@@ -133,7 +135,10 @@ def _update_form(model, created_form, settings):
 def get_form(form_id, service_user):
     with users.set_user(service_user):
         form = service_api.get_form(form_id)
-    oca_form = OcaForm.create_key(form_id, service_user).get()
+    oca_form = OcaForm.create_key(form_id, service_user).get()  # type: OcaForm
+    # backwards compat
+    if not oca_form.steps:
+        oca_form.steps = [CompletedFormStep(step_id=step_id) for step_id in CompletedFormStepType.all()]
     return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
 
 
@@ -149,8 +154,6 @@ def list_responses(service_user, form_id, cursor, page_size):
 def delete_submissions(service_user, form_id):
     # type: (users.User, long) -> None
     get_form(form_id, service_user)
-    with users.set_user(service_user):
-        service_api.delete_form_submissions(form_id)
     _delete_form_submissions(form_id)
 
 
