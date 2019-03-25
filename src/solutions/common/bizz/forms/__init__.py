@@ -149,6 +149,8 @@ def list_responses(service_user, form_id, cursor, page_size):
 def delete_submissions(service_user, form_id):
     # type: (users.User, long) -> None
     get_form(form_id, service_user)
+    with users.set_user(service_user):
+        service_api.delete_form_submissions(form_id)
     _delete_form_submissions(form_id)
 
 
