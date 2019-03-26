@@ -1,16 +1,14 @@
 <mat-tab-group mat-align-tabs="center">
   <mat-tab *ngFor="let tab of tabs" [label]="tab.label | translate">
-    <a [routerLink]="['create']">
-      <mat-card class="form-card create-card" color="primary">
-        <mat-card-header>
-          <mat-card-title>{{ 'oca.create_form' | translate }}</mat-card-title>
-        </mat-card-header>
-        <mat-card-actions align="end">
-          <a mat-button [routerLink]="['create']">{{ 'oca.create' | translate }}</a>
-        </mat-card-actions>
-      </mat-card>
-    </a>
-    <a *ngFor="let form of tab.list" [routerLink]="[form.id]">
+    <mat-card class="form-card create-card" color="primary" (click)="createForm.emit()">
+      <mat-card-header>
+        <mat-card-title>{{ 'oca.create_form' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-actions align="end">
+        <a mat-button (click)="createForm.emit()">{{ 'oca.create' | translate }}</a>
+      </mat-card-actions>
+    </mat-card>
+    <a *ngFor="let form of tab.list; trackBy: trackById" [routerLink]="[form.id]">
       <mat-card class="form-card">
         <mat-card-title>{{ form.title }}</mat-card-title>
         <mat-card-content>
@@ -29,7 +27,13 @@
           </ng-container>
         </mat-card-content>
         <mat-card-actions align="end">
-          <a mat-button [routerLink]="[form.id]">{{ 'oca.details' | translate }}</a>
+          <a mat-icon-button [routerLink]="[form.id]">
+            <mat-icon>edit</mat-icon>
+          </a>
+          <button type="button" mat-icon-button color="warn"
+                  (click)="$event.stopPropagation(); $event.preventDefault(); deleteForm.emit(form)">
+            <mat-icon>delete</mat-icon>
+          </button>
         </mat-card-actions>
       </mat-card>
     </a>

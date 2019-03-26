@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
-import { CreateDynamicForm, FormSettings, FormStatistics, OcaForm, SaveForm } from '../interfaces/forms.interfaces';
+import { FormSettings, FormStatistics, OcaForm, SaveForm } from '../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 export const enum FormsActionTypes {
@@ -30,6 +30,9 @@ export const enum FormsActionTypes {
   DELETE_ALL_RESPONSES = '[forms] Delete all responses',
   DELETE_ALL_RESPONSES_COMPLETE = '[forms] Delete all responses complete',
   DELETE_ALL_RESPONSES_FAILED = '[forms] Delete all responses failed',
+  DELETE_FORM = '[forms] Delete form',
+  DELETE_FORM_COMPLETE = '[forms] Delete form complete',
+  DELETE_FORM_FAILED = '[forms] Delete form failed',
 }
 
 export class GetFormsAction implements Action {
@@ -115,9 +118,6 @@ export class SaveFormFailedAction implements Action {
 
 export class CreateFormAction implements Action {
   readonly type = FormsActionTypes.CREATE_FORM;
-
-  constructor(public form: OcaForm<CreateDynamicForm>) {
-  }
 }
 
 export class CreateFormCompleteAction implements Action {
@@ -129,6 +129,27 @@ export class CreateFormCompleteAction implements Action {
 
 export class CreateFormFailedAction implements Action {
   readonly type = FormsActionTypes.CREATE_FORM_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
+
+export class DeleteFormAction implements Action {
+  readonly type = FormsActionTypes.DELETE_FORM;
+
+  constructor(public form: FormSettings) {
+  }
+}
+
+export class DeleteFormCompleteAction implements Action {
+  readonly type = FormsActionTypes.DELETE_FORM_COMPLETE;
+
+  constructor(public form: FormSettings) {
+  }
+}
+
+export class DeleteFormFailedAction implements Action {
+  readonly type = FormsActionTypes.DELETE_FORM_FAILED;
 
   constructor(public error: HttpErrorResponse) {
   }
@@ -219,6 +240,9 @@ export type FormsActions =
   | CreateFormAction
   | CreateFormCompleteAction
   | CreateFormFailedAction
+  | DeleteFormAction
+  | DeleteFormCompleteAction
+  | DeleteFormFailedAction
   | GetTombolaWinnersAction
   | GetTombolaWinnersCompleteAction
   | GetTombolaWinnersFailedAction

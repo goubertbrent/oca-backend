@@ -261,7 +261,7 @@ export interface OcaForm<T = DynamicForm> {
 }
 
 export interface SaveForm {
-  data: OcaForm | OcaForm<CreateDynamicForm>;
+  data: OcaForm;
   silent?: boolean;
 }
 

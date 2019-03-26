@@ -20,6 +20,9 @@
 
 translations = \
 {u'en': {u'oca.delete_all_responses': u'Delete all responses',
+         u'oca.deleting_form': u'Deleting form…',
+         u'oca.form_deleted': u'Form deleted',
+         u'oca.confirm_delete_form': u'Are you sure you want to delete this form and all its responses? This action cannot be undone.',
          u'oca.default_entry_section_text': u'Place more information about your survey/poll/… here and state the prize that can be won if you intent to add a tombola to it.',
          u'oca.test': u'Test',
          u'oca.place_form_in_app_before_news': u'You must set the form visible in the app first',
@@ -3940,6 +3943,9 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'oca.add_validator': u'Validatie toevoegen',
+         u'oca.deleting_form': u'Bevraging wordt verwijderd…',
+         u'oca.form_deleted': u'Bevraging verwijderd',
+         u'oca.confirm_delete_form': u'Bent u zeker dat u deze bevraging en alle antwoorden wilt verwijderen? Dese actie kan niet ongedaan gemaakt worden.',
          u'oca.default_entry_section_text': u'Plaats hier meer informatie over uw enquête/poll/… en vermeld eventueel de prijs die er te winnen valt indien u werkt met een tombola.',
          u'oca.test': u'Test',
          u'oca.place_form_in_app_before_news': u'U moet de bevraging eerst in de app plaatsen voordat u er een nieuwsbericht van kunt aanmaken',

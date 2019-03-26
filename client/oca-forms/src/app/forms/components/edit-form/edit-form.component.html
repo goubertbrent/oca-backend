@@ -5,9 +5,9 @@
       <ng-template matStepLabel>{{ 'oca.questions' | translate }}</ng-template>
       <mat-form-field class="form-title-field">
         <mat-label>{{ 'oca.form_title' | translate }}</mat-label>
-        <input matInput #title name="title" [(ngModel)]="form.form.title" required maxlength="16"
+        <input matInput #title name="title" [(ngModel)]="form.form.title" required maxlength="30"
                (ngModelChange)="markChanged()">
-        <mat-hint align="end">{{ title.value.length }} / 16</mat-hint>
+        <mat-hint align="end">{{ title.value.length }} / 30</mat-hint>
       </mat-form-field>
 
       <div *ngFor="let section of form.form.sections; let i = index; trackBy: trackBySection">
@@ -28,7 +28,7 @@
             {{ 'oca.section_x_of_y' | translate : {current: i + 1, total: form.form.sections.length} }}
           </span>
           <span class="icons-row">
-            <button type="button" mat-icon-button (click)="sectionComponent.openHeaderImageDialog()" *ngIf="form.form.id">
+            <button type="button" mat-icon-button (click)="sectionComponent.openHeaderImageDialog()">
               <mat-icon>image</mat-icon>
             </button>
             <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu"

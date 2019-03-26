@@ -21,8 +21,6 @@ import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../
 import {
   COMPLETED_STEP_MAPPING,
   CompletedFormStepType,
-  CreateDynamicForm,
-  DynamicForm,
   FormSection,
   OcaForm,
   SaveForm,
@@ -37,17 +35,17 @@ import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrang
   styleUrls: [ './edit-form.component.scss' ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditFormComponent implements OnChanges, AfterViewInit {
+export class EditFormComponent implements AfterViewInit, OnChanges {
   @ViewChild('formElement') formElement: NgForm;
   @ViewChild('timeInput') timeInput: ElementRef<HTMLInputElement>;
   @ViewChildren(MatInput) inputs: QueryList<MatInput>;
 
-  @Input() set value(value: OcaForm<CreateDynamicForm> | OcaForm<DynamicForm>) {
+  @Input() set value(value: OcaForm) {
     this._form = value;
     this._hasChanges = false;
-  };
+  }
 
-  set form(value: OcaForm<CreateDynamicForm> | OcaForm<DynamicForm>) {
+  set form(value: OcaForm) {
     this._form = value;
     this._hasChanges = true;
   }
@@ -70,12 +68,18 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
   STEP_INDEX_TEST = 1;
   STEP_INDEX_LAUNCH = 4;
   private _hasChanges = false;
-  private _form: OcaForm<CreateDynamicForm> | OcaForm<DynamicForm>;
+  private _form: OcaForm;
 
   constructor(private _translate: TranslateService,
               private _matDialog: MatDialog,
               private _changeDetectorRef: ChangeDetectorRef) {
     this.setMinDate();
+  }
+
+  ngAfterViewInit() {
+    if (this.hasEndDate) {
+      this.setTimeInput();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -102,12 +106,6 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
     }
   }
 
-  ngAfterViewInit() {
-    if (this.hasEndDate) {
-      this.setTimeInput();
-    }
-  }
-
   visibleChanged(event: MatSlideToggleChange) {
     const steps = this.form.settings.steps;
     if (!steps.some(s => s.step_id === CompletedFormStepType.LAUNCH)) {
@@ -122,7 +120,7 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
   }
 
   limitResponsesChanged(event: MatSlideToggleChange) {
-    this.form = { ...this.form, settings: { ...this.form.settings, max_submissions: event.checked ? 1 : -1 } };
+    this.form = { ...this.form, form: { ...this.form.form, max_submissions: event.checked ? 1 : -1 } };
   }
 
   addSection() {

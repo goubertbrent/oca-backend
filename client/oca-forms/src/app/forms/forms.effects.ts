@@ -14,6 +14,9 @@ import {
   DeleteAllResponsesAction,
   DeleteAllResponsesCompleteAction,
   DeleteAllResponsesFailedAction,
+  DeleteFormAction,
+  DeleteFormCompleteAction,
+  DeleteFormFailedAction,
   FormsActions,
   FormsActionTypes,
   GetFormAction,
@@ -85,8 +88,8 @@ export class FormsEffects {
 
   @Effect() createForm$ = this.actions$.pipe(
     ofType<CreateFormAction>(FormsActionTypes.CREATE_FORM),
-    tap(() => this.snackbar.open(this.translate.instant('oca.saving_form'), undefined, { duration: 3000 })),
-    switchMap(action => this.formsService.createForm(action.form).pipe(
+    tap(() => this.snackbar.open(this.translate.instant('oca.creating_form'), undefined, { duration: 3000 })),
+    switchMap(() => this.formsService.createForm().pipe(
       map(form => new CreateFormCompleteAction(form)),
       tap(createAction => {
         this.router.navigate([ 'forms', createAction.form.form.id ]);
@@ -109,13 +112,21 @@ export class FormsEffects {
     }),
   );
 
+  @Effect() deleteForm$ = this.actions$.pipe(
+    ofType<DeleteFormAction>(FormsActionTypes.DELETE_FORM),
+    tap(() => this.snackbar.open(this.translate.instant('oca.deleting_form'), undefined, { duration: 5000 })),
+    switchMap(action => this.formsService.deleteForm(action.form.id).pipe(
+      tap(() => this.snackbar.open(this.translate.instant('oca.form_deleted'), this.translate.instant('oca.ok'), { duration: 3000 })),
+      map(() => new DeleteFormCompleteAction(action.form)),
+      catchError(err => of(new DeleteFormFailedAction(err))))),
+  );
+
   @Effect() getTombolaWinners$ = this.actions$.pipe(
     ofType<GetTombolaWinnersAction>(FormsActionTypes.GET_TOMBOLA_WINNERS),
     switchMap(action => this.formsService.getTombolaWinners(action.formId).pipe(
       map(data => new GetTombolaWinnersCompleteAction(data)),
       catchError(err => of(new GetTombolaWinnersFailedAction(err))))),
   );
-
 
   @Effect() showDeleteAllResponsesDialog$ = this.actions$.pipe(
     ofType<ShowDeleteAllResponsesAction>(FormsActionTypes.SHOW_DELETE_ALL_RESPONSES),

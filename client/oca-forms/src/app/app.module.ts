@@ -60,7 +60,6 @@ import { ImageCropperComponent } from './forms/components/image-cropper/image-cr
 import { UploadImageDialogComponent } from './forms/components/upload-image-dialog/upload-image-dialog.component';
 import { FormsEffects } from './forms/forms.effects';
 import { formsReducer } from './forms/forms.reducer';
-import { CreateFormPageComponent } from './forms/pages/create-form-page/create-form-page.component';
 import { FormDetailsPageComponent } from './forms/pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './forms/pages/form-list-page/form-list-page.component';
 import { LoadableComponent } from './loadable/loadable.component';
@@ -97,7 +96,6 @@ const locale = SUPPORTED_LOCALES.some(loc => navigator.language.startsWith(loc))
     FormValidatorsComponent,
     FormListPageComponent,
     FormDetailsPageComponent,
-    CreateFormPageComponent,
     SimpleDialogComponent,
     FormTombolaWinnersComponent,
     UserAutocompleteComponent,

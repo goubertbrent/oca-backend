@@ -2,7 +2,7 @@ import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
-import { first, map } from 'rxjs/operators';
+import { first, map, switchMap } from 'rxjs/operators';
 import { FormComponentType } from '../interfaces/enums';
 import {
   CompletedFormStepType,
@@ -42,15 +42,33 @@ export class FormsService {
     return this.http.post(`/common/forms/${formId}/test`, { testers });
   }
 
-  createForm(form: OcaForm<CreateDynamicForm>) {
-    return this.http.post<OcaForm>(`/common/forms`, form);
+  createForm() {
+    return this.getDefaultForm().pipe(switchMap(form => this.http.post<OcaForm>(`/common/forms`, form)));
   }
 
   getTombolaWinners(formId: number) {
     return this.http.get <UserDetailsTO[ ]>(`/common/forms/${formId}/tombola/winners`);
   }
 
-  getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
+  deleteAllResponses(formId: number) {
+    return this.http.delete(`/common/forms/${formId}/submissions`);
+  }
+
+  uploadImage(formId: number, image: Blob): Observable<HttpEvent<UploadedFormFile>> {
+    const data = new FormData();
+    data.append('file', image);
+    return this.http.request(new HttpRequest('POST', `/common/forms/${formId}/image`, data, { reportProgress: true }));
+  }
+
+  getImages() {
+    return this.http.get<UploadedFile[]>(`/common/images/forms`);
+  }
+
+  deleteForm(formId: number) {
+    return this.http.delete(`/common/forms/${formId}`);
+  }
+
+  private getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
     const keys = [ 'oca.untitled_form', 'oca.untitled_section', 'oca.option_x', 'oca.untitled_question', 'oca.thank_you',
       'oca.your_response_has_been_recorded', 'oca.default_entry_section_text', 'oca.start' ];
     return this.translate.get(keys, { number: 1 }).pipe(
@@ -100,19 +118,5 @@ export class FormsService {
           steps: [ { step_id: CompletedFormStepType.CONTENT } ],
         },
       })));
-  }
-
-  deleteAllResponses(formId: number) {
-    return this.http.delete(`/common/forms/${formId}/submissions`);
-  }
-
-  uploadImage(formId: number, image: Blob): Observable<HttpEvent<UploadedFormFile>> {
-    const data = new FormData();
-    data.append('file', image);
-    return this.http.request(new HttpRequest('POST', `/common/forms/${formId}/image`, data, { reportProgress: true }));
-  }
-
-  getImages() {
-    return this.http.get<UploadedFile[]>(`/common/images/forms`);
   }
 }

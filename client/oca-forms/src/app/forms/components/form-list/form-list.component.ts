@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormSettings } from '../../../interfaces/forms.interfaces';
 import { Loadable } from '../../../interfaces/loadable';
 
@@ -15,6 +15,8 @@ interface Tab {
 })
 export class FormListComponent implements OnChanges {
   @Input() forms: Loadable<FormSettings[]>;
+  @Output() createForm = new EventEmitter();
+  @Output() deleteForm = new EventEmitter<FormSettings>();
   now = new Date();
   tabs: Tab[] = [
     { label: 'oca.current', list: [] },
@@ -29,5 +31,9 @@ export class FormListComponent implements OnChanges {
         this.tabs[ 1 ].list = forms.data.filter(f => f.visible_until && f.visible_until <= this.now);
       }
     }
+  }
+
+  trackById(element: FormSettings, index: number) {
+    return element.id;
   }
 }

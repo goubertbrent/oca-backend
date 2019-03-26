@@ -2053,7 +2053,7 @@ def api_get_translations(lang):
     prefix = 'oca.'
     mapping = {'follower_name_or_email', 'Cancel', 'details', 'Url', 'Type', 'statistics', 'phone_number', 'Date',
                'description', 'Email', 'Error', 'Minimum', 'Maximum', 'Yes', 'No', 'Save', 'create', 'Time', 'delete',
-               'Next', 'action', 'Settings'}
+               'Next', 'action', 'Settings', 'Confirm'}
     return {
         'oca': {
             key.replace(prefix, '') if key.startswith(prefix) else key.lower(): translation

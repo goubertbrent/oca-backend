@@ -327,9 +327,13 @@ def poke_forms(service_user, email, tag, result_key, context, service_identity, 
 
 
 def delete_form(form_id, service_user):
+    must_publish = _delete_form_menu_item(form_id)
     with users.set_user(service_user):
         service_api.delete_form(form_id)
     _delete_form_submissions(form_id)
+    OcaForm.create_key(form_id, service_user).delete()
+    if must_publish:
+        system.publish_changes()
 
 
 def _delete_form_submissions(form_id):

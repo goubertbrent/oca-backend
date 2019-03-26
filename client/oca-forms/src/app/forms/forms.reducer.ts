@@ -1,4 +1,6 @@
+import { FormSettings } from '../interfaces/forms.interfaces';
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../interfaces/loadable';
+import { insertItem, removeItem, updateItem } from '../util/redux';
 import { FormsActions, FormsActionTypes } from './forms.actions';
 import { FormsState, initialFormsState } from './forms.state';
 
@@ -25,13 +27,23 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
     case FormsActionTypes.SAVE_FORM:
       return { ...state, updatedForm: onLoadableLoad(initialFormsState.updatedForm.data) };
     case FormsActionTypes.SAVE_FORM_COMPLETE:
-      return { ...state, form: onLoadableSuccess(action.form), updatedForm: onLoadableSuccess(action.form) };
+      return {
+        ...state,
+        form: onLoadableSuccess(action.form),
+        updatedForm: onLoadableSuccess(action.form),
+        forms: { ...state.forms, data: updateItem(state.forms.data as FormSettings[], action.form.settings, 'id') },
+      };
     case FormsActionTypes.SAVE_FORM_FAILED:
       return { ...state, updatedForm: onLoadableError(action.error) };
     case FormsActionTypes.CREATE_FORM:
       return { ...state, createdForm: onLoadableLoad(initialFormsState.createdForm.data) };
     case FormsActionTypes.CREATE_FORM_COMPLETE:
-      return { ...state, form: onLoadableSuccess(action.form), createdForm: onLoadableSuccess(action.form) };
+      return {
+        ...state,
+        form: onLoadableSuccess(action.form),
+        createdForm: onLoadableSuccess(action.form),
+        forms: { ...state.forms, data: insertItem(state.forms.data as FormSettings [], action.form.settings) },
+      };
     case FormsActionTypes.CREATE_FORM_FAILED:
       return { ...state, createdForm: onLoadableError(action.error) };
     case FormsActionTypes.GET_TOMBOLA_WINNERS:
@@ -42,6 +54,8 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
       return { ...state, tombolaWinners: onLoadableError(action.error) };
     case FormsActionTypes.DELETE_ALL_RESPONSES_COMPLETE:
       return { ...state, formStatistics: onLoadableSuccess({ submissions: 0, statistics: {} }) };
+    case FormsActionTypes.DELETE_FORM_COMPLETE:
+      return { ...state, forms: { ...state.forms, data: removeItem(state.forms.data as FormSettings[], action.form, 'id') } };
   }
   return state;
 }
