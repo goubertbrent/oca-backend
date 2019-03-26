@@ -361,6 +361,7 @@ NewsWizard.prototype = {
             elemInputImage = self.$('#news_input_image'),
             elemInputUseCoverPhoto = self.$('#news_button_cover_photo'),
             elemSelectButton = self.$('#select_broadcast_button'),
+            elemNewsButtonContainer = self.$('#news_button_container'),
             elemButtonCaption = self.$('#news_button_caption'),
             elemCheckboxPromote = self.$('#checkbox_promote'),
             elemImagePreview = self.$('#news_image_preview'),
@@ -648,6 +649,8 @@ NewsWizard.prototype = {
                     self.$('#news_action_restaurant_reservation').show();
                 }
                 elemButtonCaption.val(defaultButtonText);
+                elemButtonCaption.prop('required', !!selectedAction[0]);
+                elemNewsButtonContainer.toggle(!!selectedAction[0]);
                 renderPreview();
             });
         }

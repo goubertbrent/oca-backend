@@ -27,11 +27,12 @@
           <span class="flex-grow">
             {{ 'oca.section_x_of_y' | translate : {current: i + 1, total: form.form.sections.length} }}
           </span>
-          <span class="icons-row" *ngIf="form.form.sections.length > 1">
-          <button type="button" mat-icon-button (click)="sectionComponent.openHeaderImageDialog()">
-            <mat-icon>image</mat-icon>
-          </button>
-            <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu">
+          <span class="icons-row">
+            <button type="button" mat-icon-button (click)="sectionComponent.openHeaderImageDialog()" *ngIf="form.form.id">
+              <mat-icon>image</mat-icon>
+            </button>
+            <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu"
+                    *ngIf="form.form.sections.length > 1">
               <mat-icon>more_vert</mat-icon>
             </button>
           </span>

@@ -98,12 +98,14 @@
                                 </option>
                                 {{/each}}
                             </select>
-                            <label for="news_button_caption">${T('Label')}</label>
-                            <input type="text"
-                                   value="${actionButton.label}"
-                                   id="news_button_caption"
-                                   name="news_button_caption"
-                                   minlength="4" maxlength="15" required>
+                            <div id="news_button_container" {{if !actionButton.id}}style="display:none"{{/if}}>
+                                <label for="news_button_caption">${T('Label')}</label>
+                                <input type="text"
+                                       value="${actionButton.label}"
+                                       id="news_button_caption"
+                                       name="news_button_caption"
+                                       minlength="4" maxlength="15" {{if actionButton.id}}required{{/if}}>
+                            </div>
                         </div>
                     </div>
                     {{if menu}}
