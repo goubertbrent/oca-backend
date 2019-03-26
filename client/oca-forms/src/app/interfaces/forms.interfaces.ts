@@ -94,6 +94,7 @@ export interface SubmissionSection {
   description?: string | null;
   components: FormComponent[];
   branding: SectionBranding | null;
+  next_button_caption?: string | null;
 }
 
 export interface FormSection extends SubmissionSection {

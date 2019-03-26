@@ -52,7 +52,7 @@ export class FormsService {
 
   getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
     const keys = [ 'oca.untitled_form', 'oca.untitled_section', 'oca.option_x', 'oca.untitled_question', 'oca.thank_you',
-      'oca.your_response_has_been_recorded' ];
+      'oca.your_response_has_been_recorded', 'oca.default_entry_section_text', 'oca.start' ];
     return this.translate.get(keys, { number: 1 }).pipe(
       first(),
       map(results => ({
@@ -61,6 +61,13 @@ export class FormsService {
           max_submissions: -1,
           sections: [ {
             id: '0',
+            title: results[ 'oca.untitled_section' ],
+            description: results['oca.default_entry_section_text'],
+            branding: null,
+            components: [],
+            next_button_caption: results['oca.start'],
+          } , {
+            id: '1',
             title: results[ 'oca.untitled_section' ],
             description: null,
             branding: null,

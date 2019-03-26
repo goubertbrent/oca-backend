@@ -50,3 +50,8 @@ fieldset {
 .CodeMirror, .CodeMirror-scroll {
   min-height: 26px;
 }
+
+.mat-stepper-vertical {
+  // By default this is white, reset to whatever the background of the parent component is.
+  background-color: inherit;
+}
