@@ -138,7 +138,7 @@ def _update_form(model, created_form, settings):
 def _get_form_avatar_url(service_user):
     # type: (users.User) -> str
     branding_settings = SolutionBrandingSettings.get_by_user(service_user)  # type: SolutionBrandingSettings
-    cloudstorage_path = '/%s/global/forms/avatars/list-%s.png' % (OCA_FILES_BUCKET, branding_settings.menu_item_color)
+    cloudstorage_path = '/%s/forms/avatars/list-%s.png' % (OCA_FILES_BUCKET, branding_settings.menu_item_color)
     try:
         cloudstorage.stat(cloudstorage_path)
     except cloudstorage.NotFoundError:
