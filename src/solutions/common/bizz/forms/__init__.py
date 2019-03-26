@@ -20,6 +20,7 @@ import random
 import time
 from cgi import FieldStorage
 from datetime import datetime
+from os import path
 
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
@@ -29,9 +30,11 @@ from google.appengine.ext.deferred import deferred
 import cloudstorage
 import dateutil
 from mcfw.consts import MISSING
+from mcfw.imaging import recolor_png
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.features import mobile_supports_feature, Features
 from rogerthat.bizz.forms import FormNotFoundException
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import SCHEDULED_QUEUE, MC_RESERVED_TAG_PREFIX
 from rogerthat.dal import parent_ndb_key
@@ -46,7 +49,7 @@ from rogerthat.to.messaging import MemberTO
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, TYPE_MESSAGE, \
     MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import try_or_defer, read_file_in_chunks
+from rogerthat.utils import try_or_defer, read_file_in_chunks, parse_color
 from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions import SOLUTION_COMMON, translate
@@ -54,6 +57,7 @@ from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_
 from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
+from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile, \
     CompletedFormStep, CompletedFormStepType
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
@@ -88,8 +92,7 @@ def update_form(form_id, data, service_user):
             return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
         for section in data.form.sections:
             if MISSING.default(section.branding, None) and section.branding.logo_url:
-                # TODO: default image
-                section.branding.avatar_url = None
+                section.branding.avatar_url = _get_form_avatar_url(service_user)
         updated_form = service_api.update_form(form_id, data.form.title, data.form.sections,
                                                data.form.submission_section, data.form.max_submissions)
         _delete_scheduled_task(oca_form)
@@ -130,6 +133,20 @@ def _update_form(model, created_form, settings):
             title=created_form.title,
         )
     model.put()
+
+
+def _get_form_avatar_url(service_user):
+    # type: (users.User) -> str
+    branding_settings = SolutionBrandingSettings.get_by_user(service_user)  # type: SolutionBrandingSettings
+    cloudstorage_path = '/%s/global/forms/avatars/list-%s.png' % (OCA_FILES_BUCKET, branding_settings.menu_item_color)
+    try:
+        cloudstorage.stat(cloudstorage_path)
+    except cloudstorage.NotFoundError:
+        with cloudstorage.open(cloudstorage_path, 'w', content_type='image/png') as gcs_file:
+            with open(path.join(path.dirname(__file__), 'list.png')) as f:
+                color = parse_color(branding_settings.menu_item_color)
+                gcs_file.write(recolor_png(f.read(), (0, 0, 0), color))
+    return get_serving_url(cloudstorage_path)
 
 
 def get_form(form_id, service_user):
