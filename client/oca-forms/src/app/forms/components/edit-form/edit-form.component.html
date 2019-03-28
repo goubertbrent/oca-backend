@@ -1,6 +1,5 @@
 <form #formElement="ngForm" class="component-margin">
-  <mat-vertical-stepper [linear]="isLinearStepper" [selectedIndex]="stepperIndex"
-                        (selectionChange)="onStepChange($event)">
+  <mat-vertical-stepper [selectedIndex]="stepperIndex" (selectionChange)="onStepChange($event)">
     <mat-step [completed]="completedSteps[0]">
       <ng-template matStepLabel>{{ 'oca.questions' | translate }}</ng-template>
       <mat-form-field class="form-title-field">
@@ -54,7 +53,7 @@
           <p matLine>{{ selectedTestUser.email }}</p>
         </mat-list-item>
       </mat-list>
-      <button mat-button (click)="sendTestForm()">{{ 'oca.send_form' | translate }}</button>
+      <button mat-raised-button (click)="sendTestForm()">{{ 'oca.send_form' | translate }}</button>
       <oca-user-autocomplete (optionSelected)="onTestUserSelected($event)" [required]="true"></oca-user-autocomplete>
     </mat-step>
     <mat-step [completed]="completedSteps[2]" [optional]="true">
@@ -130,7 +129,9 @@
       <ng-template matStepLabel>{{ 'oca.launch' | translate }}</ng-template>
       <div class="slide-toggle-margin">
         <mat-slide-toggle name="settings.visible" [checked]="form.settings.visible" (change)="visibleChanged($event)"
-                          [disabled]="form.settings.finished">
+                          [disabled]="form.settings.finished || !hasTested"
+                          [matTooltip]="'oca.you_must_test_your_form_first' | translate"
+                          [matTooltipDisabled]="hasTested">
           {{ 'oca.place_form_in_app' | translate }}
         </mat-slide-toggle>
       </div>

@@ -14,6 +14,7 @@ import {
   UploadedFile,
   UploadedFormFile,
 } from '../interfaces/forms.interfaces';
+import { FormValidatorType } from '../interfaces/validators.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 @Injectable({ providedIn: 'root' })
@@ -82,7 +83,7 @@ export class FormsService {
       map(results => ({
         form: {
           title: results[ 'oca.untitled_form' ],
-          max_submissions: -1,
+          max_submissions: 1,
           sections: [ {
             id: '0',
             title: results[ 'oca.untitled_section' ],
@@ -99,7 +100,7 @@ export class FormsService {
               type: FormComponentType.SINGLE_SELECT,
               id: results[ 'oca.untitled_question' ],
               title: results[ 'oca.untitled_question' ],
-              validators: [],
+              validators: [ { type: FormValidatorType.REQUIRED } ],
               choices: [ {
                 label: results[ 'oca.option_x' ],
                 value: results[ 'oca.option_x' ],

@@ -1,3 +1,4 @@
+import { environment } from '../../environments/environment';
 import { DateFormat, FileType, FormComponentType, KeyboardType, OptionType } from './enums';
 
 export interface SelectValue {
@@ -23,15 +24,19 @@ export interface ComponentTypeItem {
   icon: string;
 }
 
-export const COMPONENT_TYPES: ComponentTypeItem[] = [
+export let COMPONENT_TYPES: ComponentTypeItem[] = [
   { value: FormComponentType.PARAGRAPH, label: 'oca.title_and_description', icon: 'text_fields' },
   { value: FormComponentType.TEXT_INPUT, label: 'oca.text_input', icon: 'subject' },
   { value: FormComponentType.SINGLE_SELECT, label: 'oca.multiple_choice', icon: 'radio_button_unchecked' },
   { value: FormComponentType.MULTI_SELECT, label: 'oca.checkboxes', icon: 'check_box' },
-  { value: FormComponentType.DATETIME, label: 'oca.date', icon: 'calendar_today' },
-  { value: FormComponentType.FILE, label: 'oca.file_upload', icon: 'cloud_upload' },
-  { value: FormComponentType.LOCATION, label: 'oca.location', icon: 'my_location' },
 ];
+if (!environment.production) {
+  COMPONENT_TYPES = [ ...COMPONENT_TYPES,
+    { value: FormComponentType.DATETIME, label: 'oca.date', icon: 'calendar_today' },
+    { value: FormComponentType.FILE, label: 'oca.file_upload', icon: 'cloud_upload' },
+    { value: FormComponentType.LOCATION, label: 'oca.location', icon: 'my_location' },
+  ];
+}
 
 export const DATE_FORMATS: SelectValue[] = [
   { value: DateFormat.DATE, label: 'oca.date' },

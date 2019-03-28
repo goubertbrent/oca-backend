@@ -44,7 +44,7 @@ const featureSelector = createFeatureSelector<FormsState>('forms');
 export const getForms = createSelector(featureSelector, s => ({
   ...s.forms,
   data: (s.forms.data || []).map(f => ({ ...f, visible_until: f.visible_until ? new Date(f.visible_until) : null }
-  )),
+  )).sort((item1, item2) => item1.title.localeCompare(item2.title)),
 }));
 export const getForm = createSelector(featureSelector, s => s.form);
 export const getRawFormStatistics = createSelector(featureSelector, s => s.formStatistics);

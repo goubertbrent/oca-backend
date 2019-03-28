@@ -185,7 +185,10 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  onTestForm(user: UserDetailsTO) {
+  onTestForm(user?: UserDetailsTO) {
+    if (!user) {
+      return;
+    }
     const userEmail = createAppUser(user.email, user.app_id);
     this.form$.pipe(
       take(1),

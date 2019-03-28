@@ -62,9 +62,9 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   hasTombola = false;
   dateInput = new Date();
   selectedTestUser: UserDetailsTO | undefined;
-  isLinearStepper = true;
   completedSteps = [ true, false, false, false, false ];
   stepperIndex = 0;
+  hasTested = false;
   STEP_INDEX_TEST = 1;
   STEP_INDEX_LAUNCH = 4;
   private _hasChanges = false;
@@ -92,17 +92,15 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
       } else {
         this.hasEndDate = false;
       }
-      this.isLinearStepper = this.form.settings.steps.some(s => s.step_id === CompletedFormStepType.LAUNCH);
+      const completedStepIds = this.form.settings.steps.map(s => s.step_id);
       for (let i = this.STEP_INDEX_TEST; i < this.completedSteps.length; i++) {
-        const hasCompletedStep = this.form.settings.steps.some(s => s.step_id === COMPLETED_STEP_MAPPING[ i ]);
-        this.completedSteps[ i ] = i === 0 ? true : ((hasCompletedStep) && this.completedSteps[ i - 1 ]);
+        const hasCompletedStep = completedStepIds.includes(COMPLETED_STEP_MAPPING[ i ]);
+        this.completedSteps[ i ] = i === 0 ? true : (hasCompletedStep && this.completedSteps[ i - 1 ]);
         if (hasCompletedStep) {
-          this.stepperIndex = i + 1;
+          this.stepperIndex = i;
         }
       }
-      if (this.stepperIndex >= COMPLETED_STEP_MAPPING.length) {
-        this.stepperIndex = 0;
-      }
+      this.hasTested = completedStepIds.includes(CompletedFormStepType.TEST);
     }
   }
 
