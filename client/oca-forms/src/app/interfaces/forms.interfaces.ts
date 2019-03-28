@@ -165,7 +165,11 @@ export interface ChoicesComponentStatistics {
 
 export interface FilesComponentStatistics {
   type: ComponentStatsType.FILES;
-  value: FormStatisticsFileArray;
+  value: {
+    url: string;
+    icon: string;
+    fileName: string;
+  }[];
 }
 
 export interface LocationsComponentStatistics {

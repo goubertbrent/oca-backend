@@ -165,9 +165,26 @@ function getComponentStatsValues(component: FormComponent, componentStats: FormS
     } else {
       values = {
         type: ComponentStatsType.FILES,
-        value: componentStats,
+        value: componentStats.map(array => ({
+          url: array[ 0 ],
+          fileName: array[ 1 ],
+          icon: getIconFromMime(array[ 2 ]),
+        })),
       };
     }
   }
   return { responseCount, values };
+}
+
+export function getIconFromMime(mimeType: string) {
+  if (mimeType.startsWith('image')) {
+    return 'image';
+  } else if (mimeType.startsWith('video')) {
+    return 'videocam';
+  } else if (mimeType.startsWith('audio')) {
+    return 'audiotrack';
+  } else if (mimeType === 'application/pdf') {
+    return 'picture_as_pdf';
+  }
+  return 'insert_drive_file';
 }

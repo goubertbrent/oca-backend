@@ -6,6 +6,7 @@ import {
   COMPONENT_TYPES,
   ComponentTypeItem,
   DATE_FORMATS,
+  FILE_TYPES,
   KEYBOARD_TYPES,
   OptionsMenuOption,
   SHOW_DESCRIPTION_OPTION,
@@ -45,6 +46,7 @@ export class FormFieldComponent {
   COMPONENT_TYPES = COMPONENT_TYPES;
   KEYBOARD_TYPES = KEYBOARD_TYPES;
   DATE_FORMATS = DATE_FORMATS;
+  FILE_TYPES = FILE_TYPES;
   optionsMenuItems: OptionsMenuOption[] = [];
   showDescription = false;
   isRequired = false;

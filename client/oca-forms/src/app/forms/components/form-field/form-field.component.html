@@ -6,7 +6,7 @@
              required #title="ngModel">
       <mat-error *ngIf="title.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
     </mat-form-field>
-    <mat-form-field>
+    <mat-form-field class="form-type-field">
       <mat-label>{{ 'oca.type' | translate }}</mat-label>
       <mat-select #compType [name]="name + '_type'" [(ngModel)]="componentType"
                   (selectionChange)="componentTypeChanged($event)"
@@ -71,8 +71,15 @@
         </mat-select>
       </mat-form-field>
     </ng-container>
-    <ng-container *ngSwitchDefault>
-      Coming soon
+    <ng-container *ngSwitchCase="FormComponentType.FILE">
+      <mat-form-field class="file-type-field">
+        <mat-label>{{ 'oca.allow_only_specific_file_types' | translate }}</mat-label>
+        <mat-select name="file_types" multiple [(ngModel)]="component.file_types" (ngModelChange)="changed()">
+          <mat-option *ngFor="let option of FILE_TYPES" [value]="option.value">
+            {{ option.label | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
     </ng-container>
   </ng-container>
   <!--hiding until completely implemented-->

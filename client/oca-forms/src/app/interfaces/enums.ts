@@ -14,8 +14,12 @@ export const enum DateFormat {
   TIME = 'time',
 }
 
-// TODO
 export const enum FileType {
+  DOCUMENT = 'document',
+  PDF = 'pdf',
+  VIDEO = 'video',
+  IMAGE = 'image',
+  AUDIO = 'audio',
 }
 
 export const enum KeyboardType {
