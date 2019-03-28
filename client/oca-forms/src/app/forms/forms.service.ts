@@ -46,6 +46,12 @@ export class FormsService {
     return this.getDefaultForm().pipe(switchMap(form => this.http.post<OcaForm>(`/common/forms`, form)));
   }
 
+
+  copyForm(form: OcaForm) {
+    form = {...form, settings: {...form.settings, steps: [], visible_until: null, finished: false, visible: false, tombola: null}};
+    return this.http.post<OcaForm>(`/common/forms`, form);
+  }
+
   getTombolaWinners(formId: number) {
     return this.http.get <UserDetailsTO[ ]>(`/common/forms/${formId}/tombola/winners`);
   }

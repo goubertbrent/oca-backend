@@ -33,6 +33,9 @@ export const enum FormsActionTypes {
   DELETE_FORM = '[forms] Delete form',
   DELETE_FORM_COMPLETE = '[forms] Delete form complete',
   DELETE_FORM_FAILED = '[forms] Delete form failed',
+  COPY_FORM = '[forms] Copy form',
+  COPY_FORM_COMPLETE = '[forms] Copy form complete',
+  COPY_FORM_FAILED = '[forms] Copy form failed',
 }
 
 export class GetFormsAction implements Action {
@@ -223,6 +226,26 @@ export class DeleteAllResponsesFailedAction implements Action {
   }
 }
 
+export class CopyFormAction implements Action {
+  readonly type = FormsActionTypes.COPY_FORM;
+
+  constructor(public formId: number) {
+  }
+}
+
+export class CopyFormCompleteAction implements Action {
+  readonly type = FormsActionTypes.COPY_FORM_COMPLETE;
+
+  constructor(public form: OcaForm) {
+  }
+}
+
+export class CopyFormFailedAction implements Action {
+  readonly type = FormsActionTypes.COPY_FORM_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
 
 export type FormsActions =
   GetFormsAction
@@ -253,4 +276,7 @@ export type FormsActions =
   | ShowDeleteAllResponsesCanceledAction
   | DeleteAllResponsesAction
   | DeleteAllResponsesCompleteAction
-  | DeleteAllResponsesFailedAction;
+  | DeleteAllResponsesFailedAction
+  | CopyFormAction
+  | CopyFormCompleteAction
+  | CopyFormFailedAction;

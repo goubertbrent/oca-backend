@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'oca.delete_all_responses': u'Delete all responses',
+         u'oca.make_copy': u'Make copy',
+         u'oca.form_copied': u'Form copied',
          u'oca.document': u'Document',
          u'oca.pdf': u'PDF',
          u'oca.image': u'Image',
@@ -3949,6 +3951,8 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'oca.add_validator': u'Validatie toevoegen',
+         u'oca.make_copy': u'Kopiëren',
+         u'oca.form_copied': u'Bevraging gekopieerd',
          u'oca.document': u'Document',
          u'oca.pdf': u'PDF',
          u'oca.image': u'Foto',

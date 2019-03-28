@@ -21,6 +21,7 @@ import { UserDetailsTO } from '../../../users/interfaces';
 import { createAppUser } from '../../../util/rogerthat';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
 import {
+  CopyFormAction,
   DeleteAllResponsesAction,
   FormsActions,
   FormsActionTypes,
@@ -139,6 +140,10 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
         this.store.dispatch(new TestFormAction(formData.data.form.id, [ createAppUser(result.email, result.app_id) ]));
       }
     });
+  }
+
+  copyForm() {
+    this.store.dispatch(new CopyFormAction(this.formId));
   }
 
   createNews() {

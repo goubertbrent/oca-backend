@@ -2,12 +2,17 @@ import { Injectable } from '@angular/core';
 import { MatDialog, MatSnackBar } from '@angular/material';
 import { Router } from '@angular/router';
 import { Actions, Effect, ofType } from '@ngrx/effects';
+import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
+import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
 import { OcaForm } from '../interfaces/forms.interfaces';
 import {
+  CopyFormAction,
+  CopyFormCompleteAction,
+  CopyFormFailedAction,
   CreateFormAction,
   CreateFormCompleteAction,
   CreateFormFailedAction,
@@ -41,6 +46,7 @@ import {
   TestFormFailedAction,
 } from './forms.actions';
 import { FormsService } from './forms.service';
+import { FormsState, getForm } from './forms.state';
 
 @Injectable({ providedIn: 'root' })
 export class FormsEffects {
@@ -149,7 +155,17 @@ export class FormsEffects {
       catchError(err => of(new DeleteAllResponsesFailedAction(err))))),
   );
 
+  @Effect() copyForm$ = this.actions$.pipe(
+    ofType<CopyFormAction>(FormsActionTypes.COPY_FORM),
+    withLatestFrom(this.store.pipe(select(getForm))),
+    switchMap(([ action, form ]) => this.formsService.copyForm(form.data as OcaForm).pipe(
+      map(data => new CopyFormCompleteAction(data)),
+      tap(() => this.snackbar.open(this.translate.instant('oca.form_copied'), this.translate.instant('oca.ok'), { duration: 3000 })),
+      catchError(err => of(new CopyFormFailedAction(err))))),
+  );
+
   constructor(private actions$: Actions<FormsActions>,
+              private store: Store<FormsState>,
               private formsService: FormsService,
               private snackbar: MatSnackBar,
               private translate: TranslateService,
