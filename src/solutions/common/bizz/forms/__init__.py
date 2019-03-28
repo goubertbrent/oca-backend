@@ -149,10 +149,15 @@ def _get_form_avatar_url(service_user):
     return get_serving_url(cloudstorage_path)
 
 
+def get_form_settings(form_id, service_user):
+    # type: (long, users.User) -> OcaForm
+    return OcaForm.create_key(form_id, service_user).get()
+
+
 def get_form(form_id, service_user):
     with users.set_user(service_user):
         form = service_api.get_form(form_id)
-    oca_form = OcaForm.create_key(form_id, service_user).get()  # type: OcaForm
+    oca_form = get_form_settings(form_id, service_user)
     # backwards compat
     if not oca_form.steps:
         oca_form.steps = [CompletedFormStep(step_id=step_id) for step_id in CompletedFormStepType.all()]
