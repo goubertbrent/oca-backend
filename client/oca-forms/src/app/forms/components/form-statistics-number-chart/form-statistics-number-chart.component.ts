@@ -24,11 +24,12 @@ export class FormStatisticsNumberChartComponent implements OnChanges {
       data: values.map(value => ([ value.value, value.amount ])),
       options: {
         width: 700,
+        height: Math.max(150, values.length * 30),
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         bars: 'horizontal', // Required for Material Bar Charts.
-        // vAxis: { title: 'Answers', textStyle: { color: '#005500', fontSize: '12', paddingRight: '200', marginRight: '200' } },
-        chartArea: { left: '20%' },
+        vAxis: { title: 'Answers', textStyle: { fontSize: '12', paddingRight: '200', marginRight: '200' } },
+        chartArea: { left: '25%', top: 0, bottom: 0 },
       },
     };
   }
