@@ -18,7 +18,6 @@
 import webapp2
 
 from shop.jobs import clean_unverified_signups
-from shop.jobs import notify_extention_needed
 from shop.jobs.export_reseller_invoices import export_reseller_invoices_this_week
 from shop.jobs.recurrentbilling import schedule_recurrent_billing
 from solutions.common.bizz.joyn import find_all_joyn_matches
@@ -28,12 +27,6 @@ class RecurrentBilling(webapp2.RequestHandler):
 
     def get(self):
         schedule_recurrent_billing()
-
-
-class NotifyExtentionNeededHandler(webapp2.RequestHandler):
-
-    def get(self):
-        notify_extention_needed.job()
 
 
 class ExportResellerInvoicesHandler(webapp2.RequestHandler):
