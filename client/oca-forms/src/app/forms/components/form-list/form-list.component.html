@@ -8,12 +8,14 @@
         <a mat-button (click)="createForm.emit()">{{ 'oca.create' | translate }}</a>
       </mat-card-actions>
     </mat-card>
-    <a *ngFor="let form of tab.list; trackBy: trackById" [routerLink]="[form.id]">
+    <a *ngFor="let form of tab.list; trackBy: trackById" [routerLink]="[form.id]" #link>
       <mat-card class="form-card">
         <mat-card-title>{{ form.title }}</mat-card-title>
         <mat-card-content>
           <mat-chip-list>
-            <mat-chip [color]="form.visible ? 'primary': 'warn'" selected>
+            <!-- For some reason the page gets reloaded when clicking the chip. Prevent that by using preventDefault -->
+            <mat-chip [color]="form.visible ? 'primary': 'warn'" selected
+                      (click)="$event.preventDefault(); link.click()">
               {{ (form.visible ? 'oca.active' : 'oca.inactive') | translate }}
             </mat-chip>
           </mat-chip-list>
