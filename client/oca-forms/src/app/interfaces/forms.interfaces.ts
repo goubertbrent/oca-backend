@@ -22,7 +22,7 @@ export interface TextInputComponent extends BaseInputComponent {
   validators: FormValidator[];
 }
 
-export const enum NextActionType {
+export enum NextActionType {
   NEXT = 'next',
   SECTION = 'section',
   SUBMIT = 'submit',
@@ -42,6 +42,11 @@ export interface NextActionSubmit {
 }
 
 export type NextAction = NextActionDefault | NextActionSection | NextActionSubmit;
+
+export interface UINextAction {
+  action: NextAction;
+  label: string;
+}
 
 export interface Value {
   value: string;
@@ -99,6 +104,7 @@ export interface SubmissionSection {
 
 export interface FormSection extends SubmissionSection {
   id: string;
+  next_action: NextAction | null;
 }
 
 export interface CreateDynamicForm {

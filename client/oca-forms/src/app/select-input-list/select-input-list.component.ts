@@ -16,7 +16,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
-import { Value } from '../interfaces/forms.interfaces';
+import { NextAction, NextActionSection, NextActionType, UINextAction, Value } from '../interfaces/forms.interfaces';
 
 @Component({
   selector: 'oca-select-input-list',
@@ -41,6 +41,8 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   get multiple() {
     return this._multiple;
   }
+
+  @Input() nextActions: UINextAction[] = [];
 
   set values(values: Value[]) {
     // Don't set 'changed' in case of initial value
@@ -80,9 +82,11 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   setDisabledState(isDisabled: boolean): void {
   }
 
-  writeValue(values: Value[]): void {
-    this._values = values;
-    this._changeDetectorRef.markForCheck();
+  writeValue(values?: Value[]): void {
+    if (values) {
+      this._values = values;
+      this._changeDetectorRef.markForCheck();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -103,6 +107,11 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
 
   valueUpdated(value: string, index: number) {
     this.values[ index ] = { ...this.values[ index ], label: value, value };
+    this.onChange(this.values);
+  }
+
+  actionUpdated(action: NextAction, index: number) {
+    this.values[ index ] = { ...this.values[ index ], next_action: action };
     this.onChange(this.values);
   }
 
@@ -129,5 +138,20 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     }
     this.values = [ ...this.values, { value, label: value } ];
     this.valueFocus$.next();
+  }
+
+  compareAction(first: NextAction, second?: NextAction) {
+    if (!second) {
+      return first.type === NextActionType.NEXT;
+    }
+    const sameType = first.type === second.type;
+    if (sameType && first.type === NextActionType.SECTION) {
+      return first.section === (second as NextActionSection).section;
+    }
+    return sameType;
+  }
+
+  trackActions(index: number, action: NextAction) {
+    return action.type === NextActionType.SECTION ? `${NextActionType.SECTION}_${action.section}` : action.type;
   }
 }

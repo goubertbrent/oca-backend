@@ -55,3 +55,8 @@ fieldset {
   // By default this is white, reset to whatever the background of the parent component is.
   background-color: inherit;
 }
+
+.mat-menu-panel {
+  // By default it's set to 280px which may not be enough
+  max-width: none !important;
+}

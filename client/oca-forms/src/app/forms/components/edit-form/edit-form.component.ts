@@ -22,9 +22,11 @@ import {
   COMPLETED_STEP_MAPPING,
   CompletedFormStepType,
   FormSection,
+  NextActionType,
   OcaForm,
   SaveForm,
   SubmissionSection,
+  UINextAction,
 } from '../../../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../../../users/interfaces';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
@@ -43,11 +45,13 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   @Input() set value(value: OcaForm) {
     this._form = value;
     this._hasChanges = false;
+    this.setNextActions();
   }
 
   set form(value: OcaForm) {
     this._form = value;
     this._hasChanges = true;
+    this.setNextActions();
   }
 
   get form() {
@@ -57,6 +61,8 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   @Output() save = new EventEmitter<SaveForm>();
   @Output() createNews = new EventEmitter();
   @Output() testForm = new EventEmitter<UserDetailsTO>();
+
+  nextActionsMapping: { [ key: string ]: UINextAction[] } = {};
   minDate: Date;
   hasEndDate = true;
   hasTombola = false;
@@ -124,7 +130,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   addSection() {
     const id = this.getNextSectionId(this.form.form.sections);
     const title = this._translate.instant('oca.untitled_section');
-    const newSection: FormSection = { id, title, components: [], branding: null };
+    const newSection: FormSection = { id, title, components: [], branding: null, next_action: null };
     this.form = { ...this.form, form: { ...this.form.form, sections: [ ...this.form.form.sections, newSection ] } };
   }
 
@@ -262,7 +268,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
    * Marks the form as 'changed', used for auto-saving when switching between steps.
    */
   markChanged() {
-    this._hasChanges = true;
+    this.form = { ...this.form };
   }
 
   trackBySection(index: number, section: FormSection) {
@@ -303,6 +309,37 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
       d.setUTCHours(this.dateInput.getHours());
       d.setUTCMinutes(this.dateInput.getMinutes());
       this.timeInput.nativeElement.valueAsDate = d;
+    }
+  }
+
+  private setNextActions() {
+    const sectionActions: UINextAction[] = [];
+    for (let i = 0; i < this.form.form.sections.length; i++) {
+      const section = this.form.form.sections[ i ];
+      const sectionNumber = i + 1;
+      const sectionTitle = section.title ? `${sectionNumber} (${section.title})` : sectionNumber;
+      sectionActions.push({
+        label: this._translate.instant('oca.go_to_section_x', { section: sectionTitle }),
+        action: {
+          type: NextActionType.SECTION,
+          section: section.id,
+        },
+      });
+    }
+    const nextSection: UINextAction = {
+      label: this._translate.instant('oca.continue_to_next_section'),
+      action: { type: NextActionType.NEXT },
+    };
+    const submitSection: UINextAction = {
+      label: this._translate.instant('oca.submit_form'),
+      action: { type: NextActionType.SUBMIT },
+    };
+    for (const section of this.form.form.sections) {
+      this.nextActionsMapping[ section.id ] = [
+        nextSection,
+        ...sectionActions.filter(a => a.action.type !== NextActionType.SECTION || a.action.section !== section.id),
+        submitSection,
+      ];
     }
   }
 }

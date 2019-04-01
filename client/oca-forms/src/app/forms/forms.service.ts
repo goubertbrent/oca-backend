@@ -89,6 +89,7 @@ export class FormsService {
             title: results[ 'oca.untitled_section' ],
             description: results['oca.default_entry_section_text'],
             branding: null,
+            next_action: null,
             components: [],
             next_button_caption: results['oca.start'],
           } , {
@@ -96,6 +97,7 @@ export class FormsService {
             title: results[ 'oca.untitled_section' ],
             description: null,
             branding: null,
+            next_action: null,
             components: [ {
               type: FormComponentType.SINGLE_SELECT,
               id: results[ 'oca.untitled_question' ],

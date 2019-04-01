@@ -3,9 +3,10 @@
 }
 
 
-.add-button {
+.after-section {
   display: flex;
   justify-content: center;
+  align-items: center;
 
   button {
     margin: 0 8px;
@@ -55,4 +56,9 @@
 
 .description-editor {
   margin: 16px 0;
+}
+
+
+.next-action-select {
+  width: 300px;
 }

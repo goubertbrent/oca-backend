@@ -9,7 +9,7 @@
         <mat-hint align="end">{{ title.value.length }} / 30</mat-hint>
       </mat-form-field>
 
-      <div *ngFor="let section of form.form.sections; let i = index; trackBy: trackBySection">
+      <div *ngFor="let section of form.form.sections; let i = index; let last = last; trackBy: trackBySection">
         <mat-menu #sectionSettingsMenu="matMenu">
           <ng-template matMenuContent>
             <button mat-menu-item (click)="moveSection()">
@@ -36,7 +36,12 @@
             </button>
           </span>
         </mat-toolbar>
-        <oca-edit-form-section [name]="'section_' + i" [formId]="form.form.id" [(ngModel)]="form.form.sections[i]"
+        <oca-edit-form-section [name]="'section_' + i"
+                               [formId]="form.form.id"
+                               [showNextAction]="!last"
+                               [sectionNumber]="i + 1"
+                               [nextActions]="nextActionsMapping[section.id]"
+                               [(ngModel)]="form.form.sections[i]"
                                (ngModelChange)="markChanged()" #sectionComponent></oca-edit-form-section>
       </div>
       <div class="add-section-button">

@@ -5,7 +5,14 @@ import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } fro
 import { MatDialog, MatDialogConfig } from '@angular/material';
 import { TranslateService } from '@ngx-translate/core';
 import { FormComponentType } from '../../../interfaces/enums';
-import { FormComponent, FormSection } from '../../../interfaces/forms.interfaces';
+import {
+  FormComponent,
+  FormSection,
+  NextAction,
+  NextActionSection,
+  NextActionType,
+  UINextAction,
+} from '../../../interfaces/forms.interfaces';
 import { FormValidatorType } from '../../../interfaces/validators.interfaces';
 import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-dialog.component';
 
@@ -36,6 +43,9 @@ export class EditFormSectionComponent implements ControlValueAccessor {
 
   @Input() name: string;
   @Input() formId?: number;
+  @Input() showNextAction: boolean;
+  @Input() sectionNumber: number;
+  @Input() nextActions: UINextAction[];
   @Input() set canAddComponents(value: any) {
     this._canAddComponents = coerceBooleanProperty(value);
   }
@@ -44,6 +54,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   FormComponentType = FormComponentType;
+  NextActionType =  NextActionType;
   private _section: FormSection;
   private _canAddComponents = true;
   private onChange = (val: any) => {
@@ -129,5 +140,20 @@ export class EditFormSectionComponent implements ControlValueAccessor {
         this._changeDetectorRef.markForCheck();
       }
     });
+  }
+
+  compareAction(first: NextAction, second?: NextAction) {
+    if (!second) {
+      return first.type === NextActionType.NEXT;
+    }
+    const sameType = first.type === second.type;
+    if (sameType && first.type === NextActionType.SECTION) {
+      return first.section === (second as NextActionSection).section;
+    }
+    return sameType;
+  }
+
+  trackActions(index: number, action: NextAction) {
+    return action.type === NextActionType.SECTION ? `${NextActionType.SECTION}_${action.section}` : action.type;
   }
 }

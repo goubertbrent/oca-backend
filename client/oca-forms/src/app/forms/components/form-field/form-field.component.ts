@@ -7,13 +7,14 @@ import {
   ComponentTypeItem,
   DATE_FORMATS,
   FILE_TYPES,
+  GOTO_SECTION_OPTION,
   KEYBOARD_TYPES,
   OptionsMenuOption,
   SHOW_DESCRIPTION_OPTION,
   VALIDATION_OPTION,
 } from '../../../interfaces/consts';
 import { DateFormat, FormComponentType, KeyboardType, OptionType } from '../../../interfaces/enums';
-import { FormComponent, isInputComponent, SingleSelectComponent } from '../../../interfaces/forms.interfaces';
+import { FormComponent, isInputComponent, SingleSelectComponent, UINextAction } from '../../../interfaces/forms.interfaces';
 import { FormValidator, FormValidatorType, ValidatorType } from '../../../interfaces/validators.interfaces';
 
 @Component({
@@ -39,6 +40,7 @@ export class FormFieldComponent {
     return this._component;
   }
 
+  @Input() nextActions: UINextAction[];
   @Input() name: string;
   @Output() removeComponent = new EventEmitter<FormComponent>();
   @Output() componentChange = new EventEmitter<FormComponent>();
@@ -52,6 +54,7 @@ export class FormFieldComponent {
   isRequired = false;
   showRequired = false;
   showValidators = false;
+  showNextActions = false;
   validatorTypes: ValidatorType[] = [];
   componentType: ComponentTypeItem = COMPONENT_TYPES[ 0 ];
 
@@ -114,6 +117,7 @@ export class FormFieldComponent {
           const comp = this.component as SingleSelectComponent;
           comp.choices = comp.choices.map(c => ({ ...c, next_action: null }));
         }
+        this.showNextActions = !option.checked;
         break;
     }
     option.checked = !option.checked;
@@ -157,15 +161,15 @@ export class FormFieldComponent {
 
   private prepareOptionsMenu() {
     this.optionsMenuItems = [ { ...SHOW_DESCRIPTION_OPTION, checked: this.showDescription } ];
-    if (this.component.type !== FormComponentType.PARAGRAPH && this.component.type !== FormComponentType.SINGLE_SELECT) {
-      this.optionsMenuItems.push({
-        ...VALIDATION_OPTION,
-        checked: this.component.validators.filter(v => v.type !== FormValidatorType.REQUIRED).length !== 0,
-      });
-      // TODO implement
-      // if (this.component.type === FormComponentType.SINGLE_SELECT) {
-      //   this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action !== null) });
-      // }
+    if (this.component.type !== FormComponentType.PARAGRAPH) {
+      if (this.component.type === FormComponentType.SINGLE_SELECT) {
+        this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action != null) });
+      } else {
+        this.optionsMenuItems.push({
+          ...VALIDATION_OPTION,
+          checked: this.component.validators.filter(v => v.type !== FormValidatorType.REQUIRED).length !== 0,
+        });
+      }
     }
   }
 
@@ -190,7 +194,10 @@ export class FormFieldComponent {
         case FormComponentType.MULTI_SELECT:
           if (!comp.choices) {
             const value = this._translate.instant('oca.option_x', { number: 1 });
-            comp = { ...comp, choices: [ { value, label: value } ] };
+            comp = { ...comp, choices: [ { value, label: value, next_action: null } ] };
+          }
+          if (comp.type === FormComponentType.SINGLE_SELECT) {
+            this.showNextActions = comp.choices.some(c => c.next_action != null);
           }
           break;
         case FormComponentType.DATETIME:

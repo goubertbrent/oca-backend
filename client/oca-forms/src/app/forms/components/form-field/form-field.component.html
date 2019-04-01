@@ -52,6 +52,7 @@
     </ng-container>
     <ng-container *ngSwitchCase="FormComponentType.SINGLE_SELECT">
       <oca-select-input-list [name]="name + '_choices'" [(ngModel)]="component.choices"
+                             [nextActions]="showNextActions ? nextActions : []"
                              (ngModelChange)="changed()"></oca-select-input-list>
     </ng-container>
     <ng-container *ngSwitchCase="FormComponentType.MULTI_SELECT">
@@ -101,7 +102,7 @@
     </button>
   </div>
 
-  <mat-menu #optionsMenu=matMenu>
+  <mat-menu #optionsMenu="matMenu">
     <ng-template matMenuContent>
       <button type="button" mat-menu-item *ngFor="let item of optionsMenuItems" role="menuitemcheckbox"
               (click)="menuOptionClicked(item)">
