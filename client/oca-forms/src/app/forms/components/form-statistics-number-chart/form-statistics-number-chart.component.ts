@@ -28,8 +28,8 @@ export class FormStatisticsNumberChartComponent implements OnChanges {
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         bars: 'horizontal', // Required for Material Bar Charts.
-        vAxis: { title: 'Answers', textStyle: { fontSize: '12', paddingRight: '200', marginRight: '200' } },
-        chartArea: { left: '25%', top: 0, bottom: 0 },
+        vAxis: { textStyle: { fontSize: '12', paddingRight: '200', marginRight: '200' } },
+        chartArea: { left: '25%', top: 0, bottom: '20px' },  // bottom padding for x axis
       },
     };
   }
