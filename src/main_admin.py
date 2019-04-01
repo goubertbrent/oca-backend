@@ -16,8 +16,8 @@
 # @@license_version:1.3@@
 
 from rogerthat.wsgi import RogerthatWSGIApplication
-from shop.cron import RecurrentBilling, NotifyExtentionNeededHandler, \
-    ExportResellerInvoicesHandler, CleanupUnverifiedSignupRequests, MatchJoynMerchantsHandler
+from shop.cron import RecurrentBilling, ExportResellerInvoicesHandler, \
+    CleanupUnverifiedSignupRequests, MatchJoynMerchantsHandler
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.budget import BudgetCheckHandler
@@ -43,7 +43,6 @@ handlers = [
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_events_publish_data', SolutionEventsDataPublisher),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
-    ('/admin/cron/rpc/shop_notify_extention_needed', NotifyExtentionNeededHandler),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
     ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),
     ('/admin/cron/rpc/solution_loyalty_lottery_loot', LootLotteryCronHandler),
