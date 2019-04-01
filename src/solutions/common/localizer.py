@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'oca.delete_all_responses': u'Delete all responses',
+         u'oca.section_x': u'Section {{ number }}',
          u'oca.continue_to_next_section': u'Continue to next section',
          u'oca.go_to_section_x': u'Go to section {{ section }}',
          u'oca.submit_form': u'Submit form',
@@ -113,8 +114,6 @@ translations = \
          u'oca.questions': u'Questions',
          u'oca.required': u'Required',
          u'oca.response_count.none': u'No responses yet',
-         u'oca.response_count.plural': u'{{ count }} responses',
-         u'oca.response_count.singular': u'1 response',
          u'oca.response_validation': u'Response validation',
          u'oca.responses': u'Responses',
          u'oca.saving_form': u'Saving form...',
@@ -3957,6 +3956,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'oca.add_validator': u'Validatie toevoegen',
+         u'oca.section_x': u'Sectie {{ number }}',
          u'oca.continue_to_next_section': u'Verder naar volgende sectie',
          u'oca.go_to_section_x': u'Ga naar sectie {{ section }}',
          u'oca.submit_form': u'Formulier verzenden',
@@ -4052,8 +4052,6 @@ translations = \
          u'oca.questions': u'Vragen',
          u'oca.required': u'Verplicht',
          u'oca.response_count.none': u'Nog geen antwoorden',
-         u'oca.response_count.plural': u'{{ count }} antwoorden',
-         u'oca.response_count.singular': u'1 antwoord',
          u'oca.response_validation': u'Antwoordvalidatie',
          u'oca.responses': u'Antwoorden',
          u'oca.saving_form': u'Formulier wordt opgeslagen...',

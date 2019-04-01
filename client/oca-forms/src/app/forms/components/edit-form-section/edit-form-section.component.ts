@@ -54,7 +54,6 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   FormComponentType = FormComponentType;
-  NextActionType =  NextActionType;
   private _section: FormSection;
   private _canAddComponents = true;
   private onChange = (val: any) => {

@@ -22,7 +22,7 @@ export interface TextInputComponent extends BaseInputComponent {
   validators: FormValidator[];
 }
 
-export enum NextActionType {
+export const enum NextActionType {
   NEXT = 'next',
   SECTION = 'section',
   SUBMIT = 'submit',
@@ -215,13 +215,14 @@ export type ComponentStatisticsValues = null
 export interface ComponentStatistics {
   id: string;
   title: string;
-  responses: number;
+  hasResponses: boolean;
   values: ComponentStatisticsValues;
 }
 
 export interface SectionStatistics {
   title: string;
   id: string;
+  number: number;
   components: ComponentStatistics[];
 }
 

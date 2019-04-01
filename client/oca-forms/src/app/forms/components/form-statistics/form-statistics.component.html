@@ -8,11 +8,16 @@
     </span>
   </div>
   <ng-container *ngFor="let section of statistics.sections">
-    <mat-toolbar>{{ section.title }}</mat-toolbar>
+    <mat-toolbar>
+      {{ section.title || ('oca.section_x' | translate : {number: section.number}) }}
+    </mat-toolbar>
     <ng-container *ngFor="let component of section.components">
       <mat-card class="component-card" *ngIf="component.id">
         <mat-card-header>
           <mat-card-title>{{ component.title }} </mat-card-title>
+          <mat-card-subtitle *ngIf="!component.hasResponses">
+            {{ 'oca.response_count.none' | translate }}
+          </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content *ngIf="component.values">
           <ng-container [ngSwitch]="component.values.type">

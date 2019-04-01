@@ -72,7 +72,8 @@ export const getTransformedStatistics = createSelector(getForm, getRawFormStatis
 
 function getSectionStatistics(form: OcaForm, statistics: FormStatistics): SectionStatistics[] {
   const sections: SectionStatistics[] = [];
-  for (const section of form.form.sections) {
+  for (let i = 0; i < form.form.sections.length; i++) {
+    const section = form.form.sections[ i ];
     const sectionStats = statistics.statistics[ section.id ];
     const components: ComponentStatistics[] = [];
     for (const component of section.components) {
@@ -80,14 +81,14 @@ function getSectionStatistics(form: OcaForm, statistics: FormStatistics): Sectio
         const stats: ComponentStatistics = {
           id: component.id,
           title: component.title,
-          responses: 0,
+          hasResponses: false,
           values: null,
         };
         if (sectionStats) {
           const componentStats: FormStatisticsValue = sectionStats[ component.id ];
           if (componentStats) {
-            const { responseCount, values } = getComponentStatsValues(component, componentStats);
-            stats.responses = responseCount;
+            const { hasResponses, values } = getComponentStatsValues(component, componentStats);
+            stats.hasResponses = hasResponses;
             stats.values = values;
           }
         }
@@ -99,6 +100,7 @@ function getSectionStatistics(form: OcaForm, statistics: FormStatistics): Sectio
       sections.push({
         id: section.id,
         title: section.title,
+        number: i + 1,
         components,
       });
     }
@@ -137,9 +139,14 @@ function getDateTimeComponentValues(component: DatetimeComponent, stats: { [ key
 
 function getComponentStatsValues(component: FormComponent, componentStats: FormStatisticsValue) {
   let values: ComponentStatisticsValues = null;
-  let responseCount = 0;
+  let hasResponses = false;
   if (isFormStatisticsNumber(componentStats)) {
-    responseCount = Object.values<number>(componentStats).reduce((partial, val) => partial + val);
+    for (const number of Object.values<number>(componentStats)) {
+      if (number) {
+        hasResponses = true;
+        break;
+      }
+    }
     if (component.type === FormComponentType.DATETIME) {
       values = getDateTimeComponentValues(component, componentStats);
     } else {
@@ -153,7 +160,7 @@ function getComponentStatsValues(component: FormComponent, componentStats: FormS
       }
     }
   } else {
-    responseCount = componentStats.length;
+    hasResponses = componentStats.length > 0;
     if (isFormStatisticsLocationArray(componentStats)) {
       values = {
         type: ComponentStatsType.LOCATIONS,
@@ -173,7 +180,7 @@ function getComponentStatsValues(component: FormComponent, componentStats: FormS
       };
     }
   }
-  return { responseCount, values };
+  return { hasResponses, values };
 }
 
 export function getIconFromMime(mimeType: string) {
