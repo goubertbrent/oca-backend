@@ -15,20 +15,22 @@
 #
 # @@license_version:1.3@@
 
-from cgi import FieldStorage
 import datetime
 import logging
 import urllib
+from cgi import FieldStorage
+from mimetypes import guess_extension
+
+import webapp2
 
 from rogerthat.bizz.gcs import upload_to_gcs, get_serving_url
 from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_user
 from rogerthat.to.messaging import AttachmentTO
-from rogerthat.utils import channel
+from rogerthat.utils import channel, guid
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.dal import get_solution_settings
-import webapp2
 
 
 class UploadAttachmentHandler(webapp2.RequestHandler):
@@ -54,8 +56,9 @@ class UploadAttachmentHandler(webapp2.RequestHandler):
                 raise BusinessException(
                     translate(sln_settings.main_language, SOLUTION_COMMON, 'attachment_must_be_of_type'))
             date = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-            filename = '%s/news/%s/%s_%s' % (
-                ROGERTHAT_ATTACHMENTS_BUCKET, service_user.email(), date, uploaded_file.filename)
+            extension = guess_extension(content_type)
+            filename = '%s/news/%s/%s_%s%s' % (ROGERTHAT_ATTACHMENTS_BUCKET, service_user.email(), date, guid(),
+                                               extension)
             blob_key = upload_to_gcs(file_content, content_type, filename)
             logging.debug('blob key: %s', blob_key)
             filename = '/'.join(map(urllib.quote, filename.split('/')))
