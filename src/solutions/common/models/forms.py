@@ -105,6 +105,15 @@ class FormSubmission(NdbModel):
     sections = ndb.JsonProperty()
     submitted_date = ndb.DateTimeProperty(auto_now_add=True)
     version = ndb.IntegerProperty(default=0)
+    statistics_shard_id = ndb.StringProperty(indexed=False)
+
+    @property
+    def id(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, submission_id):
+        return ndb.Key(cls, submission_id)
 
     @classmethod
     def list(cls, form_id):

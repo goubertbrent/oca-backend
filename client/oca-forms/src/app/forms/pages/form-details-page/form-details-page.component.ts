@@ -11,7 +11,7 @@ import { first, take, takeUntil } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../../../dialog/simple-dialog.component';
 import { OptionsMenuOption } from '../../../interfaces/consts';
 import { OptionType } from '../../../interfaces/enums';
-import { FormStatisticsView, OcaForm, SaveForm } from '../../../interfaces/forms.interfaces';
+import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../../interfaces/forms.interfaces';
 import { Loadable } from '../../../interfaces/loadable';
 import {
   UserAutoCompleteDialogComponent,
@@ -23,16 +23,19 @@ import { FormDetailTab } from '../../components/form-detail/form-detail.componen
 import {
   CopyFormAction,
   DeleteAllResponsesAction,
+  DeleteResponseAction,
   FormsActions,
   FormsActionTypes,
   GetFormAction,
   GetFormStatisticsAction,
+  GetNextResponseAction,
+  GetResponsesAction,
   GetTombolaWinnersAction,
   SaveFormAction,
   ShowDeleteAllResponsesAction,
   TestFormAction,
 } from '../../forms.actions';
-import { FormsState, getForm, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
+import { FormsState, getForm, getFormResponse, getResponsesData, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
 
 @Component({
   selector: 'oca-form-details-page',
@@ -44,6 +47,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   form$: Observable<Loadable<OcaForm>>;
   formStatistics$: Observable<Loadable<FormStatisticsView>>;
   tombolaWinners$: Observable<UserDetailsTO[]>;
+  formResponse$: Observable<Loadable<SingleFormResponse>>;
   formId: number;
   wasVisible: null | boolean = null;
 
@@ -67,6 +71,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     }));
     this.tombolaWinners$ = this.store.pipe(select(getTombolaWinners));
     this.formStatistics$ = this.store.pipe(select(getTransformedStatistics));
+    this.formResponse$ = this.store.pipe(select(getFormResponse));
   }
 
   ngOnDestroy(): void {
@@ -108,6 +113,13 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     switch (tabIndex) {
       case FormDetailTab.TOMBOLA_WINNERS:
         this.store.dispatch(new GetTombolaWinnersAction(this.formId));
+        break;
+      case FormDetailTab.RESPONSES:
+        this.store.pipe(select(getResponsesData), take(1)).subscribe(data => {
+          if (data.more && !data.ids.length) {
+            this.store.dispatch(new GetResponsesAction({ formId: this.formId, page_size: 5 }));
+          }
+        });
         break;
       case FormDetailTab.STATISTICS:
         this.store.dispatch(new GetFormStatisticsAction(this.formId));
@@ -200,4 +212,11 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  onNextResponse(responseId: number | null) {
+    this.store.dispatch(new GetNextResponseAction({ formId: this.formId, responseId }));
+  }
+
+  onRemoveResponse(data: {formId: number, submissionId: number}) {
+    this.store.dispatch(new DeleteResponseAction(data));
+  }
 }

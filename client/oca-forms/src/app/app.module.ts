@@ -52,6 +52,7 @@ import { EditFormComponent } from './forms/components/edit-form/edit-form.compon
 import { FormDetailComponent } from './forms/components/form-detail/form-detail.component';
 import { FormFieldComponent } from './forms/components/form-field/form-field.component';
 import { FormListComponent } from './forms/components/form-list/form-list.component';
+import { FormResponsesComponent } from './forms/components/form-responses/form-responses.component';
 import { FormStatisticsNumberChartComponent } from './forms/components/form-statistics-number-chart/form-statistics-number-chart.component';
 import { FormStatisticsComponent } from './forms/components/form-statistics/form-statistics.component';
 import { FormTombolaWinnersComponent } from './forms/components/form-tombola-winners/form-tombola-winners.component';
@@ -105,6 +106,7 @@ const locale = SUPPORTED_LOCALES.some(loc => navigator.language.startsWith(loc))
     DateStatisticsListComponent,
     UploadImageDialogComponent,
     ImageCropperComponent,
+    FormResponsesComponent,
   ],
   imports: [
     BrowserModule,

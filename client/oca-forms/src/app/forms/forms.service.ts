@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
@@ -7,8 +7,10 @@ import { FormComponentType } from '../interfaces/enums';
 import {
   CompletedFormStepType,
   CreateDynamicForm,
+  FormResponses,
   FormSettings,
   FormStatistics,
+  LoadResponses,
   OcaForm,
   SingleSelectComponent,
   UploadedFile,
@@ -55,6 +57,19 @@ export class FormsService {
 
   getTombolaWinners(formId: number) {
     return this.http.get <UserDetailsTO[ ]>(`/common/forms/${formId}/tombola/winners`);
+  }
+
+  getResponses(payload: LoadResponses) {
+    let params = new HttpParams();
+    params = params.set('page_size', payload.page_size.toString());
+    if (payload.cursor) {
+      params = params.set('cursor', payload.cursor);
+    }
+    return this.http.get<FormResponses>(`/common/forms/${payload.formId}/submissions`, { params });
+  }
+
+  deleteResponse(formId: number, responseId: number) {
+    return this.http.delete(`/common/forms/${formId}/submissions/${responseId}`);
   }
 
   deleteAllResponses(formId: number) {

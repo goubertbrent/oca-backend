@@ -9,7 +9,7 @@
       "projectType": "application",
       "prefix": "oca",
       "schematics": {
-        "@schematics/angular:component": {
+        "@ngrx/schematics:component": {
           "style": "scss"
         }
       },
@@ -152,5 +152,8 @@
       }
     }
   },
-  "defaultProject": "oca-forms"
+  "defaultProject": "oca-forms",
+  "cli": {
+    "defaultCollection": "@ngrx/schematics"
+  }
 }

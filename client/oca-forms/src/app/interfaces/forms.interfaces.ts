@@ -1,3 +1,4 @@
+import { FormSectionValue, MergedFormResponse } from '../forms/form-values';
 import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
 import { FormValidator } from './validators.interfaces';
 
@@ -293,4 +294,32 @@ export interface UploadedFile {
   content_type: string;
   size: number;
   url: string;
+}
+
+export interface LoadResponses {
+  formId: number;
+  cursor?: string;
+  page_size: number;
+}
+
+export interface FormResponse {
+  id: number;
+  sections: FormSectionValue[];
+  submitted_date: string;
+  version: number;
+}
+
+export interface SingleFormResponse {
+  cursor: string | null;
+  result: MergedFormResponse;
+  previous: number | null;
+  next: number | null;
+  more: boolean;
+}
+
+
+export interface FormResponses {
+  cursor: string | null;
+  results: FormResponse[];
+  more: boolean;
 }

@@ -25,9 +25,12 @@
   <oca-form-detail [form]="form.data" *ngIf="form.data"
                    [statistics]="formStatistics$ | async"
                    [tombolaWinners]="tombolaWinners$ | async"
+                   [formResponse]="formResponse$ | async"
                    (save)="onSave($event)"
                    (tabChanged)="onTabChanged($event)"
                    (menuOptionClicked)="onMenuOptionClicked($event)"
                    (createNews)="createNews()"
-                   (testForm)="onTestForm($event)"></oca-form-detail>
+                   (testForm)="onTestForm($event)"
+                   (nextResponse)="onNextResponse($event)"
+                   (removeResponse)="onRemoveResponse($event)"></oca-form-detail>
 </ng-container>

@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'oca.delete_all_responses': u'Delete all responses',
+         u'oca.submitted_on_x': u'Submitted on {{ date }}',
+         u'oca.confirm_delete_response': u'Are you sure you want to remove this answer? This cannot be undone.',
          u'oca.section_x': u'Section {{ number }}',
          u'oca.continue_to_next_section': u'Continue to next section',
          u'oca.go_to_section_x': u'Go to section {{ section }}',
@@ -3956,6 +3958,8 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'oca.add_validator': u'Validatie toevoegen',
+         u'oca.submitted_on_x': u'Verzonden op {{ date }}',
+         u'oca.confirm_delete_response': u'Weet u zeker dat u dit antwoord wilt verwijderen? Dit kan niet ongedaan gemaakt worden.',
          u'oca.section_x': u'Sectie {{ number }}',
          u'oca.continue_to_next_section': u'Verder naar volgende sectie',
          u'oca.go_to_section_x': u'Ga naar sectie {{ section }}',

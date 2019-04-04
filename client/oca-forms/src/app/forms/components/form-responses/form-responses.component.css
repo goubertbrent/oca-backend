@@ -1,0 +1,30 @@
+.mat-radio-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.radio-button, .checkbox {
+  margin: 5px 0;
+}
+
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+}
+
+agm-map {
+  height: 300px;
+}
+
+.component-value {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-card {
+  margin: 16px 8px;
+}
+
+.p-padding {
+  margin: 0 8px;
+}

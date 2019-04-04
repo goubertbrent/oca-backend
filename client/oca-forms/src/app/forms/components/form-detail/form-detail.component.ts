@@ -10,14 +10,14 @@ import {
 } from '@angular/core';
 import { MatTabChangeEvent } from '@angular/material';
 import { OptionsMenuOption } from '../../../interfaces/consts';
-import { FormStatisticsView, OcaForm, SaveForm } from '../../../interfaces/forms.interfaces';
+import { FormStatisticsView, LoadResponses, OcaForm, SaveForm, SingleFormResponse } from '../../../interfaces/forms.interfaces';
 import { Loadable } from '../../../interfaces/loadable';
 import { UserDetailsTO } from '../../../users/interfaces';
 
 export const enum FormDetailTab {
   QUESTIONS,
   TOMBOLA_WINNERS,
-  // RESPONSES,
+  RESPONSES,
   STATISTICS,
 }
 
@@ -31,11 +31,15 @@ export class FormDetailComponent implements OnChanges {
   @Input() form: OcaForm;
   @Input() statistics: Loadable<FormStatisticsView>;
   @Input() tombolaWinners: UserDetailsTO[];
+  @Input() formResponse: Loadable<SingleFormResponse>;
   @Output() save = new EventEmitter<SaveForm>();
   @Output() tabChanged = new EventEmitter<number>();
   @Output() menuOptionClicked = new EventEmitter<OptionsMenuOption>();
   @Output() createNews = new EventEmitter();
   @Output() testForm = new EventEmitter<UserDetailsTO>();
+  @Output() loadResponses = new EventEmitter<LoadResponses>();
+  @Output() nextResponse = new EventEmitter<number | null>();
+  @Output() removeResponse = new EventEmitter<{formId: number, submissionId: number}>();
   showTombolaWinners = false;
 
   ngOnChanges(changes: SimpleChanges): void {

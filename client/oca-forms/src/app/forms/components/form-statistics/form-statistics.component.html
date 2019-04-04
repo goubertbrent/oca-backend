@@ -42,9 +42,9 @@
               </mat-nav-list>
             </ng-container>
             <ng-container *ngSwitchCase="ComponentStatsType.LOCATIONS">
-              <agm-map [fitBounds]="true">
+              <agm-map [fitBounds]="true" [scrollwheel]="null" gestureHandling="cooperative">
                 <agm-marker *ngFor="let marker of component.values.value"
-                            [agmFitBounds]="marker"
+                            [agmFitBounds]="true"
                             [markerDraggable]="false"
                             [latitude]="marker.lat"
                             [longitude]="marker.lng">

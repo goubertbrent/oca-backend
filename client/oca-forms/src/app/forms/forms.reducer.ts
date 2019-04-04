@@ -1,8 +1,8 @@
 import { FormSettings } from '../interfaces/forms.interfaces';
-import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../interfaces/loadable';
+import { NonNullLoadable, onLoadableError, onLoadableLoad, onLoadableSuccess } from '../interfaces/loadable';
 import { insertItem, removeItem, updateItem } from '../util/redux';
 import { FormsActions, FormsActionTypes } from './forms.actions';
-import { FormsState, initialFormsState } from './forms.state';
+import { FormResponsesState, FormsState, initialFormsState, responsesAdapter } from './forms.state';
 
 export function formsReducer(state: FormsState = initialFormsState, action: FormsActions): FormsState {
   switch (action.type) {
@@ -13,7 +13,13 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
     case FormsActionTypes.GET_FORMS_FAILED:
       return { ...state, forms: onLoadableError(action.error) };
     case FormsActionTypes.GET_FORM:
-      return { ...state, form: onLoadableLoad(initialFormsState.form.data), tombolaWinners: initialFormsState.tombolaWinners };
+      return {
+        ...state, form:
+          onLoadableLoad(initialFormsState.form.data),
+        tombolaWinners: initialFormsState.tombolaWinners,
+        formResponses: initialFormsState.formResponses,
+        selectedFormResponseId: initialFormsState.selectedFormResponseId,
+      };
     case FormsActionTypes.GET_FORM_COMPLETE:
       return { ...state, form: onLoadableSuccess(action.form) };
     case FormsActionTypes.GET_FORM_FAILED:
@@ -53,9 +59,50 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
     case FormsActionTypes.GET_TOMBOLA_WINNERS_FAILED:
       return { ...state, tombolaWinners: onLoadableError(action.error) };
     case FormsActionTypes.DELETE_ALL_RESPONSES_COMPLETE:
-      return { ...state, formStatistics: onLoadableSuccess({ submissions: 0, statistics: {} }) };
+      return {
+        ...state,
+        formStatistics: onLoadableSuccess({ submissions: 0, statistics: {} }),
+        selectedFormResponseId: initialFormsState.selectedFormResponseId,
+        formResponses: initialFormsState.formResponses,
+      };
+    case FormsActionTypes.DELETE_RESPONSE_COMPLETE:
+      return {
+        ...state,
+        selectedFormResponseId: getNextItemInArray(state.formResponses.data.ids as number[], action.payload.submissionId),
+        formResponses: onLoadableSuccess(responsesAdapter.removeOne(action.payload.submissionId, state.formResponses.data)),
+      };
     case FormsActionTypes.DELETE_FORM_COMPLETE:
       return { ...state, forms: { ...state.forms, data: removeItem(state.forms.data as FormSettings[], action.form, 'id') } };
+    case FormsActionTypes.GET_RESPONSE:
+      return {
+        ...state,
+        selectedFormResponseId: action.payload.id,
+      };
+    case FormsActionTypes.GET_RESPONSES:
+      return {
+        ...state,
+        formResponses: onLoadableLoad(state.formResponses.data) as NonNullLoadable<FormResponsesState>,
+      };
+    case FormsActionTypes.GET_RESPONSES_COMPLETE:
+      return {
+        ...state,
+        selectedFormResponseId: action.payload.results.length ? action.payload.results[ 0 ].id : state.selectedFormResponseId,
+        formResponses: onLoadableSuccess(
+          responsesAdapter.upsertMany(action.payload.results, {
+            ...state.formResponses.data,
+            cursor: action.payload.cursor,
+            more: action.payload.more,
+          })),
+      };
   }
   return state;
+}
+
+function getNextItemInArray(array: number[], currentItem: number): number | null {
+  const currentIndex = array.indexOf(currentItem);
+  const index = currentIndex + 1 === array.length ? currentIndex - 1 : currentIndex + 1;
+  if (index in array) {
+    return array[ index ];
+  }
+  return null;
 }

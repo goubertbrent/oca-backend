@@ -58,7 +58,9 @@
           <p matLine>{{ selectedTestUser.email }}</p>
         </mat-list-item>
       </mat-list>
-      <button mat-raised-button (click)="sendTestForm()">{{ 'oca.send_form' | translate }}</button>
+      <button mat-raised-button (click)="sendTestForm()" *ngIf="selectedTestUser">
+        {{ 'oca.send_form' | translate }}
+      </button>
       <oca-user-autocomplete (optionSelected)="onTestUserSelected($event)" [required]="true"></oca-user-autocomplete>
     </mat-step>
     <mat-step [completed]="completedSteps[2]" [optional]="true">

@@ -50,7 +50,7 @@ class OcaFormTO(TO):
 
 
 class FormSubmissionTO(TO):
-    user = unicode_property('user')
+    id = long_property('id')
     sections = typed_property('sections', FormSectionValueTO, True)
     submitted_date = unicode_property('submitted_date')
     version = long_property('version')

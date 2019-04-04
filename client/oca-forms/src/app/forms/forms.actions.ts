@@ -1,6 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
-import { FormSettings, FormStatistics, OcaForm, SaveForm } from '../interfaces/forms.interfaces';
+import {
+  FormResponse,
+  FormResponses,
+  FormSettings,
+  FormStatistics,
+  LoadResponses,
+  OcaForm,
+  SaveForm,
+} from '../interfaces/forms.interfaces';
 import { UserDetailsTO } from '../users/interfaces';
 
 export const enum FormsActionTypes {
@@ -30,12 +38,23 @@ export const enum FormsActionTypes {
   DELETE_ALL_RESPONSES = '[forms] Delete all responses',
   DELETE_ALL_RESPONSES_COMPLETE = '[forms] Delete all responses complete',
   DELETE_ALL_RESPONSES_FAILED = '[forms] Delete all responses failed',
+  DELETE_RESPONSE = '[forms] Delete response',
+  DELETE_RESPONSE_COMPLETE = '[forms] Delete response complete',
+  DELETE_RESPONSE_CANCELED = '[forms] Delete response canceled',
+  DELETE_RESPONSE_FAILED = '[forms] Delete response failed',
   DELETE_FORM = '[forms] Delete form',
   DELETE_FORM_COMPLETE = '[forms] Delete form complete',
   DELETE_FORM_FAILED = '[forms] Delete form failed',
   COPY_FORM = '[forms] Copy form',
   COPY_FORM_COMPLETE = '[forms] Copy form complete',
   COPY_FORM_FAILED = '[forms] Copy form failed',
+  GET_NEXT_RESPONSE = '[forms] Get next response',
+  GET_RESPONSE = '[forms] Get response',
+  GET_RESPONSE_COMPLETE = '[forms] Get response complete',
+  GET_RESPONSE_FAILED = '[forms] Get response failed',
+  GET_RESPONSES = '[forms] Get responses',
+  GET_RESPONSES_COMPLETE = '[forms] Get responses complete',
+  GET_RESPONSES_FAILED = '[forms] Get responses failed',
 }
 
 export class GetFormsAction implements Action {
@@ -247,6 +266,76 @@ export class CopyFormFailedAction implements Action {
   }
 }
 
+export class GetNextResponseAction implements Action {
+  readonly type = FormsActionTypes.GET_NEXT_RESPONSE;
+
+  constructor(public payload: { formId: number, responseId: number | null }) {
+  }
+}
+
+export class GetResponseAction implements Action {
+  readonly type = FormsActionTypes.GET_RESPONSE;
+
+  constructor(public payload: { id: number }) {
+  }
+}
+
+export class GetResponseCompleteAction implements Action {
+  readonly type = FormsActionTypes.GET_RESPONSE_COMPLETE;
+
+  constructor(public payload: FormResponse) {
+  }
+}
+
+export class GetResponsesAction implements Action {
+  readonly type = FormsActionTypes.GET_RESPONSES;
+
+  constructor(public payload: LoadResponses) {
+  }
+}
+
+export class GetResponsesCompleteAction implements Action {
+  readonly type = FormsActionTypes.GET_RESPONSES_COMPLETE;
+
+  constructor(public payload: FormResponses) {
+  }
+}
+
+export class GetResponsesFailedAction implements Action {
+  readonly type = FormsActionTypes.GET_RESPONSES_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
+
+export class DeleteResponseAction implements Action {
+  readonly type = FormsActionTypes.DELETE_RESPONSE;
+
+  constructor(public payload: { formId: number, submissionId: number }) {
+  }
+}
+
+export class DeleteResponseCompleteAction implements Action {
+  readonly type = FormsActionTypes.DELETE_RESPONSE_COMPLETE;
+
+  constructor(public payload: { formId: number, submissionId: number }) {
+  }
+}
+
+export class DeleteResponseCanceledAction implements Action {
+  readonly type = FormsActionTypes.DELETE_RESPONSE_CANCELED;
+
+  constructor(public payload: { formId: number, submissionId: number }) {
+  }
+}
+
+export class DeleteResponseFailedAction implements Action {
+  readonly type = FormsActionTypes.DELETE_RESPONSE_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
+
 export type FormsActions =
   GetFormsAction
   | GetFormsCompleteAction
@@ -279,4 +368,13 @@ export type FormsActions =
   | DeleteAllResponsesFailedAction
   | CopyFormAction
   | CopyFormCompleteAction
-  | CopyFormFailedAction;
+  | CopyFormFailedAction
+  | GetResponseAction
+  | GetResponseCompleteAction
+  | GetResponsesAction
+  | GetResponsesCompleteAction
+  | GetResponsesFailedAction
+  | DeleteResponseAction
+  | DeleteResponseCompleteAction
+  | DeleteResponseCanceledAction
+  | DeleteResponseFailedAction;

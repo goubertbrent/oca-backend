@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { MatDialog, MatSnackBar } from '@angular/material';
+import { MatDialog, MatDialogConfig, MatSnackBar } from '@angular/material';
 import { Router } from '@angular/router';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
@@ -22,6 +22,10 @@ import {
   DeleteFormAction,
   DeleteFormCompleteAction,
   DeleteFormFailedAction,
+  DeleteResponseAction,
+  DeleteResponseCanceledAction,
+  DeleteResponseCompleteAction,
+  DeleteResponseFailedAction,
   FormsActions,
   FormsActionTypes,
   GetFormAction,
@@ -33,6 +37,11 @@ import {
   GetFormStatisticsAction,
   GetFormStatisticsCompleteAction,
   GetFormStatisticsFailedAction,
+  GetNextResponseAction,
+  GetResponseAction,
+  GetResponsesAction,
+  GetResponsesCompleteAction,
+  GetResponsesFailedAction,
   GetTombolaWinnersAction,
   GetTombolaWinnersCompleteAction,
   GetTombolaWinnersFailedAction,
@@ -46,7 +55,7 @@ import {
   TestFormFailedAction,
 } from './forms.actions';
 import { FormsService } from './forms.service';
-import { FormsState, getForm } from './forms.state';
+import { FormsState, getForm, getResponsesData } from './forms.state';
 
 @Injectable({ providedIn: 'root' })
 export class FormsEffects {
@@ -155,6 +164,27 @@ export class FormsEffects {
       catchError(err => of(new DeleteAllResponsesFailedAction(err))))),
   );
 
+  @Effect() deleteResponse$ = this.actions$.pipe(
+    ofType<DeleteResponseAction>(FormsActionTypes.DELETE_RESPONSE),
+    switchMap(action => this.matDialog.open(SimpleDialogComponent, {
+      data: {
+        ok: this.translate.instant('oca.yes'),
+        message: this.translate.instant('oca.confirm_delete_response'),
+        title: this.translate.instant('oca.confirm_deletion'),
+        cancel: this.translate.instant('oca.no'),
+      },
+    } as MatDialogConfig<SimpleDialogData>).afterClosed().pipe(
+      switchMap(result => {
+        if (result.submitted) {
+          return this.formsService.deleteResponse(action.payload.formId, action.payload.submissionId).pipe(
+            map(() => new DeleteResponseCompleteAction(action.payload)),
+            catchError(err => of(new DeleteResponseFailedAction(err))));
+        } else {
+          return of(new DeleteResponseCanceledAction(action.payload));
+        }
+      }),
+    )));
+
   @Effect() copyForm$ = this.actions$.pipe(
     ofType<CopyFormAction>(FormsActionTypes.COPY_FORM),
     withLatestFrom(this.store.pipe(select(getForm))),
@@ -162,6 +192,25 @@ export class FormsEffects {
       map(data => new CopyFormCompleteAction(data)),
       tap(() => this.snackbar.open(this.translate.instant('oca.form_copied'), this.translate.instant('oca.ok'), { duration: 3000 })),
       catchError(err => of(new CopyFormFailedAction(err))))),
+  );
+
+  @Effect() getResponses$ = this.actions$.pipe(
+    ofType<GetResponsesAction>(FormsActionTypes.GET_RESPONSES),
+    switchMap(action => this.formsService.getResponses(action.payload).pipe(
+      map(data => new GetResponsesCompleteAction(data)),
+      catchError(err => of(new GetResponsesFailedAction(err))))),
+  );
+
+  @Effect() getNextResponse$ = this.actions$.pipe(
+    ofType<GetNextResponseAction>(FormsActionTypes.GET_NEXT_RESPONSE),
+    withLatestFrom(this.store.pipe(select(getResponsesData))),
+    switchMap(([ action, data ]) => {
+      if (action.payload.responseId) {
+        return of(new GetResponseAction({ id: action.payload.responseId }));
+      } else {
+        return of(new GetResponsesAction({ formId: action.payload.formId, page_size: 5, cursor: data.cursor as string }));
+      }
+    }),
   );
 
   constructor(private actions$: Actions<FormsActions>,

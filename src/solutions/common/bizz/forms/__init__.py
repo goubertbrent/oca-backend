@@ -54,12 +54,13 @@ from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_in_service_menu
-from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics
+from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics, \
+    remove_submission_from_shard
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile, \
-    CompletedFormStep, CompletedFormStepType
+    CompletedFormStep, CompletedFormStepType, FormStatisticsShard
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
@@ -171,6 +172,24 @@ def list_responses(service_user, form_id, cursor, page_size):
     get_form(form_id, service_user)  # validate user
     return FormSubmission.list(form_id).fetch_page(page_size,
                                                    start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
+
+
+def delete_submission(service_user, form_id, submission_id):
+    # type: (users.User, long, long) -> None
+    submission = FormSubmission.create_key(submission_id).get()
+    with users.set_user(service_user):
+        service_api.delete_form_submission(form_id, submission.user)
+    try_or_defer(_delete_submission, submission_id)
+
+
+@ndb.transactional(xg=True)
+def _delete_submission(submission_id):
+    # type: (long) -> None
+    submission = FormSubmission.create_key(submission_id).get()  # type: FormSubmission
+    shard = FormStatisticsShard.create_key(submission.statistics_shard_id).get()
+    shard = remove_submission_from_shard(shard, submission)
+    shard.put()
+    submission.key.delete()
 
 
 def delete_submissions(service_user, form_id):
@@ -363,13 +382,17 @@ def create_form_submission(service_user, user_details, form):
     oca_form = OcaForm.create_key(form.id, service_user).get()  # type: OcaForm
     # TODO: check if form has 'ended', else return error
 
+    try_or_defer(_save_form_submission, user, form)
+    return FormSubmittedCallbackResultTO()
+
+
+def _save_form_submission(user, form):
+    # type: (users.User, DynamicFormValueTO) -> None
     submission = FormSubmission(form_id=form.id,
                                 user=user.email(),
                                 sections=[s.to_dict() for s in form.sections],
                                 version=form.version)
-    submission.put()
-    try_or_defer(update_form_statistics, submission)
-    return FormSubmittedCallbackResultTO()
+    ndb.put_multi(update_form_statistics(submission))
 
 
 def upload_form_image(service_user, form_id, uploaded_file):

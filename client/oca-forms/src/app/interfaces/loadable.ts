@@ -5,6 +5,13 @@ export interface Loadable<T, U = any> {
   error: U | null;
 }
 
+export interface NonNullLoadable<T, U = any> {
+  loading: boolean;
+  success: boolean;
+  data: T;
+  error: U | null;
+}
+
 export const DEFAULT_LOADABLE: Loadable<null> = {
   loading: false,
   success: false,
@@ -28,7 +35,7 @@ export function onLoadableLoad<T>(data: T): Loadable<T> {
   };
 }
 
-export function onLoadableSuccess<T>(data: T): Loadable<T> {
+export function onLoadableSuccess<T>(data: T): NonNullLoadable<T> {
   return {
     data,
     loading: false,
