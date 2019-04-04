@@ -1636,7 +1636,7 @@ NewsWizard.prototype = {
                 if (imageUrl.indexOf('http') === 0) {
                     newsItem.media = originalNewsItem.media;
                 }
-                newsItem.title = newsItem.title || T('events-title');
+                newsItem.title = newsItem.title || T('title');
                 var totalReach = self.getCityAppTotalReach(newsItem.app_ids);
                 var html = $.tmpl(templates['broadcast/broadcast_news_preview'], {
                     defaultButtons: self.defaultButtons,

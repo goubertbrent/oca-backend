@@ -236,7 +236,7 @@ def get_news_review_message(lang, timezone, header=None, **data):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     message = u'{}\n\n'.format(header or trans('news_review_requested'))
-    message += u'{}: {}\n'.format(trans('events-title'), data['title'])
+    message += u'{}: {}\n'.format(trans('title'), data['title'])
     message += u'{}: {}\n'.format(trans('message'), data['message'])
 
     action_buttons = [
