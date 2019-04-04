@@ -614,6 +614,12 @@ NewsWizard.prototype = {
         if (originalNewsItem && originalNewsItem.media) {
             elemImageEditorContainer.show();
         }
+        if (originalNewsItem) {
+            if (originalNewsItem.published || new Date(originalNewsItem.scheduled_at * 1000) < new Date()) {
+                elemInputScheduleDate.prop('disabled', true);
+                elemInputScheduleTime.prop('disabled', true);
+            }
+        }
 
         function newsTypeChanged() {
             if (!elemInputTitle.val()) {

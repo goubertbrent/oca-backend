@@ -265,12 +265,12 @@ def get_image_url(item, description_html):
     enclosure_tags = item.getElementsByTagName('enclosure')
     if enclosure_tags:
         for tag in enclosure_tags:
-            if tag.getAttribute('type').startswith('image/jpeg'):
+            if tag.getAttribute('type').startswith('image/'):
                 return tag.getAttribute('url')
     media_tags = item.getElementsByTagName('media:content')
     if media_tags:
         for tag in media_tags:
-            if tag.getAttribute('type').startswith('image/jpeg'):
+            if tag.getAttribute('type').startswith('image/'):
                 return tag.getAttribute('url')
     # As last resort try to parse the description
     if '<img' in description_html:

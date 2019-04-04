@@ -1733,15 +1733,10 @@ $(function () {
     $('#customer_form #customer_organization_type').change(function () {
         var type = parseInt($('#customer_form #customer_organization_type').val());
         var vatControls = $('#customer_form #vat').parents('div.controls');
-        if (type == OrganizationType.COMMUNITY_SERVICE) {
-            vatControls.hide();
+        if (type == OrganizationType.MERCHANT || type == OrganizationType.CARE) {
+            $("label", vatControls).text('VAT');
         } else {
-            vatControls.show();
-            if (type == OrganizationType.MERCHANT || type == OrganizationType.CARE) {
-                $("label", vatControls).text('VAT');
-            } else {
-                $("label", vatControls).text('VAT (optional)');
-            }
+            $("label", vatControls).text('VAT (optional)');
         }
     });
 
