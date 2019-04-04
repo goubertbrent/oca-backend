@@ -22,7 +22,7 @@ from solutions.common.bizz.forms import update_form_statistics
 from solutions.common.models.forms import FormSubmission, FormStatisticsShardConfig
 
 
-def rebuild_form_statistics(dry_run=True):
+def rebuild_form_statistics(dry_run=True, batch_timeout=1):
     to_delete = []
     for form_key in Form.query().fetch(keys_only=True):
         form_id = form_key.id()
@@ -31,7 +31,7 @@ def rebuild_form_statistics(dry_run=True):
     if dry_run:
         return len(to_delete), to_delete
     ndb.delete_multi(to_delete)
-    run_job(_get_submissions, [], _put_stats, [], batch_timeout=0)
+    run_job(_get_submissions, [], _put_stats, [], batch_timeout=batch_timeout)
 
 
 def _get_submissions():
