@@ -1,8 +1,8 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
-import { FormSection } from '../../../interfaces/forms.interfaces';
-import { deepCopy } from '../../../util/misc';
+import { FormSection } from '../../interfaces/forms.interfaces';
+import { deepCopy } from '../../../shared/util/misc';
 
 
 @Component({

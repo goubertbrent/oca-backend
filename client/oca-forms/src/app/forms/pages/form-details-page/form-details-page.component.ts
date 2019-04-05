@@ -8,17 +8,17 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { tap } from 'rxjs/internal/operators/tap';
 import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
 import { first, take, takeUntil } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../dialog/simple-dialog.component';
-import { OptionsMenuOption } from '../../../interfaces/consts';
-import { OptionType } from '../../../interfaces/enums';
-import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../../interfaces/forms.interfaces';
-import { Loadable } from '../../../interfaces/loadable';
+import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
+import { OptionsMenuOption } from '../../interfaces/consts';
+import { OptionType } from '../../interfaces/enums';
+import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms.interfaces';
+import { Loadable } from '../../../shared/loadable/loadable';
 import {
   UserAutoCompleteDialogComponent,
   UserDialogData,
-} from '../../../users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
-import { UserDetailsTO } from '../../../users/interfaces';
-import { createAppUser } from '../../../util/rogerthat';
+} from '../../../shared/users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
+import { UserDetailsTO } from '../../../shared/users/interfaces';
+import { createAppUser } from '../../../shared/util/rogerthat';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
 import {
   CopyFormAction,

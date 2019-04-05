@@ -12,10 +12,10 @@ import {
   OptionsMenuOption,
   SHOW_DESCRIPTION_OPTION,
   VALIDATION_OPTION,
-} from '../../../interfaces/consts';
-import { DateFormat, FormComponentType, KeyboardType, OptionType } from '../../../interfaces/enums';
-import { FormComponent, isInputComponent, SingleSelectComponent, UINextAction } from '../../../interfaces/forms.interfaces';
-import { FormValidator, FormValidatorType, ValidatorType } from '../../../interfaces/validators.interfaces';
+} from '../../interfaces/consts';
+import { DateFormat, FormComponentType, KeyboardType, OptionType } from '../../interfaces/enums';
+import { FormComponent, isInputComponent, SingleSelectComponent, UINextAction } from '../../interfaces/forms.interfaces';
+import { FormValidator, FormValidatorType, ValidatorType } from '../../interfaces/validators.interfaces';
 
 @Component({
   selector: 'oca-form-field',

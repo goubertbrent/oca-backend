@@ -8,8 +8,8 @@ import {
   LoadResponses,
   OcaForm,
   SaveForm,
-} from '../interfaces/forms.interfaces';
-import { UserDetailsTO } from '../users/interfaces';
+} from './interfaces/forms.interfaces';
+import { UserDetailsTO } from '../shared/users/interfaces';
 
 export const enum FormsActionTypes {
   GET_FORMS = '[forms] Get forms',

@@ -9,10 +9,10 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { MatTabChangeEvent } from '@angular/material';
-import { OptionsMenuOption } from '../../../interfaces/consts';
-import { FormStatisticsView, LoadResponses, OcaForm, SaveForm, SingleFormResponse } from '../../../interfaces/forms.interfaces';
-import { Loadable } from '../../../interfaces/loadable';
-import { UserDetailsTO } from '../../../users/interfaces';
+import { OptionsMenuOption } from '../../interfaces/consts';
+import { FormStatisticsView, LoadResponses, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms.interfaces';
+import { Loadable } from '../../../shared/loadable/loadable';
+import { UserDetailsTO } from '../../../shared/users/interfaces';
 
 export const enum FormDetailTab {
   QUESTIONS,

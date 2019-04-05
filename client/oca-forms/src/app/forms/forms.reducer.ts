@@ -1,6 +1,6 @@
-import { FormSettings } from '../interfaces/forms.interfaces';
-import { NonNullLoadable, onLoadableError, onLoadableLoad, onLoadableSuccess } from '../interfaces/loadable';
-import { insertItem, removeItem, updateItem } from '../util/redux';
+import { FormSettings } from './interfaces/forms.interfaces';
+import { NonNullLoadable, onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
+import { insertItem, removeItem, updateItem } from '../shared/util/redux';
 import { FormsActions, FormsActionTypes } from './forms.actions';
 import { FormResponsesState, FormsState, initialFormsState, responsesAdapter } from './forms.state';
 

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Inpu
 import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material';
 import { TranslateService } from '@ngx-translate/core';
-import { FormComponentType } from '../../../interfaces/enums';
+import { FormComponentType } from '../../interfaces/enums';
 import {
   FormComponent,
   FormSection,
@@ -12,8 +12,8 @@ import {
   NextActionSection,
   NextActionType,
   UINextAction,
-} from '../../../interfaces/forms.interfaces';
-import { FormValidatorType } from '../../../interfaces/validators.interfaces';
+} from '../../interfaces/forms.interfaces';
+import { FormValidatorType } from '../../interfaces/validators.interfaces';
 import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-dialog.component';
 
 @Component({

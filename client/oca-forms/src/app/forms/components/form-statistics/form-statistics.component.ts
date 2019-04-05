@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { DELETE_ALL_RESPONSES_OPTION, OptionsMenuOption } from '../../../interfaces/consts';
-import { FormComponentType } from '../../../interfaces/enums';
-import { ComponentStatsType, FormStatisticsView } from '../../../interfaces/forms.interfaces';
+import { DELETE_ALL_RESPONSES_OPTION, OptionsMenuOption } from '../../interfaces/consts';
+import { FormComponentType } from '../../interfaces/enums';
+import { ComponentStatsType, FormStatisticsView } from '../../interfaces/forms.interfaces';
 
 @Component({
   selector: 'oca-form-statistics',

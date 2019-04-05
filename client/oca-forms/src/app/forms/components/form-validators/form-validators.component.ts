@@ -1,6 +1,6 @@
 import { Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { FormValidator, FormValidatorType, ValidatorType } from '../../../interfaces/validators.interfaces';
+import { FormValidator, FormValidatorType, ValidatorType } from '../../interfaces/validators.interfaces';
 
 @Component({
   selector: 'oca-form-validators',

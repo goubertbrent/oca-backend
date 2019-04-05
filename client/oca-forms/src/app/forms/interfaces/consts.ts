@@ -1,4 +1,4 @@
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { DateFormat, FileType, FormComponentType, KeyboardType, OptionType } from './enums';
 
 export interface SelectValue {

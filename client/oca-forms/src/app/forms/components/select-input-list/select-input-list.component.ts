@@ -16,7 +16,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
-import { NextAction, NextActionSection, NextActionType, UINextAction, Value } from '../interfaces/forms.interfaces';
+import { NextAction, NextActionSection, NextActionType, UINextAction, Value } from '../../interfaces/forms.interfaces';
 
 @Component({
   selector: 'oca-select-input-list',

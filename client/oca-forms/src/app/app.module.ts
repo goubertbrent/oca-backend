@@ -44,7 +44,6 @@ import { SIMPLEMDE_CONFIG, SimplemdeModule } from 'ng2-simplemde';
 import { Options as SimpleMDEOptions } from 'simplemde';
 import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
-import { SimpleDialogComponent } from './dialog/simple-dialog.component';
 import { ArrangeSectionsDialogComponent } from './forms/components/arange-sections-dialog/arrange-sections-dialog.component';
 import { DateStatisticsListComponent } from './forms/components/date-statistics-list/date-statistics-list.component';
 import { EditFormSectionComponent } from './forms/components/edit-form-section/edit-form-section.component';
@@ -58,18 +57,19 @@ import { FormStatisticsComponent } from './forms/components/form-statistics/form
 import { FormTombolaWinnersComponent } from './forms/components/form-tombola-winners/form-tombola-winners.component';
 import { FormValidatorsComponent } from './forms/components/form-validators/form-validators.component';
 import { ImageCropperComponent } from './forms/components/image-cropper/image-cropper.component';
+import { SelectInputListComponent } from './forms/components/select-input-list/select-input-list.component';
 import { UploadImageDialogComponent } from './forms/components/upload-image-dialog/upload-image-dialog.component';
 import { FormsEffects } from './forms/forms.effects';
 import { formsReducer } from './forms/forms.reducer';
 import { FormDetailsPageComponent } from './forms/pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './forms/pages/form-list-page/form-list-page.component';
-import { LoadableComponent } from './loadable/loadable.component';
 import { metaReducers, reducers } from './reducers';
 import { routes } from './routes';
-import { SelectInputListComponent } from './select-input-list/select-input-list.component';
-import { UserAutoCompleteDialogComponent } from './users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
-import { UserAutocompleteComponent } from './users/components/user-autocomplete/user-autocomplete.component';
-import { MissingTranslationWarnHandler } from './util/missing-translation-handler';
+import { SimpleDialogComponent } from './shared/dialog/simple-dialog.component';
+import { LoadableComponent } from './shared/loadable/loadable.component';
+import { UserAutoCompleteDialogComponent } from './shared/users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
+import { UserAutocompleteComponent } from './shared/users/components/user-autocomplete/user-autocomplete.component';
+import { MissingTranslationWarnHandler } from './shared/util/missing-translation-handler';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {

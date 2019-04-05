@@ -1,5 +1,5 @@
-import { FormComponentType } from '../interfaces/enums';
-import { Value } from '../interfaces/forms.interfaces';
+import { FormComponentType } from './enums';
+import { Value } from './forms.interfaces';
 
 export interface FieldComponentValue {
   id: string;

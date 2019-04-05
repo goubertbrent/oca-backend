@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { Loadable } from '../interfaces/loadable';
+import { Loadable } from './loadable';
 
 @Component({
   selector: 'oca-loadable',

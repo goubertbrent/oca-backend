@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { first, map, switchMap } from 'rxjs/operators';
-import { FormComponentType } from '../interfaces/enums';
+import { FormComponentType } from './interfaces/enums';
 import {
   CompletedFormStepType,
   CreateDynamicForm,
@@ -15,9 +15,9 @@ import {
   SingleSelectComponent,
   UploadedFile,
   UploadedFormFile,
-} from '../interfaces/forms.interfaces';
-import { FormValidatorType } from '../interfaces/validators.interfaces';
-import { UserDetailsTO } from '../users/interfaces';
+} from './interfaces/forms.interfaces';
+import { FormValidatorType } from './interfaces/validators.interfaces';
+import { UserDetailsTO } from '../shared/users/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class FormsService {

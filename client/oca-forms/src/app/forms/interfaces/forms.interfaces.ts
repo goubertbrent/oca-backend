@@ -1,4 +1,4 @@
-import { FormSectionValue, MergedFormResponse } from '../forms/form-values';
+import { FormSectionValue, MergedFormResponse } from './form-values';
 import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
 import { FormValidator } from './validators.interfaces';
 

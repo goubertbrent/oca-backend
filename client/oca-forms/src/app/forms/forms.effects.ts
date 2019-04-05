@@ -7,8 +7,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
-import { OcaForm } from '../interfaces/forms.interfaces';
+import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
+import { OcaForm } from './interfaces/forms.interfaces';
 import {
   CopyFormAction,
   CopyFormCompleteAction,
