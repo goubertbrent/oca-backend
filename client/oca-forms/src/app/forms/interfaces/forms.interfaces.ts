@@ -1,5 +1,5 @@
-import { FormSectionValue, MergedFormResponse } from './form-values';
 import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
+import { FormSectionValue, MergedFormResponse } from './form-values';
 import { FormValidator } from './validators.interfaces';
 
 export interface ParagraphComponent {

@@ -57,9 +57,9 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   private _section: FormSection;
   private _canAddComponents = true;
   private onChange = (val: any) => {
-  };
+  }
   private onTouched = () => {
-  };
+  }
 
   constructor(private _translate: TranslateService,
               private _matDialog: MatDialog,

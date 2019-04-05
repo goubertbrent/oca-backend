@@ -9,9 +9,6 @@ import { tap } from 'rxjs/internal/operators/tap';
 import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
 import { first, take, takeUntil } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
-import { OptionsMenuOption } from '../../interfaces/consts';
-import { OptionType } from '../../interfaces/enums';
-import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms.interfaces';
 import { Loadable } from '../../../shared/loadable/loadable';
 import {
   UserAutoCompleteDialogComponent,
@@ -36,6 +33,9 @@ import {
   TestFormAction,
 } from '../../forms.actions';
 import { FormsState, getForm, getFormResponse, getResponsesData, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
+import { OptionsMenuOption } from '../../interfaces/consts';
+import { OptionType } from '../../interfaces/enums';
+import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms.interfaces';
 
 @Component({
   selector: 'oca-form-details-page',

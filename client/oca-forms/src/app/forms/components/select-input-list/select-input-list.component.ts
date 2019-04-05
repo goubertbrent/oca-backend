@@ -64,9 +64,9 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   private valueFocus$ = new Subject();
   private valueFocusSubscription: Subscription = Subscription.EMPTY;
   private onChange = (_: any) => {
-  };
+  }
   private onTouched = () => {
-  };
+  }
 
   constructor(private _changeDetectorRef: ChangeDetectorRef, private _translate: TranslateService) {
   }

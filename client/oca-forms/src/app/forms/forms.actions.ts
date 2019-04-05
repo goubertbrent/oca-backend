@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
+import { UserDetailsTO } from '../shared/users/interfaces';
 import {
   FormResponse,
   FormResponses,
@@ -9,7 +10,6 @@ import {
   OcaForm,
   SaveForm,
 } from './interfaces/forms.interfaces';
-import { UserDetailsTO } from '../shared/users/interfaces';
 
 export const enum FormsActionTypes {
   GET_FORMS = '[forms] Get forms',

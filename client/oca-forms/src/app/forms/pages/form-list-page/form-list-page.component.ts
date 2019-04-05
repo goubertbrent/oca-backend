@@ -4,10 +4,10 @@ import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
-import { FormSettings } from '../../interfaces/forms.interfaces';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { CreateFormAction, DeleteFormAction, GetFormsAction } from '../../forms.actions';
 import { FormsState, getForms } from '../../forms.state';
+import { FormSettings } from '../../interfaces/forms.interfaces';
 
 @Component({
   selector: 'oca-form-list-page',

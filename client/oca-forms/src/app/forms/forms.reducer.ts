@@ -1,8 +1,8 @@
-import { FormSettings } from './interfaces/forms.interfaces';
 import { NonNullLoadable, onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
 import { insertItem, removeItem, updateItem } from '../shared/util/redux';
 import { FormsActions, FormsActionTypes } from './forms.actions';
 import { FormResponsesState, FormsState, initialFormsState, responsesAdapter } from './forms.state';
+import { FormSettings } from './interfaces/forms.interfaces';
 
 export function formsReducer(state: FormsState = initialFormsState, action: FormsActions): FormsState {
   switch (action.type) {

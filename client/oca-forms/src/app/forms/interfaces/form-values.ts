@@ -91,7 +91,7 @@ export interface DatetimeResponse {
   format: string;
 }
 
-export interface FileResponse extends FileComponentValue{
+export interface FileResponse extends FileComponentValue {
   icon: string;
 }
 

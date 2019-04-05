@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Loadable } from '../../../shared/loadable/loadable';
 import { FormComponentType } from '../../interfaces/enums';
 import { SingleFormResponse } from '../../interfaces/forms.interfaces';
-import { Loadable } from '../../../shared/loadable/loadable';
 
 @Component({
   selector: 'oca-form-responses',

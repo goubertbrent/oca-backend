@@ -5,8 +5,8 @@ import { TranslateService } from '@ngx-translate/core';
 import Cropper from 'cropperjs';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { UploadedFile, UploadedFormFile } from '../../interfaces/forms.interfaces';
 import { FormsService } from '../../forms.service';
+import { UploadedFile, UploadedFormFile } from '../../interfaces/forms.interfaces';
 import { ImageCropperComponent } from '../image-cropper/image-cropper.component';
 
 @Component({

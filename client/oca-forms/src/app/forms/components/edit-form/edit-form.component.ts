@@ -18,6 +18,7 @@ import { NgForm } from '@angular/forms';
 import { MatDialog, MatDialogConfig, MatInput, MatSlideToggleChange } from '@angular/material';
 import { TranslateService } from '@ngx-translate/core';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
+import { UserDetailsTO } from '../../../shared/users/interfaces';
 import {
   COMPLETED_STEP_MAPPING,
   CompletedFormStepType,
@@ -28,7 +29,6 @@ import {
   SubmissionSection,
   UINextAction,
 } from '../../interfaces/forms.interfaces';
-import { UserDetailsTO } from '../../../shared/users/interfaces';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({

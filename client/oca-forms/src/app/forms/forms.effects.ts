@@ -8,7 +8,6 @@ import { of } from 'rxjs';
 import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
-import { OcaForm } from './interfaces/forms.interfaces';
 import {
   CopyFormAction,
   CopyFormCompleteAction,
@@ -56,6 +55,7 @@ import {
 } from './forms.actions';
 import { FormsService } from './forms.service';
 import { FormsState, getForm, getResponsesData } from './forms.state';
+import { OcaForm } from './interfaces/forms.interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class FormsEffects {

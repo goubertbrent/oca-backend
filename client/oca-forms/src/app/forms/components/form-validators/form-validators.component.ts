@@ -34,9 +34,9 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   FormValidatorType = FormValidatorType;
 
   private onChange = (_: any) => {
-  };
+  }
   private onTouched = () => {
-  };
+  }
 
   registerOnChange(fn: any): void {
     this.onChange = fn;

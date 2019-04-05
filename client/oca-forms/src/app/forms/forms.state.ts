@@ -1,6 +1,9 @@
 import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable, NonNullLoadable } from '../shared/loadable/loadable';
+import { UserDetailsTO } from '../shared/users/interfaces';
 import { DateFormat, FormComponentType } from './interfaces/enums';
+import { ComponentResponse, FormComponentValue, MergedFormResponse, ResponseFormComponent, ResponseFormSectionValue } from './interfaces/form-values';
 import {
   ComponentStatistics,
   ComponentStatisticsValues,
@@ -21,9 +24,6 @@ import {
   SingleFormResponse,
   TimesComponentStatistics,
 } from './interfaces/forms.interfaces';
-import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable, NonNullLoadable } from '../shared/loadable/loadable';
-import { UserDetailsTO } from '../shared/users/interfaces';
-import { ComponentResponse, FormComponentValue, MergedFormResponse, ResponseFormComponent, ResponseFormSectionValue } from './interfaces/form-values';
 
 function selectFormResponseId(formResponse: FormResponse) {
   return formResponse.id;
