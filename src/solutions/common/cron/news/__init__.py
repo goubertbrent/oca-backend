@@ -20,11 +20,12 @@ import hashlib
 import imghdr
 import importlib
 import logging
+import urlparse
 
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import webapp, ndb
-
 from markdownify import markdownify
+
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
 from rogerthat.dal.service import get_default_service_identity
@@ -59,6 +60,16 @@ def transl(key, language):
         return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
     except:
         return key
+
+
+def get_full_url(base_url, potential_partial_url):
+    if not potential_partial_url:
+        return potential_partial_url
+    if potential_partial_url.startswith("http://") or potential_partial_url.startswith("https://"):
+        return potential_partial_url
+
+    parsed_base_url = urlparse.urlparse(base_url)
+    return '%s://%s%s' % (parsed_base_url.scheme, parsed_base_url.netloc, potential_partial_url)
 
 
 @returns()
@@ -100,7 +111,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
                                  scheduled_at=0,
                                  app_ids=news_app_ids,
                                  feed_names=feed_names,
-                                 media=_get_media(image_url),
+                                 media=_get_media(get_full_url(permalink, image_url)),
                                  accept_missing=True)
         if item_key:
             scraped_item = item_key.get()
@@ -133,7 +144,7 @@ def update_news_item(news_id, sln_settings, broadcast_type, message, title, perm
                      scheduled_at=0,
                      app_ids=existing_item.app_ids,
                      news_id=news_id,
-                     media=_get_media(image_url),
+                     media=_get_media(get_full_url(permalink, image_url)),
                      accept_missing=True)
 
 
