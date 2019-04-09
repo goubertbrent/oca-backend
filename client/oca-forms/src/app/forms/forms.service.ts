@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { first, map, switchMap } from 'rxjs/operators';
+import { UploadedFile } from '../shared/images';
 import { UserDetailsTO } from '../shared/users/interfaces';
 import { FormComponentType } from './interfaces/enums';
 import {
@@ -14,7 +15,6 @@ import {
   LoadResponses,
   OcaForm,
   SingleSelectComponent,
-  UploadedFile,
   UploadedFormFile,
 } from './interfaces/forms.interfaces';
 import { FormValidatorType } from './interfaces/validators.interfaces';
@@ -83,7 +83,7 @@ export class FormsService {
   }
 
   getImages() {
-    return this.http.get<UploadedFile[]>(`/common/images/forms`);
+    return this.http.get<UploadedFile[]>(`/common/images`);
   }
 
   deleteForm(formId: number) {

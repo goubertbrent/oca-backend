@@ -49,13 +49,14 @@ from rogerthat.to.messaging import MemberTO
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, TYPE_MESSAGE, \
     MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import try_or_defer, read_file_in_chunks, parse_color
+from rogerthat.utils import try_or_defer, parse_color
 from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_in_service_menu
 from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics, \
     remove_submission_from_shard
+from solutions.common.bizz.images import upload_image
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionBrandingSettings
@@ -397,27 +398,9 @@ def _save_form_submission(user, form):
 
 def upload_form_image(service_user, form_id, uploaded_file):
     # type: (users.User, long, FieldStorage) -> UploadedFile
-    content_type = uploaded_file.type or 'image/jpeg'
-    extension = '.jpg' if content_type == 'image/jpeg' else '.png'
-    image_id = UploadedFile.allocate_ids(1)[0]
-    cloudstorage_path = '/%s/services/%s/forms/%d/%d%s' % (OCA_FILES_BUCKET, service_user.email(), form_id, image_id,
-                                                           extension)
-
     form_key = OcaForm.create_key(form_id, service_user)
     form = form_key.get()
     if not form:
         raise FormNotFoundException(form_id)
-    form_image = UploadedFile(key=UploadedFile.create_key(service_user, image_id), reference=form_key,
-                              content_type=content_type,
-                              cloudstorage_path=cloudstorage_path)
-    with cloudstorage.open(form_image.cloudstorage_path, 'w', content_type=content_type) as f:
-        for chunk in read_file_in_chunks(uploaded_file.file):
-            f.write(chunk)
-    form_image.put()
-    return form_image
-
-
-def list_images(service_user, folder):
-    # type: (users.User, str) -> list[cloudstorage.GCSFileStat]
-    prefix = '/%s/services/%s/%s' % (OCA_FILES_BUCKET, service_user.email(), folder)
-    return [f for f in cloudstorage.listbucket(prefix)]
+    prefix = 'forms/%d' % form_id
+    return upload_image(service_user, uploaded_file, prefix, form_key)

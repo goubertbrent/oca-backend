@@ -29,6 +29,7 @@ from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
@@ -71,6 +72,7 @@ from solutions.common.bizz.events import update_events_from_google, get_google_a
 from solutions.common.bizz.facebook import get_facebook_app_info
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
+from solutions.common.bizz.images import upload_image, list_images
 from solutions.common.bizz.inbox import send_statistics_export_email
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
@@ -109,8 +111,9 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
-    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
+    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO
 from solutions.common.to.broadcast import BroadcastOptionsTO
+from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
@@ -2045,15 +2048,40 @@ def api_get_app_names():
     return get_country_apps(u'be')
 
 
+@rest('/common/images/<prefix:[^/]+>', 'post')
+@returns(UploadedImageTO)
+@arguments(prefix=unicode)
+def rest_upload_form_image(prefix):
+    request = GenericRESTRequestHandler.getCurrentRequest()
+    uploaded_file = request.POST.get('file')
+    result = upload_image(users.get_current_user(), uploaded_file, prefix)
+    return UploadedImageTO.from_dict(result.to_dict(extra_properties=['url']))
+
+
+@rest('/common/images', 'get', read_only_access=True, silent_result=True)
+@returns([GcsFileTO])
+@arguments()
+def rest_list_uploaded_images():
+    return [GcsFileTO(url=get_serving_url(i.filename), content_type=i.content_type, size=i.st_size)
+            for i in list_images(users.get_current_user(), '')]
+
+
 @rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
       silent_result=True)
 @returns(dict)
 @arguments(lang=unicode)
 def api_get_translations(lang):
     prefix = 'oca.'
-    mapping = {'follower_name_or_email', 'Cancel', 'details', 'Url', 'Type', 'statistics', 'phone_number', 'Date',
-               'description', 'Email', 'Error', 'Minimum', 'Maximum', 'Yes', 'No', 'Save', 'create', 'Time', 'delete',
-               'Next', 'action', 'Settings', 'Confirm', 'PDF', 'title', 'active', 'inactive', 'password', 'end_time'}
+    mapping = {
+        'follower_name_or_email', 'Cancel', 'details', 'Url', 'Type', 'statistics', 'phone_number', 'Date',
+        'description', 'Email', 'Error', 'Minimum', 'Maximum', 'Yes', 'No', 'Save', 'create', 'Time', 'delete', 'Next',
+        'action', 'Settings', 'Confirm', 'PDF', 'title', 'active', 'inactive', 'password', 'end_time', 'reached',
+        'rogered', 'action', 'followed', 'Load more', 'normal', 'coupon', 'news_type', 'news_type_explanation',
+        'Content', 'news_content_explanation', 'image_optional', 'news_image_explanation', 'Label',
+        'news_label_explanation', 'action_button', 'news_action_button_explanation', 'delayed_broadcast',
+        'news_schedule_explanation', 'target_audience', 'news_target_audience_explanation', 'message', 'Website',
+        'email_address', 'send_email', 'Phone number', 'Call', 'Attachment', 'open_website', 'none'
+    }
     return {
         'oca': {
             key.replace(prefix, '') if key.startswith(prefix) else key.lower(): translation

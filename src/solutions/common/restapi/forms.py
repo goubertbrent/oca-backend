@@ -18,23 +18,14 @@ from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
-    get_statistics, list_responses, delete_submissions, upload_form_image, list_images, delete_form, delete_submission
+    get_statistics, list_responses, delete_submissions, upload_form_image, delete_form, delete_submission
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO, FormSubmissionListTO, \
-    FormSubmissionTO, FormImageTO, GcsFileTO
-
-
-@rest('/common/images/forms', 'get', read_only_access=True, silent_result=True)
-@returns([GcsFileTO])
-@arguments()
-def rest_list_uploaded_images():
-    return [GcsFileTO(url=get_serving_url(i.filename), content_type=i.content_type, size=i.st_size)
-            for i in list_images(users.get_current_user(), 'forms')]
+    FormSubmissionTO, FormImageTO
 
 
 @rest('/common/forms', 'get', read_only_access=True, silent_result=True)

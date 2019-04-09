@@ -81,7 +81,6 @@ def translate_unit_symbol(language, unit):
         return UNIT_SYMBOLS[unit]
 
 COMMON_JS_KEYS = {'STARTING_AT': 'starting_at',
-                  'load_more': 'Load more',
                   'MENU_CATEGORY_DELETE_CONFIRMATION':
                   'menu-category-delete-confirmation',
                   'PRICE_REQUIRED': 'Price required',

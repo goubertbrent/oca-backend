@@ -1,0 +1,35 @@
+<mat-card *ngFor="let item of items; trackBy: trackNews">
+  <mat-card-header>
+    <mat-card-title>{{ item.title }}</mat-card-title>
+    <mat-card-subtitle>{{ item.tags.join(' ') }} - {{ (item.timestamp * 1000) | date : 'medium' }}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-chip-list>
+      <mat-chip [routerLink]="[item.id, 'stats']">
+        {{ item.reach }} {{ 'oca.reached' | translate }}
+      </mat-chip>
+      <mat-chip [routerLink]="[item.id, 'stats']">
+        {{ item.users_that_rogered.length }} {{ 'oca.rogered' | translate }}
+      </mat-chip>
+      <mat-chip [routerLink]="[item.id, 'stats']">
+        {{ item.action_count }} {{ 'oca.action' | translate }}
+      </mat-chip>
+      <mat-chip [routerLink]="[item.id, 'stats']">
+        {{ item.follow_count }} {{ 'oca.followed' | translate }}
+      </mat-chip>
+    </mat-chip-list>
+  </mat-card-content>
+  <mat-card-actions align="end">
+    <a mat-icon-button [routerLink]="[item.id]">
+      <mat-icon>edit</mat-icon>
+    </a>
+    <button mat-icon-button [routerLink]="[item.id]" *ngIf="!item.published" (click)="deleteItem.emit(item)">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </mat-card-actions>
+</mat-card>
+<div class="load-more-container">
+  <button type="button" mat-raised-button (click)="loadMore.emit()" *ngIf="hasMore">
+    {{ 'oca.load more' | translate }}
+  </button>
+</div>

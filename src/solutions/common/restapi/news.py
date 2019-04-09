@@ -15,20 +15,18 @@
 #
 # @@license_version:1.3@@
 
-import logging
 from types import NoneType
 
-from mcfw.consts import MISSING
+from mcfw.consts import MISSING, REST_TYPE_TO
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
-from shop.to import OrderItemTO
 from shop.view import get_current_http_host
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_sponsored_news_count, \
@@ -37,7 +35,7 @@ from solutions.common.bizz.news import get_news, put_news_item, delete_news, get
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
-    NewsStatsTO, NewsReviewTO
+    NewsStatsTO, NewsReviewTO, CreateNewsItemTO
 from solutions.common.utils import is_default_service_identity
 
 
@@ -56,7 +54,7 @@ def rest_get_news(tag=None, cursor=None):
     return get_news(cursor, service_identity, tag)
 
 
-@rest('/common/news/statistics', 'get', read_only_access=True, silent_result=True)
+@rest('/common/news/<news_id:\d+>', 'get', read_only_access=True, silent_result=True)
 @returns(NewsStatsTO)
 @arguments(news_id=(int, long))
 def rest_get_news_statistics(news_id):
@@ -64,40 +62,11 @@ def rest_get_news_statistics(news_id):
     return get_news_statistics(news_id, service_identity)
 
 
-@rest('/common/news', 'post', silent_result=True)
-@returns((NewsBroadcastItemTO, WarningReturnStatusTO))
-@arguments(title=unicode, message=unicode, broadcast_type=unicode, image=unicode, sponsored=bool,
-           action_button=(NoneType, NewsActionButtonTO), order_items=[OrderItemTO],
-           type=(int, long), qr_code_caption=unicode,
-           app_ids=[unicode], scheduled_at=(int, long), news_id=(int, long, NoneType), broadcast_on_facebook=bool,
-           broadcast_on_twitter=bool, facebook_access_token=unicode, target_audience=NewsTargetAudienceTO,
-           role_ids=[(int, long)], tag=unicode, media=BaseMediaTO)
-def rest_put_news_item(title, message, broadcast_type, image=MISSING, sponsored=False, action_button=None, order_items=None,
-                       type=MISSING, qr_code_caption=MISSING, app_ids=MISSING,  # @ReservedAssignment
-                       scheduled_at=MISSING, news_id=None, broadcast_on_facebook=False, broadcast_on_twitter=False,
-                       facebook_access_token=None, target_audience=None, role_ids=None, tag=None, media=MISSING):
-    """
-    Args:
-        title (unicode)
-        message (unicode)
-        broadcast_type (unicode)
-        sponsored (bool)
-        image (unicode)
-        action_button (NewsButtonTO)
-        order_items (list of OrderItemTO)
-        type (int)
-        qr_code_caption (unicode)
-        app_ids (list of unicode)
-        scheduled_at (long)
-        news_id (long): id of the news to update. When not specified a new item is created
-        broadcast_on_facebook (bool)
-        broadcast_on_twitter (bool)
-        facebook_access_token (unicode): user or page access token
-        target_audience (NewsTargetAudienceTO)
-        role_ids (list of long)
-        tag (unicode)
-        media (BaseMediaTO)
-    """
+@rest('/common/news/<news_id:\d+>', 'put', silent_result=True, type=REST_TYPE_TO)
+@returns(NewsBroadcastItemTO)
+@arguments(news_id=(int, long, NoneType), data=CreateNewsItemTO)
+def rest_put_news_item(news_id, data):
+    # type: (int, CreateNewsItemTO) -> NewsBroadcastItemTO
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity
@@ -109,10 +78,12 @@ def rest_put_news_item(title, message, broadcast_type, image=MISSING, sponsored=
     try:
         host = get_current_http_host()
         return put_news_item(
-            service_identity_user, title, message, broadcast_type, sponsored, image, action_button,
-            order_items, type, qr_code_caption, app_ids, scheduled_at, news_id, broadcast_on_facebook,
-            broadcast_on_twitter, facebook_access_token, target_audience=target_audience, role_ids=role_ids,
-            host=host, tag=tag, media=media, accept_missing=True)
+            service_identity_user, data.title, data.message, data.broadcast_type, False, MISSING,
+            MISSING.default(data.action_button, None), [], data.type, data.qr_code_caption, data.app_ids,
+            data.scheduled_at, news_id, data.broadcast_on_facebook, data.broadcast_on_twitter,
+            data.facebook_access_token, target_audience=data.target_audience, role_ids=data.role_ids, host=host,
+            tag=data.tag, media=data.media, accept_missing=True)
+    # TODO http 400 instead of this
     except AllNewsSentToReviewWarning as ex:
         return WarningReturnStatusTO.create(True, warningmsg=ex.message)
     except BusinessException as ex:
@@ -121,18 +92,23 @@ def rest_put_news_item(title, message, broadcast_type, image=MISSING, sponsored=
         return WarningReturnStatusTO.create(False, message)
 
 
-@rest('/common/news/delete', 'post')
-@returns(ReturnStatusTO)
+@rest('/common/news', 'post', silent_result=True, type=REST_TYPE_TO)
+@returns(NewsBroadcastItemTO)
+@arguments(data=CreateNewsItemTO)
+def rest_create_news_item(data):
+    return rest_put_news_item(None, data)
+
+
+@rest('/common/news/<news_id:\d+>', 'delete')
+@returns()
 @arguments(news_id=(int, long))
 def rest_delete_news(news_id):
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     try:
         delete_news(news_id, service_identity)
-        return ReturnStatusTO.create(True, None)
     except ServiceApiException as e:
-        logging.exception(e)
-        return ReturnStatusTO.create(False, None)
+        raise HttpBadRequestException(e.message)
 
 
 @rest('/common/news/promoted_cost', 'post')

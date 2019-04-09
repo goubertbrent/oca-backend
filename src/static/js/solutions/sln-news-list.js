@@ -59,9 +59,9 @@ NewsList.prototype = {
                 data: data,
                 type: 'GET',
                 success: function (result) {
-                    self.items = self.items.concat(result.result);
+                    self.items = self.items.concat(result.results);
                     self.cursor = result.cursor;
-                    self.hasMoreNews = result.result.length > 0;
+                    self.hasMoreNews = result.more;
                     self.renderItems(self.items);
                     self.isLoadingNews = false;
                 },
@@ -137,11 +137,8 @@ NewsList.prototype = {
         }
         confirmDeleteNews(function () {
             sln.call({
-                url: '/common/news/delete',
-                method: 'post',
-                data: {
-                    news_id: newsId
-                },
+                url: '/common/news/delete/' + newsId,
+                method: 'delete',
                 success: success
             });
         });
@@ -198,10 +195,7 @@ NewsList.prototype = {
                 this.renderStatistics(container, newsId, this.newsItems[newsId], property);
             } else {
                 sln.call({
-                    url: '/common/news/statistics',
-                    data: {
-                        news_id: newsId
-                    },
+                    url: '/common/news/' + newsId,
                     type: 'GET',
                     success: function (result) {
                         this.newsItems[newsId] = result;

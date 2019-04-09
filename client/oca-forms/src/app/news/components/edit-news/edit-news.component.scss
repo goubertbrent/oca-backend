@@ -1,0 +1,25 @@
+p {
+  white-space: pre-wrap;
+}
+
+.type-radios {
+  display: flex;
+  flex-direction: column;
+}
+
+.mat-radio-button {
+  margin: 4px 0;
+}
+
+.image-container {
+  margin: 16px 0;
+
+  img {
+    height: 250px;
+  }
+}
+
+.action-button-controls {
+  display: flex;
+  flex-direction: column;
+}

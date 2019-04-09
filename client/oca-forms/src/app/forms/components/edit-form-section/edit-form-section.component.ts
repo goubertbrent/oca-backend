@@ -11,10 +11,10 @@ import {
   NextAction,
   NextActionSection,
   NextActionType,
-  UINextAction,
+  UINextAction, UploadedFormFile,
 } from '../../interfaces/forms.interfaces';
 import { FormValidatorType } from '../../interfaces/validators.interfaces';
-import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-dialog.component';
+import { UploadImageDialogComponent, UploadImageDialogConfig } from '../../../shared/upload-image-dialog/upload-image-dialog.component';
 
 @Component({
   selector: 'oca-edit-form-section',
@@ -130,12 +130,16 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   openHeaderImageDialog() {
-    const config: MatDialogConfig = {
-      data: this.formId,
+    const config: MatDialogConfig<UploadImageDialogConfig> = {
+      data: {
+        type: 'form',
+        data: this.formId,
+        title: this._translate.instant('oca.add_header_image'),
+      },
     };
-    this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: string) => {
+    this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: UploadedFormFile) => {
       if (result) {
-        this.section = { ...this.section, branding: { logo_url: result, avatar_url: null } };
+        this.section = { ...this.section, branding: { logo_url: result.url, avatar_url: null } };
         this._changeDetectorRef.markForCheck();
       }
     });

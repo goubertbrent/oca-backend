@@ -1162,9 +1162,10 @@ NewsWizard.prototype = {
             } else {
                 sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
             }
+            var method = data.news_id ? 'put' : 'post';
             sln.call({
-                url: '/common/news',
-                method: 'post',
+                url: data.news_id ? '/common/news/' + data.news_id : '/common/news',
+                method: method,
                 data: data,
                 success: function (result) {
                     sln.hideProcessing();

@@ -1,0 +1,4 @@
+<oca-news-item-list [items]="newsList$ | async"
+                    [hasMore]="hasMore$ | async"
+                    (loadMore)="onLoadMore()"
+                    (deleteItem)="onDeleteItem($event)"></oca-news-item-list>

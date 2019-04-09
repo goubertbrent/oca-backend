@@ -83,10 +83,8 @@ class AllNewsSentToReviewWarning(BusinessException):
 def get_news(cursor=None, service_identity=None, tag=None):
     if not tag or tag is MISSING:
         tag = u'news'
-    news_list = news.list_news(cursor, 5, service_identity, tag=tag)
-    result = NewsBroadcastItemListTO()
-    result.result = []
-    result.cursor = news_list.cursor
+    news_list = news.list_news(cursor, 20, service_identity, tag=tag)
+    result = NewsBroadcastItemListTO(cursor=news_list.cursor, more=news_list.more, results=[])
 
     for news_item in news_list.result:
         scheduled_item = get_scheduled_broadcast(news_item.id)
@@ -96,7 +94,7 @@ def get_news(cursor=None, service_identity=None, tag=None):
             result_item = NewsBroadcastItemTO.from_news_item_to(news_item, on_facebook, on_twitter)
         else:
             result_item = NewsBroadcastItemTO.from_news_item_to(news_item)
-        result.result.append(result_item)
+        result.results.append(result_item)
 
     return result
 
@@ -844,7 +842,8 @@ def get_sponsored_news_count(service_identity_user, app_ids):
 
 def is_regional_news_enabled(app_model):
     # type: (App) -> bool
-    if app_model.app_id.startswith('osa-'):
+    from rogerthat.consts import DEBUG
+    if app_model.app_id.startswith('osa-') or DEBUG:
         return True
     country_code = app_model.app_id.split('-')[0].lower()
     return app_model.type == App.APP_TYPE_CITY_APP and get_apps_in_country_count(country_code) > 1

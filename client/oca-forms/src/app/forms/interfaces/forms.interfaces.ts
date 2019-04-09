@@ -1,3 +1,4 @@
+import { UploadedFile } from '../../shared/images';
 import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
 import { FormSectionValue, MergedFormResponse } from './form-values';
 import { FormValidator } from './validators.interfaces';
@@ -281,20 +282,10 @@ export function isInputComponent(component: FormComponent): component is InputCo
   return component.type !== FormComponentType.PARAGRAPH;
 }
 
-export interface UploadedFormFile {
-  id: number;
+export interface UploadedFormFile extends UploadedFile {
   form_id: number;
-  content_type: string;
-  size: number;
-  url: string;
 }
 
-
-export interface UploadedFile {
-  content_type: string;
-  size: number;
-  url: string;
-}
 
 export interface LoadResponses {
   formId: number;

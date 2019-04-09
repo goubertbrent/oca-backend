@@ -1,0 +1,7 @@
+<oca-loadable [loadable]="newsStats$ | async">
+  <oca-edit-news [newsItem]="data"
+                 [options]="options$ | async"
+                 [actionButtons]="actionButtons$ | async"
+                 (save)="onSave($event)"
+                 *ngIf="(newsItem$ | async).data as data"></oca-edit-news>
+</oca-loadable>

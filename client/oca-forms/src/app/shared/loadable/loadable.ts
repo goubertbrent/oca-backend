@@ -1,4 +1,4 @@
-export interface Loadable<T, U = any> {
+export interface Loadable<T = any, U = any> {
   loading: boolean;
   success: boolean;
   data: T | null;
@@ -26,7 +26,7 @@ export const DEFAULT_LIST_LOADABLE: Loadable<any[]> = {
   error: null,
 };
 
-export function onLoadableLoad<T>(data: T): Loadable<T> {
+export function onLoadableLoad<T, U>(data: T): Loadable<T> {
   return {
     data,
     loading: true,
