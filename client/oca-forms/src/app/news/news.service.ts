@@ -1,7 +1,7 @@
 import { HttpClient, HttpEvent, HttpParams, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { UploadedFile } from '../shared/images';
 import { Loadable, NonNullLoadable, onLoadableSuccess } from '../shared/loadable/loadable';
 import { ServiceMenuDetail } from '../shared/rogerthat';
@@ -11,8 +11,10 @@ import {
   NewsActionButtonType,
   NewsBroadcastItem,
   NewsBroadcastItemList,
+  NewsItemType,
   NewsOptions,
   NewsStats,
+  SimpleApp,
   UINewsActionButton,
 } from './interfaces';
 
@@ -57,6 +59,10 @@ export class NewsService {
     return this._http.request(new HttpRequest('POST', `/common/images/news`, data, { reportProgress: true }));
   }
 
+  getApps() {
+    return this._http.get<SimpleApp[]>('/common/apps');
+  }
+
   getActionButtons(menu: Loadable<ServiceMenuDetail>): NonNullLoadable<UINewsActionButton[]> {
     if (menu.data) {
       const result: UINewsActionButton[] = [
@@ -93,5 +99,25 @@ export class NewsService {
     } else {
       return { ...menu, data: [] };
     }
+  }
+
+  getNewNewsItem(broadcastTypes: string[], defaultAppId: string): Observable<CreateNews> {
+    return of({
+      action_button: null,
+      type: NewsItemType.NORMAL,
+      target_audience: null,
+      app_ids: [ defaultAppId ],
+      scheduled_at: 0,
+      title: '',
+      message: '',
+      media: null,
+      facebook_access_token: null,
+      tags: [],
+      broadcast_on_twitter: false,
+      broadcast_on_facebook: false,
+      broadcast_type: broadcastTypes[0],
+      role_ids: [],
+      qr_code_caption: null,
+    });
   }
 }

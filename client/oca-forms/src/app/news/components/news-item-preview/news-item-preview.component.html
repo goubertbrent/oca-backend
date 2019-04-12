@@ -1,0 +1,41 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      {{ 'oca.preview' | translate }}
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <article class="news_preview">
+      <div class="news_image_container">
+        <div class="news_image" *ngIf="newsItem.media">
+          <img [src]="newsItem.media.content">
+        </div>
+      </div>
+      <div class="news_qr" *ngIf="newsItem.type == NewsItemType.QR_CODE">
+        <img src="/static/images/solutions/flex/news_sample_qr.png">
+        <p>{{ newsItem.qr_code_caption }}</p>
+      </div>
+      <div class="news_title">
+        <div class="avatar">
+          <img src="/common/settings/my_avatar">
+        </div>
+        <div class="news_title_user_info">
+          <h3 *ngIf="newsItem.type === NewsItemType.NORMAL">{{ newsItem.title }}</h3>
+          <span class="info_line">
+            <span class="user_info">{{ name }}</span>
+            <span class="date">{{ date | date : 'HH:mm' }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="news_content" [innerHTML]="newsItem.message | markdown : {breaks: true, gfm: true}">
+      </div>
+      <div class="news_bottom_row">
+        <span class="news_button ">{{ 'oca.like' | translate }}</span>
+        <span class="news_button ">{{ 'oca.follow' | translate }}</span>
+        <span class="news_button news_button_action" *ngIf="newsItem.action_button">
+          {{ newsItem.action_button.caption }}
+        </span>
+      </div>
+    </article>
+  </mat-card-content>
+</mat-card>

@@ -4,5 +4,6 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
 
 export const routes: Routes = [
   { path: '', component: NewsListPageComponent },
+  { path: '/create', component: EditNewsPageComponent },
   { path: ':id', component: EditNewsPageComponent },
 ];

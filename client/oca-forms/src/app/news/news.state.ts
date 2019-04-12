@@ -1,7 +1,7 @@
 import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { DEFAULT_LOADABLE, Loadable } from '../shared/loadable/loadable';
-import { CreateNews, NewsApp, NewsBroadcastItem, NewsBroadcastItemList, NewsOptions, NewsStats } from './interfaces';
+import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable } from '../shared/loadable/loadable';
+import { CreateNews, NewsApp, NewsBroadcastItem, NewsBroadcastItemList, NewsOptions, NewsStats, SimpleApp } from './interfaces';
 
 function selectNewsItemId(item: NewsBroadcastItem) {
   return item.id;
@@ -22,6 +22,8 @@ export const initialNewsState: NewsState = {
   status: DEFAULT_LOADABLE,
   listStatus: DEFAULT_LOADABLE,
   newsOptions: DEFAULT_LOADABLE,
+  newsApps: DEFAULT_LIST_LOADABLE,
+  newItem: DEFAULT_LOADABLE,
 };
 
 export interface NewsItemsState extends EntityState<NewsBroadcastItem> {
@@ -36,6 +38,8 @@ export interface NewsState {
   status: Loadable<NewsBroadcastItem>;
   listStatus: Loadable<NewsBroadcastItemList>;
   newsOptions: Loadable<NewsOptions>;
+  newsApps: Loadable<SimpleApp[]>;
+  newItem: Loadable<CreateNews>;
 }
 
 const featureSelector = createFeatureSelector<NewsState>('news');
@@ -63,7 +67,6 @@ export const getCreateNewsItem = createSelector(getNewsItem, item => {
       broadcast_on_twitter: newsItem.broadcast_on_twitter,
       broadcast_type: newsItem.broadcast_type,
       facebook_access_token: null,
-      id: newsItem.id,
       media: newsItem.media,
       message: newsItem.message,
       qr_code_caption: newsItem.qr_code_caption,
@@ -77,5 +80,8 @@ export const getCreateNewsItem = createSelector(getNewsItem, item => {
   }
   return result;
 });
+export const getNewNewsItem = createSelector(featureSelector, s => s.newItem);
+export const getNewsStatus = createSelector(featureSelector, s => s.status);
 export const getNewsOptions = createSelector(featureSelector, s => s.newsOptions);
+export const getNewsCityApps = createSelector(featureSelector, s => s.newsApps);
 

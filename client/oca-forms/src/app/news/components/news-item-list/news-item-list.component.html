@@ -1,9 +1,15 @@
 <mat-card *ngFor="let item of items; trackBy: trackNews">
   <mat-card-header>
-    <mat-card-title>{{ item.title }}</mat-card-title>
-    <mat-card-subtitle>{{ item.tags.join(' ') }} - {{ (item.timestamp * 1000) | date : 'medium' }}</mat-card-subtitle>
+    <mat-card-title>{{ item.title || item.qr_code_caption }}</mat-card-title>
+    <mat-card-subtitle *ngIf="item.published">
+      {{ item.broadcast_type }} - {{ (item.timestamp * 1000) | date : 'medium' }}
+    </mat-card-subtitle>
+    <mat-card-subtitle *ngIf="!item.published">
+      {{ item.broadcast_type }}
+      - {{ ('oca.scheduled_for_datetime' | translate).replace('%(datetime)s', (item.scheduled_at * 1000) | date : 'medium') }}
+    </mat-card-subtitle>
   </mat-card-header>
-  <mat-card-content>
+  <mat-card-content *ngIf="item.published">
     <mat-chip-list>
       <mat-chip [routerLink]="[item.id, 'stats']">
         {{ item.reach }} {{ 'oca.reached' | translate }}
@@ -23,7 +29,7 @@
     <a mat-icon-button [routerLink]="[item.id]">
       <mat-icon>edit</mat-icon>
     </a>
-    <button mat-icon-button [routerLink]="[item.id]" *ngIf="!item.published" (click)="deleteItem.emit(item)">
+    <button mat-icon-button *ngIf="!item.published" (click)="deleteItem.emit(item)">
       <mat-icon>delete</mat-icon>
     </button>
   </mat-card-actions>

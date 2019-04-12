@@ -1293,6 +1293,7 @@ NewsWizard.prototype = {
                 var options = {
                     imageSmoothingEnabled: true,
                     imageSmoothingQuality: 'high',
+                    fillColor: '#ffffff'
                 };
                 var data = elemImagePreview.cropper('getData');
                 if (data.height > data.width) {

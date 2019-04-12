@@ -23,3 +23,17 @@ p {
   display: flex;
   flex-direction: column;
 }
+
+.app-selection-list {
+  max-height: 400px;
+  overflow-y: auto;
+  width: 440px;
+}
+
+section {
+  margin: 16px 0;
+}
+
+.full-width {
+  width: 100%;
+}

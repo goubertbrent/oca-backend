@@ -35,6 +35,10 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
       };
     case NewsActionTypes.GET_NEWS_ITEM_FAILED:
       return { ...state, itemStats: onLoadableError(action.payload) };
+    case NewsActionTypes.SET_NEW_NEWS_ITEM:
+      return { ...state, newItem: onLoadableLoad(initialNewsState.newItem.data) };
+    case NewsActionTypes.SET_NEW_NEWS_ITEM_COMPLETE:
+      return { ...state, newItem: onLoadableSuccess(action.payload) };
     case NewsActionTypes.CREATE_NEWS_ITEM:
       return { ...state, status: onLoadableLoad(null) };
     case NewsActionTypes.CREATE_NEWS_ITEM_COMPLETE:
@@ -65,6 +69,12 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
       };
     case NewsActionTypes.DELETE_NEWS_ITEM_FAILED:
       return { ...state, status: onLoadableError(action.payload) };
+    case NewsActionTypes.GET_NEWS_CITY_APPS:
+      return { ...state, newsApps: onLoadableLoad(initialNewsState.newsApps.data) };
+    case NewsActionTypes.GET_NEWS_CITY_APPS_COMPLETE:
+      return { ...state, newsApps: onLoadableSuccess(action.payload) };
+    case NewsActionTypes.GET_NEWS_CITY_APPS_FAILED:
+      return { ...state, newsApps: onLoadableError(action.payload) };
   }
   return state;
 }

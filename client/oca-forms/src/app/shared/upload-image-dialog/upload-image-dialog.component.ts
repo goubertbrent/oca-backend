@@ -80,7 +80,7 @@ export class UploadImageDialogComponent implements OnDestroy {
   save() {
     const options: Cropper.GetCroppedCanvasOptions = {
       maxWidth: 1440,
-      fillColor: 'ffffff',
+      fillColor: '#ffffff',
     };
     this.showProgress = true;
     this.progressMode = 'indeterminate';

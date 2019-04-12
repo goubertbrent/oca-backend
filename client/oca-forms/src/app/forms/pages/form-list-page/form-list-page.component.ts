@@ -15,9 +15,9 @@ import { FormSettings } from '../../interfaces/forms.interfaces';
     <ng-container *ngIf="forms$ | async as forms">
       <oca-forms-list [forms]="forms" (createForm)="createForm()" (deleteForm)="deleteForm($event)"></oca-forms-list>
       <div class="fab-bottom-right">
-        <a mat-fab (click)="createForm()">
+        <button type="button" mat-fab (click)="createForm()">
           <mat-icon>add</mat-icon>
-        </a>
+        </button>
       </div>
     </ng-container>`,
 })

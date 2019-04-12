@@ -1,7 +1,27 @@
-<oca-loadable [loadable]="newsStats$ | async">
-  <oca-edit-news [newsItem]="data"
-                 [options]="options$ | async"
-                 [actionButtons]="actionButtons$ | async"
-                 (save)="onSave($event)"
-                 *ngIf="(newsItem$ | async).data as data"></oca-edit-news>
+<mat-toolbar color="primary">
+  <button mat-icon-button [routerLink]="['..']">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1 class="flex-grow">{{ 'oca.edit_message' | translate }}</h1>
+</mat-toolbar>
+<oca-loadable [loadable]="newsItem$ | async">
+  <div class="edit-news-layout">
+    <oca-edit-news [newsItem]="data"
+                   [status]="status$ | async"
+                   [options]="options$ | async"
+                   [apps]="apps$ | async"
+                   [appStats]="appStats$ | async"
+                   [budget]="budget$ | async"
+                   [published]="isPublished$ | async"
+                   [serviceInfo]="serviceInfo$ | async"
+                   [actionButtons]="actionButtons$ | async"
+                   (save)="onSave($event)"
+                   (changed)="onNewsItemChange($event)"
+                   (chargeBudget)="onChargeBudget()"
+                   *ngIf="(newsItem$ | async).data as data"></oca-edit-news>
+    <oca-news-item-preview *ngIf="temporaryItem"
+                           [newsItem]="temporaryItem"
+                           [name]="(serviceInfo$ | async).data?.name"
+                           [date]="date"></oca-news-item-preview>
+  </div>
 </oca-loadable>

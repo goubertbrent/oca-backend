@@ -27,6 +27,7 @@ import { environment } from '../../environments/environment';
 import { SimpleDialogComponent } from './dialog/simple-dialog.component';
 import { ImageCropperComponent } from './image-cropper/image-cropper.component';
 import { LoadableComponent } from './loadable/loadable.component';
+import { MarkdownPipe } from './pipes/markdown.pipe';
 import { SharedEffects } from './shared.effects';
 import { sharedReducer } from './shared.reducer';
 import { UploadImageDialogComponent } from './upload-image-dialog/upload-image-dialog.component';
@@ -47,6 +48,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     UserAutocompleteComponent,
     UserAutoCompleteDialogComponent,
     UploadImageDialogComponent,
+    MarkdownPipe,
   ],
   imports: [
     GoogleChartsModule.forRoot(),
@@ -126,6 +128,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     LoadableComponent,
     UserAutocompleteComponent,
     UserAutoCompleteDialogComponent,
+    MarkdownPipe,
   ],
 })
 export class SharedModule {

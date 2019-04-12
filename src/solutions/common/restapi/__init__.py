@@ -47,6 +47,7 @@ from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO,
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
+from rogerthat.to.system import ServiceIdentityInfoTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
     get_app_id_from_app_user
@@ -1966,6 +1967,13 @@ def rest_get_menu():
     return service_menu
 
 
+@rest('/common/get_info', 'get', read_only_access=True)
+@returns(ServiceIdentityInfoTO)
+@arguments()
+def rest_get_info():
+    return system.get_info()
+
+
 @rest('/common/settings/facebook/app/id', 'get')
 @returns(str)
 @arguments()
@@ -2044,8 +2052,18 @@ def rest_enable_or_disable_module(name, enabled, force=False):
 @rest('/unauthenticated/osa/apps/flanders', 'get', read_only_access=True, authenticated=False)
 @returns(dict)
 @arguments()
-def api_get_app_names():
+def api_get_flanders_apps():
     return get_country_apps(u'be')
+
+
+@rest('/common/apps', 'get', read_only_access=True, authenticated=False)
+@returns([dict])
+@arguments()
+def api_get_app_names():
+    customer = get_customer(users.get_current_user())
+    if not customer:
+        return []
+    return [{'name': key, 'id': value} for key, value in get_country_apps(customer.country).iteritems()]
 
 
 @rest('/common/images/<prefix:[^/]+>', 'post')
@@ -2080,7 +2098,13 @@ def api_get_translations(lang):
         'Content', 'news_content_explanation', 'image_optional', 'news_image_explanation', 'Label',
         'news_label_explanation', 'action_button', 'news_action_button_explanation', 'delayed_broadcast',
         'news_schedule_explanation', 'target_audience', 'news_target_audience_explanation', 'message', 'Website',
-        'email_address', 'send_email', 'Phone number', 'Call', 'Attachment', 'open_website', 'none'
+        'email_address', 'send_email', 'Phone number', 'Call', 'Attachment', 'open_website', 'none', 'publish_later',
+        'scheduled_for_datetime', 'broadcast-locally', 'broadcast-regionally', 'broadcast-locally-description',
+        'broadcast-regionally-description', 'city_apps', 'broadcast-estimated-reach', 'broadcast-estimated-reach',
+        'broadcast-out-of', 'broadcast-estimated-cost', 'budget', 'broadcast-budget-explanation', 'unlimited', 'views',
+        'charge_budget', 'configure-target-audience', 'age-min', 'age-max', 'gender', 'gender-male-female',
+        'gender-male', 'gender-female', 'like', 'follow', 'previous_news_items', 'please_enter_at_least_x_characters',
+        'next', 'back'
     }
     return {
         'oca': {

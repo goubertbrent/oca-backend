@@ -1,4 +1,4 @@
-import { Component, forwardRef, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { FormValidator, FormValidatorType, ValidatorType } from '../../interfaces/validators.interfaces';
 
@@ -6,6 +6,7 @@ import { FormValidator, FormValidatorType, ValidatorType } from '../../interface
   selector: 'oca-form-validators',
   templateUrl: './form-validators.component.html',
   styleUrls: [ './form-validators.component.scss' ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ {
     provide: NG_VALUE_ACCESSOR,
     useExisting: forwardRef(() => FormValidatorsComponent),

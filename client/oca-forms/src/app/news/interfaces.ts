@@ -158,7 +158,6 @@ export interface NewsBroadcastItemList {
 }
 
 export interface CreateNews {
-  id: number | null;
   title: string;
   message: string;
   broadcast_type: string;
@@ -170,10 +169,10 @@ export interface CreateNews {
   broadcast_on_facebook: boolean;
   broadcast_on_twitter: boolean;
   facebook_access_token: string | null;
-  target_audience: NewsTargetAudience;
+  target_audience: NewsTargetAudience | null;
   role_ids: number[];
   tags: string[];
-  media: BaseMedia;
+  media: BaseMedia | null;
 }
 
 export interface NewsApp {
@@ -200,4 +199,9 @@ export interface NewsOptions {
   };
   regional_news_enabled: boolean;
   roles: number[];
+}
+
+export interface SimpleApp {
+  id: string;
+  name: string;
 }

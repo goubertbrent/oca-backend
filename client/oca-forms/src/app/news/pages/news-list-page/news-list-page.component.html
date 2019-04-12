@@ -1,4 +1,12 @@
-<oca-news-item-list [items]="newsList$ | async"
-                    [hasMore]="hasMore$ | async"
-                    (loadMore)="onLoadMore()"
-                    (deleteItem)="onDeleteItem($event)"></oca-news-item-list>
+<mat-toolbar color="primary">{{ 'oca.previous_news_items' | translate }}</mat-toolbar>
+<oca-loadable [loadable]="listStatus$ | async">
+  <oca-news-item-list [items]="newsList$ | async"
+                      [hasMore]="hasMore$ | async"
+                      (loadMore)="onLoadMore()"
+                      (deleteItem)="onDeleteItem($event)"></oca-news-item-list>
+</oca-loadable>
+<div class="fab-bottom-right">
+  <a mat-fab routerLink="create">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

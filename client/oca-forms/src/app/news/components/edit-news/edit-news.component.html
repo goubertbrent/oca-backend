@@ -1,26 +1,60 @@
-<form>
-  <mat-vertical-stepper #stepper>
-    <mat-step>
+<mat-vertical-stepper #stepper [linear]="!published">
+  <mat-step [stepControl]="form1.form">
+    <form #form1="ngForm">
       <ng-template matStepLabel>{{ 'oca.news_type' | translate }}</ng-template>
       <p>{{ 'oca.news_type_explanation' | translate }}</p>
-      <mat-radio-group class="type-radios" name="type" [(ngModel)]="newsItem.type">
+      <mat-radio-group class="type-radios" name="type" [(ngModel)]="newsItem.type"
+                       (ngModelChange)="propertyChanged('type', $event)">
         <mat-radio-button [value]="NewsItemType.NORMAL">{{ 'oca.normal' | translate }}</mat-radio-button>
         <mat-radio-button [value]="NewsItemType.QR_CODE">{{ 'oca.coupon' | translate }}</mat-radio-button>
       </mat-radio-group>
-    </mat-step>
-    <mat-step #contentStep>
-      <ng-template matStepLabel>{{ 'oca.content' | translate }}</ng-template>
-      <ng-container *ngIf="stepper.selected === contentStep || contentStep.interacted">
-        <p>{{ 'oca.news_content_explanation' | translate }}</p>
-        <mat-form-field>
+      <div class="button-group">
+        <button mat-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
+        <button mat-button matStepperNext>{{ 'oca.next' | translate }}</button>
+      </div>
+    </form>
+  </mat-step>
+  <mat-step #contentStep [stepControl]="form2.form">
+    <ng-template matStepLabel>{{ 'oca.content' | translate }}</ng-template>
+    <form #form2="ngForm">
+      <p>{{ 'oca.news_content_explanation' | translate }}</p>
+      <ng-container [ngSwitch]="newsItem.type">
+        <mat-form-field *ngSwitchCase="NewsItemType.NORMAL" class="full-width">
           <mat-label>{{ 'oca.title' | translate }}</mat-label>
-          <input type="text" name="title" matInput [(ngModel)]="newsItem.title">
+          <input type="text" name="title" matInput
+                 required
+                 [minlength]="5"
+                 [maxlength]="80"
+                 [ngModel]="newsItem.title"
+                 (ngModelChange)="propertyChanged('title', $event)" #title="ngModel">
+          <mat-error align="start" *ngIf="title.errors?.required">
+            {{ 'oca.this_field_is_required' | translate }}
+          </mat-error>
+          <mat-error align="start" *ngIf="title.errors?.minlength">
+            {{ ('oca.please_enter_at_least_x_characters' | translate).replace('%(characters)s', 5) }}
+          </mat-error>
+          <mat-hint align="end">{{ newsItem.title?.length }} / 80</mat-hint>
         </mat-form-field>
-        <p>{{ 'oca.message' | translate }}</p>
-        <simplemde name="description" [(ngModel)]="newsItem.message"></simplemde>
+        <mat-form-field *ngSwitchCase="NewsItemType.QR_CODE" class="full-width">
+          <mat-label>{{ 'oca.title' | translate }}</mat-label>
+          <input type="text" name="qr_code_caption" matInput
+                 required
+                 [minlength]="5"
+                 [maxlength]="80"
+                 [(ngModel)]="newsItem.qr_code_caption"
+                 (ngModelChange)="propertyChanged('qr_code_caption', $event)">
+          <mat-hint align="end">{{ newsItem.qr_code_caption?.length }} / 80</mat-hint>
+        </mat-form-field>
       </ng-container>
-    </mat-step>
-    <mat-step>
+      <ng-container *ngIf="stepper.selected === contentStep || contentStep.interacted">
+        <p>{{ 'oca.message' | translate }}</p>
+        <simplemde name="description" [(ngModel)]="newsItem.message"
+                   (ngModelChange)="propertyChanged('message', $event)"></simplemde>
+      </ng-container>
+    </form>
+  </mat-step>
+  <mat-step [stepControl]="form3.form">
+    <form #form3="ngForm">
       <ng-template matStepLabel>{{ 'oca.image_optional' | translate }}</ng-template>
       <p>{{ 'oca.news_image_explanation' | translate }}</p>
       <button type="button" mat-raised-button (click)="showImageDialog()">
@@ -29,28 +63,34 @@
       <div class="image-container">
         <img [src]="newsItem.media.content" *ngIf="newsItem.media">
       </div>
-    </mat-step>
-    <mat-step>
+    </form>
+  </mat-step>
+  <mat-step [stepControl]="form4.form">
+    <form #form4="ngForm">
       <ng-template matStepLabel>{{ 'oca.label' | translate }}</ng-template>
       <p>{{ 'oca.news_label_explanation' | translate }}</p>
       <oca-loadable [loadable]="options">
         <mat-form-field *ngIf="options.success">
           <mat-label>{{ 'oca.label' | translate }}</mat-label>
-          <mat-select name="broadcast_type" [(ngModel)]="newsItem.broadcast_type">
+          <mat-select name="broadcast_type"
+                      [(ngModel)]="newsItem.broadcast_type"
+                      (ngModelChange)="propertyChanged('broadcast_type', $event)">
             <mat-option *ngFor="let broadcastType of options.data.broadcast_types" [value]="broadcastType">
               {{ broadcastType }}
             </mat-option>
           </mat-select>
         </mat-form-field>
       </oca-loadable>
-    </mat-step>
-    <mat-step *ngIf="newsItem.type === NewsItemType.NORMAL">
+    </form>
+  </mat-step>
+  <mat-step *ngIf="newsItem.type === NewsItemType.NORMAL" [stepControl]="form5.form">
+    <form #form5="ngForm">
       <ng-template matStepLabel>{{ 'oca.action_button' | translate }}</ng-template>
       <p>{{ 'oca.news_action_button_explanation' | translate }}</p>
       <mat-form-field *ngIf="actionButtons.success">
         <mat-label>{{ 'oca.action_button' | translate }}</mat-label>
         <mat-select name="button_id" [(ngModel)]="actionButton" [compareWith]="compareActionButtons"
-                    (selectionChange)="actionButtonSelected($event)">
+                    (selectionChange)="actionButtonSelected()">
           <mat-option [value]="null">{{ 'oca.none' | translate }}</mat-option>
           <mat-option *ngFor="let button of actionButtons.data" [value]="button">
             {{ button.label }}
@@ -60,51 +100,156 @@
       <div class="action-button-controls" *ngIf="actionButton">
         <mat-form-field>
           <mat-label>{{ 'oca.label' | translate }}</mat-label>
-          <input type="text" name="button_caption" matInput [(ngModel)]="actionButton.button.caption" maxlength="16">
+          <input type="text" name="button_caption" matInput
+                 required
+                 [(ngModel)]="actionButton.button.caption" maxlength="16"
+                 (ngModelChange)="changed.emit(newsItem)">
           <mat-hint align="end">{{ actionButton.button.caption.length }} / 16</mat-hint>
         </mat-form-field>
         <ng-container [ngSwitch]="actionButton.type">
           <mat-form-field *ngSwitchCase="NewsActionButtonType.WEBSITE">
             <mat-label>{{ actionButton.label }}</mat-label>
-            <input type="url" name="button_website" matInput [(ngModel)]="actionButton.button.action">
+            <input type="url" name="button_website" matInput
+                   required
+                   [(ngModel)]="actionButton.button.action">
           </mat-form-field>
           <mat-form-field *ngSwitchCase="NewsActionButtonType.PHONE">
             <mat-label>{{ actionButton.label }}</mat-label>
-            <input type="tel" name="button_phone" matInput [(ngModel)]="actionButton.phone"
+            <input type="tel" name="button_phone" matInput
+                   required
+                   [(ngModel)]="actionButton.phone"
                    (ngModelChange)="updateButton()">
           </mat-form-field>
           <mat-form-field *ngSwitchCase="NewsActionButtonType.EMAIL">
             <mat-label>{{ actionButton.label }}</mat-label>
-            <input type="email" name="button_email" matInput [(ngModel)]="actionButton.email"
-                   (ngModelChange)="updateButton()">
+            <input type="email" name="button_email" matInput
+                   required email
+                   [(ngModel)]="actionButton.email"
+                   (ngModelChange)="updateButton()" #actionEmail="ngModel">
+            <mat-error *ngIf="actionEmail.errors">{{ 'oca.enter_valid_email' | translate }}</mat-error>
           </mat-form-field>
           <div *ngSwitchCase="NewsActionButtonType.ATTACHMENT">
             <!-- TODO file upload -->
           </div>
         </ng-container>
       </div>
-    </mat-step>
-    <mat-step>
+    </form>
+  </mat-step>
+  <mat-step [stepControl]="form6.form">
+    <form #form6="ngForm">
       <ng-template matStepLabel>{{ 'oca.delayed_broadcast' | translate }}</ng-template>
       <p>{{ 'oca.news_schedule_explanation' | translate }}</p>
-      <mat-slide-toggle [checked]="newsItem.scheduled_at > 0" (toggleChange)="toggleScheduledAt()">
+      <mat-slide-toggle [ngModelOptions]="{standalone: true}"
+                        [disabled]="published"
+                        [(ngModel)]="hasScheduledAt"
+                        (change)="toggleScheduledAt()">
         {{ 'oca.publish_later' | translate }}
       </mat-slide-toggle>
-      <mat-form-field>
-        <mat-label>{{ 'oca.date' | translate }}</mat-label>
-        <input name="scheduled_date" matInput [matDatepicker]="picker" [(ngModel)]="scheduledDate"
-               [min]="minDate" (ngModelChange)="updateDate()" required>
-        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>{{ 'oca.time' | translate }}</mat-label>
-        <input name="scheduled_time" type="time" matInput required #scheduledTime (change)="updateDate()">
-      </mat-form-field>
-    </mat-step>
-    <mat-step>
+      <div>
+        <mat-form-field>
+          <mat-label>{{ 'oca.date' | translate }}</mat-label>
+          <input name="scheduled_date"
+                 matInput
+                 [matDatepicker]="picker"
+                 [disabled]="!hasScheduledAt || published"
+                 [min]="minDate"
+                 [max]="maxDate"
+                 [(ngModel)]="scheduledDate"
+                 (ngModelChange)="updateDate()"
+                 required>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>{{ 'oca.time' | translate }}</mat-label>
+          <input name="scheduled_time" type="time" matInput required #scheduledTime
+                 [disabled]="!hasScheduledAt || published"
+                 (change)="updateDate()">
+        </mat-form-field>
+      </div>
+    </form>
+  </mat-step>
+  <mat-step [stepControl]="form7.form">
+    <form #form7="ngForm">
       <ng-template matStepLabel>{{ 'oca.target_audience' | translate }}</ng-template>
       <p>{{ 'oca.news_target_audience_explanation' | translate }}</p>
-    </mat-step>
-  </mat-vertical-stepper>
-</form>
+      <section *ngIf="options.data?.regional_news_enabled">
+        <mat-slide-toggle name="local_news_enabled" [(ngModel)]="localNewsEnabled"
+                          (change)="localNewsToggled()"
+                          color="primary">
+          {{ 'oca.broadcast-locally' | translate }}
+        </mat-slide-toggle>
+        <p>{{ 'oca.broadcast-locally-description' | translate }}</p>
+        <mat-slide-toggle name="regional_news_enabled" [(ngModel)]="regionalNewsEnabled"
+                          (change)="regionalNewsToggled()"
+                          color="primary">
+          {{ 'oca.broadcast-regionally' | translate }}
+        </mat-slide-toggle>
+        <p>{{ 'oca.broadcast-regionally-description' | translate }}</p>
+        <ng-container *ngIf="regionalNewsEnabled">
+          <h4>{{ 'oca.city_apps' | translate }}</h4>
+          <mat-selection-list name="app_ids" [(ngModel)]="newsItem.app_ids" (ngModelChange)="calculateTotals()"
+                              class="app-selection-list">
+            <mat-list-option *ngFor="let app of appsWithStats" [value]="app.id"
+                             [disabled]="app.id === serviceInfo.data.default_app">
+              {{ app.name }} - {{ 'oca.broadcast-estimated-reach' | translate }}: {{ app.reach }}
+            </mat-list-option>
+          </mat-selection-list>
+          <p>{{ 'oca.broadcast-estimated-reach' | translate }}: <b>{{ estimatedReach }}</b></p>
+          <p>{{ 'oca.broadcast-estimated-cost' | translate }}: <b>{{ estimatedCost }}</b></p>
+          <p>{{ 'oca.budget' | translate }} : <b [matTooltip]="'oca.broadcast-budget-explanation' | translate">
+            <u>{{ budgetLeft }}</u>
+          </b>
+          </p>
+          <button mat-raised-button type="button" (click)="chargeBudget.emit()">
+            {{ 'oca.charge_budget' | translate }}
+          </button>
+        </ng-container>
+        <section>
+          <mat-slide-toggle name="enable_target_audience" [(ngModel)]="hasTargetAudience"
+                            (change)="targetAudienceToggled()" [disabled]="published">
+            {{ 'oca.configure-target-audience' | translate }}
+          </mat-slide-toggle>
+          <ng-container *ngIf="hasTargetAudience">
+            <mat-form-field>
+              <mat-label>{{ 'oca.age-min' | translate }}</mat-label>
+              <input type="number" name="min_age"
+                     min="0"
+                     matInput
+                     [max]="maxAge.valueAsNumber"
+                     [disabled]="published"
+                     [(ngModel)]="newsItem.target_audience.min_age" #minAge>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.age-max' | translate }}</mat-label>
+              <input type="number" name="max_age"
+                     max="125"
+                     matInput
+                     [min]="minAge.valueAsNumber"
+                     [disabled]="published"
+                     [(ngModel)]="newsItem.target_audience.min_age" #maxAge>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.gender' | translate }}</mat-label>
+              <mat-select name="gender"
+                          [disabled]="published"
+                          [(ngModel)]="newsItem.target_audience.gender">
+                <mat-option *ngFor="let gender of GENDERS" [value]="gender.value">
+                  {{ gender.label | translate }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </ng-container>
+        </section>
+        <!-- TODO facebook/twitter? -->
+        <!-- TODO roles? -->
+      </section>
+    </form>
+  </mat-step>
+</mat-vertical-stepper>
+<div class="fab-bottom-right">
+  <button type="button" mat-fab [disabled]="status.loading" (click)="saveNews()">
+    <mat-icon>save</mat-icon>
+  </button>
+</div>
+

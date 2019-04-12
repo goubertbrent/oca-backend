@@ -20,6 +20,10 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.cannot_save_message_fields_invalid': u'Cannot publish your message, some fields are invalid',
+         u'oca.preview': u'Preview',
+         u'oca.enter_valid_email': u'Please enter a valid email address',
+         u'oca.edit_message': u'Edit message',
          u'(Click to change)': u'(Click to change)',
          u'(No title)': u'(No title)',
          u'(optional)': u'(optional)',
@@ -3949,6 +3953,8 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.preview': u'Voorbeeld',
+         u'oca.edit_message': U'Bericht bewerken',
          u'(Click to change)': u'(Klik om te veranderen)',
          u'(No title)': u'(Geen titel)',
          u'(optional)': u'(optioneel)',
