@@ -223,7 +223,7 @@ def load_customer_points(loyalty_type=None, cursor=None):
     if loyalty_type in SolutionLoyaltySettings.LOYALTY_TYPE_MAPPING:
         qry = SolutionLoyaltySettings.LOYALTY_TYPE_MAPPING[loyalty_type].load(service_user, service_identity)
         qry.with_cursor(cursor)
-        visits = qry.fetch(10)
+        visits = qry.fetch(25)
         cursor_ = qry.cursor()
         if len(visits) != 0:
             qry.with_cursor(cursor_)
@@ -248,8 +248,6 @@ def load_customer_points(loyalty_type=None, cursor=None):
             continue
         saved_points = result_dict[app_user]
         saved_points.user_details = ExtendedUserDetailsTO.fromUserProfile(profile_info, None)
-        app_info = get_app_info_cached(saved_points.user_details.app_id)
-        saved_points.user_details.app_name = app_info.name
         saved_points.visits = sorted(saved_points.visits,
                                      key=lambda x: -x.timestamp)
 

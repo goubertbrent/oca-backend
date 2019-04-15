@@ -195,8 +195,6 @@ $(function() {
                 cursor = data.cursor;
                 hasMore = data.has_more;
                 loading = false;
-
-                validateLoadMore();
             },
             error : sln.showAjaxError
         });
