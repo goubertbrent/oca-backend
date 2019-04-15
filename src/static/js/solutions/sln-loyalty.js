@@ -195,6 +195,7 @@ $(function() {
                 cursor = data.cursor;
                 hasMore = data.has_more;
                 loading = false;
+                validateLoadMore();
             },
             error : sln.showAjaxError
         });
@@ -1302,7 +1303,7 @@ $(function() {
 
     document.getElementById('content-container').addEventListener('scroll', function() {
         validateLoadMore();
-    }, {passive: true});
+    }, {passive: false});
 
     sln.registerMsgCallback(channelUpdates);
 
