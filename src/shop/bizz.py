@@ -32,6 +32,9 @@ import urlparse
 from babel.dates import format_datetime, get_timezone, format_date
 import cloudstorage
 from dateutil.relativedelta import relativedelta
+from google.appengine.api import search, images, users as gusers
+from google.appengine.ext import deferred, db
+from google.appengine.ext import ndb
 import httplib2
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
@@ -39,9 +42,6 @@ import stripe
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
-from google.appengine.api import search, images, users as gusers
-from google.appengine.ext import deferred, db
-from google.appengine.ext import ndb
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -628,7 +628,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             login_url = settings.baseUrl
             for url, path in chunks(settings.customSigninPaths, 2):
                 if path.startswith('/customers/signin'):
-                    login_url = 'https://%s/%s/%s' % (url, path, customer.default_app_id)
+                    login_url = 'https://%s%s/%s' % (url, path, customer.default_app_id)
                     # TODO properly determine which custom signin path to use
                     if 'threefold' in customer.default_app_id:
                         continue
