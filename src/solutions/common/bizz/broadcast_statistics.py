@@ -17,7 +17,6 @@
 
 import datetime
 
-import xlwt
 from babel.dates import format_datetime
 
 from rogerthat.models import BroadcastStatistic, ServiceIdentity
@@ -48,6 +47,7 @@ def get_broadcast_statistics_excel(service_user, service_identity):
     Returns: Excel file
 
     """
+    import xlwt
     sln_settings = get_solution_settings(service_user)
     lang = sln_settings.main_language
 

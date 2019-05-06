@@ -25,7 +25,6 @@ import jinja2
 import webapp2
 from google.appengine.ext import webapp, db
 
-from PyPDF2.pdf import PdfFileReader
 from lxml import html, etree
 from rogerthat.consts import MAX_BRANDING_PDF_SIZE
 from rogerthat.dal import parent_key, put_and_invalidate_cache
@@ -197,6 +196,7 @@ class InvoicePdfHandler(webapp.RequestHandler):
 class UploadStaticContentPDFHandler(webapp.RequestHandler):
 
     def post(self):
+        from PyPDF2.pdf import PdfFileReader
         service_user = users.get_current_user()
         sln_settings = get_solution_settings(service_user)
         try:

@@ -34,11 +34,9 @@ from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 
 from PIL.Image import Image  # @UnresolvedImport
-from PyPDF2.merger import PdfFileMerger
 from add_1_monkey_patches import DEBUG, APPSCALE
 from babel import Locale
 from babel.dates import format_date, format_datetime
-from googleapiclient.discovery import build
 from mcfw.cache import cached
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
@@ -131,7 +129,6 @@ from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
-from xhtml2pdf import pisa
 
 try:
     from cStringIO import StringIO
@@ -293,6 +290,7 @@ class BizzAdminHandler(BizzManagerHandler):
 
     @shopOauthDecorator.oauth_required
     def get(self, *args, **kwargs):
+        from googleapiclient.discovery import build
         credentials = shopOauthDecorator.credentials  # type: Credentials
 
         try:
@@ -434,9 +432,12 @@ class InvoicePdfHandler(BizzManagerHandler):
 class OpenInvoicesHandler(BizzManagerHandler):
 
     def get(self):
+        from xhtml2pdf import pisa
+        from PyPDF2.merger import PdfFileMerger
         current_user = gusers.get_current_user()
         if not is_admin(current_user):
             self.abort(403)
+            return
         invoices = list(Invoice.all().filter(
             "payment_type =", Invoice.PAYMENT_MANUAL_AFTER).filter("paid =", False).order("-date"))
         charges = db.get([i.parent_key() for i in invoices])

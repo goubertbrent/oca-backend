@@ -22,7 +22,6 @@ import logging
 import os
 import time
 from types import NoneType
-
 from PIL.Image import Image
 from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
@@ -30,8 +29,6 @@ from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 import pytz
 from rogerthat.to import TO
-from xhtml2pdf import pisa
-
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
@@ -822,6 +819,7 @@ def get_first_fmr_step_result_value(steps, step_id):
 @returns(unicode)
 @arguments(src=unicode, path=unicode, default_css=unicode)
 def create_pdf(src, path, default_css=None):
+    from xhtml2pdf import pisa
     """
 
     Args:

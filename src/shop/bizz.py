@@ -40,8 +40,6 @@ from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
 import stripe
 
-from apiclient.discovery import build
-from apiclient.errors import HttpError
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -1550,6 +1548,8 @@ def set_prospect_status(current_user, prospect_id, status, reason=None, action_t
         Returns:
             calendar_error(unicode): The error that occurred, if any.
         """
+        from apiclient.discovery import build
+        from apiclient.errors import HttpError
         calendar_error = None
         # If we don't have access to the calendar of the manager or something else goes wrong,
         # the ShopTask will still be created but the invitation will have to be send manually.

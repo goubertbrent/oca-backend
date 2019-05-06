@@ -18,7 +18,6 @@
 import logging
 
 from google.appengine.api import urlfetch
-from twitter import *
 
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import put_and_invalidate_cache
@@ -27,8 +26,8 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import oauth
 from rogerthat.utils.channel import send_message
-from solutions.common.dal import get_solution_settings
 from solution_server_settings import get_solution_server_settings
+from solutions.common.dal import get_solution_settings
 
 
 try:
@@ -51,6 +50,7 @@ def update_twitter_status(service_user, message, media_contents):
         message (str)
         media_contents (list of str): every file/media content
     """
+    from twitter import OAuth, Twitter
     sln_settings = get_solution_settings(service_user)
     if not sln_settings.twitter_oauth_token:
         return False

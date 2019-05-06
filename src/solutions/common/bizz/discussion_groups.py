@@ -22,7 +22,6 @@ from datetime import datetime
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db
 from types import NoneType
-from xhtml2pdf import pisa
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
@@ -63,6 +62,7 @@ def get_discussion_group(service_user, discussion_group_id):
 @returns(str)
 @arguments(service_user=users.User, discussion_group_id=(int, long))
 def get_discussion_group_pdf(service_user, discussion_group_id):
+    from xhtml2pdf import pisa
     discussion_group = get_discussion_group(service_user, discussion_group_id)
     if not discussion_group:
         raise HttpNotFoundException()

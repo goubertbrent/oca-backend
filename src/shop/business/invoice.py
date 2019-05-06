@@ -36,8 +36,6 @@ from shop.dal import get_mobicage_legal_entity
 from shop.models import Invoice, Customer, OrderItem, Product, LegalEntity, Order, Charge, OrderNumber, ChargeNumber, \
     RegioManagerTeam, InvoiceNumber
 from solution_server_settings import get_solution_server_settings
-from xhtml2pdf import pisa
-
 
 try:
     from cStringIO import StringIO
@@ -58,11 +56,12 @@ def qry():
 def create_reseller_invoice_for_legal_entity(legal_entity, start_date, end_date, do_send_email=True):
     """
     Args:
-        legal_entity (LegalEntity) 
+        legal_entity (LegalEntity)
         start_date (long)
         end_date (long)
         do_send_email (bool)
     """
+    from xhtml2pdf import pisa
     if legal_entity.is_mobicage:
         # To avoid a composite index we don't filter on is_mobicage
         return

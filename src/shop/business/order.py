@@ -15,16 +15,16 @@
 #
 # @@license_version:1.3@@
 
+from StringIO import StringIO
 import datetime
 import logging
-from StringIO import StringIO
 
-from google.appengine.ext import db
-
+from PIL.Image import Image
 import cloudstorage
 import dateutil
-from PIL.Image import Image
 from dateutil.relativedelta import relativedelta
+from google.appengine.ext import db
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.consts import DAY
@@ -48,7 +48,6 @@ from shop.models import Customer, Order, Quotation, Contact, Product, OrderItem,
     Charge
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.jobs import delete_solution
-from xhtml2pdf import pisa
 
 
 @returns(int)
@@ -295,6 +294,7 @@ def _generate_order_or_invoice_pdf(charge, customer, invoice, order, order_items
     # type: (Charge, Customer, Invoice, Order, list[OrderItem], StringIO,
     # unicode, unicode, int, dict[str, Product], bool, LegalEntity, Contact)
     # -> None
+    from xhtml2pdf import pisa
     for item in order_items:
         item.product_description = products[item.product_code].description(customer.language).replace('\n', '<br />')
         item.product_comment = item.comment or products[item.product_code].default_comment(customer.language) \

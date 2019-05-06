@@ -30,7 +30,6 @@ import jinja2
 from google.appengine.ext import deferred, db
 
 import solutions
-import xlwt
 from babel.dates import format_datetime
 from mcfw.properties import long_property
 from mcfw.rpc import returns, arguments
@@ -396,6 +395,7 @@ def export_inbox_messages(service_user, service_identity):
 
 
 def create_message_statistics_excel(messages_months_dict, language):
+    import xlwt
     # amount of messages per month
     # month | incoming messages | replies | total messages
 

@@ -22,7 +22,6 @@ import string
 import uuid
 
 from babel.dates import format_datetime
-import xlwt
 
 from google.appengine.api import search
 from google.appengine.ext import db
@@ -228,6 +227,7 @@ def format_address(address):
 @returns(unicode)
 @arguments(prospect_ids=[unicode], do_send_email=bool, recipients=[unicode])
 def generate_prospect_export_excel(prospect_ids, do_send_email=True, recipients=None):
+    import xlwt
     if not prospect_ids:
         raise BusinessException('No prospects to export')
     azzert(not do_send_email or recipients)

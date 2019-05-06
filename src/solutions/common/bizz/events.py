@@ -29,7 +29,6 @@ import dateutil.parser
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import images, urlfetch
 from google.appengine.ext import db, deferred
-from googleapiclient.errors import HttpError
 import httplib2
 from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
 from lxml import etree, html
@@ -37,7 +36,6 @@ from oauth2client import client
 from oauth2client.client import HttpAccessTokenRefreshError
 import pytz
 
-from apiclient.discovery import build
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -118,6 +116,7 @@ def get_google_authenticate_url(calendar_id):
 @returns(SolutionGoogleCalendarStatusTO)
 @arguments(service_user=users.User, calendar_id=(int, long))
 def get_google_calendars(service_user, calendar_id):
+    from apiclient.discovery import build
     sln_settings = get_solution_settings(service_user)
     def trans():
         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
@@ -156,6 +155,7 @@ def get_google_calendars(service_user, calendar_id):
     return result
 
 def save_google_credentials(service_user, calendar_id, code):
+    from apiclient.discovery import build
     flow = _get_client_flow()
     credentials = flow.step2_exchange(code=code)
     http_auth = credentials.authorize(httplib2.Http())
@@ -190,6 +190,8 @@ def _save_google_credentials(service_user, calendar_id, user_info, credentials):
     db.run_in_transaction_options(xg_on, trans)
 
 def update_events_from_google(service_user, calendar_id):
+    from googleapiclient.errors import HttpError
+    from apiclient.discovery import build
     sln_settings = get_solution_settings(service_user)
     def trans():
         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))

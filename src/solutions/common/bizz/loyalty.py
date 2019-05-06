@@ -35,7 +35,6 @@ from babel.dates import format_date, format_datetime, get_timezone
 from google.appengine.ext import deferred, db
 from lxml import etree, html
 import pytz
-from xhtml2pdf import pisa
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -1735,6 +1734,8 @@ def send_email_to_user_for_loyalty_update(service_user, service_identity, app_us
 
 def create_loyalty_statistics_for_service(service_user, service_identity, first_day_of_last_month, first_day_of_current_month):
     from solutions.common.handlers import JINJA_ENVIRONMENT
+    from xhtml2pdf import pisa
+
     second_day_of_last_month = first_day_of_last_month + 86400
     customer = Customer.get_by_service_email(service_user.email())
     if not customer:

@@ -25,7 +25,6 @@ from google.appengine.ext import db
 from mapreduce import mapreduce_pipeline
 from mapreduce.main import pipeline
 from pipeline.common import List
-import xlwt
 
 from rogerthat.bizz.job.send_unread_messages import CleanupGoogleCloudStorageFiles
 from rogerthat.consts import MIGRATION_QUEUE, DEBUG, PIPELINE_BUCKET
@@ -154,6 +153,8 @@ class CustomerPipeline(pipeline.Pipeline):
         yield List(*results)
 
     def finalized(self):
+        import xlwt
+
         email = self.outputs.default.value.pop()
 
         def stretch(lijsten):

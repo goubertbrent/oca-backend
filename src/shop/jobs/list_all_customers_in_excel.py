@@ -25,8 +25,6 @@ from rogerthat.settings import get_server_settings
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import send_mail
 from shop.models import Customer
-import xlwt
-
 
 try:
     from cStringIO import StringIO
@@ -35,6 +33,7 @@ except ImportError:
 
 
 def job():
+    import xlwt
     settings = get_server_settings()
     customers = list(Customer.all().fetch(10))
     customers_per_app = defaultdict(list)

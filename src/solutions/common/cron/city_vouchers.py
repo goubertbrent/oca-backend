@@ -43,7 +43,6 @@ from solutions.common.dal import get_solution_settings, get_solution_main_brandi
 from solutions.common.models import SolutionSettings
 from solutions.common.models.city_vouchers import SolutionCityVoucherTransaction, \
     SolutionCityVoucher, SolutionCityVoucherExport, SolutionCityVoucherExportMerchant
-import xlwt
 
 
 try:
@@ -85,6 +84,7 @@ def write_header(sheet, row, translate_fn, *header):
 
 
 def create_voucher_statistics_for_city_service(service_user, language, first_day_of_last_month, first_day_of_current_month):
+    import xlwt
     customer = Customer.get_by_service_email(service_user.email())
     translate = partial(common_translate, language, SOLUTION_COMMON)
     if not customer:
@@ -283,6 +283,7 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
 
 
 def create_voucher_statistics_for_service(sln_settings, app_id, language, transaction_keys, year, month):
+    import xlwt
     transactions = SolutionCityVoucherTransaction.get(transaction_keys)
     book = xlwt.Workbook(encoding="utf-8")
     translate = partial(common_translate, language, SOLUTION_COMMON)

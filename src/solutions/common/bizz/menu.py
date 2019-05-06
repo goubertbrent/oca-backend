@@ -48,9 +48,6 @@ from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.models import RestaurantMenu, SolutionSettings, SolutionMainBranding
 from solutions.common.models.properties import MenuCategories, MenuCategory, MenuItem
 from solutions.common.to import MenuTO
-import xlrd
-import xlwt
-
 
 try:
     from cStringIO import StringIO
@@ -128,6 +125,7 @@ def save_menu(service_user, menu):
 @returns(NoneType)
 @arguments(service_user=users.User, file_contents=str)
 def import_menu_from_excel(service_user, file_contents):
+    import xlrd
     sln_settings = get_solution_settings(service_user)
 
     def translate(t, *args, **kwargs):
@@ -280,6 +278,7 @@ def export_menu_to_excel(service_user, sln_settings=None):
     Returns:
         Excel file content
     """
+    import xlwt
     if not sln_settings:
         sln_settings = get_solution_settings(service_user)
     language = sln_settings.main_language

@@ -36,8 +36,6 @@ from rogerthat.utils import send_mail
 from shop.business.permissions import is_admin
 from shop.exceptions import NoPermissionException, AppNotFoundException
 from solution_server_settings import get_solution_server_settings
-import xlwt
-
 
 try:
     from cStringIO import StringIO
@@ -62,6 +60,7 @@ def generate_unassigned_qr_codes_zip_for_app(app_id, amount, mode):
 
 
 def _generate_unassigned_qr_codes_excel_for_app(app_id, amount, user_email):
+    import xlwt
     logging.info('Generating %d qr code urls and saving to excel sheet' % amount)
     qr_codes = generate_unassigned_short_urls(app_id, amount)
 
