@@ -15,23 +15,24 @@
 #
 # @@license_version:1.3@@
 
-from collections import defaultdict
-import datetime
-from hashlib import sha1
-from hmac import new as hmac
 import json
 import logging
 import pprint
-from random import getrandbits
 import time
-from urllib import quote as urlquote
 import urllib
+from collections import defaultdict
+from datetime import datetime, timedelta
+from hashlib import sha1
+from hmac import new as hmac
+from random import getrandbits
+from urllib import quote as urlquote
 
+import webapp2
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
-import pytz
-import webapp2
 
+import pytz
+from dateutil.relativedelta import relativedelta
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DEBUG
 from rogerthat.dal import put_and_invalidate_cache, parent_key
@@ -110,29 +111,30 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
                 cap.put()
                 return cap
             cap = db.run_in_transaction(trans_set_last_query)
-    except Exception, e:
+    except Exception as e:
         logging.exception(str(e), _suppress=False)
 
 
 def get_dates_v1(r_timestamp):
     r_timestart = r_timestamp["timestart"]
-    start_date = datetime.datetime.strptime("%s %s" % (r_timestamp["date"], r_timestart), "%Y-%m-%d %H:%M:%S")
+    start_date = datetime.strptime("%s %s" % (r_timestamp["date"], r_timestart), "%Y-%m-%d %H:%M:%S")
     start_date = get_epoch_from_datetime(start_date)
     if r_timestamp.get("timeend", None):
         end_date = time.strptime(r_timestamp["timeend"], '%H:%M:%S')
-        end_date = long(datetime.timedelta(hours=end_date.tm_hour, minutes=end_date.tm_min,
-                                           seconds=end_date.tm_sec).total_seconds())
+        end_date = long(timedelta(hours=end_date.tm_hour, minutes=end_date.tm_min,
+                                  seconds=end_date.tm_sec).total_seconds())
     else:
         end_date = 0
     return start_date, end_date
 
 
 def get_dates_v2(r_timestamp):
+    # type: (int) -> tuple[int, int]
     r_timestart = r_timestamp["timestart"]
     timestamp = long((r_timestamp["date"] + r_timestart) / 1000)
     tz = pytz.timezone('Europe/Brussels')
-    dt_with_tz = datetime.datetime.fromtimestamp(timestamp, tz)
-    dt_without_tz = datetime.datetime(dt_with_tz.year, dt_with_tz.month, dt_with_tz.day, dt_with_tz.hour,
+    dt_with_tz = datetime.fromtimestamp(timestamp, tz)
+    dt_without_tz = datetime(dt_with_tz.year, dt_with_tz.month, dt_with_tz.day, dt_with_tz.hour,
                                       dt_with_tz.minute, dt_with_tz.second)
     time_epoch = get_epoch_from_datetime(dt_without_tz)
     time_diff = _get_time_diff_uitdatabank(dt_with_tz, dt_without_tz)
@@ -145,8 +147,9 @@ def get_dates_v2(r_timestamp):
 
 
 def get_event_start_and_end_dates(timestamps, v2=False):
-    event_start_dates = list()
-    event_end_dates = list()
+    # type: (list[int], bool) -> tuple[list[int], list[int]]
+    event_start_dates = []
+    event_end_dates = []
 
     def get_dates(r_timestamp):
         if v2:
@@ -172,6 +175,86 @@ def get_event_start_and_end_dates(timestamps, v2=False):
                 get_dates(r_ts)
 
     return event_start_dates, event_end_dates
+
+
+def _get_period_dates(period):
+    # type: (dict) -> tuple[list[int], list[int]]
+    """
+    Examples:
+      {
+        "dateto": "2019-04-01",
+        "weekscheme": {
+          "monday": {
+            "openingtime": {
+              "to": "10:30:00",
+              "from": "09:30:00"
+            },
+            "opentype": "open"
+          },
+          "tuesday": {
+            "opentype": "closed"
+          },
+          "friday": {
+            "opentype": "closed"
+          },
+          "wednesday": {
+            "opentype": "closed"
+          },
+          "thursday": {
+            "opentype": "closed"
+          },
+          "sunday": {
+            "opentype": "closed"
+          },
+          "saturday": {
+            "opentype": "closed"
+          }
+        },
+        "datefrom": "2019-01-14"
+      }
+    """
+    if not period:
+        return [], []
+    week_scheme = period['weekscheme']
+    if not week_scheme:
+        return [], []
+    date_format = '%Y-%m-%d'
+    hour_format = '%H:%M:%S'
+    if isinstance(period['datefrom'], (int, long)):
+        start_date = datetime.utcfromtimestamp(period['datefrom'] / 1000)
+        end_date = datetime.utcfromtimestamp(period['dateto'] / 1000)
+    else:
+        start_date = datetime.strptime(period['datefrom'], date_format)
+        end_date = datetime.strptime(period['dateto'], date_format)
+    days = (end_date - start_date).days + 1  # +1 to include the end date itself
+    day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+    start_dates = []
+    end_dates = []
+
+    for day in xrange(days):
+        date = start_date + relativedelta(days=day)
+        day_name = day_names[date.weekday()]
+        scheme = week_scheme[day_name]
+        is_open = scheme.get('opentype', 'closed') == 'open'
+        if is_open:
+            opening_time = scheme.get('openingtime')
+            if isinstance(opening_time, list):
+                for open_time in opening_time:
+                    from_ = datetime.utcfromtimestamp(open_time['from'] / 1000)
+                    to = datetime.utcfromtimestamp(open_time['to'] / 1000)
+                    day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
+                    day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
+                    start_dates.append(int(time.mktime(day_start_date.timetuple())))
+                    end_dates.append(int(time.mktime(day_end_date.timetuple())))
+            else:
+                from_ = datetime.strptime(opening_time['from'], hour_format)
+                to = datetime.strptime(opening_time['to'], hour_format)
+                day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
+                day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
+                start_dates.append(int(time.mktime(day_start_date.timetuple())))
+                end_dates.append(int(time.mktime(day_end_date.timetuple())))
+    return start_dates, end_dates
 
 
 def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, external_id, uitdatabank_actors,
@@ -293,12 +376,11 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     event_organizer = r_organizer
 
     r_timestamps = detail_result["calendar"].get("timestamps")
-    if not r_timestamps:
-        logging.debug("skipping event because we could not determine starttime for: \n%s",
-                      pprint.pformat(detail_result))
-        return None
-
-    event_start_dates, event_end_dates = get_event_start_and_end_dates(r_timestamps, v2=uitdatabank_secret)
+    if r_timestamps:
+        event_start_dates, event_end_dates = get_event_start_and_end_dates(r_timestamps, v2=uitdatabank_secret)
+    else:
+        periods = detail_result['calendar'].get('periods')
+        event_start_dates, event_end_dates = _get_period_dates(periods and periods.get('period'))
     if not event_start_dates:
         logging.info("Skipping event because it had no starttime (list) for:\n%s", pprint.pformat(detail_result))
         return None
