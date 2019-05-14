@@ -14,7 +14,8 @@ if (environment.production) {
 const bootstrap = () => platformBrowserDynamic().bootstrapModule(AppModule);
 
 if (environment.hmr) {
-  // tslint:disable-next-line:no-string-literal
+  // @ts-ignore
+  // tslint:disable-next-line
   if (module[ 'hot' ]) {
     hmrBootstrap(module, bootstrap);
   } else {

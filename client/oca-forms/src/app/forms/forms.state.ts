@@ -1,11 +1,24 @@
+import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { DateFormat, FormComponentType } from '../interfaces/enums';
+import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable, NonNullLoadable } from '../shared/loadable/loadable';
+import { UserDetailsTO } from '../shared/users/users';
+import { DateFormat, FormComponentType } from './interfaces/enums';
+import {
+  ComponentResponse,
+  FormComponentValue,
+  MergedFormResponse,
+  ResponseFormComponent,
+  ResponseFormSectionValue,
+} from './interfaces/form-values';
 import {
   ComponentStatistics,
+  ComponentStatisticsValues,
   ComponentStatsType,
   DatesComponentStatistics,
   DatetimeComponent,
+  DynamicForm,
   FormComponent,
+  FormResponse,
   FormSettings,
   FormStatistics,
   FormStatisticsValue,
@@ -14,10 +27,16 @@ import {
   isFormStatisticsNumber,
   OcaForm,
   SectionStatistics,
+  SingleFormResponse,
   TimesComponentStatistics,
-} from '../interfaces/forms.interfaces';
-import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable } from '../interfaces/loadable';
-import { UserDetailsTO } from '../users/interfaces';
+} from './interfaces/forms';
+
+function selectFormResponseId(formResponse: FormResponse) {
+  return formResponse.id;
+}
+
+export const responsesAdapter = createEntityAdapter<FormResponse>({ selectId: selectFormResponseId });
+export const responsesSelectors = responsesAdapter.getSelectors();
 
 export const initialFormsState: FormsState = {
   forms: DEFAULT_LIST_LOADABLE,
@@ -26,7 +45,14 @@ export const initialFormsState: FormsState = {
   updatedForm: DEFAULT_LOADABLE,
   createdForm: DEFAULT_LOADABLE,
   tombolaWinners: DEFAULT_LIST_LOADABLE,
+  formResponses: { ...DEFAULT_LOADABLE, data: responsesAdapter.getInitialState({ cursor: null, more: true }) },
+  selectedFormResponseId: null,
 };
+
+export interface FormResponsesState extends EntityState<FormResponse> {
+  cursor: string | null;
+  more: boolean;
+}
 
 export interface FormsState {
   forms: Loadable<FormSettings[]>;
@@ -35,19 +61,49 @@ export interface FormsState {
   updatedForm: Loadable<OcaForm>;
   createdForm: Loadable<OcaForm>;
   tombolaWinners: Loadable<UserDetailsTO[]>;
+  formResponses: NonNullLoadable<FormResponsesState>;
+  selectedFormResponseId: number | null;
 }
 
 
 const featureSelector = createFeatureSelector<FormsState>('forms');
 
+export const getResponsesData = createSelector(featureSelector, s => s.formResponses.data);
+export const selectAllResponses = createSelector(getResponsesData, responsesSelectors.selectEntities);
+export const selectAllResponseIds = createSelector(featureSelector, s => responsesSelectors.selectIds(s.formResponses.data));
+
 export const getForms = createSelector(featureSelector, s => ({
   ...s.forms,
-  data: s.forms.data.map(f => ({ ...f, visible_until: f.visible_until ? new Date(f.visible_until) : null }
-  )),
+  data: (s.forms.data || []).map(f => ({ ...f, visible_until: f.visible_until ? new Date(f.visible_until) : null }
+  )).sort((item1, item2) => item1.title.localeCompare(item2.title)),
 }));
 export const getForm = createSelector(featureSelector, s => s.form);
 export const getRawFormStatistics = createSelector(featureSelector, s => s.formStatistics);
 export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data || []);
+
+export const selectedFormResponseId = createSelector(featureSelector, s => s.selectedFormResponseId);
+
+export const getFormResponse = createSelector(featureSelector, getForm, selectAllResponses, selectedFormResponseId, selectAllResponseIds, (s, form, responses, id, allIds) => {
+  let data: SingleFormResponse | null = null;
+  if (id && form.data && responses[ id ]) {
+    const index = (allIds as number[]).indexOf(id as number);
+    const previousIndex = index === 0 ? null : index - 1;
+    const nextIndex = (allIds.length - 1 > index) ? index + 1 : null;
+    data = {
+      cursor: s.formResponses.data.cursor,
+      more: s.formResponses.data.more,
+      previous: previousIndex === null ? null : allIds[ previousIndex ] as number,
+      next: nextIndex === null ? null : allIds[ nextIndex ] as number,
+      result: convertResponse(responses[ id ], form.data.form),
+    };
+  }
+  return {
+    loading: s.formResponses.loading,
+    success: s.formResponses.success,
+    error: s.formResponses.error,
+    data,
+  };
+});
 
 export const getTransformedStatistics = createSelector(getForm, getRawFormStatistics, (form, statistics) => {
   if (!form.success || !statistics.success) {
@@ -63,15 +119,16 @@ export const getTransformedStatistics = createSelector(getForm, getRawFormStatis
     success: true,
     error: null,
     data: {
-      submissions: statistics.data.submissions,
-      sections: getSectionStatistics(form.data, statistics.data),
+      submissions: (statistics.data as FormStatistics).submissions,
+      sections: getSectionStatistics(form.data as OcaForm, statistics.data as FormStatistics),
     },
   } as Loadable<FormStatisticsView>;
 });
 
 function getSectionStatistics(form: OcaForm, statistics: FormStatistics): SectionStatistics[] {
   const sections: SectionStatistics[] = [];
-  for (const section of form.form.sections) {
+  for (let i = 0; i < form.form.sections.length; i++) {
+    const section = form.form.sections[ i ];
     const sectionStats = statistics.statistics[ section.id ];
     const components: ComponentStatistics[] = [];
     for (const component of section.components) {
@@ -79,14 +136,14 @@ function getSectionStatistics(form: OcaForm, statistics: FormStatistics): Sectio
         const stats: ComponentStatistics = {
           id: component.id,
           title: component.title,
-          responses: 0,
+          hasResponses: false,
           values: null,
         };
         if (sectionStats) {
           const componentStats: FormStatisticsValue = sectionStats[ component.id ];
           if (componentStats) {
-            const { responseCount, values } = getComponentStatsValues(component, componentStats);
-            stats.responses = responseCount;
+            const { hasResponses, values } = getComponentStatsValues(component, componentStats);
+            stats.hasResponses = hasResponses;
             stats.values = values;
           }
         }
@@ -98,6 +155,7 @@ function getSectionStatistics(form: OcaForm, statistics: FormStatistics): Sectio
       sections.push({
         id: section.id,
         title: section.title,
+        number: i + 1,
         components,
       });
     }
@@ -135,10 +193,15 @@ function getDateTimeComponentValues(component: DatetimeComponent, stats: { [ key
 }
 
 function getComponentStatsValues(component: FormComponent, componentStats: FormStatisticsValue) {
-  let values = null;
-  let responseCount = 0;
+  let values: ComponentStatisticsValues = null;
+  let hasResponses = false;
   if (isFormStatisticsNumber(componentStats)) {
-    responseCount = Object.values<number>(componentStats).reduce((partial, val) => partial + val);
+    for (const number of Object.values<number>(componentStats)) {
+      if (number) {
+        hasResponses = true;
+        break;
+      }
+    }
     if (component.type === FormComponentType.DATETIME) {
       values = getDateTimeComponentValues(component, componentStats);
     } else {
@@ -152,7 +215,7 @@ function getComponentStatsValues(component: FormComponent, componentStats: FormS
       }
     }
   } else {
-    responseCount = componentStats.length;
+    hasResponses = componentStats.length > 0;
     if (isFormStatisticsLocationArray(componentStats)) {
       values = {
         type: ComponentStatsType.LOCATIONS,
@@ -164,9 +227,116 @@ function getComponentStatsValues(component: FormComponent, componentStats: FormS
     } else {
       values = {
         type: ComponentStatsType.FILES,
-        value: componentStats,
+        value: componentStats.map(array => ({
+          url: array[ 0 ],
+          fileName: array[ 1 ],
+          icon: getIconFromMime(array[ 2 ]),
+        })),
       };
     }
   }
-  return { responseCount, values };
+  return { hasResponses, values };
+}
+
+export function getIconFromMime(mimeType: string) {
+  if (mimeType.startsWith('image')) {
+    return 'image';
+  } else if (mimeType.startsWith('video')) {
+    return 'videocam';
+  } else if (mimeType.startsWith('audio')) {
+    return 'audiotrack';
+  } else if (mimeType === 'application/pdf') {
+    return 'picture_as_pdf';
+  }
+  return 'insert_drive_file';
+}
+
+function convertResponse(formResponse: FormResponse, form: DynamicForm): MergedFormResponse {
+  const sections: ResponseFormSectionValue[] = [];
+  let sectionNumber = 0;
+  for (const section of form.sections) {
+    sectionNumber++;
+    // SKip sections without any components
+    if (!section.components.length) {
+      continue;
+    }
+    const components: ResponseFormComponent[] = [];
+    const responseSection = formResponse.sections.find(s => s.id === section.id);
+    if (responseSection) {
+      const initialVal: { [ key: string ]: FormComponentValue } = {};
+      const mapping = responseSection.components.reduce((acc, comp) => {
+        acc[ comp.id ] = comp;
+        return acc;
+      }, initialVal);
+      for (const component of section.components) {
+        if (component.type !== FormComponentType.PARAGRAPH && component.id in mapping) {
+          const value = mapping[ component.id ];
+          let response: ComponentResponse | null = null;
+          switch (value.type) {
+            case FormComponentType.SINGLE_SELECT:
+              if (component.type === FormComponentType.SINGLE_SELECT) {
+                response = {
+                  type: component.type,
+                  value: value.value,
+                  choices: component.choices,
+                };
+              }
+              break;
+            case FormComponentType.MULTI_SELECT:
+              if (component.type === FormComponentType.MULTI_SELECT) {
+                response = {
+                  type: component.type,
+                  choices: component.choices.map(c => ({ ...c, selected: value.values.includes(c.value) })),
+                };
+              }
+              break;
+            case FormComponentType.DATETIME:
+              let format: string;
+              switch ((component as DatetimeComponent).format) {
+                case DateFormat.DATE:
+                  format = 'mediumDate';
+                  break;
+                case DateFormat.DATETIME:
+                  format = 'medium';
+                  break;
+                case DateFormat.TIME:
+                  format = 'mediumTime';
+                  break;
+                default:
+                  format = 'medium';
+              }
+              if (component.type === FormComponentType.DATETIME) {
+                response = {
+                  type: component.type,
+                  format,
+                  date: new Date(value.year, value.month, value.day, value.hour, value.minute),
+                };
+              }
+              break;
+            case FormComponentType.FILE:
+              if (value.type === FormComponentType.FILE) {
+                response = { ...value, icon: getIconFromMime(value.file_type) };
+              }
+              break;
+            default:
+              response = value;
+              break;
+          }
+          // Can be null in case the question type had been changed after this answer was submitted
+          if (response) {
+            components.push({ id: component.id, title: component.title, response });
+          }
+        }
+      }
+    }
+    if (components.length) {
+      sections.push({ id: section.id, title: section.title, number: sectionNumber, components });
+    }
+  }
+  return {
+    formId: form.id,
+    submissionId: formResponse.id,
+    submitted_date: formResponse.submitted_date,
+    sections,
+  };
 }

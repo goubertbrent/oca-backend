@@ -28,7 +28,7 @@ from rogerthat.bizz.messaging import parse_to_human_readable_tag
 from rogerthat.models.properties.forms import FormResult
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
-from rogerthat.to.forms import FormSubmittedCallbackResultTO, DynamicFormValueTO
+from rogerthat.to.forms import FormSubmittedCallbackResultTO, DynamicFormValueTO, SubmitDynamicFormRequestTO
 from rogerthat.to.messaging import AnswerTO, AttachmentTO, MemberTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import FlowMemberResultCallbackResultTO, \
@@ -285,7 +285,7 @@ def messaging_update_inbox_forwaring_reply(service_user, service_identity, tag, 
 
 
 @returns(FormSubmittedCallbackResultTO)
-@arguments(user_details=[UserDetailsTO], form=DynamicFormValueTO)
+@arguments(user_details=[UserDetailsTO], form=SubmitDynamicFormRequestTO)
 def common_form_submitted(user_details, form):
-    # type: (list[UserDetailsTO], DynamicFormValueTO) -> FormSubmittedCallbackResultTO
-    return create_form_submission(users.get_current_user(), user_details, form)
+    # type: (list[UserDetailsTO], SubmitDynamicFormRequestTO) -> FormSubmittedCallbackResultTO
+    return create_form_submission(users.get_current_user(), user_details[0], form)

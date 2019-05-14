@@ -1,18 +1,23 @@
 <div *ngIf="statistics" class="component-margin">
   <div class="flex">
     <h2 class="flex-grow">{{ 'oca.total_responses_x' | translate : {count: statistics.submissions} }}</h2>
-    <span class="icons-row">
+    <span class="icons-row" *ngIf="!formActive">
         <button type="button" mat-icon-button [matMenuTriggerFor]="optionsMenu">
           <mat-icon>more_vert</mat-icon>
         </button>
     </span>
   </div>
   <ng-container *ngFor="let section of statistics.sections">
-    <mat-toolbar>{{ section.title }}</mat-toolbar>
+    <mat-toolbar>
+      {{ section.title || ('oca.section_x' | translate : {number: section.number}) }}
+    </mat-toolbar>
     <ng-container *ngFor="let component of section.components">
       <mat-card class="component-card" *ngIf="component.id">
         <mat-card-header>
           <mat-card-title>{{ component.title }} </mat-card-title>
+          <mat-card-subtitle *ngIf="!component.hasResponses">
+            {{ 'oca.response_count.none' | translate }}
+          </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content *ngIf="component.values">
           <ng-container [ngSwitch]="component.values.type">
@@ -29,12 +34,17 @@
               </mat-list>
             </ng-container>
             <ng-container *ngSwitchCase="ComponentStatsType.FILES">
-              <!-- Not implemented -->
+              <mat-nav-list>
+                <a mat-list-item [href]="file.url" target="_blank" *ngFor="let file of component.values.value">
+                  <mat-icon mat-list-icon>{{file.icon}}</mat-icon>
+                  <p mat-line>{{ file.fileName }}</p>
+                </a>
+              </mat-nav-list>
             </ng-container>
             <ng-container *ngSwitchCase="ComponentStatsType.LOCATIONS">
-              <agm-map [fitBounds]="true">
+              <agm-map [fitBounds]="true" [scrollwheel]="null" gestureHandling="cooperative">
                 <agm-marker *ngFor="let marker of component.values.value"
-                            [agmFitBounds]="marker"
+                            [agmFitBounds]="true"
                             [markerDraggable]="false"
                             [latitude]="marker.lat"
                             [longitude]="marker.lng">

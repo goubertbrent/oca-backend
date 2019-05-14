@@ -1,19 +1,23 @@
-import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
-import { first, map } from 'rxjs/operators';
-import { FormComponentType } from '../interfaces/enums';
+import { first, map, switchMap } from 'rxjs/operators';
+import { UserDetailsTO } from '../shared/users/users';
+import { FormComponentType } from './interfaces/enums';
 import {
+  CompletedFormStepType,
   CreateDynamicForm,
+  FormResponses,
   FormSettings,
   FormStatistics,
+  LoadResponses,
   OcaForm,
   SingleSelectComponent,
   UploadedFile,
   UploadedFormFile,
-} from '../interfaces/forms.interfaces';
-import { UserDetailsTO } from '../users/interfaces';
+} from './interfaces/forms';
+import { FormValidatorType } from './interfaces/validators';
 
 @Injectable({ providedIn: 'root' })
 export class FormsService {
@@ -41,7 +45,13 @@ export class FormsService {
     return this.http.post(`/common/forms/${formId}/test`, { testers });
   }
 
-  createForm(form: OcaForm<CreateDynamicForm>) {
+  createForm() {
+    return this.getDefaultForm().pipe(switchMap(form => this.http.post<OcaForm>(`/common/forms`, form)));
+  }
+
+
+  copyForm(form: OcaForm) {
+    form = {...form, settings: {...form.settings, steps: [], visible_until: null, finished: false, visible: false, tombola: null}};
     return this.http.post<OcaForm>(`/common/forms`, form);
   }
 
@@ -49,25 +59,65 @@ export class FormsService {
     return this.http.get <UserDetailsTO[ ]>(`/common/forms/${formId}/tombola/winners`);
   }
 
-  getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
+  getResponses(payload: LoadResponses) {
+    let params = new HttpParams();
+    params = params.set('page_size', payload.page_size.toString());
+    if (payload.cursor) {
+      params = params.set('cursor', payload.cursor);
+    }
+    return this.http.get<FormResponses>(`/common/forms/${payload.formId}/submissions`, { params });
+  }
+
+  deleteResponse(formId: number, responseId: number) {
+    return this.http.delete(`/common/forms/${formId}/submissions/${responseId}`);
+  }
+
+  deleteAllResponses(formId: number) {
+    return this.http.delete(`/common/forms/${formId}/submissions`);
+  }
+
+  uploadImage(formId: number, image: Blob): Observable<HttpEvent<UploadedFormFile>> {
+    const data = new FormData();
+    data.append('file', image);
+    return this.http.request(new HttpRequest('POST', `/common/forms/${formId}/image`, data, { reportProgress: true }));
+  }
+
+  getImages() {
+    return this.http.get<UploadedFile[]>(`/common/images/forms`);
+  }
+
+  deleteForm(formId: number) {
+    return this.http.delete(`/common/forms/${formId}`);
+  }
+
+  private getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
     const keys = [ 'oca.untitled_form', 'oca.untitled_section', 'oca.option_x', 'oca.untitled_question', 'oca.thank_you',
-      'oca.your_response_has_been_recorded' ];
+      'oca.your_response_has_been_recorded', 'oca.default_entry_section_text', 'oca.start' ];
     return this.translate.get(keys, { number: 1 }).pipe(
       first(),
       map(results => ({
         form: {
           title: results[ 'oca.untitled_form' ],
-          max_submissions: -1,
+          max_submissions: 1,
           sections: [ {
             id: '0',
             title: results[ 'oca.untitled_section' ],
+            description: results['oca.default_entry_section_text'],
+            branding: null,
+            next_action: null,
+            components: [],
+            next_button_caption: results['oca.start'],
+          } , {
+            id: '1',
+            title: results[ 'oca.untitled_section' ],
             description: null,
             branding: null,
+            next_action: null,
             components: [ {
               type: FormComponentType.SINGLE_SELECT,
               id: results[ 'oca.untitled_question' ],
               title: results[ 'oca.untitled_question' ],
-              validators: [],
+              validators: [ { type: FormValidatorType.REQUIRED } ],
               choices: [ {
                 label: results[ 'oca.option_x' ],
                 value: results[ 'oca.option_x' ],
@@ -89,21 +139,9 @@ export class FormsService {
           finished: false,
           tombola: null,
           id: 0,
+          steps: [ { step_id: CompletedFormStepType.CONTENT } ],
+          readonly_ids: false,
         },
       })));
-  }
-
-  deleteAllResponses(formId: number) {
-    return this.http.delete(`/common/forms/${formId}/submissions`);
-  }
-
-  uploadImage(formId: number, image: Blob): Observable<HttpEvent<UploadedFormFile>> {
-    const data = new FormData();
-    data.append('file', image);
-    return this.http.request(new HttpRequest('POST', `/common/forms/${formId}/image`, data, { reportProgress: true }));
-  }
-
-  getImages() {
-    return this.http.get<UploadedFile[]>(`/common/images/forms`);
   }
 }

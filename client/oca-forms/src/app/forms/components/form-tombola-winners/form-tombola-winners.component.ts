@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, ViewEncapsulation } from '@angular/core';
-import { UserDetailsTO } from '../../../users/interfaces';
+import { UserDetailsTO } from '../../../shared/users/users';
 
 @Component({
   selector: 'oca-form-tombola-winners',

@@ -20,7 +20,9 @@ from random import randint
 
 from google.appengine.ext import ndb
 
+from mcfw.utils import Enum
 from rogerthat.bizz.gcs import get_serving_url
+from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
@@ -32,6 +34,28 @@ class FormTombola(NdbModel):
     winner_count = ndb.IntegerProperty(default=1)
 
 
+class CompletedFormStepType(Enum):
+    CONTENT = 'content'
+    TEST = 'test'
+    SETTINGS = 'settings'
+    ACTION = 'action'
+    LAUNCH = 'launch'
+
+
+class CompletedFormStep(NdbModel):
+    step_id = ndb.StringProperty(choices=CompletedFormStepType.all())
+
+
+class FormIntegrationProvider(Enum):
+    GREEN_VALLEY = 'green_valley'
+
+
+class FormIntegration(NdbModel):
+    provider = ndb.StringProperty(choices=FormIntegrationProvider.all())
+    # Stores a mapping between component sections/fields and integration its fields
+    configuration = ndb.JsonProperty()
+
+
 class OcaForm(NdbModel):
     title = ndb.StringProperty(indexed=False)  # Copy from Form.title
     icon = ndb.StringProperty(indexed=False, default='fa-list')
@@ -40,6 +64,9 @@ class OcaForm(NdbModel):
     version = ndb.IntegerProperty()
     finished = ndb.BooleanProperty(default=False)
     tombola = ndb.StructuredProperty(FormTombola, default=None)  # type: FormTombola
+    steps = ndb.LocalStructuredProperty(CompletedFormStep, repeated=True)
+    readonly_ids = ndb.BooleanProperty(default=False)
+    integrations = ndb.StructuredProperty(FormIntegration, repeated=True)
 
     @property
     def id(self):
@@ -87,10 +114,21 @@ class TombolaWinner(NdbModel):
 
 class FormSubmission(NdbModel):
     form_id = ndb.IntegerProperty()
-    user = ndb.StringProperty()
+    user = ndb.StringProperty(indexed=False)
     sections = ndb.JsonProperty()
     submitted_date = ndb.DateTimeProperty(auto_now_add=True)
-    version = ndb.IntegerProperty(default=0)
+    version = ndb.IntegerProperty(default=0, indexed=False)
+    statistics_shard_id = ndb.StringProperty(indexed=False)
+    test = ndb.BooleanProperty(default=False)
+    external_reference = ndb.StringProperty()
+
+    @property
+    def id(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, submission_id):
+        return ndb.Key(cls, submission_id)
 
     @classmethod
     def list(cls, form_id):
@@ -160,3 +198,12 @@ class FormStatisticsShardConfig(NdbModel):
             config.put()
         shard_key_strings = [FormStatisticsShard.SHARD_KEY_TEMPLATE % (form_id, i) for i in range(config.shard_count)]
         return [FormStatisticsShard.create_key(shard_key) for shard_key in shard_key_strings]
+
+
+class FormIntegrationConfiguration(NdbModel):
+    # Stores credentials / basic configuration
+    configuration = ndb.JsonProperty()
+
+    @classmethod
+    def create_key(cls, service_user, provider_id):
+        return ndb.Key(cls, provider_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))

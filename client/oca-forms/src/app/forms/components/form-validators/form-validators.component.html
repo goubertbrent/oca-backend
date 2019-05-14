@@ -4,9 +4,17 @@
     <ng-container
       *ngIf="validator.type === FormValidatorType.MINLENGTH || validator.type === FormValidatorType.MIN ||  validator.type === FormValidatorType.MAX || validator.type === FormValidatorType.MAXLENGTH">
       <mat-form-field style="width: 100px;" class="number-input">
-        <mat-label>{{ 'oca.number' | translate }}</mat-label>
+        <mat-label>{{ valueNames[validator.type] | translate }}</mat-label>
         <input matInput [name]="name + '_value' + validator.type" type="number" [(ngModel)]="validator.value"
                (ngModelChange)="onChange(validators)">
+      </mat-form-field>
+    </ng-container>
+    <ng-container *ngIf="validator.type === FormValidatorType.MINDATE || validator.type === FormValidatorType.MAXDATE">
+      <mat-form-field>
+        <mat-label>{{ valueNames[validator.type] | translate }}</mat-label>
+        <input matInput [matDatepicker]="picker" [value]="getDateValue(validator)" (dateChange)="setDate($event, validator)">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
       </mat-form-field>
     </ng-container>
     <mat-form-field class="custom-error-message">
@@ -20,7 +28,7 @@
   </ng-container>
 </div>
 <div *ngIf="allowedTypes.length > 0">
-  <button mat-button type="button" [matMenuTriggerFor]="validatorChoiceMenu">
+  <button mat-raised-button type="button" [matMenuTriggerFor]="validatorChoiceMenu">
     {{ 'oca.add_validator' | translate }}
   </button>
 </div>
@@ -28,7 +36,7 @@
 <mat-menu #validatorChoiceMenu=matMenu>
   <ng-template matMenuContent>
     <button type="button" mat-menu-item *ngFor="let item of allowedTypes" role="menuitemcheckbox"
-            (click)="addValidator(item.type)">
+            (click)="addValidator(item)">
       {{ item.label | translate}}
     </button>
   </ng-template>

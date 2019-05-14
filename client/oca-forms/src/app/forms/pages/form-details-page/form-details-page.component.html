@@ -4,20 +4,33 @@
   </button>
   <h1 class="flex-grow">{{ 'oca.edit_form' | translate }}</h1>
   <span class="icons-row">
-    <button type="button" mat-icon-button [matTooltip]="'oca.create_news_item' | translate" (click)="createNews()"
-            *ngIf="showCreateNewsButton$ | async">
-      <mat-icon>rss_feed</mat-icon>
-    </button>
-    <button type="button" mat-icon-button [matTooltip]="'oca.preview_form' | translate" (click)="testForm()">
-      <mat-icon>visibility</mat-icon>
+    <button type="button" mat-icon-button [matMenuTriggerFor]="moreMenu">
+      <mat-icon>more_vert</mat-icon>
     </button>
   </span>
 </mat-toolbar>
+<mat-menu #moreMenu="matMenu">
+  <ng-template matMenuContent>
+    <button mat-menu-item (click)="testForm()">
+      <mat-icon>visibility</mat-icon>
+      <span>{{ 'oca.preview_form' | translate }}</span>
+    </button>
+    <button mat-menu-item (click)="copyForm()">
+      <mat-icon>file_copy</mat-icon>
+      <span>{{ 'oca.make_copy' | translate }}</span>
+    </button>
+  </ng-template>
+</mat-menu>
 <ng-container *ngIf="form$ | async as form">
   <oca-form-detail [form]="form.data" *ngIf="form.data"
                    [statistics]="formStatistics$ | async"
                    [tombolaWinners]="tombolaWinners$ | async"
+                   [formResponse]="formResponse$ | async"
                    (save)="onSave($event)"
                    (tabChanged)="onTabChanged($event)"
-                   (menuOptionClicked)="onMenuOptionClicked($event)"></oca-form-detail>
+                   (menuOptionClicked)="onMenuOptionClicked($event)"
+                   (createNews)="createNews()"
+                   (testForm)="onTestForm($event)"
+                   (nextResponse)="onNextResponse($event)"
+                   (removeResponse)="onRemoveResponse($event)"></oca-form-detail>
 </ng-container>

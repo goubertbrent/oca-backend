@@ -4,8 +4,8 @@ import Cropper from 'cropperjs';
 export interface ImageCropperResult {
   imageData: Cropper.ImageData;
   cropData: Cropper.CropBoxData;
-  blob?: Blob;
-  dataUrl?: string;
+  blob: Blob | null;
+  dataUrl: string | null;
 }
 
 @Component({
@@ -39,14 +39,15 @@ export class ImageCropperComponent {
     const imageData = this.cropper.getImageData();
     const cropData = this.cropper.getCropBoxData();
     const canvas = this.cropper.getCroppedCanvas(options);
-    const data = { imageData, cropData };
+    const data: ImageCropperResult = { imageData, cropData, blob: null, dataUrl: null };
     const imageType = 'image/jpeg';
 
     return new Promise(resolve => {
       if (type === 'base64') {
-        return resolve({ ...data, dataUrl: canvas.toDataURL(imageType, quality) });
+        resolve({ ...data, dataUrl: canvas.toDataURL(imageType, quality) });
+      } else {
+        canvas.toBlob(blob => resolve({ ...data, blob }), imageType, quality);
       }
-      canvas.toBlob(blob => resolve({ ...data, blob }), imageType, quality);
     });
   }
 }

@@ -24,7 +24,7 @@ from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
-    get_statistics, list_responses, delete_submissions, upload_form_image, list_images
+    get_statistics, list_responses, delete_submissions, upload_form_image, list_images, delete_form, delete_submission
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO, FormSubmissionListTO, \
     FormSubmissionTO, FormImageTO, GcsFileTO
 
@@ -51,7 +51,7 @@ def rest_get_form(form_id):
     return get_form(form_id, users.get_current_user())
 
 
-@rest('/common/forms', 'post', type=REST_TYPE_TO, silent_result=True)
+@rest('/common/forms', 'post', type=REST_TYPE_TO, silent=True, silent_result=True)
 @returns(OcaFormTO)
 @arguments(data=OcaFormTO)
 def rest_create_form(data):
@@ -61,12 +61,22 @@ def rest_create_form(data):
         raise HttpBadRequestException(e.message, e.fields)
 
 
-@rest('/common/forms/<form_id:[^/]+>', 'put', type=REST_TYPE_TO, silent_result=True)
+@rest('/common/forms/<form_id:[^/]+>', 'put', type=REST_TYPE_TO, silent=True, silent_result=True)
 @returns(OcaFormTO)
 @arguments(form_id=(int, long), data=OcaFormTO)
 def rest_put_form(form_id, data):
     try:
         return update_form(form_id, data, users.get_current_user())
+    except ServiceApiException as e:
+        raise HttpBadRequestException(e.message, e.fields)
+
+
+@rest('/common/forms/<form_id:[^/]+>', 'delete', silent_result=True)
+@returns()
+@arguments(form_id=(int, long))
+def rest_delete_form(form_id):
+    try:
+        return delete_form(form_id, users.get_current_user())
     except ServiceApiException as e:
         raise HttpBadRequestException(e.message, e.fields)
 
@@ -80,6 +90,13 @@ def rest_list_responses(form_id, cursor=None, page_size=50):
     return FormSubmissionListTO(cursor=cursor and cursor.to_websafe_string(),
                                 more=more,
                                 results=[FormSubmissionTO.from_dict(model.to_dict()) for model in responses])
+
+
+@rest('/common/forms/<form_id:[^/]+>/submissions/<submission_id:[^/]+>', 'delete')
+@returns()
+@arguments(form_id=(int, long), submission_id=(int, long))
+def rest_delete_submission(form_id, submission_id):
+    delete_submission(users.get_current_user(), form_id, submission_id)
 
 
 @rest('/common/forms/<form_id:[^/]+>/submissions', 'delete')

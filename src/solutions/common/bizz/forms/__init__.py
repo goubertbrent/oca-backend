@@ -14,47 +14,54 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
-from cgi import FieldStorage
-from datetime import datetime
 import json
 import logging
 import random
-import time
-
-import cloudstorage
-import dateutil
+from cgi import FieldStorage
+from datetime import datetime
+from os import path
 
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
+
+import cloudstorage
+import dateutil
 from mcfw.consts import MISSING
+from mcfw.imaging import recolor_png
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.features import mobile_supports_feature, Features
 from rogerthat.bizz.forms import FormNotFoundException
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import SCHEDULED_QUEUE, MC_RESERVED_TAG_PREFIX
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.mobile import get_user_active_mobiles
-from rogerthat.dal.profile import get_profile_infos
+from rogerthat.dal.profile import get_profile_infos, get_user_profile
 from rogerthat.models import Message, ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.service.api import system, messaging
 from rogerthat.service.api.forms import service_api
-from rogerthat.to.forms import DynamicFormTO, DynamicFormValueTO, FormSubmittedCallbackResultTO
+from rogerthat.to.forms import DynamicFormTO, FormSubmittedCallbackResultTO, \
+    SubmitDynamicFormRequestTO
 from rogerthat.to.messaging import MemberTO
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, TYPE_MESSAGE, \
     MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
-from rogerthat.utils import try_or_defer, read_file_in_chunks
+from rogerthat.utils import try_or_defer, read_file_in_chunks, parse_color
 from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_in_service_menu
-from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics
+from solutions.common.bizz.forms.integrations import get_form_integration
+from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics, \
+    remove_submission_from_shard, get_random_shard_number
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
-from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile
+from solutions.common.models import SolutionBrandingSettings
+from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile, \
+    FormStatisticsShard, CompletedFormStep, CompletedFormStepType, FormIntegrationConfiguration
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
@@ -87,13 +94,11 @@ def update_form(form_id, data, service_user):
             return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
         for section in data.form.sections:
             if MISSING.default(section.branding, None) and section.branding.logo_url:
-                # TODO: default image
-                section.branding.avatar_url = None
+                section.branding.avatar_url = _get_form_avatar_url(service_user)
         updated_form = service_api.update_form(form_id, data.form.title, data.form.sections,
                                                data.form.submission_section, data.form.max_submissions)
         _delete_scheduled_task(oca_form)
         _update_form(oca_form, updated_form, data.settings)
-        oca_form.put()
         if oca_form.visible:
             _create_form_menu_item(oca_form)
         else:
@@ -120,7 +125,9 @@ def _update_form(model, created_form, settings):
     model.populate(icon=settings.icon or OcaForm.icon._default,
                    visible=settings.visible,
                    visible_until=settings.visible_until and _get_utc_datetime(settings.visible_until),
-                   tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()))
+                   tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()),
+                   steps=[CompletedFormStep(step_id=step.step_id) for step in settings.steps],
+                   readonly_ids=settings.readonly_ids)
 
     if created_form:
         model.populate(
@@ -130,10 +137,32 @@ def _update_form(model, created_form, settings):
     model.put()
 
 
+def _get_form_avatar_url(service_user):
+    # type: (users.User) -> str
+    branding_settings = SolutionBrandingSettings.get_by_user(service_user)  # type: SolutionBrandingSettings
+    cloudstorage_path = '/%s/forms/avatars/list-%s.png' % (OCA_FILES_BUCKET, branding_settings.menu_item_color)
+    try:
+        cloudstorage.stat(cloudstorage_path)
+    except cloudstorage.NotFoundError:
+        with cloudstorage.open(cloudstorage_path, 'w', content_type='image/png') as gcs_file:
+            with open(path.join(path.dirname(__file__), 'list.png')) as f:
+                color = parse_color(branding_settings.menu_item_color)
+                gcs_file.write(recolor_png(f.read(), (0, 0, 0), color))
+    return get_serving_url(cloudstorage_path)
+
+
+def get_form_settings(form_id, service_user):
+    # type: (long, users.User) -> OcaForm
+    return OcaForm.create_key(form_id, service_user).get()
+
+
 def get_form(form_id, service_user):
     with users.set_user(service_user):
         form = service_api.get_form(form_id)
-    oca_form = OcaForm.create_key(form_id, service_user).get()
+    oca_form = get_form_settings(form_id, service_user)
+    # backwards compat
+    if not oca_form.steps:
+        oca_form.steps = [CompletedFormStep(step_id=step_id) for step_id in CompletedFormStepType.all()]
     return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
 
 
@@ -144,6 +173,24 @@ def list_responses(service_user, form_id, cursor, page_size):
     get_form(form_id, service_user)  # validate user
     return FormSubmission.list(form_id).fetch_page(page_size,
                                                    start_cursor=cursor and ndb.Cursor.from_websafe_string(cursor))
+
+
+def delete_submission(service_user, form_id, submission_id):
+    # type: (users.User, long, long) -> None
+    submission = FormSubmission.create_key(submission_id).get()
+    with users.set_user(service_user):
+        service_api.delete_form_submission(form_id, submission.user)
+    try_or_defer(_delete_submission, submission_id)
+
+
+@ndb.transactional(xg=True)
+def _delete_submission(submission_id):
+    # type: (long) -> None
+    submission = FormSubmission.create_key(submission_id).get()  # type: FormSubmission
+    shard = FormStatisticsShard.create_key(submission.statistics_shard_id).get()
+    shard = remove_submission_from_shard(shard, submission)
+    shard.put()
+    submission.key.delete()
 
 
 def delete_submissions(service_user, form_id):
@@ -164,9 +211,7 @@ def get_statistics(service_user, form_id):
 
 
 def _get_utc_datetime(datetime_str):
-    local_datetime = dateutil.parser.parse(datetime_str)  # type: datetime
-    epoch = time.mktime(local_datetime.utctimetuple())
-    return datetime.utcfromtimestamp(epoch)
+    return dateutil.parser.parse(datetime_str, ignoretz=True)  # type: datetime
 
 
 def _create_form_menu_item(form):
@@ -307,9 +352,13 @@ def poke_forms(service_user, email, tag, result_key, context, service_identity, 
 
 
 def delete_form(form_id, service_user):
+    must_publish = _delete_form_menu_item(form_id)
     with users.set_user(service_user):
         service_api.delete_form(form_id)
     _delete_form_submissions(form_id)
+    OcaForm.create_key(form_id, service_user).delete()
+    if must_publish:
+        system.publish_changes()
 
 
 def _delete_form_submissions(form_id):
@@ -327,20 +376,34 @@ def _delete_submissions(submission_keys):
     ndb.delete_multi(submission_keys)
 
 
-def create_form_submission(service_user, user_details, form):
-    # type: (users.User, list[UserDetailsTO], DynamicFormValueTO) -> FormSubmittedCallbackResultTO
-    details = user_details[0]
+def create_form_submission(service_user, details, form):
+    # type: (users.User, UserDetailsTO, SubmitDynamicFormRequestTO) -> FormSubmittedCallbackResultTO
     user = create_app_user_by_email(details.email, details.app_id)
-    oca_form = OcaForm.create_key(form.id, service_user).get()  # type: OcaForm
-    # TODO: check if form has 'ended', else return error
+    form_key = OcaForm.create_key(form.id, service_user)
+    oca_form = form_key.get()  # type: OcaForm
+    # Check if form is no longer accepting responses, else return error
+    if not oca_form.visible and not form.test:
+        lang = get_user_profile(user).language
+        error = translate(lang, SOLUTION_COMMON, 'oca.form_ended_error')
+        return FormSubmittedCallbackResultTO(valid=False, error=error)
+
+    try_or_defer(_save_form_submission, user, form, service_user)
+    return FormSubmittedCallbackResultTO()
+
+
+def _save_form_submission(user, form, service_user):
+    # type: (users.User, SubmitDynamicFormRequestTO, users.User) -> None
 
     submission = FormSubmission(form_id=form.id,
                                 user=user.email(),
                                 sections=[s.to_dict() for s in form.sections],
-                                version=form.version)
+                                version=form.version,
+                                test=form.test)
     submission.put()
-    try_or_defer(update_form_statistics, submission)
-    return FormSubmittedCallbackResultTO()
+    try_or_defer(update_form_statistics, submission, get_random_shard_number(submission.form_id))
+    oca_form = OcaForm.create_key(form.id, service_user).get()
+    schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form.id)
+                    for i in oca_form.integrations])
 
 
 def upload_form_image(service_user, form_id, uploaded_file):
@@ -369,3 +432,21 @@ def list_images(service_user, folder):
     # type: (users.User, str) -> list[cloudstorage.GCSFileStat]
     prefix = '/%s/services/%s/%s' % (OCA_FILES_BUCKET, service_user.email(), folder)
     return [f for f in cloudstorage.listbucket(prefix)]
+
+
+def _submit_form_to_integration(service_user, integration_provider, submission_key, form_id):
+    # type: (users.User, ndb.Key, str, long) -> None
+    with users.set_user(service_user):
+        form = service_api.get_form(form_id)
+    integration_key = FormIntegrationConfiguration.create_key(service_user, integration_provider)
+    oca_form_key = OcaForm.create_key(form_id, service_user)
+    submission, config, oca_form = ndb.get_multi([submission_key, integration_key, oca_form_key])
+    form_integration = get_form_integration(integration_provider, config)
+    filtered_integrations = [i for i in oca_form.integrations if i.provider == integration_provider]
+    if not filtered_integrations:
+        logging.warning('Not submitting form integration, provider %s not found.', integration_provider)
+        return
+    reference = form_integration.submit(filtered_integrations[0].configuration, submission, form)
+    if reference:
+        submission.external_reference = reference
+        submission.put()

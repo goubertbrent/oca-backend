@@ -19,11 +19,11 @@ import json
 import logging
 import os
 
-from babel import dates, Locale
-from jinja2 import StrictUndefined  # @UnusedImport
 import jinja2
 import webapp2
+from jinja2 import StrictUndefined, Undefined
 
+from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
@@ -71,7 +71,8 @@ from solutions.jinja_extensions import TranslateExtension
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
                                     os.path.join(os.path.dirname(__file__), '..', 'common', 'templates')]),
-    extensions=[TranslateExtension])
+    extensions=[TranslateExtension],
+    undefined=StrictUndefined if DEBUG else Undefined)
 
 
 DEFAULT_JS_TEMPLATES = [

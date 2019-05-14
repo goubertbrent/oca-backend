@@ -1,12 +1,13 @@
 import { HttpEventType } from '@angular/common/http';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, Input, OnDestroy, ViewChild } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef, ProgressSpinnerMode } from '@angular/material';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { ProgressSpinnerMode } from '@angular/material/progress-spinner';
 import { TranslateService } from '@ngx-translate/core';
 import Cropper from 'cropperjs';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { UploadedFile, UploadedFormFile } from '../../../interfaces/forms.interfaces';
 import { FormsService } from '../../forms.service';
+import { UploadedFile, UploadedFormFile } from '../../interfaces/forms';
 import { ImageCropperComponent } from '../image-cropper/image-cropper.component';
 
 @Component({
@@ -79,14 +80,17 @@ export class UploadImageDialogComponent implements OnDestroy {
     this.imageCropper.getCroppedImage('blob', .9, options).then(croppedImage => {
       this.progressMode = 'determinate';
       this._changeDetectorRef.markForCheck();
+      if (!croppedImage.blob) {
+        return;
+      }
       this._formsService.uploadImage(this._formId, croppedImage.blob).pipe(takeUntil(this._destroyed)).subscribe(event => {
         switch (event.type) {
           case HttpEventType.UploadProgress:
-            this.uploadPercent = (100 * event.loaded) / event.total;
+            this.uploadPercent = (100 * event.loaded) / (event.total as number);
             break;
           case HttpEventType.Response:
             this.showProgress = false;
-            const body: UploadedFormFile = event.body;
+            const body: UploadedFormFile = event.body as UploadedFormFile;
             this._dialogRef.close(body.url);
             break;
         }

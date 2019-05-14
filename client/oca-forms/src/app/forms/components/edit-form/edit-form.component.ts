@@ -1,3 +1,4 @@
+import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -14,10 +15,22 @@ import {
   ViewChildren,
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { MatDialog, MatInput, MatSlideToggleChange } from '@angular/material';
+import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { MatInput } from '@angular/material/input';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../dialog/simple-dialog.component';
-import { CreateDynamicForm, DynamicForm, FormSection, isCreateForm, OcaForm } from '../../../interfaces/forms.interfaces';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
+import { UserDetailsTO } from '../../../shared/users/users';
+import {
+  COMPLETED_STEP_MAPPING,
+  CompletedFormStepType,
+  FormSection,
+  NextActionType,
+  OcaForm,
+  SaveForm,
+  SubmissionSection,
+  UINextAction,
+} from '../../interfaces/forms';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({
@@ -26,35 +39,49 @@ import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrang
   styleUrls: [ './edit-form.component.scss' ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditFormComponent implements OnChanges, AfterViewInit {
+export class EditFormComponent implements AfterViewInit, OnChanges {
   @ViewChild('formElement') formElement: NgForm;
   @ViewChild('timeInput') timeInput: ElementRef<HTMLInputElement>;
   @ViewChildren(MatInput) inputs: QueryList<MatInput>;
-  @Input() form: OcaForm<CreateDynamicForm> | OcaForm<DynamicForm>;
-  @Output() save = new EventEmitter<OcaForm>();
-  @Output() create = new EventEmitter<OcaForm<CreateDynamicForm>>();
+
+  @Input() set value(value: OcaForm) {
+    this._form = value;
+    this._hasChanges = false;
+    this.setNextActions();
+  }
+
+  set form(value: OcaForm) {
+    this._form = value;
+    this._hasChanges = true;
+    this.setNextActions();
+  }
+
+  get form() {
+    return this._form;
+  }
+
+  @Output() save = new EventEmitter<SaveForm>();
+  @Output() createNews = new EventEmitter();
+  @Output() testForm = new EventEmitter<UserDetailsTO>();
+
+  nextActionsMapping: { [ key: string ]: UINextAction[] } = {};
   minDate: Date;
   hasEndDate = true;
   hasTombola = false;
   dateInput = new Date();
+  selectedTestUser: UserDetailsTO | undefined;
+  completedSteps = [ true, false, false, false, false ];
+  stepperIndex = 0;
+  hasTested = false;
+  STEP_INDEX_TEST = 3;
+  STEP_INDEX_LAUNCH = 4;
+  private _hasChanges = false;
+  private _form: OcaForm;
 
   constructor(private _translate: TranslateService,
               private _matDialog: MatDialog,
               private _changeDetectorRef: ChangeDetectorRef) {
     this.setMinDate();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes.form && changes.form.currentValue) {
-      this.hasTombola = this.form.settings.tombola != null;
-      if (this.form.settings.visible_until) {
-        this.dateInput = new Date(this.form.settings.visible_until);
-        this.hasEndDate = true;
-        this.setTimeInput();
-      } else {
-        this.hasEndDate = false;
-      }
-    }
   }
 
   ngAfterViewInit() {
@@ -63,22 +90,50 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.value && changes.value.currentValue) {
+      this.hasTombola = this.form.settings.tombola != null;
+      if (this.form.settings.visible_until) {
+        this.dateInput = new Date(this.form.settings.visible_until);
+        this.hasEndDate = true;
+        this.setTimeInput();
+      } else {
+        this.hasEndDate = false;
+      }
+      const completedStepIds = this.form.settings.steps.map(s => s.step_id);
+      for (let i = this.STEP_INDEX_TEST; i < this.completedSteps.length; i++) {
+        const hasCompletedStep = completedStepIds.includes(COMPLETED_STEP_MAPPING[ i ]);
+        this.completedSteps[ i ] = i === 0 ? true : (hasCompletedStep && this.completedSteps[ i - 1 ]);
+        if (hasCompletedStep) {
+          this.stepperIndex = i;
+        }
+      }
+      this.hasTested = completedStepIds.includes(CompletedFormStepType.TEST);
+    }
+  }
+
   visibleChanged(event: MatSlideToggleChange) {
-    this.form.settings.visible = event.checked;
+    const steps = this.form.settings.steps;
+    if (!steps.some(s => s.step_id === CompletedFormStepType.LAUNCH)) {
+      steps.push({ step_id: CompletedFormStepType.LAUNCH });
+    }
+    this.form = { ...this.form, settings: { ...this.form.settings, visible: event.checked, steps } };
     if (event.checked) {
       // set timeInput value in next change detection cycle
       setTimeout(() => this.setTimeInput(), 0);
     }
+    this.saveForm();
   }
 
   limitResponsesChanged(event: MatSlideToggleChange) {
-    this.form.form.max_submissions = event.checked ? 1 : -1;
+    this.form = { ...this.form, form: { ...this.form.form, max_submissions: event.checked ? 1 : -1 } };
   }
 
   addSection() {
     const id = this.getNextSectionId(this.form.form.sections);
     const title = this._translate.instant('oca.untitled_section');
-    this.form.form.sections.push({ id, title, components: [], branding: null });
+    const newSection: FormSection = { id, title, components: [], branding: null, next_action: null };
+    this.form = { ...this.form, form: { ...this.form.form, sections: [ ...this.form.form.sections, newSection ] } };
   }
 
   moveSection() {
@@ -86,7 +141,7 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
     window.scrollTo(0, 0);
     this._matDialog.open(ArrangeSectionsDialogComponent, { data: this.form.form.sections }).afterClosed().subscribe(result => {
       if (result) {
-        this.form.form.sections = result;
+        this.form = { ...this.form, form: { ...this.form.form, sections: result } };
         this._changeDetectorRef.markForCheck();
       }
     });
@@ -106,39 +161,39 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
     });
   }
 
-  toggleSubmissionSection(event: MatSlideToggleChange) {
-    if (event.checked) {
-      this.form.form.submission_section = {
+  toggleSubmissionSection() {
+    let section: SubmissionSection | null = null;
+    if (!this.form.form.submission_section) {
+      section = {
         title: this._translate.instant('oca.thank_you'),
         description: this._translate.instant('oca.your_response_has_been_recorded'),
         components: [],
         branding: null,
       };
-    } else {
-      this.form.form.submission_section = null;
     }
+    this.form = { ...this.form, form: { ...this.form.form, submission_section: section } };
   }
 
   updateDate() {
+    let visibleUntil: Date | null = null;
     if (this.dateInput) {
-      this.form.settings.visible_until = new Date(this.dateInput.getTime());
+      visibleUntil = new Date(this.dateInput.getTime());
       const timeDate = this.timeInput.nativeElement.valueAsDate as Date | undefined;
       if (timeDate) {
-        this.form.settings.visible_until.setHours(timeDate.getUTCHours());
-        this.form.settings.visible_until.setMinutes(timeDate.getUTCMinutes());
+        visibleUntil.setHours(timeDate.getUTCHours());
+        visibleUntil.setMinutes(timeDate.getUTCMinutes());
       }
-    } else {
-      this.form.settings.visible_until = null;
     }
+    this.form = { ...this.form, settings: { ...this.form.settings, visible_until: visibleUntil } };
   }
 
   toggleEndDate() {
-    if (this.form.settings.visible_until) {
-      this.form.settings.visible_until = null;
-    } else {
+    let visibleUntil: Date | null = null;
+    if (!this.form.settings.visible_until) {
       this.dateInput = new Date(this.minDate);
-      this.form.settings.visible_until = this.dateInput;
+      visibleUntil = this.dateInput;
     }
+    this.form = { ...this.form, settings: { ...this.form.settings, visible_until: visibleUntil } };
     this.hasEndDate = !!this.form.settings.visible_until;
   }
 
@@ -149,6 +204,8 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
       if (!this.hasEndDate) {
         this.toggleEndDate();
       }
+      const visibleUntil = new Date();
+      visibleUntil.setDate(visibleUntil.getDate() + 1);
       this.form = {
         form: {
           ...this.form.form,
@@ -160,16 +217,17 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
             winner_message: this._translate.instant('oca.default_tombola_winner_message'),
             winner_count: 1,
           },
+          visible_until: visibleUntil,
         },
       };
       // setTimeout needed because the view is not created yet at this moment
       setTimeout(() => this.setTimeInput());
     } else {
-      this.form.settings.tombola = null;
+      this.form = { ...this.form, settings: { ...this.form.settings, tombola: null } };
     }
   }
 
-  saveForm() {
+  saveForm(silent?: boolean) {
     if (!this.formElement.valid) {
       for (const control of Object.values(this.formElement.controls)) {
         if (!control.valid) {
@@ -187,25 +245,55 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
           title: this._translate.instant('oca.error'),
           message: this._translate.instant('oca.some_fields_are_invalid'),
           ok: this._translate.instant('oca.ok'),
-        } as SimpleDialogData,
-      });
+        },
+      } as MatDialogConfig<SimpleDialogData>);
       return;
     }
-    if (isCreateForm(this.form)) {
-      this.create.emit(this.form);
-    } else {
-      this.save.emit(this.form);
+    this.save.emit({ data: this.form, silent });
+  }
+
+  onStepChange(event: StepperSelectionEvent) {
+    if (event.previouslySelectedIndex === this.STEP_INDEX_TEST) {
+      // Adding the completed step is handled by the specific functionality
+      return;
     }
+    const previousStep = COMPLETED_STEP_MAPPING[ event.previouslySelectedIndex ];
+    if (!this.form.settings.steps.some(s => s.step_id === previousStep)) {
+      this.form = { ...this.form, settings: { ...this.form.settings, steps: [ ...this.form.settings.steps, { step_id: previousStep } ] } };
+    }
+    if (this._hasChanges) {
+      this.saveForm(true);
+    }
+  }
+
+  /**
+   * Marks the form as 'changed', used for auto-saving when switching between steps.
+   */
+  markChanged() {
+    this.form = { ...this.form };
   }
 
   trackBySection(index: number, section: FormSection) {
     return section.id;
   }
 
+  onTestUserSelected(user: UserDetailsTO) {
+    this.selectedTestUser = user;
+  }
+
+  sendTestForm() {
+    this.testForm.emit(this.selectedTestUser);
+    if (!this.form.settings.steps.some(s => s.step_id === CompletedFormStepType.TEST)) {
+      this.form = {
+        ...this.form,
+        settings: { ...this.form.settings, steps: [ ...this.form.settings.steps, { step_id: CompletedFormStepType.TEST } ] },
+      };
+      this.saveForm(true);
+    }
+  }
+
   private setMinDate() {
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 1);
-    this.minDate = minDate;
+    this.minDate = new Date();
   }
 
   private getNextSectionId(sections: FormSection[]) {
@@ -223,6 +311,37 @@ export class EditFormComponent implements OnChanges, AfterViewInit {
       d.setUTCHours(this.dateInput.getHours());
       d.setUTCMinutes(this.dateInput.getMinutes());
       this.timeInput.nativeElement.valueAsDate = d;
+    }
+  }
+
+  private setNextActions() {
+    const sectionActions: UINextAction[] = [];
+    for (let i = 0; i < this.form.form.sections.length; i++) {
+      const section = this.form.form.sections[ i ];
+      const sectionNumber = i + 1;
+      const sectionTitle = section.title ? `${sectionNumber} (${section.title})` : sectionNumber;
+      sectionActions.push({
+        label: this._translate.instant('oca.go_to_section_x', { section: sectionTitle }),
+        action: {
+          type: NextActionType.SECTION,
+          section: section.id,
+        },
+      });
+    }
+    const nextSection: UINextAction = {
+      label: this._translate.instant('oca.continue_to_next_section'),
+      action: { type: NextActionType.NEXT },
+    };
+    const submitSection: UINextAction = {
+      label: this._translate.instant('oca.submit_form'),
+      action: { type: NextActionType.SUBMIT },
+    };
+    for (const section of this.form.form.sections) {
+      this.nextActionsMapping[ section.id ] = [
+        nextSection,
+        ...sectionActions.filter(a => a.action.type !== NextActionType.SECTION || a.action.section !== section.id),
+        submitSection,
+      ];
     }
   }
 }

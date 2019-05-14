@@ -25,6 +25,10 @@ class FormTombolaTO(TO):
     winner_count = long_property('winner_count', default=1)
 
 
+class CompletedFormStepTO(TO):
+    step_id = unicode_property('step_id')
+
+
 class FormSettingsTO(TO):
     id = long_property('id')
     title = unicode_property('title')
@@ -33,6 +37,8 @@ class FormSettingsTO(TO):
     visible_until = unicode_property('visible_until')
     tombola = typed_property('tombola', FormTombolaTO)
     finished = bool_property('finished')
+    steps = typed_property('steps', CompletedFormStepTO, True)
+    readonly_ids = bool_property('readonly_ids', default=OcaForm.readonly_ids._default)
 
     @classmethod
     def from_model(cls, oca_form):
@@ -45,7 +51,7 @@ class OcaFormTO(TO):
 
 
 class FormSubmissionTO(TO):
-    user = unicode_property('user')
+    id = long_property('id')
     sections = typed_property('sections', FormSectionValueTO, True)
     submitted_date = unicode_property('submitted_date')
     version = long_property('version')

@@ -19,13 +19,14 @@ import base64
 import datetime
 import json
 import logging
+import time
 from types import NoneType
 
-from babel.dates import format_datetime, get_timezone
 from google.appengine.api import taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
+from babel.dates import format_datetime, get_timezone
 from bs4 import BeautifulSoup
 from markdown import markdown
 from mcfw.consts import MISSING
@@ -43,7 +44,7 @@ from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, MediaType
 from rogerthat.utils import now, channel
-from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user
+from rogerthat.utils.service import get_service_identity_tuple
 from shop.bizz import update_regiomanager_statistic, get_payed
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import STORE_MANAGER
@@ -53,8 +54,11 @@ from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, 
 from shop.to import OrderItemTO
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
+from solutions.common.api_callback_handlers import _get_human_readable_tag
 from solutions.common.bizz import SolutionModule, OrganizationType, facebook, twitter
 from solutions.common.bizz.cityapp import get_apps_in_country_count
+from solutions.common.bizz.forms import get_form_settings
+from solutions.common.bizz.messaging import POKE_TAG_FORMS
 from solutions.common.bizz.service import get_inbox_message_sender_details, new_inbox_message, \
     send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
@@ -65,7 +69,6 @@ from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSetti
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
     NewsStatsTO, NewsAppTO
 from solutions.flex import SOLUTION_FLEX
-
 
 FREE_SPONSORED_ITEMS_PER_APP = 5
 SPONSOR_DAYS = 7
@@ -233,7 +236,7 @@ def get_news_review_message(lang, timezone, header=None, **data):
         return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
 
     message = u'{}\n\n'.format(header or trans('news_review_requested'))
-    message += u'{}: {}\n'.format(trans('events-title'), data['title'])
+    message += u'{}: {}\n'.format(trans('title'), data['title'])
     message += u'{}: {}\n'.format(trans('message'), data['message'])
 
     action_buttons = [
@@ -396,8 +399,9 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         order_items = []
     if not tag or tag is MISSING:
         tag = NEWS_TAG
+    service_user, identity = get_service_identity_tuple(service_identity_user)
+    sln_settings = get_solution_settings(service_user)
     if news_type == NewsItem.TYPE_QR_CODE:
-        sln_settings = get_solution_settings(get_service_user_from_service_identity_user(service_identity_user))
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
         qr_code_caption = MISSING.default(qr_code_caption, title)
     sponsored_until = None
@@ -424,8 +428,16 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
             if sponsored_count.remaining_free != 0 and sponsored_count.app_id in app_ids:
                 sponsored_app_ids.add(sponsored_count.app_id)
         app_ids = list(sponsored_app_ids)
+    if SolutionModule.CITY_APP in sln_settings.modules:
+        if action_button:
+            tag_content = action_button.action.replace('smi://', '')
+            tag = _get_human_readable_tag(tag_content)
+            if tag == POKE_TAG_FORMS:
+                form_id = json.loads(tag_content)['id']
+                form = get_form_settings(form_id, service_user)
+                if form.visible_until:
+                    sponsored_until = long(time.mktime(form.visible_until.timetuple()))
 
-    service_user, identity = get_service_identity_tuple(service_identity_user)
     default_app = get_app(si.defaultAppId)
     if App.APP_ID_ROGERTHAT in si.appIds and App.APP_ID_ROGERTHAT not in app_ids:
         app_ids.append(App.APP_ID_ROGERTHAT)

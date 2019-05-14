@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, ViewEncapsulation } from '@angular/core';
-import { ValueAmount } from '../../../interfaces/forms.interfaces';
+import { ValueAmount } from '../../interfaces/forms';
 
 @Component({
   selector: 'oca-form-statistics-number-chart',

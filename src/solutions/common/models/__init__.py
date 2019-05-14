@@ -442,7 +442,6 @@ class SolutionBrandingSettings(db.Model):
 
     @classmethod
     def get_by_user(cls, service_user):
-        # Note: DJ-Matic services do no have branding settings.
         return cls.get(cls.create_key(service_user))
 
     @classmethod

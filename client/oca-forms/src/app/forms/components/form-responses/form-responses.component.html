@@ -1,0 +1,75 @@
+<oca-loadable [loadable]="response"></oca-loadable>
+<ng-container *ngIf="response.data?.result; else noResponses">
+  <mat-toolbar>
+    <h4>{{ 'oca.submitted_on_x' | translate : {date: response.data.result.submitted_date | date : 'medium'} }}</h4>
+    <div class="icons-row">
+      <button mat-icon-button type="button" (click)="nextResponse.emit(response.data.previous)"
+              [disabled]="!response.data.previous">
+        <mat-icon>navigate_before</mat-icon>
+      </button>
+      <button mat-icon-button type="button" (click)="nextResponse.emit(response.data.next)"
+              [disabled]="!response.data.more && !response.data.next">
+        <mat-icon>navigate_next</mat-icon>
+      </button>
+      <button mat-icon-button type="button"
+              (click)="removeResponse.emit({formId: response.data.result.formId, submissionId: response.data.result.submissionId})">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+  </mat-toolbar>
+  <mat-card class="section-card" *ngFor="let section of response.data.result.sections">
+    <mat-card-header>
+      <mat-card-title>{{ section.title || ('oca.section_x' | translate : {number: section.number}) }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div [ngSwitch]="component.response.type" *ngFor="let component of section.components" class="component-value">
+        <h3>{{ component.title }}</h3>
+        <mat-form-field class="flex-grow" *ngSwitchCase="FormComponentType.TEXT_INPUT">
+          <textarea matInput [value]="component.response.value" disabled cdkTextareaAutosize></textarea>
+        </mat-form-field>
+        <mat-radio-group disabled [value]="component.response.value" *ngSwitchCase="FormComponentType.SINGLE_SELECT">
+          <mat-radio-button class="radio-button" *ngFor="let choice of component.response.choices"
+                            [value]="choice.value">
+            {{ choice.label }}
+          </mat-radio-button>
+        </mat-radio-group>
+        <div class="checkbox-list" *ngSwitchCase="FormComponentType.MULTI_SELECT">
+          <mat-checkbox class="checkbox" *ngFor="let choice of component.response.choices"
+                        [checked]="choice.selected " disabled>
+            {{ choice.label }}
+          </mat-checkbox>
+        </div>
+        <ng-container *ngSwitchCase="FormComponentType.DATETIME">
+          <p>{{ component.response.date | date : component.response.format }}</p>
+        </ng-container>
+        <ng-container *ngSwitchCase="FormComponentType.FILE">
+          <mat-nav-list>
+            <a mat-list-item [href]="component.response.value" target="_blank">
+              <mat-icon mat-list-icon>{{ component.response.icon }}</mat-icon>
+              <p mat-line>{{ component.response.name }}</p>
+            </a>
+          </mat-nav-list>
+        </ng-container>
+        <ng-container *ngSwitchCase="FormComponentType.LOCATION">
+          <!-- scrollwheel = null needed else the gestureHandling is still auto, for some reason-->
+          <agm-map [latitude]="component.response.latitude"
+                   [longitude]="component.response.longitude"
+                   [zoom]="14"
+                   [scrollwheel]="null"
+                   gestureHandling="cooperative">
+            <agm-marker [markerDraggable]="false"
+                        [latitude]="component.response.latitude"
+                        [longitude]="component.response.longitude">
+              <agm-info-window *ngIf="component.response.address?.address_lines.length">
+                <p>{{ component.response.address.address_lines.join('\n') }}</p>
+              </agm-info-window>
+            </agm-marker>
+          </agm-map>
+        </ng-container>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</ng-container>
+<ng-template #noResponses>
+  <p class="p-padding" *ngIf="response.success">{{ 'oca.response_count.none' | translate }}</p>
+</ng-template>

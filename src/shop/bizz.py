@@ -2133,6 +2133,8 @@ def put_app_signup_enabled(app_id, enabled):
 @returns(bool)
 @arguments(app_id=unicode)
 def is_signup_enabled(app_id):
+    if DEBUG:
+        return True
     if not app_id:
         return False
     shop_app = ShopApp.get(ShopApp.create_key(app_id))

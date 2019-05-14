@@ -1,36 +1,41 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import { tap } from 'rxjs/internal/operators/tap';
-import { first, map, take, withLatestFrom } from 'rxjs/operators';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../dialog/simple-dialog.component';
-import { OptionsMenuOption } from '../../../interfaces/consts';
-import { OptionType } from '../../../interfaces/enums';
-import { FormStatisticsView, OcaForm } from '../../../interfaces/forms.interfaces';
-import { Loadable } from '../../../interfaces/loadable';
+import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
+import { first, take, takeUntil } from 'rxjs/operators';
+import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
+import { Loadable } from '../../../shared/loadable/loadable';
 import {
   UserAutoCompleteDialogComponent,
   UserDialogData,
-} from '../../../users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
-import { UserDetailsTO } from '../../../users/interfaces';
-import { createAppUser } from '../../../util/rogerthat';
+} from '../../../shared/users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
+import { UserDetailsTO } from '../../../shared/users/users';
+import { createAppUser } from '../../../shared/util/rogerthat';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
 import {
+  CopyFormAction,
   DeleteAllResponsesAction,
+  DeleteResponseAction,
   FormsActions,
   FormsActionTypes,
   GetFormAction,
   GetFormStatisticsAction,
+  GetNextResponseAction,
+  GetResponsesAction,
   GetTombolaWinnersAction,
   SaveFormAction,
   ShowDeleteAllResponsesAction,
   TestFormAction,
 } from '../../forms.actions';
-import { FormsState, getForm, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
+import { FormsState, getForm, getFormResponse, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
+import { OptionsMenuOption } from '../../interfaces/consts';
+import { OptionType } from '../../interfaces/enums';
+import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
 
 @Component({
   selector: 'oca-form-details-page',
@@ -42,11 +47,12 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   form$: Observable<Loadable<OcaForm>>;
   formStatistics$: Observable<Loadable<FormStatisticsView>>;
   tombolaWinners$: Observable<UserDetailsTO[]>;
-  showCreateNewsButton$: Observable<boolean>;
+  formResponse$: Observable<Loadable<SingleFormResponse>>;
   formId: number;
   wasVisible: null | boolean = null;
 
   private _subscription: Subscription = Subscription.EMPTY;
+  private _destroyed = new Subject();
 
   constructor(private store: Store<FormsState>,
               private actions$: Actions<FormsActions>,
@@ -59,26 +65,28 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     this.formId = this.route.snapshot.params.id;
     this.store.dispatch(new GetFormAction(this.formId));
     this.form$ = this.store.pipe(select(getForm), tap(form => {
-      if (form.success && this.wasVisible === null) {
+      if (form.success && this.wasVisible === null && form.data) {
         this.wasVisible = form.data.settings.visible;
       }
     }));
     this.tombolaWinners$ = this.store.pipe(select(getTombolaWinners));
     this.formStatistics$ = this.store.pipe(select(getTransformedStatistics));
-    this.showCreateNewsButton$ = this.form$.pipe(map(loadable => loadable.success && loadable.data.settings.visible));
+    this.formResponse$ = this.store.pipe(select(getFormResponse));
   }
 
   ngOnDestroy(): void {
     this._subscription.unsubscribe();
+    this._destroyed.next();
+    this._destroyed.complete();
   }
 
-  onSave(form: OcaForm) {
-    if (!this.wasVisible && form.settings.visible) {
+  onSave(event: SaveForm) {
+    if (!this.wasVisible && event.data.settings.visible) {
       // Changed from invisible to visible - ask to delete responses
       this.store.dispatch(new GetFormStatisticsAction(this.formId));
       this.actions$.pipe(ofType(FormsActionTypes.GET_FORM_STATISTICS_COMPLETE), take(1)).subscribe(result => {
         if (result.stats.submissions === 0) {
-          this.store.dispatch(new SaveFormAction(form));
+          this.store.dispatch(new SaveFormAction(event));
         } else {
           this.matDialog.open(SimpleDialogComponent, {
             data: {
@@ -91,22 +99,23 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
             if (dialogResult.submitted) {
               this.store.dispatch(new DeleteAllResponsesAction(this.formId));
             }
-            this.store.dispatch(new SaveFormAction(form));
+            this.store.dispatch(new SaveFormAction(event));
           });
         }
       });
     } else {
-      this.store.dispatch(new SaveFormAction(form));
+      this.store.dispatch(new SaveFormAction(event));
     }
-    this.wasVisible = form.settings.visible;
+    this.wasVisible = event.data.settings.visible;
   }
 
   onTabChanged(tabIndex: number) {
     switch (tabIndex) {
       case FormDetailTab.TOMBOLA_WINNERS:
-        this.form$.pipe(first()).subscribe(form => {
-          this.store.dispatch(new GetTombolaWinnersAction(form.data.settings.id));
-        });
+        this.store.dispatch(new GetTombolaWinnersAction(this.formId));
+        break;
+      case FormDetailTab.RESPONSES:
+        this.store.dispatch(new GetResponsesAction({ formId: this.formId, page_size: 5 }, true));
         break;
       case FormDetailTab.STATISTICS:
         this.store.dispatch(new GetFormStatisticsAction(this.formId));
@@ -133,17 +142,23 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     this._subscription.unsubscribe();
     this._subscription = this.matDialog.open(UserAutoCompleteDialogComponent, { data }).afterClosed().pipe(
       withLatestFrom(this.form$),
-      first(),
+      take(1),
     ).subscribe(([ result, formData ]: [ UserDetailsTO | null, Loadable<OcaForm> ]) => {
-      if (result) {
+      if (result && formData.data) {
         this.store.dispatch(new TestFormAction(formData.data.form.id, [ createAppUser(result.email, result.app_id) ]));
       }
     });
   }
 
+  copyForm() {
+    this.store.dispatch(new CopyFormAction(this.formId));
+  }
+
   createNews() {
-    // TODO: if user hasn't saved yet, ask to save first
-    this.form$.pipe(first()).subscribe(form => {
+    this.form$.pipe(take(1), takeUntil(this._destroyed)).subscribe(form => {
+      if (!form.data) {
+        return;
+      }
       const message = form.data.form.sections[ 0 ].description || form.data.form.sections[ 0 ].components[ 0 ].description;
       const buttonValue = JSON.stringify({ '__rt__.tag': '__sln__.forms', id: form.data.form.id });
       const data = {
@@ -178,5 +193,26 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  onTestForm(user?: UserDetailsTO) {
+    if (!user) {
+      return;
+    }
+    const userEmail = createAppUser(user.email, user.app_id);
+    this.form$.pipe(
+      take(1),
+      takeUntil(this._destroyed),
+    ).subscribe(result => {
+      if (result && result.data) {
+        this.store.dispatch(new TestFormAction(result.data.form.id, [ userEmail ]));
+      }
+    });
+  }
 
+  onNextResponse(responseId: number | null) {
+    this.store.dispatch(new GetNextResponseAction({ formId: this.formId, responseId }));
+  }
+
+  onRemoveResponse(data: {formId: number, submissionId: number}) {
+    this.store.dispatch(new DeleteResponseAction(data));
+  }
 }

@@ -1,19 +1,21 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { ControlContainer, NgForm } from '@angular/forms';
-import { MatSelectChange } from '@angular/material';
+import { MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
 import {
   COMPONENT_TYPES,
   ComponentTypeItem,
   DATE_FORMATS,
+  FILE_TYPES,
+  GOTO_SECTION_OPTION,
   KEYBOARD_TYPES,
   OptionsMenuOption,
   SHOW_DESCRIPTION_OPTION,
   VALIDATION_OPTION,
-} from '../../../interfaces/consts';
-import { DateFormat, FormComponentType, KeyboardType, OptionType } from '../../../interfaces/enums';
-import { FormComponent, isInputComponent, SingleSelectComponent } from '../../../interfaces/forms.interfaces';
-import { FormValidator, FormValidatorType, ValidatorType } from '../../../interfaces/validators.interfaces';
+} from '../../interfaces/consts';
+import { DateFormat, FormComponentType, KeyboardType, OptionType } from '../../interfaces/enums';
+import { FormComponent, isInputComponent, SingleSelectComponent, UINextAction } from '../../interfaces/forms';
+import { FormValidator, FormValidatorType, ValidatorType } from '../../interfaces/validators';
 
 @Component({
   selector: 'oca-form-field',
@@ -23,20 +25,14 @@ import { FormValidator, FormValidatorType, ValidatorType } from '../../../interf
   viewProviders: [ { provide: ControlContainer, useExisting: NgForm } ],
 })
 export class FormFieldComponent {
-  @Input()
+  @Input() set value(value: FormComponent) {
+    this.setComponent(value);
+  }
+
   set component(value: FormComponent) {
     if (value !== this._component) {
-      const previousType = this._component && this._component.type;
-      this._component = value;
-      this.showDescription = this._shouldShowDescription(this._component);
-      if (value && (previousType !== value.type)) {
-        this.componentType = COMPONENT_TYPES.find(c => c.value === this._component.type);
-        this.onComponentChange(this._component.type);
-        this.init();
-      }
-      if (previousType != null) {
-        this.changed();
-      }
+      this.setComponent(value);
+      this.changed();
     }
   }
 
@@ -44,18 +40,22 @@ export class FormFieldComponent {
     return this._component;
   }
 
+  @Input() nextActions: UINextAction[];
   @Input() name: string;
+  @Input() readonlyIds = false;
   @Output() removeComponent = new EventEmitter<FormComponent>();
   @Output() componentChange = new EventEmitter<FormComponent>();
   FormComponentType = FormComponentType;
   COMPONENT_TYPES = COMPONENT_TYPES;
   KEYBOARD_TYPES = KEYBOARD_TYPES;
   DATE_FORMATS = DATE_FORMATS;
+  FILE_TYPES = FILE_TYPES;
   optionsMenuItems: OptionsMenuOption[] = [];
   showDescription = false;
   isRequired = false;
   showRequired = false;
   showValidators = false;
+  showNextActions = false;
   validatorTypes: ValidatorType[] = [];
   componentType: ComponentTypeItem = COMPONENT_TYPES[ 0 ];
 
@@ -70,7 +70,13 @@ export class FormFieldComponent {
 
   titleChanged(title: string) {
     if (isInputComponent(this.component)) {
-      this.component = { ...this.component, id: title };
+      this.component = { ...this.component, id: this.readonlyIds ? this.component.id : title };
+    }
+  }
+
+  idChanged(id: string) {
+    if (isInputComponent(this.component)) {
+      this.component = { ...this.component, id: this.component.id};
     }
   }
 
@@ -98,14 +104,17 @@ export class FormFieldComponent {
     switch (option.id) {
       case OptionType.SHOW_DESCRIPTION:
         if (option.checked) {
-          this.component.description = null;
+          this.component = { ...this.component, description: null };
         }
         this.showDescription = !option.checked;
         break;
       case OptionType.ENABLE_VALIDATION:
         if (option.checked) {
           if (isInputComponent(this.component)) {
-            this.component.validators = this.component.validators.filter(v => v.type === FormValidatorType.REQUIRED);
+            this.component = {
+              ...this.component,
+              validators: this.component.validators.filter(v => v.type === FormValidatorType.REQUIRED),
+            };
           }
         }
         this.showValidators = !option.checked;
@@ -115,6 +124,7 @@ export class FormFieldComponent {
           const comp = this.component as SingleSelectComponent;
           comp.choices = comp.choices.map(c => ({ ...c, next_action: null }));
         }
+        this.showNextActions = !option.checked;
         break;
     }
     option.checked = !option.checked;
@@ -130,6 +140,18 @@ export class FormFieldComponent {
 
   keyboardTypeChanged() {
     this.setValidatorTypes();
+    this.changed();
+  }
+
+  private setComponent(value: FormComponent) {
+    const previousType = this._component && this._component.type;
+    this._component = value;
+    this.showDescription = this._shouldShowDescription(this._component);
+    if (value && (previousType !== value.type)) {
+      this.componentType = COMPONENT_TYPES.find(c => c.value === this._component.type) as ComponentTypeItem;
+      this.onComponentChange(this._component.type);
+      this.init();
+    }
   }
 
   private addValidator(validator: FormValidator) {
@@ -146,15 +168,15 @@ export class FormFieldComponent {
 
   private prepareOptionsMenu() {
     this.optionsMenuItems = [ { ...SHOW_DESCRIPTION_OPTION, checked: this.showDescription } ];
-    if (this.component.type !== FormComponentType.PARAGRAPH && this.component.type !== FormComponentType.SINGLE_SELECT) {
-      this.optionsMenuItems.push({
-        ...VALIDATION_OPTION,
-        checked: this.component.validators.filter(v => v.type !== FormValidatorType.REQUIRED).length !== 0,
-      });
-      // TODO implement
-      // if (this.component.type === FormComponentType.SINGLE_SELECT) {
-      //   this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action !== null) });
-      // }
+    if (this.component.type !== FormComponentType.PARAGRAPH) {
+      if (this.component.type === FormComponentType.SINGLE_SELECT) {
+        this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action != null) });
+      } else if (this.component.type !== FormComponentType.LOCATION) {
+        this.optionsMenuItems.push({
+          ...VALIDATION_OPTION,
+          checked: this.component.validators.filter(v => v.type !== FormValidatorType.REQUIRED).length !== 0,
+        });
+      }
     }
   }
 
@@ -164,7 +186,7 @@ export class FormFieldComponent {
     this.showDescription = this._shouldShowDescription(comp);
     if (isInputComponent(comp)) {
       if (!comp.id) {
-        comp.id = comp.title;
+        comp.id = comp.title as string;
       }
       if (!comp.validators) {
         comp.validators = [];
@@ -179,7 +201,10 @@ export class FormFieldComponent {
         case FormComponentType.MULTI_SELECT:
           if (!comp.choices) {
             const value = this._translate.instant('oca.option_x', { number: 1 });
-            comp = { ...comp, choices: [ { value, label: value } ] };
+            comp = { ...comp, choices: [ { value, label: value, next_action: null } ] };
+          }
+          if (comp.type === FormComponentType.SINGLE_SELECT) {
+            this.showNextActions = comp.choices.some(c => c.next_action != null);
           }
           break;
         case FormComponentType.DATETIME:
@@ -193,25 +218,38 @@ export class FormFieldComponent {
   }
 
   private setValidatorTypes() {
-    let validatorTypes = [];
+    let validatorTypes: ValidatorType[] = [];
     switch (this.component.type) {
       case FormComponentType.TEXT_INPUT:
         if ([ KeyboardType.NUMBER, KeyboardType.DECIMAL ].includes(this.component.keyboard_type)) {
           validatorTypes = [ ...validatorTypes,
-            { type: FormValidatorType.MIN, label: 'oca.minimum' },
-            { type: FormValidatorType.MAX, label: 'oca.maximum' },
+            { type: FormValidatorType.MIN, label: 'oca.minimum', value: 1 },
+            { type: FormValidatorType.MAX, label: 'oca.maximum', value: 100 },
           ];
         } else {
           validatorTypes = [ ...validatorTypes,
-            { type: FormValidatorType.MINLENGTH, label: 'oca.minimum_length' },
-            { type: FormValidatorType.MAXLENGTH, label: 'oca.maximum_length' },
+            { type: FormValidatorType.MINLENGTH, label: 'oca.minimum_length', value: 2 },
+            { type: FormValidatorType.MAXLENGTH, label: 'oca.maximum_length', value: 200 },
           ];
         }
         break;
       case FormComponentType.MULTI_SELECT:
         validatorTypes = [ ...validatorTypes,
-          { type: FormValidatorType.MIN, label: 'oca.select_at_least' },
-          { type: FormValidatorType.MAX, label: 'oca.select_at_most' },
+          { type: FormValidatorType.MIN, label: 'oca.select_at_least', value: 2 },
+          { type: FormValidatorType.MAX, label: 'oca.select_at_most', value: 2 },
+        ];
+        break;
+      case FormComponentType.DATETIME:
+        validatorTypes = [ ...validatorTypes,
+          { type: FormValidatorType.MINDATE, label: 'oca.minimum_date', value: new Date(), value_label: 'oca.date'},
+          { type: FormValidatorType.MAXDATE, label: 'oca.maximum_date', value: new Date(), value_label: 'oca.date'},
+        ];
+        break;
+      case FormComponentType.FILE:
+        validatorTypes = [ ...validatorTypes,
+          { type: FormValidatorType.MIN, label: 'oca.minimum_files', value: 1 },
+          { type: FormValidatorType.MAX, label: 'oca.maximum_files', value: 1 },
+          { type: FormValidatorType.MAXLENGTH, label: 'oca.maximum_file_size', value: 10_485_760, value_label: 'oca.file_size_in_b' },
         ];
         break;
     }

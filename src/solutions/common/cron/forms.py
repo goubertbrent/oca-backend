@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
-import logging
 from datetime import datetime
 
 import webapp2
@@ -31,7 +30,6 @@ class FinishFormsCron(webapp2.RequestHandler):
         tasks = []
         now = datetime.now()
         one_hour_from_now = now + relativedelta(hours=1)
-        d = OcaForm.query().get().visible_until
         for form in OcaForm.list_between_dates(now, one_hour_from_now):  # type: OcaForm
             task_name = get_finish_form_task_name(form)
             seconds_left = (form.visible_until - now).total_seconds()

@@ -6,6 +6,12 @@
       <mat-icon>drag_indicator</mat-icon>
       <h4 matLine>{{ item.title }}</h4>
       <p matLine>{{ 'oca.section_x_of_y' | translate : {current: i + 1, total: list.length} }}</p>
+      <mat-list *cdkDragPreview>
+        <mat-list-item>
+          <h4 matLine>{{ item.title }}</h4>
+          <p matLine>{{ 'oca.section_x_of_y' | translate : {current: i + 1, total: list.length} }}</p>
+        </mat-list-item>
+      </mat-list>
     </mat-list-item>
   </mat-list>
 </mat-dialog-content>

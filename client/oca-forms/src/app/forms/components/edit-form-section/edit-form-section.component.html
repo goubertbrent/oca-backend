@@ -1,3 +1,30 @@
+<mat-menu #sectionSettingsMenu="matMenu">
+  <ng-template matMenuContent>
+    <button mat-menu-item (click)="moveSection.emit()" *ngIf="canMove">
+      <mat-icon>import_export</mat-icon>
+      <span>{{ 'oca.move_section' | translate }}</span>
+    </button>
+    <button mat-menu-item (click)="toggleDescription()">
+      <mat-icon>{{ showDescription ? 'check' : 'description'}}</mat-icon>
+      <span>{{ 'oca.description' | translate }}</span>
+    </button>
+    <button mat-menu-item (click)="deleteSection.emit()" *ngIf="canDelete">
+      <mat-icon>delete</mat-icon>
+      <span>{{ 'oca.delete_section' | translate }}</span>
+    </button>
+  </ng-template>
+</mat-menu>
+<mat-toolbar color="primary">
+  <span class="flex-grow">{{ headerTitle }}</span>
+  <span class="icons-row">
+  <button type="button" mat-icon-button (click)="openHeaderImageDialog()">
+    <mat-icon>image</mat-icon>
+  </button>
+  <button type="button" mat-icon-button [matMenuTriggerFor]="sectionSettingsMenu">
+    <mat-icon>more_vert</mat-icon>
+  </button>
+</span>
+</mat-toolbar>
 <fieldset *ngIf="section">
   <mat-card *ngIf="formId && section.branding" class="header-card">
     <mat-card-header>
@@ -14,13 +41,15 @@
     </mat-card-actions>
   </mat-card>
   <mat-form-field class="field">
-    <mat-label>{{ 'oca.title' | translate }}</mat-label>
-    <input [name]="name + '_title'" matInput [(ngModel)]="section.title" maxlength="80" #title="ngModel">
+    <mat-label>{{ 'oca.page_title' | translate }}</mat-label>
+    <input [name]="name + '_title'" matInput [ngModel]="section.title"
+           (ngModelChange)="changed('title', $event)" maxlength="80">
   </mat-form-field>
-  <div class="field">
+  <div class="field" *ngIf="showDescription">
     <p>{{ 'oca.description' | translate }}</p>
     <div class="description-editor">
-      <simplemde [name]="name + '_description'" [(ngModel)]="section.description"></simplemde>
+      <simplemde [name]="name + '_description'" [(ngModel)]="section.description"
+                 (ngModelChange)="changed('description', $event)"></simplemde>
     </div>
   </div>
   <div class="component-container" cdkDropList (cdkDropListDropped)="dropped($event)">
@@ -29,12 +58,27 @@
       <div class="drag-handle" cdkDragHandle>
         <mat-icon [matTooltip]="'oca.drag_to_change_order' | translate">drag_handle</mat-icon>
       </div>
-      <oca-form-field [component]="component" [name]="section.id + '_component_' + i"
+      <oca-form-field [value]="component"
+                      [name]="section.id + '_component_' + i"
+                      [nextActions]="nextActions"
+                      [readonlyIds]="readonlyIds"
                       (componentChange)="componentChanged($event, i)"
                       (removeComponent)="onRemoveComponent(i)"></oca-form-field>
     </div>
   </div>
-  <div class="add-button" *ngIf="canAddComponents">
-    <button type="button" mat-raised-button (click)="addComponent()">{{ 'oca.add_question' | translate }}</button>
+  <div class="after-section" *ngIf="canAddComponents">
+    <button type="button" mat-raised-button (click)="addComponent()">
+      {{ 'oca.add_question' | translate }}
+    </button>
+    <mat-form-field class="next-action-select" *ngIf="showNextAction">
+      <mat-label>{{ 'oca.after_section_x' | translate : {section: sectionNumber} }}</mat-label>
+      <mat-select [name]="name + '_next_action'" [(ngModel)]="section.next_action"
+                  (ngModelChange)="changed('next_action', $event)"
+                  [compareWith]="compareAction">
+        <mat-option *ngFor="let option of nextActions; trackBy: trackActions" [value]="option.action">
+          {{ option.label }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
   </div>
 </fieldset>

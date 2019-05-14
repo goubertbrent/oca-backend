@@ -1,6 +1,10 @@
 import { Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { FormValidator, FormValidatorType, ValidatorType } from '../../../interfaces/validators.interfaces';
+import { MatDatepickerInputEvent } from '@angular/material/datepicker';
+import { updateItem } from '../../../shared/util/redux';
+import { FormComponentType } from '../../interfaces/enums';
+import { DatetimeValue } from '../../interfaces/form-values';
+import { FormValidator, FormValidatorType, MaxDateValidator, MinDateValidator, ValidatorType } from '../../interfaces/validators';
 
 @Component({
   selector: 'oca-form-validators',
@@ -16,36 +20,30 @@ export class FormValidatorsComponent implements ControlValueAccessor {
 
   set validators(value: FormValidator[]) {
     if (value) {
-      if (this._validators) {
-        this.onChange(value);
-      }
-      this._validators = [ ...value ];
-      const currentTypes = value.map(v => v.type);
-      // @ts-ignore
-      this.allowedTypes = this.validatorTypes.filter(v => !currentTypes.includes(v.type));
-      this.validatorNames = this.validatorTypes.reduce((previousValue, currentValue) => ({
-        ...previousValue,
-        [ currentValue.type ]: currentValue.label,
-      }), {});
+      this.updateValues(value);
+      this.onChange(value);
     }
   }
 
   get validators() {
-    return this._validators;
+    return this._validators || [];
   }
 
+  @Input() componentType: FormComponentType;
   @Input() validatorTypes: ValidatorType[];
   @Input() name: string;
 
-  private _validators: FormValidator[] = [];
+  private _validators: FormValidator[];
   allowedTypes: ValidatorType[] = [];
   validatorNames: { [key in FormValidatorType]?: string };
+  valueNames: { [key in FormValidatorType]?: string };
   FormValidatorType = FormValidatorType;
+  FormComponentType = FormComponentType;
 
   private onChange = (_: any) => {
-  };
+  }
   private onTouched = () => {
-  };
+  }
 
   registerOnChange(fn: any): void {
     this.onChange = fn;
@@ -59,23 +57,31 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   }
 
   writeValue(values: FormValidator[]): void {
-    this.validators = values;
+    if (values !== this.validators) {
+      this.updateValues(values);
+    }
   }
 
-  addValidator(validatorType: FormValidatorType) {
+  addValidator(validatorType: ValidatorType) {
     let validator: FormValidator;
-    switch (validatorType) {
+    switch (validatorType.type) {
       case FormValidatorType.MAX:
-        validator = { type: FormValidatorType.MAX, value: 2 };
+        validator = { type: FormValidatorType.MAX, value: validatorType.value as number };
         break;
       case FormValidatorType.MAXLENGTH:
-        validator = { type: FormValidatorType.MAXLENGTH, value: 200 };
+        validator = { type: FormValidatorType.MAXLENGTH, value: validatorType.value as number };
+        break;
+      case FormValidatorType.MINDATE:
+        validator = { type: validatorType.type, ...dateToDatetimeValue(validatorType.value as Date) };
+        break;
+      case FormValidatorType.MAXDATE:
+        validator = { type: validatorType.type, ...dateToDatetimeValue(validatorType.value as Date) };
         break;
       case FormValidatorType.MIN:
-        validator = { type: FormValidatorType.MIN, value: 2 };
+        validator = { type: FormValidatorType.MIN, value: validatorType.value as number };
         break;
       case FormValidatorType.MINLENGTH:
-        validator = { type: FormValidatorType.MINLENGTH, value: 10 };
+        validator = { type: FormValidatorType.MINLENGTH, value: validatorType.value as number };
         break;
       default:
         return;
@@ -90,4 +96,43 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   trackByType(index: number, item: FormValidator) {
     return item.type;
   }
+
+  private updateValues(value: FormValidator[] | null) {
+    this._validators = value ? [ ...value ] : [];
+    const currentTypes = this._validators.map(v => v.type);
+    // @ts-ignore
+    this.allowedTypes = this.validatorTypes.filter(v => !currentTypes.includes(v.type));
+    this.validatorNames = {};
+    this.valueNames = {};
+    for (const validator of this.validatorTypes) {
+      this.validatorNames[ validator.type ] = validator.label;
+      this.valueNames[ validator.type ] = validator.value_label || 'oca.number';
+    }
+  }
+
+  setDate(event: MatDatepickerInputEvent<any>, validator: MinDateValidator | MaxDateValidator) {
+    if (event.value instanceof Date) {
+      validator = { ...validator, ...dateToDatetimeValue(event.value as Date) };
+    }
+    this.validators = updateItem(this.validators, validator, 'type');
+  }
+
+  getDateValue(validator: MinDateValidator | MaxDateValidator) {
+    return datetimeValueToDate(validator);
+  }
+}
+
+function datetimeValueToDate(val: DatetimeValue): Date {
+  return new Date(val.year, val.month - 1, val.day, val.hour, val.minute);
+}
+
+function dateToDatetimeValue(date: Date): DatetimeValue {
+  // Time not supported
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: 0,
+    minute: 0,
+  };
 }

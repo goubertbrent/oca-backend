@@ -1,0 +1,25 @@
+mat-checkbox {
+  margin-right: 8px;
+}
+
+.option-container {
+  display: flex;
+  align-items: center;
+}
+
+.option-value {
+  width: 250px;
+  margin-right: 16px;
+  font-size: 14px;
+}
+
+.option-label {
+  flex-grow: 1;
+  font-size: 14px;
+}
+
+.option-action {
+  margin-left: 16px;
+  width: 250px;
+  font-size: 14px;
+}

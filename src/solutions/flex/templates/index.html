@@ -153,6 +153,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
 {% if SolutionModule.FORMS in sln_settings.modules and not loyalty %}
                         <li menu="forms"><a href="#/forms">{% translate language, "common", "forms" %}</a></li>
 {% endif %}
+{% if SolutionModule.PARTICIPATION in sln_settings.modules and not loyalty %}
+                        <li menu="participation"><a href="#/participation">{% translate language, "common", "participation" %}</a></li>
+{% endif %}
 {% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
                         <li menu="static_content"><a href="#" help="aBXQnE69UEE">{% translate language, "common", "static-content" %}</a></li>
 {% endif %}
@@ -355,10 +358,9 @@ var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif 
     {% if SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
         {%- include 'city_vouchers/city_vouchers.tmpl' %}
     {% endif %}
-    {% if SolutionModule.FORMS in sln_settings.modules %}
-        {%- include 'forms.tmpl' %}
-    {% endif %}
 {% endif %}
+<iframe class="page page-full-width" id="dashboard" frameborder="none" width="100%" height="100%"></iframe>
+<script src="/static/js/solutions/sln-new-dashboard.js"></script>
 
 {% if not loyalty %}
     {% if not is_layout_user %}
