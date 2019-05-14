@@ -431,8 +431,8 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     if SolutionModule.CITY_APP in sln_settings.modules:
         if action_button:
             tag_content = action_button.action.replace('smi://', '')
-            tag = _get_human_readable_tag(tag_content)
-            if tag == POKE_TAG_FORMS:
+            smi_tag = _get_human_readable_tag(tag_content)
+            if smi_tag == POKE_TAG_FORMS:
                 form_id = json.loads(tag_content)['id']
                 form = get_form_settings(form_id, service_user)
                 if form.visible_until:
