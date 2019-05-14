@@ -222,7 +222,10 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                             request['documents'] = []
                         content = urlfetch.fetch(comp_val.value).content
                         base64_attachment = b64encode(content)
-                        request['documents'].append({'document': {'name': gv_comp.name, 'content': base64_attachment}})
+                        doc = OrderedDict()
+                        doc['name'] = gv_comp.name
+                        doc['content'] = base64_attachment
+                        request['documents'].append({'document': doc})
                 else:
                     raise Exception('Unknown component type: %s' % gv_comp)
         if flexes:
