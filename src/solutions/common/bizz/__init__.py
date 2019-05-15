@@ -22,13 +22,14 @@ import logging
 import os
 import time
 from types import NoneType
+
 from PIL.Image import Image
 from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
 import pytz
-from rogerthat.to import TO
+
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
@@ -52,6 +53,7 @@ from rogerthat.rpc.users import User
 from rogerthat.service.api import app, qr
 from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role, store_branding, \
     store_pdf_branding, put_reserved_menu_item_label
+from rogerthat.to import TO
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
@@ -113,6 +115,7 @@ class SolutionModule(Enum):
     WHEN_WHERE = u'when_where'
     JOBS = u'jobs'
     FORMS = u'forms'
+    PARTICIPATION = u'participation'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 

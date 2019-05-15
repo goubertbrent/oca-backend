@@ -165,6 +165,7 @@ DEFAULT_COORDS = {
 
     SolutionModule.JOYN: None,
     SolutionModule.FORMS: None,
+    SolutionModule.PARTICIPATION: None,
 }
 
 

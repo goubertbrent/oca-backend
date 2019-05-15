@@ -134,6 +134,7 @@ POKE_TAGS = {
     SolutionModule.JOYN: None,
     SolutionModule.JOBS: None,
     SolutionModule.FORMS: None,
+    SolutionModule.PARTICIPATION: None,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -2049,6 +2050,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.JOYN: _dummy_put,
     SolutionModule.JOBS: _dummy_put,
     SolutionModule.FORMS: _dummy_put,
+    SolutionModule.PARTICIPATION: _dummy_put,
 }
 
 MODULES_DELETE_FUNCS = {
@@ -2076,4 +2078,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.JOYN: _default_delete,
     SolutionModule.JOBS: _default_delete,
     SolutionModule.FORMS: _default_delete,
+    SolutionModule.PARTICIPATION: _default_delete,
 }
