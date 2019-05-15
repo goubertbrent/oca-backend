@@ -16,7 +16,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
-import { NextAction, NextActionSection, NextActionType, UINextAction, Value } from '../../interfaces/forms';
+import { NextAction, UINextAction, Value } from '../../interfaces/forms';
 
 @Component({
   selector: 'oca-select-input-list',
@@ -34,6 +34,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   @ViewChild('newInput') newInput: ElementRef<HTMLInputElement>;
 
   @Input() readonlyIds: boolean;
+  @Input() name: string;
   @Input()
   set multiple(value: any) {
     this._multiple = coerceBooleanProperty(value);
@@ -147,20 +148,5 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     }
     this.values = [ ...this.values, { value, label: value } ];
     this.valueFocus$.next();
-  }
-
-  compareAction(first: NextAction, second?: NextAction) {
-    if (!second) {
-      return first.type === NextActionType.NEXT;
-    }
-    const sameType = first.type === second.type;
-    if (sameType && first.type === NextActionType.SECTION) {
-      return first.section === (second as NextActionSection).section;
-    }
-    return sameType;
-  }
-
-  trackActions(index: number, action: NextAction) {
-    return action.type === NextActionType.SECTION ? `${NextActionType.SECTION}_${action.section}` : action.type;
   }
 }

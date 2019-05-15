@@ -247,9 +247,7 @@ export class FormFieldComponent {
         break;
       case FormComponentType.FILE:
         validatorTypes = [ ...validatorTypes,
-          { type: FormValidatorType.MIN, label: 'oca.minimum_files', value: 1 },
-          { type: FormValidatorType.MAX, label: 'oca.maximum_files', value: 1 },
-          { type: FormValidatorType.MAXLENGTH, label: 'oca.maximum_file_size', value: 10_485_760, value_label: 'oca.file_size_in_b' },
+          { type: FormValidatorType.MAX, label: 'oca.maximum_file_size', value: 10_485_760, value_label: 'oca.file_size_in_b' },
         ];
         break;
     }

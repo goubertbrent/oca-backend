@@ -23,10 +23,11 @@ export interface TextInputComponent extends BaseInputComponent {
   validators: FormValidator[];
 }
 
-export const enum NextActionType {
+export enum NextActionType {
   NEXT = 'next',
   SECTION = 'section',
   SUBMIT = 'submit',
+  URL = 'url',
 }
 
 export interface NextActionDefault {
@@ -42,7 +43,12 @@ export interface NextActionSubmit {
   type: NextActionType.SUBMIT;
 }
 
-export type NextAction = NextActionDefault | NextActionSection | NextActionSubmit;
+export interface NextActionURL {
+  type: NextActionType.URL;
+  url: string;
+}
+
+export type NextAction = NextActionDefault | NextActionSection | NextActionSubmit | NextActionURL;
 
 export interface UINextAction {
   action: NextAction;

@@ -5,7 +5,7 @@ import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } fro
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { FormComponentType } from '../../interfaces/enums';
-import { FormComponent, FormSection, NextAction, NextActionSection, NextActionType, UINextAction } from '../../interfaces/forms';
+import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
 import { FormValidatorType } from '../../interfaces/validators';
 import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-dialog.component';
 
@@ -146,21 +146,6 @@ export class EditFormSectionComponent implements ControlValueAccessor {
         this._changeDetectorRef.markForCheck();
       }
     });
-  }
-
-  compareAction(first: NextAction, second?: NextAction) {
-    if (!second) {
-      return first.type === NextActionType.NEXT;
-    }
-    const sameType = first.type === second.type;
-    if (sameType && first.type === NextActionType.SECTION) {
-      return first.section === (second as NextActionSection).section;
-    }
-    return sameType;
-  }
-
-  trackActions(index: number, action: NextAction) {
-    return action.type === NextActionType.SECTION ? `${NextActionType.SECTION}_${action.section}` : action.type;
   }
 
   toggleDescription() {

@@ -336,10 +336,15 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
       label: this._translate.instant('oca.submit_form'),
       action: { type: NextActionType.SUBMIT },
     };
+    const openUrlAction: UINextAction = {
+      label: this._translate.instant('oca.open_url'),
+      action: { type: NextActionType.URL, url: '' },
+    };
     for (const section of this.form.form.sections) {
       this.nextActionsMapping[ section.id ] = [
         nextSection,
         ...sectionActions.filter(a => a.action.type !== NextActionType.SECTION || a.action.section !== section.id),
+        openUrlAction,
         submitSection,
       ];
     }

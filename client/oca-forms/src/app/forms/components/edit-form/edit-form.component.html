@@ -10,7 +10,7 @@
       </mat-form-field>
       <oca-edit-form-section [name]="'section_' + section.id"
                              [formId]="form.form.id"
-                             [showNextAction]="!last"
+                             [showNextAction]="true"
                              [sectionNumber]="i + 1"
                              [nextActions]="nextActionsMapping[section.id]"
                              [canAddComponents]="true"
@@ -22,7 +22,7 @@
                              (moveSection)="moveSection()"
                              (deleteSection)="deleteSection(i, section)"
                              (ngModelChange)="markChanged()"
-                             *ngFor="let section of form.form.sections; let i = index; let last = last; trackBy: trackBySection"></oca-edit-form-section>
+                             *ngFor="let section of form.form.sections; let i = index; trackBy: trackBySection"></oca-edit-form-section>
       <div class="add-section-button">
         <button type="button" mat-raised-button (click)="addSection()">{{ 'oca.add_section' | translate }}</button>
       </div>

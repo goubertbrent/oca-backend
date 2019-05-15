@@ -70,15 +70,12 @@
     <button type="button" mat-raised-button (click)="addComponent()">
       {{ 'oca.add_question' | translate }}
     </button>
-    <mat-form-field class="next-action-select" *ngIf="showNextAction">
-      <mat-label>{{ 'oca.after_section_x' | translate : {section: sectionNumber} }}</mat-label>
-      <mat-select [name]="name + '_next_action'" [(ngModel)]="section.next_action"
-                  (ngModelChange)="changed('next_action', $event)"
-                  [compareWith]="compareAction">
-        <mat-option *ngFor="let option of nextActions; trackBy: trackActions" [value]="option.action">
-          {{ option.label }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+    <oca-next-action-editor [name]="name + '_next_action'"
+                            [label]="'oca.after_section_x' | translate : {section: sectionNumber}"
+                            [nextActions]="nextActions"
+                            [value]="section.next_action"
+                            (changed)="changed('next_action', $event)"
+                            *ngIf="showNextAction">
+    </oca-next-action-editor>
   </div>
 </fieldset>

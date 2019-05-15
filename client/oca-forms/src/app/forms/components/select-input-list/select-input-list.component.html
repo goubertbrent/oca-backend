@@ -5,22 +5,21 @@
   </ng-container>
   <mat-form-field appearance="legacy" *ngIf="readonlyIds" class="option-value">
     <mat-label>{{ 'oca.value' | translate }}</mat-label>
-    <input [name]="'value_' + i" matInput [(ngModel)]="value.value"
+    <input [name]="name + 'value_' + i" matInput [(ngModel)]="value.value"
            (ngModelChange)="valueUpdated($event, i)" (keydown.enter)="selectNext(i)">
   </mat-form-field>
   <mat-form-field appearance="legacy" class="option-label">
-    <input [name]="'label_' + i" matInput [(ngModel)]="value.label"
+    <input [name]="name + 'label_' + i" matInput [(ngModel)]="value.label"
            (ngModelChange)="labelUpdated($event, i)" #labelInput (keydown.enter)="selectNext(i)">
   </mat-form-field>
   <button type="button" mat-icon-button *ngIf="values.length !== 1" (click)="removeValue(values[i])">
     <mat-icon>close</mat-icon>
   </button>
-  <mat-form-field appearance="legacy" class="option-action" *ngIf="nextActions.length > 0">
-    <mat-select [name]="'next_action_' + i" [compareWith]="compareAction" [(ngModel)]="value.next_action"
-                (ngModelChange)="actionUpdated($event, i)">
-      <mat-option *ngFor="let option of nextActions; trackBy: trackActions" [value]="option.action">{{ option.label }}</mat-option>
-    </mat-select>
-  </mat-form-field>
+  <oca-next-action-editor [name]="name + 'next_action' + i"
+                          [nextActions]="nextActions"
+                          [value]="value.next_action"
+                          (changed)="actionUpdated($event, i)">
+  </oca-next-action-editor>
 </div>
 <div>
   <ng-container [ngSwitch]="multiple">

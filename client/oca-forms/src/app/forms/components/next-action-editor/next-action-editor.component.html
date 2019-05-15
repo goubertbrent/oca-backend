@@ -1,0 +1,15 @@
+<mat-form-field appearance="legacy" class="option-action" *ngIf="nextActions.length > 0">
+  <mat-label *ngIf="label">{{ label }}</mat-label>
+  <mat-select [name]="name"
+              [compareWith]="compareAction"
+              [(ngModel)]="value"
+              (ngModelChange)="actionUpdated($event)">
+    <mat-option *ngFor="let option of nextActions; trackBy: trackActions"
+                [value]="option.action">
+      {{ option.label }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+<button type="button" mat-icon-button (click)="openActionEditor()" *ngIf="value && value.type === NextActionType.URL">
+  <mat-icon>edit</mat-icon>
+</button>

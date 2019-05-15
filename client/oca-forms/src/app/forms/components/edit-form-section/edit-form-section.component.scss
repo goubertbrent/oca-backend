@@ -6,10 +6,10 @@
 .after-section {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
 
   button {
-    margin: 0 8px;
+    margin-top: 2px;
   }
 }
 
@@ -56,9 +56,4 @@
 
 .description-editor {
   margin: 16px 0;
-}
-
-
-.next-action-select {
-  width: 300px;
 }

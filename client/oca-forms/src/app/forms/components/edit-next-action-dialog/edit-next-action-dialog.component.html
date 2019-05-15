@@ -1,0 +1,13 @@
+<h2 matDialogTitle>{{ 'oca.enter_url' | translate }}</h2>
+<mat-dialog-content>
+  <form (ngSubmit)="submit(form)" #form="ngForm">
+    <mat-form-field *ngIf="nextAction.type === NextActionType.URL">
+      <mat-label>{{ 'oca.url' | translate }}</mat-label>
+      <input name="url" type="url" matInput [(ngModel)]="nextAction.url" required>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button (click)="close()">{{ 'oca.cancel' | translate }}</button>
+  <button mat-button [disabled]="form.form.invalid" color="primary">{{ 'oca.save' | translate }}</button>
+</mat-dialog-actions>

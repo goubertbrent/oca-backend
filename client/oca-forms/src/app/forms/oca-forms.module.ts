@@ -47,6 +47,8 @@ import { formsReducer } from './forms.reducer';
 import { MatStepperIntlImpl } from './mat-stepper-intl-impl';
 import { FormDetailsPageComponent } from './pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './pages/form-list-page/form-list-page.component';
+import { EditNextActionDialogComponent } from './components/edit-next-action-dialog/edit-next-action-dialog.component';
+import { NextActionEditorComponent } from './components/next-action-editor/next-action-editor.component';
 
 const routes: Routes = [
   { path: '', component: FormListPageComponent },
@@ -102,10 +104,13 @@ const routes: Routes = [
     FormValidatorsComponent,
     FormListPageComponent,
     FormDetailsPageComponent,
+    EditNextActionDialogComponent,
+    NextActionEditorComponent,
   ],
   entryComponents: [
     ArrangeSectionsDialogComponent,
     UploadImageDialogComponent,
+    EditNextActionDialogComponent,
   ],
   providers: [
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' } },
