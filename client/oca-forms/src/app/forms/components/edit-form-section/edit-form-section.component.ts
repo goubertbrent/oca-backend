@@ -7,7 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
 import { FormValidatorType } from '../../interfaces/validators';
-import { UploadImageDialogComponent } from '../upload-image-dialog/upload-image-dialog.component';
+import { UploadImageDialogComponent, UploadImageDialogConfig } from '../upload-image-dialog/upload-image-dialog.component';
 
 @Component({
   selector: 'oca-edit-form-section',
@@ -42,7 +42,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
 
   @Input() name: string;
   @Input() readonlyIds = false;
-  @Input() formId?: number;
+  @Input() formId: number;
   @Input() headerTitle = '';
   @Input() canMove = false;
   @Input() canDelete = false;
@@ -137,8 +137,11 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   openHeaderImageDialog() {
-    const config: MatDialogConfig = {
-      data: this.formId,
+    const config: MatDialogConfig<UploadImageDialogConfig> = {
+      data: {
+        formId: this.formId,
+        title: this._translate.instant('oca.add_header_image'),
+      },
     };
     this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: string) => {
       if (result) {

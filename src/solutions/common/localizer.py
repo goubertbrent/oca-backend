@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.insert_image': u'Insert image',
          u'oca.open_url': u'Open url',
          u'oca.enter_url': u'Enter url',
          u'(Click to change)': u'(Click to change)',
@@ -3961,6 +3962,7 @@ translations = \
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
          u'oca.open_url': u'Open hyperlink',
+         u'oca.insert_image': u'Afbeelding invoegen',
          u'oca.enter_url': u'Voer een hyperlink in',
          u'(Click to change)': u'(Klik om te veranderen)',
          u'(No title)': u'(Geen titel)',

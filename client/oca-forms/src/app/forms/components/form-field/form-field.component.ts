@@ -42,6 +42,7 @@ export class FormFieldComponent {
 
   @Input() nextActions: UINextAction[];
   @Input() name: string;
+  @Input() formId: number;
   @Input() readonlyIds = false;
   @Output() removeComponent = new EventEmitter<FormComponent>();
   @Output() componentChange = new EventEmitter<FormComponent>();

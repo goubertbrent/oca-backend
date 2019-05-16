@@ -58,7 +58,8 @@
       <div class="drag-handle" cdkDragHandle>
         <mat-icon [matTooltip]="'oca.drag_to_change_order' | translate">drag_handle</mat-icon>
       </div>
-      <oca-form-field [value]="component"
+      <oca-form-field [formId]="formId"
+                      [value]="component"
                       [name]="section.id + '_component_' + i"
                       [nextActions]="nextActions"
                       [readonlyIds]="readonlyIds"

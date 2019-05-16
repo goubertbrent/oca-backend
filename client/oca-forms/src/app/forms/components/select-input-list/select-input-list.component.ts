@@ -13,10 +13,12 @@ import {
   ViewChildren,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
 import { NextAction, UINextAction, Value } from '../../interfaces/forms';
+import { UploadImageDialogComponent, UploadImageDialogConfig } from '../upload-image-dialog/upload-image-dialog.component';
 
 @Component({
   selector: 'oca-select-input-list',
@@ -33,6 +35,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   @ViewChildren('labelInput') labelInputElements: QueryList<ElementRef<HTMLInputElement>>;
   @ViewChild('newInput') newInput: ElementRef<HTMLInputElement>;
 
+  @Input() formId: number;
   @Input() readonlyIds: boolean;
   @Input() name: string;
   @Input()
@@ -71,7 +74,9 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   private onTouched = () => {
   }
 
-  constructor(private _changeDetectorRef: ChangeDetectorRef, private _translate: TranslateService) {
+  constructor(private _changeDetectorRef: ChangeDetectorRef,
+              private _translate: TranslateService,
+              private _matDialog: MatDialog) {
   }
 
   registerOnChange(fn: any): void {
@@ -148,5 +153,27 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     }
     this.values = [ ...this.values, { value, label: value } ];
     this.valueFocus$.next();
+  }
+
+  editImage(value: Value, index: number) {
+    const config: MatDialogConfig<UploadImageDialogConfig> = {
+      data: {
+        formId: this.formId,
+        cropOptions: { aspectRatio: undefined },
+        croppedCanvasOptions: { maxWidth: 720 },
+        title: this._translate.instant('oca.insert_image'),
+      },
+    };
+    this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: string) => {
+      if (result) {
+        this.values[ index ] = { ...value, image_url: result };
+        this.onChange(this.values);
+      }
+    });
+  }
+
+  removeImage(value: Value, index: number) {
+    this.values[ index ] = { ...value, image_url: null };
+    this.onChange(this.values);
   }
 }
