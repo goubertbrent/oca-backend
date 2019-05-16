@@ -20,11 +20,11 @@ import logging
 import rfc822
 from xml.dom import minidom
 
+from bs4 import BeautifulSoup
 import dateutil.parser
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
 
-from bs4 import BeautifulSoup
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
@@ -64,6 +64,8 @@ def _worker(rss_settings_key):
     to_put = []
     oldest_dates = {}
     can_delete = True
+
+    new_news_item_ids = []
 
     for rss_link in rss_settings.rss_links:
         app_ids = rss_link.app_ids if rss_link.app_ids else None
@@ -109,8 +111,12 @@ def _worker(rss_settings_key):
         for scraped_item in items:
             # Backwards compat - in the past only url was used as key
             item = saved_items.get(scraped_item.guid) or saved_items.get(scraped_item.url)
+            if scraped_item.id in new_news_item_ids:
+                continue
             if item:
                 if not item.dry_run and item.news_id and scraped_item.hash != item.hash:
+                    logging.debug('update_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                    new_news_item_ids.append(scraped_item.id)
                     tasks.append(create_task(update_news_item, item.news_id, sln_settings, broadcast_type,
                                              scraped_item.message, scraped_item.title, scraped_item.url,
                                              scraped_item.image_url))
@@ -125,6 +131,8 @@ def _worker(rss_settings_key):
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
                 if not dry_run:
+                    logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                    new_news_item_ids.append(scraped_item.id)
                     tasks.append(create_task(create_news_item, sln_settings, broadcast_type, scraped_item.message,
                                              scraped_item.title, scraped_item.url, rss_settings.notify,
                                              scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name))
