@@ -24,15 +24,20 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
-import { StoreModule } from '@ngrx/store';
+import { Store, StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
 import { ArrangeSectionsDialogComponent } from './components/arange-sections-dialog/arrange-sections-dialog.component';
 import { DateStatisticsListComponent } from './components/date-statistics-list/date-statistics-list.component';
 import { EditFormSectionComponent } from './components/edit-form-section/edit-form-section.component';
 import { EditFormComponent } from './components/edit-form/edit-form.component';
+import { EditNextActionDialogComponent } from './components/edit-next-action-dialog/edit-next-action-dialog.component';
 import { FormDetailComponent } from './components/form-detail/form-detail.component';
 import { FormFieldComponent } from './components/form-field/form-field.component';
+import { FormIntegrationConfigurationComponent } from './components/form-integration-configration/form-integration-configuration.component';
+import { FormIntegrationGvConfigComponent } from './components/form-integration-gv-config/form-integration-gv-config.component';
+import { FormIntegrationGVComponent } from './components/form-integration-gv/form-integration-gv.component';
+import { FormIntegrationsComponent } from './components/form-integrations/form-integrations.component';
 import { FormListComponent } from './components/form-list/form-list.component';
 import { FormResponsesComponent } from './components/form-responses/form-responses.component';
 import { FormStatisticsNumberChartComponent } from './components/form-statistics-number-chart/form-statistics-number-chart.component';
@@ -40,15 +45,17 @@ import { FormStatisticsComponent } from './components/form-statistics/form-stati
 import { FormTombolaWinnersComponent } from './components/form-tombola-winners/form-tombola-winners.component';
 import { FormValidatorsComponent } from './components/form-validators/form-validators.component';
 import { ImageCropperComponent } from './components/image-cropper/image-cropper.component';
+import { NextActionEditorComponent } from './components/next-action-editor/next-action-editor.component';
 import { SelectInputListComponent } from './components/select-input-list/select-input-list.component';
 import { UploadImageDialogComponent } from './components/upload-image-dialog/upload-image-dialog.component';
+import { GetIntegrationsAction } from './forms.actions';
 import { FormsEffects } from './forms.effects';
 import { formsReducer } from './forms.reducer';
+import { FormsState } from './forms.state';
 import { MatStepperIntlImpl } from './mat-stepper-intl-impl';
 import { FormDetailsPageComponent } from './pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './pages/form-list-page/form-list-page.component';
-import { EditNextActionDialogComponent } from './components/edit-next-action-dialog/edit-next-action-dialog.component';
-import { NextActionEditorComponent } from './components/next-action-editor/next-action-editor.component';
+import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-settings-page.component';
 
 const routes: Routes = [
   { path: '', component: FormListPageComponent },
@@ -107,6 +114,11 @@ const routes: Routes = [
     FormDetailsPageComponent,
     EditNextActionDialogComponent,
     NextActionEditorComponent,
+    FormIntegrationsComponent,
+    FormIntegrationGVComponent,
+    FormsSettingsPageComponent,
+    FormIntegrationConfigurationComponent,
+    FormIntegrationGvConfigComponent,
   ],
   entryComponents: [
     ArrangeSectionsDialogComponent,
@@ -119,4 +131,8 @@ const routes: Routes = [
   ],
 })
 export class OcaFormsModule {
+  constructor(private store: Store<FormsState>) {
+    this.store.dispatch(new GetIntegrationsAction());
+  }
+
 }

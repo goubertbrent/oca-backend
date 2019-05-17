@@ -61,7 +61,7 @@ from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, UploadedFile, \
-    FormStatisticsShard, CompletedFormStep, CompletedFormStepType, FormIntegrationConfiguration
+    FormStatisticsShard, CompletedFormStep, CompletedFormStepType, FormIntegrationConfiguration, FormIntegration
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
@@ -127,7 +127,8 @@ def _update_form(model, created_form, settings):
                    visible_until=settings.visible_until and _get_utc_datetime(settings.visible_until),
                    tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()),
                    steps=[CompletedFormStep(step_id=step.step_id) for step in settings.steps],
-                   readonly_ids=settings.readonly_ids)
+                   readonly_ids=settings.readonly_ids,
+                   integrations=[FormIntegration(**i.to_dict()) for i in settings.integrations])
 
     if created_form:
         model.populate(
@@ -401,9 +402,9 @@ def _save_form_submission(user, form, service_user):
                                 test=form.test)
     submission.put()
     try_or_defer(update_form_statistics, submission, get_random_shard_number(submission.form_id))
-    oca_form = OcaForm.create_key(form.id, service_user).get()
+    oca_form = OcaForm.create_key(form.id, service_user).get()  # type: OcaForm
     schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form.id)
-                    for i in oca_form.integrations])
+                    for i in oca_form.integrations if i.enabled])
 
 
 def upload_form_image(service_user, form_id, uploaded_file):
@@ -436,17 +437,39 @@ def list_images(service_user, folder):
 
 def _submit_form_to_integration(service_user, integration_provider, submission_key, form_id):
     # type: (users.User, ndb.Key, str, long) -> None
-    with users.set_user(service_user):
-        form = service_api.get_form(form_id)
     integration_key = FormIntegrationConfiguration.create_key(service_user, integration_provider)
     oca_form_key = OcaForm.create_key(form_id, service_user)
     submission, config, oca_form = ndb.get_multi([submission_key, integration_key, oca_form_key])
+    if not config or not config.enabled:
+        logging.info('Integration %s not enabled', integration_provider)
+        return
     form_integration = get_form_integration(integration_provider, config)
     filtered_integrations = [i for i in oca_form.integrations if i.provider == integration_provider]
     if not filtered_integrations:
         logging.warning('Not submitting form integration, provider %s not found.', integration_provider)
         return
-    reference = form_integration.submit(filtered_integrations[0].configuration, submission, form)
+    integration_model = filtered_integrations[0]  # type: FormIntegration
+    if not integration_model.enabled:
+        logging.info('Integration %s for form %d not enabled', integration_provider, form_id)
+        return
+    with users.set_user(service_user):
+        form = service_api.get_form(form_id)
+    reference = form_integration.submit(integration_model.configuration, submission, form)
     if reference:
         submission.external_reference = reference
         submission.put()
+
+
+def get_form_integrations(user):
+    # type: (users.User) -> list[FormIntegration]
+    return FormIntegrationConfiguration.list_by_user(user)
+
+
+def update_form_integration(user, provider, data):
+    key = FormIntegrationConfiguration.create_key(user, provider)
+    integration = key.get() or FormIntegrationConfiguration(key=key)  # type: FormIntegrationConfiguration
+    integration.enabled = data['enabled']
+    integration.configuration = data['configuration']
+    integration.put()
+    # TODO: validate that the configuration is valid, throw error otherwise
+    return integration

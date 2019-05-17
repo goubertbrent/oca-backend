@@ -1,15 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
 import { UserDetailsTO } from '../shared/users/users';
-import {
-  FormResponse,
-  FormResponses,
-  FormSettings,
-  FormStatistics,
-  LoadResponses,
-  OcaForm,
-  SaveForm,
-} from './interfaces/forms';
+import { FormResponse, FormResponses, FormSettings, FormStatistics, LoadResponses, OcaForm, SaveForm } from './interfaces/forms';
+import { FormIntegrationConfiguration } from './interfaces/integrations';
 
 export const enum FormsActionTypes {
   GET_FORMS = '[forms] Get forms',
@@ -55,6 +48,12 @@ export const enum FormsActionTypes {
   GET_RESPONSES = '[forms] Get responses',
   GET_RESPONSES_COMPLETE = '[forms] Get responses complete',
   GET_RESPONSES_FAILED = '[forms] Get responses failed',
+  GET_INTEGRATIONS = '[forms] Get integrations',
+  GET_INTEGRATIONS_COMPLETE = '[forms] Get integrations complete',
+  GET_INTEGRATIONS_FAILED = '[forms] Get integrations failed',
+  UPDATE_INTEGRATION = '[forms] Get integration',
+  UPDATE_INTEGRATION_COMPLETE = '[forms] Get integration complete',
+  UPDATE_INTEGRATION_FAILED = '[forms] Get integration failed',
 }
 
 export class GetFormsAction implements Action {
@@ -336,6 +335,46 @@ export class DeleteResponseFailedAction implements Action {
   }
 }
 
+export class GetIntegrationsAction implements Action {
+  readonly type = FormsActionTypes.GET_INTEGRATIONS;
+}
+
+export class GetIntegrationsCompleteAction implements Action {
+  readonly type = FormsActionTypes.GET_INTEGRATIONS_COMPLETE;
+
+  constructor(public payload: FormIntegrationConfiguration[]) {
+  }
+}
+
+export class GetIntegrationsFailedAction implements Action {
+  readonly type = FormsActionTypes.GET_INTEGRATIONS_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
+
+export class UpdateIntegrationAction implements Action {
+  readonly type = FormsActionTypes.UPDATE_INTEGRATION;
+
+  constructor(public payload: FormIntegrationConfiguration) {
+  }
+
+}
+
+export class UpdateIntegrationCompleteAction implements Action {
+  readonly type = FormsActionTypes.UPDATE_INTEGRATION_COMPLETE;
+
+  constructor(public payload: FormIntegrationConfiguration) {
+  }
+}
+
+export class UpdateIntegrationFailedAction implements Action {
+  readonly type = FormsActionTypes.UPDATE_INTEGRATION_FAILED;
+
+  constructor(public error: HttpErrorResponse) {
+  }
+}
+
 export type FormsActions =
   GetFormsAction
   | GetFormsCompleteAction
@@ -377,4 +416,10 @@ export type FormsActions =
   | DeleteResponseAction
   | DeleteResponseCompleteAction
   | DeleteResponseCanceledAction
-  | DeleteResponseFailedAction;
+  | DeleteResponseFailedAction
+  | GetIntegrationsAction
+  | GetIntegrationsCompleteAction
+  | GetIntegrationsFailedAction
+  | UpdateIntegrationAction
+  | UpdateIntegrationCompleteAction
+  | UpdateIntegrationFailedAction;

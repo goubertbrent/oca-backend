@@ -36,6 +36,9 @@ import {
   GetFormStatisticsAction,
   GetFormStatisticsCompleteAction,
   GetFormStatisticsFailedAction,
+  GetIntegrationsAction,
+  GetIntegrationsCompleteAction,
+  GetIntegrationsFailedAction,
   GetNextResponseAction,
   GetResponseAction,
   GetResponsesAction,
@@ -52,6 +55,9 @@ import {
   TestFormAction,
   TestFormCompleteAction,
   TestFormFailedAction,
+  UpdateIntegrationAction,
+  UpdateIntegrationCompleteAction,
+  UpdateIntegrationFailedAction,
 } from './forms.actions';
 import { FormsService } from './forms.service';
 import { FormsState, getForm, getResponsesData } from './forms.state';
@@ -82,9 +88,11 @@ export class FormsEffects {
 
   @Effect() saveForm$ = this.actions$.pipe(
     ofType<SaveFormAction>(FormsActionTypes.SAVE_FORM),
-    tap(action => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.saving_form'), undefined, { duration: 5000 })),
+    tap(action => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.saving_form'),
+      undefined, { duration: 5000 })),
     switchMap(action => this.formsService.saveForm(action.payload.data as OcaForm).pipe(
-      tap(() => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.form_saved'), this.translate.instant('oca.ok'), { duration: 3000 })),
+      tap(() => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.form_saved'),
+        this.translate.instant('oca.ok'), { duration: 3000 })),
       map(form => new SaveFormCompleteAction(form)),
       catchError(err => of(new SaveFormFailedAction(err))))),
   );
@@ -212,6 +220,20 @@ export class FormsEffects {
         return of(new GetResponsesAction({ formId: action.payload.formId, page_size: 5, cursor: data.cursor as string }, false));
       }
     })
+  );
+
+  @Effect() getIntegrations$ = this.actions$.pipe(
+    ofType<GetIntegrationsAction>(FormsActionTypes.GET_INTEGRATIONS),
+    switchMap(() => this.formsService.getIntegrations().pipe(
+      map(data => new GetIntegrationsCompleteAction(data)),
+      catchError(err => of(new GetIntegrationsFailedAction(err))))),
+  );
+
+  @Effect() updateIntegration$ = this.actions$.pipe(
+    ofType<UpdateIntegrationAction>(FormsActionTypes.UPDATE_INTEGRATION),
+    switchMap(action => this.formsService.updateIntegration(action.payload).pipe(
+      map(data => new UpdateIntegrationCompleteAction(data)),
+      catchError(err => of(new UpdateIntegrationFailedAction(err))))),
   );
 
   constructor(private actions$: Actions<FormsActions>,

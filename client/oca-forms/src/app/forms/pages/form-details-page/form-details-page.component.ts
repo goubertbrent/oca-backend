@@ -32,10 +32,18 @@ import {
   ShowDeleteAllResponsesAction,
   TestFormAction,
 } from '../../forms.actions';
-import { FormsState, getForm, getFormResponse, getTombolaWinners, getTransformedStatistics } from '../../forms.state';
+import {
+  FormsState,
+  getActiveIntegrations,
+  getForm,
+  getFormResponse,
+  getTombolaWinners,
+  getTransformedStatistics,
+} from '../../forms.state';
 import { OptionsMenuOption } from '../../interfaces/consts';
 import { OptionType } from '../../interfaces/enums';
 import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
+import { FormIntegrationProvider } from '../../interfaces/integrations';
 
 @Component({
   selector: 'oca-form-details-page',
@@ -48,6 +56,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   formStatistics$: Observable<Loadable<FormStatisticsView>>;
   tombolaWinners$: Observable<UserDetailsTO[]>;
   formResponse$: Observable<Loadable<SingleFormResponse>>;
+  activeIntegrations$: Observable<FormIntegrationProvider[]>;
   formId: number;
   wasVisible: null | boolean = null;
 
@@ -72,6 +81,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     this.tombolaWinners$ = this.store.pipe(select(getTombolaWinners));
     this.formStatistics$ = this.store.pipe(select(getTransformedStatistics));
     this.formResponse$ = this.store.pipe(select(getFormResponse));
+    this.activeIntegrations$ = this.store.pipe(select(getActiveIntegrations));
   }
 
   ngOnDestroy(): void {

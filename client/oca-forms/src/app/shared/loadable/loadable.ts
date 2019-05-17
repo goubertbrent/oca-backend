@@ -19,14 +19,14 @@ export const DEFAULT_LOADABLE: Loadable<null> = {
   error: null,
 };
 
-export const DEFAULT_LIST_LOADABLE: Loadable<any[]> = {
+export const DEFAULT_LIST_LOADABLE: NonNullLoadable<any[]> = {
   loading: false,
   success: false,
   data: [],
   error: null,
 };
 
-export function onLoadableLoad<T>(data: T): Loadable<T> {
+export function onLoadableLoad<T>(data: T): NonNullLoadable<T> {
   return {
     data,
     loading: true,
@@ -44,9 +44,9 @@ export function onLoadableSuccess<T>(data: T): NonNullLoadable<T> {
   };
 }
 
-export function onLoadableError<T>(error: T): Loadable<null, T> {
+export function onLoadableError<T, U>(error: T, data: U): NonNullLoadable<U, T> {
   return {
-    data: null,
+    data,
     loading: false,
     success: false,
     error,

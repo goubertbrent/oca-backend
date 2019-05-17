@@ -26,7 +26,6 @@ html, body {
   justify-content: center;
 }
 
-
 .fab-bottom-right {
   position: fixed;
   right: 24px;
@@ -42,8 +41,10 @@ fieldset {
   margin: 16px;
 }
 
-.component-margin {
+.page-margin {
   margin: 0 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .CodeMirror, .CodeMirror-scroll {

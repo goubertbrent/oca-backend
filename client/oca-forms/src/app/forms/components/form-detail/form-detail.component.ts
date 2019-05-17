@@ -13,6 +13,7 @@ import { Loadable } from '../../../shared/loadable/loadable';
 import { UserDetailsTO } from '../../../shared/users/users';
 import { OptionsMenuOption } from '../../interfaces/consts';
 import { FormStatisticsView, LoadResponses, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
+import { FormIntegrationProvider } from '../../interfaces/integrations';
 
 export const enum FormDetailTab {
   QUESTIONS,
@@ -32,6 +33,7 @@ export class FormDetailComponent implements OnChanges {
   @Input() statistics: Loadable<FormStatisticsView>;
   @Input() tombolaWinners: UserDetailsTO[];
   @Input() formResponse: Loadable<SingleFormResponse>;
+  @Input() activeIntegrations: FormIntegrationProvider[];
   @Output() save = new EventEmitter<SaveForm>();
   @Output() tabChanged = new EventEmitter<number>();
   @Output() menuOptionClicked = new EventEmitter<OptionsMenuOption>();

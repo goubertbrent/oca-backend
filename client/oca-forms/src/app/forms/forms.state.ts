@@ -30,6 +30,7 @@ import {
   SingleFormResponse,
   TimesComponentStatistics,
 } from './interfaces/forms';
+import { FormIntegrationConfiguration } from './interfaces/integrations';
 
 function selectFormResponseId(formResponse: FormResponse) {
   return formResponse.id;
@@ -47,6 +48,7 @@ export const initialFormsState: FormsState = {
   tombolaWinners: DEFAULT_LIST_LOADABLE,
   formResponses: { ...DEFAULT_LOADABLE, data: responsesAdapter.getInitialState({ cursor: null, more: true }) },
   selectedFormResponseId: null,
+  integrations: DEFAULT_LIST_LOADABLE,
 };
 
 export interface FormResponsesState extends EntityState<FormResponse> {
@@ -63,8 +65,8 @@ export interface FormsState {
   tombolaWinners: Loadable<UserDetailsTO[]>;
   formResponses: NonNullLoadable<FormResponsesState>;
   selectedFormResponseId: number | null;
+  integrations: NonNullLoadable<FormIntegrationConfiguration[]>;
 }
-
 
 const featureSelector = createFeatureSelector<FormsState>('forms');
 
@@ -80,10 +82,15 @@ export const getForms = createSelector(featureSelector, s => ({
 export const getForm = createSelector(featureSelector, s => s.form);
 export const getRawFormStatistics = createSelector(featureSelector, s => s.formStatistics);
 export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data || []);
+export const getIntegrations = createSelector(featureSelector, s => s.integrations);
+export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data
+  .filter(i => i.enabled)
+  .map(i => i.provider));
 
 export const selectedFormResponseId = createSelector(featureSelector, s => s.selectedFormResponseId);
 
-export const getFormResponse = createSelector(featureSelector, getForm, selectAllResponses, selectedFormResponseId, selectAllResponseIds, (s, form, responses, id, allIds) => {
+export const getFormResponse = createSelector(featureSelector, getForm, selectAllResponses, selectedFormResponseId, selectAllResponseIds,
+  (s, form, responses, id, allIds) => {
   let data: SingleFormResponse | null = null;
   if (id && form.data && responses[ id ]) {
     const index = (allIds as number[]).indexOf(id as number);

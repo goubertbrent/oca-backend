@@ -59,7 +59,7 @@ class GvMappingPerson(TO):
     type = unicode_property('type', default=GvFieldType.PERSON)
     id = unicode_property('id')
     field = unicode_property('field')
-    parent_field = unicode_property('parent_field', default=None)
+    sub_field = unicode_property('sub_field', default=None)
 
 
 class GvMappingConst(TO):
@@ -74,8 +74,8 @@ class GvMappingLocation(TO):
     # Maps a location field to multiple flex fields
     type = unicode_property('type', default=GvFieldType.LOCATION)
     id = unicode_property('id')
-    coordinates = unicode_property('coordinates')
-    address = unicode_property('address')
+    coordinates = unicode_property('coordinates', default=None)
+    address = unicode_property('address', default=None)
 
 
 class GvMappingAttachment(TO):
@@ -195,10 +195,10 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                         request[gv_comp.field] = value
                 elif isinstance(gv_comp, GvMappingPerson):
                     if isinstance(comp_val, (TextInputComponentValueTO, SingleSelectComponentValueTO)):
-                        if gv_comp.parent_field:
-                            if gv_comp.parent_field not in person:
-                                person[gv_comp.parent_field] = {}
-                            person[gv_comp.parent_field][gv_comp.field] = comp_val.value
+                        if gv_comp.sub_field:
+                            if gv_comp.field not in person:
+                                person[gv_comp.field] = {}
+                            person[gv_comp.field][gv_comp.sub_field] = comp_val.value
                         else:
                             person[gv_comp.field] = comp_val.value
                 elif isinstance(gv_comp, GvMappingFlex):

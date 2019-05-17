@@ -11,7 +11,7 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
     case FormsActionTypes.GET_FORMS_COMPLETE:
       return { ...state, forms: onLoadableSuccess(action.forms) };
     case FormsActionTypes.GET_FORMS_FAILED:
-      return { ...state, forms: onLoadableError(action.error) };
+      return { ...state, forms: onLoadableError(action.error, state.forms.data) };
     case FormsActionTypes.GET_FORM:
       return {
         ...state, form:
@@ -23,13 +23,13 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
     case FormsActionTypes.GET_FORM_COMPLETE:
       return { ...state, form: onLoadableSuccess(action.form) };
     case FormsActionTypes.GET_FORM_FAILED:
-      return { ...state, form: onLoadableError(action.error) };
+      return { ...state, form: onLoadableError(action.error, state.form.data) };
     case FormsActionTypes.GET_FORM_STATISTICS:
       return { ...state, formStatistics: onLoadableLoad(initialFormsState.formStatistics.data) };
     case FormsActionTypes.GET_FORM_STATISTICS_COMPLETE:
       return { ...state, formStatistics: onLoadableSuccess(action.stats) };
     case FormsActionTypes.GET_FORM_STATISTICS_FAILED:
-      return { ...state, formStatistics: onLoadableError(action.error) };
+      return { ...state, formStatistics: onLoadableError(action.error, state.formStatistics.data) };
     case FormsActionTypes.SAVE_FORM:
       return { ...state, updatedForm: onLoadableLoad(initialFormsState.updatedForm.data) };
     case FormsActionTypes.SAVE_FORM_COMPLETE:
@@ -40,7 +40,7 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
         forms: { ...state.forms, data: updateItem(state.forms.data as FormSettings[], action.form.settings, 'id') },
       };
     case FormsActionTypes.SAVE_FORM_FAILED:
-      return { ...state, updatedForm: onLoadableError(action.error) };
+      return { ...state, updatedForm: onLoadableError(action.error, state.updatedForm.data) };
     case FormsActionTypes.CREATE_FORM:
       return { ...state, createdForm: onLoadableLoad(initialFormsState.createdForm.data) };
     case FormsActionTypes.CREATE_FORM_COMPLETE:
@@ -51,13 +51,13 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
         forms: { ...state.forms, data: insertItem(state.forms.data as FormSettings [], action.form.settings) },
       };
     case FormsActionTypes.CREATE_FORM_FAILED:
-      return { ...state, createdForm: onLoadableError(action.error) };
+      return { ...state, createdForm: onLoadableError(action.error, state.createdForm.data) };
     case FormsActionTypes.GET_TOMBOLA_WINNERS:
       return { ...state, tombolaWinners: onLoadableLoad(initialFormsState.tombolaWinners.data) };
     case FormsActionTypes.GET_TOMBOLA_WINNERS_COMPLETE:
       return { ...state, tombolaWinners: onLoadableSuccess(action.payload) };
     case FormsActionTypes.GET_TOMBOLA_WINNERS_FAILED:
-      return { ...state, tombolaWinners: onLoadableError(action.error) };
+      return { ...state, tombolaWinners: onLoadableError(action.error, state.tombolaWinners.data) };
     case FormsActionTypes.DELETE_ALL_RESPONSES_COMPLETE:
       return {
         ...state,
@@ -95,6 +95,18 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
             more: action.payload.more,
           })),
       };
+    case FormsActionTypes.GET_INTEGRATIONS:
+      return { ...state, integrations: onLoadableLoad(initialFormsState.integrations.data) };
+    case FormsActionTypes.GET_INTEGRATIONS_COMPLETE:
+      return { ...state, integrations: onLoadableSuccess(action.payload) };
+    case FormsActionTypes.GET_INTEGRATIONS_FAILED:
+      return { ...state, integrations: onLoadableError(action.error, initialFormsState.integrations.data) };
+    case FormsActionTypes.UPDATE_INTEGRATION:
+      return { ...state, integrations: onLoadableLoad(state.integrations.data) };
+    case FormsActionTypes.UPDATE_INTEGRATION_COMPLETE:
+      return { ...state, integrations: onLoadableSuccess(updateItem(state.integrations.data, action.payload, 'provider')) };
+    case FormsActionTypes.UPDATE_INTEGRATION_FAILED:
+      return { ...state, integrations: onLoadableError(action.error, state.integrations.data) };
   }
   return state;
 }

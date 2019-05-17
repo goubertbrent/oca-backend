@@ -33,7 +33,7 @@ export class FormListComponent implements OnChanges {
     }
   }
 
-  trackById(element: FormSettings, index: number) {
+  trackById(index: number, element: FormSettings) {
     return element.id;
   }
 }

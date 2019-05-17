@@ -22,7 +22,6 @@ from google.appengine.ext import ndb
 
 from mcfw.utils import Enum
 from rogerthat.bizz.gcs import get_serving_url
-from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
@@ -40,6 +39,7 @@ class CompletedFormStepType(Enum):
     SETTINGS = 'settings'
     ACTION = 'action'
     LAUNCH = 'launch'
+    INTEGRATIONS = 'integrations'
 
 
 class CompletedFormStep(NdbModel):
@@ -50,8 +50,12 @@ class FormIntegrationProvider(Enum):
     GREEN_VALLEY = 'green_valley'
 
 
+ALL_FORM_INTEGRATION_PROVIDERS = FormIntegrationProvider.all()
+
+
 class FormIntegration(NdbModel):
     provider = ndb.StringProperty(choices=FormIntegrationProvider.all())
+    enabled = ndb.BooleanProperty(default=True)
     # Stores a mapping between component sections/fields and integration its fields
     configuration = ndb.JsonProperty()
 
@@ -66,7 +70,7 @@ class OcaForm(NdbModel):
     tombola = ndb.StructuredProperty(FormTombola, default=None)  # type: FormTombola
     steps = ndb.LocalStructuredProperty(CompletedFormStep, repeated=True)
     readonly_ids = ndb.BooleanProperty(default=False)
-    integrations = ndb.StructuredProperty(FormIntegration, repeated=True)
+    integrations = ndb.StructuredProperty(FormIntegration, repeated=True)  # type: list[FormIntegration]
 
     @property
     def id(self):
@@ -202,8 +206,23 @@ class FormStatisticsShardConfig(NdbModel):
 
 class FormIntegrationConfiguration(NdbModel):
     # Stores credentials / basic configuration
+    enabled = ndb.BooleanProperty(default=True)
     configuration = ndb.JsonProperty()
 
+    @property
+    def provider(self):
+        return self.key.id()
+
     @classmethod
-    def create_key(cls, service_user, provider_id):
-        return ndb.Key(cls, provider_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
+    def create_key(cls, service_user, provider):
+        if provider not in ALL_FORM_INTEGRATION_PROVIDERS:
+            raise Exception('Invalid provider %s' % provider)
+        return ndb.Key(cls, provider, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
+
+    @classmethod
+    def list_by_user(cls, service_user):
+        return cls.query(ancestor=parent_ndb_key(service_user, SOLUTION_COMMON))
+
+    def to_dict(self, extra_properties=None, include=None, exclude=None):
+        extra_properties = ['provider'] or extra_properties
+        return super(FormIntegrationConfiguration, self).to_dict(extra_properties, include, exclude)

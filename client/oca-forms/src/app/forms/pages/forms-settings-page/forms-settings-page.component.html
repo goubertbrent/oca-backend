@@ -1,0 +1,5 @@
+<oca-loadable [loadable]="integrations$ | async">
+  <oca-form-integration-configuration class="page-margin"
+                                      [configurations]="configurations$ | async"
+                                      (configurationUpdated)="onUpdateConfiguration($event)"></oca-form-integration-configuration>
+</oca-loadable>

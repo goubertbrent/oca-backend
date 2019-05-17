@@ -1,6 +1,9 @@
 <mat-tab-group (selectedTabChange)="changeTab($event)" mat-align-tabs="center">
   <mat-tab [label]="'oca.questions' | translate">
-    <oca-edit-form [value]="form" (save)="save.emit($event)" (createNews)="createNews.emit()"
+    <oca-edit-form [value]="form"
+                   [activeIntegrations]="activeIntegrations"
+                   (save)="save.emit($event)"
+                   (createNews)="createNews.emit()"
                    (testForm)="testForm.emit($event)"></oca-edit-form>
   </mat-tab>
   <mat-tab [label]="'oca.tombola_winners' | translate" *ngIf="showTombolaWinners">

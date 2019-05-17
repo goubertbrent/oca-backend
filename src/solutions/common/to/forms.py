@@ -29,6 +29,12 @@ class CompletedFormStepTO(TO):
     step_id = unicode_property('step_id')
 
 
+class FormIntegrationTO(TO):
+    provider = unicode_property('provider')
+    enabled = bool_property('enabled', default=True)
+    configuration = typed_property('configuration', dict)
+
+
 class FormSettingsTO(TO):
     id = long_property('id')
     title = unicode_property('title')
@@ -39,6 +45,7 @@ class FormSettingsTO(TO):
     finished = bool_property('finished')
     steps = typed_property('steps', CompletedFormStepTO, True)
     readonly_ids = bool_property('readonly_ids', default=OcaForm.readonly_ids._default)
+    integrations = typed_property('integrations', FormIntegrationTO, True, default=[])
 
     @classmethod
     def from_model(cls, oca_form):

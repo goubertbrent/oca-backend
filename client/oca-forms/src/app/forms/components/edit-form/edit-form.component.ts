@@ -31,6 +31,7 @@ import {
   SubmissionSection,
   UINextAction,
 } from '../../interfaces/forms';
+import { FormIntegration, FormIntegrationProvider } from '../../interfaces/integrations';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({
@@ -44,6 +45,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   @ViewChild('timeInput') timeInput: ElementRef<HTMLInputElement>;
   @ViewChildren(MatInput) inputs: QueryList<MatInput>;
 
+  @Input() activeIntegrations: FormIntegrationProvider[] = [];
   @Input() set value(value: OcaForm) {
     this._form = value;
     this._hasChanges = false;
@@ -70,7 +72,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   hasTombola = false;
   dateInput = new Date();
   selectedTestUser: UserDetailsTO | undefined;
-  completedSteps = [ true, false, false, false, false ];
+  completedSteps = [ true, false, false, false, false, false ];
   stepperIndex = 0;
   hasTested = false;
   STEP_INDEX_TEST = 3;
@@ -348,5 +350,9 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
         submitSection,
       ];
     }
+  }
+
+  setIntegrations(integrations: FormIntegration[]) {
+    this.form = { ...this.form, settings: { ...this.form.settings, integrations } };
   }
 }

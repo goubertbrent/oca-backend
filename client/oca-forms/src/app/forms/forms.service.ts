@@ -17,6 +17,7 @@ import {
   UploadedFile,
   UploadedFormFile,
 } from './interfaces/forms';
+import { FormIntegrationConfiguration } from './interfaces/integrations';
 import { FormValidatorType } from './interfaces/validators';
 
 @Injectable({ providedIn: 'root' })
@@ -141,7 +142,16 @@ export class FormsService {
           id: 0,
           steps: [ { step_id: CompletedFormStepType.CONTENT } ],
           readonly_ids: false,
+          integrations: [],
         },
       })));
+  }
+
+  getIntegrations() {
+    return this.http.get<FormIntegrationConfiguration[]>(`/common/forms/integrations`);
+  }
+
+  updateIntegration(data: FormIntegrationConfiguration) {
+    return this.http.put<FormIntegrationConfiguration>(`/common/forms/integrations/${data.provider}`, data);
   }
 }

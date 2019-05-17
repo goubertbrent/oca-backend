@@ -47,8 +47,6 @@ def migrate(dry_run=True):
             else:
                 redeemed_by = []
             mail = coupon.key().parent().name()
-            if not mail:
-                raise Exception('fuck')
             to_put.append(NewsCoupon(key=NewsCoupon.create_key(coupon.key().id(), users.User(mail)),
                                      news_id=coupon.news_id,
                                      content=coupon.content,

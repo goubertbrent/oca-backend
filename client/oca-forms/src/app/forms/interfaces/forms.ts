@@ -1,5 +1,6 @@
 import { DateFormat, FileType, FormComponentType, KeyboardType } from './enums';
 import { FormSectionValue, MergedFormResponse } from './form-values';
+import { FormIntegration } from './integrations';
 import { FormValidator } from './validators';
 
 export interface ParagraphComponent {
@@ -249,6 +250,7 @@ export const enum CompletedFormStepType {
   SETTINGS = 'settings',
   ACTION = 'action',
   LAUNCH = 'launch',
+  INTEGRATIONS = 'integrations',
 }
 
 export const COMPLETED_STEP_MAPPING = [
@@ -257,6 +259,7 @@ export const COMPLETED_STEP_MAPPING = [
   CompletedFormStepType.SETTINGS,
   CompletedFormStepType.ACTION,
   CompletedFormStepType.LAUNCH,
+  CompletedFormStepType.INTEGRATIONS,
 ];
 
 export interface CompletedFormStep {
@@ -272,6 +275,7 @@ export interface FormSettings {
   tombola: FormTombola | null;
   steps: CompletedFormStep[];
   readonly_ids: boolean;
+  integrations: FormIntegration[];
 }
 
 export interface OcaForm<T = DynamicForm> {

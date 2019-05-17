@@ -1,0 +1,12 @@
+<mat-slide-toggle name="gv_enabled"
+                  [(ngModel)]="providerMapping[FormIntegrationProvider.GREEN_VALLEY].enabled"
+                  (ngModelChange)="toggleIntegration(FormIntegrationProvider.GREEN_VALLEY)">
+  Green Valley
+</mat-slide-toggle>
+
+<div *ngIf="providerMapping[FormIntegrationProvider.GREEN_VALLEY].enabled">
+  <oca-form-integration-gv
+    [configuration]="providerMapping[FormIntegrationProvider.GREEN_VALLEY].integration.configuration"
+    [sections]="sections"
+    (configurationChanged)="updateIntegration(providerMapping[FormIntegrationProvider.GREEN_VALLEY].integration, $event)"></oca-form-integration-gv>
+</div>

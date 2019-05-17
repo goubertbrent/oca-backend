@@ -1,0 +1,23 @@
+<form (ngSubmit)="save()">
+  <mat-form-field>
+    <mat-label>{{ 'oca.username' | translate }}</mat-label>
+    <input name="username" matInput [(ngModel)]="configuration.username">
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>{{ 'oca.password' | translate }}</mat-label>
+    <input [type]="showPassword ? 'text' : 'password'" name="password" matInput [(ngModel)]="configuration.password"
+           autocomplete="off">
+    <mat-icon matSuffix (click)="showPassword = !showPassword">
+      {{ showPassword ? 'visibility_off' : 'visibility' }}
+    </mat-icon>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>{{ 'oca.url' | translate }}</mat-label>
+    <input type="url" name="base_url" matInput [(ngModel)]="configuration.base_url">
+  </mat-form-field>
+  <div>
+    <button mat-raised-button>
+      {{ 'oca.save' | translate }}
+    </button>
+  </div>
+</form>
