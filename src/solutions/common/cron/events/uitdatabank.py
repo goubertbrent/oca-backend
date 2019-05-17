@@ -15,24 +15,24 @@
 #
 # @@license_version:1.3@@
 
-import json
-import logging
-import pprint
-import time
-import urllib
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha1
 from hmac import new as hmac
+import json
+import logging
+import pprint
 from random import getrandbits
+import time
 from urllib import quote as urlquote
+import urllib
 
-import webapp2
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
-
 import pytz
-from dateutil.relativedelta import relativedelta
+import webapp2
+
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DEBUG
 from rogerthat.dal import put_and_invalidate_cache, parent_key
@@ -215,9 +215,10 @@ def _get_period_dates(period):
     """
     if not period:
         return [], []
-    week_scheme = period['weekscheme']
+    week_scheme = period.get('weekscheme')
     if not week_scheme:
         return [], []
+    logging.debug('period:%s', period)
     date_format = '%Y-%m-%d'
     hour_format = '%H:%M:%S'
     if isinstance(period['datefrom'], (int, long)):
@@ -237,23 +238,27 @@ def _get_period_dates(period):
         day_name = day_names[date.weekday()]
         scheme = week_scheme[day_name]
         is_open = scheme.get('opentype', 'closed') == 'open'
-        if is_open:
-            opening_time = scheme.get('openingtime')
-            if isinstance(opening_time, list):
-                for open_time in opening_time:
-                    from_ = datetime.utcfromtimestamp(open_time['from'] / 1000)
-                    to = datetime.utcfromtimestamp(open_time['to'] / 1000)
-                    day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
-                    day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
-                    start_dates.append(int(time.mktime(day_start_date.timetuple())))
-                    end_dates.append(int(time.mktime(day_end_date.timetuple())))
+        if not is_open:
+            continue
+        opening_time = scheme.get('openingtime')
+        if not opening_time:
+            continue
+        opening_times = [opening_time] if not isinstance(opening_time, list) else opening_time
+        for open_time in opening_times:
+            if isinstance(open_time['from'], (str, unicode)):
+                from_ = datetime.strptime(open_time['from'], hour_format)
             else:
-                from_ = datetime.strptime(opening_time['from'], hour_format)
-                to = datetime.strptime(opening_time['to'], hour_format)
-                day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
-                day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
-                start_dates.append(int(time.mktime(day_start_date.timetuple())))
-                end_dates.append(int(time.mktime(day_end_date.timetuple())))
+                from_ = datetime.utcfromtimestamp(open_time['from'] / 1000)
+
+            if isinstance(open_time['to'], (str, unicode)):
+                to = datetime.strptime(open_time['to'], hour_format)
+            else:
+                to = datetime.utcfromtimestamp(open_time['to'] / 1000)
+
+            day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
+            day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
+            start_dates.append(int(time.mktime(day_start_date.timetuple())))
+            end_dates.append(int(time.mktime(day_end_date.timetuple())))
     return start_dates, end_dates
 
 
