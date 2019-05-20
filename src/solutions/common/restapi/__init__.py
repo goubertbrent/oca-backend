@@ -2055,7 +2055,7 @@ def api_get_translations(lang):
                'description', 'Email', 'Error', 'Minimum', 'Maximum', 'Yes', 'No', 'Save', 'create', 'Time', 'delete',
                'Next', 'action', 'Settings', 'Confirm', 'PDF', 'title', 'active', 'inactive', 'password', 'end_time',
                'Optional', 'Attachment', 'gender', 'address', 'contact', 'name-attachment', 'website', 'country',
-               'zip_code', 'Website', 'city', 'Enabled'}
+               'zip_code', 'Website', 'city', 'Enabled', 'first_name'}
     return {
         'oca': {
             key.replace(prefix, '') if key.startswith(prefix) else key.lower(): translation
