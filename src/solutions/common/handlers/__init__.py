@@ -16,16 +16,16 @@
 # @@license_version:1.3@@
 
 import base64
+from contextlib import closing
 import logging
 import os
-from contextlib import closing
 from zipfile import ZipFile
 
-import jinja2
-import webapp2
 from google.appengine.ext import webapp, db
-
+import jinja2
 from lxml import html, etree
+import webapp2
+
 from rogerthat.consts import MAX_BRANDING_PDF_SIZE
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.rpc import users
@@ -243,7 +243,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
 
                 # Test if the file is not too large
                 pdf_stream.seek(0)
-                pdf_bytes = pdf_stream.getvalue()
+                pdf_bytes = pdf_stream.read()
                 if len(pdf_bytes) > MAX_BRANDING_PDF_SIZE:
                     error = translate(sln_settings.main_language, SOLUTION_COMMON, 'pdf-size-too-large')
                     self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
