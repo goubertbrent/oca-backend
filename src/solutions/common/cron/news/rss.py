@@ -37,6 +37,9 @@ from solutions.common.models import SolutionRssScraperSettings, SolutionRssScrap
 
 
 BROADCAST_TYPE_NEWS = u"News"
+BROADCAST_TYPE_EVENTS = u"Events"
+BROADCAST_TYPE_TRAFIC = u"Trafic"
+BROADCAST_TYPE_TRAFFIC = u"Traffic"
 BROADCAST_TYPE_PRESS = u"Press"
 
 
@@ -71,7 +74,14 @@ def _worker(rss_settings_key):
         app_ids = rss_link.app_ids if rss_link.app_ids else None
         feed_name = None
         broadcast_type_key = BROADCAST_TYPE_NEWS
-        if rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_PRESS:
+        if rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_EVENTS:
+            broadcast_type_key = BROADCAST_TYPE_EVENTS
+        elif rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_TRAFFIC:
+            if BROADCAST_TYPE_TRAFIC in sln_settings.broadcast_types:
+                broadcast_type_key = BROADCAST_TYPE_TRAFIC
+            else:
+                broadcast_type_key = BROADCAST_TYPE_TRAFFIC
+        elif rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_PRESS:
             broadcast_type_key = BROADCAST_TYPE_PRESS
             feed_name = u'press'
 
