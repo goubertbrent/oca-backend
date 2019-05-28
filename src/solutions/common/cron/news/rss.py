@@ -114,7 +114,11 @@ def _worker(rss_settings_key):
 
         items, keys = _parse_items(response.content, service_identity, service_user, rss_link.url)
         scraped_items.extend(items)
-        oldest_dates[rss_link.url] = sorted([s for s in items], key=lambda x: x.date)[0].date
+        if items:
+            oldest_dates[rss_link.url] = sorted([s for s in items], key=lambda x: x.date)[0].date
+        else:
+            oldest_dates[rss_link.url] = None
+
         saved_items = {item.key.id(): item for item in ndb.get_multi(keys) if
                        item}  # type: dict[str, SolutionRssScraperItem]
 
@@ -180,6 +184,8 @@ def _worker(rss_settings_key):
 def get_deleted_rss_items(oldest_dates, scraped_items, service_identity, service_user):
     to_delete = []
     tasks = []
+    if not scraped_items:
+        return [], []
     oldest_item_date = scraped_items[0].date
     if not scraped_items or not oldest_item_date:
         return [], []
