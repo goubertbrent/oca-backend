@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { NextAction, NextActionSection, NextActionType, UINextAction } from '../../interfaces/forms';
 import { EditNextActionDialogComponent } from '../edit-next-action-dialog/edit-next-action-dialog.component';
@@ -7,6 +7,7 @@ import { EditNextActionDialogComponent } from '../edit-next-action-dialog/edit-n
   selector: 'oca-next-action-editor',
   templateUrl: './next-action-editor.component.html',
   styleUrls: [ './next-action-editor.component.scss' ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NextActionEditorComponent {
   NextActionType = NextActionType;

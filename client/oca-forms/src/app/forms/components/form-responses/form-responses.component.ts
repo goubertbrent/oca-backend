@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { FormComponentType } from '../../interfaces/enums';
 import { SingleFormResponse } from '../../interfaces/forms';
@@ -7,6 +7,7 @@ import { SingleFormResponse } from '../../interfaces/forms';
   selector: 'oca-form-responses',
   templateUrl: './form-responses.component.html',
   styleUrls: [ './form-responses.component.css' ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormResponsesComponent {
   @Input() response: Loadable<SingleFormResponse>;

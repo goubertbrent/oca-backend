@@ -394,7 +394,6 @@ def create_form_submission(service_user, details, form):
 
 def _save_form_submission(user, form, service_user):
     # type: (users.User, SubmitDynamicFormRequestTO, users.User) -> None
-
     submission = FormSubmission(form_id=form.id,
                                 user=user.email(),
                                 sections=[s.to_dict() for s in form.sections],

@@ -40,6 +40,7 @@ import solutions.common.restapi.locations
 import solutions.common.restapi.loyalty
 import solutions.common.restapi.news
 import solutions.common.restapi.order
+import solutions.common.restapi.participation
 import solutions.common.restapi.payments
 import solutions.common.restapi.pharmacy.order
 import solutions.common.restapi.qanda
@@ -88,6 +89,7 @@ handlers.extend(rest_functions(solutions.common.restapi.locations))
 handlers.extend(rest_functions(solutions.common.restapi.loyalty))
 handlers.extend(rest_functions(solutions.common.restapi.news))
 handlers.extend(rest_functions(solutions.common.restapi.order))
+handlers.extend(rest_functions(solutions.common.restapi.participation))
 handlers.extend(rest_functions(solutions.common.restapi.payments))
 handlers.extend(rest_functions(solutions.common.restapi.pharmacy.order))
 handlers.extend(rest_functions(solutions.common.restapi.reservation))

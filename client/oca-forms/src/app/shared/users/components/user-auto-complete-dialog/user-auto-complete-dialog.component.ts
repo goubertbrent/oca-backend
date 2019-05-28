@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Inject, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, Inject, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UserDetailsTO } from '../../users';
 import { UserAutocompleteComponent } from '../user-autocomplete/user-autocomplete.component';
@@ -16,12 +16,17 @@ export interface UserDialogData {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UserAutoCompleteDialogComponent {
+export class UserAutoCompleteDialogComponent implements AfterViewInit {
+  @ViewChild('autocomplete') autocomplete: UserAutocompleteComponent;
   selectedUser: UserDetailsTO | null = null;
   showError = false;
 
   constructor(private dialogRef: MatDialogRef<UserAutocompleteComponent>,
               @Inject(MAT_DIALOG_DATA) public data: UserDialogData) {
+  }
+
+  ngAfterViewInit(): void {
+    this.autocomplete.focus();
   }
 
   onOptionSelected(user: UserDetailsTO) {
@@ -40,5 +45,4 @@ export class UserAutoCompleteDialogComponent {
       this.showError = true;
     }
   }
-
 }

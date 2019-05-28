@@ -43,4 +43,8 @@ export class UserAutocompleteComponent implements OnInit {
       return value.email;
     }
   }
+
+  focus() {
+    this.userEmail.nativeElement.focus();
+  }
 }

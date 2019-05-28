@@ -143,6 +143,7 @@ class SolutionModule(Enum):
         JOYN: 'joyn',
         JOBS: 'jobs',
         FORMS: 'forms',
+        PARTICIPATION: 'participation_moneybox',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
@@ -157,7 +158,7 @@ class SolutionModule(Enum):
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
-                        STATIC_CONTENT, JOYN, FORMS}
+                        STATIC_CONTENT, JOYN, FORMS, PARTICIPATION}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
@@ -171,7 +172,7 @@ class SolutionModule(Enum):
 
     FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT, JOYN, FORMS}
+                             APPOINTMENT, JOYN}
 
     @classmethod
     def all(cls):

@@ -1,0 +1,17 @@
+<mat-sidenav-container class="full-height">
+  <mat-sidenav mode="side" opened>
+    <mat-nav-list>
+      <a *ngFor="let item of navItems"
+         mat-list-item
+         [routerLink]="item.route"
+         [routerLinkActive]="['link-active']"
+         [title]="item.label | translate">
+        <mat-icon mat-list-icon>{{ item.icon }}</mat-icon>
+        <p>{{ item.label | translate }}</p>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

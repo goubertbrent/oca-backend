@@ -353,6 +353,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   }
 
   setIntegrations(integrations: FormIntegration[]) {
-    this.form = { ...this.form, settings: { ...this.form.settings, integrations } };
+    const hasIntegrations = integrations.some(i => i.enabled);
+    this.form = { ...this.form, settings: { ...this.form.settings, integrations, readonly_ids: hasIntegrations } };
   }
 }

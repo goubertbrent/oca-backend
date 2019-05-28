@@ -1,0 +1,7 @@
+<form #form="ngForm" (ngSubmit)="submit(form)" *ngIf="_settings">
+  <p>{{ 'oca.description' | translate }}</p>
+  <simplemde name="description" [(ngModel)]="_settings.info"></simplemde>
+  <button class="save-button" mat-raised-button [disabled]="settings.loading">
+    {{ 'oca.save' | translate }}
+  </button>
+</form>

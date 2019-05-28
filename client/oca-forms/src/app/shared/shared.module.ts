@@ -14,8 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { GoogleChartsModule } from 'angular-google-charts';
 import { SIMPLEMDE_CONFIG, SimplemdeModule } from 'ng2-simplemde';
 import { Options as SimpleMDEOptions } from 'simplemde';
@@ -87,16 +86,4 @@ import { UserAutocompleteComponent } from './users/components/user-autocomplete/
   ],
 })
 export class SharedModule {
-  constructor(private translate: TranslateService, private router: Router) {
-    window.onmessage = e => {
-      if (e.data && e.data.type === 'oca.set_language') {
-        translate.use(e.data.language);
-      }
-      if (e.data && e.data.type === 'oca.load_page') {
-        router.navigate(e.data.paths);
-      }
-    };
-    translate.use('nl');
-    translate.setDefaultLang('en');
-  }
 }

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { deepCopy } from '../../../shared/util/misc';
@@ -8,6 +8,7 @@ import { NextAction, NextActionType } from '../../interfaces/forms';
   selector: 'oca-edit-next-action-dialog',
   templateUrl: './edit-next-action-dialog.component.html',
   styleUrls: [ './edit-next-action-dialog.component.scss' ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditNextActionDialogComponent {
   nextAction: NextAction;

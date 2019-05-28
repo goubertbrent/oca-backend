@@ -171,9 +171,6 @@ def get_functionalities(country, language, my_modules, activated_modules, app_id
     if SolutionModule.JOYN in modules and not is_joyn_available(country, my_modules, app_ids):
         modules.remove(SolutionModule.JOYN)
 
-    # TODO proper logic
-    modules.remove(SolutionModule.FORMS)
-
     functionalities = [Functionality(country, language, activated_modules, module) for module in modules]
     info = {func.name: func.to_dict() for func in functionalities}
     return modules, info

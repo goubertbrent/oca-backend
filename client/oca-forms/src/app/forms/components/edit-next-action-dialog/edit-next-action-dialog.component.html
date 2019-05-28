@@ -9,5 +9,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button type="button" mat-button (click)="close()">{{ 'oca.cancel' | translate }}</button>
-  <button mat-button [disabled]="form.form.invalid" color="primary">{{ 'oca.save' | translate }}</button>
+  <button mat-button [disabled]="form.form.invalid" color="primary" (click)="submit(form)">
+    {{ 'oca.save' | translate }}
+  </button>
 </mat-dialog-actions>

@@ -137,6 +137,12 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     joyn_client_secret = add_meta(db.StringProperty(indexed=False),
                                   doc="Joyn client_secret",
                                   order=1702)
+    participation_server_url = add_meta(db.StringProperty(indexed=False),
+                                        doc='Participation server url',
+                                        order=1803)
+    participation_server_secret = add_meta(db.StringProperty(indexed=False),
+                                           doc='Participation server secret, used to create new cities',
+                                           order=1804)
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
@@ -160,6 +166,7 @@ register(SolutionServerSettings, s_ss, ds_ss)
 @returns(SolutionServerSettings)
 @arguments()
 def get_solution_server_settings():
+    # type: () -> SolutionServerSettings
     @db.non_transactional
     def get():
         ss = SolutionServerSettings.get_by_key_name("MainSettings")

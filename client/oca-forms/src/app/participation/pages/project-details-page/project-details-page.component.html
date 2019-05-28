@@ -1,0 +1,20 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button routerLink="..">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.participation_project' | translate }}</h1>
+</mat-toolbar>
+<mat-tab-group (selectedTabChange)="onTabChange($event)">
+  <mat-tab [label]="'oca.project' | translate">
+    <ng-container *ngIf="project$ | async as project">
+      <oca-loadable [loadable]="project">
+        <oca-project-details [project]="project.data" [loading]="project.loading"
+                             (saved)="save($event)" *ngIf="project.data"></oca-project-details>
+      </oca-loadable>
+    </ng-container>
+  </mat-tab>
+  <mat-tab [label]="'oca.statistics' | translate">
+    <oca-project-statistics [statistics]="projectStatistics$ | async"
+                            (loadMore)="loadMoreStatistics()"></oca-project-statistics>
+  </mat-tab>
+</mat-tab-group>

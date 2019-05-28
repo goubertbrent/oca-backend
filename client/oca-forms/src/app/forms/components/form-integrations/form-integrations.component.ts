@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewEncapsulation,
+} from '@angular/core';
 import { updateItem } from '../../../shared/util/redux';
 import { FormSection } from '../../interfaces/forms';
 import {
@@ -18,6 +27,7 @@ interface ProviderMapping {
 @Component({
   selector: 'oca-form-integrations',
   templateUrl: './form-integrations.component.html',
+  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormIntegrationsComponent implements OnChanges {

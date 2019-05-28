@@ -9,7 +9,8 @@
         <p matLine>{{ selectedUser.email }}</p>
       </mat-list-item>
     </mat-list>
-    <oca-user-autocomplete (optionSelected)="onOptionSelected($event)" [required]="true"></oca-user-autocomplete>
+    <oca-user-autocomplete (optionSelected)="onOptionSelected($event)" [required]="true"
+                           #autocomplete></oca-user-autocomplete>
     <mat-error *ngIf="showError">{{ 'oca.please_select_an_email_address' | translate }}</mat-error>
   </mat-dialog-content>
   <mat-dialog-actions>

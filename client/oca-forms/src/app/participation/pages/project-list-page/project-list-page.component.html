@@ -1,0 +1,24 @@
+<oca-loadable [loadable]="projects$ | async">
+  <mat-nav-list *ngIf="(projects$ | async).data as projects">
+    <a mat-list-item [routerLink]="[project.id]" *ngFor="let project of projects">
+      <h4 matLine>{{ project.title }}</h4>
+      <p matLine *ngIf="project.end_date">
+        {{ 'oca.ends_on_date' | translate : {date: project.end_date | date} }}
+      </p>
+    </a>
+  </mat-nav-list>
+  <div *ngIf="hasNoProjects$ | async" class="page-margin">
+    <p>{{ 'oca.no_participation_projects_yet' | translate }}</p>
+    <div>
+      <a routerLink="create" mat-raised-button>
+        {{ 'oca.create_participation_project' | translate }}
+      </a>
+    </div>
+  </div>
+</oca-loadable>
+
+<div class="fab-bottom-right">
+  <a mat-fab type="button" routerLink="create">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

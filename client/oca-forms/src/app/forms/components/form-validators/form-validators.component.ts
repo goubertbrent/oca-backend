@@ -1,4 +1,4 @@
-import { Component, forwardRef, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { updateItem } from '../../../shared/util/redux';
@@ -15,6 +15,7 @@ import { FormValidator, FormValidatorType, MaxDateValidator, MinDateValidator, V
     useExisting: forwardRef(() => FormValidatorsComponent),
     multi: true,
   } ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormValidatorsComponent implements ControlValueAccessor {
 
