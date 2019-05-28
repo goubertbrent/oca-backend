@@ -143,7 +143,7 @@ class SolutionModule(Enum):
         JOYN: 'joyn',
         JOBS: 'jobs',
         FORMS: 'forms',
-        PARTICIPATION: 'participation_moneybox',
+        PARTICIPATION: 'participation',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
