@@ -295,8 +295,9 @@ def send_news_for_review(city_service, service_identity_user, app_id, host, is_f
     review.data = kwargs
 
     image_url = None
-    if kwargs['image']:
-        image = store_image(kwargs['image'])
+    image = kwargs.get('image')
+    if image:
+        image = store_image(image)
         review.image_id = image.id
         image_url = u'/unauthenticated/image/%d' % review.image_id
 
