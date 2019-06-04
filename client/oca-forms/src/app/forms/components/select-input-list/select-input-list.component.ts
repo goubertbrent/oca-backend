@@ -33,7 +33,7 @@ import { UploadImageDialogComponent, UploadImageDialogConfig } from '../upload-i
 })
 export class SelectInputListComponent implements AfterViewInit, ControlValueAccessor, OnDestroy {
   @ViewChildren('labelInput') labelInputElements: QueryList<ElementRef<HTMLInputElement>>;
-  @ViewChild('newInput') newInput: ElementRef<HTMLInputElement>;
+  @ViewChild('newInput', { static: true }) newInput: ElementRef<HTMLInputElement>;
 
   @Input() formId: number;
   @Input() readonlyIds: boolean;

@@ -17,7 +17,7 @@ export class UserAutocompleteComponent implements OnInit {
   formGroup: FormGroup;
   formControl: FormControl;
 
-  @ViewChild('input') userEmail: ElementRef<HTMLInputElement>;
+  @ViewChild('input', { static: true }) userEmail: ElementRef<HTMLInputElement>;
   @Input() required = false;
   @Output() optionSelected = new EventEmitter<UserDetailsTO>();
 

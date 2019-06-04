@@ -26,7 +26,7 @@ export interface UploadImageDialogConfig {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UploadImageDialogComponent implements OnDestroy {
-  @ViewChild(ImageCropperComponent) imageCropper: ImageCropperComponent;
+  @ViewChild(ImageCropperComponent, { static: false }) imageCropper: ImageCropperComponent;
 
   selectedTabIndex = 1;
   selectedImageUrl: string;

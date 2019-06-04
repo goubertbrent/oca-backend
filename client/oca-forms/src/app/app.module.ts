@@ -30,8 +30,8 @@ const locale = SUPPORTED_LOCALES.some(loc => navigator.language.startsWith(loc))
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'forms' },
-  { path: 'forms', loadChildren: './forms/oca-forms.module#OcaFormsModule' },
-  { path: 'participation', loadChildren: './participation/participation.module#ParticipationModule' },
+  { path: 'forms', loadChildren: () => import('./forms/oca-forms.module').then(m => m.OcaFormsModule) },
+  { path: 'participation', loadChildren: () => import('./participation/participation.module').then(m => m.ParticipationModule) },
 ];
 
 @NgModule({

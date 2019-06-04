@@ -15,7 +15,7 @@ export interface ImageCropperResult {
   encapsulation: ViewEncapsulation.None,
 })
 export class ImageCropperComponent {
-  @ViewChild('image') image: ElementRef<HTMLImageElement>;
+  @ViewChild('image', { static: true }) image: ElementRef<HTMLImageElement>;
 
   @Input() imageUrl: any;
   @Input() cropperOptions: Cropper.Options = {};

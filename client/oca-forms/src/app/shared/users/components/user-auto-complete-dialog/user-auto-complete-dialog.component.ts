@@ -17,7 +17,7 @@ export interface UserDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserAutoCompleteDialogComponent implements AfterViewInit {
-  @ViewChild('autocomplete') autocomplete: UserAutocompleteComponent;
+  @ViewChild('autocomplete', { static: true }) autocomplete: UserAutocompleteComponent;
   selectedUser: UserDetailsTO | null = null;
   showError = false;
 

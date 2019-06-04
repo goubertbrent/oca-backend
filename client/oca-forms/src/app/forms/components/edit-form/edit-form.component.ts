@@ -41,8 +41,8 @@ import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrang
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditFormComponent implements AfterViewInit, OnChanges {
-  @ViewChild('formElement') formElement: NgForm;
-  @ViewChild('timeInput') timeInput: ElementRef<HTMLInputElement>;
+  @ViewChild('formElement', { static: true }) formElement: NgForm;
+  @ViewChild('timeInput', { static: false }) timeInput: ElementRef<HTMLInputElement>;
   @ViewChildren(MatInput) inputs: QueryList<MatInput>;
 
   @Input() activeIntegrations: FormIntegrationProvider[] = [];

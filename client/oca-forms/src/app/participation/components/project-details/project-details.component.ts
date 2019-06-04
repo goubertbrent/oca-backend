@@ -22,8 +22,8 @@ import { CreateProject, Project } from '../../projects';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProjectDetailsComponent implements OnChanges, AfterViewInit {
-  @ViewChild('startTime') startTime: ElementRef<HTMLInputElement>;
-  @ViewChild('endTime') endTime: ElementRef<HTMLInputElement>;
+  @ViewChild('startTime', { static: true }) startTime: ElementRef<HTMLInputElement>;
+  @ViewChild('endTime', { static: true }) endTime: ElementRef<HTMLInputElement>;
   @Input() project: Project | CreateProject;
   @Input() loading = false;
   @Output() saved = new EventEmitter<Project | CreateProject>();
