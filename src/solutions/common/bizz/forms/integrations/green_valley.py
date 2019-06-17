@@ -27,6 +27,7 @@ from rogerthat.to import TO
 from rogerthat.to.forms import FormSectionValueTO, TextInputComponentValueTO, SingleSelectComponentValueTO, \
     LocationComponentValueTO, MultiSelectComponentValueTO, DynamicFormTO, FieldComponentTO, MultiSelectComponentTO, \
     ValueTO, FileComponentValueTO
+from solutions.common.bizz.forms.integrations.attachments import get_attachment_content
 from solutions.common.bizz.forms.integrations.base import BaseFormIntegration
 from solutions.common.models.forms import FormSubmission
 
@@ -220,11 +221,9 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                     if isinstance(comp_val, FileComponentValueTO):
                         if 'documents' not in request:
                             request['documents'] = []
-                        content = urlfetch.fetch(comp_val.value).content
-                        base64_attachment = b64encode(content)
                         doc = OrderedDict()
                         doc['name'] = gv_comp.name
-                        doc['content'] = base64_attachment
+                        doc['content'] = get_attachment_content(comp_val.value)
                         request['documents'].append({'document': doc})
                 else:
                     raise Exception('Unknown component type: %s' % gv_comp)
