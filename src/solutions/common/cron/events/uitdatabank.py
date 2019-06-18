@@ -257,8 +257,10 @@ def _get_period_dates(period):
 
             day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
             day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
-            start_dates.append(int(time.mktime(day_start_date.timetuple())))
-            end_dates.append(int(time.mktime(day_end_date.timetuple())))
+            start_date_timestamp = int(time.mktime(day_start_date.timetuple()))
+            end_date_timestamp = int(time.mktime(day_end_date.timetuple()))
+            start_dates.append(start_date_timestamp)
+            end_dates.append(end_date_timestamp - start_date_timestamp)
     return start_dates, end_dates
 
 
