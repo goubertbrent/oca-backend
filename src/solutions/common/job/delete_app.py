@@ -18,10 +18,9 @@ from google.appengine.api import users as gusers
 
 from rogerthat.bizz.app import get_app
 from rogerthat.consts import MIGRATION_QUEUE
-from rogerthat.models import ServiceIdentity
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import post_app_broadcast, put_service
+from shop.bizz import post_app_broadcast, put_service, put_app_signup_enabled
 from shop.business.order import cancel_subscription
 from shop.models import Customer
 from shop.view import _get_service
@@ -35,14 +34,14 @@ def _1_send_goodbye_message(app_id, message):
 
 
 def _2_gather_emails(app_id):
-    identities = ServiceIdentity.list_by_app_id(app_id)  # type: list[ServiceIdentity]
-    return [str(i.qualifiedIdentifier or i.identifier) for i in identities]
+    return [str(c.user_email) for c in Customer.list_by_app_id(app_id)]
 
 
 def _3_set_app_disabled(app_id):
     app = get_app(app_id)
     app.disabled = True
     app.put()
+    put_app_signup_enabled(app_id, False)
 
 
 def _4_disable_all_customers(app_id, reason, dry_run=True):
@@ -69,6 +68,5 @@ def _4_disable_all_customers(app_id, reason, dry_run=True):
 def _remove_app_from_customer(customer_id, app_id):
     admin = get_solution_server_settings().shop_bizz_admin_emails[0]
     service = _get_service(customer_id, gusers.User(admin))
-    gusers.get_current_user()
     service.apps = [app for app in service.apps if app != app_id]
     run_in_xg_transaction(put_service, customer_id, service, broadcast_to_users=[])
