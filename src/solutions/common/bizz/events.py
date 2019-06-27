@@ -16,29 +16,30 @@
 # @@license_version:1.3@@
 
 import base64
-from datetime import date, datetime, timedelta
 import json
 import logging
 import os
 import re
 import time
+from datetime import date, datetime, timedelta
 from types import FunctionType, NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import dateutil.parser
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import images, urlfetch
 from google.appengine.ext import db, deferred
+
+import dateutil.parser
 import httplib2
+import pytz
+import solutions
+from dateutil.relativedelta import relativedelta
 from icalendar import Calendar, Event as ICalenderEvent, vCalAddress, vText
 from lxml import etree, html
-from oauth2client import client
-from oauth2client.client import HttpAccessTokenRefreshError
-import pytz
-
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
+from oauth2client import client
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_id
@@ -62,13 +63,13 @@ from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
 from solutions import translate
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import render_common_content, put_branding, \
     assign_app_user_role, revoke_app_user_role, SolutionModule, \
     get_default_app_id, get_organization_type
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
-from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, get_solution_calendar_ids_for_user, \
+from solutions.common.dal import get_solution_settings, get_event_by_id, is_reminder_set, \
+    get_solution_calendar_ids_for_user, \
     get_solution_main_branding, get_solution_calendars_for_user, get_solution_settings_or_identity_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage
@@ -78,7 +79,6 @@ from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
     SolutionInboxMessageTO
-
 
 try:
     from cStringIO import StringIO
@@ -449,7 +449,7 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
     sln_settings = get_solution_settings(service_user)
     jsondata = json.loads(params)
     cursor = jsondata.get('cursor', None)
-    
+
     count = 50
     qry = None
     if SolutionModule.CITY_APP in sln_settings.modules:
@@ -458,11 +458,11 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
         if city_app_profile and city_app_profile.gather_events_enabled:
             si = get_service_identity(create_service_identity_user(service_user, service_identity))
             qry = Event.get_app_events(cursor, si.defaultAppId)
-    
+
     if not qry:
         qry = Event.get_service_events(cursor, service_user, sln_settings.solution)
 
-    events = qry.fetch(count)
+    events = qry.fetch(count)  # type: list[Event]
     cursor_ = qry.cursor()
     has_more = False
     if len(events) != 0:
@@ -472,7 +472,7 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
 
     r = SendApiCallCallbackResultTO()
     r.result = json.dumps({
-        'events': serialize_complex_value([EventItemTO.fromEventItemObject(e, service_user=service_user) for e in events], EventItemTO, True),
+        'events': [EventItemTO.fromEventItemObject(e, service_user=service_user).to_dict() for e in events],
         'has_more': has_more,
         'cursor': unicode(cursor_)
     }).decode('utf8')

@@ -86,16 +86,6 @@ def rest_put_form(form_id, data):
         raise HttpBadRequestException(e.message, e.fields)
 
 
-@rest('/common/forms/<form_id:[^/]+>', 'delete', silent_result=True)
-@returns()
-@arguments(form_id=(int, long))
-def rest_delete_form(form_id):
-    try:
-        return delete_form(form_id, users.get_current_user())
-    except ServiceApiException as e:
-        raise HttpBadRequestException(e.message, e.fields)
-
-
 @rest('/common/forms/<form_id:\d+>', 'delete', silent_result=True)
 @returns()
 @arguments(form_id=(int, long))

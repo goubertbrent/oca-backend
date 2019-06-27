@@ -355,7 +355,7 @@ class PublicEventItemTO(object):
         return item
 
 
-class EventItemTO(object):
+class EventItemTO(TO):
     id = long_property('1')
     title = unicode_property('2')
     place = unicode_property('3')

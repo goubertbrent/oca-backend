@@ -15,20 +15,25 @@
 #
 # @@license_version:1.3@@
 
-from rogerthat.bizz.job import run_job
 from google.appengine.ext import db
+
+from rogerthat.bizz.job import run_job
 from solutions.common.models.agenda import Event
 
+
 def update_all_first_event_epoch_events():
-        run_job(_get_all_events_query, [], _put_event, [])
+    run_job(_get_all_events_query, [], _put_event, [])
+
 
 def _get_all_events_query():
-    qry = db.GqlQuery("SELECT __key__ FROM Event")
-    return qry
+    return Event.all(keys_only=True)
+
 
 def _put_event(event_key):
     def trans():
         event = Event.get(event_key)
-        event.first_start_date = event.get_first_event_date()
-        event.put()
+        new_first_date = event.get_first_event_date()
+        if new_first_date != event.first_start_date:
+            event.first_start_date = new_first_date
+            event.put()
     db.run_in_transaction(trans)
