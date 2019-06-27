@@ -1939,9 +1939,12 @@ def save_service(customer_id, service):
 @arguments(customer_id=long)
 def get_service(customer_id):
     audit_log(customer_id, u"Get service")
+    return _get_service(customer_id, gusers.get_current_user())
 
+
+def _get_service(customer_id, current_user):
     customer = Customer.get_by_id(customer_id)
-    azzert(user_has_permissions_to_team(gusers.get_current_user(), customer.team_id))
+    azzert(user_has_permissions_to_team(current_user, customer.team_id))
     service_user = users.User(customer.service_email)
 
     settings = get_solution_settings(service_user)

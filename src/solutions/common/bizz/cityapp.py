@@ -189,7 +189,7 @@ def get_country_apps(country, live=True):
 
     def should_include(app):
         # check if the ios_app_id is set (has a live build)
-        if not DEBUG and live and app.ios_app_id in (None, '-1'):
+        if not DEBUG and live and app.ios_app_id in (None, '-1') or app.disabled:
             return False
         return not app.demo and app.app_id.lower().startswith('%s-' % country.lower())
 
