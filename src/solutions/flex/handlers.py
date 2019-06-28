@@ -344,8 +344,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
             else:
                 city_app_id = customer.app_id
                 active_app_ids = customer.sorted_app_ids
-            default_app = get_app_by_id(city_app_id)
-            is_demo_app = default_app.demo
+            if city_app_id:
+                default_app = get_app_by_id(city_app_id)
+                is_demo_app = default_app.demo
+            else:
+                is_demo_app = False
         else:
             city_app_id = None
             is_demo_app = False
