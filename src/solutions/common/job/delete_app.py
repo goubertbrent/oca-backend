@@ -17,7 +17,11 @@
 from google.appengine.api import users as gusers
 
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.job import run_job
+from rogerthat.bizz.user import archiveUserDataAfterDisconnect
 from rogerthat.consts import MIGRATION_QUEUE
+from rogerthat.dal.friend import get_friends_map
+from rogerthat.models import UserProfile
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.transactions import run_in_xg_transaction
 from shop.bizz import post_app_broadcast, put_service, put_app_signup_enabled
@@ -63,6 +67,21 @@ def _4_disable_all_customers(app_id, reason, dry_run=True):
     schedule_tasks(tasks, MIGRATION_QUEUE)
     tasks = [create_task(_remove_app_from_customer, c.id, app_id) for c in to_remove_app]
     schedule_tasks(tasks, MIGRATION_QUEUE)
+
+
+def _5_unregister_accounts(app_id, unregister_text):
+    run_job(_get_profiles, [app_id], _delete_account, [unregister_text])
+
+
+def _get_profiles(app_id):
+    return UserProfile.list_by_app(app_id)
+
+
+def _delete_account(profile, unregister_reason):
+    # type: (UserProfile, unicode) -> None
+    app_user = profile.user
+    friend_map = get_friends_map(app_user)
+    archiveUserDataAfterDisconnect(app_user, friend_map, profile, hard_delete=True, unregister_reason=unregister_reason)
 
 
 def _remove_app_from_customer(customer_id, app_id):
