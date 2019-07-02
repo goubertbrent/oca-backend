@@ -70,7 +70,7 @@ def _4_disable_all_customers(app_id, reason, dry_run=True):
 
 
 def _5_unregister_accounts(app_id, unregister_text):
-    run_job(_get_profiles, [app_id], _delete_account, [unregister_text])
+    run_job(_get_profiles, [app_id], _delete_account, [unregister_text], worker_queue=MIGRATION_QUEUE)
 
 
 def _get_profiles(app_id):
