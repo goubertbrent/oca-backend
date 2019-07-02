@@ -74,6 +74,15 @@ var modules = {};
 var ORGANIZATION_TYPES = {{ organization_types_json }};
 var templates = {{ templates|safe }};
 var newsReviewEnabled = {% if news_review_enabled %}true{% else %}false{% endif %};
+var LOGO_LANGUAGES = [{% for lang in logo_languages %}"{{ lang }}",{% endfor %}];
+var DEBUG = {% if debug %}true{% else %}false{% endif %};
+var LANGUAGE = "{{ language }}";
+var MONTHS = [{% for m in months %}"{{ m }}",{% endfor %}];
+var MONTHS_SHORT = [{% for m in months_short %}"{{ m }}",{% endfor %}];
+var WEEK_DAYS = [{% for m in week_days %}"{{ m }}", {% endfor %}];
+var DAYS_STR = { {% for day_num, day_name in days %}
+     {{ day_num }} : "{{ day_name }}",{% endfor %}
+};
 </script>
 
 <script src="/static/js/stacktrace.js"></script>
