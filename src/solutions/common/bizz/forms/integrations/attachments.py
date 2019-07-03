@@ -48,4 +48,4 @@ def get_attachment_content(url):
         base64_attachment = b64encode(content)
     else:
         base64_attachment = b64encode(result.content)
-    return base64_attachment
+    return base64_attachment, content_type

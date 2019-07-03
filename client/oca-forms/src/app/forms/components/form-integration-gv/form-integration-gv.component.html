@@ -38,7 +38,8 @@
           </mat-select>
         </mat-form-field>
       </ng-container>
-      <ng-container *ngSwitchCase="GvFieldType.FLEX">
+      <ng-container
+        *ngSwitchCase="component.type === GvFieldType.FLEX || component.type === GvFieldType.ATTACHMENT ? component.type : false">
         <mat-form-field>
           <mat-label>{{ 'oca.field' | translate }}</mat-label>
           <input matInput [(ngModel)]="component.field_def_id" (ngModelChange)="markChanged()" required>

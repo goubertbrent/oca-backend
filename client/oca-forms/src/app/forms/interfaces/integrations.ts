@@ -55,6 +55,7 @@ export interface GVMappingAttachment {
   type: GvFieldType.ATTACHMENT;
   id: string;
   name: string;
+  field_def_id: string;
 }
 
 export interface GVMappingPerson {

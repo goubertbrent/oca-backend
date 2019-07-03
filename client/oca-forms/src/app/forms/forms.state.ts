@@ -101,7 +101,7 @@ export const getFormResponse = createSelector(featureSelector, getForm, selectAl
       more: s.formResponses.data.more,
       previous: previousIndex === null ? null : allIds[ previousIndex ] as number,
       next: nextIndex === null ? null : allIds[ nextIndex ] as number,
-      result: convertResponse(responses[ id ], form.data.form),
+      result: convertResponse(responses[ id ] as FormResponse, form.data.form),
     };
   }
   return {

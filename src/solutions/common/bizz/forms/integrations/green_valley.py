@@ -15,8 +15,10 @@
 #
 # @@license_version:1.4@@
 import logging
+import re
 from base64 import b64encode
 from collections import OrderedDict
+from mimetypes import guess_extension
 
 from google.appengine.api import urlfetch
 
@@ -79,10 +81,9 @@ class GvMappingLocation(TO):
     address = unicode_property('address', default=None)
 
 
-class GvMappingAttachment(TO):
-    # Maps a file upload component to a document
+class GvMappingAttachment(GvMappingFlex):
+    # Maps a file upload component to a flex with an attachment_value
     type = unicode_property('type', default=GvFieldType.ATTACHMENT)
-    id = unicode_property('id')
     name = unicode_property('name')
 
 
@@ -120,13 +121,19 @@ class GreenValleyConfiguration(TO):
 
 
 def _add_flex(flexes, field_def_id, value, display_value=None):
-    flex = OrderedDict()
-    flex['field_def_id'] = field_def_id
+    flex = {'field_def_id': field_def_id}
     if value:
         flex['string_value'] = value
     if display_value:
         flex['display_value'] = display_value
     flexes.append({'flex': flex})
+
+
+def _get_extension(content_type):
+    ext = guess_extension(content_type)
+    if ext == '.jpe':
+        ext = '.jpg'
+    return ext
 
 
 class GreenValleyFormIntegration(BaseFormIntegration):
@@ -149,7 +156,10 @@ class GreenValleyFormIntegration(BaseFormIntegration):
             logging.debug(result.content)
         if result.status_code not in (200, 201):
             logging.debug(result.content)
-            raise Exception(u'Error while executing request to %s: %s' % (url, result.status_code))
+            additional = ''
+            if result.status_code == 500:
+                additional = 'Did you configure the correct type_id?'
+            raise Exception(u'Error while executing request to %s: %s %s' % (url, result.status_code, additional))
         return result.content
 
     def submit(self, form_configuration, submission, form):
@@ -202,6 +212,21 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                             person[gv_comp.field][gv_comp.sub_field] = comp_val.value
                         else:
                             person[gv_comp.field] = comp_val.value
+                elif isinstance(gv_comp, GvMappingLocation):
+                    if isinstance(comp_val, LocationComponentValueTO):
+                        _add_flex(flexes, gv_comp.address, ', '.join(comp_val.address.address_lines))
+                        _add_flex(flexes, gv_comp.coordinates, '%s,%s' % (comp_val.latitude, comp_val.longitude))
+                elif isinstance(gv_comp, GvMappingAttachment):
+                    if isinstance(comp_val, FileComponentValueTO):
+                        content, content_type = get_attachment_content(comp_val.value)
+                        name = '%s%s' % (gv_comp.name, _get_extension(content_type))
+                        flex = {
+                            'flex': {
+                                'field_def_id': gv_comp.field_def_id,
+                                'attachment_value': {'name': name, 'content': content}
+                            }
+                        }
+                        flexes.append(flex)
                 elif isinstance(gv_comp, GvMappingFlex):
                     if isinstance(comp_val, (TextInputComponentValueTO, SingleSelectComponentValueTO)):
                         _add_flex(flexes, gv_comp.field_def_id, comp_val.value)
@@ -213,18 +238,6 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                                     chosen_value = choice_mapping.get(value)
                                     if chosen_value:
                                         _add_flex(flexes, gv_comp.field_def_id, value, chosen_value.label)
-                elif isinstance(gv_comp, GvMappingLocation):
-                    if isinstance(comp_val, LocationComponentValueTO):
-                        _add_flex(flexes, gv_comp.address, ', '.join(comp_val.address.address_lines))
-                        _add_flex(flexes, gv_comp.coordinates, '%s,%s' % (comp_val.latitude, comp_val.longitude))
-                elif isinstance(gv_comp, GvMappingAttachment):
-                    if isinstance(comp_val, FileComponentValueTO):
-                        if 'documents' not in request:
-                            request['documents'] = []
-                        doc = OrderedDict()
-                        doc['name'] = gv_comp.name
-                        doc['content'] = get_attachment_content(comp_val.value)
-                        request['documents'].append({'document': doc})
                 else:
                     raise Exception('Unknown component type: %s' % gv_comp)
         if flexes:
@@ -238,7 +251,14 @@ class GreenValleyFormIntegration(BaseFormIntegration):
             'type_id',
             'subject',
             'description',
-            'flexes',
+            ('flexes', [
+                ('flex', [
+                    'field_def_id',
+                    'string_value',
+                    'display_value',
+                    ('attachment_value', ['name', 'content']),
+                ])
+            ]),
             'documents',
             ('agents', [
                 ('person', [
@@ -253,20 +273,19 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                     'date_of_birth',
                     'place_of_birth',
                     'nationality'
-                ]
-                 )
+                ])
             ])
         ]
         ordered_request = _order_dict(request, property_order)
         body = dict2xml(ordered_request, name='create_case_request')
-        logging.debug('Submitting case request:\n%s', body)
+        logging.debug('Submitting case request:\n%s',
+                      re.sub(r'<content>.*?</content>', r'<content>(content omitted)</content>', body))
         result = self._execute_request('/cases', urlfetch.POST, body)
-        if DEBUG:
-            logging.debug(result)
         return etree.XML(result).get('id')
 
 
 def dict2xml(d, name='data'):
+    # type: (dict, str) -> str
     r = etree.Element(name)
     return etree.tostring(buildxml(r, d), pretty_print=DEBUG)
 
@@ -297,7 +316,8 @@ def _order_dict(dictionary, order):
     """ For some strange reason the values must be present in a specific order or an error like this will be thrown:
 AXBException occurred : cvc-complex-type.2.4.a: Invalid content was found starting with element 'address'.
 One of '{gender, date_of_birth, place_of_birth, nationality}' is expected.."""
-    result = OrderedDict({k: dictionary[k] for k in dictionary if k.startswith(ATTR_PREFIX)})
+    result = OrderedDict({k: dictionary[k] for k in dictionary
+                          if isinstance(k, basestring) and k.startswith(ATTR_PREFIX)})
     for key in order:
         if isinstance(key, tuple):
             parent, children = key
@@ -305,7 +325,10 @@ One of '{gender, date_of_birth, place_of_birth, nationality}' is expected.."""
                 continue
             if parent not in result:
                 result[parent] = OrderedDict()
-            result[parent] = _order_dict(dictionary[parent], children)
+            if isinstance(dictionary[parent], list):
+                result[parent] = [_order_dict(item, children) for item in dictionary[parent]]
+            else:
+                result[parent] = _order_dict(dictionary[parent], children)
         elif key in dictionary:
             result[key] = dictionary[key]
     return result
