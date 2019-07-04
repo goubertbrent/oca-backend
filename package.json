@@ -28,7 +28,7 @@
     "@types/shelljs": "^0.8.3",
     "del": "^3.0.0",
     "fs-extra": "^7.0.1",
-    "gulp": "^4.0.0",
+    "gulp": "^4.0.2",
     "gulp-concat": "^2.6.1",
     "gulp-newer": "^1.4.0",
     "gulp-typescript": "^5.0.0",
