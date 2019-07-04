@@ -219,19 +219,21 @@ def _create_form_menu_item(form):
     from solutions.common.bizz.messaging import POKE_TAG_FORMS
     menu = system.get_menu()
     existing_item = None
+    tag = json.dumps({
+        '%s.tag' % MC_RESERVED_TAG_PREFIX: POKE_TAG_FORMS,
+        'id': form.id
+    }, sort_keys=True)
     for item in menu.items:
         if item.form:
             if item.form.id == form.id:
                 existing_item = item
     if existing_item:
         new_coords = existing_item.coords
+        # Don't overwrite tag in case we manually changed it to something else (to put it in the sidebar for example)
+        tag = existing_item.tag
     else:
         all_taken_coords = [item.coords for item in menu.items]
         new_coords = get_next_free_spot_in_service_menu(all_taken_coords, 0)
-    tag = json.dumps({
-        '%s.tag' % MC_RESERVED_TAG_PREFIX: POKE_TAG_FORMS,
-        'id': form.id
-    }, sort_keys=True)
     system.put_menu_item(form.icon, form.title, tag, new_coords, form_id=form.id)
 
 
