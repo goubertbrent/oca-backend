@@ -17,17 +17,18 @@
 
 from google.appengine.ext import db
 
+from mcfw.rpc import arguments, returns
 from rogerthat.bizz.profile import set_service_disabled as rogerthat_set_service_disabled, \
     set_service_enabled as rogerthat_re_enable_service
 from rogerthat.dal.service import get_service_identity
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.utils import now
-from mcfw.rpc import arguments, returns
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import NoSubscriptionException
 from shop.models import Customer
 from solutions.common.dal import get_solution_settings
+from solutions.common.models.cityapp import CityAppProfile
 
 
 @returns()
@@ -63,7 +64,20 @@ def set_service_disabled(customer_or_id, disabled_reason_int):
     customer.subscription_cancel_pending_date = 0
     sln_settings.search_enabled = False
     sln_settings.service_disabled = True
-    db.put([customer, sln_settings])
+    sln_settings.uitdatabank_actor_id = None
+    to_put = [customer, sln_settings]
+    city_profile = db.get(CityAppProfile.create_key(service_user))  # type: CityAppProfile
+    if city_profile:
+        city_profile.uitdatabank_last_query = 0
+        city_profile.uitdatabank_enabled = False
+        city_profile.uitdatabank_secret = None
+        city_profile.uitdatabank_key = None
+        city_profile.uitdatabank_region = None
+        city_profile.uitdatabank_regions = []
+        city_profile.uitdatabank_filters_key = []
+        city_profile.uitdatabank_filters_value = []
+        to_put.append(city_profile)
+    db.put(to_put)
 
     rogerthat_set_service_disabled(service_user)
 
