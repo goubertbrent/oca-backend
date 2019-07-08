@@ -75,8 +75,7 @@ class FormSubmissionTO(TO):
             if isinstance(integration, GreenValleyFormIntegration):
                 d['external_reference'] = {
                     'id': model.external_reference,
-                    'url': '%s/search?textSearch=%s&activeModules=CASES' % (integration.configuration.base_url,
-                                                                            model.external_reference),
+                    'url': '%s/do/overview' % integration.configuration.base_url,
                 }
         return cls.from_dict(d)
 
