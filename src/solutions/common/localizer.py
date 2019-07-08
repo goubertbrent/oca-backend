@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.url_must_start_with_https': u'This url must start with https://',
+         u'oca.reference': u'Reference',
          u'(Click to change)': u'(Click to change)',
          u'(No title)': u'(No title)',
          u'(optional)': u'(optional)',
@@ -4001,6 +4003,8 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.url_must_start_with_https': u'Deze url moet starten met https://',
+         u'oca.reference': u'Referentie',
          u'(Click to change)': u'(Klik om te veranderen)',
          u'(No title)': u'(Geen titel)',
          u'(optional)': u'(optioneel)',

@@ -344,6 +344,7 @@ function convertResponse(formResponse: FormResponse, form: DynamicForm): MergedF
     formId: form.id,
     submissionId: formResponse.id,
     submitted_date: formResponse.submitted_date,
+    external_reference: formResponse.external_reference,
     sections,
   };
 }

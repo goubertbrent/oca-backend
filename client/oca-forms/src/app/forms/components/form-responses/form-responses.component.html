@@ -1,7 +1,9 @@
 <oca-loadable [loadable]="response"></oca-loadable>
 <ng-container *ngIf="response.data?.result; else noResponses">
   <mat-toolbar>
-    <h4>{{ 'oca.submitted_on_x' | translate : {date: response.data.result.submitted_date | date : 'medium'} }}</h4>
+    <h4>
+      {{ 'oca.submitted_on_x' | translate : {date: response.data.result.submitted_date | date : 'medium'} }}
+    </h4>
     <div class="icons-row">
       <button mat-icon-button type="button" (click)="nextResponse.emit(response.data.previous)"
               [disabled]="!response.data.previous">
@@ -17,6 +19,12 @@
       </button>
     </div>
   </mat-toolbar>
+  <div class="integration-block">
+    <span>{{ 'oca.reference' | translate }}</span>:
+    <a [href]="response.data.result.external_reference.url"
+       target="_blank"
+       *ngIf="response.data.result.external_reference">{{ response.data.result.external_reference.id }}</a>
+  </div>
   <mat-card class="section-card" *ngFor="let section of response.data.result.sections">
     <mat-card-header>
       <mat-card-title>{{ section.title || ('oca.section_x' | translate : {number: section.number}) }}</mat-card-title>

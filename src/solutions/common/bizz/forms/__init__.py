@@ -444,7 +444,7 @@ def _submit_form_to_integration(service_user, integration_provider, submission_k
     if not config or not config.enabled:
         logging.info('Integration %s not enabled', integration_provider)
         return
-    form_integration = get_form_integration(integration_provider, config)
+    form_integration = get_form_integration(config)
     filtered_integrations = [i for i in oca_form.integrations if i.provider == integration_provider]
     if not filtered_integrations:
         logging.warning('Not submitting form integration, provider %s not found.', integration_provider)

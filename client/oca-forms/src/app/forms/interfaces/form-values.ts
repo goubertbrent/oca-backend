@@ -1,5 +1,5 @@
 import { FormComponentType } from './enums';
-import { Value } from './forms';
+import { ExternalReference, Value } from './forms';
 
 export interface FieldComponentValue {
   id: string;
@@ -121,4 +121,5 @@ export interface MergedFormResponse {
   submissionId: number;
   sections: ResponseFormSectionValue[];
   submitted_date: string;
+  external_reference?: ExternalReference;
 }

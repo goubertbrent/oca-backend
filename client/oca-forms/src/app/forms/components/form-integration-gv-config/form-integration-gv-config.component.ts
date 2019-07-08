@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { NgForm } from '@angular/forms';
 import { GVIntegrationConfig } from '../../interfaces/integrations';
 
 @Component({
@@ -13,7 +14,9 @@ export class FormIntegrationGvConfigComponent {
 
   showPassword = false;
 
-  save() {
-    this.configurationChanged.emit(this.configuration);
+  save(form: NgForm) {
+    if (form.form.valid) {
+      this.configurationChanged.emit(this.configuration);
+    }
   }
 }

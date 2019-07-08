@@ -32,3 +32,7 @@ agm-map {
 .icons-row {
   flex-grow: 1;
 }
+
+.integration-block {
+  margin: 0 16px;
+}

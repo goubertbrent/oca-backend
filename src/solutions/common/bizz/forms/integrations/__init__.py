@@ -23,7 +23,7 @@ mapping = {
 }
 
 
-def get_form_integration(provider, configuration):
-    # type: (str, FormIntegrationConfiguration) -> BaseFormIntegration
-    if provider in mapping:
-        return mapping.get(provider)(configuration.configuration)
+def get_form_integration(configuration):
+    # type: (FormIntegrationConfiguration) -> BaseFormIntegration
+    if configuration.provider in mapping:
+        return mapping.get(configuration.provider)(configuration.configuration)

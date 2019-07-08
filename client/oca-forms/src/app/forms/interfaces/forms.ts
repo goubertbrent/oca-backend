@@ -313,10 +313,16 @@ export interface LoadResponses {
   page_size: number;
 }
 
+export interface ExternalReference {
+  id: string;
+  url: string;
+}
+
 export interface FormResponse {
   id: number;
   sections: FormSectionValue[];
   submitted_date: string;
+  external_reference?: ExternalReference;
   version: number;
 }
 
