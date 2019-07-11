@@ -14,20 +14,20 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
-import json
-import logging
-import random
 from cgi import FieldStorage
 from datetime import datetime
+import json
+import logging
 from os import path
+import random
 
+import cloudstorage
+import dateutil
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 
-import cloudstorage
-import dateutil
 from mcfw.consts import MISSING
 from mcfw.imaging import recolor_png
 from mcfw.rpc import arguments, returns
@@ -78,6 +78,7 @@ def create_form(data, service_user):
     _update_form(oca_form, created_form, data.settings)
     if oca_form.visible:
         _create_form_menu_item(oca_form)
+        _verify_poll_news_group_visible(service_user)
     return OcaFormTO(form=created_form, settings=FormSettingsTO.from_model(oca_form))
 
 
@@ -103,6 +104,7 @@ def update_form(form_id, data, service_user):
             _create_form_menu_item(oca_form)
         else:
             _delete_form_menu_item(oca_form.id)
+        _verify_poll_news_group_visible(service_user)
         settings = get_solution_settings(service_user)
         changed = False
         if visibility_changed:
@@ -248,6 +250,33 @@ def _delete_form_menu_item(form_id):
     return has_deleted
 
 
+def _verify_poll_news_group_visible(service_user):
+    from rogerthat.models.news import NewsGroup
+    from rogerthat.service.api.news import list_groups
+    from rogerthat.bizz.news.groups import _update_stream_layout
+
+    # check permission to send to polls group
+    with users.set_user(service_user):
+        for g in list_groups():
+            if g.group_type == NewsGroup.TYPE_POLLS:
+                break
+        else:
+            logging.debug('_verify_poll_news_group_visible no permission')
+            return
+
+    visible = False
+    for form in list_forms(service_user):
+        if form.finished:
+            continue
+        if not form.visible:
+            continue
+        visible = True
+        break
+
+    logging.debug('_verify_poll_news_group_visible visible:%s', visible)
+    _update_stream_layout(service_user, layout_id=NewsGroup.TYPE_POLLS if visible else None)
+
+
 def _delete_scheduled_task(form):
     task_name = get_finish_form_task_name(form)
     taskqueue.Queue(SCHEDULED_QUEUE).delete_tasks_by_name(task_name)
@@ -360,6 +389,9 @@ def delete_form(form_id, service_user):
         service_api.delete_form(form_id)
     _delete_form_submissions(form_id)
     OcaForm.create_key(form_id, service_user).delete()
+
+    _verify_poll_news_group_visible(service_user)
+
     if must_publish:
         system.publish_changes()
 
