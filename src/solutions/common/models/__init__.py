@@ -429,8 +429,7 @@ class SolutionBrandingSettings(db.Model):
     show_avatar = db.BooleanProperty(indexed=False, default=True)
     modification_time = db.IntegerProperty(default=0)
     recommend_enabled = db.BooleanProperty(default=True, indexed=False)
-    left_align_icons = db.BooleanProperty(default=False, indexed=False)
-
+    left_align_icons = db.BooleanProperty(default=True, indexed=False)
 
     @classmethod
     def create_key(cls, service_user):
@@ -781,4 +780,3 @@ class SolutionModuleAppText(NdbModel):
         if not app_text:
             return [None] * len(text_types)
         return [app_text.texts.get(text_type) for text_type in text_types]
-
