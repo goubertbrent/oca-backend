@@ -101,6 +101,13 @@ def update_form(form_id, data, service_user):
         _update_form(oca_form, updated_form, data.settings)
         if oca_form.visible:
             _create_form_menu_item(oca_form)
+            if oca_form.visible_until:
+                seconds_left = (oca_form.visible_until - datetime.now()).total_seconds()
+                # cron to finish forms runs every hour, schedule the task now if the remaining time is less than that.
+                if seconds_left < 3600:
+                    task = create_task(finish_form, oca_form.id, oca_form.service_user, _countdown=seconds_left,
+                                       _task_name=get_finish_form_task_name(updated_form))
+                    schedule_tasks([task], SCHEDULED_QUEUE)
         else:
             _delete_form_menu_item(oca_form.id)
         settings = get_solution_settings(service_user)
@@ -250,7 +257,7 @@ def _delete_form_menu_item(form_id):
 
 def _delete_scheduled_task(form):
     task_name = get_finish_form_task_name(form)
-    taskqueue.Queue(SCHEDULED_QUEUE).delete_tasks_by_name(task_name)
+    taskqueue.Queue(SCHEDULED_QUEUE).delete_tasks_by_name([task_name])
 
 
 def finish_form(form_id, service_user):

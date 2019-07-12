@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
+import logging
 from datetime import datetime
 
 import webapp2
+from google.appengine.api.taskqueue import taskqueue
 
 from dateutil.relativedelta import relativedelta
 from rogerthat.consts import SCHEDULED_QUEUE
@@ -27,12 +29,15 @@ from solutions.common.models.forms import OcaForm
 
 class FinishFormsCron(webapp2.RequestHandler):
     def get(self):
-        tasks = []
         now = datetime.now()
         one_hour_from_now = now + relativedelta(hours=1)
         for form in OcaForm.list_between_dates(now, one_hour_from_now):  # type: OcaForm
             task_name = get_finish_form_task_name(form)
             seconds_left = (form.visible_until - now).total_seconds()
-            tasks.append(create_task(finish_form, form.id, form.service_user, _task_name=task_name,
-                                     _countdown=seconds_left))
-        schedule_tasks(tasks, SCHEDULED_QUEUE)
+            task = create_task(finish_form, form.id, form.service_user, _task_name=task_name, _countdown=seconds_left)
+            try:
+                schedule_tasks([task], SCHEDULED_QUEUE)
+            except (taskqueue.TaskAlreadyExistsError, taskqueue.TombstonedTaskError):
+                # This only happens in case a form gets updated an hour before the end time of the form
+                # In that case the task gets scheduled when saving it, so we can ignore this error.
+                logging.info('Task to finish form %d already scheduled', form.id)
