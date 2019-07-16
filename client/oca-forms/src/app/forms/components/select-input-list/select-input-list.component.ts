@@ -17,8 +17,8 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
+import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { NextAction, UINextAction, Value } from '../../interfaces/forms';
-import { UploadImageDialogComponent, UploadImageDialogConfig } from '../upload-image-dialog/upload-image-dialog.component';
 
 @Component({
   selector: 'oca-select-input-list',
@@ -38,6 +38,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   @Input() formId: number;
   @Input() readonlyIds: boolean;
   @Input() name: string;
+  @Input() nextActions: UINextAction[] = [];
   @Input()
   set multiple(value: any) {
     this._multiple = coerceBooleanProperty(value);
@@ -46,8 +47,21 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   get multiple() {
     return this._multiple;
   }
+  temporaryValue = '';
+  private valueChanges$: Observable<QueryList<ElementRef<HTMLInputElement>>>;
+  private valueFocus$ = new Subject();
+  private valueFocusSubscription: Subscription = Subscription.EMPTY;
 
-  @Input() nextActions: UINextAction[] = [];
+  constructor(private _changeDetectorRef: ChangeDetectorRef,
+              private _translate: TranslateService,
+              private _matDialog: MatDialog) {
+  }
+
+  private _values: Value[];
+
+  get values(): Value[] {
+    return this._values;
+  }
 
   set values(values: Value[]) {
     // Don't set 'changed' in case of initial value
@@ -57,27 +71,7 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     this._values = values;
   }
 
-
-  get values(): Value[] {
-    return this._values;
-  }
-
-  temporaryValue = '';
-
-  private _values: Value[];
   private _multiple = false;
-  private valueChanges$: Observable<QueryList<ElementRef<HTMLInputElement>>>;
-  private valueFocus$ = new Subject();
-  private valueFocusSubscription: Subscription = Subscription.EMPTY;
-  private onChange = (_: any) => {
-  }
-  private onTouched = () => {
-  }
-
-  constructor(private _changeDetectorRef: ChangeDetectorRef,
-              private _translate: TranslateService,
-              private _matDialog: MatDialog) {
-  }
 
   registerOnChange(fn: any): void {
     this.onChange = fn;
@@ -156,17 +150,17 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   }
 
   editImage(value: Value, index: number) {
-    const config: MatDialogConfig<UploadImageDialogConfig> = {
+    const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        formId: this.formId,
-        cropOptions: { aspectRatio: undefined },
+        uploadPrefix: 'forms',
+        reference: { type: 'form', id: this.formId },
         croppedCanvasOptions: { maxWidth: 720 },
         title: this._translate.instant('oca.insert_image'),
       },
     };
-    this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: string) => {
+    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFile) => {
       if (result) {
-        this.values[ index ] = { ...value, image_url: result };
+        this.values[ index ] = { ...value, image_url: result.url };
         this.onChange(this.values);
       }
     });
@@ -176,4 +170,10 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     this.values[ index ] = { ...value, image_url: null };
     this.onChange(this.values);
   }
+
+  private onChange = (_: any) => {
+  };
+
+  private onTouched = () => {
+  };
 }

@@ -12,7 +12,6 @@
 <link href="/static/node_modules/font-awesome/css/font-awesome.min.css" rel="stylesheet">
 <link href="/static/bootstrap/colorpicker/css/bootstrap-colorpicker.min.css" rel="stylesheet" media="screen">
 <link href="/static/bootstrap/modal-fullscreen/css/bootstrap-modal-fullscreen.css" rel="stylesheet" media="screen">
-<link href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css" rel="stylesheet">
 {% if SolutionModule.BILLING in sln_settings.modules %}
 <link href="/static/css/solutions/flex/shop.css" rel="stylesheet">
 {% endif %}
@@ -28,9 +27,6 @@
 {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
 <link href="/static/css/solutions/sandwich.css" rel="stylesheet" media="screen">
 {% endif %}
-{% if SolutionModule.BROADCAST in sln_settings.modules %}
-<link href="/static/css/solutions/flex/broadcast.css" rel="stylesheet"/>
-{% endif %}
 
 {%- include "firebase_config.html" %}
 <script src="/static/js/jquery-1.10.0.min.js"></script>
@@ -41,8 +37,6 @@
 <script src="/static/bootstrap/modal-fullscreen/js/bootstrap-modal-fullscreen.js"></script>
 <script src="/static/js/jquery.tmpl.min.js"></script>
 <script src="/static/js/modernizr.custom.62420.js"></script>
-<script src="/static/js/jquery-validate.min.js"></script>
-<script src="/static/js/jquery-validate-translations.js"></script>
 <script src="/static/js/cropperjs/cropper.min.js"></script>
 <!-- Security measure, must be inserted after jquery before sln-utils.js -->
 <script language="javascript">
@@ -62,12 +56,9 @@ var UNIT_SYMBOLS = {{ UNIT_SYMBOLS }};
 var LEGAL_ENTITY_CURRENCY = "{{ LEGAL_ENTITY_CURRENCY }}";
 var CONSTS = {{ CONSTS_JSON }};
 var MODULES = {{ modules }};
-var COUNTRY = {% if country %}"{{ country }}"{% else %}null{% endif %};
 var PROVISIONED_MODULES = {{ provisioned_modules }};
 var VAT_PCT = {{ VAT_PCT }};
 var IS_MOBICAGE_LEGAL_ENTITY = {% if IS_MOBICAGE_LEGAL_ENTITY %}true{% else %}false{% endif %};
-var ACTIVE_APPS = {{ active_apps }};
-var ALL_APPS = {{ all_apps }};
 var ROUTES = {};
 var LocalCache = {};
 var modules = {};
@@ -91,8 +82,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 <script src="/static/js/solutions/common.js"></script>
 <script src="/static/js/solutions/requests.js"></script>
 
-{%- include 'vector-map-assets.tmpl' %}
-
 {%- include 'settings_header.tmpl' %}
 
 </head>
@@ -112,14 +101,14 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% endif %}
     {% if sln_settings.uses_inbox() %}
                         <li menu="inbox">
-                            <a href="#" help="OyWCQ7nh00o">
+                            <a href="#">
                                 {% translate language, "common", "Inbox" %} <span class="badge badge-important sln-inbox-badge"></span>
                             </a>
                         </li>
     {% endif %}
     {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
                         <li menu="reservations" id="reservations_menu">
-                            <a href="#" help="28eg1X71-3w">
+                            <a href="#">
                                 {% translate language, "common", "reservations-menu" %}
                                 <span class="badge badge-success"></span>
                             </a>
@@ -129,7 +118,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 
 {% if not loyalty and (SolutionModule.MENU in sln_settings.modules or SolutionModule.ORDER in sln_settings.modules) %}
                             <li menu="menu">
-                            <a href="#/menu" help="tHSuWLfTuSg">
+                            <a href="#/menu">
                                 {% if menu and menu.name %}{{ menu.name }}{% else %}{% translate language, "common", "menu-editor-menu" %}{% endif %}
                             </a>
                         </li>
@@ -145,14 +134,10 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                         </li>
     {% endif %}
     {% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
-                        <li menu="events"><a href="#" help="dafoHacdVAU">{% translate language, "common", "agenda" %}</a></li>
+                        <li menu="events"><a href="#">{% translate language, "common", "agenda" %}</a></li>
     {% endif %}
     {% if SolutionModule.BROADCAST in sln_settings.modules %}
-        {% if news_enabled %}
-                        <li menu="news"><a href="#/news" help="MMvE7paS59k">{% translate language, "common", "News & actions" %}</a></li>
-        {% else %}
-                        <li menu="broadcast"><a href="#/broadcast" help="MMvE7paS59k">{% translate language, "common", "Broadcast" %}</a></li>
-        {% endif %}
+                        <li menu="news"><a href="#/news">{% translate language, "common", "News & actions" %}</a></li>
     {% endif %}
     {% if SolutionModule.JOBS in sln_settings.modules %}
                         <li menu="jobs"><a href="#/jobs">{% translate language, "common", "jobs" %} </a></li>
@@ -166,13 +151,13 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                         <li menu="participation"><a href="#/participation">{% translate language, "common", "participation" %}</a></li>
 {% endif %}
 {% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
-                        <li menu="static_content"><a href="#" help="aBXQnE69UEE">{% translate language, "common", "static-content" %}</a></li>
+                        <li menu="static_content"><a href="#">{% translate language, "common", "static-content" %}</a></li>
 {% endif %}
 
 {% if not is_layout_user %}
     {% if SolutionModule.REPAIR in sln_settings.modules %}
                         <li menu="repair">
-                            <a href="#" help="eAR3YTv2opI">
+                            <a href="#">
                                 {% translate language, "common", "repair" %}
                                 <span class="badge badge-important sln-repair-badge"></span>
                             </a>
@@ -224,16 +209,15 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 
 {% if not loyalty %}
                         <li menu="settings">
-                            <a class="help_menu_item"
-                               href="#/settings">{% translate language, "common", "Settings"%}</a>
+                            <a href="#/settings">{% translate language, "common", "Settings"%}</a>
                         </li>
 {% endif %}
 
 
 {% if not is_layout_user %}
     {% if not loyalty %}
-                        <li menu="statistics" class="disabled"><a class="help_menu_item" href="#">{% translate language, "common", "statistics" %}</a></li>
-                        <li menu="qanda"><a class="help_menu_item" href="#">{% translate language, "common", "qanda" %}</a></li>
+                        <li menu="statistics" class="disabled"><a href="#">{% translate language, "common", "statistics" %}</a></li>
+                        <li menu="qanda"><a href="#">{% translate language, "common", "qanda" %}</a></li>
     {% endif %}
     {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
                         <li menu="services"><a href="#/services">{% translate language, "common", "services" %}</a></li>
@@ -253,9 +237,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                         {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY and not is_layout_user %}
                         <div class="pull-right" menu="shoppage"><a class="btn btn-success" href="#/shop" id="shoplink">{% translate language, "common", "shop" %}</a></div>
                         {% endif %}
-                        <form class="navbar-form pull-right" style="margin-right:10px">
-                            <button id="help" type="button" class="btn btn-info">{% translate language, "common", "Help" %}</button>
-                        </form>
                         {% if SolutionModule.CITY_APP in sln_settings.modules %}
                         <a class="pull-right btn btn-default" href="/?sp=1" style="margin-right:10px">{% translate language, "common", "service_panel" %}</a>
                         {% endif %}
@@ -330,12 +311,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 	{% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}
 	    {%- include 'events.tmpl' %}
 	{% endif %}
-	{% if SolutionModule.BROADCAST in sln_settings.modules %}
-	    {%- include 'broadcast.tmpl' %}
-    {% endif %}
-    {% if SolutionModule.JOBS in sln_settings.modules %}
-        {%- include 'jobs.tmpl' %}
-    {% endif %}
 {% endif %}
 
 {% if SolutionModule.STATIC_CONTENT in sln_settings.modules and not loyalty %}
@@ -384,8 +359,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% endif %}
     <div id="settings" class="page" style="display: none;">
                         <ul class="nav nav-tabs">
-                            <li class="active" section="section_general"><a href="#/settings/general"
-                                                                            help="5EQJZ12RZ9Q">{% translate language, "common", "settings-general" %}</a>
+                            <li class="active" section="section_general"><a href="#/settings/general">{% translate language, "common", "settings-general" %}</a>
                             </li>
                             {% if not is_layout_user and SolutionModule.CITY_APP in sln_settings.modules %}
                                 <li section="section_app_settings">
@@ -393,23 +367,23 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 </li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.BILLING in sln_settings.modules %}
-                                <li section="section_billing"><a href="#" help="e76_LF0Haw8">{% translate language, "common", "Billing" %}</a></li>
+                                <li section="section_billing"><a href="#">{% translate language, "common", "Billing" %}</a></li>
                             {% endif %}
-                            <li section="section_branding"><a href="#/settings/branding" help="TtuJpcLEaYA">{% translate language, "common", "Branding" %}</a></li>
+                            <li section="section_branding"><a href="#/settings/branding">{% translate language, "common", "Branding" %}</a></li>
                             {% if not is_layout_user and sln_settings.uses_inbox() %}
-                                <li class="" section="section_settings_inbox"><a href="#" help="kZqDPlPAtQY">{% translate language, "common", "Inbox" %}</a></li>
+                                <li class="" section="section_settings_inbox"><a href="#">{% translate language, "common", "Inbox" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
-                                <li section="section_settings_restaurant_reservation"><a href="#" help="oQeTd85ejYY">{% translate language, "common", "reservation" %}</a></li>
+                                <li section="section_settings_restaurant_reservation"><a href="#">{% translate language, "common", "reservation" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user %}
-                                <li section="section_holidays"><a href="#" help="l_BlEhnXRcE">{% translate language, "common", "settings-holidays" %}</a></li>
+                                <li section="section_holidays"><a href="#">{% translate language, "common", "settings-holidays" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.AGENDA in sln_settings.modules %}
-                                <li class="" section="section_settings_agenda"><a href="#" help="5EQJZ12RZ9Q">{% translate language, "common", "agenda" %}</a></li>
+                                <li class="" section="section_settings_agenda"><a href="#">{% translate language, "common", "agenda" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.APPOINTMENT in sln_settings.modules %}
-                                <li class="" section="section_settings_appointment"><a href="#" help="xDakZT8iso0">{% translate language, "common", "appointment" %}</a></li>
+                                <li class="" section="section_settings_appointment"><a href="#">{% translate language, "common", "appointment" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.BROADCAST in sln_settings.modules %}
                                 <li section="section_settings_broadcast">
@@ -438,10 +412,10 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 <li section="section_settings_city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.QR_CODES in sln_settings.modules %}
-                                <li section="section_qr_codes"><a href="#" help="plfF98FLpxI">{% translate language, "common", "settings-qr-codes" %}</a></li>
+                                <li section="section_qr_codes"><a href="#">{% translate language, "common", "settings-qr-codes" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and SolutionModule.BULK_INVITE in sln_settings.modules %}
-                                <li section="section_bulk_invite"><a href="#" help="ovlJ45CPNTI">{% translate language, "common", "settings-bulk-invite" %}</a></li>
+                                <li section="section_bulk_invite"><a href="#">{% translate language, "common", "settings-bulk-invite" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
                                 <li section="section_settings_roles"><a href="#/settings/roles">{% translate language, "common", "settings-app-users-and-roles" %}</a></li>
@@ -556,15 +530,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
  {% endif %}
             </div>
     <div id="fb-root"></div>
-    <div id="help-video" class="modal hide fade" style="display: none; width: 670px;">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3>{% translate language, "common", "Help" %}</h3>
-        </div>
-        <div class="modal-body">
-            <div id="ytplayer"></div>
-        </div>
-    </div>
     <div id="video-popup" class="modal hide fade" style="display: none;" aria-hidden="true">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -582,14 +547,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     <script src="/static/js/solutions/sln-hints.js"></script>
     {% endif %}
     <script src="/static/js/solutions/sln-loyalty.js"></script>
-    {% if not is_layout_user and (SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.JOBS in
-    sln_settings.modules) %}
-    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
-    <script src="/static/js/solutions/sln-city-select.js"></script>
-    <script src="/static/js/solutions/sln-news-wizard.js"></script>
-    <script src="/static/js/solutions/sln-news-list.js"></script>
-    <script src="/static/js/solutions/sln-news.js"></script>
-    {% endif %}
     <script src="/static/js/solutions/sln-router.js"></script>
 </body>
 </html>

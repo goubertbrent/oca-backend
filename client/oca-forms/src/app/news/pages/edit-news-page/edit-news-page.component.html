@@ -1,0 +1,17 @@
+<ng-container *ngIf="newsItem$ | async as newsItem">
+  <oca-loadable [loadable]="newsItem">
+    <oca-edit-news (regionalNewsToggled)="onRegionalNewsToggled($event)"
+                   (save)="onSave($event)"
+                   *ngIf="newsItem.data"
+                   [actionButtons]="actionButtons$ | async"
+                   [appStatistics]="appStatistics$ | async"
+                   [apps]="(apps$ | async).data"
+                   [brandingSettings]="brandingSettings$ | async"
+                   [newsItem]="newsItem.data"
+                   [options]="options$ | async"
+                   [published]="(newsStats$ | async).data?.news_item.published"
+                   [remainingBudget]="remainingBudget$ | async"
+                   [serviceInfo]="(serviceInfo$ | async).data"
+                   [status]="newsItem"></oca-edit-news>
+  </oca-loadable>
+</ng-container>

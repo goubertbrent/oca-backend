@@ -18,6 +18,7 @@
 from mcfw.properties import unicode_property, typed_property, bool_property, long_property, unicode_list_property
 from rogerthat.to import TO
 from rogerthat.to.messaging import AttachmentTO
+from rogerthat.to.news import ServiceNewsGroupTO
 from rogerthat.to.roles import RoleTO
 from shop.to import ProductTO
 from solutions.common.to import TimestampTO, UrlTO
@@ -51,28 +52,12 @@ class SolutionScheduledBroadcastTO(object):
         return ssb
 
 
+class RegionalNewsSettingsTO(TO):
+    enabled = bool_property('enabled')
+    map_url = unicode_property('map_url')
+
+
 class BroadcastOptionsTO(TO):
-    broadcast_types = unicode_list_property('1')
-    editable_broadcast_types = unicode_list_property('2')
-    news_promotion_product = typed_property('3', ProductTO, False)
-    news_enabled = bool_property('5')
-    roles = typed_property('8', RoleTO, True)
-    news_settings = typed_property('9', dict)
-    regional_news_enabled = bool_property('regional_news_enabled')
-
-    def __init__(self, broadcast_types=None, editable_broadcast_types=None, news_promotion_product=None,
-                 news_enabled=False, roles=None, news_settings=None, regional_news_enabled=False):
-        if editable_broadcast_types is None:
-            editable_broadcast_types = []
-        if broadcast_types is None:
-            broadcast_types = []
-        if roles is None:
-            roles = []
-
-        self.broadcast_types = broadcast_types
-        self.editable_broadcast_types = editable_broadcast_types
-        self.news_promotion_product = news_promotion_product
-        self.news_enabled = news_enabled
-        self.roles = roles
-        self.news_settings = news_settings.to_dict() if news_settings else {}
-        self.regional_news_enabled = regional_news_enabled
+    tags = unicode_list_property('tags')
+    regional = typed_property('regional', RegionalNewsSettingsTO)
+    groups = typed_property('groups', ServiceNewsGroupTO, True)

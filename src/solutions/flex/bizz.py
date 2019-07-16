@@ -32,7 +32,7 @@ from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMEN
     POKE_TAG_NEW_EVENT, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, POKE_TAG_PHARMACY_ORDER, \
     POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
-    get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language, put_avatar_if_needed
+    get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
@@ -176,7 +176,6 @@ def provision(service_user, friends=None, transactional=True):
     with users.set_user(service_user):
         default_lang = get_default_language()
         sln_settings = get_and_complete_solution_settings(service_user, SOLUTION_FLEX)
-        put_avatar_if_needed(service_user)
         main_branding = get_and_store_main_branding(service_user)
 
         if sln_settings.modules_to_put or sln_settings.modules_to_remove:

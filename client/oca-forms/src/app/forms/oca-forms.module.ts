@@ -1,10 +1,11 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { NgModule } from '@angular/core';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatNativeDateModule, MatRippleModule } from '@angular/material/core';
+import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
@@ -22,11 +23,12 @@ import { MatStepperIntl, MatStepperModule } from '@angular/material/stepper';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterModule, Routes } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { Store, StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
+import { UploadFileModule } from '../shared/upload-file';
 import { ArrangeSectionsDialogComponent } from './components/arange-sections-dialog/arrange-sections-dialog.component';
 import { DateStatisticsListComponent } from './components/date-statistics-list/date-statistics-list.component';
 import { EditFormSectionComponent } from './components/edit-form-section/edit-form-section.component';
@@ -44,10 +46,9 @@ import { FormStatisticsNumberChartComponent } from './components/form-statistics
 import { FormStatisticsComponent } from './components/form-statistics/form-statistics.component';
 import { FormTombolaWinnersComponent } from './components/form-tombola-winners/form-tombola-winners.component';
 import { FormValidatorsComponent } from './components/form-validators/form-validators.component';
-import { ImageCropperComponent } from './components/image-cropper/image-cropper.component';
 import { NextActionEditorComponent } from './components/next-action-editor/next-action-editor.component';
 import { SelectInputListComponent } from './components/select-input-list/select-input-list.component';
-import { UploadImageDialogComponent } from './components/upload-image-dialog/upload-image-dialog.component';
+import { routes } from './forms-routes';
 import { GetIntegrationsAction } from './forms.actions';
 import { FormsEffects } from './forms.effects';
 import { formsReducer } from './forms.reducer';
@@ -57,18 +58,39 @@ import { FormDetailsPageComponent } from './pages/form-details-page/form-details
 import { FormListPageComponent } from './pages/form-list-page/form-list-page.component';
 import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-settings-page.component';
 
-const routes: Routes = [
-  { path: '', component: FormListPageComponent },
-  { path: ':id', component: FormDetailsPageComponent },
-];
-
 @NgModule({
+  declarations: [
+    FormListComponent,
+    FormDetailComponent,
+    FormStatisticsComponent,
+    FormStatisticsNumberChartComponent,
+    EditFormComponent,
+    EditFormSectionComponent,
+    FormFieldComponent,
+    SelectInputListComponent,
+    FormValidatorsComponent,
+    FormListPageComponent,
+    FormDetailsPageComponent,
+    FormTombolaWinnersComponent,
+    ArrangeSectionsDialogComponent,
+    DateStatisticsListComponent,
+    FormResponsesComponent,
+    NextActionEditorComponent,
+    EditNextActionDialogComponent,
+    FormsSettingsPageComponent,
+    FormIntegrationsComponent,
+    FormIntegrationConfigurationComponent,
+    FormIntegrationGVComponent,
+    FormIntegrationGvConfigComponent,
+  ],
   imports: [
-    RouterModule.forChild(routes),
+    SharedModule,
     StoreModule.forFeature('forms', formsReducer),
     EffectsModule.forFeature([ FormsEffects ]),
-    SharedModule,
+    RouterModule.forChild(routes),
     DragDropModule,
+    UploadFileModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatCardModule,
     MatCheckboxModule,
@@ -81,48 +103,20 @@ const routes: Routes = [
     MatListModule,
     MatMenuModule,
     MatNativeDateModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
     MatRadioModule,
     MatSelectModule,
     MatSlideToggleModule,
     MatSnackBarModule,
+    MatStepperModule,
     MatTabsModule,
     MatToolbarModule,
     MatTooltipModule,
     MatProgressBarModule,
-    MatStepperModule,
-    MatRippleModule,
-  ],
-  exports: [],
-  declarations: [
-    FormResponsesComponent,
-    UploadImageDialogComponent,
-    ImageCropperComponent,
-    DateStatisticsListComponent,
-    ArrangeSectionsDialogComponent,
-    FormTombolaWinnersComponent,
-    FormListComponent,
-    FormDetailComponent,
-    FormStatisticsComponent,
-    FormStatisticsNumberChartComponent,
-    EditFormComponent,
-    EditFormSectionComponent,
-    FormFieldComponent,
-    SelectInputListComponent,
-    FormValidatorsComponent,
-    FormListPageComponent,
-    FormDetailsPageComponent,
-    EditNextActionDialogComponent,
-    NextActionEditorComponent,
-    FormIntegrationsComponent,
-    FormIntegrationGVComponent,
-    FormsSettingsPageComponent,
-    FormIntegrationConfigurationComponent,
-    FormIntegrationGvConfigComponent,
   ],
   entryComponents: [
     ArrangeSectionsDialogComponent,
-    UploadImageDialogComponent,
     EditNextActionDialogComponent,
   ],
   providers: [
@@ -134,5 +128,4 @@ export class OcaFormsModule {
   constructor(private store: Store<FormsState>) {
     this.store.dispatch(new GetIntegrationsAction());
   }
-
 }

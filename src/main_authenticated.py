@@ -20,7 +20,6 @@ from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
     OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
     FlowStatisticsExportHandler
-from solutions.common.handlers.broadcast import UploadAttachmentHandler
 from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
     ExportVoucherHandler
 from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
@@ -54,7 +53,6 @@ handlers = [
     ('/flex/', FlexHomeHandler),
     ('/flex/logout', FlexLogoutHandler),
     ('/common/login_as', LoginAsServiceHandler),
-    ('/common/broadcast/attachment/upload', UploadAttachmentHandler),
     ('/common/settings/my_logo', GetSolutionLogoHandler),
     ('/common/settings/my_avatar', GetSolutionAvatarHandler),
     ('/common/image_viewer', ImageViewerHandler),

@@ -53,7 +53,7 @@
       </ng-container>
     </mat-step>
     <mat-step [completed]="completedSteps[2]" [optional]="true">
-      <ng-template matStepLabel>{{ 'oca.settings' | translate }}</ng-template>
+      <ng-template matStepLabel>{{ 'oca.Settings' | translate }}</ng-template>
       <div class="slide-toggle-margin">
         <mat-slide-toggle name="hide_form_after_date" [checked]="!!form.settings.visible_until"
                           (toggleChange)="toggleEndDate()"

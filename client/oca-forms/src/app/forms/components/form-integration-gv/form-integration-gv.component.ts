@@ -40,7 +40,7 @@ export class FormIntegrationGVComponent implements OnChanges {
     { type: GvFieldType.FIELD, label: 'oca.field' },
     { type: GvFieldType.FLEX, label: 'oca.custom_field' },
     { type: GvFieldType.CONST, label: 'oca.constant' },
-    { type: GvFieldType.ATTACHMENT, label: 'oca.attachment' },
+    { type: GvFieldType.ATTACHMENT, label: 'oca.Attachment' },
     { type: GvFieldType.LOCATION, label: 'oca.location' },
     { type: GvFieldType.PERSON, label: 'oca.person' },
   ];
@@ -67,10 +67,10 @@ export class FormIntegrationGVComponent implements OnChanges {
     contact: [
       { value: 'title', label: 'oca.title' },
       { value: 'nickname', label: 'oca.nickname' },
-      { value: 'phone_number', label: 'oca.phone_number' },
+      { value: 'phone_number', label: 'oca.Phone number' },
       { value: 'mobile_number', label: 'oca.mobile_number' },
-      { value: 'email', label: 'oca.email' },
-      { value: 'website', label: 'oca.website' },
+      { value: 'email', label: 'oca.Email' },
+      { value: 'website', label: 'oca.Website' },
       { value: 'fax', label: 'oca.fax' },
     ],
     address: [

@@ -1,0 +1,37 @@
+<mat-form-field>
+  <mat-label>{{ 'oca.app' | translate }}</mat-label>
+  <mat-select (ngModelChange)="createChartData()" [(ngModel)]="selectedApp" name="app">
+    <mat-option value="all">{{ 'oca.all_apps' | translate }}</mat-option>
+    <mat-option *ngFor="let app of apps" [value]="app.id">
+      {{ app.name }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+<mat-form-field>
+  <mat-label>{{ 'oca.measurement' | translate }}</mat-label>
+  <mat-select (ngModelChange)="updateCurrentMetric($event)" [ngModel]="selectedMetric" name="metric">
+    <mat-option *ngFor="let metric of possibleMetrics" [value]="metric.value">
+      {{ metric.label | translate }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+<div *ngIf="charts && hasData" class="charts">
+  <div class="row">
+    <google-chart *ngIf="charts.age.dataTable.length"
+                  [columnNames]="charts.age.columnNames"
+                  [data]="charts.age.dataTable"
+                  [options]="charts.age.options"
+                  [type]="charts.age.chartType"></google-chart>
+    <google-chart *ngIf="charts.gender.dataTable.length"
+                  [columnNames]="charts.gender.columnNames"
+                  [data]="charts.gender.dataTable"
+                  [options]="charts.gender.options"
+                  [type]="charts.gender.chartType"></google-chart>
+  </div>
+  <google-chart *ngIf="charts.time.dataTable.length > 1"
+                [columnNames]="charts.time.columnNames"
+                [data]="charts.time.dataTable"
+                [options]="charts.time.options"
+                [type]="charts.time.chartType"></google-chart>
+</div>
+<p *ngIf="!hasData"><i>{{ 'oca.no_stats_available_yet' | translate }}</i></p>

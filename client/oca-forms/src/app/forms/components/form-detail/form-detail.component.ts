@@ -30,7 +30,7 @@ export const enum FormDetailTab {
 })
 export class FormDetailComponent implements OnChanges {
   @Input() form: OcaForm;
-  @Input() statistics: Loadable<FormStatisticsView>;
+  @Input() statistics: Loadable<FormStatisticsView | null>;
   @Input() tombolaWinners: UserDetailsTO[];
   @Input() formResponse: Loadable<SingleFormResponse>;
   @Input() activeIntegrations: FormIntegrationProvider[];
@@ -41,7 +41,7 @@ export class FormDetailComponent implements OnChanges {
   @Output() testForm = new EventEmitter<UserDetailsTO>();
   @Output() loadResponses = new EventEmitter<LoadResponses>();
   @Output() nextResponse = new EventEmitter<number | null>();
-  @Output() removeResponse = new EventEmitter<{formId: number, submissionId: number}>();
+  @Output() removeResponse = new EventEmitter<{ formId: number, submissionId: number }>();
   showTombolaWinners = false;
 
   ngOnChanges(changes: SimpleChanges): void {

@@ -16,16 +16,16 @@
 # @@license_version:1.3@@
 
 import base64
-from contextlib import closing
 import logging
 import os
+from contextlib import closing
 from zipfile import ZipFile
 
-from google.appengine.ext import webapp, db
 import jinja2
-from lxml import html, etree
 import webapp2
+from google.appengine.ext import webapp, db
 
+from lxml import html, etree
 from rogerthat.consts import MAX_BRANDING_PDF_SIZE
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.rpc import users
@@ -37,7 +37,7 @@ from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, put_pdf_branding
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings
-from solutions.common.models import SolutionLogo, SolutionAvatar
+from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
@@ -52,28 +52,32 @@ JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.j
                                        extensions=[TranslateExtension])
 
 
-class GetSolutionLogoHandler(webapp.RequestHandler):
-    MODEL_CLASS = SolutionLogo
+class GetSolutionLogoHandler(webapp2.RequestHandler):
+
+    def _render_default(self, filename):
+        default_logo_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'main_branding', filename)
+        with open(default_logo_path) as f:
+            self.response.headers.add('Content-Type', 'application/jpeg')
+            self.response.out.write(f.read())
 
     def get(self):
         service_user = users.get_current_user()
-        logo = db.get(self.MODEL_CLASS.create_key(service_user))
-        self.response.headers['Content-Type'] = "image/png"
-        if logo and logo.picture:
-            self.response.out.write(str(logo.picture))
+        branding_settings = db.get(SolutionBrandingSettings.create_key(service_user))
+        if branding_settings.logo_url:
+            self.redirect(str(branding_settings.logo_url))
         else:
-            self.response.out.write(self.not_found())
-
-    def not_found(self):
-        return ""
+            self._render_default('logo.jpg')
 
 
 class GetSolutionAvatarHandler(GetSolutionLogoHandler):
-    MODEL_CLASS = SolutionAvatar
 
-    def not_found(self):
-        from rogerthat.bizz.profile import UNKNOWN_AVATAR
-        return UNKNOWN_AVATAR
+    def get(self):
+        service_user = users.get_current_user()
+        branding_settings = db.get(SolutionBrandingSettings.create_key(service_user))
+        if branding_settings.avatar_url:
+            self.redirect(str(branding_settings.avatar_url))
+        else:
+            self._render_default('avatar.jpg')
 
 
 class ImageViewerHandler(webapp2.RequestHandler):

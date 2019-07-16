@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd"
+                          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                          xsi:schemaLocation="https://rogerth.at/api/1/MessageFlow.xsd">
     <definition name="create_news" language="{{ language }}"
         {% if loyalty_enabled %}
-        startReference="message_news_type"
+                startReference="message_news_type"
         {% else %}
-        startReference="message_content_title"
+                startReference="message_content_title"
         {% endif %}>
         <end id="end_cancel" waitForFollowUpMessage="false"/>
         <end id="end_sent" waitForFollowUpMessage="true"/>
@@ -23,24 +25,24 @@
                     reference="end_cancel"/>
         </message>
         {% if loyalty_enabled %}
-        <message id="message_news_type"
-                 brandingKey="{{ branding_key }}"
-                 alertIntervalType="NONE"
-                 alertType="SILENT"
-                 allowDismiss="false"
-                 vibrate="false"
-                 autoLock="true">
-            <content>{% translate language, 'common', 'news_type_explanation' %}
-            </content>
-            <answer action=""
-                    caption="{% translate language, 'common', 'normal' %}"
-                    id="button_normal"
-                    reference="message_content_title"/>
-            <answer action=""
-                caption="{% translate language, 'common', 'coupon' %}"
-                id="button_coupon"
-                reference="message_content_title"/>
-        </message>
+            <message id="message_news_type"
+                     brandingKey="{{ branding_key }}"
+                     alertIntervalType="NONE"
+                     alertType="SILENT"
+                     allowDismiss="false"
+                     vibrate="false"
+                     autoLock="true">
+                <content>{% translate language, 'common', 'news_type_explanation' %}
+                </content>
+                <answer action=""
+                        caption="{% translate language, 'common', 'normal' %}"
+                        id="button_normal"
+                        reference="message_content_title"/>
+                <answer action=""
+                        caption="{% translate language, 'common', 'coupon' %}"
+                        id="button_coupon"
+                        reference="message_content_title"/>
+            </message>
         {% endif %}
         <formMessage id="message_content_title"
                      brandingKey="{{ branding_key }}"
@@ -55,15 +57,16 @@
                   negativeButtonConfirmation=""
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}">
-                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextLineWidget" maxChars="250" keyboardType="DEFAULT"/>
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextLineWidget" maxChars="250"
+                        keyboardType="DEFAULT"/>
                 <javascriptValidation>
-                var run = function(result, rogerthat){
-                    var title = result.value;
-                    if(title.length &lt; 5) {
-                        return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=5' %}";
-                    }
-                    return true;
-                };
+                    var run = function (result, rogerthat) {
+                        var title = result.value;
+                        if (title.length &lt; 5) {
+                            return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=5' %}";
+                        }
+                        return true;
+                    };
                 </javascriptValidation>
             </form>
         </formMessage>
@@ -81,15 +84,16 @@
                   negativeButtonConfirmation=""
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
-                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextBlockWidget" maxChars="1000" keyboardType="DEFAULT"/>
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextBlockWidget" maxChars="1000"
+                        keyboardType="DEFAULT"/>
                 <javascriptValidation>
-                var run = function(result, rogerthat){
-                    var message = result.value;
-                    if(message.length &lt; 10) {
-                        return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=10' %}";
+                    function run (result, rogerthat) {
+                        var message = result.value;
+                        if (message.length &lt; 10) {
+                            return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=10' %}";
+                        }
+                        return true;
                     }
-                    return true;
-                };
                 </javascriptValidation>
             </form>
         </formMessage>
@@ -100,16 +104,16 @@
                  allowDismiss="false"
                  vibrate="false"
                  autoLock="true">
-                 <content>{% translate language, 'common', 'image_optional' %}
-     {% translate language, 'common', 'news_image_explanation' %}</content>
+            <content>{% translate language, 'common', 'image_optional' %}
+{% translate language, 'common', 'news_image_explanation' %}</content>
             <answer action=""
                     caption="{% translate language, 'common', 'use_cover_photo' %}"
                     id="button_use_cover_photo"
                     reference="set_broadcast_types"/>
             <answer action=""
-                caption="{% translate language, 'common', 'upload-photo' %}"
-                id="button_upload_photo"
-                reference="message_image"/>
+                    caption="{% translate language, 'common', 'upload-photo' %}"
+                    id="button_upload_photo"
+                    reference="message_image"/>
         </message>
         <formMessage id="message_image"
                      brandingKey="{{ branding_key }}"
@@ -125,7 +129,8 @@
                   negativeButtonConfirmation=""
                   positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                   negativeButtonCaption="{% translate language, 'common', 'skip' %}">
-                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" ratio="640x240" camera="true" quality="best" gallery="true"/>
+                <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget"
+                        camera="true" quality="best" gallery="true"/>
             </form>
         </formMessage>
         <formMessage id="message_label"
@@ -146,7 +151,6 @@
                     <choice value="none" label="None"/>
                     <choice value="nothing" label="Nothing"/>
                 </widget>
-                <javascriptValidation></javascriptValidation>
             </form>
         </formMessage>
         <formMessage id="message_target_audience"
@@ -167,79 +171,73 @@
                     <choice value="none" label="None"/>
                 </widget>
                 <javascriptValidation>
-                var run = function(result, rogerthat){
-                    var apps = result.values;
-                    if(apps.length &lt; 1) {
-                        return "{% translate language, 'common', 'news_target_audience_select_at_least_one_app' %}";
+                    function run (result, rogerthat) {
+                        var apps = result.values;
+                        if (apps.length &lt; 1) {
+                            return "{% translate language, 'common', 'news_target_audience_select_at_least_one_app' %}";
+                        }
+                        return true;
                     }
-                    return true;
-                };
                 </javascriptValidation>
-        </form>
+            </form>
         </formMessage>
         <resultsFlush id="flush_news_send"
                       reference="end_sent"/>
 
-      <flowCode id="set_broadcast_types"
-                exceptionReference="message_exception">
-          <outlet name="message_label" value="message_label" reference="message_label"/>
-          <javascriptCode>
-              function run(rogerthat, messageFlowRun){
-                  "use strict";
-                  var broadcast_types = rogerthat.service.data.broadcast_types;
-                  var value = broadcast_types[0];
-                  var choices = [];
-                  var t;
-                  for(t in broadcast_types) {
-                    choices.push({
-                        value: broadcast_types[t],
-                        label: broadcast_types[t]
+        <flowCode id="set_broadcast_types"
+                  exceptionReference="message_exception">
+            <outlet name="message_label" value="message_label" reference="message_label"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    var newsGroups = rogerthat.service.data.news_groups;
+                    var value = newsGroups[0].group_type;
+                    var choices = newsGroups.map(function(group){
+                        return {value: group.group_type, label: group.name};
                     });
-                  }
-                  var result = {
-                      outlet: 'message_label',
-                      form: {
-                          widget: {
-                              value: value,
-                              choices: choices
-                          }
-                      }
-                  };
-                  return result;
-              }
-          </javascriptCode>
-      </flowCode>
+                    var result = {
+                        outlet: 'message_label',
+                        form: {
+                            widget: {
+                                value: value,
+                                choices: choices
+                            }
+                        }
+                    };
+                    return result;
+                }
+            </javascriptCode>
+        </flowCode>
 
-      <flowCode id="set_target_audience"
-                exceptionReference="message_exception">
-          <outlet name="message_target_audience" value="message_target_audience" reference="message_target_audience"/>
-          <javascriptCode>
-              function run(rogerthat, messageFlowRun){
-                  "use strict";
-                  var result;
-                  var apps = rogerthat.service.data.broadcast_target_audience;
+        <flowCode id="set_target_audience"
+                  exceptionReference="message_exception">
+            <outlet name="message_target_audience" value="message_target_audience" reference="message_target_audience"/>
+            <javascriptCode>
+                function run(rogerthat, messageFlowRun) {
+                    "use strict";
+                    var result;
+                    var apps = rogerthat.service.data.broadcast_target_audience;
 
-                  var choices = [], values = [];
-                  for(var app_id in apps) {
-                      choices.push({
-                          value: app_id,
-                          label: apps[app_id]
-                      });
-                      values.push(app_id);
-                  }
-                  result = {
-                      outlet: 'message_target_audience',
-                      form: {
-                          widget: {
-                              values: values,
-                              choices: choices
-                          }
-                      }
-                  };
-                  return result;
-              }
-          </javascriptCode>
-      </flowCode>
+                    var choices = [], values = [];
+                    for (var app_id in apps) {
+                        choices.push({
+                            value: app_id,
+                            label: apps[app_id]
+                        });
+                        values.push(app_id);
+                    }
+                    result = {
+                        outlet: 'message_target_audience',
+                        form: {
+                            widget: {
+                                values: values,
+                                choices: choices
+                            }
+                        }
+                    };
+                    return result;
+                }
+            </javascriptCode>
+        </flowCode>
 
     </definition>
 </messageFlowDefinitionSet>

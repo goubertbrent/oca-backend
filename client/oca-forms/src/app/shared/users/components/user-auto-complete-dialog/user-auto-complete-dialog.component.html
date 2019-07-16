@@ -1,23 +1,23 @@
 <h2 matDialogTitle>{{ data.title }}</h2>
-<form (ngSubmit)="submit()" #form="ngForm">
+<form #form="ngForm" (ngSubmit)="submit()">
   <mat-dialog-content>
     <p [innerHTML]="data.message"></p>
     <mat-list *ngIf="selectedUser">
       <mat-list-item>
-        <img matListAvatar [src]="selectedUser.avatar_url" [alt]="selectedUser.name">
+        <img [alt]="selectedUser.name" [src]="selectedUser.avatar_url" matListAvatar>
         <h3 matLine>{{ selectedUser.name }}</h3>
         <p matLine>{{ selectedUser.email }}</p>
       </mat-list-item>
     </mat-list>
-    <oca-user-autocomplete (optionSelected)="onOptionSelected($event)" [required]="true"
-                           #autocomplete></oca-user-autocomplete>
+    <oca-user-autocomplete #autocomplete (optionSelected)="onOptionSelected($event)"
+                           [required]="true"></oca-user-autocomplete>
     <mat-error *ngIf="showError">{{ 'oca.please_select_an_email_address' | translate }}</mat-error>
   </mat-dialog-content>
   <mat-dialog-actions>
-    <button type="button" mat-raised-button (click)="close()">
+    <button (click)="close()" mat-raised-button type="button">
       {{ data.cancel }}
     </button>
-    <button mat-raised-button color="primary">
+    <button color="primary" mat-raised-button>
       {{ data.ok }}
     </button>
   </mat-dialog-actions>

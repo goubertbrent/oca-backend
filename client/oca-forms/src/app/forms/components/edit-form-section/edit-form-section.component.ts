@@ -4,10 +4,10 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, fo
 import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
+import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
 import { FormValidatorType } from '../../interfaces/validators';
-import { UploadImageDialogComponent, UploadImageDialogConfig } from '../upload-image-dialog/upload-image-dialog.component';
 
 @Component({
   selector: 'oca-edit-form-section',
@@ -49,9 +49,11 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   @Input() showNextAction = false;
   @Input() sectionNumber: number;
   @Input() nextActions: UINextAction[];
+
   @Input() set canAddComponents(value: any) {
     this._canAddComponents = coerceBooleanProperty(value);
   }
+
   get canAddComponents() {
     return this._canAddComponents;
   }
@@ -65,9 +67,9 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   private _section: FormSection;
   private _canAddComponents = true;
   private onChange = (val: any) => {
-  }
+  };
   private onTouched = () => {
-  }
+  };
 
   constructor(private _translate: TranslateService,
               private _matDialog: MatDialog,
@@ -92,15 +94,14 @@ export class EditFormSectionComponent implements ControlValueAccessor {
     const title = this._translate.instant('oca.untitled_question');
     const choices = [ { label: option, value: option } ];
     this.changed('components', [ ...this.section.components, {
-        type: FormComponentType.SINGLE_SELECT,
-        description: null,
-        choices,
-        validators: [ { type: FormValidatorType.REQUIRED } ],
-        title,
-        id: title,
+      type: FormComponentType.SINGLE_SELECT,
+      description: null,
+      choices,
+      validators: [ { type: FormValidatorType.REQUIRED } ],
+      title,
+      id: title,
     } ]);
   }
-
 
   registerOnChange(fn: any): void {
     this.onChange = fn;
@@ -137,15 +138,17 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   openHeaderImageDialog() {
-    const config: MatDialogConfig<UploadImageDialogConfig> = {
+    const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        formId: this.formId,
+        uploadPrefix: 'forms',
+        reference: { type: 'form', id: this.formId },
         title: this._translate.instant('oca.add_header_image'),
+        cropOptions: { aspectRatio: 16 / 6 },
       },
     };
-    this._matDialog.open(UploadImageDialogComponent, config).afterClosed().subscribe((result?: string) => {
+    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFile) => {
       if (result) {
-        this.section = { ...this.section, branding: { logo_url: result, avatar_url: null } };
+        this.section = { ...this.section, branding: { logo_url: result.url, avatar_url: null } };
         this._changeDetectorRef.markForCheck();
       }
     });

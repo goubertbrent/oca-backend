@@ -33,7 +33,7 @@
   </button>
 </div>
 
-<mat-menu #validatorChoiceMenu=matMenu>
+<mat-menu #validatorChoiceMenu="matMenu">
   <ng-template matMenuContent>
     <button type="button" mat-menu-item *ngFor="let item of allowedTypes" role="menuitemcheckbox"
             (click)="addValidator(item)">

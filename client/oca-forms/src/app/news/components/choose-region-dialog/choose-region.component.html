@@ -1,0 +1,23 @@
+<agm-map [fitBounds]="bounds"
+         [minZoom]="13"
+         (mapClick)="addMarker($event)"
+         *ngIf="bounds$.asObservable() | async as bounds">
+  <ng-container *ngIf="bounds===true">
+    <agm-marker *ngFor="let address of addresses"
+                [latitude]="address.latitude"
+                [longitude]="address.longitude"
+                [agmFitBounds]="true" [visible]="false">
+    </agm-marker>
+  </ng-container>
+  <agm-circle
+    [latitude]="address.latitude"
+    [longitude]="address.longitude"
+    [radius]="address.distance"
+    [circleDraggable]="!disabled"
+    [editable]="!disabled"
+    (centerChange)="setCenter(i, $event)"
+    (radiusChange)="setRadius(i, $event)"
+    (circleClick)="removeCircle(address)"
+    *ngFor="let address of addresses; let i = index;"
+  ></agm-circle>
+</agm-map>

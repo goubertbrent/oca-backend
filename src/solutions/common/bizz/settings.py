@@ -16,7 +16,9 @@
 # @@license_version:1.3@@
 
 import base64
+import cgi
 import logging
+from cStringIO import StringIO
 from types import NoneType
 from xml.dom import minidom
 
@@ -28,17 +30,19 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
+from rogerthat.service.api.system import put_avatar
 from rogerthat.to.service import ServiceIdentityDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
 from solutions.common.bizz import _get_location, broadcast_updates_pending
-from solutions.common.dal import get_solution_settings, get_solution_logo, get_solution_main_branding, \
+from solutions.common.bizz.images import upload_file
+from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.exceptions.settings import InvalidRssLinksException
-from solutions.common.models import SolutionLogo, SolutionAvatar, SolutionSettings, \
-    SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink
+from solutions.common.models import SolutionSettings, \
+    SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding
 from solutions.common.to import SolutionSettingsTO
 from solutions.common.utils import is_default_service_identity
 
@@ -73,10 +77,6 @@ def save_settings(service_user, service_identity, data):
     else:
         sln_i_settings.qualified_identifier = None
 
-    if data.facebook_page is not None:
-        if sln_settings.facebook_page != data.facebook_page:
-            send_message(service_user, u'solutions.common.settings.facebookPageChanged',
-                         facebook_page=data.facebook_page)
     sln_settings.facebook_page = data.facebook_page
     sln_settings.facebook_name = data.facebook_name if data.facebook_page else ''
     sln_settings.facebook_action = data.facebook_action
@@ -120,72 +120,62 @@ def save_settings(service_user, service_identity, data):
     return sln_settings, sln_i_settings
 
 
-@returns(NoneType)
+@returns(SolutionBrandingSettings)
 @arguments(service_user=users.User, image=unicode)
 def set_avatar(service_user, image):
-    logging.info('%s: Saving avatar' % service_user.email())
     _meta, img_b64 = image.split(',')
     jpg_bytes = base64.b64decode(img_b64)
+    content_type = _meta.lstrip('data:').split(';')[0]
+    file_ = cgi.FieldStorage(StringIO(jpg_bytes), {'content-type': content_type})
+    branding_settings_key = SolutionBrandingSettings.create_key(service_user)
+    reference = ndb.Key.from_old_key(branding_settings_key)
+    uploaded_file = upload_file(service_user, file_, 'branding/avatar', reference)
 
     def trans():
-        avatar_key = SolutionAvatar.create_key(service_user)
-        avatar, branding_settings, sln_settings = db.get((avatar_key,
-                                                          SolutionBrandingSettings.create_key(service_user),
-                                                          SolutionSettings.create_key(service_user)))
-        avatar = avatar or SolutionAvatar(key=avatar_key)
-        avatar.picture = db.Blob(jpg_bytes)
-        avatar.published = False
-        avatar.is_default = False
-
-        to_put = [avatar, sln_settings]
+        branding_settings, sln_settings = db.get((branding_settings_key,
+                                                  SolutionSettings.create_key(service_user)))
         sln_settings.updates_pending = True
-        if branding_settings:
-            branding_settings.modification_time = now()
-            to_put.append(branding_settings)
+        branding_settings.avatar_url = uploaded_file.url
+        branding_settings.modification_time = now()
 
-        put_and_invalidate_cache(*to_put)
+        put_and_invalidate_cache(sln_settings, branding_settings)
+        put_avatar(img_b64)
 
-        return sln_settings
+        return sln_settings, branding_settings
 
-    sln_settings = run_in_transaction(trans, xg=True)
+    sln_settings, branding_settings = run_in_transaction(trans, xg=True)
     send_message(sln_settings.service_user, 'solutions.common.settings.avatar.updated')
     broadcast_updates_pending(sln_settings)
+    return branding_settings
 
 
-@returns(NoneType)
+@returns(SolutionBrandingSettings)
 @arguments(service_user=users.User, image=unicode)
 def set_logo(service_user, image):
-    logging.info('%s: Saving logo' % service_user.email())
     _meta, img_b64 = image.split(',')
     jpg_bytes = base64.b64decode(img_b64)
+    content_type = _meta.lstrip('data:').split(';')[0]
+    file_ = cgi.FieldStorage(StringIO(jpg_bytes), {'content-type': content_type})
+    branding_settings_key = SolutionBrandingSettings.create_key(service_user)
+    reference = ndb.Key.from_old_key(branding_settings_key)
+    uploaded_file = upload_file(service_user, file_, 'branding/logo', reference)
 
-    def trans():
-        logo = get_solution_logo(service_user) or SolutionLogo(key=SolutionLogo.create_key(service_user))
-        logo.picture = db.Blob(jpg_bytes)
-        logo.is_default = False
+    branding_settings = db.get(branding_settings_key)  # type: SolutionBrandingSettings
+    branding_settings.logo_url = uploaded_file.url
+    branding_settings.modification_time = now()
+    branding_settings.put()
 
-        settings = get_solution_settings(service_user)
-        settings.updates_pending = True
-
-        put_and_invalidate_cache(logo, settings)
-
-        deferred.defer(_regenerate_branding_with_logo, service_user, _transactional=True)
-
-        return settings
-
-    common_settings = run_in_transaction(trans, xg=True)
-    send_message(common_settings.service_user, 'solutions.common.settings.logo.updated')
-    broadcast_updates_pending(common_settings)
+    deferred.defer(_regenerate_branding_with_logo, service_user)
+    return branding_settings
 
 
 def _regenerate_branding_with_logo(service_user):
     users.set_user(service_user)
     logging.info("%s: Replacing logo.png in the sln main branding zip with the uploaded logo" % service_user.email())
-
-    logo = get_solution_logo(service_user)
-    sln_main_branding = get_solution_main_branding(service_user)
-
-    zip_content = replace_file_in_zip_blob(sln_main_branding.blob, "logo.jpg", str(logo.picture))
+    sln_main_branding, branding_settings = db.get((SolutionMainBranding.create_key(service_user),
+                                                   SolutionBrandingSettings.create_key(service_user)))
+    picture = branding_settings.download_logo()
+    zip_content = replace_file_in_zip_blob(sln_main_branding.blob, 'logo.jpg', str(picture))
 
     def trans():
         sln_main_branding = get_solution_main_branding(service_user)

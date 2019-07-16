@@ -15,6 +15,10 @@
       <mat-icon>visibility</mat-icon>
       <span>{{ 'oca.preview_form' | translate }}</span>
     </button>
+    <button mat-menu-item (click)="downloadResponses()">
+      <mat-icon>cloud_download</mat-icon>
+      <span>{{ 'oca.download_responses' | translate }}</span>
+    </button>
     <button mat-menu-item (click)="copyForm()">
       <mat-icon>file_copy</mat-icon>
       <span>{{ 'oca.make_copy' | translate }}</span>

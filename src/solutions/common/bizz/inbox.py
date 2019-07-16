@@ -45,6 +45,7 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import send_mail_via_mime, now, send_mail
+from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.models import reconstruct_key
 from rogerthat.utils.transactions import run_in_transaction
 from shop.constants import LOGO_LANGUAGES
@@ -244,11 +245,12 @@ def send_inbox_info_messages_to_services(service_users, sender, message):
                                         avatar_url=service_profile.avatarUrl,
                                         language=service_profile.defaultLanguage)
     sln_settings_cache = {model.service_user: model for model in db.get([SolutionSettings.create_key(user)
+
                                                                          for user in service_users])}
-    for user in service_users:
-        sln_settings = sln_settings_cache[user]
-        deferred.defer(new_inbox_message, sln_settings, message, category=SolutionInboxMessage.CATEGORY_OCA_INFO,
-                       reply_enabled=False, send_to_forwarders=True, user_details=sender_user_details)
+    tasks = [create_task(new_inbox_message, sln_settings_cache[user], message,
+                         category=SolutionInboxMessage.CATEGORY_OCA_INFO, reply_enabled=False, send_to_forwarders=True,
+                         user_details=sender_user_details) for user in service_users]
+    schedule_tasks(tasks)
 
 
 @returns(tuple)

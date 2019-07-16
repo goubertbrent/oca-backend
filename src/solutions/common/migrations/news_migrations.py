@@ -32,7 +32,7 @@ from rogerthat.consts import DAY, MIGRATION_QUEUE
 from rogerthat.dal.profile import is_trial_service, get_service_profile
 from rogerthat.dal.service import get_service_identity, get_default_service_identity
 from rogerthat.models import ServiceIdentity, FlowStatistics, App
-from rogerthat.models.news import NewsItem, NewsItemImage
+from rogerthat.models.news import NewsItem
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.to.news import NewsActionButtonTO
@@ -43,12 +43,11 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user
 from rogerthat.utils.transactions import allow_transaction_propagation
 from solutions import SOLUTION_FLEX, SOLUTION_COMMON, translate
 from solutions.common.bizz.provisioning import get_default_language, get_and_complete_solution_settings, \
-    get_and_store_main_branding, put_avatar_if_needed, populate_identity, provision_all_modules
+    get_and_store_main_branding, populate_identity, provision_all_modules
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import RestaurantMenu, SolutionSettings
 from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models import SolutionScheduledBroadcast
-from solutions.common.models.news import NewsCoupon
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.utils import limit_string
 from solutions.flex.bizz import DEFAULT_COORDS
@@ -222,7 +221,6 @@ def _provision_without_publish(sln_settings_key):
     with users.set_user(service_user):
         default_lang = get_default_language()
         sln_settings = get_and_complete_solution_settings(service_user, SOLUTION_FLEX)
-        put_avatar_if_needed(service_user)
         # Force update branding settings
         branding_settings = SolutionBrandingSettings.get(SolutionBrandingSettings.create_key(service_user))
         if not branding_settings:

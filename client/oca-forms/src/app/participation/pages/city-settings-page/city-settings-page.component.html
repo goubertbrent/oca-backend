@@ -1,1 +1,1 @@
-<oca-city-settings [settings]="citySettings$ | async" (saved)="updateSettings($event)"></oca-city-settings>
+<oca-city-settings (saved)="updateSettings($event)" [settings]="citySettings$ | async"></oca-city-settings>

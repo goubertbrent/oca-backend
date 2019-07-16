@@ -44,6 +44,7 @@ from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.models.utils import allocate_id
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
+from rogerthat.service.api.news import list_groups
 from rogerthat.settings import get_server_settings
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.profile import ProfileLocationTO
@@ -74,9 +75,9 @@ from solutions.common.bizz.system import generate_branding
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_GRAM, UNIT_KG, SECONDS_IN_HOUR, \
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
-    get_solution_logo, get_solution_group_purchase_settings, get_solution_calendars, get_static_content_keys, \
-    get_solution_avatar, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
-    get_solution_news_publishers, get_calendar_items
+    get_solution_group_purchase_settings, get_solution_calendars, get_static_content_keys, \
+    get_solution_identity_settings, get_solution_settings_or_identity_settings, get_solution_news_publishers,\
+    get_calendar_items
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.cityapp import invalidate_service_user_for_city
 from solutions.common.dal.order import get_solution_order_settings
@@ -182,7 +183,8 @@ def get_and_complete_solution_settings(service_user, solution):
 @arguments(service_user=users.User)
 def get_and_store_main_branding(service_user):
     main_branding, branding_settings = db.get([SolutionMainBranding.create_key(service_user),
-                                               SolutionBrandingSettings.create_key(service_user)])
+                                               SolutionBrandingSettings.create_key(
+                                                   service_user)])  # type: (SolutionMainBranding, SolutionBrandingSettings)
 
     must_store_branding = not main_branding.branding_key or not main_branding.branding_creation_time
 
@@ -205,16 +207,14 @@ def get_and_store_main_branding(service_user):
                         content = content.encode('utf8')
                         logging.debug('Generated %s: %s', f_name, content)
                     elif f_name == 'logo.jpg':
-                        solution_logo = get_solution_logo(service_user)
-                        if solution_logo:
-                            content = str(solution_logo.picture)
+                        if branding_settings.logo_url:
+                            content = branding_settings.download_logo()
 
                     elif f_name == 'avatar.jpg':
                         if not branding_settings.show_avatar:
                             continue
-                        solution_avatar = get_solution_avatar(service_user)
-                        if solution_avatar:
-                            content = str(solution_avatar.picture)
+                        if branding_settings.avatar_url:
+                            content = branding_settings.download_avatar()
 
                     if not content:
                         # just take the file from disk
@@ -267,9 +267,8 @@ def get_and_store_content_branding(service_user, language):
                         content = content.encode('utf8')
                         logging.debug('Generated %s: %s', f_name, content)
                     elif f_name == 'logo.jpg':
-                        solution_logo = get_solution_logo(service_user)
-                        if solution_logo:
-                            content = str(solution_logo.picture)
+                        if branding_settings.logo_url:
+                            content = branding_settings.download_logo()
 
                     if not content:
                         if os.path.isdir(os.path.join(content_branding_dir, f_name)):
@@ -363,16 +362,6 @@ def create_calendar_admin_qr_code(sc, main_branding_key, main_language):
 @arguments(service_identity=unicode)
 def create_loyalty_admin_qr_code(service_identity):
     return qr.create("loyalty admin", POKE_TAG_LOYALTY_ADMIN, None, service_identity)
-
-
-@returns()
-@arguments(service_user=users.User)
-def put_avatar_if_needed(service_user):
-    sln_avatar = get_solution_avatar(service_user)
-    if sln_avatar and not sln_avatar.published:
-        system.put_avatar(base64.b64encode(sln_avatar.picture))
-        sln_avatar.published = True
-        sln_avatar.put()
 
 
 @returns()
@@ -591,13 +580,6 @@ def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
     with users.set_user(sln_settings.service_user):
         si = system.get_info(service_identity)
 
-    def transl(key):
-        try:
-            return common_translate(sln_settings.main_language, SOLUTION_COMMON, key, suppress_warning=True)
-        except:
-            return key
-
-    broadcast_types = map(transl, sln_settings.broadcast_types)
     broadcast_target_audience = {}
     # get current apps of customer and set it as target audience
     for app_id, app_name in zip(si.app_ids, si.app_names):
@@ -607,8 +589,8 @@ def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
             continue  # Don't show the OSA Terminal app
         broadcast_target_audience[app_id] = app_name
 
-    return dict(broadcast_types=broadcast_types,
-                broadcast_target_audience=broadcast_target_audience)
+    return {'news_groups': [g.to_dict() for g in list_groups(sln_settings.main_language)],
+            'broadcast_target_audience': broadcast_target_audience}
 
 
 @returns(dict)
@@ -1119,7 +1101,6 @@ def put_broadcast(sln_settings, current_coords, main_branding, default_lang, tag
 
     broadcast_types = map(transl, sln_settings.broadcast_types)
     broadcast_types.extend(auto_broadcast_types)
-
 
     ssmi = SolutionServiceMenuItem(u'fa-bell',
                                    sln_settings.menu_item_color,

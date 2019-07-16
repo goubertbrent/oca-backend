@@ -107,7 +107,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
         const hasCompletedStep = completedStepIds.includes(COMPLETED_STEP_MAPPING[ i ]);
         this.completedSteps[ i ] = i === 0 ? true : (hasCompletedStep && this.completedSteps[ i - 1 ]);
         if (hasCompletedStep) {
-          this.stepperIndex = i;
+          this.stepperIndex = Math.min(i, 4);
         }
       }
       this.hasTested = completedStepIds.includes(CompletedFormStepType.TEST);
@@ -152,8 +152,8 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
   deleteSection(index: number, section: FormSection) {
     const data: SimpleDialogData = {
       message: this._translate.instant('oca.confirm_delete_section', { title: section.title }),
-      ok: this._translate.instant('oca.yes'),
-      cancel: this._translate.instant('oca.no'),
+      ok: this._translate.instant('oca.Yes'),
+      cancel: this._translate.instant('oca.No'),
     };
     this._matDialog.open(SimpleDialogComponent, { data }).afterClosed().subscribe((result: SimpleDialogResult) => {
       if (result && result.submitted) {
@@ -244,7 +244,7 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
       }
       this._matDialog.open(SimpleDialogComponent, {
         data: {
-          title: this._translate.instant('oca.error'),
+          title: this._translate.instant('oca.Error'),
           message: this._translate.instant('oca.some_fields_are_invalid'),
           ok: this._translate.instant('oca.ok'),
         },

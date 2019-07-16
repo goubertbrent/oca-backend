@@ -1,5 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
 @import '~cropperjs/dist/cropper.css';
+@import '~simplemde/dist/simplemde.min.css';
 
 html, body {
   font-family: Roboto, sans-serif;
@@ -64,3 +65,40 @@ fieldset {
   // By default it's set to 280px which may not be enough
   max-width: none !important;
 }
+
+/* <editor-fold defaultstate="collapsed" desc="Mapael">*/
+.mapTooltip {
+  position: absolute;
+  border: 1px solid #dbdbd6;
+  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: .27778em .83333em;
+  z-index: 1000;
+  display: none;
+  color: #333;
+  -webkit-box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.map {
+  position: relative;
+}
+
+/* </editor-fold> */
+
+/* <editor-fold description="dialog overlays"> */
+.map-panel {
+  // important is used because MatDialog applies css to the elements
+  max-height: none !important;
+
+  width: calc(100% - 4em) !important;
+}
+
+@media (min-width: 1500px) {
+  .map-panel {
+    width: 1500px;
+  }
+}
+
+/* </editor-fold> */

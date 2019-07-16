@@ -1,0 +1,37 @@
+<mat-form-field>
+  <mat-label>{{ dateLabel }}</mat-label>
+  <input matInput
+         readonly
+         [disabled]="disabled"
+         [matDatepicker]="datePicker"
+         [min]="min"
+         [max]="max"
+         [name]="name + '_date'"
+         [ngModel]="date"
+         [required]="required"
+         (dateChange)="onDateChange($event)"
+         #dateInput="ngModel">
+  <mat-datepicker-toggle [for]="datePicker" matSuffix></mat-datepicker-toggle>
+  <mat-datepicker #datePicker></mat-datepicker>
+  <mat-error *ngIf="dateInput.errors as errors">
+    <ng-container *ngIf="errors.required">
+      {{ 'oca.this_field_is_required' | translate }}
+    </ng-container>
+    <ng-container *ngIf="errors.matDatepickerMin">
+      {{ minError }}
+    </ng-container>
+    <ng-container *ngIf="errors.matDatepickerMax">
+      {{ maxError }}
+    </ng-container>
+  </mat-error>
+</mat-form-field>
+<mat-form-field>
+  <mat-label>{{ timeLabel }}</mat-label>
+  <input type="time"
+         matInput
+         [name]="name + '_time'"
+         [disabled]="disabled"
+         [required]="required"
+         (change)="onTimeChange()"
+         #timeInput>
+</mat-form-field>

@@ -1,0 +1,17 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button routerLink="/news/list">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.edit_message' | translate }}</h1>
+</mat-toolbar>
+<nav mat-tab-nav-bar>
+  <a #rla="routerLinkActive"
+     *ngFor="let tab of tabs"
+     [active]="rla.isActive"
+     [routerLink]="tab.path"
+     mat-tab-link
+     routerLinkActive>
+    {{ tab.label | translate }}
+  </a>
+</nav>
+<router-outlet></router-outlet>

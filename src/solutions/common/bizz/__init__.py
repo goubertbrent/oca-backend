@@ -38,8 +38,7 @@ from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url
-from rogerthat.bizz.service import create_service, InvalidAppIdException, \
-    InvalidBroadcastTypeException, RoleNotFoundException, AvatarImageNotSquareException
+from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_by_id
@@ -63,7 +62,6 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_queue
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
-from rogerthat.utils.transactions import run_in_transaction
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 import solutions
@@ -73,7 +71,7 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
 from solutions.common.models import SolutionSettings, SolutionMainBranding, \
-    SolutionBrandingSettings, SolutionLogo, FileBlob, SolutionNewsPublisher, SolutionModuleAppText
+    SolutionBrandingSettings, FileBlob, SolutionNewsPublisher, SolutionModuleAppText
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
@@ -562,12 +560,7 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
         main_branding.blob = db.Blob(resp.content)
     else:
         # Branding will be generated during provisioning
-        bs = _get_default_branding_settings(new_service_user)
-        with open(os.path.join(os.path.dirname(__file__), '..', 'templates', 'main_branding', 'logo.jpg'), 'r') as f:
-            sl = SolutionLogo(key=SolutionLogo.create_key(new_service_user),
-                              picture=db.Blob(f.read()),
-                              is_default=True)
-        to_be_put.extend([bs, sl])
+        to_be_put.append(_get_default_branding_settings(new_service_user))
 
     put_and_invalidate_cache(*to_be_put)
 
@@ -593,9 +586,9 @@ def _get_default_branding_settings(service_user):
 def _get_location(address):
     try:
         result = geo_code(address)
-    except GeoCodeStatusException, e:
+    except GeoCodeStatusException as e:
         raise GoogleMapsException(e.message)
-    except GeoCodeZeroResultsException, e:
+    except GeoCodeZeroResultsException as e:
         raise InvalidAddressException()
 
     location = result['geometry']['location']
@@ -883,24 +876,6 @@ def get_translated_broadcast_types(sln_settings):
         bt_trans = try_to_translate(bt, sln_settings.main_language)
         translated_broadcast_types[bt_trans] = bt
     return translated_broadcast_types
-
-
-@returns()
-@arguments(service_user=users.User, broadcast_types=[unicode])
-def save_broadcast_types_order(service_user, broadcast_types):
-    def trans():
-        sln_settings = get_solution_settings(service_user)
-
-        translated_broadcast_types = get_translated_broadcast_types(sln_settings)
-        diff = set(translated_broadcast_types).symmetric_difference(broadcast_types)
-        if diff:
-            raise InvalidBroadcastTypeException(diff.pop())
-
-        sln_settings.broadcast_types = [translated_broadcast_types[bt] for bt in broadcast_types]
-        sln_settings.updates_pending = True
-        put_and_invalidate_cache(sln_settings)
-        broadcast_updates_pending(sln_settings)
-    run_in_transaction(trans, True)
 
 
 @db.non_transactional

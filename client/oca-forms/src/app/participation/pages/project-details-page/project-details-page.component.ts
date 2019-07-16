@@ -3,7 +3,9 @@ import { MatTabChangeEvent } from '@angular/material/tabs';
 import { ActivatedRoute } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Loadable } from '../../../shared/loadable/loadable';
+import { deepCopy } from '../../../shared/util/misc';
 import {
   GetMoreProjectStatisticsAction,
   GetProjectAction,
@@ -31,7 +33,7 @@ export class ProjectDetailsPageComponent implements OnInit {
   ngOnInit() {
     this.id = parseInt(this.route.snapshot.params.id, 10);
     this.store.dispatch(new GetProjectAction({ id: this.id }));
-    this.project$ = this.store.pipe(select(getProjectDetails));
+    this.project$ = this.store.pipe(select(getProjectDetails), map(s => deepCopy(s)));
     this.projectStatistics$ = this.store.pipe(select(getProjectStatistics));
   }
 

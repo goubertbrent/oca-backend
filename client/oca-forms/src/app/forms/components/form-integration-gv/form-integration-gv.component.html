@@ -6,7 +6,7 @@
   <h3>{{ section.title }}</h3>
   <div *ngFor="let component of componentMapping[section.id]" class="mapping-row">
     <mat-form-field>
-      <mat-label>{{ 'oca.type' | translate }}</mat-label>
+      <mat-label>{{ 'oca.Type' | translate }}</mat-label>
       <mat-select [(ngModel)]="component.type">
         <mat-option *ngFor="let option of mappingTypes" [value]="option.type">
           {{ option.label | translate }}

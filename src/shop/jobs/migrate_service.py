@@ -55,7 +55,7 @@ from solutions.common.bizz.provisioning import put_qr_codes, populate_identity, 
     create_inbox_forwarding_qr_code, put_loyalty, create_inbox_forwarding_flow
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, get_solution_identity_settings
 from solutions.common.dal.cityapp import invalidate_service_user_for_city
-from solutions.common.models import SolutionQR, SolutionMainBranding, SolutionLogo, SolutionAvatar
+from solutions.common.models import SolutionQR, SolutionMainBranding
 from solutions.common.models.agenda import EventReminder, SolutionCalendar
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyIdentitySettings
 from solutions.common.models.reservation import RestaurantReservation, RestaurantProfile
@@ -668,17 +668,15 @@ def _7000_migrate_solution(job_key):
         logging.info('0/ Migrate the solution models without ancestor, but with service_user as key name.')
 
         def trans0():
-            new_models = list()
-            old_models = list()
+            new_models = []
+            old_models = []
 
-            for model_class in (SolutionMainBranding, SolutionLogo, SolutionAvatar):
-                old_model = db.get(model_class.create_key(job.from_service_user))
-                if old_model:
-                    kwargs = copy_model_properties(old_model)
-                    new_model = model_class(key=model_class.create_key(job.to_service_user),
-                                            **kwargs)
-                    new_models.append(new_model)
-                    old_models.append(old_model)
+            old_model = db.get(SolutionMainBranding.create_key(job.from_service_user))
+            if old_model:
+                kwargs = copy_model_properties(old_model)
+                new_model = SolutionMainBranding(key=SolutionMainBranding.create_key(job.to_service_user),**kwargs)
+                new_models.append(new_model)
+                old_models.append(old_model)
 
             if new_models:
                 put_and_invalidate_cache(*new_models)

@@ -1,0 +1,2 @@
+declare module 'jquery-mapael' {
+}

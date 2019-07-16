@@ -224,8 +224,8 @@ export class FormFieldComponent {
       case FormComponentType.TEXT_INPUT:
         if ([ KeyboardType.NUMBER, KeyboardType.DECIMAL ].includes(this.component.keyboard_type)) {
           validatorTypes = [ ...validatorTypes,
-            { type: FormValidatorType.MIN, label: 'oca.minimum', value: 1 },
-            { type: FormValidatorType.MAX, label: 'oca.maximum', value: 100 },
+            { type: FormValidatorType.MIN, label: 'oca.Minimum', value: 1 },
+            { type: FormValidatorType.MAX, label: 'oca.Maximum', value: 100 },
           ];
         } else {
           validatorTypes = [ ...validatorTypes,
@@ -242,8 +242,8 @@ export class FormFieldComponent {
         break;
       case FormComponentType.DATETIME:
         validatorTypes = [ ...validatorTypes,
-          { type: FormValidatorType.MINDATE, label: 'oca.minimum_date', value: new Date(), value_label: 'oca.date'},
-          { type: FormValidatorType.MAXDATE, label: 'oca.maximum_date', value: new Date(), value_label: 'oca.date'},
+          { type: FormValidatorType.MINDATE, label: 'oca.minimum_date', value: new Date(), value_label: 'oca.Date'},
+          { type: FormValidatorType.MAXDATE, label: 'oca.maximum_date', value: new Date(), value_label: 'oca.Date'},
         ];
         break;
       case FormComponentType.FILE:

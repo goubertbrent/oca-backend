@@ -1,6 +1,9 @@
-<div class="spinner-container" *ngIf="loadable.loading">
+<div *ngIf="loadable.loading" class="spinner-container">
   <mat-spinner [diameter]="50"></mat-spinner>
 </div>
+<ng-container *ngIf="loadable.error">
+  <p class="mat-error">{{ errorMessage }}</p>
+</ng-container>
 <ng-container *ngIf="loadable.data">
   <ng-content></ng-content>
 </ng-container>

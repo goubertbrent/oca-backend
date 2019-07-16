@@ -2,10 +2,10 @@
   <mat-sidenav mode="side" opened>
     <mat-nav-list>
       <a *ngFor="let item of navItems"
-         mat-list-item
-         [routerLink]="item.route"
          [routerLinkActive]="['link-active']"
-         [title]="item.label | translate">
+         [routerLink]="item.route"
+         [title]="item.label | translate"
+         mat-list-item>
         <mat-icon mat-list-icon>{{ item.icon }}</mat-icon>
         <p>{{ item.label | translate }}</p>
       </a>

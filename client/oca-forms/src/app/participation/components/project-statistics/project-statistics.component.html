@@ -1,5 +1,5 @@
 <oca-loadable [loadable]="statistics">
-  <div class="stats-container" *ngIf="statistics.data">
+  <div *ngIf="statistics.data" class="stats-container">
     <h2>{{ 'oca.x_scans' | translate : {amount: statistics.data.total} }}</h2>
     <mat-list>
       <mat-list-item *ngFor="let merchant of statistics.data.results">
@@ -7,8 +7,8 @@
         <p matLine>{{ 'oca.x_scans' | translate : {amount: merchant.total} }}</p>
       </mat-list-item>
     </mat-list>
-    <div class="load-more-button" *ngIf="statistics.data.more">
-      <button mat-raised-button (click)="loadMore.emit()">{{ 'oca.load_more' | translate }}</button>
+    <div *ngIf="statistics.data.more" class="load-more-button">
+      <button (click)="loadMore.emit()" mat-raised-button>{{ 'oca.Load more' | translate }}</button>
     </div>
   </div>
 </oca-loadable>

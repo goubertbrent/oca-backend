@@ -1,0 +1,13 @@
+<oca-loadable [loadable]="listStatus$ | async" *ngIf="listStatus$ | async as status">
+  <oca-news-item-list (deleteItem)="onDeleteItem($event)"
+                      (loadMore)="onLoadMore()"
+                      [hasMore]="hasMore$ | async"
+                      [items]="newsList$ | async"
+                      [newsGroups]="newsGroups$ | async"
+                      [loading]="status.loading"></oca-news-item-list>
+</oca-loadable>
+<div class="fab-bottom-right">
+  <a mat-fab routerLink="/news/create">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

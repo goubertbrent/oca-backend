@@ -3,7 +3,7 @@
 
 <mat-slide-toggle [(ngModel)]="configMapping[FormIntegrationProvider.GREEN_VALLEY].enabled"
                   (ngModelChange)="integrationToggled(FormIntegrationProvider.GREEN_VALLEY)">
-  {{ 'oca.enabled' | translate }}
+  {{ 'oca.Enabled' | translate }}
 </mat-slide-toggle>
 <oca-form-integration-gv-config [configuration]="configMapping[FormIntegrationProvider.GREEN_VALLEY].configuration"
                                 (configurationChanged)="updateConfiguration(configMapping[FormIntegrationProvider.GREEN_VALLEY], $event)"

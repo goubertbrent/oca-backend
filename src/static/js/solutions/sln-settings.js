@@ -41,7 +41,7 @@ $(function () {
     var TMPL_SET_FACEBOOK_PLACE = '<label>'
         + CommonTranslations.FACEBOOK_PAGE
         + ':</label> <a href="#fbLogin" id="facebookPlaceStep1">'
-        + CommonTranslations.LOGIN_WITH_FACEBOOK_FIRST
+        + CommonTranslations['Login with facebook first']
         + '</a>'
         + '<div id="facebookPlaceStep2"><input type="text" id="place-input" autocomplete="off" />	<input type="hidden" id="place-input-id" value="" /></div>';
 
@@ -140,9 +140,7 @@ $(function () {
 
     function init() {
         ROUTES.settings = router;
-        modules.settings = {
-            renderBroadcastSettings: renderBroadcastSettings
-        };
+        modules.settings = {publishChanges: publishChanges};
         LocalCache.settings = {};
     }
 
@@ -157,24 +155,20 @@ $(function () {
 
         if (page === 'branding') {
             showSettingsBranding();
-        } else if (page === 'broadcast') {
-            Requests.getBroadcastOptions().then(renderBroadcastSettings);
         } else if (page === 'app') {
             renderAppSettings();
-        } else if (page == 'roles') {
+        } else if (page === 'roles') {
             renderRolesSettings();
         }
     }
 
-    var publishChanges = function() {
+    function publishChanges() {
         // publish changes to all users
         publishChangesToUsers(null);
     }
-    modules.settings.publishChanges = publishChanges;
 
-    var tryPublishChanges = function() {
-        var html = $.tmpl(templates['settings/try_publish_changes'], {
-        });
+    var tryPublishChanges = function () {
+        var html = $.tmpl(templates['settings/try_publish_changes'], {});
 
         var modal = sln.createModal(html, function (modal) {
             $('#app_user_email_input', modal).focus();
@@ -182,7 +176,7 @@ $(function () {
 
         function getUserKeys() {
             var keys = [];
-            $('#selected_users > tbody > tr', modal).each(function(i, el) {
+            $('#selected_users > tbody > tr', modal).each(function (i, el) {
                 keys.push($(el).attr('user_key'));
             });
             return keys;
@@ -195,43 +189,41 @@ $(function () {
                 user_key: userKey
             });
 
-            $('button[action=delete_user]', userRow).click(function() {
+            $('button[action=delete_user]', userRow).click(function () {
                 $(this).parent().closest('tr').remove();
             });
 
             $('#selected_users > tbody', modal).append(userRow);
         }
 
-        // prefill last selected users
-        var lastSelectedUserKeys = []
-        if(LocalCache.settings.try_publish_user_keys) {
-            $.each(LocalCache.settings.try_publish_user_keys, function(i, userKey) {
+        if (LocalCache.settings.try_publish_user_keys) {
+            $.each(LocalCache.settings.try_publish_user_keys, function (i, userKey) {
                 addUser(userKey);
             });
         }
 
         var publishButton = $('#try_publish', modal);
         var searchInput = $('#app_user_email', modal);
-        sln.userSearch(searchInput, function(userKey) {
+        sln.userSearch(searchInput, function (userKey) {
             var addedKeys = getUserKeys();
-            if(addedKeys.indexOf(userKey) === -1) {
+            if (addedKeys.indexOf(userKey) === -1) {
                 addUser(userKey);
                 searchInput.val('');
             }
         });
 
-        publishButton.click(function() {
+        publishButton.click(function () {
             var userKeys = getUserKeys(),
                 members = [];
 
-            $.each(userKeys, function(i, key) {
+            $.each(userKeys, function (i, key) {
                 var userKey = key.split(':');
                 members.push({
                     member: userKey[0], /* email */
                     app_id: userKey[1]  /* app_id */
                 });
             });
-            if(!members.length) {
+            if (!members.length) {
                 sln.alert(CommonTranslations.select_1_user_at_least, null, CommonTranslations.ERROR);
                 return;
             }
@@ -242,24 +234,24 @@ $(function () {
         });
     };
 
-    var showDefaultSettingsWarning = function(defaults) {
-        if(defaults.length) {
+    var showDefaultSettingsWarning = function (defaults) {
+        if (defaults.length) {
             var warning = CommonTranslations.default_settings_warning + '<br/><br/>';
-            for(var i=0; i < defaults.length; i++) {
+            for (var i = 0; i < defaults.length; i++) {
                 warning += '<b>' + CommonTranslations[defaults[i]] + '</b><br/>';
                 warning += CommonTranslations[('default_settings_warning_' + defaults[i]).toLowerCase()];
-                warning += '<br/><br/>'
+                warning += '<br/><br/>';
             }
             sln.alert(warning, null, CommonTranslations.ERROR);
         }
     };
 
-    var validateDefaultSettings = function(callback) {
+    var validateDefaultSettings = function (callback) {
         sln.call({
             url: '/common/settings/defaults/all',
             method: 'get',
-            success: function(defaults) {
-                if(defaults.length) {
+            success: function (defaults) {
+                if (defaults.length) {
                     showDefaultSettingsWarning(defaults);
                 } else {
                     callback();
@@ -267,19 +259,19 @@ $(function () {
             },
             error: sln.showAjaxError
         });
-    }
+    };
 
     var publishChangesToUsers = function (friends) {
         function publish() {
-            validateDefaultSettings(function() {
+            validateDefaultSettings(function () {
                 if (isPublishing) {
-                    console.debug('Publishing in progress...')
+                    console.debug('Publishing in progress...');
                     // do nothing
                     return;
                 }
                 isPublishing = true;
                 var args = {};
-                if(friends && friends.length) {
+                if (friends && friends.length) {
                     args.friends = friends;
                 }
                 sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
@@ -291,7 +283,7 @@ $(function () {
                         sln.hideProcessing();
                         if (data.success && !args.friends) {
                             toggleUpdatesPending(false);
-                        } else if(!data.success){
+                        } else if (!data.success) {
                             sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
                         }
                         isPublishing = false;
@@ -321,9 +313,9 @@ $(function () {
 
         if (!searchEnabled && searchEnabledCheck) {
             // ask the user to enable search for this service before publishing
-            sln.confirm(CommonTranslations.enable_search_before_publishing, function(neverCheckAgain) {
+            sln.confirm(CommonTranslations.enable_search_before_publishing, function (neverCheckAgain) {
                 setSearchEnabled(neverCheckAgain, true);
-            }, function(neverCheckAgain) {
+            }, function (neverCheckAgain) {
                 setSearchEnabled(neverCheckAgain, false);
             }, CommonTranslations.YES, CommonTranslations.NO, CommonTranslations.visibility, null, true);
         } else {
@@ -331,8 +323,8 @@ $(function () {
         }
     };
 
-    var saveTryPublishUsers = function(userKeys) {
-        if(userKeys.length) {
+    var saveTryPublishUsers = function (userKeys) {
+        if (userKeys.length) {
             LocalCache.settings.try_publish_user_keys = userKeys;
 
             sln.call({
@@ -341,11 +333,12 @@ $(function () {
                 data: {
                     user_keys: userKeys
                 },
-                success: function() {},
+                success: function () {
+                },
                 error: sln.showAjaxError
             });
         }
-    }
+    };
 
     var toggleUpdatesPending = function (updatesPending) {
         if (updatesPending) {
@@ -414,8 +407,6 @@ $(function () {
             }
         } else if (data.type === 'solutions.common.settings.avatar.updated') {
             avatarUpdated();
-        } else if (data.type === 'solutions.common.settings.logo.updated') {
-            logoUpdated();
         } else if (data.type === 'solution.common.settings.roles.updated') {
             renderRolesSettings();
         }
@@ -424,10 +415,10 @@ $(function () {
     window.fbAsyncInit = function () {
         // init the FB JS SDK
         sln.call({
-            url: '/common/settings/facebook/app/id',
+            url: '/common/settings/facebook-app-id',
             method: 'get',
-            success: function(app_id) {
-                if(!app_id) {
+            success: function (app_id) {
+                if (!app_id) {
                     console.error('Cannot get facebook app id');
                     $('.sln-set-facebook-place').hide();
                     return;
@@ -457,22 +448,22 @@ $(function () {
 
     var loginFacebookPages = function () {
         FB.login(function (response) {
-            if (response.authResponse) {
-                if(response.authResponse.grantedScopes.indexOf('manage_pages') == -1) {
-                    sln.alert(T('facebook-manage-pages-required'));
-                    return;
-                }
+                if (response.authResponse) {
+                    if (response.authResponse.grantedScopes.indexOf('manage_pages') == -1) {
+                        sln.alert(T('facebook-manage-pages-required'));
+                        return;
+                    }
 
-                fbAccessToken = response.authResponse.accessToken;
-                $("#facebookPlaceStep1").css('visibility', 'hidden');
-                $("#facebookPlaceStep2").css('visibility', 'visible');
-                loadFacebookPages();
-            }
-        },
-        {
-            scope: 'manage_pages',
-            return_scopes: true
-        });
+                    fbAccessToken = response.authResponse.accessToken;
+                    $("#facebookPlaceStep1").css('visibility', 'hidden');
+                    $("#facebookPlaceStep2").css('visibility', 'visible');
+                    loadFacebookPages();
+                }
+            },
+            {
+                scope: 'manage_pages',
+                return_scopes: true
+            });
     };
 
     var fbPlaces = {};
@@ -694,7 +685,8 @@ $(function () {
             data: {
                 notifications_enabled: eventNotificationsEnabled
             },
-            success: function(data) {},
+            success: function (data) {
+            },
             error: sln.showAjaxError
         });
     }
@@ -808,7 +800,7 @@ $(function () {
         $('button[action="submit"]', modal).hide();
 
         var searchInput = $('#mobile_inbox_forwarder', html);
-        sln.userSearch(searchInput, function(user_key) {
+        sln.userSearch(searchInput, function (user_key) {
             $('button[action="submit"]', modal).attr("user_key", user_key);
             $('button[action="submit"]', modal).show();
         });
@@ -974,7 +966,6 @@ $(function () {
     sln.configureDelayedInput($("#oof-message"), saveOOFMessage);
 
 
-
     /* END HOLIDAYS */
 
     $(".sln-set-avatar").html(TMPL_SET_AVATAR);
@@ -1022,12 +1013,12 @@ $(function () {
     sln.configureDelayedInput($('.sln-set-search-keywords textarea'), saveSettings);
     sln.configureDelayedInput($('.sln-set-email-address input'), saveSettings);
 
-    $('#newsletter-checkbox').change(function() {
+    $('#newsletter-checkbox').change(function () {
         saveConsent('newsletter', $(this).prop('checked'));
     });
 
-    $('#email_marketing-checkbox').change(function() {
-    	saveConsent('email_marketing', $(this).prop('checked'));
+    $('#email_marketing-checkbox').change(function () {
+        saveConsent('email_marketing', $(this).prop('checked'));
     });
 
     // billing tab
@@ -1092,7 +1083,10 @@ $(function () {
 
             $('#logo_div').click(function () {
                 // uploadLogo is globally defined in sln-settings.js
-                uploadLogo(renderSettingsBranding);
+                uploadLogo(function () {
+                    logoUpdated();
+                    renderSettingsBranding();
+                });
             });
 
             $('#save_button', elemBrandingSettings).click(function () {
@@ -1296,16 +1290,11 @@ $(function () {
                     image: image
                 },
                 type: 'POST',
-                success: function (errorMsg) {
+                success: function (result) {
                     sln.hideProcessing();
-                    if (errorMsg) {
-                        sln.alert(errorMsg, null, CommonTranslations.ERROR);
-                    } else {
-                        modal.modal('hide');
-
-                        if (typeof successCallback === 'function') {
-                            successCallback();
-                        }
+                    modal.modal('hide');
+                    if (typeof successCallback === 'function') {
+                        successCallback();
                     }
                 }
             });
@@ -1385,12 +1374,12 @@ $(function () {
     }
 
     function saveConsent(consent_type, enabled) {
-    	sln.call({
+        sln.call({
             url: "/common/settings/consent",
             type: "POST",
             data: {
-            	consent_type: consent_type,
-            	enabled: enabled
+                consent_type: consent_type,
+                enabled: enabled
             },
             success: function (data) {
                 if (!data.success) {
@@ -1398,16 +1387,6 @@ $(function () {
                 }
             }
         });
-    }
-
-    function moveElementInArray(array, old_index, new_index) {
-        if (new_index >= array.length) {
-            var k = new_index - array.length;
-            while ((k--) + 1) {
-                array.push(undefined);
-            }
-        }
-        array.splice(new_index, 0, array.splice(old_index, 1)[0]);
     }
 
     function getbroadcastRssSettings(callback) {
@@ -1435,57 +1414,9 @@ $(function () {
     $('#sln-set-broadcast-add-rss').click(addRssUrl);
     // add broadcast news publisher
     $('#broadcast_add_news_publisher').click(addBroadcastNewsPublisher);
-    // add broadcast type
-    $('#settings_add_extra_broadcast_type').click(addBroadcastType);
-    $('#settings_extra_broadcast_type').on('input', function () {
-        // check for broadcast type if exists or empty
-        var value = $(this).val().trim();
-        Requests.getBroadcastOptions().then(function (broadcastOptions) {
-            var alreadyExists = broadcastOptions && broadcastOptions.editable_broadcast_types.indexOf(value) !== -1;
-
-            if (value.length < 3 || !broadcastOptions || alreadyExists) {
-                $('#settings_add_extra_broadcast_type').attr('disabled', true);
-            } else {
-                $('#settings_add_extra_broadcast_type').attr('disabled', false);
-            }
-        });
-    });
-
-    function renderBroadcastSettings(broadcastOptions) {
-        getbroadcastRssSettings(function (settings) {
-            renderRssSettings(settings);
-        });
-        var editedBroadcastOptions = JSON.parse(JSON.stringify(broadcastOptions));
-        var html = $.tmpl(templates.broadcast_settings_list, {
-            broadcastTypes: broadcastOptions.editable_broadcast_types,
-            t: CommonTranslations
-        });
-        $('#section_settings_broadcast > div[name=broadcast_types]').html(html);
-        var listElem = $('#broadcast-types-sortable-list');
-        listElem.find('button[data-action=up]').click(function () {
-            var $this = $(this);
-            var oldIndex = editedBroadcastOptions.editable_broadcast_types.indexOf($this.attr('data-value'));
-            var newIndex = oldIndex - 1;
-            moveElementInArray(editedBroadcastOptions.editable_broadcast_types, oldIndex, newIndex);
-            renderBroadcastSettings(editedBroadcastOptions);
-        });
-        listElem.find('button[data-action=down]').click(function () {
-            var $this = $(this);
-            var oldIndex = editedBroadcastOptions.editable_broadcast_types.indexOf($this.attr('data-value'));
-            var newIndex = oldIndex + 1;
-            moveElementInArray(editedBroadcastOptions.editable_broadcast_types, oldIndex, newIndex);
-            renderBroadcastSettings(editedBroadcastOptions);
-        });
-        listElem.find('button[data-action=delete]').click(function () {
-            addOrRemoveBroadcastType($(this).data('value'), true);
-        });
-        $('#btn-save-broadcast-settings').click(function () {
-            saveBroadcastSettings(editedBroadcastOptions);
-        });
-    }
 
     function addRssUrl() {
-    	var html = $.tmpl(templates.broadcast_rss_add_scraper, {
+        var html = $.tmpl(templates.broadcast_rss_add_scraper, {
             header: CommonTranslations.ADD,
             cancelBtn: CommonTranslations.CANCEL,
             submitBtn: CommonTranslations.SAVE,
@@ -1494,27 +1425,27 @@ $(function () {
 
         var modal = sln.createModal(html);
         $('button[action="submit"]', modal).click(function () {
-        	var newRSSScraper = {
-        		url: $("#rss-scraper-url").val(),
-        		group_type: $("#rss-scraper-group_type").val(),
-        		app_ids: $("#rss-scraper-app_ids").val().split("\n")
-        	};
-        	
-        	getbroadcastRssSettings(function (settings) {
-        		var newSettings = Object.assign({}, settings, {scrapers: settings.scrapers.concat([newRSSScraper])});
-        		saveRssSettings(newSettings);
-        		modal.modal('hide');
-        	});
+            var newRSSScraper = {
+                url: $("#rss-scraper-url").val(),
+                group_type: $("#rss-scraper-group_type").val(),
+                app_ids: $("#rss-scraper-app_ids").val().split("\n")
+            };
+
+            getbroadcastRssSettings(function (settings) {
+                var newSettings = Object.assign({}, settings, {scrapers: settings.scrapers.concat([newRSSScraper])});
+                saveRssSettings(newSettings);
+                modal.modal('hide');
+            });
         });
     }
 
     function renderRssSettings(settings) {
         var htmlElement = $('#sln-set-broadcast-rss-urls');
         var html = $.tmpl(templates.broadcast_rss_settings, {
-        	notify: settings.notify,
-        	scrapers: settings.scrapers,
+            notify: settings.notify,
+            scrapers: settings.scrapers,
             T: T,
-	    });
+        });
         htmlElement.html(html);
         htmlElement.find('button[action="deleteRssUrl"]').click(deleteRssUrl);
         var notifyCheckbox = htmlElement.find('#send-rss-notifications');
@@ -1553,68 +1484,6 @@ $(function () {
         });
     }
 
-    function addBroadcastType() {
-        var broadcastTypeInput = $('#settings_extra_broadcast_type');
-        var broadcastType = broadcastTypeInput.val().trim();
-
-        addOrRemoveBroadcastType(broadcastType, false, function() {
-            broadcastTypeInput.val('');
-            $('#settings_add_extra_broadcast_type').attr('disabled', true);
-        });
-    }
-
-    function addOrRemoveBroadcastType(broadcastType, shouldDelete, callback) {
-        function doAddOrRemove() {
-            if (broadcastType) {
-                sln.call({
-                    url: '/common/settings/broadcast/add_or_remove_type',
-                    type: 'POST',
-                    showProcessing: true,
-                    data: {
-                        broadcast_type: broadcastType,
-                        delete: !!shouldDelete
-                    },
-                    success: function(data) {
-                        if(data.success) {
-                            if(typeof callback === 'function') {
-                                callback();
-                            }
-                            Requests.getBroadcastOptions({cached: false}).then(renderBroadcastSettings);
-                        } else {
-                            sln.alert(T[sln.errormsg]);
-                        }
-                    },
-                    error: sln.showAjaxError
-                });
-            }
-        }
-
-        if (shouldDelete) {
-            var confirmMessage = CommonTranslations.confirm_delete_x.replace('%(x)s', broadcastType);
-            sln.confirm(confirmMessage, doAddOrRemove);
-        } else {
-            doAddOrRemove();
-        }
-    }
-
-    function saveBroadcastSettings(broadcastOptions) {
-        var statusText = $('#save-broadcast-settings-status');
-        statusText.text(CommonTranslations.SAVING_DOT_DOT_DOT);
-        sln.call({
-            url: '/common/settings/broadcast/change_order',
-            method: 'post',
-            data: {
-                data: JSON.stringify({broadcast_types: broadcastOptions.editable_broadcast_types})
-            },
-            success: function () {
-                statusText.text(CommonTranslations.SAVE);
-            },
-            error: function () {
-                statusText.text(CommonTranslations.ERROR);
-            }
-        });
-    }
-
     function avatarUpdated() {
         // Update in branding preview and in 'general' settings
         var avatarUrl = AVATAR_URL + '?_=' + new Date().getTime();
@@ -1643,6 +1512,7 @@ $(function () {
 
     function renderAppSettings() {
         Requests.getAppSettings().then(render);
+
         function render(appSettings) {
             var html = $.tmpl(templates['settings/app_settings'], {
                 settings: appSettings,
@@ -1664,14 +1534,13 @@ $(function () {
 
     function addRoles(inboxEnabled, agendaEnabled, broadcastEnabled) {
         // get the available calendars first
-        if(agendaEnabled) {
+        if (agendaEnabled) {
             sln.call({
                 url: '/common/calendar/load',
                 success: showAddRolesModal,
                 error: sln.showAjaxError
             });
-        }
-        else {
+        } else {
             showAddRolesModal([]);
         }
 
@@ -1688,8 +1557,8 @@ $(function () {
             });
 
             // show inbox forwarder type if inbox forwarder
-            $('#is_inbox_forwarder', modal).change(function() {
-                if($(this).is(':checked')) {
+            $('#is_inbox_forwarder', modal).change(function () {
+                if ($(this).is(':checked')) {
                     $('#forwarder_type_selection', modal).show();
                 } else {
                     $('#forwarder_type_selection', modal).hide();
@@ -1697,8 +1566,8 @@ $(function () {
             });
 
             // show calendars selection if calendar admin
-            $('#is_calendar_admin', modal).change(function() {
-                if($(this).is(':checked')) {
+            $('#is_calendar_admin', modal).change(function () {
+                if ($(this).is(':checked')) {
                     $('#calendar_selection', modal).show();
                 } else {
                     $('#calendar_selection', modal).hide();
@@ -1709,14 +1578,14 @@ $(function () {
             // just like events add admin or add inbox forwarer
             var searchInput = $('#app_user_email_input', modal);
             sln.userSearch(searchInput,
-            function(user_key) {
-                $('button[action="submit"]', modal).attr("user_key", user_key);
-            },
-            function(query) {
-                $('button[action="submit"]', modal).attr("user_key", "");
-            });
+                function (user_key) {
+                    $('button[action="submit"]', modal).attr("user_key", user_key);
+                },
+                function (query) {
+                    $('button[action="submit"]', modal).attr("user_key", "");
+                });
 
-            $('button[action="submit"]', modal).click(function() {
+            $('button[action="submit"]', modal).click(function () {
                 var userKey = $(this).attr('user_key');
                 var inboxForwarder, calendarAdmin, newsPublisher;
                 inboxForwarder = $('#is_inbox_forwarder').is(':checked');
@@ -1724,7 +1593,7 @@ $(function () {
                 newsPublisher = $('#is_news_publisher').is(':checked');
                 var forwarderType = $('input[name=forwarder_type]:checked').attr('forwarder_type');
                 // user selected no roles
-                if(!(inboxForwarder || calendarAdmin || newsPublisher)) {
+                if (!(inboxForwarder || calendarAdmin || newsPublisher)) {
                     sln.alert(CommonTranslations.roles_please_select_one_role_at_least, null, CommonTranslations.ERROR);
                     return;
                 }
@@ -1732,8 +1601,8 @@ $(function () {
                 // if the user key is not set, then it's an email address
                 // this email address can be for a non-existing user
                 // so he/she cannot has any role other than email inbox forwarder
-                if(!userKey) {
-                    if((inboxForwarder && (forwarderType == 'mobile')) || calendarAdmin || newsPublisher) {
+                if (!userKey) {
+                    if ((inboxForwarder && (forwarderType == 'mobile')) || calendarAdmin || newsPublisher) {
                         // we need a valid user (not just an email) in these cases
                         sln.alert(CommonTranslations.roles_please_provide_user, null, CommonTranslations.ERROR);
                         return;
@@ -1741,22 +1610,22 @@ $(function () {
                     // this is an email inbox forwarder
                     // so check the input email address
                     userKey = $('#app_user_email_input').val();
-                    if(!userKey) {
+                    if (!userKey) {
                         sln.alert(CommonTranslations.roles_please_provide_email, null, CommonTranslations.ERROR);
                         return;
                     }
                 }
 
-                calendars = []
-                if(calendarAdmin) {
+                calendars = [];
+                if (calendarAdmin) {
                     // get calendars
-                    $('#calendar_selection', modal).find('input[type=checkbox]:checked').each(function() {
+                    $('#calendar_selection', modal).find('input[type=checkbox]:checked').each(function () {
                         calendars.push({
                             id: parseInt($(this).attr('calendar_id'))
                         });
                     });
 
-                    if(calendars.length < 1) {
+                    if (calendars.length < 1) {
                         sln.alert(CommonTranslations.calendar_please_select_one_at_least, null, CommonTranslations.ERROR);
                         return;
                     }
@@ -1779,8 +1648,8 @@ $(function () {
                             calendars: calendars
                         }
                     },
-                    success: function(data) {
-                        if(!data.success) {
+                    success: function (data) {
+                        if (!data.success) {
                             sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                         } else {
                             modal.modal('hide');
@@ -1796,14 +1665,15 @@ $(function () {
     function renderRolesSettings() {
         // check if inbox, agenda and broadcast modules are enabled
         // cannot figure out another way to check it from the client side!
-        var inboxEnabled = $('#section_settings_inbox').length > 0
-        var agendaEnabled = $('#section_settings_agenda').length > 0
-        var broadcastEnabled = $('#section_settings_broadcast').length > 0
+        var inboxEnabled = $('#section_settings_inbox').length > 0;
+        var agendaEnabled = $('#section_settings_agenda').length > 0;
+        var broadcastEnabled = $('#section_settings_broadcast').length > 0;
 
         var container = $('#section_settings_roles').find('.user-roles');
         container.html(TMPL_LOADING_SPINNER);
 
         getAllUserRoles(render);
+
         function render(data) {
             var html = $.tmpl(templates['settings/app_user_roles'], {
                 t: CommonTranslations,
@@ -1813,11 +1683,12 @@ $(function () {
                 broadcast_enabled: broadcastEnabled
             });
 
-            $('#add_user_roles', html).click(function() {
+            $('#add_user_roles', html).click(function () {
                 addRoles(inboxEnabled, agendaEnabled, broadcastEnabled);
             });
 
             $('button[action=delete_roles]', html).click(deleteRoles);
+
             function deleteRoles() {
                 var key = $(this).attr('user_key');
                 var email = key.split(':')[0];
@@ -1825,22 +1696,23 @@ $(function () {
                 var forwarderTypes = $('input[name=inbox]', row).attr('forwarder_types');
                 var calendarIds = $('input[name=calendar]', row).attr('calendar_ids');
 
-                if(!forwarderTypes) {
+                if (!forwarderTypes) {
                     forwarderTypes = [];
                 } else {
                     forwarderTypes = forwarderTypes.split(',');
                 }
 
-                if(!calendarIds) {
-                    calendarIds = []
+                if (!calendarIds) {
+                    calendarIds = [];
                 } else {
-                    calendarIds = calendarIds.split(',').map(function(i) {
+                    calendarIds = calendarIds.split(',').map(function (i) {
                         return parseInt(i);
                     });
                 }
 
                 var confirmMessage = CommonTranslations.roles_delete_confirmation.replace('%(email)s', email);
                 sln.confirm(confirmMessage, doDelete, null, null, null, null);
+
                 function doDelete() {
                     sln.call({
                         url: '/common/users/roles/delete',
@@ -1851,8 +1723,8 @@ $(function () {
                             forwarder_types: forwarderTypes,
                             calendar_ids: calendarIds
                         },
-                        success: function(data) {
-                            if(!data.success) {
+                        success: function (data) {
+                            if (!data.success) {
                                 sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                             } else {
                                 renderRolesSettings();
@@ -1907,19 +1779,20 @@ $(function () {
                         data: {
                             user_email: email,
                         },
-                        success: function(result) {
+                        success: function (result) {
                             if (!result.success) {
                                 sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                             } else {
                                 serviceEmails.push(email);
-                                renderAdminSettings(serviceEmails)
+                                renderAdminSettings(serviceEmails);
                             }
                         },
                         error: sln.showAjaxError
-                    })
+                    });
                 }
+
                 sln.input(add, CommonTranslations.EMAIL_ADDRESS, null,
-                          CommonTranslations.EMAIL_ADDRESS, '', 'email');
+                    CommonTranslations.EMAIL_ADDRESS, '', 'email');
             }
 
             $('#app_users_count', html).text(data.length);

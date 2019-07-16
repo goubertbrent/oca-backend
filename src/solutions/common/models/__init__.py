@@ -18,6 +18,8 @@
 import json
 import logging
 
+from google.appengine.api import urlfetch
+
 from babel import Locale
 from babel.dates import get_timezone
 from google.appengine.ext import db, ndb
@@ -429,6 +431,8 @@ class SolutionBrandingSettings(db.Model):
     modification_time = db.IntegerProperty(default=0)
     recommend_enabled = db.BooleanProperty(default=True, indexed=False)
     left_align_icons = db.BooleanProperty(default=True, indexed=False)
+    logo_url = db.StringProperty(default=None, indexed=False)
+    avatar_url = db.StringProperty(default=None, indexed=False)
 
     @classmethod
     def create_key(cls, service_user):
@@ -454,6 +458,20 @@ class SolutionBrandingSettings(db.Model):
     def default_menu_item_color(cls, color_scheme):
         return cls.DEFAULT_LIGHT_MENU_ITEM_COLOR if color_scheme != 'dark' else cls.DEFAULT_DARK_MENU_ITEM_COLOR
 
+    def _download(self, url):
+        result = urlfetch.fetch(url)  # type: urlfetch._URLFetchResult
+        if result.status_code == 200:
+            return result.content
+        else:
+            logging.debug('%s: %s', result.status_code, result.content)
+            raise Exception('Could not download %s' % url)
+
+    def download_logo(self):
+        return self._download(self.logo_url)
+
+    def download_avatar(self):
+        return self._download(self.avatar_url)
+
 
 class SolutionMainBranding(db.Model):
     # key_name = user email
@@ -470,27 +488,6 @@ class SolutionMainBranding(db.Model):
     @staticmethod
     def create_key(service_user):
         return db.Key.from_path(SolutionMainBranding.kind(), service_user.email())
-
-
-class BaseSolutionImage(db.Model):
-    picture = db.BlobProperty()
-    is_default = db.BooleanProperty(indexed=False, default=False)
-
-    @property
-    def service_user(self):
-        return users.User(self.key().name())
-
-    @classmethod
-    def create_key(cls, service_user):
-        return db.Key.from_path(cls.kind(), service_user.email())
-
-
-class SolutionLogo(BaseSolutionImage):
-    pass
-
-
-class SolutionAvatar(BaseSolutionImage):
-    published = db.BooleanProperty(indexed=False)
 
 
 class RestaurantMenu(db.Model):

@@ -16,10 +16,10 @@
 # @@license_version:1.3@@
 
 from mcfw.properties import unicode_property, long_property, bool_property, \
-    typed_property
-from rogerthat.to import TO
+    typed_property, unicode_list_property, long_list_property
+from rogerthat.to import TO, PaginatedResultTO
 
-from rogerthat.to.news import NewsItemTO
+from rogerthat.to.news import NewsItemTO, NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO
 
 
 class SponsoredNewsItemCount(TO):
@@ -43,21 +43,50 @@ class NewsAppTO(TO):
         return cls(name=app.name, type=app.type, id=app.app_id)
 
 
+class CreateNewsItemTO(TO):
+    title = unicode_property('title')
+    message = unicode_property('message')
+    action_button = typed_property('action_button', NewsActionButtonTO)
+    type = long_property('type')
+    qr_code_caption = unicode_property('qr_code_caption')
+    app_ids = unicode_list_property('app_ids')
+    scheduled_at = long_property('scheduled_at')
+    broadcast_on_facebook = bool_property('broadcast_on_facebook')
+    broadcast_on_twitter = bool_property('broadcast_on_twitter')
+    facebook_access_token = unicode_property('facebook_access_token')
+    target_audience = typed_property('target_audience', NewsTargetAudienceTO)
+    role_ids = long_list_property('role_ids')
+    tag = unicode_property('tag')
+    media = typed_property('media', BaseMediaTO)
+    group_type = unicode_property('group_type')
+    locations = typed_property('locations', NewsLocationsTO)
+    group_visible_until = long_property('group_visible_until')
+
+
 class NewsBroadcastItemTO(NewsItemTO):
     """This will represent any additional properties for news items."""
 
-    broadcast_on_facebook = bool_property('301')
-    broadcast_on_twitter = bool_property('302')
+    broadcast_on_facebook = bool_property('301', default=False)
+    broadcast_on_twitter = bool_property('302', default=False)
+
+    @classmethod
+    def create(cls, news_item, on_facebook, on_twitter):
+        item = NewsBroadcastItemTO()
+        for name, value in vars(news_item).iteritems():
+            setattr(item, name, value)
+        item.broadcast_on_facebook = on_facebook
+        item.broadcast_on_twitter = on_twitter
+        return item
 
     @staticmethod
-    def from_news_item_to(news_item, on_facebook=False, on_twitter=False):
+    def from_news_item_to(news_item, scheduled_broadcast):
         """Create NewsBroadcastItemTO from NewsItemTO."""
         item = NewsBroadcastItemTO()
         for name, value in vars(news_item).iteritems():
             setattr(item, name, value)
-
-        item.broadcast_on_facebook = on_facebook
-        item.broadcast_on_twitter = on_twitter
+        if scheduled_broadcast:
+            item.broadcast_on_facebook = scheduled_broadcast.broadcast_on_facebook
+            item.broadcast_on_twitter = scheduled_broadcast.broadcast_on_twitter
         return item
 
 
@@ -66,10 +95,8 @@ class NewsStatsTO(TO):
     apps = typed_property('apps', NewsAppTO, True)
 
 
-class NewsBroadcastItemListTO(TO):
-    """A list of NewsBroadcastItemTO."""
-    result = typed_property('1', NewsBroadcastItemTO, True)
-    cursor = unicode_property('2')
+class NewsBroadcastItemListTO(PaginatedResultTO):
+    results = typed_property('1', NewsBroadcastItemTO, True)
 
 
 class NewsReviewTO(TO):

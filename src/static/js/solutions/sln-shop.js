@@ -196,13 +196,6 @@ function renderCartInternal(checkout) {
                     modal.find('.modal-body').html('<p>' + CommonTranslations.thank_you_for_your_order + '</p>');
                     modal.find('#link-cc').hide();
                     modal.on('hide.bs.modal', function(e){
-                        // Move the current user's cart items to the active apps variable
-                        var addedApps = cart.filter(function (c) {
-                            return c.app_id;
-                        });
-                        $.each(addedApps, function (i, app) {
-                            ACTIVE_APPS.push(app.app_id);
-                        });
                         // Clear the shopping cart, redirect to the shop homepage,
                         cart = [];
                         window.location.hash = '/shop/';

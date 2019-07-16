@@ -25,9 +25,8 @@ from rogerthat.rpc import users
 from rogerthat.service.api import friends
 from rogerthat.utils.app import sanitize_app_user, get_human_user_from_app_user
 from solutions.common import SOLUTION_COMMON
-from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionLogo, \
-    RestaurantMenu, SolutionScheduledBroadcast, SolutionInboxMessage, SolutionEmailSettings, SolutionAvatar, \
-    SolutionIdentitySettings, SolutionNewsPublisher
+from solutions.common.models import SolutionSettings, SolutionMainBranding, RestaurantMenu, SolutionScheduledBroadcast,\
+    SolutionInboxMessage, SolutionEmailSettings, SolutionIdentitySettings, SolutionNewsPublisher
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.group_purchase import SolutionGroupPurchaseSettings
 from solutions.common.models.static_content import SolutionStaticContent
@@ -103,16 +102,6 @@ def get_solution_settings_or_identity_settings(sln_settings, service_identity):
 @arguments(service_user=users.User)
 def get_solution_main_branding(service_user):
     return SolutionMainBranding.get(SolutionMainBranding.create_key(service_user))
-
-@returns(SolutionLogo)
-@arguments(service_user=users.User)
-def get_solution_logo(service_user):
-    return SolutionLogo.get(SolutionLogo.create_key(service_user))
-
-@returns(SolutionAvatar)
-@arguments(service_user=users.User)
-def get_solution_avatar(service_user):
-    return SolutionAvatar.get(SolutionAvatar.create_key(service_user))
 
 
 @returns(RestaurantMenu)

@@ -613,13 +613,15 @@ class ServiceMenuFreeSpotsTO(object):
         return spots
 
 
-class BrandingSettingsTO(object):
+class BrandingSettingsTO(TO):
     color_scheme = unicode_property('1')
     background_color = unicode_property('2')
     text_color = unicode_property('3')
     menu_item_color = unicode_property('4')
     show_identity_name = bool_property('5')
     show_avatar = bool_property('6')
+    logo_url = unicode_property('logo_url')
+    avatar_url = unicode_property('avatar_url')
 
     @classmethod
     def from_model(cls, model):
@@ -635,6 +637,8 @@ class BrandingSettingsTO(object):
         to.menu_item_color = model.menu_item_color or SolutionBrandingSettings.default_menu_item_color(to.color_scheme)
         to.show_identity_name = model.show_identity_name
         to.show_avatar = model.show_avatar
+        to.logo_url = model.logo_url
+        to.avatar_url = model.avatar_url
         return to
 
 
@@ -1062,3 +1066,10 @@ class CustomerSignupTO(object):
         to.inbox_message_key = signup.inbox_message_key
         to.key = unicode(signup.key())
         return to
+
+
+class UploadedImageTO(TO):
+    id = long_property('id')
+    content_type = unicode_property('content_type')
+    size = long_property('size')
+    url = unicode_property('url')

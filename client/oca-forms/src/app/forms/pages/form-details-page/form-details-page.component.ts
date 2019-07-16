@@ -1,26 +1,30 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { Observable, Subject, Subscription } from 'rxjs';
-import { tap } from 'rxjs/internal/operators/tap';
-import { withLatestFrom } from 'rxjs/internal/operators/withLatestFrom';
-import { first, take, takeUntil } from 'rxjs/operators';
+import { combineLatest, Observable, Subject, Subscription } from 'rxjs';
+import { filter, first, map, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
+import { CreateNews } from '../../../news/interfaces';
 import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
+import { NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
+import { GetInfoAction } from '../../../shared/shared.actions';
+import { getServiceIdentityInfo } from '../../../shared/shared.state';
 import {
   UserAutoCompleteDialogComponent,
   UserDialogData,
 } from '../../../shared/users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
 import { UserDetailsTO } from '../../../shared/users/users';
+import { deepCopy } from '../../../shared/util/misc';
 import { createAppUser } from '../../../shared/util/rogerthat';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
 import {
   CopyFormAction,
   DeleteAllResponsesAction,
   DeleteResponseAction,
+  DownloadResponsesAction,
   FormsActions,
   FormsActionTypes,
   GetFormAction,
@@ -53,7 +57,7 @@ import { FormIntegrationProvider } from '../../interfaces/integrations';
 })
 export class FormDetailsPageComponent implements OnInit, OnDestroy {
   form$: Observable<Loadable<OcaForm>>;
-  formStatistics$: Observable<Loadable<FormStatisticsView>>;
+  formStatistics$: Observable<Loadable<FormStatisticsView | null>>;
   tombolaWinners$: Observable<UserDetailsTO[]>;
   formResponse$: Observable<Loadable<SingleFormResponse>>;
   activeIntegrations$: Observable<FormIntegrationProvider[]>;
@@ -67,13 +71,14 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
               private actions$: Actions<FormsActions>,
               private route: ActivatedRoute,
               private matDialog: MatDialog,
-              private translate: TranslateService) {
+              private translate: TranslateService,
+              private router: Router) {
   }
 
   ngOnInit() {
     this.formId = this.route.snapshot.params.id;
     this.store.dispatch(new GetFormAction(this.formId));
-    this.form$ = this.store.pipe(select(getForm), tap(form => {
+    this.form$ = this.store.pipe(select(getForm), map(f => deepCopy(f)), tap(form => {
       if (form.success && this.wasVisible === null && form.data) {
         this.wasVisible = form.data.settings.visible;
       }
@@ -100,10 +105,10 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
         } else {
           this.matDialog.open(SimpleDialogComponent, {
             data: {
-              ok: this.translate.instant('oca.yes'),
+              ok: this.translate.instant('oca.Yes'),
               message: this.translate.instant('oca.responses_found_for_form', { responseCount: result.stats.submissions }),
               title: this.translate.instant('oca.confirm_deletion'),
-              cancel: this.translate.instant('oca.no'),
+              cancel: this.translate.instant('oca.No'),
             } as SimpleDialogData,
           }).afterClosed().subscribe(dialogResult => {
             if (dialogResult.submitted) {
@@ -144,7 +149,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   testForm() {
     // TODO: if user hasn't saved yet, ask to save first
     const data: UserDialogData = {
-      cancel: this.translate.instant('oca.cancel'),
+      cancel: this.translate.instant('oca.Cancel'),
       message: this.translate.instant('oca.enter_email_used_in_app'),
       title: this.translate.instant('oca.test_form'),
       ok: this.translate.instant('oca.send_form'),
@@ -164,42 +169,56 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     this.store.dispatch(new CopyFormAction(this.formId));
   }
 
+  downloadResponses() {
+    this.store.dispatch(new DownloadResponsesAction({ id: this.formId }));
+  }
+
   createNews() {
-    this.form$.pipe(take(1), takeUntil(this._destroyed)).subscribe(form => {
+    this.store.dispatch(new GetInfoAction());
+    combineLatest([
+      this.form$.pipe(
+        take(1),
+        takeUntil(this._destroyed),
+      ),
+      this.store.pipe(
+        select(getServiceIdentityInfo),
+        filter(i => i.data !== null),
+        takeUntil(this._destroyed),
+      ),
+    ]).subscribe(([form, info]) => {
       if (!form.data) {
         return;
       }
-      const message = form.data.form.sections[ 0 ].description || form.data.form.sections[ 0 ].components[ 0 ].description;
+      const message = form.data.form.sections[ 0 ].description || form.data.form.sections[ 0 ].components[ 0 ].description || '';
       const buttonValue = JSON.stringify({ '__rt__.tag': '__sln__.forms', id: form.data.form.id });
-      const data = {
-        type: 'oca.news.create_news',
-        data: {
-          app_ids: [],
-          broadcast_on_facebook: false,
-          broadcast_on_twitter: false,
-          buttons: [ {
-            action: `smi://${buttonValue}`,
-            caption: form.data.form.title,
-            flow_params: '{}',
-            id: buttonValue,
-          } ],
-          feed_names: [],
-          media: null,
-          message,
-          published: false,
-          qr_code_caption: null,
-          qr_code_content: null,
-          role_ids: [],
-          scheduled_at: 0,
-          sticky: false,
-          sticky_until: 0,
-          tags: [ 'news' ],
-          target_audience: null,
-          title: form.data.form.title,
-          type: 1,
+      const data: CreateNews = {
+        app_ids: [(info.data as ServiceIdentityInfo).default_app],
+        broadcast_on_facebook: false,
+        broadcast_on_twitter: false,
+        action_button: {
+          action: `smi://${buttonValue}`,
+          caption: form.data.form.title.substring(0, 15),
+          flow_params: '{}',
+          id: buttonValue,
         },
+        media: null,
+        message,
+        qr_code_caption: null,
+        role_ids: [],
+        scheduled_at: null,
+        tags: [ 'news' ],
+        target_audience: null,
+        title: form.data.form.title,
+        type: 1,
+        group_type: form.data.settings.visible_until ? NewsGroupType.POLLS : NewsGroupType.CITY,
+        facebook_access_token: null,
+        id: null,
+        locations: null,
+        group_visible_until: form.data.settings.visible_until ? new Date(form.data.settings.visible_until) : null,
       };
-      window.top.postMessage(data, '*');
+      localStorage.setItem('news.item', JSON.stringify(data));
+      this.router.navigate([ 'news', 'create' ]);
+      window.top.postMessage({ type: 'oca.set_navigation', path: 'news' }, '*');
     });
   }
 
@@ -222,7 +241,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
     this.store.dispatch(new GetNextResponseAction({ formId: this.formId, responseId }));
   }
 
-  onRemoveResponse(data: {formId: number, submissionId: number}) {
+  onRemoveResponse(data: { formId: number, submissionId: number }) {
     this.store.dispatch(new DeleteResponseAction(data));
   }
 }

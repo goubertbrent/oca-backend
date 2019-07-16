@@ -1,46 +1,46 @@
 <form #form="ngForm" (ngSubmit)="submit(form)" class="project-settings">
   <mat-form-field>
     <mat-label>{{ 'oca.title' | translate }}</mat-label>
-    <input matInput name="title" [(ngModel)]="_project.title">
+    <input [(ngModel)]="_project.title" matInput name="title">
   </mat-form-field>
   <p>{{ 'oca.description' | translate }}</p>
   <div class="description-editor">
-    <simplemde name="description" [(ngModel)]="_project.description"></simplemde>
+    <simplemde [(ngModel)]="_project.description" name="description"></simplemde>
   </div>
   <mat-form-field>
     <mat-label>{{ 'oca.required_scans' | translate }}</mat-label>
-    <input type="number" name="action_count" matInput min="1" step="1" [(ngModel)]="_project.action_count">
+    <input [(ngModel)]="_project.action_count" matInput min="1" name="action_count" step="1" type="number">
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.budget' | translate }}</mat-label>
     <span matPrefix>{{ getCurrencySymbol(_project.budget.currency, 'narrow') }}</span>
-    <input type="number" name="budget_amount" matInput min="1" step="1" [(ngModel)]="_project.budget.amount">
+    <input [(ngModel)]="_project.budget.amount" matInput min="1" name="budget_amount" step="1" type="number">
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.start_date' | translate }}</mat-label>
-    <input name="start_date" matInput [matDatepicker]="startDatePicker" [(ngModel)]="_project.start_date" required
-           (dateChange)="setDates()">
-    <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
+    <input (dateChange)="setDates()" [(ngModel)]="_project.start_date" [matDatepicker]="startDatePicker" matInput name="start_date"
+           required>
+    <mat-datepicker-toggle [for]="startDatePicker" matSuffix></mat-datepicker-toggle>
     <mat-datepicker #startDatePicker></mat-datepicker>
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.start_time' | translate }}</mat-label>
-    <input type="time" name="start_time" matInput #startTime required (change)="setTime('start_date', $event.target)">
+    <input #startTime (change)="setTime('start_date', $event.target)" matInput name="start_time" required type="time">
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
-    <input name="end_date" matInput [matDatepicker]="endDatePicker" [min]="_project.start_date"
-           [(ngModel)]="_project.end_date" required (dateChange)="setDates()">
-    <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+    <input (dateChange)="setDates()" [(ngModel)]="_project.end_date" [matDatepicker]="endDatePicker" [min]="_project.start_date"
+           matInput name="end_date" required>
+    <mat-datepicker-toggle [for]="endDatePicker" matSuffix></mat-datepicker-toggle>
     <mat-datepicker #endDatePicker></mat-datepicker>
   </mat-form-field>
   <mat-form-field>
     <mat-label>{{ 'oca.end_time' | translate }}</mat-label>
-    <input type="time" name="end_time" matInput #endTime required (change)="setTime('end_date', $event.target)">
+    <input #endTime (change)="setTime('end_date', $event.target)" matInput name="end_time" required type="time">
   </mat-form-field>
   <div>
-    <button mat-raised-button [disabled]="loading">
-      {{ 'oca.save' | translate }}
+    <button [disabled]="loading" mat-raised-button>
+      {{ 'oca.Save' | translate }}
     </button>
   </div>
 </form>

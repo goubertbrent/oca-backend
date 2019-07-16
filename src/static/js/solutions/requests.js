@@ -84,17 +84,8 @@ RequestsService.prototype = {
     getMenu: function (options) {
         return this.get('/common/menu/load', options);
     },
-    getServiceMenu: function (options) {
-        return this.get('/common/get_menu', options);
-    },
-    getBroadcastOptions: function (options) {
-        return this.get('/common/broadcast/options', options);
-    },
     getSandwichSettings: function (options) {
         return this.get('/common/sandwich/settings/load', options);
-    },
-    getAppStatistics: function (options) {
-        return this.get('/common/statistics/apps', options);
     },
     getBudget: function (options) {
         return this.get('/common/billing/budget', options);

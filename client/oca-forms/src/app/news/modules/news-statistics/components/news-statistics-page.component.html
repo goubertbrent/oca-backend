@@ -1,0 +1,5 @@
+<oca-news-statistics-graphs
+  *ngIf="(newsItemStats$ | async).data as stats"
+  [apps]="stats.apps"
+  [newsStatistics]="stats.news_item.statistics"
+  [selectedMetric]="selectedMetric$ | async"></oca-news-statistics-graphs>

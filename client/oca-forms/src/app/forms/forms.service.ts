@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent, HttpParams, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
@@ -8,14 +8,13 @@ import { FormComponentType } from './interfaces/enums';
 import {
   CompletedFormStepType,
   CreateDynamicForm,
+  DownloadResponses,
   FormResponses,
   FormSettings,
   FormStatistics,
   LoadResponses,
   OcaForm,
   SingleSelectComponent,
-  UploadedFile,
-  UploadedFormFile,
 } from './interfaces/forms';
 import { FormIntegrationConfiguration } from './interfaces/integrations';
 import { FormValidatorType } from './interfaces/validators';
@@ -52,7 +51,7 @@ export class FormsService {
 
 
   copyForm(form: OcaForm) {
-    form = {...form, settings: {...form.settings, steps: [], visible_until: null, finished: false, visible: false, tombola: null}};
+    form = { ...form, settings: { ...form.settings, steps: [], visible_until: null, finished: false, visible: false, tombola: null } };
     return this.http.post<OcaForm>(`/common/forms`, form);
   }
 
@@ -77,18 +76,20 @@ export class FormsService {
     return this.http.delete(`/common/forms/${formId}/submissions`);
   }
 
-  uploadImage(formId: number, image: Blob): Observable<HttpEvent<UploadedFormFile>> {
-    const data = new FormData();
-    data.append('file', image);
-    return this.http.request(new HttpRequest('POST', `/common/forms/${formId}/image`, data, { reportProgress: true }));
-  }
-
-  getImages() {
-    return this.http.get<UploadedFile[]>(`/common/images/forms`);
-  }
-
   deleteForm(formId: number) {
     return this.http.delete(`/common/forms/${formId}`);
+  }
+
+  getIntegrations() {
+    return this.http.get<FormIntegrationConfiguration[]>(`/common/forms/integrations`);
+  }
+
+  updateIntegration(data: FormIntegrationConfiguration) {
+    return this.http.put<FormIntegrationConfiguration>(`/common/forms/integrations/${data.provider}`, data);
+  }
+
+  downloadResponses(id: number) {
+    return this.http.get<DownloadResponses>(`/common/forms/${id}/export`);
   }
 
   private getDefaultForm(): Observable<OcaForm<CreateDynamicForm>> {
@@ -103,12 +104,12 @@ export class FormsService {
           sections: [ {
             id: '0',
             title: results[ 'oca.untitled_section' ],
-            description: results['oca.default_entry_section_text'],
+            description: results[ 'oca.default_entry_section_text' ],
             branding: null,
             next_action: null,
             components: [],
-            next_button_caption: results['oca.start'],
-          } , {
+            next_button_caption: results[ 'oca.start' ],
+          }, {
             id: '1',
             title: results[ 'oca.untitled_section' ],
             description: null,
@@ -145,13 +146,5 @@ export class FormsService {
           integrations: [],
         },
       })));
-  }
-
-  getIntegrations() {
-    return this.http.get<FormIntegrationConfiguration[]>(`/common/forms/integrations`);
-  }
-
-  updateIntegration(data: FormIntegrationConfiguration) {
-    return this.http.put<FormIntegrationConfiguration>(`/common/forms/integrations/${data.provider}`, data);
   }
 }

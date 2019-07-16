@@ -1,7 +1,16 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
+import { ApiError } from '../shared/errors/errors';
 import { UserDetailsTO } from '../shared/users/users';
-import { FormResponse, FormResponses, FormSettings, FormStatistics, LoadResponses, OcaForm, SaveForm } from './interfaces/forms';
+import {
+  DownloadResponses,
+  FormResponse,
+  FormResponses,
+  FormSettings,
+  FormStatistics,
+  LoadResponses,
+  OcaForm,
+  SaveForm,
+} from './interfaces/forms';
 import { FormIntegrationConfiguration } from './interfaces/integrations';
 
 export const enum FormsActionTypes {
@@ -54,6 +63,9 @@ export const enum FormsActionTypes {
   UPDATE_INTEGRATION = '[forms] Get integration',
   UPDATE_INTEGRATION_COMPLETE = '[forms] Get integration complete',
   UPDATE_INTEGRATION_FAILED = '[forms] Get integration failed',
+  DOWNLOAD_RESPONSES= '[forms] Download responses',
+  DOWNLOAD_RESPONSES_COMPLETE = '[forms] Download responses complete',
+  DOWNLOAD_RESPONSES_FAILED = '[forms] Download responses failed',
 }
 
 export class GetFormsAction implements Action {
@@ -70,7 +82,7 @@ export class GetFormsCompleteAction implements Action {
 export class GetFormsFailedAction implements Action {
   readonly type = FormsActionTypes.GET_FORMS_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -91,7 +103,7 @@ export class GetFormCompleteAction implements Action {
 export class GetFormFailedAction implements Action {
   readonly type = FormsActionTypes.GET_FORM_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -112,7 +124,7 @@ export class GetFormStatisticsCompleteAction implements Action {
 export class GetFormStatisticsFailedAction implements Action {
   readonly type = FormsActionTypes.GET_FORM_STATISTICS_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -133,7 +145,7 @@ export class SaveFormCompleteAction implements Action {
 export class SaveFormFailedAction implements Action {
   readonly type = FormsActionTypes.SAVE_FORM_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -151,7 +163,7 @@ export class CreateFormCompleteAction implements Action {
 export class CreateFormFailedAction implements Action {
   readonly type = FormsActionTypes.CREATE_FORM_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -172,7 +184,7 @@ export class DeleteFormCompleteAction implements Action {
 export class DeleteFormFailedAction implements Action {
   readonly type = FormsActionTypes.DELETE_FORM_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -193,7 +205,7 @@ export class GetTombolaWinnersCompleteAction implements Action {
 export class GetTombolaWinnersFailedAction implements Action {
   readonly type = FormsActionTypes.GET_TOMBOLA_WINNERS_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -211,7 +223,7 @@ export class TestFormCompleteAction implements Action {
 export class TestFormFailedAction implements Action {
   readonly type = FormsActionTypes.TEST_FORM_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -240,7 +252,7 @@ export class DeleteAllResponsesCompleteAction implements Action {
 export class DeleteAllResponsesFailedAction implements Action {
   readonly type = FormsActionTypes.DELETE_ALL_RESPONSES_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -261,7 +273,7 @@ export class CopyFormCompleteAction implements Action {
 export class CopyFormFailedAction implements Action {
   readonly type = FormsActionTypes.COPY_FORM_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -303,7 +315,7 @@ export class GetResponsesCompleteAction implements Action {
 export class GetResponsesFailedAction implements Action {
   readonly type = FormsActionTypes.GET_RESPONSES_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -331,7 +343,7 @@ export class DeleteResponseCanceledAction implements Action {
 export class DeleteResponseFailedAction implements Action {
   readonly type = FormsActionTypes.DELETE_RESPONSE_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -349,7 +361,7 @@ export class GetIntegrationsCompleteAction implements Action {
 export class GetIntegrationsFailedAction implements Action {
   readonly type = FormsActionTypes.GET_INTEGRATIONS_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -371,7 +383,29 @@ export class UpdateIntegrationCompleteAction implements Action {
 export class UpdateIntegrationFailedAction implements Action {
   readonly type = FormsActionTypes.UPDATE_INTEGRATION_FAILED;
 
-  constructor(public error: HttpErrorResponse) {
+  constructor(public error: ApiError) {
+  }
+}
+
+export class DownloadResponsesAction implements Action {
+  readonly type = FormsActionTypes.DOWNLOAD_RESPONSES;
+
+  constructor(public payload: {id: number}) {
+  }
+
+}
+
+export class DownloadResponsesCompleteAction implements Action {
+  readonly type = FormsActionTypes.DOWNLOAD_RESPONSES_COMPLETE;
+
+  constructor(public payload: DownloadResponses) {
+  }
+}
+
+export class DownloadResponsesFailedAction implements Action {
+  readonly type = FormsActionTypes.DOWNLOAD_RESPONSES_FAILED;
+
+  constructor(public error: ApiError) {
   }
 }
 
@@ -422,4 +456,7 @@ export type FormsActions =
   | GetIntegrationsFailedAction
   | UpdateIntegrationAction
   | UpdateIntegrationCompleteAction
-  | UpdateIntegrationFailedAction;
+  | UpdateIntegrationFailedAction
+  | DownloadResponsesAction
+  | DownloadResponsesCompleteAction
+  | DownloadResponsesFailedAction;

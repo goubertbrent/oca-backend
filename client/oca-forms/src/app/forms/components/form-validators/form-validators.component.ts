@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { updateItem } from '../../../shared/util/redux';
@@ -10,12 +10,12 @@ import { FormValidator, FormValidatorType, MaxDateValidator, MinDateValidator, V
   selector: 'oca-form-validators',
   templateUrl: './form-validators.component.html',
   styleUrls: [ './form-validators.component.scss' ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ {
     provide: NG_VALUE_ACCESSOR,
     useExisting: forwardRef(() => FormValidatorsComponent),
     multi: true,
   } ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormValidatorsComponent implements ControlValueAccessor {
 
@@ -42,8 +42,11 @@ export class FormValidatorsComponent implements ControlValueAccessor {
   FormComponentType = FormComponentType;
 
   private onChange = (_: any) => {
-  }
+  };
   private onTouched = () => {
+  };
+
+  constructor(private changeDetectorRef: ChangeDetectorRef) {
   }
 
   registerOnChange(fn: any): void {
@@ -109,6 +112,7 @@ export class FormValidatorsComponent implements ControlValueAccessor {
       this.validatorNames[ validator.type ] = validator.label;
       this.valueNames[ validator.type ] = validator.value_label || 'oca.number';
     }
+    this.changeDetectorRef.markForCheck();
   }
 
   setDate(event: MatDatepickerInputEvent<any>, validator: MinDateValidator | MaxDateValidator) {

@@ -4,5 +4,5 @@
   </a>
   <h1 class="flex-grow">{{ 'oca.create_participation_project' | translate }}</h1>
 </mat-toolbar>
-<oca-project-details [project]="project" [loading]="loading$ | async" (saved)="createProject($event)">
+<oca-project-details (saved)="createProject($event)" [loading]="loading$ | async" [project]="project">
 </oca-project-details>

@@ -16,26 +16,18 @@
 # @@license_version:1.4@@
 from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
-from mcfw.restapi import rest, GenericRESTRequestHandler
+from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
-    get_statistics, list_responses, delete_submissions, upload_form_image, list_images, delete_form, delete_submission, \
+    get_statistics, list_responses, delete_submissions, delete_form, delete_submission, \
     get_form_integrations, update_form_integration
+from solutions.common.bizz.forms.export import export_submissions
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO, FormSubmissionListTO, \
-    FormSubmissionTO, FormImageTO, GcsFileTO
-
-
-@rest('/common/images/forms', 'get', read_only_access=True, silent_result=True)
-@returns([GcsFileTO])
-@arguments()
-def rest_list_uploaded_images():
-    return [GcsFileTO(url=get_serving_url(i.filename), content_type=i.content_type, size=i.st_size)
-            for i in list_images(users.get_current_user(), 'forms')]
+    FormSubmissionTO
 
 
 @rest('/common/forms', 'get', read_only_access=True, silent_result=True)
@@ -148,11 +140,8 @@ def rest_get_tombola_winners(form_id):
     return get_tombola_winners(form_id)
 
 
-@rest('/common/forms/<form_id:\d+>/image', 'post')
-@returns(FormImageTO)
+@rest('/common/forms/<form_id:\d+>/export', 'get', read_only_access=True, silent_result=True)
+@returns(dict)
 @arguments(form_id=(int, long))
-def rest_upload_form_image(form_id):
-    request = GenericRESTRequestHandler.getCurrentRequest()
-    uploaded_file = request.POST.get('file')
-    result = upload_form_image(users.get_current_user(), form_id, uploaded_file)
-    return FormImageTO.from_dict(result.to_dict(extra_properties=['url']))
+def rest_export_form_submissions(form_id):
+    return {'url': export_submissions(users.get_current_user(), form_id)}

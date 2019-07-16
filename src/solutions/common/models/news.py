@@ -72,7 +72,7 @@ class SolutionNewsItem(NdbModel):
 
 
 class NewsSettingsTags(Enum):
-    FREE_REGIONAL_NEWS = 'free_regional_news'
+    FREE_REGIONAL_NEWS = u'free_regional_news'
 
 
 class NewsSettings(NdbModel):
@@ -113,3 +113,35 @@ class NewsReview(NdbModel):
         parent = parent_ndb_key(city_service_user, SOLUTION_COMMON)
         id_ = cls.allocate_ids(1)[0]
         return ndb.Key(cls, id_, parent=parent)
+
+
+class Street(NdbModel):
+    name = ndb.StringProperty()
+    id = ndb.IntegerProperty()
+
+
+class LocationBounds(NdbModel):
+    northeast = ndb.GeoPtProperty()
+    southwest = ndb.GeoPtProperty()
+
+
+class Locality(NdbModel):
+    postal_code = ndb.StringProperty()
+    name = ndb.StringProperty()
+    location = ndb.GeoPtProperty()
+    bounds = ndb.StructuredProperty(LocationBounds)
+    streets = ndb.StructuredProperty(Street, repeated=True)
+
+
+class CityAppLocations(NdbModel):
+    country_code = ndb.StringProperty()
+    official_id = ndb.IntegerProperty()  # NIS code for belgium
+    localities = ndb.LocalStructuredProperty(Locality, repeated=True)
+
+    @property
+    def app_id(self):
+        return self.key.id().encode('utf-8')
+
+    @classmethod
+    def create_key(cls, app_id):
+        return ndb.Key(cls, app_id)

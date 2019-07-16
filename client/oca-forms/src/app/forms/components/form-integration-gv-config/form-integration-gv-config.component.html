@@ -12,7 +12,7 @@
     </mat-icon>
   </mat-form-field>
   <mat-form-field>
-    <mat-label>{{ 'oca.url' | translate }}</mat-label>
+    <mat-label>{{ 'oca.Url' | translate }}</mat-label>
     <input type="url" name="base_url" matInput [(ngModel)]="configuration.base_url" pattern="https://.*" required>
     <mat-error *ngIf="!configuration.base_url">{{ 'oca.this_field_is_required' | translate }}</mat-error>
     <mat-error *ngIf="configuration.base_url && !configuration.base_url.startsWith('https')">
@@ -21,7 +21,7 @@
   </mat-form-field>
   <div>
     <button mat-raised-button>
-      {{ 'oca.save' | translate }}
+      {{ 'oca.Save' | translate }}
     </button>
   </div>
 </form>

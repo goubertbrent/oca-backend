@@ -1,0 +1,112 @@
+p {
+  white-space: pre-wrap;
+}
+
+.type-radios {
+  display: flex;
+  flex-direction: column;
+}
+
+.mat-radio-button {
+  margin: 4px 0;
+}
+
+.image-container {
+  margin: 16px 0;
+  position: relative;
+  display: inline-block;
+
+  img {
+    max-height: 250px;
+    max-width: 100%;
+  }
+
+  .btn-media-delete {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+  }
+}
+
+.action-button-controls {
+  display: flex;
+  flex-direction: column;
+}
+
+.title-field {
+  width: 100%;
+}
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+
+  .editor {
+    flex-grow: 1;
+  }
+
+  .preview {
+    width: 453px;
+    height: 883px;
+    position: sticky;
+    top: 0;
+  }
+}
+
+.submit-button {
+  mat-spinner {
+    margin-right: 16px;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+
+  mat-form-field {
+    width: 200px;
+  }
+}
+
+.social-media {
+  display: flex;
+  flex-direction: column;
+  margin: 24px 0;
+}
+
+.fb-group-container {
+  button {
+    margin-left: 16px;
+  }
+}
+
+.use-cover-photo {
+  margin-left: 16px;
+}
+
+.step-nav-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+
+  button:nth-of-type(2) {
+    margin-left: 16px;
+  }
+}
+
+.mat-slide-toggle {
+  font-weight: bold;
+}
+
+.toggle-indent {
+  margin: 0 0 0 44px;
+}
+
+.map-container {
+  max-width: 500px;
+}
+
+.toggle-margin {
+  margin-top: 8px;
+}

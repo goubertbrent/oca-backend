@@ -1,0 +1,24 @@
+<mat-tab-group *ngIf="locations">
+  <mat-tab [label]="('oca.map' | translate) + ' (' + locations.geo_addresses.length + ')'">
+    <ng-template matTabContent>
+      <p>{{ 'oca.news_locations_region_info' | translate }}</p>
+      <oca-choose-region [bounds]="bounds$ | async"
+                         [disabled]="disabled"
+                         [addresses]="locations.geo_addresses"
+                         (addressesChanged)="updateGeoAddresses($event)"></oca-choose-region>
+    </ng-template>
+  </mat-tab>
+  <mat-tab [label]="('oca.address' | translate) + ' (' + locations.addresses.length + ')'">
+    <oca-choose-location [locations]="(cityAppLocations$ | async).data" (addressAdded)="addAddress($event)">
+    </oca-choose-location>
+    <mat-list class="address-list">
+      <mat-list-item *ngFor="let address of locations.addresses">
+        <h4 mat-line>{{ address.street_name }}</h4>
+        <p mat-line>{{ address.city }}</p>
+        <button mat-icon-button (click)="removeAddress(address)" *ngIf="!disabled">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-list-item>
+    </mat-list>
+  </mat-tab>
+</mat-tab-group>

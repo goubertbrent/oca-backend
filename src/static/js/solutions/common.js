@@ -16,49 +16,12 @@
  * @@license_version:1.3@@
  */
 
-var userClickedBeforeNewsLoaded = false;
-$(function() {
-
-    var videoid = null;
-    var player = null;
-    $("ul.nav li a").click(function() {
-        if ($(this).hasClass("help_menu_item")) {
-            var menu_id = $(this).closest("li").attr("menu");
-            videoid = $("#" + menu_id + " ul li.active a").attr("help");
-        } else {
-            videoid = $(this).attr("help");
-        }
-        if (videoid)
-            $("#help").prop("disabled", false);
-        else
-            $("#help").prop("disabled", true);
-    });
-    $("#help").click(function() {
-        $("#help-video").modal('show');
-    });
-    $("#help-video").on('shown', function() {
-        player = new YT.Player('ytplayer', {
-            height : '390',
-            width : '640',
-            videoId : videoid,
-            autoplay : 1,
-            modestbranding : 1,
-            rel : 0,
-            showinfo : 0
-        });
-        player.addEventListener("onReady", function(event) {
-            event.target.playVideo();
-        });
-    });
-    $("#help-video").on('hidden', function() {
-        player.destroy();
-    });
-    var menuPress = function(event) {
+$(function () {
+    var menuPress = function (event) {
         var li = $(this).parent();
-        if (li.hasClass('disabled'))
+        if (li.hasClass('disabled') || li.hasClass('active'))
             return;
         var menu = li.attr("menu");
-        userClickedBeforeNewsLoaded = true;
         $("#topmenu li").removeClass("active");
         $("#content-container>.page").hide();
         li.addClass("active");
@@ -72,23 +35,14 @@ $(function() {
 
     $("#topmenu li a, #shoplink").click(menuPress);
     $("#topmenu").find("li:first-child a").click();
-    userClickedBeforeNewsLoaded = false;
 
     // Disable certain links in docs
-    $('section [href^=#]').click(function(e) {
+    $('section [href^=#]').click(function (e) {
         e.preventDefault();
     });
 
     // prevent triggering the logout more than once
-    $('#logout_link').click(function(e) {
+    $('#logout_link').click(function (e) {
         $(this).addClass('disabled');
     });
-
-    window.onmessage = function (e) {
-        if (e.data && e.data.type === 'oca.news.create_news') {
-            delete Requests._requestCache['/common/get_menu'];
-            window.initialNewsData = e.data.data;
-            window.location.hash = '#/news/add';
-        }
-    };
 });

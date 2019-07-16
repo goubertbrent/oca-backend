@@ -91,26 +91,29 @@ export const selectedFormResponseId = createSelector(featureSelector, s => s.sel
 
 export const getFormResponse = createSelector(featureSelector, getForm, selectAllResponses, selectedFormResponseId, selectAllResponseIds,
   (s, form, responses, id, allIds) => {
-  let data: SingleFormResponse | null = null;
-  if (id && form.data && responses[ id ]) {
-    const index = (allIds as number[]).indexOf(id as number);
-    const previousIndex = index === 0 ? null : index - 1;
-    const nextIndex = (allIds.length - 1 > index) ? index + 1 : null;
-    data = {
-      cursor: s.formResponses.data.cursor,
-      more: s.formResponses.data.more,
-      previous: previousIndex === null ? null : allIds[ previousIndex ] as number,
-      next: nextIndex === null ? null : allIds[ nextIndex ] as number,
-      result: convertResponse(responses[ id ] as FormResponse, form.data.form),
+    let data: SingleFormResponse | null = null;
+    if (id && form.data) {
+      const response = responses[ id ];
+      if (response) {
+        const index = (allIds as number[]).indexOf(id as number);
+        const previousIndex = index === 0 ? null : index - 1;
+        const nextIndex = (allIds.length - 1 > index) ? index + 1 : null;
+        data = {
+          cursor: s.formResponses.data.cursor,
+          more: s.formResponses.data.more,
+          previous: previousIndex === null ? null : allIds[ previousIndex ] as number,
+          next: nextIndex === null ? null : allIds[ nextIndex ] as number,
+          result: convertResponse(response, form.data.form),
+        };
+      }
+    }
+    return {
+      loading: s.formResponses.loading,
+      success: s.formResponses.success,
+      error: s.formResponses.error,
+      data,
     };
-  }
-  return {
-    loading: s.formResponses.loading,
-    success: s.formResponses.success,
-    error: s.formResponses.error,
-    data,
-  };
-});
+  });
 
 export const getTransformedStatistics = createSelector(getForm, getRawFormStatistics, (form, statistics) => {
   if (!form.success || !statistics.success) {

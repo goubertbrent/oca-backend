@@ -22,7 +22,7 @@ import logging
 import time
 from types import NoneType
 
-from google.appengine.api import taskqueue
+from google.appengine.api import taskqueue, urlfetch
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
@@ -42,7 +42,8 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, MediaType
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, MediaType, \
+    NewsLocationsTO
 from rogerthat.utils import now, channel
 from rogerthat.utils.service import get_service_identity_tuple
 from shop.bizz import update_regiomanager_statistic, get_payed
@@ -65,7 +66,8 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.models import SolutionInboxMessage, SolutionScheduledBroadcast
 from solutions.common.models.budget import Budget
-from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview
+from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
+    CityAppLocations
 from solutions.common.to.news import SponsoredNewsItemCount, NewsBroadcastItemTO, NewsBroadcastItemListTO, \
     NewsStatsTO, NewsAppTO
 from solutions.flex import SOLUTION_FLEX
@@ -83,32 +85,33 @@ class AllNewsSentToReviewWarning(BusinessException):
 def get_news(cursor=None, service_identity=None, tag=None):
     if not tag or tag is MISSING:
         tag = u'news'
-    news_list = news.list_news(cursor, 5, service_identity, tag=tag)
-    result = NewsBroadcastItemListTO()
-    result.result = []
-    result.cursor = news_list.cursor
+    news_list = news.list_news(cursor, 10, service_identity, tag=tag)
 
-    for news_item in news_list.result:
-        scheduled_item = get_scheduled_broadcast(news_item.id)
-        if scheduled_item:
-            on_facebook = scheduled_item.broadcast_on_facebook
-            on_twitter = scheduled_item.broadcast_on_twitter
-            result_item = NewsBroadcastItemTO.from_news_item_to(news_item, on_facebook, on_twitter)
-        else:
-            result_item = NewsBroadcastItemTO.from_news_item_to(news_item)
-        result.result.append(result_item)
-
-    return result
+    service_user = users.get_current_user()
+    scheduled_keys = [SolutionScheduledBroadcast.create_key(item.id, service_user, SOLUTION_FLEX)
+                      for item in news_list.result if not item.published]
+    scheduled_items = {item.news_id: item for item in db.get(scheduled_keys) if item}
+    return NewsBroadcastItemListTO(
+        cursor=news_list.cursor,
+        more=news_list.more,
+        results=[NewsBroadcastItemTO.from_news_item_to(item, scheduled_items.get(item.id)) for item in news_list.result]
+    )
 
 
 @returns(NewsStatsTO)
 @arguments(news_id=(int, long), service_identity=unicode)
 def get_news_statistics(news_id, service_identity=None):
     news_item = news.get(news_id, service_identity, True)
-    apps_rpc = db.get([App.create_key(s.app_id) for s in news_item.statistics])
-    result = NewsStatsTO(news_item=NewsBroadcastItemTO.from_news_item_to(news_item))
-    result.apps = [NewsAppTO.from_model(model) for model in apps_rpc]
-    return result
+    keys = [App.create_key(s.app_id) for s in news_item.statistics]
+    if not news_item.published:
+        scheduled_key = SolutionScheduledBroadcast.create_key(news_id, users.get_current_user(), SOLUTION_FLEX)
+        keys.insert(0, scheduled_key)
+    models = db.get(keys)
+    scheduled_model = models.pop(0) if not news_item.published else None
+    return NewsStatsTO(
+        news_item=NewsBroadcastItemTO.from_news_item_to(news_item, scheduled_model),
+        apps=[NewsAppTO.from_model(model) for model in models],
+    )
 
 
 def _save_coupon_news_id(news_item_id, coupon):
@@ -224,7 +227,7 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
                                      broadcast_on_twitter, facebook_access_token,
                                      news_item.id)
 
-        return NewsBroadcastItemTO.from_news_item_to(news_item, broadcast_on_facebook, broadcast_on_twitter)
+        return NewsBroadcastItemTO.create(news_item, broadcast_on_facebook, broadcast_on_twitter)
     except:
         if should_save_coupon:
             db.delete_async(coupon)
@@ -355,16 +358,16 @@ def publish_item_from_review(review_key):
 
 
 @returns(NewsBroadcastItemTO)
-@arguments(service_identity_user=users.User, title=unicode, message=unicode, broadcast_type=unicode, sponsored=bool,
+@arguments(service_identity_user=users.User, title=unicode, message=unicode, sponsored=bool,
            image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
            facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode,
-           tag=unicode, media=BaseMediaTO)
-def put_news_item(service_identity_user, title, message, broadcast_type, sponsored, image, action_button, order_items,
+           tag=unicode, media=BaseMediaTO, group_type=unicode, locations=NewsLocationsTO, group_visible_until=(int, long))
+def put_news_item(service_identity_user, title, message, sponsored, image, action_button, order_items,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
                   broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
-                  host=None, tag=None, media=MISSING):
+                  host=None, tag=None, media=MISSING, group_type=None, locations=None, group_visible_until=None):
     """
     Creates a news item first then processes the payment if necessary (not necessary for non-promoted posts).
     If the payment was unsuccessful it will be retried in a deferred task.
@@ -373,7 +376,6 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         service_identity_user (users.User)
         title (unicode)
         message (unicode)
-        broadcast_type (unicode)
         sponsored (bool)
         image (unicode)
         action_button (NewsActionButtonTO)
@@ -391,6 +393,9 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         host (unicode): host of the api request (used for social media apps)
         tag(unicode)
         media (rogerthat.to.news.MediaTO)
+        group_type (unicode)
+        locations (NewsLocationsTO)
+        group_visible_until (long)
 
     Returns:
         news_item (NewsBroadcastItemTO)
@@ -472,7 +477,6 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
     kwargs = {
         'sticky_until': sponsored_until,
         'message': message,
-        'broadcast_type': broadcast_type,
         'service_identity': identity,
         'news_id': news_id,
         'news_type': news_type,
@@ -482,6 +486,9 @@ def put_news_item(service_identity_user, title, message, broadcast_type, sponsor
         'role_ids': role_ids,
         'tags': [tag],
         'media': media,
+        'group_type': group_type,
+        'locations': locations,
+        'group_visible_until': group_visible_until,
     }
 
     if news_type == NewsItem.TYPE_QR_CODE:
@@ -587,9 +594,14 @@ def post_to_social_media(service_user, on_facebook, on_twitter,
     image_content = None
     if news_item.media:
         if news_item.media.type == MediaType.IMAGE:
-            news_item_image = NewsItemImage.get_by_id(news_item.media.content)
-            if news_item_image:
-                image_content = news_item_image.image
+            if news_item.media.content:
+                news_item_image = NewsItemImage.get_by_id(news_item.media.content)
+                if news_item_image:
+                    image_content = news_item_image.image
+            elif news_item.media.url:
+                image_result = urlfetch.fetch(news_item.media.url)  # type: urlfetch._URLFetchResult
+                if image_result.status_code == 200:
+                    image_content = image_result.content
 
     if on_facebook and facebook_access_token:
         facebook.post_to_facebook(facebook_access_token, message, image_content)
@@ -845,7 +857,8 @@ def get_sponsored_news_count(service_identity_user, app_ids):
 
 def is_regional_news_enabled(app_model):
     # type: (App) -> bool
-    if app_model.app_id.startswith('osa-'):
+    from rogerthat.consts import DEBUG
+    if app_model.app_id.startswith('osa-') or DEBUG:
         return True
     country_code = app_model.app_id.split('-')[0].lower()
     return app_model.type == App.APP_TYPE_CITY_APP and get_apps_in_country_count(country_code) > 1
@@ -854,3 +867,8 @@ def is_regional_news_enabled(app_model):
 def get_news_reviews(service_user):
     parent_key = parent_ndb_key(service_user, SOLUTION_COMMON)
     return NewsReview.query(ancestor=parent_key)
+
+
+def get_locations(app_id):
+    # type: (str) -> CityAppLocations
+    return CityAppLocations.create_key(app_id).get()

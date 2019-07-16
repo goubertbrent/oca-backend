@@ -15,9 +15,9 @@ import { FormSettings } from '../../interfaces/forms';
     <ng-container *ngIf="forms$ | async as forms">
       <oca-forms-list [forms]="forms" (createForm)="createForm()" (deleteForm)="deleteForm($event)"></oca-forms-list>
       <div class="fab-bottom-right">
-        <a mat-fab (click)="createForm()">
+        <button type="button" mat-fab (click)="createForm()">
           <mat-icon>add</mat-icon>
-        </a>
+        </button>
       </div>
     </ng-container>`,
   encapsulation: ViewEncapsulation.None,
@@ -47,10 +47,10 @@ export class FormListPageComponent implements OnInit {
   deleteForm(form: FormSettings) {
     const config: MatDialogConfig<SimpleDialogData> = {
       data: {
-        title: this._translate.instant('oca.confirm'),
+        title: this._translate.instant('oca.Confirm'),
         message: this._translate.instant('oca.confirm_delete_form'),
-        ok: this._translate.instant('oca.yes'),
-        cancel: this._translate.instant('oca.cancel'),
+        ok: this._translate.instant('oca.Yes'),
+        cancel: this._translate.instant('oca.Cancel'),
       },
     };
     this._matDialog.open(SimpleDialogComponent, config).afterClosed().subscribe((result: SimpleDialogResult) => {

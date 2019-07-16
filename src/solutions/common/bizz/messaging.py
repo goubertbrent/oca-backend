@@ -94,7 +94,7 @@ from solutions.common.bizz.twitter import post_to_twitter
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
-    SolutionLogo, SolutionSettings, SolutionMainBranding
+    SolutionSettings, SolutionMainBranding, SolutionBrandingSettings
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user, \
     create_service_identity_user_wo_default
@@ -410,11 +410,11 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
     if len(steps) == 6:
         # upload a photo is included
         (content_title_step, content_message_step,
-         cover_photo_step, image_step, label_step, app_ids_step) = steps
+         cover_photo_step, image_step, group_type_step, app_ids_step) = steps
     else:
         image_step = None
         (content_title_step, content_message_step,
-         cover_photo_step, label_step, app_ids_step) = steps
+         cover_photo_step, group_type_step, app_ids_step) = steps
 
     title = content_title_step.form_result.result.value
     message = content_message_step.form_result.result.value
@@ -422,9 +422,9 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
     image = ''
     # use cover photo
     if cover_photo_step.answer_id.endswith(u'use_cover_photo'):
-        logo = db.get(SolutionLogo.create_key(service_user))
-        if logo and logo.picture:
-            image = image = ',' + b64encode(logo.picture)
+        branding_settings = db.get(SolutionBrandingSettings.create_key(service_user))
+        if branding_settings and branding_settings.logo_url:
+            image = branding_settings.logo_url
 
     # use an uploaded photo
     if image_step and image_step.form_result:
@@ -442,7 +442,7 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
 
             image = ',' + b64encode(result.content)
 
-    broadcast_type = label_step.form_result.result.value
+    group_type = group_type_step.form_result.result.value
     app_ids = app_ids_step.form_result.result.values
     if is_default_service_identity(service_identity):
         service_identity_user = create_service_identity_user(service_user)
@@ -452,10 +452,10 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
 
     try:
         media = BaseMediaTO(type=MediaType.IMAGE, content=image) if image else None
-        put_news_item(service_identity_user, title, message, broadcast_type,
+        put_news_item(service_identity_user, title, message,
                       sponsored=False, image=None, action_button=None,
                       order_items=None, news_type=news_type, qr_code_caption=title,
-                      app_ids=app_ids, scheduled_at=0, news_id=None, media=media)
+                      app_ids=app_ids, scheduled_at=0, news_id=None, media=media, group_type=group_type)
         message = common_translate(user_details.language,
                                    SOLUTION_COMMON, u'news_item_published')
         result = result_message(message)
@@ -702,8 +702,6 @@ def send_broadcast(service_user, service_identity, broadcast_type, message, targ
             logging.debug("Scheduled broadcast in %s seconds", countdown)
             deferred.defer(_send_scheduled_broadcast, service_user, ssb.key_str,
                            _countdown=countdown, _queue=SCHEDULED_QUEUE)
-
-            send_message(service_user, u"solutions.common.broadcast.scheduled.updated")
     else:
         ssb.deleted = True  # Save non-delayed broadcasts as well for statistical purposes.
         broadcast_epoch = now_
@@ -777,7 +775,6 @@ def _send_scheduled_broadcast(service_user, str_key):
         finally:
             users.clear_user()
         ssb.delete()
-        send_message(service_user, u"solutions.common.broadcast.scheduled.updated")
 
 
 @returns(NoneType)
@@ -789,7 +786,6 @@ def delete_scheduled_broadcast(service_user, key):
         if ssb.service_user != service_user:
             raise BusinessException("No permission to delete this scheduled broadcast")
         ssb.delete()
-    send_message(service_user, u"solutions.common.broadcast.scheduled.updated")
 
 
 @returns(NoneType)

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ErrorService } from '../errors/error.service';
 import { Loadable } from './loadable';
 
 @Component({
@@ -7,6 +8,16 @@ import { Loadable } from './loadable';
   styleUrls: [ './loadable.component.scss' ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoadableComponent {
+export class LoadableComponent implements OnChanges {
   @Input() loadable: Loadable<any>;
+  errorMessage: string;
+
+  constructor(private errorService: ErrorService) {
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (this.loadable.error) {
+      this.errorMessage = this.errorService.getErrorMessage(this.loadable.error);
+    }
+  }
 }

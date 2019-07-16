@@ -13,7 +13,7 @@
       <mat-error *ngIf="title.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
     </mat-form-field>
     <mat-form-field class="form-type-field">
-      <mat-label>{{ 'oca.type' | translate }}</mat-label>
+      <mat-label>{{ 'oca.Type' | translate }}</mat-label>
       <mat-select #compType [name]="name + '_type'" [(ngModel)]="componentType"
                   (selectionChange)="componentTypeChanged($event)"
                   required>

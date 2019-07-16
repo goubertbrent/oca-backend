@@ -94,7 +94,6 @@ DEFAULT_JS_TEMPLATES = [
     'settings/try_publish_changes',
     'settings/upload_image',
     'functionalities/functionality',
-    'city_select',
     'budget_balance_warning',
 ]
 
@@ -126,18 +125,8 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'billing_settings_invoices_table'
     ],
     SolutionModule.BROADCAST: [
-        'addattachment',
-        'broadcast_types',
-        'broadcast_schedule',
-        'broadcast_schedule_items',
-        'broadcast_settings_list',
         'broadcast_rss_settings',
         'broadcast_rss_add_scraper',
-        'broadcast/broadcast_news',
-        'broadcast/broadcast_news_overview',
-        'broadcast/broadcast_news_preview',
-        'broadcast/news_stats_row',
-        'broadcast/news_app_check_list'
     ],
     SolutionModule.CITY_APP: [
         'services/service',
@@ -296,7 +285,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
                             translations[SOLUTION_COMMON]['en']}
         for key in COMMON_JS_KEYS:
-            all_translations[key] = translate(sln_settings.main_language, SOLUTION_COMMON, COMMON_JS_KEYS[key])
+            all_translations[key] = all_translations[COMMON_JS_KEYS[key]]
         if sln_settings.identities:
             if not session_.service_identity:
                 jinja_template = JINJA_ENVIRONMENT.get_template('locations.html')
@@ -356,8 +345,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
             service_identity_user = create_service_identity_user(service_user, service_identity)
             active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
-        available_apps = get_apps_by_id(active_app_ids)
-
         locale = Locale.parse(sln_settings.main_language)
         currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
         locale = Locale.parse('en_GB')
@@ -383,12 +370,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 'PROFIT': OrganizationType.PROFIT,
                 'NON_PROFIT': OrganizationType.NON_PROFIT,
             },
-            'MAP_FILE': VECTOR_MAPS.get(customer.country) if customer else None,
-            'CITY_APPS': get_country_apps(customer.country) if customer else {},
             'BUDGET_RATE': BUDGET_RATE,
-            'NEWS_TAGS': {
-                'FREE_REGIONAL_NEWS': NewsSettingsTags.FREE_REGIONAL_NEWS
-            },
             'CURRENCY_SYMBOLS': currency_symbols
         }
         if not customer:
@@ -419,7 +401,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         city_service_user = get_service_user_for_city(city_app_id)
         is_city = service_user == city_service_user
         city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
-        news_review_enabled = city_app_profile and city_app_profile.review_news
+        news_review_enabled = city_app_profile and city_app_profile.review_news or True
 
         organization_types = get_organization_types(customer, sln_settings.main_language)
         params = {'stripePublicKey': solution_server_settings.stripe_public_key,
@@ -438,7 +420,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'has_multiple_locations': True if sln_settings.identities else False,
                   'qr_codes': self._get_qr_codes(sln_settings, service_identity),
                   'SolutionModule': SolutionModule,
-                  'news_enabled': True,
                   'days': days,
                   'day_flags': day_flags,
                   'months': months,
@@ -458,14 +439,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'is_layout_user': session_.layout_only if session_ else False,
                   'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
                   'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
-                  'active_app_ids': active_app_ids,
-                  'active_apps': json.dumps(active_app_ids),
-                  'all_apps': json.dumps([dict(id=a.app_id, name=a.name) for a in available_apps]),
                   'UNITS': json.dumps(UNITS),
                   'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
                   'CONSTS': consts,
                   'CONSTS_JSON': json.dumps(consts),
-                  'COUNTRY': customer and customer.country or u'',
                   'modules': json.dumps(sln_settings.modules),
                   'provisioned_modules': json.dumps(sln_settings.provisioned_modules),
                   'VAT_PCT': vat_pct,

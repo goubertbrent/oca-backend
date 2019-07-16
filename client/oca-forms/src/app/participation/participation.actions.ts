@@ -1,5 +1,5 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Action } from '@ngrx/store';
+import { ApiError } from '../shared/errors/errors';
 import { CitySettings, CreateProject, Project, ProjectStatistics } from './projects';
 
 export const enum ParticipationActionTypes {
@@ -41,7 +41,7 @@ export class GetProjectsCompleteAction implements Action {
 export class GetProjectsFailedAction implements Action {
   readonly type = ParticipationActionTypes.GET_PROJECTS_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -62,7 +62,7 @@ export class GetProjectCompleteAction implements Action {
 export class GetProjectFailedAction implements Action {
   readonly type = ParticipationActionTypes.GET_PROJECT_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -83,7 +83,7 @@ export class SaveProjectCompleteAction implements Action {
 export class SaveProjectFailedAction implements Action {
   readonly type = ParticipationActionTypes.SAVE_PROJECT_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -104,7 +104,7 @@ export class CreateProjectCompleteAction implements Action {
 export class CreateProjectFailedAction implements Action {
   readonly type = ParticipationActionTypes.CREATE_PROJECT_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -130,7 +130,7 @@ export class GetMoreProjectStatisticsAction implements Action {
 export class GetProjectStatisticsFailedAction implements Action {
   readonly type = ParticipationActionTypes.GET_PROJECT_STATISTICS_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -149,7 +149,7 @@ export class GetSettingsCompleteAction implements Action {
 export class GetSettingsFailedAction implements Action {
   readonly type = ParticipationActionTypes.GET_SETTINGS_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 
@@ -170,7 +170,7 @@ export class UpdateSettingsCompleteAction implements Action {
 export class UpdateSettingsFailedAction implements Action {
   readonly type = ParticipationActionTypes.UPDATE_SETTINGS_FAILED;
 
-  constructor(public payload: HttpErrorResponse) {
+  constructor(public error: ApiError) {
   }
 }
 

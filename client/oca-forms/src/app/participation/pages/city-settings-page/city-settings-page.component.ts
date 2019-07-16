@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Loadable } from '../../../shared/loadable/loadable';
+import { deepCopy } from '../../../shared/util/misc';
 import { GetSettingsAction, UpdateSettingsAction } from '../../participation.actions';
 import { getSettings, ParticipationState } from '../../participation.state';
 import { CitySettings } from '../../projects';
@@ -20,7 +22,7 @@ export class CitySettingsPageComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.citySettings$ = this.store.pipe(select(getSettings));
+    this.citySettings$ = this.store.pipe(select(getSettings), map(s => deepCopy(s)));
     this.store.dispatch(new GetSettingsAction());
   }
 

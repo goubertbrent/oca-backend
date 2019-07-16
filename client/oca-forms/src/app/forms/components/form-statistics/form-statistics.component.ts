@@ -12,7 +12,7 @@ import { ComponentStatsType, FormStatisticsView } from '../../interfaces/forms';
 export class FormStatisticsComponent {
   FormComponentType = FormComponentType;
   @Input() formActive = false;
-  @Input() statistics: FormStatisticsView;
+  @Input() statistics: FormStatisticsView | null;
   @Output() menuOptionClicked = new EventEmitter<OptionsMenuOption>();
   ComponentStatsType = ComponentStatsType;
 

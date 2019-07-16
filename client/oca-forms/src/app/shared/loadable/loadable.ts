@@ -1,4 +1,6 @@
-export interface Loadable<T, U = any> {
+import { ApiError } from '../errors/errors';
+
+export interface Loadable<T = any, U = ApiError> {
   loading: boolean;
   success: boolean;
   data: T | null;
@@ -12,7 +14,7 @@ export interface NonNullLoadable<T, U = any> {
   error: U | null;
 }
 
-export const DEFAULT_LOADABLE: Loadable<null> = {
+export const DEFAULT_LOADABLE: Loadable<any> = {
   loading: false,
   success: false,
   data: null,

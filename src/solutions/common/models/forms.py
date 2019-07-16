@@ -80,6 +80,10 @@ class OcaForm(NdbModel):
     def service_user(self):
         return users.User(self.key.parent().id())
 
+    @property
+    def has_integration(self):
+        return any(integration.enabled for integration in self.integrations)
+
     @classmethod
     def create_key(cls, form_id, service_user):
         return ndb.Key(cls, form_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
@@ -148,6 +152,7 @@ class UploadedFile(NdbModel):
     content_type = ndb.StringProperty(indexed=False)
     cloudstorage_path = ndb.StringProperty(indexed=False)
     created_on = ndb.DateTimeProperty(auto_now_add=True)
+    size = ndb.IntegerProperty(indexed=False)
 
     @property
     def id(self):

@@ -1,0 +1,64 @@
+<div class="items-container">
+  <mat-card routerLink="/news/create" class="create-card">
+    <mat-card-header>
+      <mat-card-title>{{ 'oca.create_message' | translate }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ 'oca.create_news_item_info' | translate }}
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-actions align="end">
+      <a mat-button color="primary" routerLink="/news/create">
+        <mat-icon>add</mat-icon>
+        <span>{{ 'oca.create' | translate }}</span>
+      </a>
+    </mat-card-actions>
+  </mat-card>
+  <mat-card *ngFor="let item of items; trackBy: trackNews">
+    <mat-card-header>
+      <mat-card-title>{{ item.title }}</mat-card-title>
+      <mat-card-subtitle>
+        <span>{{ newsGroupsMapping[item.group_type] || item.group_type }}</span> - <span>
+        <ng-container *ngIf="!item.published; else timestampTemplate">
+          {{ 'oca.scheduled_for_datetime' | translate : {datetime: (item.scheduled_at * 1000) | date : 'medium'} }}
+        </ng-container>
+        <ng-template #timestampTemplate>
+          {{ (item.timestamp * 1000) | date : 'medium' }}
+        </ng-template>
+        </span>
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-chip-list>
+        <mat-chip [queryParams]="{metric: 'reached'}" [routerLink]="['/news/details', item.id, 'statistics']">
+          {{ item.reach }} {{ 'oca.reached' | translate }}
+        </mat-chip>
+        <mat-chip [queryParams]="{metric: 'rogered'}" [routerLink]="['/news/details', item.id, 'statistics']">
+          {{ item.users_that_rogered.length }} {{ 'oca.rogered' | translate }}
+        </mat-chip>
+        <mat-chip [queryParams]="{metric: 'action'}" [routerLink]="['/news/details', item.id, 'statistics']">
+          {{ item.action_count }} {{ 'oca.action' | translate }}
+        </mat-chip>
+        <mat-chip [queryParams]="{metric: 'followed'}" [routerLink]="['/news/details', item.id, 'statistics']">
+          {{ item.follow_count }} {{ 'oca.followed' | translate }}
+        </mat-chip>
+      </mat-chip-list>
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <a [routerLink]="['/news/details', item.id]" mat-button>
+        <mat-icon>edit</mat-icon>
+        <span>&nbsp;{{ 'oca.Edit' | translate }}</span>
+      </a>
+      <button (click)="deleteItem.emit(item)" *ngIf="!item.published" mat-button color="warn">
+        <mat-icon>delete</mat-icon>
+        <span>&nbsp;{{ 'oca.Cancel' | translate }}</span>
+      </button>
+    </mat-card-actions>
+  </mat-card>
+  <p *ngIf="!loading && items.length === 0">{{ 'oca.no_previous_news_items' | translate }}</p>
+</div>
+<div class="load-more-container">
+  <mat-spinner *ngIf="loading" [diameter]="40"></mat-spinner>
+  <button (click)="loadMore.emit()" *ngIf="hasMore && !loading" mat-raised-button type="button">
+    {{ 'oca.Load more' | translate }}
+  </button>
+</div>

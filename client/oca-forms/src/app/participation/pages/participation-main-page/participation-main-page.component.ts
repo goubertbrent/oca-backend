@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 interface NavItem {
   route: string;
@@ -12,16 +12,9 @@ interface NavItem {
   styleUrls: [ './participation-main-page.component.scss' ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ParticipationMainPageComponent implements OnInit {
+export class ParticipationMainPageComponent {
   navItems: NavItem[] = [
     { icon: 'list', label: 'oca.projects', route: 'projects' },
-    { icon: 'settings', label: 'oca.settings', route: 'settings' },
+    { icon: 'settings', label: 'oca.Settings', route: 'settings' },
   ];
-
-  constructor() {
-  }
-
-  ngOnInit() {
-  }
-
 }

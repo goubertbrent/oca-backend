@@ -292,21 +292,6 @@ export function isInputComponent(component: FormComponent): component is InputCo
   return component.type !== FormComponentType.PARAGRAPH;
 }
 
-export interface UploadedFormFile {
-  id: number;
-  form_id: number;
-  content_type: string;
-  size: number;
-  url: string;
-}
-
-
-export interface UploadedFile {
-  content_type: string;
-  size: number;
-  url: string;
-}
-
 export interface LoadResponses {
   formId: number;
   cursor?: string;
@@ -339,4 +324,8 @@ export interface FormResponses {
   cursor: string | null;
   results: FormResponse[];
   more: boolean;
+}
+
+export interface DownloadResponses {
+  url: string;
 }

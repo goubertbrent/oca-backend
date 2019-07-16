@@ -17,6 +17,7 @@
 
 import base64
 import logging
+import re
 from collections import defaultdict
 from types import NoneType
 
@@ -29,23 +30,28 @@ from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.forms import FormNotFoundException
+from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
+from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
 from rogerthat.models import ServiceIdentity
+from rogerthat.models.news import NewsGroup
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
-from rogerthat.service.api.friends import get_broadcast_reach
+from rogerthat.service.api.news import list_groups
 from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
-from rogerthat.to.friends import FriendListResultTO, SubscribedBroadcastReachTO, ServiceMenuDetailTO
-from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, BroadcastTargetAudienceTO
+from rogerthat.to.friends import FriendListResultTO, ServiceMenuDetailTO
+from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
+from rogerthat.to.system import ServiceIdentityInfoTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
     get_app_id_from_app_user
@@ -54,16 +60,13 @@ from rogerthat.utils.service import create_service_identity_user, remove_slash_d
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
-from shop.models import Product
-from shop.to import ProductTO
 from shop.view import get_current_http_host
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
-    broadcast_updates_pending, SolutionModule, save_broadcast_types_order, delete_file_blob, create_file_blob, \
+    broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    twitter as bizz_twitter, get_user_defined_roles, get_translated_broadcast_types, \
-    validate_enable_or_disable_solution_module
+    twitter as bizz_twitter, get_user_defined_roles, validate_enable_or_disable_solution_module
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
@@ -71,6 +74,7 @@ from solutions.common.bizz.events import update_events_from_google, get_google_a
 from solutions.common.bizz.facebook import get_facebook_app_info
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
+from solutions.common.bizz.images import upload_file, list_files
 from solutions.common.bizz.inbox import send_statistics_export_email
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
@@ -82,18 +86,19 @@ from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
+from solutions.common.consts import TRANSLATION_MAPPING
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
-    get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
-    get_solution_inbox_messages, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
+    get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_inbox_messages, \
+    get_solution_identity_settings, get_solution_settings_or_identity_settings, \
     get_solution_news_publishers, get_user_from_key, get_calendar_items
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.localizer import translations
-from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
-    SolutionSettings, SolutionInboxMessage, SolutionLogo, SolutionAvatar, RestaurantMenu, \
+from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, RestaurantMenu, \
     SolutionRssScraperSettings
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
+from solutions.common.models.forms import OcaForm
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
 from solutions.common.models.repair import SolutionRepairSettings
@@ -105,12 +110,13 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     MenuTO, EventItemTO, PublicEventItemTO, SolutionAppointmentWeekdayTimeframeTO, BrandingSettingsTO, \
     SolutionRepairOrderTO, SandwichSettingsTO, SandwichOrderTO, SolutionGroupPurchaseTO, \
     SolutionGroupPurchaseSettingsTO, SolutionCalendarTO, EventGuestTO, SolutionInboxForwarder, UrlTO, \
-    TimestampTO, SolutionScheduledBroadcastTO, SolutionInboxesTO, SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
+    TimestampTO, SolutionInboxesTO, SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
-    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO
-from solutions.common.to.broadcast import BroadcastOptionsTO
+    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO
+from solutions.common.to.broadcast import BroadcastOptionsTO, RegionalNewsSettingsTO
+from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 from solutions.flex import SOLUTION_FLEX
@@ -458,43 +464,32 @@ def export_inbox_messages(email=''):
         return ReturnStatusTO.create(False, error_msg)
 
 
-@rest("/common/broadcast/options", "get", read_only_access=True)
+@rest("/common/news-options", "get", read_only_access=True)
 @returns(BroadcastOptionsTO)
 @arguments()
 def rest_get_broadcast_options():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
-    sln_settings_key = SolutionSettings.create_key(service_user)
-    news_promotion_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
-    si_key = ServiceIdentity.keyFromUser(create_service_identity_user(service_user, service_identity))
-    to_get = (sln_settings_key, news_promotion_product_key, si_key)
-    sln_settings, news_promotion_product, si = db.get(to_get)  # type: (SolutionSettings, Product, ServiceIdentity)
+    info = system.get_info(service_identity)
+    sln_settings = get_solution_settings(service_user)
     news_settings = NewsSettings.get_by_user(service_user, service_identity)
-    # For demo apps and for shop sessions, creating regional news items is be free.
-    default_app = get_app(si.defaultAppId)
-    regional_news_enabled = is_regional_news_enabled(default_app)
-    if session_.shop or default_app.demo:
-        if NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
-            news_settings.tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
+    # For demo apps and for shop sessions, creating regional news items is free.
+    default_app = get_app(info.default_app)
+    tags = news_settings.tags
+    if session_.shop or default_app.demo and NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
+        tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
 
-    def transl(key):
-        try:
-            return common_translate(sln_settings.main_language, SOLUTION_COMMON, key, suppress_warning=True)
-        except:
-            return key
-
-    editable_broadcast_types = map(transl, sln_settings.broadcast_types)
-
-    abt_agenda = SolutionAutoBroadcastTypes.get_by_key_name(SolutionModule.AGENDA, parent=sln_settings)
-    broadcast_types = list(editable_broadcast_types)
-    if abt_agenda:
-        broadcast_types.extend(abt_agenda.broadcast_types)
-    news_promotion_product_to = ProductTO.create(news_promotion_product, sln_settings.main_language)
-    news_enabled = sln_settings.solution == SOLUTION_FLEX
-    roles = get_user_defined_roles()
-    return BroadcastOptionsTO(broadcast_types, editable_broadcast_types, news_promotion_product_to,
-                              news_enabled, roles, news_settings, regional_news_enabled)
+    news_groups = list_groups(sln_settings.main_language)
+    regional_enabled_types = (NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PROMOTIONS)
+    regional_news_enabled = any(g.group_type in regional_enabled_types for g in news_groups) or DEBUG
+    map_url = None
+    if regional_news_enabled:
+        regional_news_enabled = is_regional_news_enabled(default_app)
+        if DEBUG or regional_news_enabled and (default_app.app_id.startswith('be-') or default_app.demo):
+            map_url = '/static/js/shop/libraries/flanders.json'
+    regional = RegionalNewsSettingsTO(enabled=regional_news_enabled, map_url=map_url)
+    return BroadcastOptionsTO(tags=tags, regional=regional, groups=news_groups)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)
@@ -518,27 +513,6 @@ def rest_save_broadcast_rss_feeds(data):
     service_identity = session_.service_identity
     rss_settings = save_rss_urls(service_user, service_identity, data)
     return SolutionRssSettingsTO.from_model(rss_settings)
-
-
-@rest("/common/broadcast/scheduled/load", "get", read_only_access=True)
-@returns([SolutionScheduledBroadcastTO])
-@arguments()
-def load_scheduled_broadcasts():
-    service_user = users.get_current_user()
-    return [SolutionScheduledBroadcastTO.fromModel(ssb) for ssb in get_solution_scheduled_broadcasts(service_user)]
-
-
-@rest("/common/broadcast/scheduled/delete", "post")
-@returns(ReturnStatusTO)
-@arguments(key=unicode)
-def delete_scheduled_broadcast(key):
-    service_user = users.get_current_user()
-    from solutions.common.bizz.messaging import delete_scheduled_broadcast as delete_scheduled_broadcast_bizz
-    try:
-        delete_scheduled_broadcast_bizz(service_user, key)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
 
 
 @rest("/common/broadcast", "post")
@@ -612,18 +586,17 @@ def settings_load():
 def get_all_defaults():
     """Get all settings that are set to the default. (e.g. menu, logo...etc)"""
     service_user = users.get_current_user()
-    sln_settings, logo, avatar = db.get([SolutionSettings.create_key(service_user),
-                                         SolutionLogo.create_key(service_user),
-                                         SolutionAvatar.create_key(service_user)])
+    sln_settings, branding_settings = db.get([SolutionSettings.create_key(service_user),
+                                              SolutionBrandingSettings.create_key(service_user)])
     defaults = []
 
     if SolutionModule.BROADCAST in sln_settings.modules and not sln_settings.broadcast_types:
         defaults.append(u'broadcast_types')
 
-    if not logo or logo.is_default:
+    if not branding_settings.logo_url:
         defaults.append(u'Logo')
 
-    if not avatar or avatar.is_default:
+    if not branding_settings.avatar_url:
         defaults.append(u'Avatar')
 
     if menu_is_visible(sln_settings):
@@ -667,17 +640,17 @@ def settings_save_publish_changes_users(user_keys):
 
 
 @rest('/common/settings/logo', 'post')
-@returns(unicode)
+@returns(BrandingSettingsTO)
 @arguments(image=unicode)
 def rest_update_logo(image):
-    return set_logo(users.get_current_user(), image)
+    return BrandingSettingsTO.from_model(set_logo(users.get_current_user(), image))
 
 
 @rest('/common/settings/avatar', 'post')
-@returns(unicode)
+@returns(BrandingSettingsTO)
 @arguments(image=unicode)
 def rest_update_avatar(image):
-    return set_avatar(users.get_current_user(), image)
+    return BrandingSettingsTO.from_model(set_avatar(users.get_current_user(), image))
 
 
 @rest("/common/settings/events/notifications/save", "post")
@@ -1052,38 +1025,6 @@ def rest_get_app_broadcast_statistics():
                                          FlowStatisticsTO.GROUP_BY_YEAR, service_identity)
         messages = app_broadcast_statistics.messages
     return AppBroadcastStatisticsTO(flow_stats, messages)
-
-
-@rest("/common/broadcast/subscribed", "get")
-@returns(SubscribedBroadcastReachTO)
-@arguments(broadcast_type=unicode, min_age=(int, long, NoneType), max_age=(int, long, NoneType), gender=unicode,
-           broadcast_to_all_locations=bool)
-def broadcast_subscribed(broadcast_type, min_age, max_age, gender, broadcast_to_all_locations):
-    flrto = SubscribedBroadcastReachTO()
-    flrto.total_users = 0
-    flrto.subscribed_users = 0
-    if broadcast_type and broadcast_type is not MISSING:
-        service_user = users.get_current_user()
-        session_ = users.get_current_session()
-        service_identity = session_.service_identity
-        if broadcast_to_all_locations:
-            sln_settings = get_solution_settings(service_user)
-            identities = [None]
-            if sln_settings.identities:
-                identities.extend(sln_settings.identities)
-        else:
-            identities = [service_identity if service_identity else ServiceIdentity.DEFAULT]
-
-        for si in identities:
-            target_audience = BroadcastTargetAudienceTO()
-            target_audience.app_id = None
-            target_audience.min_age = min_age
-            target_audience.max_age = max_age
-            target_audience.gender = gender
-            flrto_si = get_broadcast_reach(broadcast_type, target_audience, si)
-            flrto.total_users += flrto_si.total_users
-            flrto.subscribed_users += flrto_si.subscribed_users
-    return flrto
 
 
 @rest('/common/users/search', 'get', read_only_access=True)
@@ -1908,45 +1849,6 @@ def remove_file_blob(image_id):
     delete_file_blob(users.get_current_user(), image_id)
 
 
-@rest('/common/settings/broadcast/change_order', 'post')
-@returns(ReturnStatusTO)
-@arguments(broadcast_types=[unicode])
-def change_broadcast_types_order(broadcast_types):
-    save_broadcast_types_order(users.get_current_user(), broadcast_types)
-    return RETURNSTATUS_TO_SUCCESS
-
-
-@rest('/common/settings/broadcast/add_or_remove_type', 'post')
-@returns(ReturnStatusTO)
-@arguments(broadcast_type=unicode, delete=bool)
-def add_or_remove_broadcast_type(broadcast_type, delete):
-    try:
-        updated = False
-        sln_settings = get_solution_settings(users.get_current_user())
-        translated_broadcast_types = get_translated_broadcast_types(sln_settings)
-        if delete:
-            translated_broadcast_type = translated_broadcast_types.get(broadcast_type, None)
-            if translated_broadcast_type and translated_broadcast_type in sln_settings.broadcast_types:
-                sln_settings.broadcast_types.remove(translated_broadcast_type)
-                updated = True
-            elif broadcast_type in sln_settings.broadcast_types:
-                sln_settings.broadcast_types.remove(broadcast_type)
-                updated = True
-        else:
-            if broadcast_type not in translated_broadcast_types and broadcast_type not in sln_settings.broadcast_types:
-                sln_settings.broadcast_types.append(broadcast_type)
-                updated = True
-
-        if updated:
-            sln_settings.updates_pending = True
-            put_and_invalidate_cache(sln_settings)
-            broadcast_updates_pending(sln_settings)
-
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as e:
-        return ReturnStatusTO.create(False, e.message)
-
-
 @rest('/common/get_menu', 'get', read_only_access=True)
 @returns(ServiceMenuDetailTO)
 @arguments()
@@ -1964,7 +1866,16 @@ def rest_get_menu():
     return service_menu
 
 
-@rest('/common/settings/facebook/app/id', 'get')
+@rest('/common/get_info', 'get', read_only_access=True)
+@returns(ServiceIdentityInfoTO)
+@arguments()
+def rest_get_info():
+    session_ = users.get_current_session()
+    service_identity = session_.service_identity or ServiceIdentity.DEFAULT
+    return system.get_info(service_identity)
+
+
+@rest('/common/settings/facebook-app-id', 'get')
 @returns(str)
 @arguments()
 def get_facebook_app_id():
@@ -2042,8 +1953,52 @@ def rest_enable_or_disable_module(name, enabled, force=False):
 @rest('/unauthenticated/osa/apps/flanders', 'get', read_only_access=True, authenticated=False)
 @returns(dict)
 @arguments()
-def api_get_app_names():
+def api_get_flanders_apps():
     return get_country_apps(u'be')
+
+
+@rest('/common/apps', 'get', read_only_access=True, authenticated=False)
+@returns([dict])
+@arguments()
+def api_get_app_names():
+    customer = get_customer(users.get_current_user())
+    if not customer:
+        return []
+    return [{'name': key, 'id': value} for key, value in get_country_apps(customer.country).iteritems()]
+
+
+@rest('/common/files/<prefix:[^/]+>', 'post')
+@returns(UploadedImageTO)
+@arguments(prefix=unicode)
+def rest_upload_file(prefix):
+    request = GenericRESTRequestHandler.getCurrentRequest()
+    uploaded_file = request.POST.get('file')
+    reference_type = request.POST.get('reference_type')
+    ref_id = request.POST.get('reference')
+    service_user = users.get_current_user()
+    reference = None
+    if ref_id and reference_type:
+        if reference_type == 'form':
+            form_id = long(ref_id)
+            form_key = OcaForm.create_key(form_id, service_user)
+            form = form_key.get()
+            if not form:
+                raise FormNotFoundException(form_id)
+            prefix = 'forms/%d' % form_id
+            reference = form_key
+
+    result = upload_file(users.get_current_user(), uploaded_file, prefix, reference)
+    return UploadedImageTO.from_dict(result.to_dict(extra_properties=['url']))
+
+
+@rest('/common/files', 'get', read_only_access=True, silent_result=True)
+@returns([GcsFileTO])
+@arguments()
+def rest_list_uploaded_files():
+    # Only returns images for now
+    return [GcsFileTO(url=get_serving_url(i.cloudstorage_path), content_type=i.content_type, size=i.size or -1)
+            for i in list_files(users.get_current_user()) if
+            i.content_type in (AttachmentTO.CONTENT_TYPE_IMG_JPG, AttachmentTO.CONTENT_TYPE_IMG_PNG)]
 
 
 @rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
@@ -2052,14 +2007,15 @@ def api_get_app_names():
 @arguments(lang=unicode)
 def api_get_translations(lang):
     prefix = 'oca.'
-    mapping = {'follower_name_or_email', 'Cancel', 'details', 'Url', 'Type', 'statistics', 'phone_number', 'Date',
-               'description', 'Email', 'Error', 'Minimum', 'Maximum', 'Yes', 'No', 'Save', 'create', 'Time', 'delete',
-               'Next', 'action', 'Settings', 'Confirm', 'PDF', 'title', 'active', 'inactive', 'password', 'end_time',
-               'Optional', 'Attachment', 'gender', 'address', 'contact', 'name-attachment', 'website', 'country',
-               'zip_code', 'Website', 'city', 'Enabled', 'first_name', 'Load more', 'budget'}
-    return {
-        'oca': {
-            key.replace(prefix, '') if key.startswith(prefix) else key.lower().replace(' ', '_'): translation
-            for key, translation in translations.get(lang, {}).iteritems() if key.startswith(prefix) or key in mapping
-        }
-    }
+    language_translations = translations.get(lang, {})
+    mapping = {key.replace(prefix, ''): translation
+               for key, translation in language_translations.iteritems()
+               if key.startswith(prefix)}
+    translation_re = re.compile(r'%\((.*)\)s')
+    # Replace %(var)s with {{ var }}
+    for key in TRANSLATION_MAPPING:
+        if key in language_translations:
+            mapping[key] = translation_re.sub(r'{{ \1 }}', language_translations[key])
+        elif DEBUG:
+            logging.warning('Translation not found for language %s: %s', lang, key)
+    return {'oca': mapping}

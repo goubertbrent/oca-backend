@@ -1,24 +1,28 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { MatStepperIntl } from '@angular/material/stepper';
 import { TranslateService } from '@ngx-translate/core';
-import { Subscription } from 'rxjs';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class MatStepperIntlImpl extends MatStepperIntl implements OnDestroy {
-  private onLangChange: Subscription;
+  private destroyed$ = new Subject();
 
   constructor(private translate: TranslateService) {
     super();
-    this.onLangChange = this.translate.onLangChange.subscribe(() => this.init());
+    this.translate.onLangChange.pipe(takeUntil(this.destroyed$)).subscribe(() => this.init());
     this.init();
   }
 
-  private async init() {
-    this.optionalLabel = await this.translate.get('oca.optional').toPromise();
-    this.changes.next();
+  ngOnDestroy() {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
-  ngOnDestroy() {
-    this.onLangChange.unsubscribe();
+  private init() {
+    this.translate.get('oca.Optional').pipe(takeUntil(this.destroyed$)).subscribe(label => {
+      this.optionalLabel = label;
+      this.changes.next();
+    });
   }
 }

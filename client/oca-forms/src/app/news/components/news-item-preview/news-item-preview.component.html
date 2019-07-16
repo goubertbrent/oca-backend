@@ -1,0 +1,21 @@
+<div class="iphone">
+  <div class="preview_container">
+    <oca-news-item-preview-item avatarUrl="/common/settings/my_avatar"
+                                [name]="name"
+                                [media]="newsItem.media"
+                                [type]="newsItem.type"
+                                [qrCodeCaption]="newsItem.qr_code_caption"
+                                [title]="newsItem.title"
+                                [date]="date"
+                                [message]="newsItem.message"
+                                [actionButton]="newsItem.action_button"
+    ></oca-news-item-preview-item>
+    <oca-news-item-preview-item avatarUrl="/static/images/rogerthat_logo.png"
+                                [name]="'oca.sample_service' | translate"
+                                [type]="NewsItemType.NORMAL"
+                                [title]="'oca.sample_newsitem_title' | translate"
+                                [date]="date"
+                                [message]="'oca.sample_newsitem_text' | translate"
+    ></oca-news-item-preview-item>
+  </div>
+</div>

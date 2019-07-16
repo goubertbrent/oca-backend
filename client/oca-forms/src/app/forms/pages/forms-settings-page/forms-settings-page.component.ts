@@ -3,7 +3,8 @@ import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { NonNullLoadable } from '../../../shared/loadable/loadable';
-import { UpdateIntegrationAction } from '../../forms.actions';
+import { deepCopy } from '../../../shared/util/misc';
+import { GetIntegrationsAction, UpdateIntegrationAction } from '../../forms.actions';
 import { FormsState, getIntegrations } from '../../forms.state';
 import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
@@ -21,8 +22,9 @@ export class FormsSettingsPageComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.integrations$ = this.store.pipe(select(getIntegrations));
+    this.integrations$ = this.store.pipe(select(getIntegrations), map(i => deepCopy(i)));
     this.configurations$ = this.integrations$.pipe(map(i => i.data));
+    this.store.dispatch(new GetIntegrationsAction());
   }
 
   onUpdateConfiguration(config: FormIntegrationConfiguration) {
