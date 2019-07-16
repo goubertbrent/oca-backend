@@ -389,19 +389,32 @@
             }
 
             $('#detail [data-role="content"]').css("background-color", "#fff");
-            $("#detail .event-detail-picture").hide();
+            var picDetailContainer = $("#detail #event-detail-picture");
+            var pic = $('#event-picture');
+            var copyright = $('#event-picture-copyright');
+            picDetailContainer.hide();
+            copyright.hide();
             if (event.picture) {
                 $.ajax({
                     url: event.picture,
                     success: function (data) {
                         if (data && data.success) {
-                            $("#detail .event-detail-picture").show();
-                            var img = $("#detail .event-detail-picture img");
-                            img.attr('src', data.picture);
-                            img.slideDown();
+                            picDetailContainer.show();
+                            pic.attr('src', data.picture);
+                            pic.slideDown();
                         }
                     }
                 });
+            }
+
+            if (event.media && event.media.length > 0) {
+                var media = event.media[0];
+                if (media.type === 'image') {
+                    picDetailContainer.show();
+                    pic.attr('src', media.url);
+                    pic.slideDown();
+                    copyright.show().text(media.copyright);
+                }
             }
 
             $("#detail .event-detail-title").text(event.title);

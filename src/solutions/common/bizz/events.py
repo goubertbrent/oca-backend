@@ -26,7 +26,7 @@ from types import FunctionType, NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from google.appengine.api import images, urlfetch
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 
 import dateutil.parser
 import httplib2
@@ -74,7 +74,7 @@ from solutions.common.dal import get_solution_settings, get_event_by_id, is_remi
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, EventGuest, SolutionCalendarAdmin, \
-    SolutionCalendarGoogleSync, SolutionGoogleCredentials
+    SolutionGoogleCredentials, NdbEvent
 from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import EventItemTO, EventGuestTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
@@ -95,7 +95,7 @@ API_METHOD_SOLUTION_CALENDAR_BROADCAST = "solutions.calendar.broadcast"
 
 def _get_client_flow():
     if DEBUG:
-        redirect_uri = "http://rt.dev:8080/common/events/google/oauth2callback"
+        redirect_uri = "http://localhost:8080/common/events/google/oauth2callback"
     else:
         redirect_uri = "https://%s.appspot.com/common/events/google/oauth2callback" % APPENGINE_APP_ID
         redirect_uri = replace_url_with_forwarded_server(redirect_uri)
@@ -197,10 +197,10 @@ def update_events_from_google(service_user, calendar_id):
         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
         if not sc:
             return None, None, None
-        return str(sc.key()), sc.get_google_credentials(), sc.google_calendar_ids
+        return sc.get_google_credentials(), sc.google_calendar_ids
 
     xg_on = db.create_transaction_options(xg=True)
-    calendar_str_key, google_credentials, google_calendar_ids = db.run_in_transaction_options(xg_on, trans)
+    google_credentials, google_calendar_ids = db.run_in_transaction_options(xg_on, trans)
 
     if google_credentials and google_calendar_ids:
         logging.debug("access_token_expired: %s", google_credentials.access_token_expired)
@@ -230,11 +230,12 @@ def update_events_from_google(service_user, calendar_id):
                     break
                 page_token = events.get('nextPageToken')
                 if events['items']:
-                    deferred.defer(put_google_events, service_user, calendar_str_key, calendar_id, sln_settings.solution, not page_token, events['items'], sln_settings.main_language)
+                    deferred.defer(put_google_events, service_user, calendar_id, sln_settings.solution, events['items'], sln_settings.main_language)
                 if not page_token:
                     break
 
-def put_google_events(service_user, calendar_str_key, calendar_id, solution, google_calendar_finished, google_events, language):
+
+def put_google_events(service_user, calendar_id, solution, google_events, language):
     to_put = []
     no_title_text = common_translate(language, SOLUTION_COMMON, '(No title)')
     for google_event in google_events:
@@ -294,19 +295,6 @@ def put_google_events(service_user, calendar_str_key, calendar_id, solution, goo
 
     if to_put:
         db.put(to_put)
-
-    if google_calendar_finished:
-        def trans():
-            scgs = SolutionCalendarGoogleSync.get_by_key_name(service_user.email())
-            if not scgs:
-                return True  # update was run from saving a calendar
-            if calendar_str_key in scgs.google_calendar_keys:
-                scgs.google_calendar_keys.remove(calendar_str_key)
-                if not scgs.google_calendar_keys:
-                    scgs.delete()
-                    return True
-                scgs.put()
-                return False
 
 
 @returns([Event])
@@ -449,32 +437,25 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
     sln_settings = get_solution_settings(service_user)
     jsondata = json.loads(params)
     cursor = jsondata.get('cursor', None)
+    start_cursor = None if not cursor else ndb.Cursor.from_websafe_string(cursor)
 
-    count = 50
     qry = None
     if SolutionModule.CITY_APP in sln_settings.modules:
         city_app_profile_key = CityAppProfile.create_key(sln_settings.service_user)
         city_app_profile = CityAppProfile.get(city_app_profile_key)
         if city_app_profile and city_app_profile.gather_events_enabled:
             si = get_service_identity(create_service_identity_user(service_user, service_identity))
-            qry = Event.get_app_events(cursor, si.defaultAppId)
+            qry = NdbEvent.get_app_events(si.defaultAppId)
 
     if not qry:
-        qry = Event.get_service_events(cursor, service_user, sln_settings.solution)
+        qry = NdbEvent.get_service_events(service_user, sln_settings.solution)
 
-    events = qry.fetch(count)  # type: list[Event]
-    cursor_ = qry.cursor()
-    has_more = False
-    if len(events) != 0:
-        qry.with_cursor(cursor_)
-        if len(qry.fetch(1)) > 0:
-            has_more = True
-
+    events, cursor_, has_more = qry.fetch_page(50, start_cursor=start_cursor)  # type: (list[Event], ndb.Cursor, bool)
     r = SendApiCallCallbackResultTO()
     r.result = json.dumps({
-        'events': [EventItemTO.fromEventItemObject(e, service_user=service_user).to_dict() for e in events],
+        'events': [EventItemTO.from_model(e, service_user=service_user).to_dict() for e in events],
         'has_more': has_more,
-        'cursor': unicode(cursor_)
+        'cursor': cursor_ and cursor_.to_websafe_string().decode('utf-8')
     }).decode('utf8')
     r.error = None
     return r

@@ -85,14 +85,14 @@ from solutions.common.bizz.static_content import put_static_content as bizz_put_
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_scheduled_broadcasts, \
     get_solution_inbox_messages, get_solution_identity_settings, get_solution_settings_or_identity_settings, \
-    get_admins_of_solution_calendars, get_solution_news_publishers, get_user_from_key
+    get_solution_news_publishers, get_user_from_key, get_calendar_items
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionAutoBroadcastTypes, \
     SolutionSettings, SolutionInboxMessage, SolutionLogo, SolutionAvatar, RestaurantMenu, \
     SolutionRssScraperSettings
-from solutions.common.models.agenda import SolutionCalendar
+from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
@@ -781,7 +781,7 @@ def delete_calendar(calendar_id):
     sln_settings = get_solution_settings(service_user)
     try:
         sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
-        if sc.events.count() > 0:
+        if sc.events.count(1) > 0:
             raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON,
                                                      'calendar-remove-failed-has-events'))
 
@@ -790,7 +790,7 @@ def delete_calendar(calendar_id):
         put_and_invalidate_cache(sc, sln_settings)
         broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1113,17 +1113,17 @@ def users_load_roles():
 
     # get inbox forwarders, calendar admins and news publishers
     inbox_forwarders = inbox_load_forwarders()
-    calendar_admins = get_admins_of_solution_calendars(service_user, sln_settings.solution)
-    news_publishers = get_solution_news_publishers(service_user, sln_settings.solution)
+    parent = parent_key(service_user, sln_settings.solution)
 
-    def get_calendar_of_admin(admin):
-        """returns: SolutionCalendarTO."""
-        calendar_key = admin.calendar_key
-        calendar = db.get(calendar_key)
-        if calendar:
-            calendar_to = SolutionCalendarTO.fromSolutionCalendar(sln_settings,
-                                                                  calendar)
-            return calendar_to
+    calendars = [c for c in SolutionCalendar.all().ancestor(parent)]
+
+    deleted_calendar_keys = [c.key() for c in calendars if c.deleted]
+    calendar_admins = []
+    for admin in SolutionCalendarAdmin.all().ancestor(parent):
+        if admin.calendar_key not in deleted_calendar_keys:
+            calendar_admins.append(admin)
+
+    news_publishers = get_solution_news_publishers(service_user, sln_settings.solution)
 
     # create AppUserRolesTO for every role type
     # with different additional information for every type
@@ -1149,13 +1149,14 @@ def users_load_roles():
         # additional info: forwarder type
         user_roles.add_forwarder_type(TYPE_MOBILE)
 
+    calendar_items = {c.id: c for c in get_calendar_items(sln_settings, calendars)}
     for admin in calendar_admins:
         email = admin.app_user.email()
         user_roles = all_user_roles[email]
         user_roles.app_user_email = email
         user_roles.app_id = get_app_id_from_app_user(admin.app_user)
         # additional info: calendars
-        calendar = get_calendar_of_admin(admin)
+        calendar = calendar_items.get(admin.calendar_key.id())
         if calendar:
             user_roles.add_calendar(calendar)
 

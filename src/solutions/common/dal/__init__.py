@@ -20,9 +20,10 @@ from google.appengine.ext import db
 from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
 from rogerthat.dal import parent_key, generator, parent_key_unsafe
+from rogerthat.dal.profile import get_profile_infos
 from rogerthat.rpc import users
 from rogerthat.service.api import friends
-from rogerthat.utils.app import sanitize_app_user
+from rogerthat.utils.app import sanitize_app_user, get_human_user_from_app_user
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings, SolutionMainBranding, SolutionLogo, \
     RestaurantMenu, SolutionScheduledBroadcast, SolutionInboxMessage, SolutionEmailSettings, SolutionAvatar, \
@@ -30,6 +31,7 @@ from solutions.common.models import SolutionSettings, SolutionMainBranding, Solu
 from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.group_purchase import SolutionGroupPurchaseSettings
 from solutions.common.models.static_content import SolutionStaticContent
+from solutions.common.to import SolutionUserKeyLabelTO, SolutionCalendarTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 
 
@@ -150,20 +152,32 @@ def get_solution_calendars(service_user, solution, filter_broadcast_disabled=Fal
     qry.bind(ancestor=parent_key(service_user, solution))
     return generator(qry.run())
 
-@returns([SolutionCalendarAdmin])
-@arguments(service_user=users.User, solution=unicode)
-def get_admins_of_solution_calendars(service_user, solution):
-    parent = parent_key(service_user, solution)
-    deleted_calendar_keys = [c for c in SolutionCalendar.all(keys_only=True).ancestor(parent).filter("deleted =", True)]
 
-    calendar_admins = SolutionCalendarAdmin.all().ancestor(parent)
+def get_calendar_items(sln_settings, calendars):
+    # type: (SolutionSettings, list[SolutionCalendar]) -> list[SolutionCalendarTO]
+    calendars = list(calendars)
+    calendar_mapping = {c.calendar_id: c for c in calendars if c}  # type: dict[int, SolutionCalendar]
+    admin_queries = {calendar.calendar_id: calendar.get_admins() for calendar in calendars}
+    admins = {calendar_id: list(admins_qry) for calendar_id, admins_qry in admin_queries.iteritems()}
+    admin_users = []
+    for admins_list in admins.itervalues():
+        for admin in admins_list:
+            admin_users.append(admin.app_user)
+    profiles = {profile.user.email(): profile for profile in get_profile_infos(admin_users)}
+    calendar_items = {}
+    for calendar_id, admins in admins.iteritems():
+        admin_objects = []
+        for admin in admins:
+            human_user = get_human_user_from_app_user(admin.app_user)
+            profile = profiles[admin.app_user.email()]
+            admin_objects.append(SolutionUserKeyLabelTO(
+                key=admin.app_user.email(),
+                label=u'%s (%s)' % (profile.name, human_user.email()),
+            ))
+        calendar = calendar_mapping[calendar_id]
+        calendar_items[calendar_id] = SolutionCalendarTO.fromSolutionCalendar(sln_settings, calendar, admin_objects)
+    return [calendar_items.get(c.calendar_id) for c in calendars]
 
-    admins = []
-    for admin in calendar_admins:
-        if admin.calendar_key not in deleted_calendar_keys:
-            admins.append(admin)
-
-    return admins
 
 @returns([SolutionCalendar])
 @arguments(service_user=users.User, solution=unicode, app_user=users.User, filter_deleted=bool)

@@ -1,4 +1,31 @@
 <body class="ui-mobile-viewport ui-overlay-a">
+<style>
+    .event-detail-picture {
+        margin-bottom: 2em;
+        margin-top: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .event-detail-picture img {
+        width: auto;
+        height: auto;
+        max-height: 300px;
+    }
+
+    #event-picture-copyright {
+        margin: 1em 0 0;
+        font-size: .7em;
+    }
+
+    #event-picture-copyright:before {
+        content: "\00a9";
+        display: inline-block;
+        margin-right: 6px;
+    }
+</style>
     <div data-role="page" id="events" tabindex="0" class="ui-page ui-page-theme-a ui-page-active ui-page-header-fullscreen ui-page-footer-fullscreen">
         <div id="events-content" role="main" class="ui-content">
             <h2 id="events-empty" style="text-align: center; display: none;">{% translate language 'common' 'no_upcoming_events' %}</h2>
@@ -16,7 +43,7 @@
             <a href="#calendars" style="left: 50%;margin-left: -50px;" class="gotoCalendar ui-btn ui-icon-gear ui-btn-icon-left ui-btn-inline ui-corner-all ui-mini" data-transition="slideup">{% translate language "common" "Calendars" %}</a>
         </div>
     </div>
-    
+
     <div data-role="page" id="no-network">
         <div data-role="header">
             <h1>{% translate language 'common' 'no_internet_connection' %}</h1>
@@ -37,7 +64,10 @@
         </div>
         <!-- /header -->
         <div data-role="content">
-            <p class="event-detail-picture" style="margin-bottom: 2em; margin-top: 0;"><img style="width: 100%; height: auto;" alt="" /></p>
+            <div id="event-detail-picture" class="event-detail-picture">
+                <img id="event-picture" alt=""/>
+                <p id="event-picture-copyright"></p>
+            </div>
             <ul data-role="listview" style="margin-bottom: 1em;">
                 <li><p class="event-detail-title" style="white-space:normal;"></p></li>
                 <li class="event-detail-date"><p style="white-space:normal;"></p></li>

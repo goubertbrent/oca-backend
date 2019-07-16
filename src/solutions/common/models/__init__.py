@@ -307,7 +307,6 @@ class SolutionSettings(SolutionIdentitySettings):
     last_publish = db.IntegerProperty()
     updates_pending = db.BooleanProperty(indexed=False, default=False)
     publish_changes_users = db.StringListProperty(indexed=False)
-    put_identity_pending = db.BooleanProperty(indexed=True, default=False)
     provisioned_modules = db.StringListProperty()
     modules = db.StringListProperty()
     modules_to_put = db.StringListProperty(default=[])

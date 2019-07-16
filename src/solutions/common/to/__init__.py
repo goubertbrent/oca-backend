@@ -32,11 +32,11 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
     SolutionIdentitySettings
-from solutions.common.models.agenda import Event
+from solutions.common.models.agenda import NdbEvent
 from solutions.common.models.properties import MenuCategory
 
 
-class SolutionUserKeyLabelTO(object):
+class SolutionUserKeyLabelTO(TO):
     key = unicode_property('1')
     label = unicode_property('2')
 
@@ -355,6 +355,16 @@ class PublicEventItemTO(object):
         return item
 
 
+class EventMediaTO(TO):
+    type = unicode_property('type')
+    url = unicode_property('url')
+    copyright = unicode_property('copyright')
+
+    @classmethod
+    def from_model(cls, model):
+        return cls(type=model.type, url=model.url, copyright=model.copyright)
+
+
 class EventItemTO(TO):
     id = long_property('1')
     title = unicode_property('2')
@@ -371,17 +381,18 @@ class EventItemTO(TO):
     calendar_id = long_property('13')
     organizer = unicode_property('14')
     service_user_email = unicode_property('15')
+    media = typed_property('media', EventMediaTO, True)
 
     @staticmethod
-    def fromEventItemObject(obj, include_picture=False, destination_app=True, service_user=None):
+    def from_model(obj, include_picture=False, destination_app=True, service_user=None):
         item = EventItemTO()
-        item.id = obj.key().id()
+        item.id = obj.id
         item.title = unicode(obj.title)
         item.place = unicode(obj.place)
         item.description = unicode(obj.description)
-        item.start_dates = list()
-        item.end_dates = list()
-        item.end_dates_timestamps = list()
+        item.start_dates = []
+        item.end_dates = []
+        item.end_dates_timestamps = []
         for start_date, end_date in zip(obj.start_dates, obj.end_dates):
             item.start_dates.append(TimestampTO.fromDatetime(datetime.datetime.utcfromtimestamp(start_date)))
             item.end_dates.append(end_date)
@@ -391,15 +402,15 @@ class EventItemTO(TO):
             item.end_dates_timestamps.append(TimestampTO.fromDatetime(
                 datetime.datetime.utcfromtimestamp(start_date - seconds_since_midnight + offset + end_date)))
 
-        item.can_edit = obj.source == Event.SOURCE_CMS
+        item.can_edit = obj.source == NdbEvent.SOURCE_CMS
         item.source = obj.source
-        if obj.source == Event.SOURCE_UITDATABANK_BE:
+        if obj.source == NdbEvent.SOURCE_UITDATABANK_BE:
             item.external_link = u"http://www.uitinvlaanderen.be/agenda/e/%s/%s" % (urlencode({"": obj.title})[1:],
                                                                                     urlencode({"": obj.external_id})[
                                                                                     1:])
-        elif obj.source == Event.SOURCE_GOOGLE_CALENDAR and not destination_app:
+        elif obj.source == NdbEvent.SOURCE_GOOGLE_CALENDAR and not destination_app:
             item.external_link = obj.external_link
-        elif obj.source == Event.SOURCE_SCRAPER:
+        elif obj.source == NdbEvent.SOURCE_SCRAPER:
             item.external_link = obj.external_link
         else:
             item.external_link = obj.url or None
@@ -421,49 +432,30 @@ class EventItemTO(TO):
             item.calendar_id = obj.organization_type
         item.organizer = obj.organizer
         item.service_user_email = obj.service_user.email()
+        item.media = [EventMediaTO.from_model(media) for media in obj.media]
         return item
 
 
-class SolutionCalendarTO(object):
+class SolutionCalendarTO(TO):
     id = long_property('1')
     name = unicode_property('2')
-    admins = typed_property('3', SolutionUserKeyLabelTO, True)
-    can_delete = bool_property('4')
-    connector_qrcode = unicode_property('5')
-    events = typed_property('6', EventItemTO, True)
-    broadcast_enabled = bool_property('7')
+    admins = typed_property('3', SolutionUserKeyLabelTO, True, default=[])
+    can_delete = bool_property('4', default=False)
+    connector_qrcode = unicode_property('5', default=None)
+    events = typed_property('6', EventItemTO, True, default=[])
+    broadcast_enabled = bool_property('7', default=False)
 
-    @staticmethod
-    def fromSolutionCalendar(sln_settings, obj, include_events=False, include_events_picture=False):
-        item = SolutionCalendarTO()
-        item.id = obj.calendar_id
-        item.name = obj.name
-        item.admins = []
-        for admin in obj.get_admins():
-            sif = SolutionUserKeyLabelTO()
-            sif.key = admin.app_user.email()
-            human_user = get_human_user_from_app_user(admin.app_user)
-            up = get_user_profile(admin.app_user)
-            sif.label = u"%s (%s)" % (up.name, human_user.email())
-            item.admins.append(sif)
-        item.can_delete = sln_settings.default_calendar != item.id
-        item.connector_qrcode = obj.connector_qrcode
-        item.events = []
-        if include_events:
-            for e in obj.events:
-                item.events.append(EventItemTO.fromEventItemObject(e, include_events_picture))
-        item.broadcast_enabled = obj.broadcast_enabled
-        return item
-
-    def __init__(self, id=0, name=None, admins=None, can_delete=False, connector_qrcode=None, events=None,
-                 broadcast_enabled=False):
-        self.id = id
-        self.name = name
-        self.admins = admins or []
-        self.can_delete = can_delete
-        self.connector_qrcode = connector_qrcode
-        self.events = events or []
-        self.broadcast_enabled = broadcast_enabled
+    @classmethod
+    def fromSolutionCalendar(cls, sln_settings, obj, admins):
+        return cls(
+            id=obj.calendar_id,
+            name=obj.name,
+            admins=admins,
+            can_delete=sln_settings.default_calendar != obj.calendar_id,
+            connector_qrcode=obj.connector_qrcode,
+            broadcast_enabled=obj.broadcast_enabled,
+            events=[],
+        )
 
 
 class SolutionCalendarWebTO(SolutionCalendarTO):
@@ -493,7 +485,7 @@ class SolutionCalendarWebTO(SolutionCalendarTO):
         if include_events:
             item.cursor, events, item.has_more = obj.events_with_cursor(cursor, cursor_count)
             for e in events:
-                item.events.append(EventItemTO.fromEventItemObject(e, include_events_picture, False))
+                item.events.append(EventItemTO.from_model(e, include_events_picture, False))
         item.broadcast_enabled = obj.broadcast_enabled
         return item
 

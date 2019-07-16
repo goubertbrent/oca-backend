@@ -25,7 +25,7 @@ from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandle
     SolutionCityVoucherExpiredReminderHandler
 from solutions.common.cron.events import SolutionEventsScraper
 from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
-    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate, SolutionEventsDataPublisher
+    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.forms import FinishFormsCron
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
@@ -41,7 +41,6 @@ handlers = [
     ('/admin/cron/rpc/reminder_solution_events', ReminderSolutionEvents),
     ('/admin/cron/rpc/update_first_start_solution_events', UpdateSolutionEventStartDate),
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
-    ('/admin/cron/rpc/solution_events_publish_data', SolutionEventsDataPublisher),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
     ('/admin/cron/rpc/solution_module_sandwich_auto_broadcast', SandwichAutoBroadcastCronHandler),

@@ -15,34 +15,34 @@
 #
 # @@license_version:1.3@@
 
+import json
+import logging
+import pprint
+import time
+import urllib
 from collections import defaultdict
 from datetime import datetime, timedelta
 from hashlib import sha1
 from hmac import new as hmac
-import json
-import logging
-import pprint
 from random import getrandbits
-import time
 from urllib import quote as urlquote
-import urllib
 
-from dateutil.relativedelta import relativedelta
-from google.appengine.api import urlfetch
-from google.appengine.ext import db, deferred
-import pytz
 import webapp2
+from google.appengine.api import urlfetch
+from google.appengine.ext import db, deferred, ndb
 
+import pytz
+from dateutil.relativedelta import relativedelta
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DEBUG
-from rogerthat.dal import put_and_invalidate_cache, parent_key
+from rogerthat.dal import parent_ndb_key
 from rogerthat.utils import now, get_epoch_from_datetime
 from shop.constants import MAPS_QUEUE
 from solutions.common.bizz import get_default_app_id, get_organization_type
 from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
-from solutions.common.models.agenda import Event
+from solutions.common.models.agenda import Event, NdbEvent, EventMedia, EventMediaType
 from solutions.common.models.cityapp import CityAppProfile
 
 
@@ -100,7 +100,7 @@ def _process_cityapp_uitdatabank_events(cap_key, page):
 
         logging.debug("Added/updated %s/%s events", updated_events_count, result_count)
         if to_put:
-            put_and_invalidate_cache(*to_put)
+            ndb.put_multi(to_put)
 
         if result_count != 0:
             deferred.defer(_process_cityapp_uitdatabank_events, cap_key, page + 1)
@@ -288,13 +288,12 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
             return str_or_dict['value']
         return str_or_dict
 
-    event_parent_key = parent_key(sln_settings.service_user, sln_settings.solution)
-    event = Event.all().ancestor(event_parent_key).filter(
-        "source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
+    event_parent_key = parent_ndb_key(sln_settings.service_user, sln_settings.solution)
+    event = NdbEvent.list_by_source_and_id(event_parent_key, Event.SOURCE_UITDATABANK_BE, external_id).get()
     if not event:
-        event = Event(parent=event_parent_key,
-                      source=Event.SOURCE_UITDATABANK_BE,
-                      external_id=external_id)
+        event = NdbEvent(parent=event_parent_key,
+                         source=NdbEvent.SOURCE_UITDATABANK_BE,
+                         external_id=external_id)
 
     event.app_ids = [get_default_app_id(sln_settings.service_user)]
     event.organization_type = get_organization_type(sln_settings.service_user)
@@ -334,14 +333,14 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
         logging.debug("organizer_settings: %s", map(repr, organizer_settings))
         for organizer_sln_settings in organizer_settings:
-            organizer_event_parent_key = parent_key(organizer_sln_settings.service_user,
-                                                    organizer_sln_settings.solution)
-            organizer_event = Event.all().ancestor(organizer_event_parent_key).filter(
-                "source =", Event.SOURCE_UITDATABANK_BE).filter("external_id =", external_id).get()
+            organizer_event_parent_key = parent_ndb_key(organizer_sln_settings.service_user,
+                                                        organizer_sln_settings.solution)
+            organizer_event = NdbEvent.list_by_source_and_id(organizer_event_parent_key, Event.SOURCE_UITDATABANK_BE,
+                                                             external_id).get()
             if not organizer_event:
-                organizer_event = Event(parent=organizer_event_parent_key,
-                                        source=Event.SOURCE_UITDATABANK_BE,
-                                        external_id=external_id)
+                organizer_event = NdbEvent(parent=organizer_event_parent_key,
+                                           source=NdbEvent.SOURCE_UITDATABANK_BE,
+                                           external_id=external_id)
 
             organizer_event.app_ids = [get_default_app_id(sln_settings.service_user)]
             organizer_event.organization_type = get_organization_type(organizer_sln_settings.service_user)
@@ -363,6 +362,16 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
 
     event_title = r_event_detail["title"]
     event_description = r_event_detail.get("shortdescription", r_event_detail.get("longdescription", u""))
+    media = r_event_detail.get('media')
+    if media:
+        media_files = media['file']
+        for media_file in media_files:
+            if media_file['mediatype'] == 'photo':
+                event.media.append(EventMedia(
+                    url=media_file['hlink'],
+                    type=EventMediaType.IMAGE,
+                    copyright=media_file.get('copyright'),
+                ))
 
     location = detail_result["location"]["address"].get("physical")
 

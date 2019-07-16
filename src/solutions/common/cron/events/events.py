@@ -18,10 +18,10 @@
 import datetime
 import logging
 
-from babel.dates import format_date, format_time
-from google.appengine.ext import db, deferred
 import webapp2
+from google.appengine.ext import db, deferred
 
+from babel.dates import format_date, format_time
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import parent_key
 from rogerthat.models import Message
@@ -33,10 +33,8 @@ from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.models import delete_all
 from solutions.common.bizz import timezone_offset
 from solutions.common.bizz.events import update_events_from_google
-from solutions.common.bizz.provisioning import populate_identity_and_publish
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
-from solutions.common.models import SolutionSettings
-from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar, SolutionCalendarGoogleSync
+from solutions.common.models.agenda import EventReminder, Event, SolutionCalendar
 
 
 class UpdateSolutionEventStartDate(webapp2.RequestHandler):
@@ -80,9 +78,7 @@ class ReminderSolutionEvents(webapp2.RequestHandler):
 
 
 def _get_event_reminder_query():
-    qry = db.GqlQuery("SELECT __key__ FROM EventReminder WHERE status = :status")
-    qry.bind(status=EventReminder.STATUS_PENDING)
-    return qry
+    return EventReminder.list_by_status(EventReminder.STATUS_PENDING)
 
 
 def _process_event_reminder(reminder_key):
@@ -139,41 +135,10 @@ class SolutionSyncGoogleCalendarEvents(webapp2.RequestHandler):
 
 
 def _get_solution_calendars_to_sync_with_google_query():
-    return db.GqlQuery("SELECT __key__ FROM SolutionCalendar WHERE google_sync_events = true")
+    return SolutionCalendar.list_with_google_sync()
 
 
 def _process_solution_calendar_sync_google_events(sc_key):
-    calendar = SolutionCalendar.get(sc_key)
-    def trans():
-        scgs = SolutionCalendarGoogleSync.get_by_key_name(calendar.service_user.email())
-        if not scgs:
-            scgs = SolutionCalendarGoogleSync(key_name=calendar.service_user.email())
-            scgs.google_calendar_keys = map(str, SolutionCalendar.all(keys_only=True).ancestor(parent_key(calendar.service_user, calendar.solution)).filter("google_sync_events =", True))
-            scgs.put()
-        deferred.defer(update_events_from_google, calendar.service_user, calendar.calendar_id, _transactional=True)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
-
-
-def _get_solution_settings_query():
-    return db.GqlQuery("SELECT __key__ from SolutionSettings WHERE put_identity_pending = TRUE")
-
-
-def _publish_app_data(sln_settings):
-    logging.debug('publishing app data for %s' % sln_settings.service_user)
-    sln_settings.put_identity_pending = False
-    sln_settings.put()
-    main_branding = get_solution_main_branding(sln_settings.service_user)
-    populate_identity_and_publish(sln_settings, main_branding.branding_key)
-
-
-def _publish_events_app_data(sln_settings_key):
-    sln_settings = SolutionSettings.get(sln_settings_key)
-    _publish_app_data(sln_settings)
-
-
-class SolutionEventsDataPublisher(webapp2.RequestHandler):
-
-    def get(self):
-        run_job(_get_solution_settings_query, [], _publish_events_app_data, [])
+    calendar_id = sc_key.id()
+    service_user = users.User(sc_key.parent().name())
+    deferred.defer(update_events_from_google, service_user, calendar_id)
