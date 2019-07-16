@@ -4910,7 +4910,7 @@ translations = \
          u'oca.create_form': u'Bevraging aanmaken',
          u'oca.create_message': u'Bericht aanmaken',
          u'oca.create_news_item': u'Maak een bericht',
-         u'oca.create_news_item_info': u'Stuur hier u een bericht uit naar de inwoners van uw stad of gemeente.',
+         u'oca.create_news_item_info': u'Stuur hier een bericht uit naar de inwoners van uw stad of gemeente.',
          u'oca.create_participation_project': u'Participatie project aanmaken',
          u'oca.creating_form': u'Bevraging wordt aangemaakt\u2026',
          u'oca.creating_project': u'Project wordt aangemaakt...',

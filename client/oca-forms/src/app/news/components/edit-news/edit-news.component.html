@@ -208,22 +208,25 @@
           </mat-slide-toggle>
         </div>
         <div>
-          <mat-slide-toggle class="toggle-margin"
-                            [checked]="newsItem.locations !== null"
-                            [disabled]="published"
-                            (toggleChange)="toggleLocations()"
-                            *ngIf="!hasRegional"
-                            style="display: block;">
-            {{ 'oca.limit_on_location' | translate }}
-          </mat-slide-toggle>
-          <ng-container *ngIf="newsItem.locations">
-            <p class="toggle-indent" *ngIf="newsItem.locations">{{ 'oca.limit_on_location_info' | translate }}</p>
-            <oca-news-location class="toggle-margin"
-                               name="locations"
-                               [appId]="defaultAppId"
-                               [disabled]="published"
-                               [(ngModel)]="newsItem.locations"></oca-news-location>
-          </ng-container>
+          <!-- TODO: remove this div once it should go live-->
+          <div [hidden]="!defaultAppId?.startsWith('osa')">
+            <mat-slide-toggle class="toggle-margin"
+                              [checked]="newsItem.locations !== null"
+                              [disabled]="published"
+                              (toggleChange)="toggleLocations()"
+                              *ngIf="!hasRegional"
+                              style="display: block;">
+              {{ 'oca.limit_on_location' | translate }}
+            </mat-slide-toggle>
+            <ng-container *ngIf="newsItem.locations">
+              <p class="toggle-indent" *ngIf="newsItem.locations">{{ 'oca.limit_on_location_info' | translate }}</p>
+              <oca-news-location class="toggle-margin"
+                                 name="locations"
+                                 [appId]="defaultAppId"
+                                 [disabled]="published"
+                                 [(ngModel)]="newsItem.locations"></oca-news-location>
+            </ng-container>
+          </div>
           <mat-slide-toggle class="toggle-margin"
               #targetAudienceToggle
               (toggleChange)="toggleTargetAudience()"
