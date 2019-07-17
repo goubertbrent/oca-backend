@@ -344,6 +344,9 @@ export class EditNewsComponent implements OnChanges {
   }
 
   openMapDialog() {
+    if (this.published) {
+      return;
+    }
     const config: MatDialogConfig<NewsAppMapPickerDialogData> = {
       data: {
         appIds: this.newsItem.app_ids,
