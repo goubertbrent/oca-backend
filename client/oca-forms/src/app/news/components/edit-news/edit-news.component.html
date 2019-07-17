@@ -168,9 +168,10 @@
                 </mat-select>
               </mat-form-field>
             </ng-template>
-            <p>{{ 'oca.broadcast-estimated-reach' | translate }}: <b>{{ reach.total }}</b></p>
-            <p>{{ 'oca.broadcast-estimated-cost' | translate }}: <b>{{ reach.cost }}</b></p>
-            <p>{{ 'oca.budget' | translate }}: <b>{{ remainingBudget }}</b>
+            <oca-news-reach [appIds]="newsItem.app_ids"
+                            [appStatistics]="appStatistics"
+                            [defaultAppId]="defaultAppId"></oca-news-reach>
+            <p class="budget-line">{{ 'oca.budget' | translate }}: <b>{{ remainingBudget }}</b>
               <mat-icon [matTooltip]="'oca.broadcast-budget-explanation' | translate">info</mat-icon>
             </p>
             <button (click)="openShop()" mat-raised-button type="button">

@@ -158,8 +158,9 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
       const stats = this.appStatistics[ appId ] || { total_user_count: 0, app_id: appId };
       const userCount = stats.total_user_count;
       const costCount = appId === this.defaultAppId ? 0 : userCount;
-      const estimatedReach = getReach(costCount);
-      const estimatedCost = getCost('€', estimatedReach.lowerGuess, estimatedReach.higherGuess);
+      const estimatedReach = getReach(userCount);
+      const costReach = getReach(costCount);
+      const estimatedCost = getCost('€', costReach.lowerGuess, costReach.higherGuess);
       return `<b>${city}</b><br>
 ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.lowerGuess} - ${estimatedReach.higherGuess}
 <br>${this.translate.instant('oca.broadcast-estimated-cost')} ${estimatedCost}`;

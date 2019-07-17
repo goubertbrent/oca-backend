@@ -38,6 +38,7 @@ import { CreateNewsPageComponent } from './pages/create-news-page/create-news-pa
 import { EditNewsPageComponent } from './pages/edit-news-page/edit-news-page.component';
 import { NewsDetailPageComponent } from './pages/news-detail-page/news-detail-page.component';
 import { NewsListPageComponent } from './pages/news-list-page/news-list-page.component';
+import { NewsReachComponent } from './components/news-reach/news-reach.component';
 
 @NgModule({
   declarations: [
@@ -54,6 +55,7 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
     NewsItemPreviewItemComponent,
     NewsAppMapPickerComponent,
     NewsAppMapPickerDialogComponent,
+    NewsReachComponent,
   ],
   imports: [
     SharedModule,

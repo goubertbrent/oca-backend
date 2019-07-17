@@ -36,7 +36,6 @@ import {
   NewsTargetAudience,
   UINewsActionButton,
 } from '../../interfaces';
-import { getCost, getReach } from '../../utils';
 import {
   NewsAppMapPickerDialogComponent,
   NewsAppMapPickerDialogData,
@@ -114,9 +113,6 @@ export class EditNewsComponent implements OnChanges {
       for (const app of this.apps) {
         this.appMapping[ app.id ] = app;
       }
-    }
-    if ((changes.appStatistics || changes.newsItem) && this.appStatistics && this.newsItem) {
-      this.calculateReach();
     }
   }
 
@@ -252,7 +248,6 @@ export class EditNewsComponent implements OnChanges {
 
   regionalAppRemoved(event: MatChipEvent) {
     this.appsChanged(this.newsItem.app_ids.filter(a => a !== event.chip.value));
-    this.calculateReach();
   }
 
   addApp($event: MatSelectChange, matSelect: MatSelect) {
@@ -260,12 +255,10 @@ export class EditNewsComponent implements OnChanges {
       this.newsItem = { ...this.newsItem, app_ids: [ ...this.newsItem.app_ids, $event.value ] };
     }
     matSelect.value = null;
-    this.calculateReach();
   }
 
   appsChanged(apps: string[]) {
     this.newsItem = { ...this.newsItem, app_ids: apps };
-    this.calculateReach();
   }
 
   openShop() {
@@ -402,22 +395,6 @@ export class EditNewsComponent implements OnChanges {
   getGroupName() {
     const group = (this.options.data as NewsOptions).groups.find(g => g.group_type === this.newsItem.group_type);
     return group ? group.name : '';
-  }
-
-  private calculateReach() {
-    let totalUsers = 0;
-    const apps: { [ key: string ]: { lowerGuess: number; higherGuess: number; } } = {};
-    for (const appId of this.newsItem.app_ids) {
-      if (appId in this.appStatistics) {
-        totalUsers += this.appStatistics[ appId ].total_user_count;
-        apps[ appId ] = getReach(this.appStatistics[ appId ].total_user_count);
-      }
-    }
-    const total = getReach(totalUsers);
-    this.reach = {
-      total: `${total.lowerGuess} - ${total.higherGuess}`,
-      cost: getCost('€', total.lowerGuess, total.higherGuess),
-    };
   }
 
   private showError(message: string) {
