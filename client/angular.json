@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "oca-forms": {
+    "oca-web": {
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
@@ -18,7 +18,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "../../build/static/oca-forms",
+            "outputPath": "../build/static/client",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -35,7 +35,7 @@
           },
           "configurations": {
             "production": {
-              "deployUrl": "/static/oca-forms/",
+              "deployUrl": "/static/client/",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
@@ -72,16 +72,16 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "oca-forms:build",
+            "browserTarget": "oca-web:build",
             "proxyConfig": "proxy.conf.json",
             "port": 4300
           },
           "configurations": {
             "production": {
-              "browserTarget": "oca-forms:build:production"
+              "browserTarget": "oca-web:build:production"
             },
             "hmr": {
-              "browserTarget": "oca-forms:build:hmr",
+              "browserTarget": "oca-web:build:hmr",
               "hmr": true,
               "hmrWarning": false
             }
@@ -90,7 +90,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "oca-forms:build"
+            "browserTarget": "oca-web:build"
           }
         },
         "test": {
@@ -125,7 +125,7 @@
         }
       }
     },
-    "oca-forms-e2e": {
+    "oca-web-e2e": {
       "root": "e2e/",
       "projectType": "application",
       "prefix": "",
@@ -134,11 +134,11 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "oca-forms:serve"
+            "devServerTarget": "oca-web:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "oca-forms:serve:production"
+              "devServerTarget": "oca-web:serve:production"
             }
           }
         },
@@ -154,5 +154,5 @@
       }
     }
   },
-  "defaultProject": "oca-forms"
+  "defaultProject": "oca-web"
 }

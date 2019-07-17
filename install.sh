@@ -16,7 +16,7 @@ npm run build
 pushd build/static
 npm install
 popd
-pushd client/oca-forms
+pushd client
 npm install
 npm run build
 popd

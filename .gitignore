@@ -20,4 +20,3 @@ node_modules/
 npm-debug.log
 google-app-credentials.json
 .vscode
-src/static/oca-forms/

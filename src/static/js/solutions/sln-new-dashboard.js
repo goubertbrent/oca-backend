@@ -3,7 +3,7 @@
     ROUTES.participation = router;
     ROUTES.news = router;
     var element = document.getElementById('dashboard');
-    var baseUrl = DEBUG ? 'http://localhost:4300/' : '/static/oca-forms/index.html#/';
+    var baseUrl = DEBUG ? 'http://localhost:4300/' : '/static/client/index.html#/';
     var topMenu = $('#topmenu');
     window.addEventListener('message', function (e) {
         if (e.data && e.data.type === 'oca.set_navigation') {
