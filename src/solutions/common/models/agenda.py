@@ -147,7 +147,7 @@ class NdbEvent(NdbModel, _Event):
     @classmethod
     def get_app_events(cls, app_id):
         return cls.query() \
-            .filter(cls.app_ids, app_id) \
+            .filter(cls.app_ids == app_id) \
             .filter(cls.deleted == False).order(cls.first_start_date)
 
     @classmethod

@@ -366,7 +366,7 @@ def _populate_uit_events(sln_settings, uitdatabank_secret, uitdatabank_key, exte
     if media:
         media_files = media['file']
         for media_file in media_files:
-            if media_file['mediatype'] == 'photo':
+            if isinstance(media_file, dict) and media_file['mediatype'] == 'photo':
                 event.media.append(EventMedia(
                     url=media_file['hlink'],
                     type=EventMediaType.IMAGE,
