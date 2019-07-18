@@ -79,7 +79,7 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
     get_solution_identity_settings, get_solution_settings_or_identity_settings, get_solution_news_publishers,\
     get_calendar_items
 from solutions.common.dal.appointment import get_solution_appointment_settings
-from solutions.common.dal.cityapp import invalidate_service_user_for_city
+from solutions.common.dal.cityapp import invalidate_service_user_for_city, get_cityapp_profile
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
@@ -859,7 +859,8 @@ def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
         SolutionAutoBroadcastTypes(
             key_name=SolutionModule.AGENDA, parent=sln_settings, broadcast_types=broadcast_types).put()
 
-        if default_lang == "nl" and SolutionModule.CITY_APP in sln_settings.modules:
+        if default_lang == "nl" and SolutionModule.CITY_APP in sln_settings.modules \
+                and get_cityapp_profile(sln_settings.service_user).uitdatabank_enabled:
             icon = u"uit"
             label = u"in %s" % sln_settings.name
         else:
