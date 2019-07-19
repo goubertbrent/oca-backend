@@ -159,6 +159,8 @@ $(function () {
             renderAppSettings();
         } else if (page === 'roles') {
             renderRolesSettings();
+        } else if (page == 'broadcast') {
+            getBroadcastRssSettings(renderRssSettings);
         }
     }
 
@@ -1389,7 +1391,7 @@ $(function () {
         });
     }
 
-    function getbroadcastRssSettings(callback) {
+    function getBroadcastRssSettings(callback) {
         if (LocalCache.broadcastRssSettings) {
             callback(LocalCache.broadcastRssSettings);
         } else {
@@ -1431,7 +1433,7 @@ $(function () {
                 app_ids: $("#rss-scraper-app_ids").val().split("\n")
             };
 
-            getbroadcastRssSettings(function (settings) {
+            getBroadcastRssSettings(function (settings) {
                 var newSettings = Object.assign({}, settings, {scrapers: settings.scrapers.concat([newRSSScraper])});
                 saveRssSettings(newSettings);
                 modal.modal('hide');
@@ -1450,7 +1452,7 @@ $(function () {
         htmlElement.find('button[action="deleteRssUrl"]').click(deleteRssUrl);
         var notifyCheckbox = htmlElement.find('#send-rss-notifications');
         notifyCheckbox.change(function () {
-            getbroadcastRssSettings(function (settings) {
+            getBroadcastRssSettings(function (settings) {
                 settings.notify = notifyCheckbox.prop('checked');
                 saveRssSettings(settings);
             });
@@ -1459,7 +1461,7 @@ $(function () {
 
     function deleteRssUrl() {
         var url = $(this).attr('rss_url');
-        getbroadcastRssSettings(function (settings) {
+        getBroadcastRssSettings(function (settings) {
             settings.scrapers = settings.scrapers.filter(function (scraper) {
                 return scraper.url !== url;
             });
