@@ -68,7 +68,7 @@
           <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
           <input name="visible_until" matInput [matDatepicker]="picker" [(ngModel)]="dateInput"
                  [disabled]="form.settings.finished"
-                 [min]="minDate" (ngModelChange)="updateDate()" required>
+                 [min]="minDate" (ngModelChange)="updateDate()" (click)="picker.open()" required readonly>
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
