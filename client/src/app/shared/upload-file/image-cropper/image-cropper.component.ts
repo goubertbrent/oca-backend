@@ -45,8 +45,28 @@ export class ImageCropperComponent {
     return new Promise(resolve => {
       if (type === 'base64') {
         resolve({ ...data, dataUrl: canvas.toDataURL(imageType, quality) });
-      } else {
+      } else if ('toBlob' in canvas) {
         canvas.toBlob(blob => resolve({ ...data, blob }), imageType, quality);
+      } else {
+          // Welcome to Edge.
+          // TypeScript thinks `canvas` is 'never', so it needs casting.
+          const dataUrl = (canvas as HTMLCanvasElement).toDataURL(type, quality);
+          const result = /data:([^;]+);base64,(.*)$/.exec(dataUrl);
+
+          if (!result) {
+            throw Error('Data URL reading failed');
+          }
+
+          const outputType = result[1];
+          const binaryStr = atob(result[2]);
+          const d = new Uint8Array(binaryStr.length);
+
+          for (let i = 0; i < d.length; i += 1) {
+            d[i] = binaryStr.charCodeAt(i);
+          }
+
+          const blob = new Blob([d], { type: outputType });
+          resolve({ ...data, blob});
       }
     });
   }

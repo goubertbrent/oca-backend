@@ -5,7 +5,7 @@ import { NewsDetailPageComponent } from './pages/news-detail-page/news-detail-pa
 import { NewsListPageComponent } from './pages/news-list-page/news-list-page.component';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'create' },
+  { path: '', pathMatch: 'full', redirectTo: 'list' },
   { path: 'list', component: NewsListPageComponent },
   { path: 'create', component: CreateNewsPageComponent },
   {

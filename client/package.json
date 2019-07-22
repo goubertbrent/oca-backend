@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --configuration hmr",
+    "start": "ng serve --configuration hmr --host 0.0.0.0",
     "build": "ng build --prod --base-href=/static/web",
     "test": "ng test",
     "lint": "ng lint",

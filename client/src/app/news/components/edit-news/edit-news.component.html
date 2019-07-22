@@ -29,7 +29,7 @@
         </button>
         <div>
           <div class="image-container" *ngIf="newsItem.media">
-            <img [src]="newsItem.media.content">
+            <img [src]="newsItem.media.content" style="max-width: 320px">
             <button type="button" mat-mini-fab (click)="removeMedia()" class="btn-media-delete">
               <mat-icon>close</mat-icon>
             </button>

@@ -1013,7 +1013,7 @@ translations = \
          u'oca.create_form': u'Create survey',
          u'oca.create_message': u'Create message',
          u'oca.create_news_item': u'Create a message for this survey',
-         u'oca.create_news_item_info': u'Send a message to the inhabitants of your city municipality',
+         u'oca.create_news_item_info': u'Send a message to the inhabitants of your city or municipality',
          u'oca.create_participation_project': u'Create participation project',
          u'oca.creating_form': u'Creating survey\u2026',
          u'oca.creating_project': u'Creating project...',
