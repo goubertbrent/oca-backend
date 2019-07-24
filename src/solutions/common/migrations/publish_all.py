@@ -24,7 +24,7 @@ from solutions.common.models import SolutionSettings
 
 def provision_all(module=None, dry_run=True):
     if dry_run:
-        return _get_solution_settings_keys(module).count()
+        return _get_solution_settings_keys(module).count(None)
     run_job(_get_solution_settings_keys, [module], _publish, [], worker_queue=MIGRATION_QUEUE)
 
 

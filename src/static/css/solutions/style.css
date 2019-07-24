@@ -42,6 +42,7 @@ div.navbar a.brand {
     flex-direction: column;
     align-items: center;
     height: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .page:not(.page-full-width) {
