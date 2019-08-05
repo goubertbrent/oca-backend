@@ -1,5 +1,6 @@
 <agm-map [fitBounds]="bounds"
          [minZoom]="13"
+         [scrollwheel]="null"
          (mapClick)="addMarker($event)"
          *ngIf="bounds$.asObservable() | async as bounds">
   <ng-container *ngIf="bounds===true">

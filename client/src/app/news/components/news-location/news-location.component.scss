@@ -1,3 +1,12 @@
-.address-list {
-  width: 300px;
+.locations {
+  padding-top: 16px;
+
+  mat-list-item:hover {
+    background-color: rgba(0,0,0,.03);
+  }
+
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.54);
 }

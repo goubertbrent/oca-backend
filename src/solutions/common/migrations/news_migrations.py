@@ -24,7 +24,6 @@ from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
 
 from mcfw.cache import DSCache
-from mcfw.utils import chunks
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.news import put_news
 from rogerthat.bizz.service import re_index

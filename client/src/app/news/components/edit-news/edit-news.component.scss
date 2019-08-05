@@ -1,3 +1,8 @@
+::ng-deep .mat-card-header-text {
+  /* CSS styles go here */
+  margin: 0px !important; // for example to remove the margin
+}
+
 p {
   white-space: pre-wrap;
 }
@@ -15,6 +20,7 @@ p {
   margin: 16px 0;
   position: relative;
   display: inline-block;
+  max-width: 320px;
 
   img {
     max-height: 250px;
@@ -39,19 +45,36 @@ p {
 
 .container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   flex-direction: row;
+
+  form {
+    max-width: 950px;
+  }
+
+  mat-horizontal-stepper {
+    background: none !important;
+  }
 
   .editor {
     flex-grow: 1;
+    float: left;
+    max-width: calc(100% - 490px);
   }
 
   .preview {
     width: 453px;
     height: 883px;
     position: sticky;
+    margin-top: -10px;
+    float: right;
     top: 0;
   }
+
+  .mat-card {
+    margin-bottom: 16px;
+  }
+
 }
 
 .submit-button {
@@ -114,4 +137,13 @@ p {
 .budget-line {
   display: flex;
   align-items: center;
+}
+
+p.disabled {
+  color: #ABABAB;
+  pointer-events: none;
+}
+
+.header-icon-button {
+  margin-top: -8px;
 }

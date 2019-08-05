@@ -5,6 +5,8 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatGridListModule } from '@angular/material/grid-list';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -29,6 +31,7 @@ import { NewsItemListComponent } from './components/news-item-list/news-item-lis
 import { NewsItemPreviewItemComponent } from './components/news-item-preview-item/news-item-preview-item.component';
 import { NewsItemPreviewComponent } from './components/news-item-preview/news-item-preview.component';
 import { NewsLocationComponent } from './components/news-location/news-location.component';
+import { NewsReachComponent } from './components/news-reach/news-reach.component';
 import { routes } from './news-routes';
 import { GetNewsOptionsAction } from './news.actions';
 import { NewsEffects } from './news.effects';
@@ -38,7 +41,6 @@ import { CreateNewsPageComponent } from './pages/create-news-page/create-news-pa
 import { EditNewsPageComponent } from './pages/edit-news-page/edit-news-page.component';
 import { NewsDetailPageComponent } from './pages/news-detail-page/news-detail-page.component';
 import { NewsListPageComponent } from './pages/news-list-page/news-list-page.component';
-import { NewsReachComponent } from './components/news-reach/news-reach.component';
 
 @NgModule({
   declarations: [
@@ -70,6 +72,8 @@ import { NewsReachComponent } from './components/news-reach/news-reach.component
     MatSelectModule,
     MatSlideToggleModule,
     MatDatepickerModule,
+    MatExpansionModule,
+    MatGridListModule,
     MatNativeDateModule,
     MatToolbarModule,
     MatSnackBarModule,

@@ -182,7 +182,7 @@ $(function() {
             renderRegions(regionElem.data('regions'));
             saveCityAppSettings();
             
-        }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT);
+        }, CommonTranslations.ADD, CommonTranslations.SAVE, CommonTranslations.ENTER_DOT_DOT_DOT, null, null, CommonTranslations.uit_region_format_info);
     });
 
     sln.configureDelayedInput($('.sln-set-events-secret input'), saveCityAppSettings);

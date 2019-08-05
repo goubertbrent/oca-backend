@@ -1,346 +1,455 @@
 <div class="container">
-  <form class="editor" #form="ngForm">
-    <mat-horizontal-stepper [linear]="!published">
-      <mat-step [label]="'oca.Content' | translate" ngModelGroup="stepContent"
+  <form #form="ngForm">
+    <mat-horizontal-stepper [linear]="!published" #stepper>
+
+      <ng-template matStepperIcon="edit">
+        <mat-icon>check</mat-icon>
+      </ng-template>
+
+      <mat-step ngModelGroup="stepContent"
+                [completed]="stepper.selectedIndex > 0"
+                [label]="'oca.Content' | translate" 
                 [stepControl]="form.controls.stepContent">
-        <p>{{ 'oca.news_content_explanation' | translate }}</p>
-        <mat-form-field class="title-field">
-          <mat-label>{{ 'oca.title' | translate }}</mat-label>
-          <input [(ngModel)]="newsItem.title" matInput maxlength="80" minlength="5" name="title" required type="text"
-                 #titleControl="ngModel">
-          <mat-hint align="end">{{ newsItem.title.length }} / 80</mat-hint>
-          <mat-error *ngIf="titleControl.errors?.required">
-            {{ 'oca.this_field_is_required' | translate }}
-          </mat-error>
-          <mat-error *ngIf="titleControl.errors?.minlength as minError">
-            {{ 'oca.please_enter_at_least_x_characters' | translate : {characters: minError.requiredLength} }}
-          </mat-error>
-        </mat-form-field>
-        <p>{{ 'oca.message' | translate }}</p>
-        <simplemde [(ngModel)]="newsItem.message" name="description"></simplemde>
-        <h3>{{ 'oca.image' | translate }}</h3>
-        <p>{{ 'oca.news_image_explanation' | translate }}</p>
-        <button (click)="showImageDialog()" mat-raised-button type="button">
-          {{ 'oca.choose_file' | translate }}
-        </button>
-        <button (click)="useCoverPhoto()" mat-raised-button type="button" class="use-cover-photo"
-                *ngIf="brandingSettings.data && brandingSettings.data.logo_url">
-          {{ 'oca.use_cover_photo' | translate }}
-        </button>
-        <div>
-          <div class="image-container" *ngIf="newsItem.media">
-            <img [src]="newsItem.media.content" style="max-width: 320px">
-            <button type="button" mat-mini-fab (click)="removeMedia()" class="btn-media-delete">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        </div>
-        <h3>{{ 'oca.action_button' | translate }}</h3>
-        <p>{{ 'oca.news_action_button_explanation' | translate }}</p>
-        <mat-form-field>
-          <mat-label>{{ 'oca.action_button' | translate }}</mat-label>
-          <mat-select (selectionChange)="actionButtonSelected($event)" [(ngModel)]="actionButton"
-                      [compareWith]="compareActionButtons"
-                      name="button_id">
-            <mat-option [value]="null">{{ 'oca.none' | translate }}</mat-option>
-            <mat-option *ngFor="let button of actionButtons.data" [value]="button">
-              {{ button.label }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        <div *ngIf="actionButton" class="action-button-controls">
-          <mat-form-field>
-            <mat-label>{{ 'oca.Label' | translate }}</mat-label>
-            <input [ngModel]="actionButton.button.caption"
-                   (ngModelChange)="setButtonCaption($event)"
-                   matInput
-                   required
-                   maxlength="15"
-                   name="button_caption"
-                   type="text">
-            <mat-hint align="end">{{ actionButton.button.caption.length }} / 15</mat-hint>
-          </mat-form-field>
-          <ng-container [ngSwitch]="actionButton.type">
-            <mat-form-field *ngSwitchCase="NewsActionButtonType.WEBSITE">
-              <mat-label>{{ actionButton.label }}</mat-label>
-              <input matInput name="button_website" required type="url"
-                     [pattern]="URL_PATTERN"
-                     [(ngModel)]="actionButton.button.action"
-                     (ngModelChange)="updateButton($event)" #urlInput="ngModel">
-              <mat-error *ngIf="urlInput.errors?.pattern">{{ 'oca.enter_valid_url' | translate }}</mat-error>
-            </mat-form-field>
-            <mat-form-field *ngSwitchCase="NewsActionButtonType.PHONE">
-              <mat-label>{{ actionButton.label }}</mat-label>
-              <input (ngModelChange)="updateButton($event)" [(ngModel)]="actionButton.phone" matInput
-                     name="button_phone"
-                     required
-                     type="tel">
-            </mat-form-field>
-            <mat-form-field *ngSwitchCase="NewsActionButtonType.EMAIL">
-              <mat-label>{{ actionButton.label }}</mat-label>
-              <input (ngModelChange)="updateButton($event)" [(ngModel)]="actionButton.email" matInput
-                     name="button_email"
-                     required
-                     type="email">
-            </mat-form-field>
-            <ng-container *ngSwitchCase="NewsActionButtonType.ATTACHMENT">
-              <mat-form-field>
-                <mat-label>{{ 'oca.Attachment' | translate }}</mat-label>
-                <input #input="ngModel" [ngModel]="actionButton.button.action" matInput name="attachment_url" readonly
-                       required type="url">
-                <a *ngIf="actionButton.button.action"
-                   [href]="actionButton.button.action" mat-icon-button
-                   matSuffix
-                   target="_blank">
-                  <mat-icon>open_in_new</mat-icon>
-                </a>
-                <mat-error *ngIf="input.errors?.required">{{ 'oca.please_select_attachment' | translate }}</mat-error>
+
+        <div class="editor">
+          <mat-card>
+            <mat-card-header>
+                <mat-card-title>Tekst</mat-card-title>
+                <mat-card-subtitle>{{ 'oca.news_content_explanation' | translate }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-form-field appearance="outline" class="title-field">
+                <mat-label>{{ 'oca.title' | translate }}</mat-label>
+                <input [(ngModel)]="newsItem.title" matInput maxlength="80" minlength="5" name="title" required type="text"
+                      #titleControl="ngModel">
+                <mat-hint align="end">{{ newsItem.title.length }} / 80</mat-hint>
+                <mat-error *ngIf="titleControl.errors?.required">
+                  {{ 'oca.this_field_is_required' | translate }}
+                </mat-error>
+                <mat-error *ngIf="titleControl.errors?.minlength as minError">
+                  {{ 'oca.please_enter_at_least_x_characters' | translate : {characters: minError.requiredLength} }}
+                </mat-error>
               </mat-form-field>
+
+              <p>{{ 'oca.message' | translate }}</p>
+              <simplemde [(ngModel)]="newsItem.message" name="description"></simplemde>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card>
+            <mat-card-header>
+                <mat-card-title>{{ 'oca.image' | translate }}</mat-card-title>
+                <mat-card-subtitle>{{ 'oca.news_image_explanation' | translate }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <button (click)="showImageDialog()" mat-raised-button type="button">
+                {{ 'oca.choose_file' | translate }}
+              </button>
+              <button (click)="useCoverPhoto()" mat-raised-button type="button" class="use-cover-photo"
+                      *ngIf="brandingSettings.data?.logo_url">
+                {{ 'oca.use_cover_photo' | translate }}
+              </button>
               <div>
-                <button (click)="addAttachment()" mat-raised-button type="button">
-                  {{ 'oca.add-attachment' | translate }}
-                </button>
+                <div class="image-container" *ngIf="newsItem.media">
+                  <img [src]="newsItem.media?.content">
+                  <button type="button" mat-mini-fab (click)="removeMedia()" class="btn-media-delete">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
               </div>
-            </ng-container>
-          </ng-container>
-        </div>
-        <div class="step-nav-buttons">
-          <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
-          <button type="button" mat-raised-button matStepperNext>{{ 'oca.Next' | translate }}</button>
-        </div>
-      </mat-step>
-      <mat-step optional [label]="'oca.target_audience' | translate" ngModelGroup="stepAudience"
-                [stepControl]="form.controls.stepAudience">
-        <p>{{ 'oca.news_target_audience_explanation' | translate }}</p>
-        <ng-container *ngIf="options.data?.regional.enabled">
-          <mat-slide-toggle
-            class="toggle-margin"
-            (toggleChange)="toggleLocal()"
-            [checked]="hasLocal"
-            [disabled]="published">
-            {{ 'oca.broadcast-locally' | translate }}
-          </mat-slide-toggle>
-          <p class="toggle-indent">{{ 'oca.broadcast-locally-description' | translate }}</p>
-          <mat-slide-toggle
-            class="toggle-margin"
-            (toggleChange)="toggleRegional()"
-            [checked]="hasRegional"
-            [disabled]="published">
-            {{ 'oca.broadcast-regionally' | translate }}
-          </mat-slide-toggle>
-          <p class="toggle-indent">{{ 'oca.broadcast-regionally-description' | translate }}</p>
-          <ng-container *ngIf="hasRegional">
-            <div class="map-container" *ngIf="options.data?.regional.map_url else appSelectTemplate">
-              <oca-news-app-map-picker name="app_ids"
-                                       [apps]="apps"
-                                       [defaultAppId]="defaultAppId"
-                                       [appStatistics]="appStatistics"
-                                       [readonly]="true"
-                                       [showLegend]="false"
-                                       [mapUrl]="options.data.regional.map_url"
-                                       [ngModel]="newsItem.app_ids"
-                                       (click)="openMapDialog()"
-                                       (ngModelChange)="appsChanged($event)"></oca-news-app-map-picker>
-              <p>{{ 'oca.broadcast-map-explanation' | translate }}</p>
-            </div>
-            <ng-template #appSelectTemplate>
-              <mat-chip-list>
-                <mat-chip (removed)="regionalAppRemoved($event)"
-                          *ngFor="let appId of newsItem.app_ids"
-                          [removable]="appId !== defaultAppId && !published"
-                          [value]="appId">
-                  {{ appMapping[appId] ? appMapping[appId]?.name : appId }}
-                  <span *ngIf="appStatistics[appId] as stats">
-                    &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: stats.total_user_count} }}
-                  </span>
-                  <mat-icon *ngIf="appId !== defaultAppId && !published" matChipRemove>cancel</mat-icon>
-                </mat-chip>
-              </mat-chip-list>
-              <mat-form-field *ngIf="!published">
-                <mat-label>{{ 'oca.add_app' | translate }}</mat-label>
-                <mat-select #select (selectionChange)="addApp($event, select)">
-                  <mat-option *ngFor="let app of apps" [value]="app.id">
-                    {{app.name}}
-                    <span *ngIf="appStatistics[app.id] as stats">
-                    &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: stats.total_user_count} }}
-                  </span>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card>
+            <mat-card-header>
+                <mat-card-title>{{ 'oca.action_button' | translate }}</mat-card-title>
+                <mat-card-subtitle>{{ 'oca.news_action_button_explanation' | translate }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'oca.action_button' | translate }}</mat-label>
+                <mat-select (selectionChange)="actionButtonSelected($event);"
+                            [(ngModel)]="actionButton"
+                            [compareWith]="compareActionButtons"
+                            name="button_id">
+                  <mat-option [value]="null">{{ 'oca.none' | translate }}</mat-option>
+                  <mat-option *ngFor="let button of actionButtons.data" [value]="button">
+                    {{ button.label }}
                   </mat-option>
                 </mat-select>
               </mat-form-field>
-            </ng-template>
-            <oca-news-reach [appIds]="newsItem.app_ids"
-                            [appStatistics]="appStatistics"
-                            [defaultAppId]="defaultAppId"></oca-news-reach>
-            <p class="budget-line">{{ 'oca.budget' | translate }}: <b>{{ remainingBudget }}</b>
-              <mat-icon [matTooltip]="'oca.broadcast-budget-explanation' | translate">info</mat-icon>
-            </p>
-            <button (click)="openShop()" mat-raised-button type="button">
-              <span>{{ 'oca.charge_budget' | translate }}</span>
-            </button>
-          </ng-container>
-        </ng-container>
-        <div class="social-media" *ngIf="false">
-          <h4>{{ 'oca.social_media' | translate }}</h4>
-          <mat-slide-toggle (ngModelChange)="toggleFacebook($event)"
-                            [disabled]="published"
-                            [ngModel]="newsItem.broadcast_on_facebook"
-                            name="broadcast_on_facebook">
-            {{ 'oca.put-on-facebook' | translate }}
-          </mat-slide-toggle>
-          <div class="fb-group-container">
-            <mat-form-field *ngIf="!published && newsItem.broadcast_on_facebook">
-              <mat-label>{{ 'oca.Facebook page' | translate }}</mat-label>
-              <mat-select [(ngModel)]="newsItem.facebook_access_token" [required]="!newsItem.id"
-                          name="facebook_access_token">
-                <mat-option *ngFor="let page of fbPages$ | async" [value]="page.access_token">
-                  {{ page.name }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-            <button (click)="getPages()" *ngIf="newsItem.broadcast_on_facebook && !published" mat-raised-button>
-              {{ 'oca.refresh_list' | translate }}
-            </button>
+              <div *ngIf="actionButton" class="action-button-controls">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'oca.Label' | translate }}</mat-label>
+                  <input [ngModel]="actionButton.button.caption"
+                        (ngModelChange)="setButtonCaption($event)"
+                        matInput
+                        required
+                        maxlength="15"
+                        name="button_caption"
+                        type="text">
+                  <mat-hint align="end">{{ actionButton.button.caption.length }} / 15</mat-hint>
+                </mat-form-field>
+                <ng-container [ngSwitch]="actionButton.type">
+                  <mat-form-field appearance="outline" *ngSwitchCase="NewsActionButtonType.WEBSITE">
+                    <mat-label>{{ actionButton.label }}</mat-label>
+                    <input matInput name="button_website" required type="url"
+                          [pattern]="URL_PATTERN"
+                          [(ngModel)]="actionButton.button.action"
+                          (ngModelChange)="updateButton($event)" #urlInput="ngModel">
+                    <mat-error *ngIf="urlInput.errors?.pattern">{{ 'oca.enter_valid_url' | translate }}</mat-error>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" *ngSwitchCase="NewsActionButtonType.PHONE">
+                    <mat-label>{{ actionButton.label }}</mat-label>
+                    <input (ngModelChange)="updateButton($event)" [(ngModel)]="actionButton.phone" matInput
+                          name="button_phone"
+                          required
+                          type="tel">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" *ngSwitchCase="NewsActionButtonType.EMAIL">
+                    <mat-label>{{ actionButton.label }}</mat-label>
+                    <input (ngModelChange)="updateButton($event)" [(ngModel)]="actionButton.email" matInput
+                          name="button_email"
+                          required
+                          type="email">
+                  </mat-form-field>
+                  <ng-container *ngSwitchCase="NewsActionButtonType.ATTACHMENT">
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'oca.Attachment' | translate }}</mat-label>
+                      <input #input="ngModel" [ngModel]="actionButton.button.action" matInput name="attachment_url" readonly
+                            required type="url">
+                      <a *ngIf="actionButton.button.action"
+                        [href]="actionButton.button.action" mat-icon-button
+                        matSuffix
+                        target="_blank">
+                        <mat-icon>open_in_new</mat-icon>
+                      </a>
+                      <mat-error *ngIf="input.errors?.required">{{ 'oca.please_select_attachment' | translate }}</mat-error>
+                    </mat-form-field>
+                    <div>
+                      <button (click)="addAttachment()" mat-raised-button type="button">
+                        {{ 'oca.add-attachment' | translate }}
+                      </button>
+                    </div>
+                  </ng-container>
+                </ng-container>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          
+          <div class="step-nav-buttons">
+            <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
+            <button type="button" mat-raised-button matStepperNext>{{ 'oca.Next' | translate }}</button>
           </div>
-          <mat-slide-toggle (ngModelChange)="checkTwitter()"
-                            [(ngModel)]="newsItem.broadcast_on_twitter"
-                            [disabled]="published"
-                            name="broadcast_on_twitter">
-            {{ 'oca.put-on-twitter' | translate }}
-          </mat-slide-toggle>
         </div>
-        <div>
-          <!-- TODO: remove this div once it should go live-->
-          <div [hidden]="!defaultAppId?.startsWith('osa')">
-            <mat-slide-toggle class="toggle-margin"
-                              [checked]="newsItem.locations !== null"
-                              [disabled]="published"
-                              (toggleChange)="toggleLocations()"
-                              *ngIf="!hasRegional"
-                              style="display: block;">
-              {{ 'oca.limit_on_location' | translate }}
-            </mat-slide-toggle>
-            <ng-container *ngIf="newsItem.locations">
-              <p class="toggle-indent" *ngIf="newsItem.locations">{{ 'oca.limit_on_location_info' | translate }}</p>
-              <oca-news-location class="toggle-margin"
-                                 name="locations"
-                                 [appId]="defaultAppId"
-                                 [disabled]="published"
-                                 [(ngModel)]="newsItem.locations"></oca-news-location>
-            </ng-container>
-          </div>
-          <mat-slide-toggle class="toggle-margin"
-              #targetAudienceToggle
-              (toggleChange)="toggleTargetAudience()"
-              [checked]="newsItem.target_audience !== null"
-              [disabled]="published">
-            {{ 'oca.limit_by_age_and_gender' | translate }}
-          </mat-slide-toggle>
-          <div *ngIf="targetAudienceToggle.checked" class="form-group">
-            <div>
-              <mat-form-field style="margin-right: 16px;">
-                <mat-label>{{ 'oca.age-min' | translate }}</mat-label>
-                <input #minAge="ngModel" [(ngModel)]="newsItem.target_audience.min_age"
-                       [disabled]="published"
-                       [max]="newsItem.target_audience.max_age"
-                       matInput
-                       min="0"
-                       name="target_audience.min_age" type="number">
-                <mat-error *ngIf="minAge.errors?.max">{{ 'oca.age-min-max-less' | translate }}</mat-error>
-              </mat-form-field>
-              <mat-form-field>
-                <mat-label>{{ 'oca.age-max' | translate }}</mat-label>
-                <input [(ngModel)]="newsItem.target_audience.max_age" [disabled]="published"
-                       [min]="newsItem.target_audience.min_age"
-                       matInput
-                       max="120"
-                       name="target_audience.max_age"
-                       type="number">
-              </mat-form-field>
+
+        <oca-news-item-preview class="preview"
+                               [date]="newsItem.scheduled_at || minDate"
+                               [name]="serviceInfo?.name"
+                               [newsItem]="newsItem">
+        </oca-news-item-preview>
+
+      </mat-step>
+
+      <mat-step optional
+                ngModelGroup="stepAudience"
+                [completed]="stepper.selectedIndex > 1"
+                [label]="'oca.target_audience' | translate" 
+                [stepControl]="form.controls.stepAudience">
+
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ 'oca.target_audience' | translate }}</mat-card-title>
+            <mat-card-subtitle>{{ 'oca.news_target_audience_explanation' | translate }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+
+            <!-- TODO: remove this div once it should go live-->
+            <div [hidden]="!defaultAppId?.startsWith('osa')">
+              <mat-slide-toggle class="toggle-margin"
+                                [checked]="newsItem.locations !== null"
+                                [disabled]="hasRegional || published"
+                                (toggleChange)="toggleLocations()"
+                                style="display: block;">
+                {{ 'oca.limit_on_location' | translate }}
+              </mat-slide-toggle>
+              <p class="toggle-indent" [ngClass]="{'disabled': hasRegional || published}">{{ 'oca.limit_on_location_info' | translate }}</p>
+              <ng-container *ngIf="newsItem.locations">
+                <oca-news-location class="toggle-margin"
+                                   name="locations"
+                                   [appId]="defaultAppId"
+                                   [disabled]="published"
+                                   [(ngModel)]="newsItem.locations"></oca-news-location>
+              </ng-container>
+              
+              <br><mat-divider></mat-divider><br>
             </div>
-            <mat-form-field>
-              <mat-label>{{ 'oca.gender' | translate }}</mat-label>
-              <mat-select [(ngModel)]="newsItem.target_audience.gender"
+
+            <ng-container *ngIf="options.data?.regional.enabled">
+              <mat-slide-toggle
+                class="toggle-margin"
+                (toggleChange)="toggleLocal()"
+                [checked]="hasLocal"
+                [disabled]="newsItem.locations || published">
+                {{ 'oca.broadcast-locally' | translate }}
+              </mat-slide-toggle>
+              <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-locally-description' | translate }}</p>
+              
+              <br>
+
+              <mat-slide-toggle
+                class="toggle-margin"
+                (toggleChange)="toggleRegional()"
+                [checked]="hasRegional"
+                [disabled]="newsItem.locations || published">
+                {{ 'oca.broadcast-regionally' | translate }}
+              </mat-slide-toggle>
+              <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-regionally-description' | translate }}</p>
+              
+              <ng-container *ngIf="hasRegional">
+                <div class="map-container" *ngIf="options.data?.regional.map_url else appSelectTemplate">
+                  <oca-news-app-map-picker name="app_ids"
+                                          [apps]="apps"
+                                          [defaultAppId]="defaultAppId"
+                                          [appStatistics]="appStatistics"
+                                          [readonly]="true"
+                                          [showLegend]="false"
+                                          [mapUrl]="options.data.regional.map_url"
+                                          [ngModel]="newsItem.app_ids"
+                                          (click)="openMapDialog()"
+                                          (ngModelChange)="appsChanged($event)"></oca-news-app-map-picker>
+                </div>
+                <p>{{ 'oca.broadcast-map-explanation' | translate }}</p>
+                <ng-template #appSelectTemplate>
+                  <mat-chip-list>
+                    <mat-chip (removed)="regionalAppRemoved($event)"
+                              *ngFor="let appId of newsItem.app_ids"
+                              [removable]="appId !== defaultAppId && !published"
+                              [value]="appId">
+                      {{ appMapping[appId] ? appMapping[appId]?.name : appId }}
+                      <span *ngIf="appStatistics[appId] as stats">
+                        &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: stats.total_user_count} }}
+                      </span>
+                      <mat-icon *ngIf="appId !== defaultAppId && !published" matChipRemove>cancel</mat-icon>
+                    </mat-chip>
+                  </mat-chip-list>
+                  <mat-form-field appearance="outline" *ngIf="!published">
+                    <mat-label>{{ 'oca.add_app' | translate }}</mat-label>
+                    <mat-select #select (selectionChange)="addApp($event, select)">
+                      <mat-option *ngFor="let app of apps" [value]="app.id">
+                        {{app.name}}
+                        <span *ngIf="appStatistics[app.id] as stats">
+                        &nbsp;-&nbsp;{{'oca.user_count' | translate : {count: stats.total_user_count} }}
+                      </span>
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </ng-template>
+                <oca-news-reach [appIds]="newsItem.app_ids"
+                                [appStatistics]="appStatistics"
+                                [defaultAppId]="defaultAppId"></oca-news-reach>
+                <p class="budget-line">{{ 'oca.budget' | translate }}: <b>{{ remainingBudget }}</b>
+                  <mat-icon [matTooltip]="'oca.broadcast-budget-explanation' | translate">info</mat-icon>
+                </p>
+                <button (click)="openShop()" mat-raised-button>{{ 'oca.charge_budget' | translate }}</button>
+                <br>
+              </ng-container>
+
+              <br><mat-divider></mat-divider><br>
+            </ng-container>
+
+            <div>
+              <mat-slide-toggle class="toggle-margin"
+                  #targetAudienceToggle
+                  (toggleChange)="toggleTargetAudience()"
+                  [checked]="newsItem.target_audience !== null"
+                  [disabled]="published">
+                {{ 'oca.limit_by_age_and_gender' | translate }}
+              </mat-slide-toggle>
+              <div *ngIf="targetAudienceToggle.checked" class="form-group">
+                <br>
+                <div>
+                  <mat-form-field appearance="outline" style="margin-right: 16px;">
+                    <mat-label>{{ 'oca.age-min' | translate }}</mat-label>
+                    <input #minAge="ngModel" [(ngModel)]="newsItem.target_audience.min_age"
                           [disabled]="published"
-                          name="target_audience.gender" required>
-                <mat-option *ngFor="let gender of GENDERS" [value]="gender.value">
-                  {{ gender.label | translate }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-            <mat-slide-toggle [(ngModel)]="newsItem.target_audience.connected_users_only"
+                          [max]="newsItem.target_audience.max_age"
+                          matInput
+                          min="0"
+                          name="target_audience.min_age" type="number">
+                    <mat-error *ngIf="minAge.errors?.max">{{ 'oca.age-min-max-less' | translate }}</mat-error>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'oca.age-max' | translate }}</mat-label>
+                    <input [(ngModel)]="newsItem.target_audience.max_age" [disabled]="published"
+                          [min]="newsItem.target_audience.min_age"
+                          matInput
+                          max="120"
+                          name="target_audience.max_age"
+                          type="number">
+                  </mat-form-field>
+                </div>
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'oca.gender' | translate }}</mat-label>
+                  <mat-select [(ngModel)]="newsItem.target_audience.gender"
                               [disabled]="published"
-                              name="target_audience.connected_users_only">
-              {{ 'oca.connected_users_only' | translate }}
-            </mat-slide-toggle>
-          </div>
-        </div>
+                              name="target_audience.gender" required>
+                    <mat-option *ngFor="let gender of GENDERS" [value]="gender.value">
+                      {{ gender.label | translate }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-slide-toggle [(ngModel)]="newsItem.target_audience.connected_users_only"
+                                  [disabled]="published"
+                                  name="target_audience.connected_users_only">
+                  {{ 'oca.connected_users_only' | translate }}
+                </mat-slide-toggle>
+              </div>
+            </div>
+
+            <div class="social-media" *ngIf="false">
+              <h4>{{ 'oca.social_media' | translate }}</h4>
+              <mat-slide-toggle (ngModelChange)="toggleFacebook($event)"
+                                [disabled]="published"
+                                [ngModel]="newsItem.broadcast_on_facebook"
+                                name="broadcast_on_facebook">
+                {{ 'oca.put-on-facebook' | translate }}
+              </mat-slide-toggle>
+              <div class="fb-group-container">
+                <mat-form-field appearance="outline" *ngIf="!published && newsItem.broadcast_on_facebook">
+                  <mat-label>{{ 'oca.Facebook page' | translate }}</mat-label>
+                  <mat-select [(ngModel)]="newsItem.facebook_access_token" [required]="!newsItem.id"
+                              name="facebook_access_token">
+                    <mat-option *ngFor="let page of fbPages$ | async" [value]="page.access_token">
+                      {{ page.name }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <button (click)="getPages()" *ngIf="newsItem.broadcast_on_facebook && !published" mat-raised-button>
+                  {{ 'oca.refresh_list' | translate }}
+                </button>
+              </div>
+              <mat-slide-toggle (ngModelChange)="checkTwitter()"
+                                [(ngModel)]="newsItem.broadcast_on_twitter"
+                                [disabled]="published"
+                                name="broadcast_on_twitter">
+                {{ 'oca.put-on-twitter' | translate }}
+              </mat-slide-toggle>
+            </div>
+
+          </mat-card-content>
+        </mat-card>
+
         <div class="step-nav-buttons">
           <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
           <button type="button" mat-raised-button matStepperNext>{{ 'oca.Next' | translate }}</button>
         </div>
       </mat-step>
-      <mat-step [label]="'oca.Broadcast' | translate" ngModelGroup="stepBroadcast"
+
+      <mat-step ngModelGroup="stepBroadcast"
+                [label]="'oca.Broadcast' | translate"
+                [completed]="stepper.selectedIndex > 1" 
                 [stepControl]="form.controls.stepBroadcast">
-        <p>{{ 'oca.news_label_explanation' | translate }}</p>
-        <oca-loadable [loadable]="options">
-          <mat-form-field *ngIf="options.success">
-            <mat-label>{{ 'oca.category' | translate }}</mat-label>
-            <mat-select [(ngModel)]="newsItem.group_type" name="broadcast_type" required
-                        (ngModelChange)="groupTypeChanged()">
-              <mat-option *ngFor="let group of options.data.groups" [value]="group.group_type">
-                {{ group.name }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </oca-loadable>
-        <p>{{ 'oca.news_schedule_explanation' | translate }}</p>
-        <div>
-          <mat-slide-toggle
-              #toggle
-              (toggleChange)="toggleScheduledAt()"
-              [checked]="newsItem.scheduled_at" [disabled]="published">
-            {{ 'oca.publish_later' | translate }}
-          </mat-slide-toggle>
-        </div>
-        <oca-date-time-input name="scheduled_date"
-                             required
-                             [disabled]="published || !toggle.checked"
-                             [min]="minDate"
-                             [max]="maxDate"
-                             [minError]="'oca.date_must_be_in_future' | translate"
-                             [maxError]="'oca.broadcast-schedule-too-far-in-future' | translate"
-                             [(ngModel)]="newsItem.scheduled_at"
-                             *ngIf="newsItem.scheduled_at">
-        </oca-date-time-input>
-        <ng-container *ngIf="hasGroupVisible">
-          <p>{{ 'oca.news_group_visible_until_info' | translate }}
-            <button mat-icon-button (click)="showGroupInfoDetails = !showGroupInfoDetails">
-              <mat-icon>info</mat-icon>
+
+        <div class="editor">
+
+          <mat-card>
+            <mat-card-header>
+                <mat-card-title>{{ 'oca.category' | translate }}</mat-card-title>
+                <mat-card-subtitle>{{ 'oca.news_label_explanation' | translate }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <oca-loadable [loadable]="options">
+                <mat-form-field appearance="outline" *ngIf="options.success">
+                  <mat-label>{{ 'oca.category' | translate }}</mat-label>
+                  <mat-select [(ngModel)]="newsItem.group_type" name="broadcast_type" required
+                              (ngModelChange)="groupTypeChanged()">
+                    <mat-option *ngFor="let group of options.data.groups" [value]="group.group_type">
+                      {{ group.name }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </oca-loadable>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card *ngIf="hasGroupVisible">
+            <mat-card-header>
+                <mat-card-title-group>
+                  <mat-card-title>
+                    {{ 'oca.news_group_visible_until_title' | translate }}
+                  </mat-card-title>
+                  <mat-card-subtitle>
+                    {{ 'oca.news_group_visible_until_info' | translate }}
+                  </mat-card-subtitle>
+                </mat-card-title-group>
+                <div fxFlex></div>
+                <button mat-icon-button (click)="showGroupInfoDetails = !showGroupInfoDetails" class="header-icon-button">
+                  <mat-icon>info</mat-icon>
+                </button>
+            </mat-card-header>
+            
+            <mat-card-content>
+              <p *ngIf="showGroupInfoDetails">{{ 'oca.news_group_visible_until_details' | translate : {name: getGroupName()} }}</p>
+              <oca-date-time-input name="group_visible_until"
+                                   required
+                                   [disabled]="published"
+                                   [min]="getMinVisibleUntil()"
+                                   [minError]="'oca.date_must_be_in_future' | translate"
+                                   [dateLabel]="'oca.Date' | translate"
+                                   [timeLabel]="'oca.Time' | translate"
+                                   [(ngModel)]="newsItem.group_visible_until"></oca-date-time-input>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card>
+            <mat-card-header>
+                <mat-card-title>{{ 'oca.schedule' | translate }}</mat-card-title>
+                <mat-card-subtitle>{{ 'oca.news_schedule_explanation' | translate }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div>
+                <mat-slide-toggle
+                    #toggle
+                    (toggleChange)="toggleScheduledAt()"
+                    [checked]="newsItem.scheduled_at" [disabled]="published">
+                  {{ 'oca.publish_later' | translate }}
+                </mat-slide-toggle>
+              </div>
+              <br>
+              <oca-date-time-input name="scheduled_date"
+                                   required
+                                   [disabled]="published || !toggle.checked"
+                                   [min]="minDate"
+                                   [max]="maxDate"
+                                   [dateLabel]="'oca.Date' | translate"
+                                   [timeLabel]="'oca.Time' | translate"
+                                   [minError]="'oca.date_must_be_in_future' | translate"
+                                   [maxError]="'oca.broadcast-schedule-too-far-in-future' | translate"
+                                   [(ngModel)]="newsItem.scheduled_at"
+                                   *ngIf="newsItem.scheduled_at">
+              </oca-date-time-input>
+            </mat-card-content>
+          </mat-card>
+          
+          <div class="step-nav-buttons submit-button">
+            <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
+            <mat-spinner *ngIf="status.loading" [diameter]="36"></mat-spinner>
+            <button (click)="submit(form)" [disabled]="status.loading" color="primary" mat-raised-button type="button">
+              {{ getSubmitButtonText() | translate }}
             </button>
-          </p>
-          <p
-            *ngIf="showGroupInfoDetails">{{ 'oca.news_group_visible_until_details' | translate : {name: getGroupName()} }}</p>
-          <oca-date-time-input name="group_visible_until"
-                               required
-                               [disabled]="published"
-                               [min]="getMinVisibleUntil()"
-                               [minError]="'oca.date_must_be_in_future' | translate"
-                               [dateLabel]="'oca.Date' | translate"
-                               [timeLabel]="'oca.Time' | translate"
-                               [(ngModel)]="newsItem.group_visible_until"></oca-date-time-input>
-        </ng-container>
-        <div class="step-nav-buttons submit-button">
-          <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
-          <mat-spinner *ngIf="status.loading" [diameter]="36"></mat-spinner>
-          <button (click)="submit(form)" [disabled]="status.loading" color="primary" mat-raised-button type="button">
-            {{ getSubmitButtonText() | translate }}
-          </button>
+          </div>
         </div>
+
+        <oca-news-item-preview class="preview"
+                               [date]="newsItem.scheduled_at || minDate"
+                               [name]="serviceInfo?.name"
+                               [newsItem]="newsItem">
+        </oca-news-item-preview>
+
       </mat-step>
     </mat-horizontal-stepper>
   </form>
-  <oca-news-item-preview class="preview"
-                         [date]="newsItem.scheduled_at || minDate"
-                         [name]="serviceInfo?.name"
-                         [newsItem]="newsItem"></oca-news-item-preview>
+  
 </div>
+  

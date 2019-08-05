@@ -20,7 +20,8 @@ $img-dimension: 180px;
   margin: 8px;
 
   img {
-    width: $img-dimension;
+    max-width: $img-dimension;
+    max-height: $img-dimension;
   }
 }
 

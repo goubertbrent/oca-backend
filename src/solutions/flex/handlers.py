@@ -282,8 +282,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
             self.redirect("/ourcityapp")
             return
         session_ = users.get_current_session()
-        all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key) for key in
-                            translations[SOLUTION_COMMON]['en']}
+        all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key)
+                            for key in translations[SOLUTION_COMMON]['en']}
         for key in COMMON_JS_KEYS:
             all_translations[key] = all_translations[COMMON_JS_KEYS[key]]
         if sln_settings.identities:

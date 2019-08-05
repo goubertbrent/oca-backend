@@ -1,24 +1,37 @@
-<mat-tab-group *ngIf="locations">
-  <mat-tab [label]="('oca.map' | translate) + ' (' + locations.geo_addresses.length + ')'">
-    <ng-template matTabContent>
-      <p>{{ 'oca.news_locations_region_info' | translate }}</p>
+<div *ngIf="locations" class="locations">
+
+  <mat-accordion [multi]="true">
+    <mat-expansion-panel [expanded]="true">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ ('oca.choose_streets' | translate) + ' (' + locations.addresses.length + ')' }}</mat-panel-title>
+      </mat-expansion-panel-header>
+
+      <mat-list>
+        <mat-list-item *ngFor="let address of locations.addresses">
+          <h4 mat-line>{{ address.street_name }}</h4>
+          <p mat-line>{{ address.city }}</p>
+          <button mat-icon-button (click)="removeAddress(address)" *ngIf="!disabled">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-list-item>
+      </mat-list>
+      <oca-choose-location [locations]="(cityAppLocations$ | async).data" (addressAdded)="addAddress($event)">
+      </oca-choose-location>
+    </mat-expansion-panel>
+
+    <mat-expansion-panel [expanded]="true">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          {{ ('oca.choose_regions_on_map' | translate) + ' (' + locations.geo_addresses.length + ')' }}
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      <div class="subtitle">{{ 'oca.news_locations_region_info' | translate }}</div>
+      <br>
       <oca-choose-region [bounds]="bounds$ | async"
-                         [disabled]="disabled"
-                         [addresses]="locations.geo_addresses"
-                         (addressesChanged)="updateGeoAddresses($event)"></oca-choose-region>
-    </ng-template>
-  </mat-tab>
-  <mat-tab [label]="('oca.address' | translate) + ' (' + locations.addresses.length + ')'">
-    <oca-choose-location [locations]="(cityAppLocations$ | async).data" (addressAdded)="addAddress($event)">
-    </oca-choose-location>
-    <mat-list class="address-list">
-      <mat-list-item *ngFor="let address of locations.addresses">
-        <h4 mat-line>{{ address.street_name }}</h4>
-        <p mat-line>{{ address.city }}</p>
-        <button mat-icon-button (click)="removeAddress(address)" *ngIf="!disabled">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </mat-list-item>
-    </mat-list>
-  </mat-tab>
-</mat-tab-group>
+                          [disabled]="disabled"
+                          [addresses]="locations.geo_addresses"
+                          (addressesChanged)="updateGeoAddresses($event)"></oca-choose-region>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+</div>

@@ -161,6 +161,7 @@ var TMPL_INPUT = '<div class="modal hide fade" tabindex="-1" role="dialog" aria-
     + '        <h3 id="myModalLabel">${header}</h3>'
     + '    </div>'
     + '    <div class="modal-body">'
+    + '        <p id="helpText"></p>'
     + '        <input id="categoryname" type="{{if inputType}}${inputType}{{else}}text{{/if}}" style="width: 514px" placeholder="${placeholder}" value="${value}" />'
     + '    </div>'
     + '    <div class="modal-footer">'
@@ -603,7 +604,7 @@ var createLib = function() {
                     modal.modal('hide');
             });
         },
-        input: function(onSubmit, title, submitBtnCaption, placeholder, initialValue, inputType) {
+        input: function(onSubmit, title, submitBtnCaption, placeholder, initialValue, inputType, helpText) {
             var html = $.tmpl(TMPL_INPUT, {
                 header: title || CommonTranslations.INPUT,
                 cancelBtn: CommonTranslations.CANCEL,
@@ -612,6 +613,9 @@ var createLib = function() {
                 value: initialValue,
                 inputType: inputType
             });
+            if (helpText) {
+              html.find('#helpText').html(sln.htmlize(helpText));
+            }
             var modal = sln.createModal(html, function(modal) {
                 $('input', modal).focus().keyup(function(e) {
                     if(e.keyCode == 13) {

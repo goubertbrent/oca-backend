@@ -5,6 +5,10 @@ import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { CityAppLocations, Locality, NewsAddress, Street } from '../../interfaces';
 
+export interface FilteredStreet extends Street {
+  html?: string;
+}
+
 @Component({
   selector: 'oca-choose-location',
   templateUrl: './choose-location.component.html',
@@ -31,7 +35,7 @@ export class ChooseLocationComponent implements OnInit {
   streetNameControl = new FormControl();
   address: NewsAddress;
   currentLocality: Locality | null;
-  filteredStreets$: Observable<Street[]>;
+  filteredStreets$: Observable<FilteredStreet[]>;
 
   private _locations: CityAppLocations | null;
 
@@ -76,9 +80,31 @@ export class ChooseLocationComponent implements OnInit {
       if (!filterValue) {
         return this.currentLocality.streets;
       }
-      return this.currentLocality.streets.filter(street => street.name.toLowerCase().includes(filterValue));
+
+      const startsWith: FilteredStreet[] = [];
+      const contains: FilteredStreet[] = [];
+      const regex = new RegExp(filterValue.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&'), 'i');
+
+      this.currentLocality.streets.forEach((street) => {
+        if (this._contains(street, filterValue)) {
+          (this._startsWith(street, filterValue) ? startsWith : contains).push({
+            ...street,
+            html: street.name.replace(regex, match => `<b>${match}</b>`)
+          });
+        }
+      });
+
+      return [...startsWith, ...contains];
     }
     return [];
+  }
+
+  private _contains(street: Street, filterValue: string) {
+    return street.name.toLowerCase().includes(filterValue);
+  }
+
+  private _startsWith(street: Street, filterValue: string) {
+    return street.name.toLowerCase().indexOf(filterValue) === 0;
   }
 
 }

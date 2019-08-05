@@ -14,12 +14,14 @@
 # limitations under the License.
 #
 # @@license_version:1.4@@
+
 from mcfw.consts import REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
+from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
@@ -30,11 +32,18 @@ from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsT
     FormSubmissionTO
 
 
+def show_integrations():
+    current_session = get_current_session()
+    return current_session and current_session.shop
+
+
 @rest('/common/forms', 'get', read_only_access=True, silent_result=True)
 @returns([FormSettingsTO])
 @arguments()
 def rest_list_forms():
-    return [FormSettingsTO.from_model(form) for form in list_forms(users.get_current_user())]
+    return [FormSettingsTO.from_model(form)
+            for form in list_forms(users.get_current_user())
+            if show_integrations() or not form.integrations]
 
 
 @rest('/common/forms/integrations', 'get')

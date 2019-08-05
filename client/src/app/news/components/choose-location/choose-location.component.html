@@ -1,22 +1,26 @@
 <form>
-  <mat-form-field class="field-margin" *ngIf="address">
-    <mat-label>{{ 'oca.choose_region_on_map' | translate }}</mat-label>
+  <mat-form-field appearance="outline"
+                  class="field-margin half">
+    <mat-label>{{ 'oca.postal_code' | translate }}</mat-label>
     <mat-select name="zip_code" [(ngModel)]="address.zip_code" (ngModelChange)="zipChanged($event)">
-      <mat-option *ngFor="let locality of locations.localities" [value]="locality.postal_code">
+      <mat-option *ngFor="let locality of locations?.localities" [value]="locality.postal_code">
         {{ locality.postal_code }} - {{ locality.name }}
       </mat-option>
     </mat-select>
   </mat-form-field>
-  <mat-form-field>
-    <mat-label>{{ 'oca.choose_streets' | translate }}</mat-label>
+  <mat-form-field appearance="outline" class="half">
+    <mat-label>{{ 'oca.street' | translate }}</mat-label>
     <input type="text"
            matInput
            [matAutocomplete]="streetAutocomplete"
            [formControl]="streetNameControl"
            (keydown.enter)="tryAddStreet()"
            #autoCompleteTrigger="matAutocompleteTrigger">
-    <mat-autocomplete #streetAutocomplete="matAutocomplete" (optionSelected)="addAddress($event.option.value)">
-      <mat-option *ngFor="let option of filteredStreets$ | async" [value]="option.name">{{option.name}}</mat-option>
+    <mat-autocomplete #streetAutocomplete="matAutocomplete" 
+                      (optionSelected)="addAddress($event.option.value)">
+      <mat-option *ngFor="let option of filteredStreets$ | async" [value]="option.name">
+        <span [innerHTML]="option.html || option.name"></span>
+      </mat-option>
     </mat-autocomplete>
   </mat-form-field>
 </form>
