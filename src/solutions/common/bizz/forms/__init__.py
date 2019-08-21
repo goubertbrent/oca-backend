@@ -390,7 +390,7 @@ def create_form_submission(service_user, details, form):
     form_key = OcaForm.create_key(form.id, service_user)
     oca_form = form_key.get()  # type: OcaForm
     # Check if form is no longer accepting responses, else return error
-    if not oca_form.visible and not form.test:
+    if oca_form.finished:  # TODO: replace with not oca_form.visible and not form.test
         lang = get_user_profile(user).language
         error = translate(lang, SOLUTION_COMMON, 'oca.form_ended_error')
         return FormSubmittedCallbackResultTO(valid=False, error=error)
