@@ -14,6 +14,7 @@ export class NewsItemListComponent implements OnChanges {
   @Input() loading: boolean;
   @Input() newsGroups: ServiceNewsGroup[];
   @Output() deleteItem = new EventEmitter<NewsBroadcastItem>();
+  @Output() copyItem = new EventEmitter<NewsBroadcastItem>();
   @Output() loadMore = new EventEmitter();
 
   newsGroupsMapping: { [ key: string ]: string } = {};

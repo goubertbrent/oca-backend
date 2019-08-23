@@ -1,5 +1,6 @@
 <oca-loadable [loadable]="listStatus$ | async" *ngIf="listStatus$ | async as status">
   <oca-news-item-list (deleteItem)="onDeleteItem($event)"
+                      (copyItem)="onCopyItem($event)"
                       (loadMore)="onLoadMore()"
                       [hasMore]="hasMore$ | async"
                       [items]="newsList$ | async"

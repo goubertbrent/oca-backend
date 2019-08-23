@@ -92,6 +92,29 @@ export class NewsService {
       return { ...menu, data: [] };
     }
   }
+
+  copyNewsItem(newsItem: NewsBroadcastItem): CreateNews {
+    return {
+      app_ids: newsItem.app_ids,
+      action_button: newsItem.buttons ? newsItem.buttons[ 0 ] : null,
+      scheduled_at: null,
+      group_type: newsItem.group_type,
+      group_visible_until: null,
+      qr_code_caption: newsItem.qr_code_caption,
+      locations: newsItem.locations,
+      broadcast_on_facebook: false,
+      broadcast_on_twitter: false,
+      facebook_access_token: null,
+      id: null,
+      media: newsItem.media,
+      message: newsItem.message,
+      role_ids: newsItem.role_ids,
+      tags: newsItem.tags,
+      target_audience: newsItem.target_audience,
+      title: newsItem.title,
+      type: newsItem.type,
+    };
+  }
 }
 
 function convertNewsItem(item: CreateNews<Date>): CreateNews<number> {

@@ -12,6 +12,7 @@ import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple
 import { ErrorService } from '../shared/errors/error.service';
 import { transformErrorResponse } from '../shared/errors/errors';
 import {
+  CopyNewsItemAction,
   CreateNewsItemAction,
   CreateNewsItemCompleteAction,
   CreateNewsItemFailedAction,
@@ -133,6 +134,15 @@ export class NewsEffects {
         }
       }),
     )));
+
+  @Effect({ dispatch: false }) copyNewsItem$ = this.actions$.pipe(
+    ofType<CopyNewsItemAction>(NewsActionTypes.COPY_NEWS_ITEM),
+    tap(action => {
+      const copy = this.newsService.copyNewsItem(action.payload);
+      localStorage.setItem('news.item', JSON.stringify(copy));
+      this.router.navigate(['news', 'create']);
+    }));
+
 
   @Effect() getLocations$ = this.actions$.pipe(
     ofType<GetLocationsAction>(NewsActionTypes.GET_LOCATIONS),

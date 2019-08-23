@@ -44,6 +44,10 @@
       </mat-chip-list>
     </mat-card-content>
     <mat-card-actions align="end">
+      <button mat-button type="button" (click)="copyItem.emit(item)">
+        <mat-icon>file_copy</mat-icon>
+        <span>&nbsp;{{ 'oca.make_copy' | translate }}</span>
+      </button>
       <a [routerLink]="['/news/details', item.id]" mat-button>
         <mat-icon>edit</mat-icon>
         <span>&nbsp;{{ 'oca.Edit' | translate }}</span>

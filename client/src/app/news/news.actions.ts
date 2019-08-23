@@ -23,6 +23,7 @@ export enum NewsActionTypes {
   DELETE_NEWS_ITEM_COMPLETE = '[news] Delete news item complete',
   DELETE_NEWS_ITEM_FAILED = '[news] Delete news item failed',
   DELETE_NEWS_ITEM_CANCELLED = '[news] Delete news item cancelled',
+  COPY_NEWS_ITEM = '[news] Copy news item',
   GET_LOCATIONS = '[news] Get locations',
   GET_LOCATIONS_COMPLETED = '[news] Get locations complete',
   GET_LOCATIONS_FAILED = '[news] Get locations failed',
@@ -170,6 +171,13 @@ export class DeleteNewsItemCancelledAction implements Action {
   readonly type = NewsActionTypes.DELETE_NEWS_ITEM_CANCELLED;
 }
 
+export class CopyNewsItemAction implements Action {
+  readonly type = NewsActionTypes.COPY_NEWS_ITEM;
+
+  constructor(public payload: NewsBroadcastItem) {
+  }
+}
+
 export class GetLocationsAction implements Action {
   readonly type = NewsActionTypes.GET_LOCATIONS;
 
@@ -213,6 +221,7 @@ export type NewsActions = GetNewsOptionsAction
   | DeleteNewsItemCompleteAction
   | DeleteNewsItemFailedAction
   | DeleteNewsItemCancelledAction
+  | CopyNewsItemAction
   | GetLocationsAction
   | GetLocationsCompleteAction
   | GetLocationsFailedAction;

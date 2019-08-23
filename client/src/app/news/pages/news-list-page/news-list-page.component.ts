@@ -5,7 +5,7 @@ import { map, take } from 'rxjs/operators';
 import { ServiceNewsGroup } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { NewsBroadcastItem } from '../../interfaces';
-import { DeleteNewsItemAction, GetNewsListAction } from '../../news.actions';
+import { CopyNewsItemAction, DeleteNewsItemAction, GetNewsListAction } from '../../news.actions';
 import {
   getNewsCursor,
   getNewsItemListStatus,
@@ -49,5 +49,9 @@ export class NewsListPageComponent implements OnInit {
 
   onDeleteItem(item: NewsBroadcastItem) {
     this.store.dispatch(new DeleteNewsItemAction(item));
+  }
+
+  onCopyItem(item: NewsBroadcastItem) {
+    this.store.dispatch(new CopyNewsItemAction(item));
   }
 }
