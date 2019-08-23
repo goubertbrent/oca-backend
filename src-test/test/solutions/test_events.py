@@ -55,5 +55,5 @@ class TestEvents(oca_unittest.TestCase):
         start_dates, end_dates = _get_period_dates(period)
         self.assertEqual(1547454600, start_dates[0])
         self.assertEqual(1554103800, start_dates[-1])
-        self.assertEqual(1547458200, end_dates[0])
-        self.assertEqual(1554107400, end_dates[-1])
+        self.assertEqual(3600, end_dates[0])
+        self.assertEqual(3600, end_dates[-1])
