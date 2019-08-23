@@ -14,18 +14,19 @@
 
     function router(paths) {
         // Only load the iframe once user visits this page to speed up initial page load
+        var origin =  DEBUG ? 'http://localhost:4300' : window.location.origin;
         if (element.src) {
             element.contentWindow.postMessage({
                 'type': 'oca.load_page',
                 'paths': paths
-            }, DEBUG ? 'http://localhost:4300' : null);
+            }, origin);
         } else {
             element.src = baseUrl + paths[0];
             element.onload = function () {
                 element.contentWindow.postMessage({
                     'type': 'oca.set_language',
                     'language': LANGUAGE
-                }, DEBUG ? 'http://localhost:4300' : null);
+                }, origin);
             };
         }
         element.style.display = 'block';
