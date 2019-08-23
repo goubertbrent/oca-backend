@@ -130,6 +130,9 @@ RequestsService.prototype = {
     },
     saveRssSettings: function (data, options) {
         return this.put('/common/broadcast/rss', data, options);
+    },
+    sendMessageToServices: function (data, options) {
+        return this.post('/common/inbox/services', data, options);
     }
 };
 

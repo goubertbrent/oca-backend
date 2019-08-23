@@ -63,6 +63,7 @@ class SolutionInboxMessage(db.Model):
     CATEGORY_AGENDA = 'agenda'
     CATEGORY_CUSTOMER_SIGNUP = 'registration'
     CATEGORY_OCA_INFO = 'oca_info'
+    CATEGORY_CITY_MESSAGE = 'city_message'
     CATEGORY_NEWS_REVIEW = 'news_review'
 
     ICON_NAMES = {CATEGORY_APPOINTMENT: u'fa-calendar-plus-o',
@@ -78,6 +79,7 @@ class SolutionInboxMessage(db.Model):
                   CATEGORY_AGENDA: u'fa-book',
                   CATEGORY_CUSTOMER_SIGNUP: u'fa-sign-in',
                   CATEGORY_OCA_INFO: u'fa-info',
+                  CATEGORY_CITY_MESSAGE: u'fa-newspaper-o',
                   CATEGORY_NEWS_REVIEW: u'fa-newspaper-o'}
 
     TOPICS = {CATEGORY_APPOINTMENT: u'appointment',
@@ -93,6 +95,7 @@ class SolutionInboxMessage(db.Model):
               CATEGORY_AGENDA: u'agenda',
               CATEGORY_CUSTOMER_SIGNUP: u'registration',
               CATEGORY_OCA_INFO: u'oca_info',
+              CATEGORY_CITY_MESSAGE: u'city_message',
               CATEGORY_NEWS_REVIEW: u'news_review'}
 
     # for compatibility with older category names

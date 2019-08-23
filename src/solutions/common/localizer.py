@@ -20,6 +20,11 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'message_sent': u'Your message has been sent.',
+         u'send_message': u'Send message',
+         u'city_message': u'News from your city or municipality',
+         u'send_service_message_info': u'Here you can send a message to all associations, merchants, community services and/or care institutions in your app. They will receive your message in their dashboard.',
+         u'community_services': u'Community services',
          u'(Click to change)': u'(Click to change)',
          u'(No title)': u'(No title)',
          u'(optional)': u'(optional)',
@@ -3914,6 +3919,11 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'send_message': u'Bericht versturen',
+         u'message_sent': u'Uw bericht is verstuurd.',
+         u'city_message': u'Nieuws van uw stad of gemeente',
+         u'send_service_message_info': u'Hier kunt u een bericht versturen naar alle verenigingen, handelaars, stads/gemeentediensten en/of zorgverstrekkers in uw app. Ze zullen uw bericht ontvangen in het postvak van hun dashboard.',
+         u'community_services': u'Gemeentediensten',
          u'(Click to change)': u'(Klik om te veranderen)',
          u'(No title)': u'(Geen titel)',
          u'(optional)': u'(optioneel)',

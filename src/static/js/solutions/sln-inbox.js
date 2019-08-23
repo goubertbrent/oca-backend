@@ -30,6 +30,7 @@ $(function() {
     var currentReplyMessageKey = null;
     var inboxReply = $("#inbox-reply");
     var inboxOverview = $("#inbox-overview");
+    var sendMessageButton = $('#send-message-to-services');
 
     function getMessageByKey(messageKey) {
         return messagesList.filter(function(m) {
@@ -493,6 +494,43 @@ $(function() {
         $("#inbox-reply").hide();
     };
 
+    function showSendMessageDialog() {
+        var html = $.tmpl(templates['inbox_send_message_to_services'], {
+            T: T,
+        });
+
+        var modal = sln.createModal(html, onShown);
+
+        function onShown() {
+            $('#inbox_message_close').click(function () {
+                var organizationTypes = [];
+                $('input[name=service_message_organization_type]:checked').each(function () {
+                    organizationTypes.push(parseInt($(this).val()));
+                });
+                var data = {
+                    organization_types: organizationTypes,
+                    message: $('#service_message_message').val(),
+                };
+                sln.showProcessing();
+                Requests.sendMessageToServices(data, {showError: false})
+                    .then(function () {
+                        sln.hideProcessing();
+                        modal.modal('hide');
+                        sln.alert(T('message_sent'), null, T('info'));
+                    })
+                    .catch(function (err) {
+                        sln.hideProcessing();
+                        console.log(err);
+                        if (err.responseJSON.error) {
+                            sln.alert(err.responseJSON.error);
+                        } else {
+                            sln.showAjaxError();
+                        }
+                    });
+            });
+        }
+    }
+
     $("#inbox-reply-back").click(goBackToInboxOverview);
 
     $(".inbox-reply-input button").on("click", function() {
@@ -524,5 +562,10 @@ $(function() {
         $('#' + chatId).find('div.inbox-module-actions').html(actions);
     });
     inboxLoadAll();
+    if (MODULES.indexOf('city_app') > -1) {
+        sendMessageButton.show().click(showSendMessageDialog);
+    } else {
+        sendMessageButton.hide();
+    }
 
 });

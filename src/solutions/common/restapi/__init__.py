@@ -25,7 +25,7 @@ from google.appengine.ext import db, deferred
 
 from babel.numbers import format_currency
 from mcfw.consts import MISSING, REST_TYPE_TO
-from mcfw.exceptions import HttpBadRequestException
+from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -38,6 +38,7 @@ from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueEx
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.news import NewsGroup
 from rogerthat.rpc import users
@@ -60,6 +61,7 @@ from rogerthat.utils.service import create_service_identity_user, remove_slash_d
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
+from shop.models import Customer
 from shop.view import get_current_http_host
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
@@ -75,7 +77,7 @@ from solutions.common.bizz.facebook import get_facebook_app_info
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
 from solutions.common.bizz.images import upload_file, list_files
-from solutions.common.bizz.inbox import send_statistics_export_email
+from solutions.common.bizz.inbox import send_statistics_export_email, send_inbox_info_messages_to_services
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
@@ -119,7 +121,6 @@ from solutions.common.to.broadcast import BroadcastOptionsTO, RegionalNewsSettin
 from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
-from solutions.flex import SOLUTION_FLEX
 
 
 @rest("/solutions/common/public/menu/load", "get", authenticated=False)
@@ -462,6 +463,38 @@ def export_inbox_messages(email=''):
         error_msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'invalid_email_format',
                                      email=ex.email)
         return ReturnStatusTO.create(False, error_msg)
+
+
+@rest('/common/inbox/services', 'post')
+@returns()
+@arguments(organization_types=[int], message=unicode)
+def api_send_message_to_services(organization_types=None, message=None):
+    service_user = users.get_current_user()
+    session_ = users.get_current_session()
+    sln_settings = get_solution_settings(service_user)
+
+    def _validation_err(translation_key):
+        field = common_translate(sln_settings.main_language, SOLUTION_COMMON, translation_key)
+        raise HttpBadRequestException(
+            '%s: %s' % (field, common_translate(sln_settings.main_language, SOLUTION_COMMON, 'this_field_is_required')))
+
+    if SolutionModule.CITY_APP not in sln_settings.modules:
+        raise HttpForbiddenException()
+
+    if not organization_types:
+        _validation_err('organization_type')
+    message = (message or '').strip()
+    if not message:
+        _validation_err('message')
+    services = []
+    si_user = create_service_identity_user(service_user, session_.service_identity or ServiceIdentity.DEFAULT)
+    si = get_service_identity(si_user)
+    for customer in Customer.list_by_app_id(si.defaultAppId):
+        if customer.organization_type in organization_types:
+            # Don't send message to self
+            if customer.service_email and customer.service_email != service_user.email():
+                services.append(customer.service_user)
+    send_inbox_info_messages_to_services(services, service_user, message, SolutionInboxMessage.CATEGORY_CITY_MESSAGE)
 
 
 @rest("/common/news-options", "get", read_only_access=True)

@@ -29,7 +29,7 @@ from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
-from rogerthat.dal.app import get_apps_by_id, get_app_by_id
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
@@ -50,7 +50,6 @@ from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
-from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.functionalities import get_functionalities
 from solutions.common.bizz.loyalty import is_joyn_available, is_oca_loyalty_limited
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
@@ -62,7 +61,6 @@ from solutions.common.dal import get_solution_settings, get_restaurant_menu, get
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
 from solutions.common.models import SolutionQR, SolutionServiceConsent
-from solutions.common.models.news import NewsSettingsTags
 from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.flex import SOLUTION_FLEX
@@ -78,6 +76,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 DEFAULT_JS_TEMPLATES = [
     'inbox_messages',
     'inbox_detail_messages',
+    'inbox_send_message_to_services',
     'holiday_addholiday',
     'holiday_holiday',
     'qanda_question_table',

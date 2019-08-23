@@ -87,7 +87,7 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
 
     chat_topic = transl(m.chat_topic_key)
 
-    if m.category == SolutionInboxMessage.CATEGORY_OCA_INFO:
+    if m.category in (SolutionInboxMessage.CATEGORY_OCA_INFO, SolutionInboxMessage.CATEGORY_CITY_MESSAGE):
         subject = transl('there_is_a_new_message_in_your_inbox', name=m.sender.name)
     else:
         subject = transl('if-email-subject', function=chat_topic)
@@ -118,8 +118,8 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
     button_css = 'display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px;' \
                  ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 16px;' \
                  ' background: #6db59c; padding: 10px 20px 10px 20px; text-decoration: none;'
-    if m.category == SolutionInboxMessage.CATEGORY_OCA_INFO:
-        if_email_body_1 = u'%s %s'% (
+    if m.category in (SolutionInboxMessage.CATEGORY_OCA_INFO, SolutionInboxMessage.CATEGORY_CITY_MESSAGE):
+        if_email_body_1 = u'%s %s' % (
             transl('there_is_a_new_message_in_your_inbox', name=m.sender.name),
             transl('login_to_dashboard_to_view_message', name=m.sender.name))
         if_email_body_2 = if_email_body_3_button = if_email_body_3_url = None
@@ -235,8 +235,9 @@ def create_solution_inbox_message(service_user, service_identity, category, cate
     return sim_parent
 
 
-def send_inbox_info_messages_to_services(service_users, sender, message):
-    # type: (list[users.User], users.User, unicode) -> None
+def send_inbox_info_messages_to_services(service_users, sender, message,
+                                         category=SolutionInboxMessage.CATEGORY_OCA_INFO):
+    # type: (list[users.User], users.User, unicode, unicode) -> None
     from solutions.common.bizz.service import new_inbox_message
     sender_settings = get_solution_settings(sender)
     service_profile = get_service_profile(sender)
@@ -245,10 +246,9 @@ def send_inbox_info_messages_to_services(service_users, sender, message):
                                         avatar_url=service_profile.avatarUrl,
                                         language=service_profile.defaultLanguage)
     sln_settings_cache = {model.service_user: model for model in db.get([SolutionSettings.create_key(user)
-
                                                                          for user in service_users])}
     tasks = [create_task(new_inbox_message, sln_settings_cache[user], message,
-                         category=SolutionInboxMessage.CATEGORY_OCA_INFO, reply_enabled=False, send_to_forwarders=True,
+                         category=category, reply_enabled=False, send_to_forwarders=True,
                          user_details=sender_user_details) for user in service_users]
     schedule_tasks(tasks)
 

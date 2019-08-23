@@ -1,0 +1,48 @@
+{% raw %}
+<div class="modal fade" role="dialog">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>${T('send_message')}</h3>
+    </div>
+    <div class="modal-body">
+        <form>
+            <p>${T('send_service_message_info')}</p>
+            <div class="control-group">
+	            <label class="control-label">${T('organization_type')}</label>
+                <div class="controls">
+                    <label class="checkbox" for="service_message_organization_type_1">
+                        <input type="checkbox" name="service_message_organization_type"
+                               id="service_message_organization_type_1" checked value="1">
+                        ${T('associations')}
+                    </label>
+                    <label class="checkbox" for="service_message_organization_type_2">
+                        <input type="checkbox" name="service_message_organization_type"
+                               id="service_message_organization_type_2" checked value="2">
+                        ${T('merchants')}
+                    </label>
+                    <label class="checkbox" for="service_message_organization_type_3">
+                        <input type="checkbox" name="service_message_organization_type"
+                               id="service_message_organization_type_3" checked value="3">
+                        ${T('community_services')}
+                    </label>
+                    <label class="checkbox" for="service_message_organization_type_4">
+                        <input type="checkbox" name="service_message_organization_type"
+                               id="service_message_organization_type_4" checked value="4">
+                        ${T('care')}
+                    </label>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="service_message_message">${T('message')}</label>
+                <div class="controls">
+                    <textarea id="service_message_message" required style="width: 500px;" rows="3"></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn" data-dismiss="modal">${T('Close')}</button>
+        <button type="button" class="btn btn-primary" id="inbox_message_close">${T('Send')}</button>
+    </div>
+</div>
+{% endraw %}
