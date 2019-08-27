@@ -24,7 +24,7 @@ import urlparse
 
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import webapp, ndb
-from markdownify import markdownify
+import markdownify
 
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
@@ -187,8 +187,12 @@ def html_unescape(s):
     return HTMLParser().unescape(s)
 
 
+def linestrip(s):
+    return '\n'.join((line.strip() for line in s.splitlines()))
+
+
 def html_to_markdown(html_content):
     if not html_content:
         return html_content
 
-    return markdownify(html_content, strip=['img'])
+    return linestrip(markdownify.markdownify(html_content, strip=['img', 'iframe'], heading_style=markdownify.ATX))
