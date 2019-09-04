@@ -9,6 +9,6 @@ export class UsersService {
   }
 
   searchUsers(query: string) {
-    return this.http.get<UserDetailsTO[]>('/common/users/search', { params: { query: encodeURIComponent(query) } });
+    return this.http.get<UserDetailsTO[]>('/common/users/search', { params: { query } });
   }
 }
