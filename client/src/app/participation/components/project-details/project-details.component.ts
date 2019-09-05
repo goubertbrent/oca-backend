@@ -52,7 +52,7 @@ export class ProjectDetailsComponent implements OnChanges, AfterViewInit {
     if (!(date instanceof Date)) {
       date = new Date(date);
     }
-    const time: Date = target.valueAsDate;
+    const time = target.valueAsDate as Date;
     date.setHours(time.getUTCHours());
     date.setMinutes(time.getUTCMinutes());
     date.setSeconds(0);
