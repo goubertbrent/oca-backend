@@ -189,7 +189,10 @@ export class FormFieldComponent {
       if (!comp.id) {
         comp.id = comp.title as string;
       }
-      if (!comp.validators) {
+      if (comp.validators) {
+        // Remove all validators except required
+        comp.validators = comp.validators.filter(v => v.type === FormValidatorType.REQUIRED);
+      } else {
         comp.validators = [];
       }
       switch (comp.type) {
