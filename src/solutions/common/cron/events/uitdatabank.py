@@ -17,14 +17,10 @@
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from hashlib import sha1
-from hmac import new as hmac
 import json
 import logging
 import pprint
-from random import getrandbits
 import time
-from urllib import quote as urlquote
 import urllib
 
 import dateutil
@@ -439,7 +435,7 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
     if lang not in detail_result['completedLanguages']:
         return []
 
-    external_id = external_url.rsplit('/')[1]
+    external_id = external_url.rsplit('/', 1)[1]
     event = get_event(sln_settings, external_id)
     events = [event]
 
@@ -452,7 +448,7 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
         else:
             uitdatabank_organizer_name = organizer_name
         if '@id' in detail_result['organizer']:
-            uitdatabank_organizer_cdbid = detail_result['organizer']['@id'].rsplit('/')[0]
+            uitdatabank_organizer_cdbid = detail_result['organizer']['@id'].rsplit('/', 1)[1]
 
     logging.debug('Organizer info: %r', {
         'created_by': uitdatabank_created_by,
