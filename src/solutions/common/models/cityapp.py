@@ -15,10 +15,11 @@
 #
 # @@license_version:1.5@@
 
-from google.appengine.ext import db
+from google.appengine.ext import db, ndb
 
 from mcfw.rpc import arguments, returns
-from rogerthat.dal import parent_key
+from rogerthat.dal import parent_key, parent_ndb_key
+from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType
@@ -26,22 +27,22 @@ from solutions.common.bizz import OrganizationType
 
 class CityAppProfile(db.Model):
 
-    uitdatabank_last_query = db.IntegerProperty(indexed=False)
-    uitdatabank_enabled = db.BooleanProperty(indexed=True, default=False)
-    uitdatabank_secret = db.StringProperty(indexed=False)
-    uitdatabank_key = db.StringProperty(indexed=False)
-    uitdatabank_region = db.StringProperty(indexed=False) # deprecated since we allow multiple regions
-    uitdatabank_regions = db.StringListProperty(indexed=False)
+    uitdatabank_last_query = db.IntegerProperty(indexed=False)  # todo uitdatabank nuke
+    uitdatabank_enabled = db.BooleanProperty(indexed=True, default=False)  # todo uitdatabank nuke
+    uitdatabank_secret = db.StringProperty(indexed=False)  # todo uitdatabank nuke
+    uitdatabank_key = db.StringProperty(indexed=False)  # todo uitdatabank nuke
+    uitdatabank_region = db.StringProperty(indexed=False)  # deprecated since we allow multiple regions # todo uitdatabank nuke
+    uitdatabank_regions = db.StringListProperty(indexed=False)  # todo uitdatabank nuke
     # See https://documentatie.uitdatabank.be/content/search_api/latest/referentiegids.html for possible filters
     # properties names are for easy conversion to ndb model later
-    uitdatabank_filters_key = db.StringListProperty(name='uitdatabank_filters.key', indexed=False)
-    uitdatabank_filters_value = db.StringListProperty(name='uitdatabank_filters.value', indexed=False)
+    uitdatabank_filters_key = db.StringListProperty(name='uitdatabank_filters.key', indexed=False)  # todo uitdatabank nuke
+    uitdatabank_filters_value = db.StringListProperty(name='uitdatabank_filters.value', indexed=False)  # todo uitdatabank nuke
 
     # Run params in cron of CityAppSolutionGatherEvents
     gather_events_enabled = db.BooleanProperty(indexed=False, default=False)
 
     # Run params in cron of CityAppSolutionEventsUitdatabank
-    run_time = db.IntegerProperty(indexed=False)
+    run_time = db.IntegerProperty(indexed=False)  # todo uitdatabank nuke
 
     review_news = db.BooleanProperty(indexed=False)
 
@@ -57,3 +58,28 @@ class CityAppProfile(db.Model):
     @arguments(service_user=users.User)
     def create_key(service_user):
         return db.Key.from_path(CityAppProfile.kind(), 'profile', parent=parent_key(service_user, SOLUTION_COMMON))
+
+
+class UitdatabankSettings(NdbModel):
+    VERSION_1 = u'1'
+    VERSION_2 = u'2'
+    VERSION_3 = u'3'
+
+    enabled = ndb.BooleanProperty(indexed=True, default=False)
+    version = ndb.StringProperty(indexed=False, default=VERSION_3)
+    params = ndb.JsonProperty(indexed=False)
+
+    cron_run_time = ndb.IntegerProperty(indexed=False)
+    cron_sync_time = ndb.IntegerProperty(indexed=False)
+
+    @property
+    def service_user(self):
+        return users.User(self.key.parent().id().decode('utf8'))
+
+    @classmethod
+    def create_key(cls, service_user):
+        return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user, namespace=cls.NAMESPACE))
+
+    @classmethod
+    def list_enabled(cls):
+        return cls.query().filter(cls.enabled == True)

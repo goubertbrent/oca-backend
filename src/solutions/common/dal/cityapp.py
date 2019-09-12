@@ -18,13 +18,14 @@
 import logging
 
 from google.appengine.ext import db
+
 from mcfw.cache import invalidate_cache, cached
 from mcfw.rpc import arguments, returns
 from rogerthat.rpc import users
 from shop.models import Customer
 from solutions.common.bizz import SolutionModule, OrganizationType
 from solutions.common.dal import get_solution_settings
-from solutions.common.models.cityapp import CityAppProfile
+from solutions.common.models.cityapp import CityAppProfile, UitdatabankSettings
 
 
 @returns(CityAppProfile)
@@ -35,15 +36,21 @@ def get_cityapp_profile(service_user):
         cityapp_profile = CityAppProfile.get(CityAppProfile.create_key(service_user))
         if not cityapp_profile:
             cityapp_profile = CityAppProfile(key=CityAppProfile.create_key(service_user))
-            cityapp_profile.uitdatabank_enabled = False
-            cityapp_profile.uitdatabank_key = None
-            cityapp_profile.uitdatabank_region = None
-            cityapp_profile.uitdatabank_regions = []
             cityapp_profile.gather_events_enabled = False
             cityapp_profile.put()
         return cityapp_profile
 
     return trans() if db.is_in_transaction() else db.run_in_transaction(trans)
+
+
+@returns(UitdatabankSettings)
+@arguments(service_user=users.User)
+def get_uitdatabank_settings(service_user):
+    key = UitdatabankSettings.create_key(service_user)
+    settings = key.get()
+    if settings:
+        return settings
+    return UitdatabankSettings(key=key)
 
 
 @returns()

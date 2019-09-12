@@ -15,22 +15,28 @@
 #
 # @@license_version:1.5@@
 
-from mcfw.properties import unicode_property, bool_property, unicode_list_property
+from mcfw.properties import unicode_property, bool_property, typed_property
 
 
 class CityAppProfileTO(object):
-    uitdatabank_enabled = bool_property('0')
-    uitdatabank_secret = unicode_property('1')
-    uitdatabank_key = unicode_property('2')
-    uitdatabank_regions = unicode_list_property('3')
     gather_events = bool_property('4')
 
     @staticmethod
     def from_model(model):
         to = CityAppProfileTO()
-        to.uitdatabank_enabled = model.uitdatabank_enabled
-        to.uitdatabank_secret = model.uitdatabank_secret
-        to.uitdatabank_key = model.uitdatabank_key
-        to.uitdatabank_regions = model.uitdatabank_regions
         to.gather_events = model.gather_events_enabled
+        return to
+
+
+class UitdatabankSettingsTO(object):
+    enabled = bool_property('1')
+    version = unicode_property('2')
+    params = typed_property('3', dict)
+
+    @staticmethod
+    def from_model(model):
+        to = UitdatabankSettingsTO()
+        to.enabled = model.enabled
+        to.version = model.version
+        to.params = model.params
         return to
