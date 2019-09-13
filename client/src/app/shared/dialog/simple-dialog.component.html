@@ -1,5 +1,5 @@
 <h2 matDialogTitle>{{ data.title }}</h2>
-<form #form="ngForm" (ngSubmit)="submit(true)">
+<form (ngSubmit)="submit(true)">
   <mat-dialog-content>
     <p [innerHTML]="data.message"></p>
     <mat-form-field *ngIf="data.inputType" style="width: 100%;">
