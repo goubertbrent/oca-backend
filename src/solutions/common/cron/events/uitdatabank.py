@@ -246,11 +246,10 @@ def _get_period_dates(period):
                 to = datetime.utcfromtimestamp(open_time['to'] / 1000)
 
             day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
-            day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
             start_date_timestamp = int(time.mktime(day_start_date.timetuple()))
-            end_date_timestamp = int(time.mktime(day_end_date.timetuple()))
             start_dates.append(start_date_timestamp)
-            end_dates.append(end_date_timestamp - start_date_timestamp)
+            end_dates.append(long(timedelta(hours=to.hour, minutes=to.minute, seconds=to.second).total_seconds()))
+
     return start_dates, end_dates
 
 
@@ -266,7 +265,7 @@ def _populate_uit_events(sln_settings, uitdatabank_settings, external_id, uitdat
             return None
 
     if DEBUG:
-        logging.warn("detail result: %s", detail_result)
+        logging.debug("detail result: %s", detail_result)
 
     if uitdatabank_settings.version in (UitdatabankSettings.VERSION_1, UitdatabankSettings.VERSION_2,):
         return _populate_uit_events_v1_or_v2(sln_settings, uitdatabank_settings.version, external_id, detail_result, uitdatabank_actors)
@@ -428,6 +427,85 @@ def _populate_uit_events_v1_or_v2(sln_settings, version, external_id, detail_res
     return events
 
 
+def get_start_and_end_from_v3_events(timezone, events):
+    start_dates = []
+    end_dates = []
+    for event in events:
+        start_date_tz = dateutil.parser.parse(event['startDate'])
+        end_date_tz = dateutil.parser.parse(event['endDate'])
+        start_date_timestamp = get_epoch_from_datetime(start_date_tz.replace(tzinfo=None)) - long(start_date_tz.utcoffset().total_seconds())
+        end_date_timestamp = get_epoch_from_datetime(end_date_tz.replace(tzinfo=None)) - long(end_date_tz.utcoffset().total_seconds())
+
+        start_timezone_offset = long(datetime.fromtimestamp(start_date_timestamp, tz=pytz.timezone(timezone)).utcoffset().total_seconds())
+        end_timezone_offset = long(datetime.fromtimestamp(end_date_timestamp, tz=pytz.timezone(timezone)).utcoffset().total_seconds())
+
+        start_date_timestamp_tz = start_date_timestamp + start_timezone_offset
+        end_date_timestamp_tz = end_date_timestamp + end_timezone_offset
+
+        start_date = datetime.utcfromtimestamp(start_date_timestamp_tz).date()
+        end_date_final = datetime.utcfromtimestamp(end_date_timestamp_tz)
+        end_date = end_date_final.date()
+
+        days = (end_date - start_date).days + 1  # +1 to include the end date itself
+        if end_date_final == datetime(end_date.year, end_date.month, end_date.day, 0, 0):
+            days -= 1
+
+        for day in xrange(days):
+            date = start_date + relativedelta(days=day)
+            if day == 0 and days == 1:
+                start_dates.append(start_date_timestamp_tz)
+            elif day == 0:
+                start_dates.append(start_date_timestamp_tz + 1)  # + 1 is to have the same behaviour as the v1 api
+            else:
+                start_dates.append(get_epoch_from_datetime(date) + 1)
+
+            if day == days - 1:
+                end_dates.append(long(timedelta(hours=end_date_final.hour, minutes=end_date_final.minute, seconds=end_date_final.second).total_seconds()))
+            else:
+                end_dates.append(0)
+
+    return start_dates, end_dates
+
+
+def get_start_and_end_from_v3_period(timezone, event):
+    start_dates = []
+    end_dates = []
+    start_date_tz = dateutil.parser.parse(event['startDate'])
+    end_date_tz = dateutil.parser.parse(event['endDate'])
+    start_date_timestamp = get_epoch_from_datetime(start_date_tz.replace(tzinfo=None)) - long(start_date_tz.utcoffset().total_seconds())
+    end_date_timestamp = get_epoch_from_datetime(end_date_tz.replace(tzinfo=None)) - long(end_date_tz.utcoffset().total_seconds())
+
+    start_timezone_offset = long(datetime.fromtimestamp(start_date_timestamp, tz=pytz.timezone(timezone)).utcoffset().total_seconds())
+    end_timezone_offset = long(datetime.fromtimestamp(end_date_timestamp, tz=pytz.timezone(timezone)).utcoffset().total_seconds())
+
+    start_date_timestamp_tz = start_date_timestamp + start_timezone_offset
+    end_date_timestamp_tz = end_date_timestamp + end_timezone_offset
+
+    start_date = datetime.utcfromtimestamp(start_date_timestamp_tz).date()
+    end_date = datetime.utcfromtimestamp(end_date_timestamp_tz).date()
+
+    days = (end_date - start_date).days + 1  # +1 to include the end date itself
+    day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    hour_format = '%H:%M'
+    for day in xrange(days):
+        date = start_date + relativedelta(days=day)
+        day_name = day_names[date.weekday()]
+
+        for oh in event['openingHours']:
+            if day_name not in oh['dayOfWeek']:
+                continue
+
+            from_ = datetime.strptime(oh['opens'], hour_format)
+            to = datetime.strptime(oh['closes'], hour_format)
+
+            day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
+            start_date_timestamp = get_epoch_from_datetime(day_start_date)
+            start_dates.append(start_date_timestamp)
+            end_dates.append(long(timedelta(hours=to.hour, minutes=to.minute, seconds=to.second).total_seconds()))
+
+    return start_dates, end_dates
+
+
 def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdatabank_actors):
     lang = 'nl'
     if lang not in detail_result['languages']:
@@ -492,53 +570,14 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
         else:
             event_place = detail_result['location']['name']['nl']
 
-    event_start_dates = []
-    event_end_dates = []
-
     if detail_result['calendarType'] in ('single', 'multiple',):
-        for sub_event in detail_result['subEvent']:
-            start_date = dateutil.parser.parse(sub_event['startDate'])
-            end_date = dateutil.parser.parse(sub_event['endDate'])
-            start_date_timestamp = get_epoch_from_datetime(start_date.replace(tzinfo=None)) - long(start_date.utcoffset().total_seconds())
-            end_date_timestamp = get_epoch_from_datetime(end_date.replace(tzinfo=None)) - long(end_date.utcoffset().total_seconds())
-
-            start_timezone_offset = long(datetime.fromtimestamp(start_date_timestamp, tz=pytz.timezone(sln_settings.timezone)).utcoffset().total_seconds())
-            end_timezone_offset = long(datetime.fromtimestamp(end_date_timestamp, tz=pytz.timezone(sln_settings.timezone)).utcoffset().total_seconds())
-
-            start_date_timestamp_tz = start_date_timestamp + start_timezone_offset
-            end_date_timestamp_tz = end_date_timestamp + end_timezone_offset
-
-            event_start_dates.append(start_date_timestamp_tz)
-            event_end_dates.append(end_date_timestamp_tz - start_date_timestamp_tz)
+        event_start_dates, event_end_dates = get_start_and_end_from_v3_events(sln_settings.timezone, detail_result['subEvent'])
 
     elif detail_result['calendarType'] == 'periodic' and detail_result.get('openingHours'):
-        start_date_tz = dateutil.parser.parse(detail_result['startDate'])
-        end_date_tz = dateutil.parser.parse(detail_result['endDate'])
-        start_date_epoch = get_epoch_from_datetime(start_date_tz.replace(tzinfo=None)) - long(start_date_tz.utcoffset().total_seconds())
-        end_date_epoch = get_epoch_from_datetime(end_date_tz.replace(tzinfo=None)) - long(end_date_tz.utcoffset().total_seconds())
-        start_date = datetime.utcfromtimestamp(start_date_epoch).date()
-        end_date = datetime.utcfromtimestamp(end_date_epoch).date()
-
-        days = (end_date - start_date).days + 1  # +1 to include the end date itself
-        day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-        hour_format = '%H:%M'
-        for day in xrange(days):
-            date = start_date + relativedelta(days=day)
-            day_name = day_names[date.weekday()]
-
-            for oh in detail_result['openingHours']:
-                if day_name not in oh['dayOfWeek']:
-                    continue
-
-                from_ = datetime.strptime(oh['opens'], hour_format)
-                to = datetime.strptime(oh['closes'], hour_format)
-
-                day_start_date = date + relativedelta(hours=from_.hour, minutes=from_.minute, seconds=from_.second)
-                day_end_date = date + relativedelta(hours=to.hour, minutes=to.minute, seconds=to.second)
-                start_date_timestamp = get_epoch_from_datetime(day_start_date)
-                end_date_timestamp = get_epoch_from_datetime(day_end_date)
-                event_start_dates.append(start_date_timestamp)
-                event_end_dates.append(end_date_timestamp - start_date_timestamp)
+        event_start_dates, event_end_dates = get_start_and_end_from_v3_period(sln_settings.timezone, detail_result)
+    else:
+        event_start_dates = []
+        event_end_dates = []
 
     if not event_start_dates:
         logging.info("Skipping event because it had no dates for:\n%s", pprint.pformat(detail_result))
