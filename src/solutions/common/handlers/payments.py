@@ -42,8 +42,11 @@ class StripeHandler(webapp2.RequestHandler):
             self.redirect("/ourcityapp")
             return
 
+        solution_server_settings = get_solution_server_settings()
+
         language = get_languages_from_request(self.request)[0]
         params = {
+            'STRIPE_PUBLIC_KEY': solution_server_settings.stripe_public_key,
             'CHECKOUT_SESSION_ID': session_id,
             'language': language
         }
@@ -92,5 +95,3 @@ class StripeWebhookHandler(webapp2.RequestHandler):
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
             deferred.defer(stripe_order_completed, session['id'])
-
-
