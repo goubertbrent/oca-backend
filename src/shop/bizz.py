@@ -38,7 +38,6 @@ from google.appengine.ext import ndb
 import httplib2
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
-import stripe
 
 from mcfw.cache import cached
 from mcfw.properties import azzert
@@ -108,7 +107,6 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
-
 
 try:
     from cStringIO import StringIO
@@ -1075,7 +1073,7 @@ def send_invoice_email(customer_key, invoice_key, contact_key, payment_type, tra
         body = sb.getvalue()
 
     attachments = None
-    if payment_type in (Invoice.PAYMENT_STRIPE, Invoice.PAYMENT_ON_SITE, Invoice.PAYMENT_MANUAL):
+    if payment_type in (Invoice.PAYMENT_ON_SITE, Invoice.PAYMENT_MANUAL):
         pass
     elif payment_type == Invoice.PAYMENT_MANUAL_AFTER:
         attachments = []
@@ -1931,182 +1929,6 @@ def get_prospect_history(prospect_id):
     return ProspectHistory.all().ancestor(Prospect.create_key(prospect_id))
 
 
-@returns()
-@arguments(customer_id=(int, long), order_or_number=(unicode, Order), charge_or_id=(int, long, Charge))
-def get_payed(customer_id, order_or_number, charge_or_id):
-    solution_server_settings = get_solution_server_settings()
-
-    def trans():
-        invoice = None
-
-        customer = Customer.get_by_id(customer_id)
-        if not (customer.stripe_id and customer.stripe_id_created and customer.stripe_credit_card_id):
-            raise PaymentFailedException("Insufficient payment information present")
-
-        guser = gusers.get_current_user()
-        if guser:
-            azzert(user_has_permissions_to_team(guser, customer.team_id))
-        if isinstance(charge_or_id, Charge):
-            charge = charge_or_id
-            charge_id = charge.id
-        else:
-            # Check if this is the oldest pending charge for this customer
-            charge_id = charge_or_id
-            charge = Charge.all().ancestor(customer).filter("status =", Charge.STATUS_PENDING).order("date").get()
-            if not charge or not charge.key().id() == charge_id:
-                charge = Charge.all().ancestor(customer).filter("status =", Charge.STATUS_EXECUTED).order("date").get()
-                if not charge or not charge.key().id() == charge_id:
-                    raise PaymentFailedException("There is an older unpaid charge for this customer.")
-                else:
-                    invoices = list(Invoice.all().ancestor(charge))
-                    if len(invoices) == 0:
-                        raise PaymentFailedException("Could not find invoice for executed charge.")
-                    elif len(invoices) > 1:
-                        raise PaymentFailedException("Found multiple invoices for executed charge.")
-                    invoice = invoices[0]
-                    if invoice.paid:
-                        raise PaymentFailedException("Trying to execute payment for paid invoice.")
-
-        if isinstance(order_or_number, Order):
-            order = order_or_number
-            order_number = order.order_number
-        else:
-            order_number = order_or_number
-            order = Order.get_by_order_number(customer_id, order_number)
-
-        # Check if charge is the charge requested to be paid
-        if not charge.order_number == order_number:
-            raise PaymentFailedException("Received incorrect request")
-
-        # Check if we need to add CRED product
-        if charge.type == Charge.TYPE_ORDER_DELIVERY \
-                and order.is_subscription_order \
-                and invoice is None \
-                and customer.team.legal_entity.is_mobicage:
-            discount = None
-            max_number = 0
-            for item in OrderItem.all().ancestor(order):
-                if item.number > max_number:
-                    max_number = item.number
-                if item.product_code == Product.PRODUCT_ONE_TIME_CREDIT_CARD_PAYMENT_DISCOUNT:
-                    discount = item
-                    break
-            if not discount:
-                product = Product.get_by_code(Product.PRODUCT_ONE_TIME_CREDIT_CARD_PAYMENT_DISCOUNT)
-                discount = OrderItem(parent=order)
-                discount.number = max_number + 1
-                discount.comment = product.default_comment(customer.language)
-                discount.product_code = Product.PRODUCT_ONE_TIME_CREDIT_CARD_PAYMENT_DISCOUNT
-                discount.count = 1
-                discount.price = product.price
-                discount.put()
-                charge.amount += discount.price
-                charge.vat = charge.amount * charge.vat_pct / 100
-                charge.total_amount = charge.amount + charge.vat
-                charge.put()
-
-        if invoice is None:
-            legal_entity = db.get(customer.team.legal_entity_key)
-            if legal_entity.is_mobicage:
-                logging.warn('Automatic invoices are disabled')
-                invoice_number = None
-            else:
-                invoice_number = InvoiceNumber.next(customer.team.legal_entity_key)
-        else:
-            invoice_number = invoice.invoice_number
-
-        # Check if we can find a payment with this description
-        stripe_charge_match = None
-        stripe_charges = stripe.Charge.all(
-            api_key=solution_server_settings.stripe_secret_key, customer=customer.stripe_id)
-        for stripe_charge in stripe_charges.data:
-            if stripe_charge.metadata.osa_charge_id and long(
-                    stripe_charge.metadata.osa_charge_id) == charge_id and stripe_charge.status != 'failed':
-                stripe_charge_match = stripe_charge
-                break
-
-        # Analyze the results and act on them
-        charge_executed = False
-        if stripe_charge_match:
-            stripe_charge = stripe_charge_match
-            if not stripe_charge.amount == charge.total_amount:
-                raise PaymentFailedException(
-                    "BUG!!!! Found a Stripe charge with identical charge id but different amount!!!!")
-            if stripe_charge.captured:
-                charge_executed = True
-        else:
-            try:
-                metadata = {
-                    'osa_charge_id': charge_id,
-                    'osa_customer_id': customer_id,
-                    'osa_order_number': order_number,
-                }
-                if invoice_number:
-                    metadata['osa_invoice_number'] = invoice_number
-                    statement_descriptor = description = invoice_number
-                else:
-                    description = '%s %s' % (shop_translate(customer.language, 'order_number'), order_number)
-                    statement_descriptor = order_number
-                stripe_charge = stripe.Charge.create(api_key=solution_server_settings.stripe_secret_key,
-                                                     amount=charge.total_amount,
-                                                     currency="eur",
-                                                     customer=customer.stripe_id,
-                                                     description=description,
-                                                     capture=False,
-                                                     metadata=metadata,
-                                                     statement_descriptor=statement_descriptor,
-                                                     source=customer.stripe_credit_card_id)
-            except Exception as e:
-                logging.exception(e)
-                raise PaymentFailedException("Failed to create charge with message: %s" % e.message)
-        if not charge_executed:
-            try:
-                stripe_charge.capture()
-            except Exception as e:
-                logging.exception(e)
-                logging.info(stripe_charge)
-                raise PaymentFailedException("Failed to capture charge with message: %s" % e.message)
-
-        # Update the charge
-        charge.status = Charge.STATUS_EXECUTED
-        charge.date_executed = now()
-        charge.put()
-
-        if invoice_number:
-            deferred.defer(create_invoice, customer_id, order_number, charge_id, invoice_number, guser,
-                           Invoice.PAYMENT_STRIPE, _transactional=True, _queue=FAST_QUEUE)
-        else:
-            logging.debug('Sending mail to support')
-            send_mail(solution_server_settings.shop_billing_email,
-                      customer.team.support_manager,
-                      u'New manual invoice to be created',
-                      u'A new invoice has to be created and sent to customer %s (%s). See order %s for more details.'
-                      % (customer.name, customer.id, order_number),
-                      transactional=True)
-            logging.debug('Sending mail to customer')
-
-            contact = order.contact
-            to = [contact.email]
-            to.extend(solution_server_settings.shop_payment_admin_emails)
-
-            with closing(StringIO()) as sb:
-                sb.write(shop_translate(customer.language, 'dear_name',
-                                        name="%s %s" % (contact.first_name, contact.last_name)).encode('utf-8'))
-                sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'manual_invoice_will_be_created',
-                                        contact_email=solution_server_settings.shop_reply_to_email).encode('utf-8'))
-                sb.write('\n\n')
-                sb.write(shop_translate(customer.language, 'with_regards').encode('utf-8'))
-                sb.write('\n')
-                sb.write(shop_translate(customer.language, 'the_osa_team').encode('utf-8'))
-                body = sb.getvalue()
-
-            subject = '%s %s' % (shop_translate(customer.language, 'order_number'), order_number)
-            send_mail(solution_server_settings.shop_billing_email, to, subject, body)
-
-    run_in_transaction(trans, True)
-
-
 @returns(bool)
 @arguments(app=SimpleAppTO)
 def put_surrounding_apps(app):
@@ -2171,7 +1993,6 @@ def export_customers_csv(google_user):
         for customer in customers:
             d = OrderedDict()
             d['Email'] = customer.user_email
-            d['Has credit card'] = 'Yes' if customer.stripe_valid else 'No'
             d['Customer since'] = format_datetime(customer.creation_time, 'yyyy-MM-dd HH:mm:ss',
                                                   tzinfo=get_timezone('Europe/Brussels'))
             for p in properties:
@@ -2193,7 +2014,7 @@ def export_customers_csv(google_user):
     result.sort(key=lambda d: d['Language'])
     logging.debug('Creating csv with %s customers', len(result))
     fieldnames = ['name', 'Email', 'Customer since', 'address1', 'address2', 'zip_code', 'country', 'Telephone',
-                  'Subscription type', 'Has terminal', 'Has credit card', 'App', 'Language']
+                  'Subscription type', 'Has terminal', 'App', 'Language']
 
     date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
     gcs_path = '/%s/customers/export-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))

@@ -1,15 +1,4 @@
 <div id="billing_settings">
-    {% if not customer.stripe_valid %}
-    <div class="alert alert-block credit-card-warning">
-		<button type="button" class="close" data-dismiss="alert">&times;</button>
-		<h4>{% translate language, "common", "warning" %}</h4>
-		{% translate language, "common", "You still need to configure your credit-card." %}<br>
-		{% translate language, "common", "Don't risk your application of being disabled!." %}<br>
-        {% translate language, "common", "For more information contact" %} <a href="mailto:info@onzestadapp.be">info@onzestadapp.be</a>.
-	</div>
-    {% endif %}
-    <button id="manage_credit_card" class="btn btn-primary">{% translate language, "common", "manage-credit-card" %}</button>
-    <br><br>
     <div class="sln-set-iban"><label>IBAN</label><input type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></div>
     <div class="sln-set-bic"><label>BIC</label><input type="text" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></div>
     <div class="accordion" id="billing-accordion">

@@ -27,9 +27,9 @@ $(function () {
         li.addClass("active");
         $("#" + menu).show();
         if (event.target.id === "shoplink") {
-            $('#shoplink').addClass('active');
+            $('#shoplink').parent().addClass('active');
         } else if (!event.target.id) {
-            $('#shoplink').removeClass('active');
+            $('#shoplink').parent().removeClass('active');
         }
     };
 

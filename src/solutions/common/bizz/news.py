@@ -22,13 +22,13 @@ import logging
 import time
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
+from bs4 import BeautifulSoup
 from google.appengine.api import taskqueue, urlfetch
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-
-from babel.dates import format_datetime, get_timezone
-from bs4 import BeautifulSoup
 from markdown import markdown
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
@@ -44,15 +44,9 @@ from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, MediaType, \
     NewsLocationsTO
-from rogerthat.utils import now, channel
+from rogerthat.utils import now
 from rogerthat.utils.service import get_service_identity_tuple
-from shop.bizz import update_regiomanager_statistic, get_payed
-from shop.business.legal_entities import get_vat_pct
-from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
-from shop.exceptions import NoCreditCardException
-from shop.models import Contact, Product, RegioManagerTeam, Order, OrderNumber, OrderItem, Charge
-from shop.to import OrderItemTO
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.api_callback_handlers import _get_human_readable_tag
@@ -179,7 +173,7 @@ def check_budget(service_user, service_identity):
             raise BusinessException('insufficient_budget')
 
 
-def publish_item(service_identity_user, app_id, host, is_free_regional_news, order_items, coupon,
+def publish_item(service_identity_user, app_id, host, is_free_regional_news, coupon,
                  should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token, **kwargs):
     service_user, identity = get_service_identity_tuple(service_identity_user)
     news_id = kwargs.get('news_id')
@@ -204,8 +198,6 @@ def publish_item(service_identity_user, app_id, host, is_free_regional_news, ord
             else:
                 logging.warn('Not updating qr_code_caption for non-existing coupon for news with id %d',
                              news_id)
-        if order_items:
-            create_and_pay_news_order(service_user, news_item.id, order_items)
         regional_apps = get_regional_apps_of_item(news_item, app_id)
         if regional_apps:
             if not news_id and not is_free_regional_news:
@@ -280,7 +272,7 @@ def send_news_review_message(sln_settings, sender_service, review_key, image_url
     return unicode(message.key())
 
 
-def send_news_for_review(city_service, service_identity_user, app_id, host, is_free_regional_news, order_items, coupon,
+def send_news_for_review(city_service, service_identity_user, app_id, host, is_free_regional_news, coupon,
                          should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token,
                          **kwargs):
 
@@ -290,7 +282,7 @@ def send_news_for_review(city_service, service_identity_user, app_id, host, is_f
     review.app_id = app_id
     review.host = host
     review.is_free_regional_news = is_free_regional_news
-    review.order_items = order_items
+    review.order_items = []
     review.coupon_id = coupon and coupon.id
     review.broadcast_on_facebook = broadcast_on_facebook
     review.broadcast_on_twitter = broadcast_on_twitter
@@ -339,7 +331,7 @@ def publish_item_from_review(review_key):
     with users.set_user(service_user):
         item = publish_item(
             review.service_identity_user, review.app_id, review.host, review.is_free_regional_news,
-            review.order_items, coupon, should_save_coupon, review.broadcast_on_facebook, review.broadcast_on_twitter,
+            coupon, should_save_coupon, review.broadcast_on_facebook, review.broadcast_on_twitter,
             review.facebook_access_token, **review.data)
 
     inbox_message = SolutionInboxMessage.get(review.inbox_message_key)
@@ -359,12 +351,12 @@ def publish_item_from_review(review_key):
 
 @returns(NewsBroadcastItemTO)
 @arguments(service_identity_user=users.User, title=unicode, message=unicode, sponsored=bool,
-           image=unicode, action_button=(NoneType, NewsActionButtonTO), order_items=(NoneType, [OrderItemTO]),
+           image=unicode, action_button=(NoneType, NewsActionButtonTO),
            news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            news_id=(NoneType, int, long), broadcast_on_facebook=bool, broadcast_on_twitter=bool,
            facebook_access_token=unicode, target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], host=unicode,
            tag=unicode, media=BaseMediaTO, group_type=unicode, locations=NewsLocationsTO, group_visible_until=(int, long))
-def put_news_item(service_identity_user, title, message, sponsored, image, action_button, order_items,
+def put_news_item(service_identity_user, title, message, sponsored, image, action_button,
                   news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, broadcast_on_facebook=False,
                   broadcast_on_twitter=False, facebook_access_token=None, target_audience=None, role_ids=None,
                   host=None, tag=None, media=MISSING, group_type=None, locations=None, group_visible_until=None):
@@ -379,7 +371,6 @@ def put_news_item(service_identity_user, title, message, sponsored, image, actio
         sponsored (bool)
         image (unicode)
         action_button (NewsActionButtonTO)
-        order_items (list of OrderItemTO)
         news_type (int)
         qr_code_caption (unicode)
         app_ids (list of unicode)
@@ -401,8 +392,6 @@ def put_news_item(service_identity_user, title, message, sponsored, image, actio
         news_item (NewsBroadcastItemTO)
     """
     NEWS_TAG = u'news'
-    if not order_items or order_items is MISSING:
-        order_items = []
     if not tag or tag is MISSING:
         tag = NEWS_TAG
     service_user, identity = get_service_identity_tuple(service_identity_user)
@@ -414,14 +403,6 @@ def put_news_item(service_identity_user, title, message, sponsored, image, actio
     should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id
     sponsored_app_ids = set()
     si = get_service_identity(service_identity_user)
-    for order_item in reversed(order_items):
-        if order_item.product == Product.PRODUCT_NEWS_PROMOTION and sponsored:
-            azzert(order_item.app_id)
-            azzert(order_item.app_id not in sponsored_app_ids)
-            sponsored_app_ids.add(order_item.app_id)
-            order_item.count = get_sponsored_news_count_in_app(service_identity_user, order_item.app_id).count
-        else:
-            raise BusinessException('Invalid product %s' % order_item.product)
 
     if not news_id and not app_ids:
         raise BusinessException('Please select at least one app to publish this news in')
@@ -546,7 +527,7 @@ def put_news_item(service_identity_user, title, message, sponsored, image, actio
                     city_kwargs['app_ids'] = [app_id]
                     city_kwargs['feed_names'] = feed_names.get(app_id, [])
                     send_news_for_review(
-                        city_service, service_identity_user, app_id, host, is_free_regional_news, order_items,
+                        city_service, service_identity_user, app_id, host, is_free_regional_news,
                         coupon, should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token,
                         **city_kwargs)
                     # remove from current feed
@@ -565,7 +546,7 @@ def put_news_item(service_identity_user, title, message, sponsored, image, actio
 
     with users.set_user(service_user):
         return publish_item(
-            service_identity_user, si.app_id, host, is_free_regional_news, order_items,
+            service_identity_user, si.app_id, host, is_free_regional_news,
             coupon, should_save_coupon, broadcast_on_facebook, broadcast_on_twitter, facebook_access_token, **kwargs)
 
 
@@ -685,123 +666,6 @@ def schedule_post_to_social_media(service_user, host, on_facebook, on_twitter,
 
     scheduled_broadcast.scheduled_task_name = task.name
     scheduled_broadcast.put()
-
-
-@returns()
-@arguments(service_user=users.User, news_item_id=(int, long), order_items_to=[OrderItemTO])
-def create_and_pay_news_order(service_user, news_item_id, order_items_to):
-    """
-    Creates an order, orderitems, charge and executes the charge. Should be executed in a transaction.
-    Args:
-        service_user (users.User)
-        news_item_id (long)
-        order_items_to (ist of OrderItemTO)
-
-    Raises:
-        NoCreditCardException
-        ProductNotFoundException
-    """
-
-    @db.non_transactional
-    def _get_customer():
-        return get_customer(service_user)
-
-    @db.non_transactional
-    def _get_contact():
-        return Contact.get_one(customer)
-
-    customer = _get_customer()
-    azzert(customer)
-    contact = _get_contact()
-    azzert(contact)
-    if not customer.stripe_valid:
-        raise NoCreditCardException(customer)
-    news_product_key = Product.create_key(Product.PRODUCT_NEWS_PROMOTION)
-    rmt_key = RegioManagerTeam.create_key(customer.team_id)
-    news_promotion_product, team = db.get((news_product_key, rmt_key))
-    azzert(news_promotion_product)
-    azzert(team)
-    new_order_key = Order.create_key(customer.id, OrderNumber.next(team.legal_entity_key))
-    vat_pct = get_vat_pct(customer, team)
-
-    total_amount = 0
-    for order_item in order_items_to:
-        if order_item.product == Product.PRODUCT_NEWS_PROMOTION:
-            total_amount += news_promotion_product.price * order_item.count
-            order_item.price = news_promotion_product.price
-        else:
-            raise BusinessException('Invalid product \'%s\'' % order_item.product)
-
-    vat = int(round(vat_pct * total_amount / 100))
-    total_amount_vat_incl = int(round(total_amount + vat))
-    now_ = now()
-    to_put = []
-    order = Order(
-        key=new_order_key,
-        date=now_,
-        amount=total_amount,
-        vat_pct=vat_pct,
-        vat=vat,
-        total_amount=total_amount_vat_incl,
-        contact_id=contact.id,
-        status=Order.STATUS_SIGNED,
-        is_subscription_order=False,
-        is_subscription_extension_order=False,
-        date_signed=now_,
-        manager=STORE_MANAGER,
-        team_id=team.id
-    )
-    to_put.append(order)
-    azzert(order.total_amount >= 0)
-
-    for item in order_items_to:
-        order_item = OrderItem(
-            parent=new_order_key,
-            number=item.number,
-            product_code=item.product,
-            count=item.count,
-            comment=item.comment,
-            price=item.price
-        )
-        order_item.app_id = item.app_id
-        if order_item.product_code == Product.PRODUCT_NEWS_PROMOTION:
-            order_item.news_item_id = news_item_id
-        to_put.append(order_item)
-
-    db.put(to_put)
-
-    # Not sure if this is necessary
-    from solutions.common.restapi.store import generate_and_put_order_pdf_and_send_mail
-    deferred.defer(generate_and_put_order_pdf_and_send_mail, customer, new_order_key, service_user, contact,
-                   _transactional=True)
-
-    # No need for signing here, immediately create a charge.
-    charge = Charge(parent=new_order_key)
-    charge.date = now()
-    charge.type = Charge.TYPE_ORDER_DELIVERY
-    charge.amount = order.amount
-    charge.vat_pct = order.vat_pct
-    charge.vat = order.vat
-    charge.total_amount = order.total_amount
-    charge.manager = order.manager
-    charge.team_id = order.team_id
-    charge.status = Charge.STATUS_PENDING
-    charge.date_executed = now()
-    charge.currency_code = team.legal_entity.currency_code
-    charge.put()
-
-    # Update the regiomanager statistics so these kind of orders show up in the monthly statistics
-    deferred.defer(update_regiomanager_statistic, gained_value=order.amount / 100,
-                   manager=order.manager, _transactional=True)
-
-    # charge the credit card
-    if charge.total_amount > 0:
-        get_payed(customer.id, order, charge)
-    else:
-        charge.status = Charge.STATUS_EXECUTED
-        charge.date_executed = now()
-        charge.put()
-    channel.send_message(service_user, 'common.billing.orders.update')
 
 
 def delete_news(news_id, service_identity=None):

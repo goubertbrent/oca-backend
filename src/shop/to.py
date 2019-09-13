@@ -54,7 +54,6 @@ class CustomerTO(CompanyTO):
     id = long_property('51')
     service_email = unicode_property('52')
     auto_login_url = unicode_property('54')
-    stripe_valid = bool_property('55')
     migration_job = unicode_property('56')
     manager = unicode_property('57')
     app_ids = unicode_list_property('58')
@@ -87,7 +86,6 @@ class CustomerTO(CompanyTO):
         c.service_email = customer.service_email
         c.user_email = customer.user_email
         c.auto_login_url = customer.auto_login_url if customer.service_email else None
-        c.stripe_valid = customer.stripe_valid
         c.migration_job = customer.migration_job
         c.manager = customer.manager.email().decode('utf-8') if customer.manager else None
         c.app_ids = customer.sorted_app_ids

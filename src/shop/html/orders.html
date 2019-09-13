@@ -12,7 +12,7 @@
         </thead>
         <tbody>
         {% for order, customer in orders %}
-            <tr {% if not customer.stripe_valid %}class="error"{% endif %} stripe="{{ customer.stripe_valid }}">
+            <tr class="error">
                 <td>{{ order.full_date_str }}</td>
                 <td>{{ order.order_number }}</td>
                 <td><a href="#charge-customer-{{ customer.id }}"
@@ -32,11 +32,6 @@
                     {% if order.is_subscription_order and customer.service_email %}
                         <a class="btn btn-info open-service"
                            href="{{ customer.auto_login_url }}" target="_blank"><i class="fa fa-dashboard"></i> Open</a>
-                    {% endif %}
-                    {% if not customer.stripe_valid %}
-                        <a class="btn btn-inverse link-credit-card"
-                           customer_id="{{ order.customer_id }}"
-                           href="#">Link CC</a>
                     {% endif %}
                     <a class="btn btn-danger cancel-order"
                        customer_id="{{ order.customer_id }}"

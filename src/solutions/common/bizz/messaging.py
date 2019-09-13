@@ -15,18 +15,18 @@
 #
 # @@license_version:1.5@@
 
-import json
-import logging
 from base64 import b64encode
 from datetime import datetime
+import json
+import logging
 from types import NoneType
 
+import cloudstorage
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from google.appengine.ext.deferred import PermanentTaskFailure
-
-import cloudstorage
 import pytz
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -454,7 +454,7 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
         media = BaseMediaTO(type=MediaType.IMAGE, content=image) if image else None
         put_news_item(service_identity_user, title, message,
                       sponsored=False, image=None, action_button=None,
-                      order_items=None, news_type=news_type, qr_code_caption=title,
+                      news_type=news_type, qr_code_caption=title,
                       app_ids=app_ids, scheduled_at=0, news_id=None, media=media, group_type=group_type)
         message = common_translate(user_details.language,
                                    SOLUTION_COMMON, u'news_item_published')

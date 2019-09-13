@@ -79,7 +79,7 @@ def rest_put_news_item(news_id, data):
         host = get_current_http_host()
         return put_news_item(
             service_identity_user, data.title, data.message, False, MISSING,
-            MISSING.default(data.action_button, None), [], data.type, data.qr_code_caption, data.app_ids,
+            MISSING.default(data.action_button, None), data.type, data.qr_code_caption, data.app_ids,
             data.scheduled_at, news_id, data.broadcast_on_facebook, data.broadcast_on_twitter,
             data.facebook_access_token, target_audience=data.target_audience, role_ids=data.role_ids, host=host,
             tag=data.tag, media=data.media, group_type=data.group_type, locations=data.locations,

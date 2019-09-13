@@ -15,12 +15,12 @@
 #
 # @@license_version:1.5@@
 
-import logging
 from datetime import datetime
-
-from google.appengine.ext import db, deferred
+import logging
 
 from dateutil.relativedelta import relativedelta
+from google.appengine.ext import db, deferred
+
 from mcfw.properties import azzert
 from rogerthat.bizz.job import run_job
 from rogerthat.dal import put_and_invalidate_cache
@@ -142,7 +142,7 @@ def _create_charge(order_key, today, products):
         if subscription_length == 0:
             raise Exception('subscription_length is 0')
 
-        if not (customer.stripe_id and customer.stripe_credit_card_id) and subscription_length != 1:
+        if subscription_length != 1:
             logging.debug('Tried to bill customer, but no credit card info was found')
             audit_log(customer.id, 'Tried to bill customer, but no credit card info was found')
             # Log the customer as expired. If this has not been done before.

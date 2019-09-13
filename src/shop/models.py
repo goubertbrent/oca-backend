@@ -23,19 +23,19 @@ import re
 import time
 import urllib
 
-from google.appengine.api import users as gusers, images
-from google.appengine.api.app_identity import app_identity
-from google.appengine.ext import db, blobstore, ndb
-
 from babel import Locale
 from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from dateutil.relativedelta import relativedelta
+from google.appengine.api import users as gusers, images
+from google.appengine.api.app_identity import app_identity
+from google.appengine.ext import db, blobstore, ndb
+from oauth2client.appengine import CredentialsProperty
+
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from mcfw.utils import chunks
-from oauth2client.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile
@@ -349,9 +349,9 @@ class Customer(db.Model):
     disabled_reason = db.StringProperty(indexed=False)
     disabled_reason_int = db.IntegerProperty(default=0)
 
-    stripe_id = db.StringProperty()
-    stripe_id_created = db.IntegerProperty(default=0)
-    stripe_credit_card_id = db.StringProperty()
+    stripe_id = db.StringProperty()  # todo remove deprecated
+    stripe_id_created = db.IntegerProperty(default=0)  # todo remove deprecated
+    stripe_credit_card_id = db.StringProperty()  # todo remove deprecated
 
     SUBSCRIPTION_TYPE_NONE = -1
     SUBSCRIPTION_TYPE_STATIC = 0
@@ -385,14 +385,6 @@ class Customer(db.Model):
     @property
     def id(self):
         return self.key().id()
-
-    @property
-    def stripe_valid(self):
-        if self.stripe_credit_card_id:
-            cc = CreditCard.get_by_key_name(self.stripe_credit_card_id, parent=self)
-            if cc:
-                return cc.valid
-        return False
 
     @property
     def app_id(self):
@@ -909,11 +901,35 @@ class OrderItem(db.Expando):
         return db.Key.from_path(cls.kind(), order_item_id, parent=Order.create_key(customer_id, order_number))
 
 
+class StripePaymentItem(NdbModel):
+    product_code = ndb.StringProperty()
+    count = ndb.IntegerProperty()
+
+
+class StripePayment(NdbModel):
+    STATUS_CREATED = 0
+    STATUS_COMPLETED = 1
+    
+    create_date = ndb.DateTimeProperty(auto_now_add=True)
+    service_user = ndb.UserProperty()
+    
+    status = ndb.IntegerProperty()
+    items = ndb.LocalStructuredProperty(StripePaymentItem, repeated=True)
+
+    @property
+    def session_id(self):
+        return self.key.id()
+
+    @classmethod
+    def create_key(cls, session_id):
+        return ndb.Key(cls, session_id)
+
+
 class QuotationItem(OrderItem):
     pass
 
 
-class CreditCard(db.Model):
+class CreditCard(db.Model):  # todo remove deprecated
     creation_time = db.IntegerProperty()
     deleted = db.BooleanProperty(default=False)
     valid = db.BooleanProperty(default=True)

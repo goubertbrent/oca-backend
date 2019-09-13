@@ -93,14 +93,6 @@ $(function() {
 
     $(window).scroll(validateLoadMoreCharges);
 
-    $(document).on('click', 'a.charge-credit-card', function() {
-        var a = $(this);
-        var customerId = parseInt(a.attr('customer_id'));
-        var orderNumber = a.attr('order_number');
-        var chargeId = parseInt(a.attr('charge_id'));
-        chargeCreditCard(customerId, orderNumber, chargeId);
-    });
-
     getLegalEntity(function (legalEntity) {
         if (legalEntity.is_mobicage) {
             $(document).on('click', 'a.start-on-site-payment', function () {
