@@ -9,7 +9,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { MatDatepickerInputEvent } from '@angular/material/datepicker';
+import { MatDatepicker, MatDatepickerInputEvent } from '@angular/material/datepicker';
 
 @Component({
   selector: 'oca-date-time-input',
@@ -23,6 +23,7 @@ import { MatDatepickerInputEvent } from '@angular/material/datepicker';
   }],
 })
 export class DateTimeInputComponent implements ControlValueAccessor {
+  @ViewChild(MatDatepicker, { static: true }) datePicker: MatDatepicker<Date>;
   @ViewChild('timeInput', { static: true }) timeInput: ElementRef<HTMLInputElement>;
   @Input() disabled: boolean;
   @Input() name: string;
@@ -106,5 +107,11 @@ export class DateTimeInputComponent implements ControlValueAccessor {
 
     }
     this.onChange(this.date);
+  }
+
+  dateInputClicked() {
+    if (!this.disabled) {
+      this.datePicker.open();
+    }
   }
 }

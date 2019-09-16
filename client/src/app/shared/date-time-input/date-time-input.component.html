@@ -10,7 +10,7 @@
          [ngModel]="date"
          [required]="required"
          (dateChange)="onDateChange($event)"
-         (click)="datePicker.open()"
+         (click)="dateInputClicked()"
          #dateInput="ngModel">
   <mat-datepicker-toggle [for]="datePicker" matSuffix></mat-datepicker-toggle>
   <mat-datepicker #datePicker></mat-datepicker>

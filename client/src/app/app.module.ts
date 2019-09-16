@@ -1,8 +1,5 @@
-import { registerLocaleData } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import localeFr from '@angular/common/locales/fr';
-import localeNl from '@angular/common/locales/nl';
-import { Injectable, LOCALE_ID, NgModule } from '@angular/core';
+import { Injectable, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, RouterModule, Routes } from '@angular/router';
@@ -19,10 +16,8 @@ import {
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
+import { CUSTOM_LOCALE_PROVIDER } from './locales';
 import { metaReducers, reducers } from './reducers';
-
-registerLocaleData(localeNl);
-registerLocaleData(localeFr);
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -38,10 +33,6 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
     return params.key;
   }
 }
-
-const DEFAULT_LOCALE = 'en-US';
-const SUPPORTED_LOCALES = [ 'en', 'nl', 'fr' ];
-const locale = SUPPORTED_LOCALES.some(loc => navigator.language.startsWith(loc)) ? navigator.language : DEFAULT_LOCALE;
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'forms' },
@@ -81,10 +72,7 @@ export const routes: Routes = [
     }),
   ],
   exports: [],
-  providers: [ {
-    provide: LOCALE_ID,
-    useValue: locale,
-  } ],
+  providers: [CUSTOM_LOCALE_PROVIDER],
   bootstrap: [ AppComponent ],
 })
 export class AppModule {
