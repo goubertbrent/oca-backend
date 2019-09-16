@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { ServiceNewsGroup } from '../../../shared/interfaces/rogerthat';
+import { Loadable } from '../../../shared/loadable/loadable';
 import { NewsBroadcastItem } from '../../interfaces';
 
 @Component({
@@ -11,7 +12,7 @@ import { NewsBroadcastItem } from '../../interfaces';
 export class NewsItemListComponent implements OnChanges {
   @Input() items: NewsBroadcastItem[];
   @Input() hasMore: boolean;
-  @Input() loading: boolean;
+  @Input() listStatus: Loadable;
   @Input() newsGroups: ServiceNewsGroup[];
   @Output() deleteItem = new EventEmitter<NewsBroadcastItem>();
   @Output() copyItem = new EventEmitter<NewsBroadcastItem>();
