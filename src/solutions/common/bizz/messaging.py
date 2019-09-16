@@ -15,18 +15,18 @@
 #
 # @@license_version:1.5@@
 
-import json
-import logging
 from base64 import b64encode
 from datetime import datetime
+import json
+import logging
 from types import NoneType
 
+import cloudstorage
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from google.appengine.ext.deferred import PermanentTaskFailure
-
-import cloudstorage
 import pytz
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
@@ -92,6 +92,8 @@ from solutions.common.bizz.sandwich import order_sandwich_received, \
     sandwich_order_from_broadcast_pressed
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
+from solutions.common.migrations.trash_calendar.bizz import POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS, \
+    trash_transfer_address_pressed
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
     SolutionSettings, SolutionMainBranding, SolutionBrandingSettings
 from solutions.common.to import UrlTO, TimestampTO, SolutionInboxMessageTO
@@ -166,7 +168,8 @@ MESSAGE_TAG_MAPPING = {
     MESSAGE_TAG_MY_RESERVATIONS_DETAIL: my_reservations_detail_updated,
     MESSAGE_TAG_DENY_SIGNUP: deny_signup,
     POKE_TAG_LOYALTY_REMINDERS: stop_loyalty_reminders,
-    POKE_TAG_DISCUSSION_GROUPS: follow_discussion_groups
+    POKE_TAG_DISCUSSION_GROUPS: follow_discussion_groups,
+    POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS: trash_transfer_address_pressed
 }
 
 API_METHOD_MAPPING = {
