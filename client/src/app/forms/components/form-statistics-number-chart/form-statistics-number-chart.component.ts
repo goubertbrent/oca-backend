@@ -9,7 +9,7 @@ import { ValueAmount } from '../../interfaces/forms';
 })
 export class FormStatisticsNumberChartComponent implements OnChanges {
   @Input() values: ValueAmount[];
-  chart: { data: (string | number)[][]; columns: string[]; options: any; type: string };
+  chart: { data: (string | number)[][]; columns: string[]; options: google.visualization.BarChartOptions; type: string };
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.values && changes.values.currentValue) {
@@ -25,10 +25,10 @@ export class FormStatisticsNumberChartComponent implements OnChanges {
       options: {
         width: 700,
         height: Math.max(150, values.length * 30),
-        legend: { position: 'none' },
+        legend: 'none' as 'none',  // not sure why but without the 'as' it errors
         backgroundColor: 'transparent',
         bars: 'horizontal', // Required for Material Bar Charts.
-        vAxis: { textStyle: { fontSize: '12', paddingRight: '200', marginRight: '200' } },
+        vAxis: { textStyle: { fontSize: 12, paddingRight: '200', marginRight: '200' } },
         chartArea: { left: '25%', top: 0, bottom: '20px' },  // bottom padding for x axis
       },
     };

@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
+import { MatPaginatorModule } from '@angular/material';
 import { MatButtonModule } from '@angular/material/button';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatNativeDateModule, MatRippleModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS, MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +9,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
@@ -42,7 +45,7 @@ const routes: Routes = [
   imports: [
     RouterModule.forChild(routes),
     StoreModule.forFeature('psp', participationReducer),
-    EffectsModule.forFeature([ ParticipationEffects ]),
+    EffectsModule.forFeature([ParticipationEffects]),
     MatNativeDateModule,
     SharedModule,
     MatListModule,
@@ -55,6 +58,10 @@ const routes: Routes = [
     MatIconModule,
     MatSidenavModule,
     MatSnackBarModule,
+    MatRippleModule,
+    MatTableModule,
+    MatSortModule,
+    MatPaginatorModule,
   ],
   exports: [],
   declarations: [

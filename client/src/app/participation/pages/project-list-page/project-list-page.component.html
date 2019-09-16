@@ -1,20 +1,26 @@
 <oca-loadable [loadable]="projects$ | async">
-  <mat-nav-list *ngIf="(projects$ | async).data as projects">
-    <a *ngFor="let project of projects" [routerLink]="[project.id]" mat-list-item>
-      <h4 matLine>{{ project.title }}</h4>
-      <p *ngIf="project.end_date" matLine>
-        {{ 'oca.ends_on_date' | translate : {date: project.end_date | date} }}
-      </p>
-    </a>
-  </mat-nav-list>
-  <div *ngIf="hasNoProjects$ | async" class="page-margin">
-    <p>{{ 'oca.no_participation_projects_yet' | translate }}</p>
-    <div>
-      <a mat-raised-button routerLink="create">
-        {{ 'oca.create_participation_project' | translate }}
-      </a>
-    </div>
-  </div>
+  <mat-tab-group>
+    <mat-tab [label]="tab.label | translate" *ngFor="let tab of tabs$ | async">
+      <mat-card class="project-card" routerLink="create">
+        <mat-card-title>{{ 'oca.create_participation_project' | translate }}</mat-card-title>
+        <mat-card-actions align="end">
+          <button type="button" mat-button>{{ 'oca.create' | translate }}</button>
+        </mat-card-actions>
+      </mat-card>
+      <mat-card class="project-card"
+                matRipple
+                [routerLink]="[project.id]"
+                *ngFor="let project of tab.projects.data">
+        <mat-card-title>{{ project.title }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ 'oca.from_x_until_y' | translate : {from: project.start_date | date, until: project.end_date | date} }}
+        </mat-card-subtitle>
+      </mat-card>
+      <div *ngIf="hasNoProjects$ | async" class="page-margin">
+        <p>{{ 'oca.no_participation_projects_yet' | translate }}</p>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
 </oca-loadable>
 
 <div class="fab-bottom-right">

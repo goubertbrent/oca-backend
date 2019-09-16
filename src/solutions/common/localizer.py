@@ -20,6 +20,13 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.amount_of_scans': u'Amount of scans',
+         u'oca.scans_on_map': u'Scans on map',
+         u'oca.scans_at_merchants': u'Scans at merchants',
+         u'oca.top_merchants': u'Top merchants',
+         u'oca.from_x_until_y': u'From {{ from }} until {{ until }}',
+         u'oca.current_projects': u'Current projects',
+         u'oca.finished_projects': u'Finished projects',
          u'message_sent': u'Your message has been sent.',
          u'send_message': u'Send message',
          u'city_message': u'News from your city or municipality',

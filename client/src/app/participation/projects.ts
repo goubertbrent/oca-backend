@@ -5,8 +5,8 @@ export interface CreateProject {
     currency: string;
   };
   description: string;
-  end_date: string | Date | null;
-  start_date: string | Date | null;
+  end_date: string | Date;
+  start_date: string | Date;
   title: string;
 }
 
@@ -15,14 +15,21 @@ export interface Project extends CreateProject {
   id: number;
 }
 
+export interface MerchantStatistics {
+  id: number;
+  total: number;
+  formatted_address: string;
+  location: {
+    lat: number;
+    lon: number;
+  };
+  name: string;
+}
+
 export interface ProjectStatistics {
   project_id: number;
   total: number;
-  results: {
-    id: number;
-    total: number;
-    name: string;
-  }[];
+  results: MerchantStatistics[];
   cursor: string | null;
   more: boolean;
 }

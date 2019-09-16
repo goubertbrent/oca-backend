@@ -173,6 +173,7 @@ TRANSLATION_MAPPING = {
     'inactive',
     'like',
     'message',
+    'merchant',
     'name-attachment',
     'news_action_button_explanation',
     'news_content_explanation',

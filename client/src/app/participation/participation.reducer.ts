@@ -34,7 +34,6 @@ export function participationReducer(state: ParticipationState = initialState, a
       return {
         ...state,
         projectStatistics: onLoadableSuccess({
-          ...state,
           ...action.payload,
           results: state.projectStatistics.data ?
             [ ...state.projectStatistics.data.results, ...action.payload.results ] : action.payload.results,

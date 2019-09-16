@@ -17,10 +17,12 @@
 
 import json
 import logging
+import urllib
 from base64 import b64encode
 
 from google.appengine.api import urlfetch
 
+from mcfw.restapi import GenericRESTRequestHandler
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.restapi.service_panel import generate_api_key
@@ -38,9 +40,13 @@ def _participation_request(secret, url, method, payload=None):
     headers = {
         'Authentication': 'Basic %s' % b64encode(secret)
     }
+    if method == 'GET':
+        request = GenericRESTRequestHandler.getCurrentRequest()
+        if request.params:
+            url += '?%s' % urllib.urlencode(request.params)
     if payload:
         payload = json.dumps(payload)
-    result = urlfetch.fetch(url, method=method, payload=payload, headers=headers)  # type: urlfetch._URLFetchResult
+    result = urlfetch.fetch(url, payload, method, headers, deadline=30)  # type: urlfetch._URLFetchResult
     str_code = str(result.status_code)
     if str_code.startswith('4') or str_code.startswith('5'):
         logging.error('Error for request %s %s: %s\n %s', url, method, result.status_code, result.content)

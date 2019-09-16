@@ -5,7 +5,7 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { catchError, first, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, filter, first, map, switchMap, tap } from 'rxjs/operators';
 import { transformErrorResponse } from '../shared/errors/errors';
 import { filterNull } from '../shared/util/redux';
 import {
@@ -58,6 +58,13 @@ export class ParticipationEffects {
     switchMap(action => this.participationService.getProjectStatistics(action.payload.id, null).pipe(
       map(data => new GetProjectStatisticsCompleteAction(data)),
       catchError(err => of(new GetProjectStatisticsFailedAction(transformErrorResponse(err)))))),
+  );
+
+  // Automatically fetch merchant stats until we have everything
+  @Effect() afterGetStatisticsComplete$ = this.actions$.pipe(
+    ofType<GetProjectStatisticsCompleteAction>(ParticipationActionTypes.GET_PROJECT_STATISTICS_COMPLETE),
+    filter(action => action.payload.more),
+    map(() => new GetMoreProjectStatisticsAction()),
   );
 
   @Effect() getMoreProjectStatistics$ = this.actions$.pipe(
