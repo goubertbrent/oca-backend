@@ -4,16 +4,20 @@ import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
-import { Loadable } from '../../../shared/loadable/loadable';
+import { Loadable, NonNullLoadable } from '../../../shared/loadable/loadable';
 import { CreateFormAction, DeleteFormAction, GetFormsAction } from '../../forms.actions';
-import { FormsState, getForms } from '../../forms.state';
+import { FormsState, getForms, getIntegrations } from '../../forms.state';
 import { FormSettings } from '../../interfaces/forms';
+import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
 @Component({
   selector: 'oca-form-list-page',
   template: `
     <ng-container *ngIf="forms$ | async as forms">
-      <oca-forms-list [forms]="forms" (createForm)="createForm()" (deleteForm)="deleteForm($event)"></oca-forms-list>
+      <oca-forms-list [forms]="forms"
+                      [integrations]="integrations$ | async"
+                      (createForm)="createForm()"
+                      (deleteForm)="deleteForm($event)"></oca-forms-list>
       <div class="fab-bottom-right">
         <button type="button" mat-fab (click)="createForm()">
           <mat-icon>add</mat-icon>
@@ -26,6 +30,7 @@ import { FormSettings } from '../../interfaces/forms';
 export class FormListPageComponent implements OnInit {
   creating = false;
   forms$: Observable<Loadable<FormSettings[]>>;
+  integrations$: Observable<NonNullLoadable<FormIntegrationConfiguration[]>>;
 
   constructor(private _store: Store<FormsState>,
               private _matDialog: MatDialog,
@@ -34,6 +39,7 @@ export class FormListPageComponent implements OnInit {
 
   ngOnInit() {
     this._store.dispatch(new GetFormsAction());
+    this.integrations$ = this._store.pipe(select(getIntegrations));
     this.forms$ = this._store.pipe(select(getForms));
   }
 

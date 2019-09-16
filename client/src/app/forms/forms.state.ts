@@ -84,7 +84,7 @@ export const getRawFormStatistics = createSelector(featureSelector, s => s.formS
 export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data || []);
 export const getIntegrations = createSelector(featureSelector, s => s.integrations);
 export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data
-  .filter(i => i.enabled)
+  .filter(i => i.enabled && i.visible)
   .map(i => i.provider));
 
 export const selectedFormResponseId = createSelector(featureSelector, s => s.selectedFormResponseId);

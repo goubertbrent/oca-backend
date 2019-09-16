@@ -35,6 +35,7 @@ class CompletedFormStepTO(TO):
 class FormIntegrationTO(TO):
     provider = unicode_property('provider')
     enabled = bool_property('enabled', default=True)
+    visible = bool_property('visible', default=True)
     configuration = typed_property('configuration', dict)
 
 
@@ -48,11 +49,16 @@ class FormSettingsTO(TO):
     finished = bool_property('finished')
     steps = typed_property('steps', CompletedFormStepTO, True)
     readonly_ids = bool_property('readonly_ids', default=OcaForm.readonly_ids._default)
-    integrations = typed_property('integrations', FormIntegrationTO, True, default=[])
+    integrations = typed_property('integrations', FormIntegrationTO, True, default=[])  # type: list[FormIntegrationTO]
 
     @classmethod
-    def from_model(cls, oca_form):
-        return cls.from_dict(oca_form.to_dict())
+    def from_model(cls, oca_form, can_edit_integrations):
+        to = cls.from_dict(oca_form.to_dict())
+        for integration in to.integrations:
+            integration.visible = can_edit_integrations
+            if not integration.visible:
+                integration.configuration = {}
+        return to
 
 
 class OcaFormTO(TO):

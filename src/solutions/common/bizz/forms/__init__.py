@@ -40,6 +40,7 @@ from rogerthat.dal.mobile import get_user_active_mobiles
 from rogerthat.dal.profile import get_profile_infos, get_user_profile
 from rogerthat.models import Message, ServiceIdentity
 from rogerthat.rpc import users
+from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import system, messaging
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.forms import DynamicFormTO, FormSubmittedCallbackResultTO, \
@@ -64,6 +65,11 @@ from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, F
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
+def can_edit_integration_config():
+    current_session = get_current_session()
+    return current_session and current_session.shop
+
+
 def list_forms(service_user):
     return OcaForm.list_by_user(service_user)
 
@@ -74,14 +80,16 @@ def create_form(data, service_user):
         created_form = service_api.create_form(data.form.title, data.form.sections, data.form.submission_section,
                                                data.form.max_submissions)
     oca_form = OcaForm(key=OcaForm.create_key(created_form.id, service_user))
-    _update_form(oca_form, created_form, data.settings)
+    can_edit_integrations = can_edit_integration_config()
+    _update_form(oca_form, created_form, data.settings, can_edit_integrations)
     if oca_form.visible:
         _create_form_menu_item(oca_form)
-    return OcaFormTO(form=created_form, settings=FormSettingsTO.from_model(oca_form))
+    return OcaFormTO(form=created_form, settings=FormSettingsTO.from_model(oca_form, can_edit_integrations))
 
 
 def update_form(form_id, data, service_user):
     # type: (int, OcaFormTO, users.User) -> OcaFormTO
+    can_edit_integrations = can_edit_integration_config()
     with users.set_user(service_user):
         if data.settings.tombola:
             data.form.max_submissions = 1
@@ -90,14 +98,14 @@ def update_form(form_id, data, service_user):
         # Form is read only after it is finished
         if oca_form.finished:
             form = service_api.get_form(form_id)
-            return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
+            return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form, can_edit_integrations))
         for section in data.form.sections:
             if MISSING.default(section.branding, None) and section.branding.logo_url:
                 section.branding.avatar_url = _get_form_avatar_url(service_user)
         updated_form = service_api.update_form(form_id, data.form.title, data.form.sections,
                                                data.form.submission_section, data.form.max_submissions)
         _delete_scheduled_task(oca_form)
-        _update_form(oca_form, updated_form, data.settings)
+        _update_form(oca_form, updated_form, data.settings, can_edit_integrations)
         if oca_form.visible:
             _create_form_menu_item(oca_form)
             if oca_form.visible_until:
@@ -123,19 +131,20 @@ def update_form(form_id, data, service_user):
         if changed:
             settings.put()
             broadcast_updates_pending(settings)
-    return OcaFormTO(form=updated_form, settings=FormSettingsTO.from_model(oca_form))
+    return OcaFormTO(form=updated_form, settings=FormSettingsTO.from_model(oca_form, can_edit_integrations))
 
 
-def _update_form(model, created_form, settings):
-    # type: (OcaForm, DynamicFormTO, FormSettingsTO) -> None
+def _update_form(model, created_form, settings, can_edit_integrations):
+    # type: (OcaForm, DynamicFormTO, FormSettingsTO, bool) -> None
     model.populate(icon=settings.icon or OcaForm.icon._default,
                    visible=settings.visible,
                    visible_until=settings.visible_until and _get_utc_datetime(settings.visible_until),
                    tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()),
                    steps=[CompletedFormStep(step_id=step.step_id) for step in settings.steps],
-                   readonly_ids=settings.readonly_ids,
-                   integrations=[FormIntegration(**i.to_dict()) for i in settings.integrations])
-
+                   readonly_ids=settings.readonly_ids)
+    if can_edit_integrations:
+        model.integrations = [FormIntegration(provider=i.provider, enabled=i.enabled, configuration=i.configuration)
+                              for i in settings.integrations]
     if created_form:
         model.populate(
             version=created_form.version,
@@ -170,7 +179,7 @@ def get_form(form_id, service_user):
     # backwards compat
     if not oca_form.steps:
         oca_form.steps = [CompletedFormStep(step_id=step_id) for step_id in CompletedFormStepType.all()]
-    return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form))
+    return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form, can_edit_integration_config()))
 
 
 @arguments(service_user=users.User, form_id=(int, long), cursor=unicode, page_size=(int, long))

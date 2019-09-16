@@ -20,6 +20,7 @@ import {
 interface ProviderMapping {
   [ FormIntegrationProvider.GREEN_VALLEY ]: {
     enabled: boolean,
+    visible: boolean,
     integration: FormIntegrationGreenValley | null
   };
 }
@@ -51,6 +52,7 @@ export class FormIntegrationsComponent implements OnChanges {
   providerMapping: ProviderMapping = {
     [ FormIntegrationProvider.GREEN_VALLEY ]: {
       enabled: false,
+      visible: false,
       integration: null,
     },
   };
@@ -83,13 +85,13 @@ export class FormIntegrationsComponent implements OnChanges {
   private getNewProvider(provider: FormIntegrationProvider): FormIntegration {
     switch (provider) {
       case FormIntegrationProvider.GREEN_VALLEY:
-        return { provider, enabled: true, configuration: { type_id: null, mapping: [] } };
+        return { provider, enabled: true, visible: true, configuration: { type_id: null, mapping: [] } };
     }
   }
 
   private setProviderMapping() {
     for (const integration of this.integrations) {
-      this.providerMapping[ integration.provider ] = { enabled: integration.enabled, integration };
+      this.providerMapping[ integration.provider ] = { enabled: integration.enabled, visible: integration.visible, integration };
     }
   }
 

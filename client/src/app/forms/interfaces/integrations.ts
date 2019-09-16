@@ -11,6 +11,7 @@ export interface GVIntegrationConfig {
 export interface IntegrationConfigurationGV {
   provider: FormIntegrationProvider.GREEN_VALLEY;
   enabled: boolean;
+  visible: boolean;
   configuration: GVIntegrationConfig;
 }
 
@@ -81,6 +82,7 @@ export interface GVSectionMapping {
 export interface BaseIntegration {
   provider: FormIntegrationProvider;
   enabled: boolean;
+  visible: boolean;
 }
 
 export interface GVIntegrationFormConfig {

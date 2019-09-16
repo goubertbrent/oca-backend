@@ -16,47 +16,50 @@
 # @@license_version:1.5@@
 
 from mcfw.consts import REST_TYPE_TO
-from mcfw.exceptions import HttpBadRequestException
+from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException
-from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.service import UserDetailsTO
 from solutions.common.bizz.forms import create_form, get_form, update_form, get_tombola_winners, list_forms, \
     get_statistics, list_responses, delete_submissions, delete_form, delete_submission, \
-    get_form_integrations, update_form_integration
+    get_form_integrations, update_form_integration, can_edit_integration_config
 from solutions.common.bizz.forms.export import export_submissions
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO, FormSubmissionListTO, \
     FormSubmissionTO
-
-
-def show_integrations():
-    current_session = get_current_session()
-    return current_session and current_session.shop
 
 
 @rest('/common/forms', 'get', read_only_access=True, silent_result=True)
 @returns([FormSettingsTO])
 @arguments()
 def rest_list_forms():
-    return [FormSettingsTO.from_model(form)
-            for form in list_forms(users.get_current_user())
-            if show_integrations() or not form.integrations]
+    can_edit_integrations = can_edit_integration_config()
+    return [FormSettingsTO.from_model(form, can_edit_integrations) for form in list_forms(users.get_current_user())]
 
 
 @rest('/common/forms/integrations', 'get')
 @returns([dict])
 @arguments()
 def rest_get_integrations():
-    return [i.to_dict() for i in get_form_integrations(users.get_current_user())]
+    results = []
+    can_edit = can_edit_integration_config()
+    for integration in get_form_integrations(users.get_current_user()):
+        d = integration.to_dict()
+        d['visible'] = can_edit
+        if not can_edit:
+            del d['configuration']
+        results.append(d)
+    return results
 
 
 @rest('/common/forms/integrations/<provider:[^/]+>', 'put', type=REST_TYPE_TO)
 @returns(dict)
 @arguments(provider=unicode, data=dict)
 def rest_update_integration(provider, data):
+    if not can_edit_integration_config():
+        raise HttpForbiddenException()
     return update_form_integration(users.get_current_user(), provider, data).to_dict()
 
 

@@ -1,3 +1,4 @@
+<ng-container *ngIf="providerMapping[FormIntegrationProvider.GREEN_VALLEY].visible">
 <mat-slide-toggle name="gv_enabled"
                   [(ngModel)]="providerMapping[FormIntegrationProvider.GREEN_VALLEY].enabled"
                   (ngModelChange)="toggleIntegration(FormIntegrationProvider.GREEN_VALLEY)">
@@ -10,3 +11,4 @@
     [sections]="sections"
     (configurationChanged)="updateIntegration(providerMapping[FormIntegrationProvider.GREEN_VALLEY].integration, $event)"></oca-form-integration-gv>
 </div>
+</ng-container>
