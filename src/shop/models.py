@@ -1773,3 +1773,17 @@ class LegalDocumentAcceptance(NdbModel):
     def create_key(cls, parent_key, type):
         # type: (ndb.Key, unicode) -> ndb.Key
         return ndb.Key(cls._get_kind(), type, parent=parent_key)
+
+
+class ShopExternalLink(NdbModel):
+    title = ndb.StringProperty()
+    description = ndb.TextProperty()
+    url = ndb.StringProperty()
+
+
+class ShopExternalLinks(NdbModel):
+    links = ndb.StructuredProperty(ShopExternalLink, repeated=True, indexed=False)
+
+    @classmethod
+    def create_key(cls):
+        return ndb.Key(cls, 'default')

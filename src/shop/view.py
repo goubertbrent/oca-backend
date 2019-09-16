@@ -101,7 +101,7 @@ from shop.jobs.remove_regio_manager import remove_regio_manager
 from shop.models import Customer, Contact, normalize_vat, Order, Invoice, Charge, RegioManager, Prospect, \
     ProspectInteractions, ShopLoyaltySlide, ShopApp, \
     ProspectRejectionReason, ShopTask, ShopLoyaltySlideNewOrder, RegioManagerTeam, RegioManagerStatistic, \
-    ExpiredSubscription, LegalEntity
+    ExpiredSubscription, LegalEntity, ShopExternalLinks
 from shop.to import CustomerTO, ContactTO, OrderItemTO, CompanyTO, CustomerServiceTO, CustomerReturnStatusTO, \
     CreateOrderReturnStatusTO, JobReturnStatusTO, JobStatusTO, SignOrderReturnStatusTO, \
     CityBoundsReturnStatusTO, CreateQuotationTO, ShopAppTO, PointTO, ProspectsMapTO, TaskListTO, ProspectDetailsTO, \
@@ -317,13 +317,16 @@ class BizzAdminHandler(BizzManagerHandler):
         if self.request.get('iframe', 'false') != 'true':
             # loads admin.html in an iframe
             path = os.path.join(os.path.dirname(__file__), 'html', 'index.html')
-            context = dict(DEBUG=DEBUG,
-                           APPSCALE=APPSCALE,
-                           )
+            context = {
+                'DEBUG': DEBUG,
+                'APPSCALE': APPSCALE,
+            }
             channel.append_firebase_params(context)
         else:
             path = os.path.join(os.path.dirname(__file__), 'html', 'admin.html')
             context = get_shop_context()
+            model = ShopExternalLinks.create_key().get()
+            context['external_links'] = model.links if model else []
         self.response.out.write(template.render(path, context))
 
 
