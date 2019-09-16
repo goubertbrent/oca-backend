@@ -15,19 +15,19 @@
 #
 # @@license_version:1.5@@
 
+from datetime import datetime
 import json
 import logging
-import random
-from datetime import datetime
 from os import path
+import random
 
+import cloudstorage
+import dateutil
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 
-import cloudstorage
-import dateutil
 from mcfw.consts import MISSING
 from mcfw.imaging import recolor_png
 from mcfw.rpc import arguments, returns

@@ -48,7 +48,8 @@ from solutions.common.bizz.loyalty import loyalty_qr_register, loyalty_qr_regist
 from solutions.common.bizz.messaging import API_METHOD_MAPPING, POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX, \
     reply_on_inbox_forwarding, MESSAGE_TAG_MAPPING, POKE_TAG_MAPPING, POKE_TAG_EVENTS_CONNECT_VIA_SCAN, \
     MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT, MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, POKE_TAG_RESERVE_PART2, \
-    POKE_TAG_INBOX_FORWARDING_REPLY, POKE_TAG_DISCUSSION_GROUPS
+    POKE_TAG_INBOX_FORWARDING_REPLY, POKE_TAG_DISCUSSION_GROUPS, \
+    CHAT_DELETED_MAPPING, CHAT_NEW_MESSAGE_MAPPING
 from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
 from solutions.common.bizz.reservation import my_reservations_edit_comment_updated, my_reservations_edit_people_updated, \
     reservation_part2
@@ -199,8 +200,10 @@ def common_friend_register_result(service_identity, user_details, origin):
 @returns()
 @arguments(parent_message_key=unicode, member=UserDetailsTO, timestamp=int, service_identity=unicode, tag=unicode)
 def common_chat_deleted(parent_message_key, member, timestamp, service_identity, tag):
-    human_readable_tag = _get_human_readable_tag(tag)
-    if human_readable_tag == POKE_TAG_DISCUSSION_GROUPS:
+    if tag in CHAT_DELETED_MAPPING:
+        handler = CHAT_DELETED_MAPPING[tag]
+        handler(users.get_current_user(), parent_message_key, member, timestamp, service_identity, tag)
+    elif _get_human_readable_tag(tag) == POKE_TAG_DISCUSSION_GROUPS:
         discussion_group_deleted(users.get_current_user(), parent_message_key, member, timestamp, service_identity, tag)
     else:
         raise NotImplementedError()
@@ -211,7 +214,10 @@ def common_chat_deleted(parent_message_key, member, timestamp, service_identity,
            timestamp=int, tag=unicode, service_identity=unicode, attachments=[AttachmentTO])
 def common_new_chat_message(parent_message_key, message_key, sender, message, answers, timestamp, tag, service_identity,
                             attachments):
-    if tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):
+    if tag in CHAT_NEW_MESSAGE_MAPPING:
+        handler = CHAT_NEW_MESSAGE_MAPPING[tag]
+        handler(users.get_current_user(), parent_message_key, message_key, sender, message, answers, timestamp, tag, service_identity, attachments)
+    elif tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):
         info = json.loads(tag[len(POKE_TAG_INBOX_FORWARDING_REPLY):])
         message_key = info['message_key']
         sim_parent = SolutionInboxMessage.get(reconstruct_key(db.Key(message_key)))
