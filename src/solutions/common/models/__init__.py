@@ -395,7 +395,7 @@ class SolutionSettings(SolutionIdentitySettings):
 
     @property
     def currency_symbol(self):
-        return Locale.parse(self.main_language).currencies.get(self.currency, self.currency)
+        return Locale.parse(self.main_language).currency_symbols.get(self.currency, self.currency)
 
 
 class SolutionAutoBroadcastTypes(db.Model):

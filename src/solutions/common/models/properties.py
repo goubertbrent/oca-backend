@@ -114,7 +114,7 @@ class MenuItem(object):
     qr_url = unicode_property('8')
     has_price = bool_property('9')
     id = unicode_property('10')
-    # custom unit can be used for pricing wihout linking to (ordering) unit
+    # custom unit can be used for pricing without linking to (ordering) unit
     custom_unit = long_property('11')
 
 

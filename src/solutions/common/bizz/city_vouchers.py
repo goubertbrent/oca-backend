@@ -15,12 +15,14 @@
 #
 # @@license_version:1.5@@
 
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 import json
 import logging
+from datetime import datetime
 
 from google.appengine.ext import db, deferred
+
+from babel.numbers import get_currency_symbol
+from dateutil.relativedelta import relativedelta
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import InvalidURLException
@@ -38,13 +40,12 @@ from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
-from solutions.common.dal.cityapp import get_service_users_for_city
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
+from solutions.common.dal.cityapp import get_service_users_for_city
 from solutions.common.models.city_vouchers import SolutionCityVoucher, SolutionCityVoucherQRCodeExport, \
     SolutionCityVoucherTransaction, SolutionCityVoucherRedeemTransaction, SolutionCityVoucherSettings
 from solutions.common.models.loyalty import CustomLoyaltyCard
 from solutions.common.utils import create_service_identity_user_wo_default
-
 
 POKE_TAG_CITY_VOUCHER_QR = u"city_voucher_qr"
 
@@ -558,10 +559,11 @@ def solution_voucher_confirm_redeem(service_user, email, method, params, tag, se
         xg_on = db.create_transaction_options(xg=True)
         value_left = db.run_in_transaction_options(xg_on, trans)
 
-        r_dict = dict()
-        r_dict["title"] = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Transaction successful')
-        r_dict["content"] = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'voucher_value_is',
-                                             currency=sln_settings.currency, value=round(value_left / 100.0, 2))
+        r_dict = {
+            'title': common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Transaction successful'),
+            'content': common_translate(sln_settings.main_language, SOLUTION_COMMON, 'voucher_value_is',
+                                        currency=sln_settings.currency_symbol, value=round(value_left / 100.0, 2))
+        }
         result = json.dumps(r_dict)
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:

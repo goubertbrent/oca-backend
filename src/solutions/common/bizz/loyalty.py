@@ -33,6 +33,8 @@ from PIL.Image import Image
 from babel import Locale
 from babel.dates import format_date, format_datetime, get_timezone
 from google.appengine.ext import deferred, db
+
+from babel.numbers import format_currency
 from lxml import etree, html
 import pytz
 
@@ -619,8 +621,8 @@ def add_loyalty_for_user_revenu_discount(service_user, service_identity, admin_u
     visits += 1
     price_total += price
 
-    price_total_str = format_price(price_total, sln_settings.currency)
-    price_new_str = format_price(price, sln_settings.currency)
+    price_total_str = format_currency(price_total / 100.0, sln_settings.currency, locale=sln_settings.main_language)
+    price_new_str = format_currency(price / 100.0, sln_settings.currency, locale=sln_settings.main_language)
 
     if loyalty_settings.x_visits > visits:
         message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-remaining-type-1")
@@ -826,7 +828,7 @@ def redeem_loyalty_for_user_revenue_discount(service_user, service_identity, adm
         should_update_user_data = True
 
         sln_settings = get_solution_settings(service_user)
-        price_total_str = format_price(price_total, sln_settings.currency)
+        price_total_str = format_currency(price_total / 100.0, sln_settings.currency, locale=sln_settings.main_language)
         message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-redeemed-type-1")
         message = message % {'price_total': price_total_str,
                              'discount': loyalty_settings.x_discount}

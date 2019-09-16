@@ -599,20 +599,22 @@ def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
 def get_app_data_group_purchase(sln_settings, service_identity, default_app_id):
     group_purchases = [SolutionGroupPurchaseTO.fromModel(m) for m in SolutionGroupPurchase.list(
         sln_settings.service_user, service_identity, sln_settings.solution)]
-    return dict(currency=sln_settings.currency,
-                solutionGroupPurchases=serialize_complex_value(group_purchases, SolutionGroupPurchaseTO, True))
+    return {
+        'currency': sln_settings.currency_symbol,
+        'solutionGroupPurchases': serialize_complex_value(group_purchases, SolutionGroupPurchaseTO, True)
+    }
 
 
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_loyalty(sln_settings, service_identity, default_app_id):
-    app_data = dict(currency=sln_settings.currency)
+    app_data = {'currency': sln_settings.currency_symbol}
     loyalty_settings = SolutionLoyaltySettings.get_by_user(sln_settings.service_user)
     if loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_REVENUE_DISCOUNT:
         app_data["loyalty"] = {"settings": serialize_complex_value(
             loyalty_settings, LoyaltyRevenueDiscountSettingsTO, False)}
     elif loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_LOTTERY:
-        app_data["loyalty_2"] = {"dates": list()}
+        app_data["loyalty_2"] = {"dates": []}
         ll_info = SolutionLoyaltyLottery.load_pending(sln_settings.service_user, service_identity)
         if ll_info:
             app_data["loyalty_2"]["dates"].append({"date": serialize_complex_value(TimestampTO.fromEpoch(ll_info.end_timestamp), TimestampTO, False),
@@ -643,7 +645,7 @@ def get_app_data_sandwich_bar(sln_settings, service_identity, default_app_id):
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_city_vouchers(sln_settings, service_identity, default_app_id):
-    return dict(currency=sln_settings.currency)
+    return {'currency': sln_settings.currency_symbol}
 
 
 def _configure_inbox_qr_code_if_needed(sln_settings, main_branding):
@@ -1326,7 +1328,7 @@ def put_menu(sln_settings, current_coords, main_branding, default_lang, tag):
             else:
                 item.visible = False
 
-    template_dict = {'menu': menu, 'currency': sln_settings.currency}
+    template_dict = {'menu': menu, 'currency': sln_settings.currency_symbol}
     content = render_common_content(default_lang, 'brandings/menu.tmpl', template_dict)
     menu_branding = generate_branding(main_branding, u'menu', content)
 
