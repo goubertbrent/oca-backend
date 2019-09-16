@@ -422,11 +422,12 @@ def _save_form_submission(user, form_result, service_user):
                                 pending_integration_submits=[i.provider for i in enabled_integrations])
     if submission.pending_integration_submits:
         # Sensitive info will be removed once it has been submitted to all integrations
-        submission.sections = [s.to_dict() for s in form_result.sections]
+        sections = form_result.sections
     else:
         with users.set_user(service_user):
             form = service_api.get_form(submission.form_id)
-        submission.sections = remove_sensitive_answers(form.sections, form_result.sections)
+        sections = remove_sensitive_answers(form.sections, form_result.sections)
+    submission.sections = [s.to_dict() for s in sections]
     submission.put()
     try_or_defer(update_form_statistics, service_user, submission, get_random_shard_number(submission.form_id))
     schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form_result.id)
