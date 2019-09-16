@@ -103,6 +103,7 @@
                          [(ngModel)]="component.validators"
                          (ngModelChange)="changed()"></oca-form-validators>
   </ng-container>
+  <p *ngIf="component.sensitive"><b>{{ 'oca.sensitive_information_info' | translate }}</b></p>
   <mat-divider></mat-divider>
   <div class="icons-row">
     <button type="button" mat-icon-button (click)="removeComponent.emit(component)">

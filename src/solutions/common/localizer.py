@@ -27,6 +27,8 @@ translations = \
          u'oca.from_x_until_y': u'From {{ from }} until {{ until }}',
          u'oca.current_projects': u'Current projects',
          u'oca.finished_projects': u'Finished projects',
+         u'oca.contains_sensitive_information': u'Contains sensitive information',
+         u'oca.sensitive_information_info': u'This question is marked as containing sensitive information, its answers will not be stored on our servers.',
          u'message_sent': u'Your message has been sent.',
          u'send_message': u'Send message',
          u'city_message': u'News from your city or municipality',

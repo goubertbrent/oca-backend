@@ -19,6 +19,7 @@ from google.appengine.ext import ndb
 
 from rogerthat.bizz.job import run_job
 from rogerthat.models.forms import Form
+from rogerthat.rpc import users
 from solutions.common.bizz.forms import update_form_statistics
 from solutions.common.bizz.forms.statistics import get_random_shard_number
 from solutions.common.models.forms import FormSubmission, FormStatisticsShardConfig
@@ -40,6 +41,7 @@ def _get_submissions():
     return FormSubmission().query()
 
 
-def _put_stats(submission_key):
+def _put_stats(service_user, submission_key):
     submission = submission_key.get()
-    update_form_statistics(submission, get_random_shard_number(submission.form_id))
+    form = Form.create_key(submission.form_id)
+    update_form_statistics(users.User(form.service), submission, get_random_shard_number(submission.form_id))

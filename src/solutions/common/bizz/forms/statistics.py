@@ -19,8 +19,11 @@ from datetime import datetime
 
 from google.appengine.ext import ndb
 
+from rogerthat.rpc import users
+from rogerthat.service.api.forms import service_api
 from rogerthat.to.forms import FormSectionValueTO, TextInputComponentValueTO, MultiSelectComponentValueTO, \
-    DatetimeComponentValueTO, FileComponentValueTO, LocationComponentValueTO
+    DatetimeComponentValueTO, FileComponentValueTO, LocationComponentValueTO, DynamicFormTO
+from solutions.common.bizz.forms.util import remove_sensitive_answers
 from solutions.common.models.forms import FormSubmission, FormStatisticsShardConfig, FormStatisticsShard
 from solutions.common.to.forms import FormStatisticsTO
 
@@ -35,10 +38,12 @@ def get_random_shard_number(form_id):
 
 
 @ndb.transactional(xg=True)
-def update_form_statistics(submission, shard_number):
-    # type: (FormSubmission, int) -> None
+def update_form_statistics(service_user, submission, shard_number):
+    # type: (users.User, FormSubmission, int) -> None
+    with users.set_user(service_user):
+        form = service_api.get_form(submission.form_id)
     to_put = []
-    shard = _update_form_statistics(submission, shard_number)
+    shard = _update_form_statistics(submission, form, shard_number)
     submission.statistics_shard_id = shard.key.id()
     to_put.append(submission)
     to_put.append(shard)
@@ -46,14 +51,14 @@ def update_form_statistics(submission, shard_number):
 
 
 @ndb.transactional()
-def _update_form_statistics(submission, shard_number):
-    # type: (FormSubmission, int) -> FormStatisticsShard
+def _update_form_statistics(submission, form, shard_number):
+    # type: (FormSubmission, DynamicFormTO, int) -> FormStatisticsShard
     shard_key = FormStatisticsShard.create_key(
         FormStatisticsShard.SHARD_KEY_TEMPLATE % (submission.form_id, shard_number))
     shard = shard_key.get()
     if not shard:
         shard = FormStatisticsShard(key=shard_key)
-    sections = FormSectionValueTO.from_list(submission.sections)  # type: list[FormSectionValueTO]
+    sections = remove_sensitive_answers(form.sections, FormSectionValueTO.from_list(submission.sections))
     shard.data = _get_shard_data(shard.data or {}, sections)
     shard.count += 1
     return shard

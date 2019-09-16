@@ -74,3 +74,9 @@ export const DELETE_ALL_RESPONSES_OPTION: OptionsMenuOption = {
   label: 'oca.delete_all_responses',
   checked: false,
 };
+
+export const SENSITIVE_INFORMATION_OPTION: OptionsMenuOption = {
+  id: OptionType.SENSITIVE_INFORMATION,
+  label: 'oca.contains_sensitive_information',
+  checked: false,
+};

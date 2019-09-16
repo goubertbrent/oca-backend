@@ -44,7 +44,7 @@ from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import system, messaging
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.forms import DynamicFormTO, FormSubmittedCallbackResultTO, \
-    SubmitDynamicFormRequestTO
+    SubmitDynamicFormRequestTO, FormSectionValueTO
 from rogerthat.to.messaging import MemberTO
 from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, TYPE_MESSAGE, \
     MessageCallbackResultTypeTO
@@ -57,6 +57,7 @@ from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_
 from solutions.common.bizz.forms.integrations import get_form_integration
 from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics, \
     remove_submission_from_shard, get_random_shard_number
+from solutions.common.bizz.forms.util import remove_sensitive_answers
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionBrandingSettings
@@ -95,7 +96,7 @@ def update_form(form_id, data, service_user):
             data.form.max_submissions = 1
         oca_form = OcaForm.create_key(form_id, service_user).get()  # type: OcaForm
         visibility_changed = oca_form.visible != data.settings.visible
-        # Form is read only after it is finished
+        # Form is readonly after it is finished
         if oca_form.finished:
             form = service_api.get_form(form_id)
             return OcaFormTO(form=form, settings=FormSettingsTO.from_model(oca_form, can_edit_integrations))
@@ -203,9 +204,10 @@ def delete_submission(service_user, form_id, submission_id):
 def _delete_submission(submission_id):
     # type: (long) -> None
     submission = FormSubmission.create_key(submission_id).get()  # type: FormSubmission
-    shard = FormStatisticsShard.create_key(submission.statistics_shard_id).get()
-    shard = remove_submission_from_shard(shard, submission)
-    shard.put()
+    if submission.statistics_shard_id:
+        shard = FormStatisticsShard.create_key(submission.statistics_shard_id).get()
+        shard = remove_submission_from_shard(shard, submission)
+        shard.put()
     submission.key.delete()
 
 
@@ -409,22 +411,30 @@ def create_form_submission(service_user, details, form):
     return FormSubmittedCallbackResultTO()
 
 
-def _save_form_submission(user, form, service_user):
+def _save_form_submission(user, form_result, service_user):
     # type: (users.User, SubmitDynamicFormRequestTO, users.User) -> None
-    submission = FormSubmission(form_id=form.id,
+    oca_form = OcaForm.create_key(form_result.id, service_user).get()  # type: OcaForm
+    enabled_integrations = [i for i in oca_form.integrations if i.enabled]
+    submission = FormSubmission(form_id=form_result.id,
                                 user=user.email(),
-                                sections=[s.to_dict() for s in form.sections],
-                                version=form.version,
-                                test=form.test)
+                                version=form_result.version,
+                                test=form_result.test,
+                                pending_integration_submits=[i.provider for i in enabled_integrations])
+    if submission.pending_integration_submits:
+        # Sensitive info will be removed once it has been submitted to all integrations
+        submission.sections = [s.to_dict() for s in form_result.sections]
+    else:
+        with users.set_user(service_user):
+            form = service_api.get_form(submission.form_id)
+        submission.sections = remove_sensitive_answers(form.sections, form_result.sections)
     submission.put()
-    try_or_defer(update_form_statistics, submission, get_random_shard_number(submission.form_id))
-    oca_form = OcaForm.create_key(form.id, service_user).get()  # type: OcaForm
-    schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form.id)
-                    for i in oca_form.integrations if i.enabled])
+    try_or_defer(update_form_statistics, service_user, submission, get_random_shard_number(submission.form_id))
+    schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form_result.id)
+                    for i in enabled_integrations])
 
 
 def _submit_form_to_integration(service_user, integration_provider, submission_key, form_id):
-    # type: (users.User, ndb.Key, str, long) -> None
+    # type: (users.User, str, ndb.Key, long) -> None
     integration_key = FormIntegrationConfiguration.create_key(service_user, integration_provider)
     oca_form_key = OcaForm.create_key(form_id, service_user)
     submission, config, oca_form = ndb.get_multi([submission_key, integration_key, oca_form_key])
@@ -443,9 +453,23 @@ def _submit_form_to_integration(service_user, integration_provider, submission_k
     with users.set_user(service_user):
         form = service_api.get_form(form_id)
     reference = form_integration.submit(integration_model.configuration, submission, form)
+    try_or_defer(_set_reference_and_remove_sensitive_info, form, submission_key, reference, integration_provider)
+
+
+@ndb.transactional()
+def _set_reference_and_remove_sensitive_info(form, submission_key, reference, integration_provider):
+    # type: (DynamicFormTO, ndb.Key, unicode, unicode) -> None
+    submission = submission_key.get()  # type: FormSubmission
+    submission.pending_integration_submits = [s for s in submission.pending_integration_submits if
+                                              s != integration_provider]
     if reference:
         submission.external_reference = reference
-        submission.put()
+    # This was the last integration - remove sensitive data from the submission
+    if not submission.pending_integration_submits:
+        section_values = FormSectionValueTO.from_list(submission.sections)
+        remove_sensitive_answers(form.sections, section_values)
+        submission.sections = [s.to_dict() for s in section_values]
+    submission.put()
 
 
 def get_form_integrations(user):

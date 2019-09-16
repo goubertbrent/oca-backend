@@ -19,11 +19,10 @@
       </button>
     </div>
   </mat-toolbar>
-  <div class="integration-block">
+  <div class="integration-block" *ngIf="response.data.result.external_reference">
     <span>{{ 'oca.reference' | translate }}</span>:
     <a [href]="response.data.result.external_reference.url"
-       target="_blank"
-       *ngIf="response.data.result.external_reference">{{ response.data.result.external_reference.id }}</a>
+       target="_blank">{{ response.data.result.external_reference.id }}</a>
   </div>
   <mat-card class="section-card" *ngFor="let section of response.data.result.sections">
     <mat-card-header>

@@ -146,6 +146,7 @@ function getSectionStatistics(form: OcaForm, statistics: FormStatistics): Sectio
         const stats: ComponentStatistics = {
           id: component.id,
           title: component.title,
+          sensitive: component.sensitive,
           hasResponses: false,
           values: null,
         };

@@ -14,6 +14,7 @@ export interface BaseInputComponent {
   title: string;
   description: string | null;
   validators: FormValidator[];
+  sensitive: boolean;
 }
 
 export interface TextInputComponent extends BaseInputComponent {
@@ -224,6 +225,7 @@ export interface ComponentStatistics {
   id: string;
   title: string;
   hasResponses: boolean;
+  sensitive: boolean;
   values: ComponentStatisticsValues;
 }
 

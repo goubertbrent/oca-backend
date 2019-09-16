@@ -10,6 +10,7 @@ import {
   GOTO_SECTION_OPTION,
   KEYBOARD_TYPES,
   OptionsMenuOption,
+  SENSITIVE_INFORMATION_OPTION,
   SHOW_DESCRIPTION_OPTION,
   VALIDATION_OPTION,
 } from '../../interfaces/consts';
@@ -127,6 +128,10 @@ export class FormFieldComponent {
         }
         this.showNextActions = !option.checked;
         break;
+      case OptionType.SENSITIVE_INFORMATION:
+        if (isInputComponent(this.component)) {
+          this.component = { ...this.component, sensitive: !this.component.sensitive };
+        }
     }
     option.checked = !option.checked;
   }
@@ -170,6 +175,7 @@ export class FormFieldComponent {
   private prepareOptionsMenu() {
     this.optionsMenuItems = [ { ...SHOW_DESCRIPTION_OPTION, checked: this.showDescription } ];
     if (this.component.type !== FormComponentType.PARAGRAPH) {
+      this.optionsMenuItems.push({ ...SENSITIVE_INFORMATION_OPTION, checked: this.component.sensitive });
       if (this.component.type === FormComponentType.SINGLE_SELECT) {
         this.optionsMenuItems.push({ ...GOTO_SECTION_OPTION, checked: this.component.choices.some(c => c.next_action != null) });
       } else if (this.component.type !== FormComponentType.LOCATION) {

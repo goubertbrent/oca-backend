@@ -130,6 +130,7 @@ class FormSubmission(NdbModel):
     statistics_shard_id = ndb.StringProperty(indexed=False)
     test = ndb.BooleanProperty(default=False)
     external_reference = ndb.StringProperty()
+    pending_integration_submits = ndb.StringProperty(repeated=True, indexed=False)
 
     @property
     def id(self):
