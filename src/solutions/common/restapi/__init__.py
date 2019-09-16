@@ -62,18 +62,16 @@ from shop.bizz import update_customer_consents, add_service_admin, get_service_a
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
 from shop.models import Customer
-from shop.view import get_current_http_host
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    twitter as bizz_twitter, get_user_defined_roles, validate_enable_or_disable_solution_module
+    get_user_defined_roles, validate_enable_or_disable_solution_module
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
     create_calendar_admin, delete_calendar_admin
-from solutions.common.bizz.facebook import get_facebook_app_info
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
 from solutions.common.bizz.images import upload_file, list_files
@@ -111,8 +109,8 @@ from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO, SolutionSettingsTO, \
     MenuTO, EventItemTO, PublicEventItemTO, SolutionAppointmentWeekdayTimeframeTO, BrandingSettingsTO, \
     SolutionRepairOrderTO, SandwichSettingsTO, SandwichOrderTO, SolutionGroupPurchaseTO, \
-    SolutionGroupPurchaseSettingsTO, SolutionCalendarTO, EventGuestTO, SolutionInboxForwarder, UrlTO, \
-    TimestampTO, SolutionInboxesTO, SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
+    SolutionGroupPurchaseSettingsTO, SolutionCalendarTO, EventGuestTO, SolutionInboxForwarder, SolutionInboxesTO, \
+    SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
@@ -546,26 +544,6 @@ def rest_save_broadcast_rss_feeds(data):
     service_identity = session_.service_identity
     rss_settings = save_rss_urls(service_user, service_identity, data)
     return SolutionRssSettingsTO.from_model(rss_settings)
-
-
-@rest("/common/broadcast", "post")
-@returns(ReturnStatusTO)
-@arguments(broadcast_type=unicode, message=unicode, broadcast_on_facebook=bool, target_audience_enabled=bool,
-           target_audience_min_age=int, target_audience_max_age=int, target_audience_gender=unicode,
-           msg_attachments=[AttachmentTO], msg_urls=[UrlTO], broadcast_date=TimestampTO, broadcast_on_twitter=bool,
-           broadcast_to_all_locations=bool)
-def broadcast_send(broadcast_type, message, broadcast_on_facebook, target_audience_enabled=False,
-                   target_audience_min_age=0, target_audience_max_age=0, target_audience_gender="MALE_OR_FEMALE",
-                   msg_attachments=None, msg_urls=None, broadcast_date=None, broadcast_on_twitter=False,
-                   broadcast_to_all_locations=False):
-    from solutions.common.bizz.messaging import broadcast_send as broadcast_send_bizz
-    service_user = users.get_current_user()
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity
-    return broadcast_send_bizz(service_user, service_identity, broadcast_type, message, broadcast_on_facebook,
-                               broadcast_on_twitter, target_audience_enabled, target_audience_min_age,
-                               target_audience_max_age, target_audience_gender, msg_attachments, msg_urls,
-                               broadcast_date, broadcast_to_all_locations)
 
 
 @rest("/common/broadcast/validate/url", "post")
@@ -1833,22 +1811,6 @@ def group_purchase_settings_save(group_purchase_settings):
         return ReturnStatusTO.create(False, e.message)
 
 
-@rest("/common/twitter/auth_url", "get", read_only_access=True)
-@returns(unicode)
-@arguments()
-def get_twitter_auth_url():
-    service_user = users.get_current_user()
-    return bizz_twitter.get_twitter_auth_url(service_user)
-
-
-@rest("/common/twitter/logout", "get", read_only_access=True)
-@returns(unicode)
-@arguments()
-def twitter_logout():
-    service_user = users.get_current_user()
-    return bizz_twitter.twitter_logout(service_user)
-
-
 @rest('/common/menu/item/image/upload', 'post', read_only_access=False, silent_result=True)
 @returns(ImageReturnStatusTO)
 @arguments(image=unicode, image_id_to_delete=(int, long, NoneType))
@@ -1906,20 +1868,6 @@ def rest_get_info():
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     return system.get_info(service_identity)
-
-
-@rest('/common/settings/facebook-app-id', 'get')
-@returns(str)
-@arguments()
-def get_facebook_app_id():
-    host = get_current_http_host()
-    app_info = get_facebook_app_info(host)
-    if app_info:
-        logging.debug('%s --> FB app id %s', host, app_info[0])
-        return app_info[0]
-
-    logging.warn('cannot get facebook app id for host: %s', host)
-    return ''
 
 
 @rest('/common/customer/signup/all', 'get')

@@ -90,7 +90,6 @@ from solutions.common.bizz.reservation import reservation_part1, my_reservations
     my_reservations_detail_updated
 from solutions.common.bizz.sandwich import order_sandwich_received, \
     sandwich_order_from_broadcast_pressed
-from solutions.common.bizz.twitter import post_to_twitter
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
@@ -244,11 +243,10 @@ def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
 
 @returns(ReturnStatusTO)
 @arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode,
-           broadcast_on_facebook=bool,
-           broadcast_on_twitter=bool, target_audience_enabled=bool, target_audience_min_age=int,
+           target_audience_enabled=bool, target_audience_min_age=int,
            target_audience_max_age=int, target_audience_gender=unicode, msg_attachments=[AttachmentTO],
            msg_urls=[UrlTO], broadcast_date=TimestampTO, broadcast_to_all_locations=bool)
-def broadcast_send(service_user, service_identity, broadcast_type, message, broadcast_on_facebook, broadcast_on_twitter,
+def broadcast_send(service_user, service_identity, broadcast_type, message,
                    target_audience_enabled=False, target_audience_min_age=0, target_audience_max_age=0,
                    target_audience_gender="MALE_OR_FEMALE", msg_attachments=None, msg_urls=None,
                    broadcast_date=None, broadcast_to_all_locations=False):
@@ -292,13 +290,9 @@ def broadcast_send(service_user, service_identity, broadcast_type, message, broa
 
         send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled,
                        target_audience_min_age, target_audience_max_age, target_audience_gender, attachments, msg_urls,
-                       broadcast_date, broadcast_on_twitter, broadcast_to_all_locations)
-
-        sln_settings.broadcast_on_facebook = broadcast_on_facebook
-        sln_settings.broadcast_on_twitter = broadcast_on_twitter
-        put_and_invalidate_cache(sln_settings)
+                       broadcast_date, broadcast_to_all_locations)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -452,10 +446,9 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
 
     try:
         media = BaseMediaTO(type=MediaType.IMAGE, content=image) if image else None
-        put_news_item(service_identity_user, title, message,
-                      sponsored=False, image=None, action_button=None,
-                      order_items=None, news_type=news_type, qr_code_caption=title,
-                      app_ids=app_ids, scheduled_at=0, news_id=None, media=media, group_type=group_type)
+        put_news_item(service_identity_user, title, message, action_button=None, news_type=news_type,
+                      qr_code_caption=title, app_ids=app_ids, scheduled_at=0, news_id=None, media=media,
+                      group_type=group_type)
         message = common_translate(user_details.language,
                                    SOLUTION_COMMON, u'news_item_published')
         result = result_message(message)
@@ -661,12 +654,11 @@ def _delete_all_trash(service_user, service_identity):
 @arguments(service_user=users.User, service_identity=unicode, broadcast_type=unicode, message=unicode,
            target_audience_enabled=bool,
            target_audience_min_age=int, target_audience_max_age=int, target_audience_gender=unicode,
-           attachments=[AttachmentTO], urls=[UrlTO], broadcast_date=TimestampTO, broadcast_on_twitter=bool,
-           broadcast_to_all_locations=bool)
+           attachments=[AttachmentTO], urls=[UrlTO], broadcast_date=TimestampTO, broadcast_to_all_locations=bool)
 def send_broadcast(service_user, service_identity, broadcast_type, message, target_audience_enabled,
                    target_audience_min_age,
                    target_audience_max_age, target_audience_gender, attachments, urls, broadcast_date,
-                   broadcast_on_twitter=False, broadcast_to_all_locations=False):
+                   broadcast_to_all_locations=False):
     sln_main_branding = get_solution_main_branding(service_user)
     branding = sln_main_branding.branding_key if sln_main_branding else None
     if target_audience_enabled:
@@ -716,7 +708,6 @@ def send_broadcast(service_user, service_identity, broadcast_type, message, targ
     ssb.target_audience_gender = target_audience_gender
     ssb.json_attachments = json.dumps(serialize_complex_value(attachments, AttachmentTO, True))
     ssb.json_urls = json.dumps(serialize_complex_value(urls, UrlTO, True))
-    ssb.broadcast_on_twitter = broadcast_on_twitter
     ssb.broadcast_to_all_locations = broadcast_to_all_locations
     if broadcast_date:
         ssb.put()
@@ -749,11 +740,6 @@ def send_broadcast(service_user, service_identity, broadcast_type, message, targ
             common_translate(sln_settings.main_language, SOLUTION_COMMON, "Broadcast failed, no connected users"))
     ssb.put()
 
-    if broadcast_on_twitter and sln_settings.twitter_username:
-        s = post_to_twitter(service_user, message, attachments)
-        sln_settings.broadcast_on_twitter = s
-    else:
-        sln_settings.broadcast_on_twitter = False
     sln_settings.broadcast_to_all_locations = broadcast_to_all_locations
     put_and_invalidate_cache(sln_settings)
 
@@ -771,7 +757,7 @@ def _send_scheduled_broadcast(service_user, str_key):
             send_broadcast(service_user, ssb.service_identity, ssb.broadcast_type, ssb.message,
                            ssb.target_audience_enabled,
                            ssb.target_audience_min_age, ssb.target_audience_max_age, ssb.target_audience_gender,
-                           ssb.attachments, ssb.urls, None, ssb.broadcast_on_twitter, ssb.broadcast_to_all_locations)
+                           ssb.attachments, ssb.urls, None, ssb.broadcast_to_all_locations)
         finally:
             users.clear_user()
         ssb.delete()

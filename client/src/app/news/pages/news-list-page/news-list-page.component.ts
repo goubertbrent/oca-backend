@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 import { ServiceNewsGroup } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { NewsBroadcastItem } from '../../interfaces';
+import { NewsItem } from '../../interfaces';
 import { CopyNewsItemAction, DeleteNewsItemAction, GetNewsListAction } from '../../news.actions';
 import {
   getNewsCursor,
@@ -23,7 +23,7 @@ import {
   encapsulation: ViewEncapsulation.None,
 })
 export class NewsListPageComponent implements OnInit {
-  newsList$: Observable<NewsBroadcastItem[]>;
+  newsList$: Observable<NewsItem[]>;
   hasMore$: Observable<boolean>;
   listStatus$: Observable<Loadable>;
   newsGroups$: Observable<ServiceNewsGroup[]>;
@@ -47,11 +47,11 @@ export class NewsListPageComponent implements OnInit {
     this.store.pipe(select(getNewsCursor), take(1)).subscribe(cursor => this.store.dispatch(new GetNewsListAction({ cursor })));
   }
 
-  onDeleteItem(item: NewsBroadcastItem) {
+  onDeleteItem(item: NewsItem) {
     this.store.dispatch(new DeleteNewsItemAction(item));
   }
 
-  onCopyItem(item: NewsBroadcastItem) {
+  onCopyItem(item: NewsItem) {
     this.store.dispatch(new CopyNewsItemAction(item));
   }
 }

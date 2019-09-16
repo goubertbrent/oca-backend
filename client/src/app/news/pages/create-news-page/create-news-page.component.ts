@@ -57,10 +57,7 @@ export class CreateNewsPageComponent implements OnInit {
       let item: CreateNews = {
         app_ids: [ data.default_app ],
         scheduled_at: null,
-        broadcast_on_facebook: false,
-        broadcast_on_twitter: false,
         tags: [],
-        facebook_access_token: null,
         media: null,
         role_ids: [],
         message: '',

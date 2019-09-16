@@ -152,13 +152,8 @@ export interface NewsItem {
   group_visible_until: number | null;
 }
 
-export interface NewsBroadcastItem extends NewsItem {
-  broadcast_on_twitter: boolean;
-  broadcast_on_facebook: boolean;
-}
-
-export interface NewsBroadcastItemList {
-  results: NewsBroadcastItem[];
+export interface NewsItemList {
+  result: NewsItem[];
   cursor: string | null;
   more: boolean;
 }
@@ -195,9 +190,6 @@ export interface CreateNews<T = Date> {
   qr_code_caption: string | null;
   app_ids: string[];
   scheduled_at: T | null;
-  broadcast_on_facebook: boolean;
-  broadcast_on_twitter: boolean;
-  facebook_access_token: string | null;
   target_audience: NewsTargetAudience | null;
   role_ids: number[];
   tags: string[];
@@ -214,7 +206,7 @@ export interface NewsApp {
 }
 
 export interface NewsStats {
-  news_item: NewsBroadcastItem;
+  news_item: NewsItem;
   apps: NewsApp[];
 }
 

@@ -77,9 +77,6 @@ def save_settings(service_user, service_identity, data):
     else:
         sln_i_settings.qualified_identifier = None
 
-    sln_settings.facebook_page = data.facebook_page
-    sln_settings.facebook_name = data.facebook_name if data.facebook_page else ''
-    sln_settings.facebook_action = data.facebook_action
     if data.currency is not None:
         sln_settings.currency = data.currency
     sln_settings.search_enabled = data.search_enabled

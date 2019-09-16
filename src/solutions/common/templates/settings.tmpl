@@ -537,13 +537,6 @@
             <div class="sln-set-name" required_setting="true"></div>
             <div class="sln-set-phone-number" required_setting="true"></div>
             <div class="sln-set-email-address"></div>
-            {% if sln_settings.uses_facebook() %}
-                <div class="sln-set-facebook-place"></div>
-            {% endif %}
-            {% if sln_settings.uses_twitter() %}
-                <div class="sln-set-twitter_profile"></div>
-                <br>
-            {% endif %}
             <div class="sln-set-description"></div>
             <div class="sln-set-currency">
                 <label>{% translate language, "common", "Currency" %}:</label>

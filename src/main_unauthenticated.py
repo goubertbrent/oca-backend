@@ -17,6 +17,9 @@
 
 from webapp2_extras.routes import RedirectRoute
 
+import shop.handlers
+import solutions.common.restapi  # @UnusedImport
+import solutions.common.restapi.campaignmonitor
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
@@ -26,15 +29,11 @@ from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler
-import shop.handlers
-from solutions.common.handlers.callback.twitter import SolutionsCallbackTwitterHandler
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
-import solutions.common.restapi  # @UnusedImport
-import solutions.common.restapi.campaignmonitor
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 
@@ -45,7 +44,6 @@ handlers = [
     ('/unauthenticated/loyalty/no_mobiles/lottery_winner', LoyaltyLotteryConfirmWinnerHandler),
     ('/unauthenticated/osa/launcher/apps', GetOSALaucherAppsHandler),
     ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
-    ('/unauthenticated/osa/callback/twitter', SolutionsCallbackTwitterHandler),
     ('/unauthenticated/osa/flanders', FlandersHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),

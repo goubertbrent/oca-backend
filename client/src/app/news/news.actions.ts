@@ -1,6 +1,6 @@
 import { Action } from '@ngrx/store';
 import { ApiError } from '../shared/errors/errors';
-import { CityAppLocations, CreateNews, NewsBroadcastItem, NewsBroadcastItemList, NewsOptions, NewsStats } from './interfaces';
+import { CityAppLocations, CreateNews, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
 
 export enum NewsActionTypes {
   GET_NEWS_OPTIONS = '[news] Get news options',
@@ -58,7 +58,7 @@ export class GetNewsListAction implements Action {
 export class GetNewsListCompleteAction implements Action {
   readonly type = NewsActionTypes.GET_NEWS_LIST_COMPLETE;
 
-  constructor(public payload: NewsBroadcastItemList) {
+  constructor(public payload: NewsItemList) {
   }
 
 }
@@ -109,7 +109,7 @@ export class CreateNewsItemAction implements Action {
 export class CreateNewsItemCompleteAction implements Action {
   readonly type = NewsActionTypes.CREATE_NEWS_ITEM_COMPLETE;
 
-  constructor(public payload: NewsBroadcastItem | null) {
+  constructor(public payload: NewsItem | null) {
   }
 
 }
@@ -132,7 +132,7 @@ export class UpdateNewsItemAction implements Action {
 export class UpdateNewsItemCompleteAction implements Action {
   readonly type = NewsActionTypes.UPDATE_NEWS_ITEM_COMPLETE;
 
-  constructor(public payload: NewsBroadcastItem) {
+  constructor(public payload: NewsItem) {
   }
 
 }
@@ -148,7 +148,7 @@ export class UpdateNewsItemFailedAction implements Action {
 export class DeleteNewsItemAction implements Action {
   readonly type = NewsActionTypes.DELETE_NEWS_ITEM;
 
-  constructor(public payload: NewsBroadcastItem) {
+  constructor(public payload: NewsItem) {
   }
 }
 
@@ -174,7 +174,7 @@ export class DeleteNewsItemCancelledAction implements Action {
 export class CopyNewsItemAction implements Action {
   readonly type = NewsActionTypes.COPY_NEWS_ITEM;
 
-  constructor(public payload: NewsBroadcastItem) {
+  constructor(public payload: NewsItem) {
   }
 }
 

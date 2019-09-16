@@ -1,9 +1,9 @@
 import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { DEFAULT_LOADABLE, Loadable } from '../shared/loadable/loadable';
-import { CityAppLocations, CreateNews, NewsApp, NewsBroadcastItem, NewsBroadcastItemList, NewsOptions, NewsStats } from './interfaces';
+import { CityAppLocations, CreateNews, NewsApp, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
 
-function selectNewsItemId(item: NewsBroadcastItem) {
+function selectNewsItemId(item: NewsItem) {
   return item.id;
 }
 
@@ -15,7 +15,7 @@ export const appsAdapter = createEntityAdapter<NewsApp>({
   selectId: selectAppId,
   sortComparer: (a, b) => a.name.localeCompare(b.name),
 });
-export const newsAdapter = createEntityAdapter<NewsBroadcastItem>({
+export const newsAdapter = createEntityAdapter<NewsItem>({
   selectId: selectNewsItemId,
   sortComparer: (first, second) => second.timestamp - first.timestamp,
 });
@@ -31,7 +31,7 @@ export const initialNewsState: NewsState = {
   locations: DEFAULT_LOADABLE,
 };
 
-export interface NewsItemsState extends EntityState<NewsBroadcastItem> {
+export interface NewsItemsState extends EntityState<NewsItem> {
   more: boolean;
   cursor: string | null;
 }
@@ -41,7 +41,7 @@ export interface NewsState {
   items: NewsItemsState;
   editingNewsItem: Loadable<CreateNews>;
   itemStats: Loadable<NewsStats>;
-  listStatus: Loadable<NewsBroadcastItemList>;
+  listStatus: Loadable<NewsItemList>;
   newsOptions: Loadable<NewsOptions>;
   locations: Loadable<CityAppLocations>;
 }

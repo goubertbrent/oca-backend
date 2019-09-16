@@ -17,6 +17,7 @@ export class FormIntegrationConfigurationComponent implements OnChanges {
     [ FormIntegrationProvider.GREEN_VALLEY ]: {
       provider: FormIntegrationProvider.GREEN_VALLEY,
       enabled: false,
+      visible: true,
       configuration: {
         base_url: '',
         password: '',

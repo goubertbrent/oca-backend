@@ -1,5 +1,5 @@
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
-import { CreateNews, NewsBroadcastItem } from './interfaces';
+import { CreateNews, NewsItem } from './interfaces';
 import { NewsActions, NewsActionTypes } from './news.actions';
 import { appsAdapter, initialNewsState, newsAdapter, NewsState } from './news.state';
 
@@ -17,7 +17,7 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
       return {
         ...state,
         listStatus: onLoadableSuccess(action.payload),
-        items: newsAdapter.addMany(action.payload.results, {
+        items: newsAdapter.addMany(action.payload.result, {
           ...state.items,
           cursor: action.payload.cursor,
           more: action.payload.more,
@@ -90,13 +90,10 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
   return state;
 }
 
-function convertNewsItem(newsItem: NewsBroadcastItem): CreateNews {
+function convertNewsItem(newsItem: NewsItem): CreateNews {
   return {
     action_button: newsItem.buttons.length ? newsItem.buttons[ 0 ] : null,
     app_ids: newsItem.app_ids,
-    broadcast_on_facebook: newsItem.broadcast_on_facebook,
-    broadcast_on_twitter: newsItem.broadcast_on_twitter,
-    facebook_access_token: null,
     id: newsItem.id,
     media: newsItem.media,
     message: newsItem.message,

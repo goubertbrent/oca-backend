@@ -8,8 +8,8 @@ import {
   CreateNews,
   NewsActionButtonMenuItem,
   NewsActionButtonType,
-  NewsBroadcastItem,
-  NewsBroadcastItemList,
+  NewsItem,
+  NewsItemList,
   NewsOptions,
   NewsStats,
   UINewsActionButton,
@@ -27,12 +27,12 @@ export class NewsService {
     if (cursor) {
       params = params.set('cursor', cursor);
     }
-    return this._http.get<NewsBroadcastItemList>('/common/news', { params });
+    return this._http.get<NewsItemList>('/common/news', { params });
   }
 
   createNewsItem(newsItem: CreateNews) {
     // Returns null in case item needs to be reviewed
-    return this._http.post<NewsBroadcastItem | null>(`/common/news`, convertNewsItem(newsItem));
+    return this._http.post<NewsItem | null>(`/common/news`, convertNewsItem(newsItem));
   }
 
   getNewsItem(id: number) {
@@ -40,7 +40,7 @@ export class NewsService {
   }
 
   updateNewsItem(id: number, newsItem: CreateNews) {
-    return this._http.put<NewsBroadcastItem>(`/common/news/${id}`, convertNewsItem(newsItem));
+    return this._http.put<NewsItem>(`/common/news/${id}`, convertNewsItem(newsItem));
   }
 
   deleteNewsItem(id: number) {
@@ -93,7 +93,7 @@ export class NewsService {
     }
   }
 
-  copyNewsItem(newsItem: NewsBroadcastItem): CreateNews {
+  copyNewsItem(newsItem: NewsItem): CreateNews {
     return {
       app_ids: newsItem.app_ids,
       action_button: newsItem.buttons ? newsItem.buttons[ 0 ] : null,
@@ -102,9 +102,6 @@ export class NewsService {
       group_visible_until: null,
       qr_code_caption: newsItem.qr_code_caption,
       locations: newsItem.locations,
-      broadcast_on_facebook: false,
-      broadcast_on_twitter: false,
-      facebook_access_token: null,
       id: null,
       media: newsItem.media,
       message: newsItem.message,

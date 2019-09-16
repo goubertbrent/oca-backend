@@ -12,17 +12,11 @@ import { NgForm } from '@angular/forms';
 import { MatChipEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSelect, MatSelectChange } from '@angular/material/select';
-import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { Subject } from 'rxjs';
-import { filter, first } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
-import { FacebookService, FBPage, FBTask } from '../../../shared/facebook.service';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { GetSolutionSettingsAction } from '../../../shared/shared.actions';
-import { getSolutionSettings, SharedState } from '../../../shared/shared.state';
 import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { GENDERS } from '../../consts';
 import {
@@ -69,7 +63,6 @@ export class EditNewsComponent implements OnChanges {
     total: string;
     cost: string;
   };
-  fbPages$ = new Subject<FBPage[]>();
   actionButton: UINewsActionButton | null = null;
   NewsActionButtonType = NewsActionButtonType;
   GENDERS = GENDERS;
@@ -79,9 +72,7 @@ export class EditNewsComponent implements OnChanges {
 
   constructor(private _matDialog: MatDialog,
               private _translate: TranslateService,
-              private _changeDetectorRef: ChangeDetectorRef,
-              private _store: Store<SharedState>,
-              private _fb: FacebookService) {
+              private _changeDetectorRef: ChangeDetectorRef) {
   }
 
   private _newsItem: CreateNews;
@@ -281,52 +272,6 @@ export class EditNewsComponent implements OnChanges {
     this.newsItem = { ...this.newsItem, locations };
   }
 
-  checkTwitter() {
-    this._store.dispatch(new GetSolutionSettingsAction());
-    this._store.pipe(select(getSolutionSettings), filter(s => s.success), first()).subscribe(settings => {
-      if (settings.data) {
-        if (!settings.data.twitter_username) {
-          this.newsItem = { ...this.newsItem, broadcast_on_twitter: false };
-          this.showError(this._translate.instant('oca.twitter-place-required'));
-        }
-      }
-    });
-  }
-
-  toggleFacebook(enabled: boolean) {
-    if (enabled) {
-      this.fbPages$.next([]);
-      this.getPages();
-    } else {
-      this.setFB(false, null);
-    }
-  }
-
-  getPages() {
-    const neededScopes = [ 'manage_pages', 'publish_pages' ];
-    this._fb.login({ scope: neededScopes.join(','), return_scopes: true }).subscribe(result => {
-      if (result.authResponse && result.authResponse.grantedScopes) {
-        for (const scope of neededScopes) {
-          if (!result.authResponse.grantedScopes.includes(scope)) {
-            this.showError(this._translate.instant('oca.facebook-manage-pages-required'));
-            return;
-          }
-        }
-        this.setFB(true, null);
-        this._fb.getAccounts().subscribe(r => {
-          const allowedPages = r.data.filter(p => p.tasks.includes(FBTask.CREATE_CONTENT));
-          if (allowedPages.length) {
-            this.setFB(true, allowedPages[ 0 ].access_token);
-          }
-          this.fbPages$.next(allowedPages);
-        });
-      } else {
-        this.setFB(false, null);
-      }
-    });
-
-  }
-
   addAttachment() {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
@@ -409,11 +354,6 @@ export class EditNewsComponent implements OnChanges {
       },
     };
     return this._matDialog.open(SimpleDialogComponent, config);
-  }
-
-  private setFB(enabled: boolean, accessToken: string | null) {
-    this.newsItem = { ...this.newsItem, broadcast_on_facebook: enabled, facebook_access_token: accessToken };
-    this._changeDetectorRef.markForCheck();
   }
 
   setButtonCaption($event: string | null) {

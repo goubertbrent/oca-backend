@@ -27,7 +27,6 @@ $(function () {
     var eventNotificationsEnabled = false;
     var inboxEmailRemindersEnabled = true;
     var isPublishing = false;
-    var fbAccessToken;
     var TMPL_SET_AVATAR = '<label>' + CommonTranslations.AVATAR + ': ' + CommonTranslations.CLICK_TO_CHANGE
         + '</label><div id="avatar_div"><img src="/common/settings/my_avatar" class="settings_avatar"></div>';
     var TMPL_SET_LOGO = '<label>' + CommonTranslations.LOGO + ': ' + CommonTranslations.CLICK_TO_CHANGE
@@ -36,15 +35,6 @@ $(function () {
         + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
     var TMPL_SET_PHONE_NUMBER = '<label>' + CommonTranslations.PHONE_NUMBER
         + ':</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
-    var TMPL_SET_FACEBOOK_ACTION_URL = '<label>' + CommonTranslations.WEBSITE
-        + ':</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
-    var TMPL_SET_FACEBOOK_PLACE = '<label>'
-        + CommonTranslations.FACEBOOK_PAGE
-        + ':</label> <a href="#fbLogin" id="facebookPlaceStep1">'
-        + CommonTranslations['Login with facebook first']
-        + '</a>'
-        + '<div id="facebookPlaceStep2"><input type="text" id="place-input" autocomplete="off" />	<input type="hidden" id="place-input-id" value="" /></div>';
-
     var TMPL_SET_DESCRIPTION = '<label>' + CommonTranslations.description
         + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
         + '" rows="6"></textarea>';
@@ -362,15 +352,6 @@ $(function () {
             $('.sln-set-timezone select').val(data.timezone);
             $('.sln-set-search-keywords textarea').val(data.search_keywords);
             $('.sln-set-email-address input').val(data.email_address);
-            var fbActionUrl = $('.sln-set-facebook-action-url input');
-            var fbPlace = $('.sln-set-facebook-place #place-input');
-            var fbPlaceId = $('.sln-set-facebook-place #place-input-id');
-            if (fbActionUrl.size() > 0)
-                fbActionUrl.val(data.facebook_action);
-            if (fbPlace.size() > 0)
-                fbPlace.val(data.facebook_name);
-            if (fbPlaceId.size() > 0)
-                fbPlaceId.val(data.facebook_page);
             searchEnabled = data.search_enabled;
             searchEnabledCheck = data.search_enabled_check;
             setServiceVisible(searchEnabled);
@@ -379,7 +360,6 @@ $(function () {
             setEventNotifications(data.event_notifications_enabled);
             inboxEmailRemindersEnabled = data.inbox_email_reminders;
             setInboxEmailRemindersStatus(inboxEmailRemindersEnabled);
-            setupTwitter(data.twitter_username);
             toggleUpdatesPending(data.updates_pending);
 
             if (MODULES.indexOf('billing') !== -1 && $('.sln-set-iban input').length) {
@@ -399,8 +379,6 @@ $(function () {
             toggleUpdatesPending(data.updatesPending);
         } else if (data.type == 'solutions.common.inbox.new.forwarder.via.scan') {
             inboxLoadForwarders();
-        } else if (data.type == 'solutions.common.twitter.updated') {
-            setupTwitter(data.username);
         } else if (data.type == 'solutions.common.locations.update') {
             if (!isLoyaltyTablet) {
                 if (service_identity != data.si) {
@@ -413,125 +391,6 @@ $(function () {
             renderRolesSettings();
         }
     };
-
-    window.fbAsyncInit = function () {
-        // init the FB JS SDK
-        sln.call({
-            url: '/common/settings/facebook-app-id',
-            method: 'get',
-            success: function (app_id) {
-                if (!app_id) {
-                    console.error('Cannot get facebook app id');
-                    $('.sln-set-facebook-place').hide();
-                    return;
-                }
-                FB.init({
-                    appId: app_id, // App ID
-                    status: true, // Check Facebook Login status
-                    cookie: true, // enable cookies to allow the server to access the session
-                    xfbml: true
-                });
-            },
-            error: sln.showAjaxError
-        });
-    };
-
-    // Load the SDK asynchronously
-    (function (d, s, id) {
-        var js, fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) {
-            return;
-        }
-        js = d.createElement(s);
-        js.id = id;
-        js.src = "//connect.facebook.net/en_US/all.js";
-        fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));
-
-    var loginFacebookPages = function () {
-        FB.login(function (response) {
-                if (response.authResponse) {
-                    if (response.authResponse.grantedScopes.indexOf('manage_pages') == -1) {
-                        sln.alert(T('facebook-manage-pages-required'));
-                        return;
-                    }
-
-                    fbAccessToken = response.authResponse.accessToken;
-                    $("#facebookPlaceStep1").css('visibility', 'hidden');
-                    $("#facebookPlaceStep2").css('visibility', 'visible');
-                    loadFacebookPages();
-                }
-            },
-            {
-                scope: 'manage_pages',
-                return_scopes: true
-            });
-    };
-
-    var fbPlaces = {};
-    var fbPlacesLabels = [];
-
-    var loadFacebookPages = function () {
-        $('#place-input').typeahead(
-            {
-                source: function (query, process) {
-                    var place_id = $('.sln-set-facebook-place #place-input-id');
-                    if (place_id.val()) {
-                        place_id.val("");
-                        saveSettings();
-                    }
-                    FB.api('/search?q=' + encodeURIComponent(query) + "&type=page&access_token="
-                        + encodeURIComponent(fbAccessToken), function (res) {
-                        fbPlaces = {};
-                        fbPlacesLabels = [];
-                        $.each(res.data, function (item, ix, list) {
-                            fbPlacesLabels.push(ix.id);
-                            fbPlaces[ix.id] = {
-                                id: ix.id,
-                                name: ix.name,
-                                category: ix.category
-
-                            };
-                        });
-                        process(fbPlacesLabels);
-                    });
-                },
-                matcher: function () {
-                    return true;
-                },
-                highlighter: function (item) {
-                    var p = fbPlaces[item];
-
-                    var typeahead_wrapper = $('<div class="typeahead_wrapper"></div>');
-                    var typeahead_photo = $('<img class="typeahead_photo" src="" />').attr("src",
-                        'https://graph.facebook.com/' + p.id + '/picture?width=50&height=50');
-                    typeahead_wrapper.append(typeahead_photo);
-                    var typeahead_labels = $('<div class="typeahead_labels"></div>');
-                    var typeahead_primary = $('<div class="typeahead_primary"></div>').text(p.name);
-                    typeahead_labels.append(typeahead_primary);
-                    var typeahead_secondary = $('<div class="typeahead_secondary"></div>').text(p.category);
-                    typeahead_labels.append(typeahead_secondary);
-                    typeahead_wrapper.append(typeahead_labels);
-
-                    return typeahead_wrapper;
-                },
-                updater: function (item) {
-                    $('.sln-set-facebook-place #place-input-id').val(item);
-                    var p = fbPlaces[item];
-                    $('.sln-set-facebook-place #place-input').val(p.name);
-                    saveSettings();
-                    return p.name;
-                }
-            }).keyup(function () {
-            var place_id = $('.sln-set-facebook-place #place-input-id');
-            if ($(this).val().trim() == '' && place_id.val()) {
-                place_id.val("");
-                saveSettings();
-            }
-        });
-
-    };
-
     /* Bulk invite */
 
     var testBulkInvites = function () {
@@ -808,47 +667,6 @@ $(function () {
         });
     });
 
-    $(document).on("click", "#twitter-login", function () {
-        sln.call({
-            url: "/common/twitter/auth_url",
-            type: "GET",
-            success: function (data) {
-                window.open(data, "", "width=700, height=500");
-            },
-            error: sln.showAjaxError
-        });
-    });
-
-    $(document).on("click", "#twitter-logout", function () {
-        sln.call({
-            url: "/common/twitter/logout",
-            type: "GET",
-            success: function (data) {
-                setupTwitter(null);
-            },
-            error: sln.showAjaxError
-        });
-    });
-
-    var setupTwitter = function (twitter_username) {
-        var d_0 = $('<label>' + CommonTranslations.TWITTER_PAGE + ':</label>');
-        $(".sln-set-twitter_profile").empty().append(d_0);
-        if (twitter_username == null) {
-            var d_1 = $('<img id="twitter-login" style="cursor: pointer;" src="/static/images/solutions/sign-in-with-twitter-gray.png" width="158" heigth="28">');
-            $(".sln-set-twitter_profile").append(d_1);
-        } else {
-            var d_2 = $('<p></p>');
-            var d_2_1 = $('<a target="_blank"></a>');
-            d_2_1.attr("href", "https://twitter.com/" + twitter_username);
-            d_2_1.text("@" + twitter_username);
-            d_2.append(d_2_1);
-            var d_2_2 = $('<button id="twitter-logout" style="margin-left: 20px;" type="button" class="btn btn-small btn-warning">'
-                + CommonTranslations.LOGOUT + '</button>');
-            d_2.append(d_2_2);
-            $(".sln-set-twitter_profile").append(d_2);
-        }
-    };
-
     /* HOLIDAYS */
 
     var to_epoch = function (textField) {
@@ -977,11 +795,7 @@ $(function () {
     $(".sln-set-name").html(TMPL_SET_NAME);
     $(".sln-set-email-address").html(TMPL_SET_EMAIL);
     $(".sln-set-phone-number").html(TMPL_SET_PHONE_NUMBER);
-    $(".sln-set-facebook-place").html(TMPL_SET_FACEBOOK_PLACE);
-    $("#facebookPlaceStep1").click(loginFacebookPages);
-    $("#facebookPlaceStep2").css('visibility', 'hidden');
 
-    $(".sln-set-facebook-action-url").html(TMPL_SET_FACEBOOK_ACTION_URL);
     $(".sln-set-description").html(TMPL_SET_DESCRIPTION);
     $(".sln-set-openinghours").html(TMPL_SET_OPENINGHOURS);
     $('.sln-set-address').html(TMPL_SET_ADDRESS);
@@ -1007,7 +821,6 @@ $(function () {
     sln.configureDelayedInput($('.sln-set-name input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-phone-number input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-currency select'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-facebook-action-url input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-description textarea'), saveSettings);
     sln.configureDelayedInput($('.sln-set-openinghours textarea'), saveSettings);
     sln.configureDelayedInput($('.sln-set-address textarea'), saveSettings);
@@ -1334,9 +1147,6 @@ $(function () {
             name: $('.sln-set-name input').val(),
             phone_number: $('.sln-set-phone-number input').val(),
             currency: $('.sln-set-currency select').val(),
-            facebook_action: $('.sln-set-facebook-action-url input').val(),
-            facebook_name: $('.sln-set-facebook-place #place-input').val(),
-            facebook_page: $('.sln-set-facebook-place #place-input-id').val(),
             description: $('.sln-set-description textarea').val(),
             opening_hours: $('.sln-set-openinghours textarea').val(),
             address: $('.sln-set-address textarea').val(),

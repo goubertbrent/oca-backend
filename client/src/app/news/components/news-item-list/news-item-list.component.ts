@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { ServiceNewsGroup } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { NewsBroadcastItem } from '../../interfaces';
+import { NewsItem } from '../../interfaces';
 
 @Component({
   selector: 'oca-news-item-list',
@@ -10,12 +10,12 @@ import { NewsBroadcastItem } from '../../interfaces';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewsItemListComponent implements OnChanges {
-  @Input() items: NewsBroadcastItem[];
+  @Input() items: NewsItem[];
   @Input() hasMore: boolean;
   @Input() listStatus: Loadable;
   @Input() newsGroups: ServiceNewsGroup[];
-  @Output() deleteItem = new EventEmitter<NewsBroadcastItem>();
-  @Output() copyItem = new EventEmitter<NewsBroadcastItem>();
+  @Output() deleteItem = new EventEmitter<NewsItem>();
+  @Output() copyItem = new EventEmitter<NewsItem>();
   @Output() loadMore = new EventEmitter();
 
   newsGroupsMapping: { [ key: string ]: string } = {};
@@ -29,7 +29,7 @@ export class NewsItemListComponent implements OnChanges {
     }
   }
 
-  trackNews(index: number, item: NewsBroadcastItem) {
+  trackNews(index: number, item: NewsItem) {
     return item.id;
   }
 }

@@ -193,8 +193,6 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
       const buttonValue = JSON.stringify({ '__rt__.tag': '__sln__.forms', id: form.data.form.id });
       const data: CreateNews = {
         app_ids: [(info.data as ServiceIdentityInfo).default_app],
-        broadcast_on_facebook: false,
-        broadcast_on_twitter: false,
         action_button: {
           action: `smi://${buttonValue}`,
           caption: form.data.form.title.substring(0, 15),
@@ -211,7 +209,6 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
         title: form.data.form.title,
         type: 1,
         group_type: form.data.settings.visible_until ? NewsGroupType.POLLS : NewsGroupType.CITY,
-        facebook_access_token: null,
         id: null,
         locations: null,
         group_visible_until: form.data.settings.visible_until ? new Date(form.data.settings.visible_until) : null,

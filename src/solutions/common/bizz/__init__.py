@@ -146,8 +146,6 @@ class SolutionModule(Enum):
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,
                      PHARMACY_ORDER, CITY_APP)
-    FACEBOOK_MODULES = (BROADCAST,)
-    TWITTER_MODULES = (BROADCAST,)
     PROVISION_ORDER = defaultdict(lambda: 10, {BROADCAST: 20})  # Broadcast should be last for auto broadcast types
 
     # Modules allowed for static content subscriptions

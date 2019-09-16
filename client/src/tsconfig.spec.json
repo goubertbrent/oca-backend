@@ -5,8 +5,7 @@
     "types": [
       "jasmine",
       "node",
-      "googlemaps",
-      "facebook-js-sdk"
+      "googlemaps"
     ]
   },
   "files": [

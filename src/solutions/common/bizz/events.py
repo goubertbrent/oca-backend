@@ -710,7 +710,7 @@ def solution_calendar_broadcast(service_user, email, method, params, tag, servic
     if sc:
         broadcast_type = translate(sln_settings.main_language, SOLUTION_COMMON, u'calendar-broadcast-type',
                                    name=sc.name)
-        broadcast_send(service_user, service_identity, broadcast_type, message, broadcast_on_facebook=False, broadcast_on_twitter=False, broadcast_to_all_locations=True)
+        broadcast_send(service_user, service_identity, broadcast_type, message, broadcast_to_all_locations=True)
         r.result = u"successfully broadcast"
     else:
         r.result = u"Calendar not found. Broadcast failed."

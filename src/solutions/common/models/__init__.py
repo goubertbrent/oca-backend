@@ -326,16 +326,12 @@ class SolutionSettings(SolutionIdentitySettings):
 
     # Broadcast
     broadcast_types = db.StringListProperty(indexed=False)
-    broadcast_on_facebook = db.BooleanProperty(indexed=False, default=False)
-    broadcast_on_twitter = db.BooleanProperty(indexed=False, default=False)
     broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
 
     facebook_page = db.StringProperty(indexed=False)
     facebook_name = db.StringProperty(indexed=False)
     facebook_action = db.StringProperty(indexed=False)
 
-    twitter_oauth_token = db.StringProperty(indexed=False)
-    twitter_oauth_token_secret = db.StringProperty(indexed=False)
     twitter_username = db.StringProperty(indexed=False)
 
     # Branding
@@ -364,14 +360,6 @@ class SolutionSettings(SolutionIdentitySettings):
     def uses_inbox(self):
         from solutions.common.bizz import SolutionModule
         return any((m in self.modules for m in SolutionModule.INBOX_MODULES))
-
-    def uses_facebook(self):
-        from solutions.common.bizz import SolutionModule
-        return any((m in self.modules for m in SolutionModule.FACEBOOK_MODULES))
-
-    def uses_twitter(self):
-        from solutions.common.bizz import SolutionModule
-        return any((m in self.modules for m in SolutionModule.TWITTER_MODULES))
 
     def can_edit_services(self, customer):
         from solutions.common.bizz import SolutionModule, OrganizationType
@@ -581,9 +569,6 @@ class SolutionScheduledBroadcast(db.Model):
     json_attachments = db.TextProperty()
     json_urls = db.TextProperty()
 
-    broadcast_on_twitter = db.BooleanProperty(indexed=False, default=False)
-    broadcast_on_facebook = db.BooleanProperty(indexed=False, default=False)
-    facebook_access_token = db.StringProperty(indexed=False)
     service_identity = db.StringProperty(indexed=False)  # Service who created the broadcast
     broadcast_to_all_locations = db.BooleanProperty(indexed=False, default=False)
     statistics_keys = db.StringListProperty(indexed=False)  # Link to BroadcastStatistic

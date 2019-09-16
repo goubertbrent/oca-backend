@@ -8,7 +8,7 @@
 
       <mat-step ngModelGroup="stepContent"
                 [completed]="stepper.selectedIndex > 0"
-                [label]="'oca.Content' | translate" 
+                [label]="'oca.Content' | translate"
                 [stepControl]="form.controls.stepContent">
 
         <div class="editor">
@@ -136,7 +136,7 @@
               </div>
             </mat-card-content>
           </mat-card>
-          
+
           <div class="step-nav-buttons">
             <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
             <button type="button" mat-raised-button matStepperNext>{{ 'oca.Next' | translate }}</button>
@@ -154,7 +154,7 @@
       <mat-step optional
                 ngModelGroup="stepAudience"
                 [completed]="stepper.selectedIndex > 1"
-                [label]="'oca.target_audience' | translate" 
+                [label]="'oca.target_audience' | translate"
                 [stepControl]="form.controls.stepAudience">
 
         <mat-card>
@@ -181,7 +181,7 @@
                                    [disabled]="published"
                                    [(ngModel)]="newsItem.locations"></oca-news-location>
               </ng-container>
-              
+
               <br><mat-divider></mat-divider><br>
             </div>
 
@@ -194,7 +194,7 @@
                 {{ 'oca.broadcast-locally' | translate }}
               </mat-slide-toggle>
               <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-locally-description' | translate }}</p>
-              
+
               <br>
 
               <mat-slide-toggle
@@ -205,7 +205,7 @@
                 {{ 'oca.broadcast-regionally' | translate }}
               </mat-slide-toggle>
               <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-regionally-description' | translate }}</p>
-              
+
               <ng-container *ngIf="hasRegional">
                 <div class="map-container" *ngIf="options.data?.regional.map_url else appSelectTemplate">
                   <oca-news-app-map-picker name="app_ids"
@@ -306,37 +306,6 @@
                 </mat-slide-toggle>
               </div>
             </div>
-
-            <div class="social-media" *ngIf="false">
-              <h4>{{ 'oca.social_media' | translate }}</h4>
-              <mat-slide-toggle (ngModelChange)="toggleFacebook($event)"
-                                [disabled]="published"
-                                [ngModel]="newsItem.broadcast_on_facebook"
-                                name="broadcast_on_facebook">
-                {{ 'oca.put-on-facebook' | translate }}
-              </mat-slide-toggle>
-              <div class="fb-group-container">
-                <mat-form-field appearance="outline" *ngIf="!published && newsItem.broadcast_on_facebook">
-                  <mat-label>{{ 'oca.Facebook page' | translate }}</mat-label>
-                  <mat-select [(ngModel)]="newsItem.facebook_access_token" [required]="!newsItem.id"
-                              name="facebook_access_token">
-                    <mat-option *ngFor="let page of fbPages$ | async" [value]="page.access_token">
-                      {{ page.name }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <button (click)="getPages()" *ngIf="newsItem.broadcast_on_facebook && !published" mat-raised-button>
-                  {{ 'oca.refresh_list' | translate }}
-                </button>
-              </div>
-              <mat-slide-toggle (ngModelChange)="checkTwitter()"
-                                [(ngModel)]="newsItem.broadcast_on_twitter"
-                                [disabled]="published"
-                                name="broadcast_on_twitter">
-                {{ 'oca.put-on-twitter' | translate }}
-              </mat-slide-toggle>
-            </div>
-
           </mat-card-content>
         </mat-card>
 
@@ -348,7 +317,7 @@
 
       <mat-step ngModelGroup="stepBroadcast"
                 [label]="'oca.Broadcast' | translate"
-                [completed]="stepper.selectedIndex > 1" 
+                [completed]="stepper.selectedIndex > 1"
                 [stepControl]="form.controls.stepBroadcast">
 
         <div class="editor">
@@ -383,12 +352,11 @@
                     {{ 'oca.news_group_visible_until_info' | translate }}
                   </mat-card-subtitle>
                 </mat-card-title-group>
-                <div fxFlex></div>
                 <button mat-icon-button (click)="showGroupInfoDetails = !showGroupInfoDetails" class="header-icon-button">
                   <mat-icon>info</mat-icon>
                 </button>
             </mat-card-header>
-            
+
             <mat-card-content>
               <p *ngIf="showGroupInfoDetails">{{ 'oca.news_group_visible_until_details' | translate : {name: getGroupName()} }}</p>
               <oca-date-time-input name="group_visible_until"
@@ -431,7 +399,7 @@
               </oca-date-time-input>
             </mat-card-content>
           </mat-card>
-          
+
           <div class="step-nav-buttons submit-button">
             <button type="button" mat-raised-button matStepperPrevious>{{ 'oca.back' | translate }}</button>
             <mat-spinner *ngIf="status.loading" [diameter]="36"></mat-spinner>
@@ -450,6 +418,5 @@
       </mat-step>
     </mat-horizontal-stepper>
   </form>
-  
+
 </div>
-  
