@@ -119,6 +119,9 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     stripe_secret_key = add_meta(db.StringProperty(indexed=False),
                                       doc="Stripe secret key",
                                       order=1402)
+    stripe_webhook_secret = add_meta(db.StringProperty(indexed=False),
+                                     doc="Stripe webhook secret",
+                                     order=1403)
 
     recaptcha_site_key = add_meta(db.StringProperty(indexed=False),
                                   doc="Google ReCaptcha site key",

@@ -18,6 +18,7 @@
 from datetime import datetime
 import logging
 import rfc822
+from urlparse import urlparse
 from xml.dom import minidom
 
 from bs4 import BeautifulSoup
@@ -240,6 +241,8 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
     doc = minidom.parseString(xml_content)
     items = []
     keys = []
+    parsed_url = urlparse(rss_url)
+    base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
     for item in doc.getElementsByTagName('item'):
         try:
             title = html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue).strip()
@@ -255,7 +258,7 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
                 logging.info('description not found or empty for %s', item.childNodes)
                 continue
             description_html = description_tags[0].firstChild.nodeValue
-            message = html_to_markdown(description_html)
+            message = html_to_markdown(description_html, base_url)
             date_tags = item.getElementsByTagName('pubDate')
             image_url = get_image_url(item, description_html)
             if date_tags:

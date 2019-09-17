@@ -15,18 +15,17 @@
 #
 # @@license_version:1.5@@
 
-from HTMLParser import HTMLParser
-from base64 import b64encode
 import hashlib
-import imghdr
 import importlib
 import logging
 import urlparse
+from HTMLParser import HTMLParser
+from base64 import b64encode
 
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import webapp, ndb
-import markdownify
 
+from html2text import HTML2Text
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
 from rogerthat.dal.service import get_default_service_identity
@@ -192,8 +191,9 @@ def linestrip(s):
     return '\n'.join((line.strip() for line in s.splitlines()))
 
 
-def html_to_markdown(html_content):
+def html_to_markdown(html_content, base_url=None):
     if not html_content:
         return html_content
-
-    return linestrip(markdownify.markdownify(html_content, strip=['img', 'iframe'], heading_style=markdownify.ATX))
+    converter = HTML2Text(baseurl=base_url, bodywidth=0)
+    converter.ignore_images = True
+    return converter.handle(html_content)

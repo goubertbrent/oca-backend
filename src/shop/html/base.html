@@ -27,7 +27,6 @@
     {% endif %}
 {% block stylesheets %}
 {% endblock %}
-<script src="https://checkout.stripe.com/checkout.js"></script>
 <script src="/static/js/jquery-1.10.0.min.js"></script>
 <script src="/static/bootstrap/js/bootstrap.min.js"></script>
 <script src="/static/js/jquery.tmpl.min.js"></script>
@@ -39,7 +38,6 @@
 {% autoescape off %}
 SLN_CONSTS.LOG_ERROR_URL = "/internal/shop/log_error";
     var DEBUG = {% if DEBUG %}true{% else %}false{% endif %};
-var STRIPE_PUBLIC_KEY = "{{ stripePublicKey }}";
 var JS_TEMPLATES = {{ js_templates|safe }};
 var CURRENT_USER = "{{ current_user.email }}";
 var PROSPECT_REASONS = {{ prospect_reasons_json }};
@@ -241,24 +239,6 @@ var CommonTranslations = {
             <a href="#" class="btn btn-primary hide update_contact" id="button_update_contact">Save contact</a>
         </div>
     </div>
-    <div class="modal hide fade" id="credit_card_form">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3>Link Credit card</h3>
-        </div>
-        <div class="modal-body" style="min-height: 200px;">
-                    <div class="alert alert-error" id="link_credit_card_error">
-                      <strong>Error!</strong> <span></span>
-                    </div>
-                    <label>Select Customer: </label>
-                    <input type="text" placeholder="Customer name" id="link_credit_card_customer_name" class="customer_select" autocomplete="off" >
-                    <label>Select Contact: </label>
-                    <select id="link_credit_card_contact"></select><br>
-        </div>
-        <div class="modal-footer">
-            <a href="#" class="btn btn-primary" id="button_link_credit_card">Link credit card</a>
-        </div>
-    </div>
 
     <div class="modal hide fade" id="change_service_email_tmpl" style="z-index:5555;">
         <div class="modal-header">
@@ -337,10 +317,6 @@ var CommonTranslations = {
             <h3>Payment options</h3>
         </div>
         <div class="modal-body" style="background-color: #f5f5f5; text-align: center;">
-            <button class="btn btn-large btn-inverse pull-left link-credit-card" style="width: 47%">
-                Couple credit card<br>
-                <em><small id="link-credit-card-discount"></small></em>
-            </button>
             <button class="btn btn-large btn-primary pull-right pay-on-site" style="width: 47%">
                 On site payment with card<br>&nbsp;
             </button>

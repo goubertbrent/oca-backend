@@ -21,10 +21,10 @@ import json
 import logging
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
+
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-
-from babel.dates import format_datetime, get_timezone
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
@@ -38,8 +38,8 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO, \
-    NewsItemTO, NewsItemListResultTO
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO,\
+    NewsItemListResultTO, NewsItemTO
 from rogerthat.utils import now
 from rogerthat.utils.service import get_service_identity_tuple
 from shop.dal import get_customer
@@ -233,7 +233,6 @@ def send_news_review_message(sln_settings, sender_service, review_key, image_url
 
 
 def send_news_for_review(city_service, service_identity_user, app_id, is_free_regional_news, coupon, **kwargs):
-
     key = NewsReview.create_key(city_service)
     review = key.get() or NewsReview(key=key)
     review.service_identity_user = service_identity_user
@@ -281,8 +280,8 @@ def publish_item_from_review(review_key):
 
     service_user, _ = get_service_identity_tuple(review.service_identity_user)
     with users.set_user(service_user):
-        item = publish_item(review.service_identity_user, review.app_id, review.is_free_regional_news,
-                            coupon, should_save_coupon, **review.data)
+        item = publish_item(review.service_identity_user, review.app_id, review.is_free_regional_news, coupon,
+                            should_save_coupon, **review.data)
 
     inbox_message = SolutionInboxMessage.get(review.inbox_message_key)
     if inbox_message:
@@ -301,13 +300,13 @@ def publish_item_from_review(review_key):
 
 @returns(NewsItemTO)
 @arguments(service_identity_user=users.User, title=unicode, message=unicode,
-           action_button=(NoneType, NewsActionButtonTO),
-           news_type=(int, long), qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
-           news_id=(NoneType, int, long), target_audience=NewsTargetAudienceTO, role_ids=[(int, long)],
-           tag=unicode, media=BaseMediaTO, group_type=unicode, locations=NewsLocationsTO, group_visible_until=(int, long))
-def put_news_item(service_identity_user, title, message, action_button,
-                  news_type, qr_code_caption, app_ids, scheduled_at, news_id=None, target_audience=None, role_ids=None,
-                  tag=None, media=MISSING, group_type=None, locations=None, group_visible_until=None):
+           action_button=(NoneType, NewsActionButtonTO), news_type=(int, long), qr_code_caption=unicode,
+           app_ids=[unicode], scheduled_at=(int, long), news_id=(NoneType, int, long),
+           target_audience=NewsTargetAudienceTO, role_ids=[(int, long)], tag=unicode, media=BaseMediaTO,
+           group_type=unicode, locations=NewsLocationsTO, group_visible_until=(int, long))
+def put_news_item(service_identity_user, title, message, action_button, news_type, qr_code_caption, app_ids,
+                  scheduled_at, news_id=None, target_audience=None, role_ids=None, tag=None, media=MISSING,
+                  group_type=None, locations=None, group_visible_until=None):
     """
     Args:
         service_identity_user (users.User)
@@ -376,7 +375,7 @@ def put_news_item(service_identity_user, title, message, action_button,
                     feed_names[app_id] = NewsFeedNameTO(app_id, tag)
     customer = get_customer(service_user)
     if customer and customer.organization_type == OrganizationType.CITY and \
-        not _app_uses_custom_organization_types(customer.language):
+            not _app_uses_custom_organization_types(customer.language):
         sticky = True
         if not sticky_until:
             # TODO shouldn't this auto-sticky behaviour be removed?

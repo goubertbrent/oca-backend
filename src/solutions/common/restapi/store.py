@@ -15,8 +15,8 @@
 #
 # @@license_version:1.5@@
 
-import logging
 from contextlib import closing
+import logging
 
 from google.appengine.ext import db
 from google.appengine.ext.deferred import deferred
@@ -24,25 +24,24 @@ from google.appengine.ext.deferred import deferred
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.dal.app import get_app_by_id
-from rogerthat.models.utils import copy_model_properties, allocate_id
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
+from rogerthat.settings import get_server_settings
 from rogerthat.to import RETURNSTATUS_TO_SUCCESS, ReturnStatusTO
-from rogerthat.utils import now, channel, today
+from rogerthat.translations import DEFAULT_LANGUAGE
+from rogerthat.utils import now, today
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import send_order_email, update_regiomanager_statistic, generate_order_or_invoice_pdf, create_task, \
-    get_payed, broadcast_task_updates
+from shop.bizz import send_order_email, generate_order_or_invoice_pdf, create_task, broadcast_task_updates
 from shop.business.legal_entities import get_vat_pct
 from shop.business.prospect import create_prospect_from_customer
 from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
-from shop.models import Order, OrderItem, Product, Charge, OrderNumber, ShopTask, Prospect, Customer, \
-    RegioManagerTeam, Contact
-from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatusTO, BoolReturnStatusTO
+from shop.models import Order, OrderItem, Product, ShopTask, Prospect, Customer, \
+    RegioManagerTeam, Contact, StripePayment, StripePaymentItem
+from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatusTO
+from solution_server_settings import get_solution_server_settings
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.budget import update_budget
 from solutions.common.dal import get_solution_settings
 
 try:
@@ -191,179 +190,73 @@ def add_item_to_order(item):
         return OrderItemReturnStatusTO.create(False, exception.message, None)
 
 
-@rest("/common/store/order/pay", "post", read_only_access=False)
-@returns(BoolReturnStatusTO)
+@rest("/common/store/order/pay/url", "get", read_only_access=False)
+@returns(unicode)
 @arguments()
-def pay_order():
+def get_pay_order_url():
+    import stripe
+
     service_user = users.get_current_user()
-    language = get_solution_settings(service_user).main_language
+    sln_settings = get_solution_settings(service_user)
+    if not sln_settings:
+        return None
     customer = get_customer(service_user)
-    azzert(customer)
+    if not customer:
+        return None
+    order_key = Order.create_key(customer.id, Order.CUSTOMER_STORE_ORDER_NUMBER)
+    order = Order.get(order_key)
+    if not order:
+        return None
+    team = RegioManagerTeam.get(RegioManagerTeam.create_key(customer.team_id))
+    if not team:
+        return None
 
-    app = get_app_by_id(customer.app_id)
-    is_demo = app and app.demo
-    if not is_demo and not customer.stripe_valid:
-        return BoolReturnStatusTO.create(False,
-                                         translate(language, SOLUTION_COMMON, u'link_cc_now'),
-                                         True)
+    items = []
+    product_keys = []
+    product_dict = {}
+    for i in OrderItem.list_by_order(order_key):
+        items.append(StripePaymentItem(product_code=i.product_code,
+                                       count=i.count))
+        product_dict[i.product_code] = i.count
+        product_keys.append(Product.create_key(i.product_code))
 
-    # create a new order with the exact same order items.
-    old_order_key = Order.create_key(customer.id, Order.CUSTOMER_STORE_ORDER_NUMBER)
+    if not items:
+        return None
 
-    charge_id_cache = []
+    vat_pct = get_vat_pct(customer, team)
+    language = sln_settings.main_language or DEFAULT_LANGUAGE
 
-    CREATE_SHOPTASK_FOR_ITEMS = [Product.PRODUCT_ROLLUP_BANNER, Product.PRODUCT_CARDS]
+    line_items = []
+    for p in Product.get(product_keys):
+        name = p.description(language)
+        total = p.price
+        vat = total * vat_pct / 100
 
-    def trans():
-        old_order, team = db.get((old_order_key, RegioManagerTeam.create_key(customer.team_id)))
+        line_items.append({
+            'name': name,
+            'amount': total + vat,
+            'currency': u'eur',
+            'quantity': product_dict[p.code],
+        })
 
-        if not old_order:
-            return BoolReturnStatusTO.create(False, translate(language, SOLUTION_COMMON, u'cart_empty'), False)
+    solution_server_settings = get_solution_server_settings()
+    stripe.api_key = solution_server_settings.stripe_secret_key
 
-        # Duplicate the order
-        to_put = []
-        to_delete = []
-        properties = copy_model_properties(old_order)
-        properties['status'] = Order.STATUS_SIGNED
-        properties['date_signed'] = now()
-        new_order_key = Order.create_key(customer.id, OrderNumber.next(team.legal_entity_key))
-        new_order = Order(key=new_order_key, **properties)
-        new_order.team_id = team.id
-        to_delete.append(old_order)
+    base_url = get_server_settings().baseUrl
 
-        # duplicate all of the order items
-        old_order_items = OrderItem.list_by_order(old_order_key)  # type: list[OrderItem]
-        all_products = {product.code: product for product in db.get([Product.create_key(item.product_code)
-                                                                     for item in old_order_items])}
-        is_subscription_extension_order = False
-        for product in all_products.itervalues():
-            if product.is_subscription_extension:
-                is_subscription_extension_order = True
-                break
-        new_order.is_subscription_extension_order = is_subscription_extension_order
-        if is_subscription_extension_order:
-            subscription_order = Order.get_by_order_number(customer.id, customer.subscription_order_number)
-            new_order.next_charge_date = subscription_order.next_charge_date
-        should_create_shoptask = False
-        added_budget = 0
-        budget_description = None
-        for old_item in old_order_items:
-            properties = copy_model_properties(old_item)
-            new_item = OrderItem(parent=new_order_key, **properties)
-            to_put.append(new_item)
-            to_delete.append(old_item)
-            if old_item.clean_product_code in CREATE_SHOPTASK_FOR_ITEMS:
-                should_create_shoptask = True
-            if old_item.clean_product_code == Product.PRODUCT_BUDGET:
-                budget_description = all_products[old_item.product_code].description(language)
-                added_budget += all_products[old_item.product_code].price * old_item.count
-        if added_budget:
-            deferred.defer(update_budget, service_user, added_budget, service_identity=None, context_type=None,
-                           context_key=None, memo=budget_description, _transactional=True)
-        to_put.append(new_order)
-        db.put(to_put)
-        db.delete(to_delete)
-
-        deferred.defer(generate_and_put_order_pdf_and_send_mail, customer, new_order_key, service_user,
-                       old_order.contact, _transactional=True)
-
-        # No need for signing here, immediately create a charge.
-        azzert(new_order.total_amount > 0)
-        if not is_demo:
-            # Ensure same charge id is used when transaction is retried, else the customer might be charged twice
-            if not charge_id_cache:
-                charge_id_cache.append(allocate_id(Charge, parent=new_order_key))
-            charge = Charge(key=Charge.create_key(charge_id_cache[0], new_order_key.name(), customer.id))
-            charge.date = now()
-            charge.type = Charge.TYPE_ORDER_DELIVERY
-            charge.amount = new_order.amount
-            charge.vat_pct = new_order.vat_pct
-            charge.vat = new_order.vat
-            charge.total_amount = new_order.total_amount
-            charge.manager = new_order.manager
-            charge.team_id = new_order.team_id
-            charge.status = Charge.STATUS_PENDING
-            charge.date_executed = now()
-            charge.currency_code = team.legal_entity.currency_code
-            charge.put()
-
-        # Update the regiomanager statistics so these kind of orders show up in the monthly statistics
-        deferred.defer(update_regiomanager_statistic, gained_value=new_order.amount / 100,
-                       manager=new_order.manager, _transactional=True)
-        if not is_demo:
-            # charge the credit card
-            get_payed(customer.id, new_order, charge)
-
-        channel.send_message(service_user, 'common.billing.orders.update')
-        if should_create_shoptask:
-            deferred.defer(create_task_for_order, customer.id, new_order.order_number, _countdown=5,
-                           _transactional=True)
-        return BoolReturnStatusTO.create(True, None)
-
-    xg_on = db.create_transaction_options(xg=True)
-    return db.run_in_transaction_options(xg_on, trans)
-
-
-def generate_and_put_order_pdf_and_send_mail(customer, new_order_key, service_user, contact=None):
-    # type: (Customer, db.Key, users.User, Contact) -> None
-    def trans():
-        new_order = Order.get(new_order_key)
-        with closing(StringIO()) as pdf:
-            generate_order_or_invoice_pdf(pdf, customer, new_order, contact or new_order.contact)
-            new_order.pdf = pdf.getvalue()
-
-        new_order.put()
-        deferred.defer(send_order_email, new_order_key, service_user, _transactional=True)
-    run_in_xg_transaction(trans)
-
-
-def create_task_for_order(customer_id, order_number):
-    customer = Customer.get_by_id(customer_id)
-    prospect_id = customer.prospect_id
-    if prospect_id is None:
-        prospect = create_prospect_from_customer(customer)
-        prospect_id = prospect.id
-    team, prospect = db.get(
-        [RegioManagerTeam.create_key(customer.team_id), Prospect.create_key(prospect_id)])
-    azzert(team.support_manager, u'No support manager found for team %s' % team.name)
-    comment = u'Customer placed a new order: %s' % order_number
-    task = create_task(
-        created_by=STORE_MANAGER.email(),
-        prospect_or_key=prospect,
-        app_id=prospect.app_id,
-        status=ShopTask.STATUS_NEW,
-        task_type=ShopTask.TYPE_SUPPORT_NEEDED,
-        address=None,
-        assignee=team.support_manager,
-        comment=comment,
-        execution_time=today() + 86400 + 11 * 3600,  # tomorrow at 11:00
-        notify_by_email=True
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=line_items,
+        success_url='%s/unauthenticated/payments/stripe/success' % base_url,
+        cancel_url='%s/unauthenticated/payments/stripe/cancel' % base_url,
     )
-    task.put()
-    broadcast_task_updates([team.support_manager])
 
+    session_id = session['id']
 
-def create_task_if_not_order(customer_id):
-    customer = Customer.get_by_id(customer_id)
-    # Check if the customer has linked his credit card after he clicked the 'pay' button
-    # If he didn't (one hour after the last time he tried to pay), create a new ShopTask to call this customer.
-    if not customer.stripe_valid and customer.team_id:
-        if customer.prospect_id:
-            rmt, prospect = db.get(
-                [RegioManagerTeam.create_key(customer.team_id), Prospect.create_key(customer.prospect_id)])
-        else:
-            prospect = create_prospect_from_customer(customer)
-            rmt = RegioManagerTeam.get(RegioManagerTeam.create_key(customer.team_id))
-        azzert(rmt.support_manager, 'No support manager found for team %s' % rmt.name)
-        task = create_task(prospect_or_key=prospect,
-                           status=ShopTask.STATUS_NEW,
-                           task_type=ShopTask.TYPE_SUPPORT_NEEDED,
-                           address=None,
-                           created_by=STORE_MANAGER.email(),
-                           assignee=rmt.support_manager,
-                           execution_time=today() + 86400 + 11 * 3600,  # tomorrow, 11:00,
-                           app_id=prospect.app_id,
-                           comment=u"Customer wanted to pay an order in the customer store, "
-                           "but didn't succeed because he did not link his creditcard.",
-                           notify_by_email=True)
-        task.put()
+    payment = StripePayment(key=StripePayment.create_key(session_id),
+                            items=items)
+    payment.service_user = service_user
+    payment.status = StripePayment.STATUS_CREATED
+    payment.put()
+
+    return '%s/unauthenticated/payments/stripe?session_id=%s' % (get_server_settings().baseUrl, session_id)

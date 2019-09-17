@@ -1,5 +1,5 @@
 <h2 matDialogTitle>{{ data.title }}</h2>
-<form #form="ngForm" (ngSubmit)="submit()">
+<form (ngSubmit)="submit()">
   <mat-dialog-content>
     <p [innerHTML]="data.message"></p>
     <mat-list *ngIf="selectedUser">

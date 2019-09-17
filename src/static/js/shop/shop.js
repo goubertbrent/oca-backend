@@ -365,16 +365,6 @@ var startOnSitePayment = function (customerId, customerName, customerUserEmail, 
     var paymentOptionsModal = $('#payment_options_modal').modal('show');
     $('.modal-header .close').toggle(cancelable);
 
-    getLegalEntity(function (legalEntity) {
-        $('#link-credit-card-discount').text('1 time ' + legalEntity.currency + ' 10,- discount');
-        $(".link-credit-card", paymentOptionsModal).toggle(legalEntity.is_mobicage).attr('customer_id', customerId).click(function () {
-            paymentOptionsModal.modal('hide');
-            $('#credit_card_form').data('successCallback', function () {
-                paymentOptionsModal.modal('hide');
-                chargeCreditCard(customerId, orderNumber, chargeId);
-            });
-        });
-    });
     $(".pay-on-site", paymentOptionsModal).unbind('click').click(function () {
         paymentOptionsModal.modal('hide');
         getLegalEntity(function (legalEntity) {
@@ -384,41 +374,6 @@ var startOnSitePayment = function (customerId, customerName, customerUserEmail, 
             $('#charge-amount', modal).text(legalEntity.currency + ' ' + Number(chargeAmount / 100).toFixed(2));
             $('#charge-reference', modal).text(chargeReference);
         });
-    });
-
-    $('#credit_card_form').unbind('hide').on('hide', function () {
-        paymentOptionsModal.modal('show');
-    });
-};
-
-var chargeCreditCard = function (customerId, orderNumber, chargeId) {
-    showProcessing("Executing payment ...");
-    sln.call({
-        url: '/internal/shop/rest/charge/execute_stripe',
-        type: 'POST',
-        data: {
-            data: JSON.stringify({
-                customer_id: customerId,
-                order_number: orderNumber,
-                charge_id: chargeId
-            })
-        },
-        success: function (data) {
-            hideProcessing();
-            if (data)
-                alert(data);
-            else {
-                if ($('#customer_form').css('display') == 'block') { // when customer popup is opened
-                    showOrders(true);
-                } else {
-                    window.location.reload();
-                }
-            }
-        },
-        error: function () {
-            hideProcessing();
-            alert('An unknown error occurred. Check with the administrators.');
-        }
     });
 };
 
@@ -611,14 +566,6 @@ var showDetails = function () {
             $('#show_all_customers').parent().hide();
         }
         $('#managed-by').text(currentCustomer.manager ? currentCustomer.manager : '');
-        var hasCC = currentCustomer.stripe_valid;
-        $('#credit-card-status').show().find('i').css('color', hasCC ? '#008000' : '#ff0000');
-        $('#credit-card-status').find('#cc-status-text').text(
-            hasCC ? 'linked' : 'not linked'
-        );
-        getLegalEntity(function (legalEntity) {
-            $('#button_new_credit_card').toggle(hasCC === false && legalEntity.is_mobicage);
-        });
         $('#user-email').text(currentCustomer.user_email ? currentCustomer.user_email : 'none');
         $('#service-email').text(currentCustomer.service_email)
             .parent().toggle(!!currentCustomer.service_email);
@@ -644,7 +591,6 @@ var showDetails = function () {
         $('#button_save_customer').hide();
     } else if (currentMode == CustomerFormType.NEW) {
         $('#tab-nav-container').find('a').parent().hide();
-        $('#button_save_customer, #button_new_credit_card').hide();
         currentCustomer.creating = true;
     } else if (currentMode == CustomerFormType.SEARCH || currentMode == CustomerFormType.OPEN_TAB) {
         $('#button_save_customer').show();
@@ -714,7 +660,6 @@ var showNewOrder = function () {
             }, {});
             getLegalEntity(legalEntity => {
                 var orderList = new OrderItemList(form.find('#order-item-list'), legalEntity, products, currentCustomer.organization_type);
-                $("#new_order_customer_credit_card_error").toggle(currentCustomer.stripe_valid);
                 // Show product combination buttons for mobicage entity
                 $('#subscription-buttons').toggle(legalEntity.is_mobicage);
                 orderList.render();
@@ -749,7 +694,6 @@ var showNewOrder = function () {
                         return;
                     }
 
-                    $("#new_order_customer_credit_card_error").css("display", "none");
                     $("#button_create_new_order").attr('disabled', true);
                     var chargeInterval = parseInt($('#new_order_charge_interval').val());
                     sln.call({
@@ -1306,18 +1250,6 @@ var initCustomerForm = function (customer) {
 
         showAddContact();
     });
-    getLegalEntity(function (legalEntity) {
-            var btnNewCreditCard = $("#button_new_credit_card", customerForm);
-            btnNewCreditCard.toggle(legalEntity.is_mobicage);
-            if (legalEntity.is_mobicage) {
-                btnNewCreditCard.unbind('click').click(function () {
-                    if (!btnNewCreditCard.attr('disabled')) {
-                        showLinkCreditCard(currentCustomer);
-                    }
-                });
-            }
-        }
-    );
 
     $("#button_follow_job", customerForm).unbind('click').click(function () {
         if ($(this).attr('disabled'))
@@ -1334,40 +1266,6 @@ var initCustomerForm = function (customer) {
 
     if (customer.id || currentMode == CustomerFormType.NEW) {
         showDetails();
-    }
-};
-
-var customerSelectedInLinkCreditCard = function (customer) {
-    sln.call({
-        url: '/internal/shop/rest/contact/find',
-        data: {
-            customer_id: customer.id
-        },
-        success: function (data) {
-            var select = $('#link_credit_card_contact');
-            select.empty();
-            $.each(data, function (i, c) {
-                select.append($('<option></option>').attr('value', c.id).data('contact', c).text(
-                    c.first_name + ' ' + c.last_name));
-            });
-            $('#link_credit_card_error').hide();
-        }
-    });
-};
-
-var showLinkCreditCard = function (customer) {
-    var ccForm = $('#credit_card_form');
-    $('#link_credit_card_error').hide();
-    ccForm.find('input').val('');
-    ccForm.modal('show');
-    ccForm.find('input.customer_select').data('customer', customer).val(customer ? customer.name : "");
-    ccForm.find('input.customer_select').data('stripe', null);
-    logoUrl = '/static/images/shop/osa_white_' + currentCustomer.language + '_64.jpg';
-    if (LOGO_LANGUAGES.indexOf(currentCustomer.language) === -1) {
-        logoUrl = '/static/images/shop/osa_white_en_64.jpg';
-    }
-    if (customer) {
-        customerSelectedInLinkCreditCard(customer);
     }
 };
 
@@ -1574,11 +1472,6 @@ function renderProspectHistory (data) {
 
 $(function () {
     loadRegioManagerTeams();
-    customer_selected.push(function (sender, customer) {
-        if (sender.attr('id') != 'link_credit_card_customer_name')
-            return;
-        customerSelectedInLinkCreditCard(customer);
-    });
 
     customer_selected.push(function (sender, customer) {
         if (sender.attr('id') != 'search_customer_name')
@@ -1633,12 +1526,6 @@ $(function () {
         e.preventDefault();
     });
     $('#customer_form #search_customer_name').typeahead(type_ahead_options);
-    $('#credit_card_form #link_credit_card_customer_name').typeahead(type_ahead_options);
-
-    $('button.link-credit-card, a.link-credit-card').unbind('click').click(function () {
-        var customerId = parseInt($(this).attr('customer_id'));
-        loadCustomer(customerId, showLinkCreditCard);
-    });
 
     var putCustomer = function (customerId, force) {
         var name = $('#customer_form #customer_name').val();
@@ -1960,73 +1847,6 @@ $(function () {
                 hideProcessing();
                 showAlert("An unknown error occurred, please report this to the administrators.");
             }
-        });
-    });
-
-    var handler = StripeCheckout.configure({
-        key: STRIPE_PUBLIC_KEY,
-        image: logoUrl,
-        token: function (token) {
-            showProcessing("Saving...");
-            var customer = $('#credit_card_form input.customer_select').data('customer');
-            var contact = $('#credit_card_form #link_credit_card_contact').find(':selected').data('contact');
-            sln.call({
-                url: '/internal/shop/rest/customer/link_stripe',
-                type: 'POST',
-                data: {
-                    data: JSON.stringify({
-                        customer_id: customer.id,
-                        stripe_token: token.id,
-                        stripe_token_created: token.created,
-                        contact_id: contact.id
-                    })
-                },
-                success: function (message) {
-                    hideProcessing();
-                    if (!message) {
-                        var modal = $('#credit_card_form').modal('hide');
-                        // Change the credit card status
-                        $('#credit-card-status').show().find('i').css('color', '#008000');
-                        $('#cc-status-text').text('linked');
-                        // Hide 'link credit card' button
-                        $('#button_new_credit_card').hide();
-                        var successCallback = modal.data('successCallback');
-                        if (successCallback) {
-                            modal.data('successCallback', null);
-                            successCallback();
-                        }
-
-                        return;
-                    }
-                    $('#link_credit_card_error span').text(message);
-                    $('#link_credit_card_error').show();
-                },
-                error: function () {
-                    hideProcessing();
-                    $('#link_credit_card_error span').text('Unknown error occurred!');
-                    $('#link_credit_card_error').show();
-                }
-            });
-        }
-    });
-
-    $('#button_link_credit_card').unbind('click').click(function () {
-        var customer = $('#credit_card_form input.customer_select').data('customer');
-        var contact = $('#credit_card_form #link_credit_card_contact').find(':selected').data('contact');
-
-        if (!(customer && contact)) {
-            $('#link_credit_card_error span').text('Not all required fields are filled!');
-            $('#link_credit_card_error').show();
-            return;
-        }
-        $('#link_credit_card_error').hide();
-        handler.open({
-            name: 'OUR CITY APP',
-            description: 'Our City App subscription',
-            currency: 'eur',
-            panelLabel: 'Subscribe',
-            email: contact.email,
-            allowRememberMe: false
         });
     });
 

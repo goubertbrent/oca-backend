@@ -19,11 +19,11 @@ import json
 import logging
 import os
 
+from babel import dates, Locale
+from jinja2 import StrictUndefined, Undefined
 import jinja2
 import webapp2
-from jinja2 import StrictUndefined, Undefined
 
-from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
@@ -45,7 +45,6 @@ from shop.bizz import get_organization_types, is_signup_enabled, update_customer
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity
-from solution_server_settings import get_solution_server_settings
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
@@ -117,7 +116,6 @@ MODULES_JS_TEMPLATE_MAPPING = {
     ],
     SolutionModule.BILLING: [
         'billing_budget',
-        'billing_manage_credit_card',
         'billing_view_invoice',
         'billing_settings_unsigned_orders_table',
         'billing_settings_orders_table',
@@ -314,7 +312,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
         service_identity = session_.service_identity if session_.service_identity else ServiceIdentity.DEFAULT
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         customer = get_customer(service_user)
-        solution_server_settings = get_solution_server_settings()
         jinja_template = JINJA_ENVIRONMENT.get_template('index.html')
 
         days = self._get_days(sln_settings)
@@ -403,8 +400,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         news_review_enabled = city_app_profile and city_app_profile.review_news or True
 
         organization_types = get_organization_types(customer, sln_settings.main_language)
-        params = {'stripePublicKey': solution_server_settings.stripe_public_key,
-                  'language': sln_settings.main_language or DEFAULT_LANGUAGE,
+        params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                   'country': country,
                   'logo_languages': LOGO_LANGUAGES,
                   'sln_settings': sln_settings,

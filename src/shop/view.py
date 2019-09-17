@@ -16,34 +16,34 @@
 # @@license_version:1.5@@
 
 import base64
+from cgi import FieldStorage
+from collections import namedtuple
 import csv
+from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-import urllib
-from cgi import FieldStorage
-from collections import namedtuple
-from datetime import date, timedelta
 from types import NoneType
+import urllib
 
-import webapp2
+from PIL.Image import Image  # @UnresolvedImport
+from babel import Locale
+from babel.dates import format_date, format_datetime
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+from oauth2client.client import HttpAccessTokenRefreshError
+import webapp2
 
-from PIL.Image import Image  # @UnresolvedImport
 from add_1_monkey_patches import DEBUG, APPSCALE
-from babel import Locale
-from babel.dates import format_date, format_datetime
 from mcfw.cache import cached
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
@@ -72,13 +72,12 @@ from shop.bizz import search_customer, create_or_update_customer, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
     put_prospect, put_regio_manager, link_prospect_to_customer, \
     list_history_tasks, put_hint, delete_hint, \
-    get_invoices, get_regiomanager_statistics, get_prospect_history, get_payed, put_surrounding_apps, \
+    get_invoices, get_regiomanager_statistics, get_prospect_history, put_surrounding_apps, \
     create_contact, create_order, export_customers_csv, put_service, update_contact, put_regio_manager_team, \
     get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
     post_app_broadcast, shopOauthDecorator, get_customer_charges, put_app_signup_enabled, sign_order, import_customer
 from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
-from shop.business.creditcard import link_stripe_to_customer
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
 from shop.business.legal_entities import put_legal_entity
 from shop.business.order import get_customer_subscription_length, cancel_subscription, get_subscription_order, \
@@ -205,7 +204,6 @@ def get_regional_manager(user):
 
 def get_shop_context(**kwargs):
     user = gusers.get_current_user()
-    solution_server_settings = get_solution_server_settings()
 
     team_admin = False
     if is_admin(user):
@@ -225,8 +223,7 @@ def get_shop_context(**kwargs):
     js_templates.update(render_js_templates(['customer_popup'], is_folders=True))
     locale = Locale.parse(DEFAULT_LANGUAGE)
     currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
-    ctx = dict(stripePublicKey=solution_server_settings.stripe_public_key,
-               modules=_get_solution_modules(),
+    ctx = dict(modules=_get_solution_modules(),
                default_modules=_get_default_modules(),
                static_modules=SolutionModule.STATIC_MODULES,
                current_user_apps=current_user_apps,
@@ -1594,17 +1591,6 @@ def get_customer_details(customer_id):
     return CustomerReturnStatusTO.create(True, customer=CustomerTO.fromCustomerModel(customer, can_edit, has_admin_permissions))
 
 
-@rest("/internal/shop/rest/customer/link_stripe", "post")
-@returns(unicode)
-@arguments(customer_id=(int, long), stripe_token=unicode, stripe_token_created=(int, long), contact_id=(int, long))
-def rest_link_stripe_to_customer(customer_id, stripe_token, stripe_token_created, contact_id):
-    audit_log(customer_id, u"Linking credit card.")
-    try:
-        link_stripe_to_customer(customer_id, stripe_token, stripe_token_created, contact_id)
-    except BusinessException, exception:
-        return exception.message
-
-
 @rest('/internal/shop/rest/customers/<customer_id:[^/]+>/contacts', 'post', type=REST_TYPE_TO)
 @returns(ContactTO)
 @arguments(customer_id=(int, long), data=ContactTO)
@@ -1799,19 +1785,6 @@ def set_charge_advance_payment(customer_id, order_number, charge_id, amount):
     from shop.bizz import set_charge_advance_payment as bizz_set_charge_advance_payment
     return wrap_with_result_status(bizz_set_charge_advance_payment, gusers.get_current_user(), customer_id,
                                    order_number, charge_id, amount)
-
-
-@rest("/internal/shop/rest/charge/execute_stripe", "post")
-@returns(unicode)
-@arguments(customer_id=(int, long), order_number=unicode, charge_id=(int, long))
-def get_payed_through_stripe(customer_id, order_number, charge_id):
-    audit_log(customer_id, u"Execute charge via stripe.")
-
-    try:
-        get_payed(customer_id, order_number, charge_id)
-        return ""
-    except PaymentFailedException, pfe:
-        return pfe.message
 
 
 @rest("/internal/shop/rest/charge/execute_manual", "post")

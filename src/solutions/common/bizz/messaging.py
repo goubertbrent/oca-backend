@@ -85,6 +85,8 @@ from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solu
 from solutions.common.bizz.menu import set_menu_item_image
 from solutions.common.bizz.order import order_received, poke_order
 from solutions.common.bizz.pharmacy.order import pharmacy_order_received
+from solutions.common.bizz.questions import chat_question_poke, \
+    chat_question_deleted, chat_question_new_message
 from solutions.common.bizz.repair import repair_order_received
 from solutions.common.bizz.reservation import reservation_part1, my_reservations_poke, my_reservations_overview_updated, \
     my_reservations_detail_updated
@@ -102,6 +104,7 @@ from solutions.common.utils import is_default_service_identity, create_service_i
 
 POKE_TAG_APPOINTMENT = u"__sln__.appointment"
 POKE_TAG_ASK_QUESTION = u"__sln__.question"
+POKE_TAG_CHAT_ASK_QUESTION = u"__sln__.chat_question"
 POKE_TAG_BROADCAST_CREATE_NEWS = u"__sln__.broadcast_create_news"
 POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT = u"broadcast_create_news_connect_via_scan"
 POKE_TAG_DISCUSSION_GROUPS = u"__sln__.discussion_groups"
@@ -142,69 +145,6 @@ MESSAGE_TAG_MY_RESERVATIONS_DETAIL = u'my-reservations-detail'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT = u'my-reservations-edit-comment'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE = u'my-reservations-edit-people'
 MESSAGE_TAG_DENY_SIGNUP = u'deny-signup'
-
-FMR_POKE_TAG_MAPPING = {
-    POKE_TAG_SANDWICH_BAR: order_sandwich_received,
-    POKE_TAG_APPOINTMENT: appointment_asked,
-    POKE_TAG_REPAIR: repair_order_received,
-    POKE_TAG_RESERVE_PART1: reservation_part1,
-    POKE_TAG_ORDER: order_received,
-    POKE_TAG_PHARMACY_ORDER: pharmacy_order_received,
-    POKE_TAG_NEW_EVENT: new_event_received,
-    POKE_TAG_MENU_ITEM_IMAGE_UPLOAD: set_menu_item_image,
-}
-
-POKE_TAG_MAPPING = {
-    POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
-    POKE_TAG_NEW_EVENT: poke_new_event,
-    POKE_TAG_DISCUSSION_GROUPS: poke_discussion_groups,
-    POKE_TAG_ORDER: poke_order,
-    POKE_TAG_FORMS: poke_forms,
-}
-
-MESSAGE_TAG_MAPPING = {
-    MESSAGE_TAG_SANDWICH_ORDER_NOW: sandwich_order_from_broadcast_pressed,
-    MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW: my_reservations_overview_updated,
-    MESSAGE_TAG_MY_RESERVATIONS_DETAIL: my_reservations_detail_updated,
-    MESSAGE_TAG_DENY_SIGNUP: deny_signup,
-    POKE_TAG_LOYALTY_REMINDERS: stop_loyalty_reminders,
-    POKE_TAG_DISCUSSION_GROUPS: follow_discussion_groups,
-    POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS: trash_transfer_address_pressed
-}
-
-API_METHOD_MAPPING = {
-    API_METHOD_SOLUTION_EVENTS_LOAD: solution_load_events,
-    API_METHOD_SOLUTION_EVENTS_REMIND: solution_remind_event,
-    API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER: solution_add_to_calender_event,
-    API_METHOD_SOLUTION_EVENTS_REMOVE: solution_event_remove,
-    API_METHOD_SOLUTION_EVENTS_GUEST_STATUS: solution_event_guest_status,
-    API_METHOD_SOLUTION_EVENTS_GUESTS: solution_event_guests,
-    API_METHOD_SOLUTION_CALENDAR_BROADCAST: solution_calendar_broadcast,
-    API_METHOD_GROUP_PURCHASE_PURCHASE: solution_group_purchcase_purchase,
-    API_METHOD_SOLUTION_LOYALTY_LOAD: solution_loyalty_load,
-    API_METHOD_SOLUTION_LOYALTY_SCAN: solution_loyalty_scan,
-    API_METHOD_SOLUTION_LOYALTY_PUT: solution_loyalty_put,
-    API_METHOD_SOLUTION_LOYALTY_REDEEM: solution_loyalty_redeem,
-    API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE: solution_loyalty_lottery_chance,
-    API_METHOD_SOLUTION_LOYALTY_COUPLE: solution_loyalty_couple,
-    API_METHOD_SOLUTION_VOUCHER_RESOLVE: solution_voucher_resolve,
-    API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE: solution_voucher_pin_activate,
-    API_METHOD_SOLUTION_VOUCHER_ACTIVATE: solution_voucher_activate,
-    API_METHOD_SOLUTION_VOUCHER_REDEEM: solution_voucher_redeem,
-    API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM: solution_voucher_confirm_redeem,
-    API_METHOD_SOLUTION_COUPON_REDEEM: solution_coupon_redeem,
-    API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve
-}
-
-FLOW_STATISTICS_MAPPING = {
-    POKE_TAG_ORDER: SolutionModule.ORDER,
-    POKE_TAG_SANDWICH_BAR: SolutionModule.SANDWICH_BAR,
-    POKE_TAG_APPOINTMENT: SolutionModule.APPOINTMENT,
-    POKE_TAG_REPAIR: SolutionModule.REPAIR,
-    POKE_TAG_RESERVE_PART1: SolutionModule.RESTAURANT_RESERVATION,
-    POKE_TAG_PHARMACY_ORDER: SolutionModule.PHARMACY_ORDER,
-    POKE_TAG_ASK_QUESTION: SolutionModule.ASK_QUESTION
-}
 
 
 def _get_step_with_id(steps, step_id):
@@ -320,9 +260,6 @@ def poke_invite(service_user, email, tag, result_key, context, service_identity,
     return poke_result
 
 
-POKE_TAG_MAPPING[ServiceInteractionDef.TAG_INVITE] = poke_invite
-
-
 @returns(PokeCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
@@ -344,9 +281,6 @@ def poke_inbox_forwarder_connect_via_scan(service_user, email, tag, result_key, 
                  label=user_details[0].name)
 
 
-POKE_TAG_MAPPING[POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN] = poke_inbox_forwarder_connect_via_scan
-
-
 @returns(PokeCallbackResultTO)
 @arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
            service_identity=unicode, user_details=[UserDetailsTO])
@@ -357,9 +291,6 @@ def poke_broadcast_create_news_connect_via_scan(service_user, email, tag, result
     create_news_publisher(app_user, service_user,
                           sln_settings.solution)
     send_message(service_user, u"solution.common.settings.roles.updated")
-
-
-POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT] = poke_broadcast_create_news_connect_via_scan
 
 
 @returns(FlowMemberResultCallbackResultTO)
@@ -464,9 +395,6 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
         result = result_message(message)
 
     return result
-
-
-FMR_POKE_TAG_MAPPING[POKE_TAG_BROADCAST_CREATE_NEWS] = broadcast_create_news_item
 
 
 @returns()
@@ -960,5 +888,79 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
             users.clear_user()
 
 
-FMR_POKE_TAG_MAPPING[POKE_TAG_ASK_QUESTION] = question_asked
-MESSAGE_TAG_MAPPING[POKE_TAG_INBOX_FORWARDING_REPLY] = inbox_forwarding_reply_pressed
+FMR_POKE_TAG_MAPPING = {
+    POKE_TAG_SANDWICH_BAR: order_sandwich_received,
+    POKE_TAG_APPOINTMENT: appointment_asked,
+    POKE_TAG_REPAIR: repair_order_received,
+    POKE_TAG_RESERVE_PART1: reservation_part1,
+    POKE_TAG_ORDER: order_received,
+    POKE_TAG_PHARMACY_ORDER: pharmacy_order_received,
+    POKE_TAG_NEW_EVENT: new_event_received,
+    POKE_TAG_MENU_ITEM_IMAGE_UPLOAD: set_menu_item_image,
+    POKE_TAG_ASK_QUESTION: question_asked,
+    POKE_TAG_BROADCAST_CREATE_NEWS: broadcast_create_news_item
+}
+
+POKE_TAG_MAPPING = {
+    POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
+    POKE_TAG_NEW_EVENT: poke_new_event,
+    POKE_TAG_DISCUSSION_GROUPS: poke_discussion_groups,
+    POKE_TAG_ORDER: poke_order,
+    POKE_TAG_FORMS: poke_forms,
+    POKE_TAG_CHAT_ASK_QUESTION: chat_question_poke,
+    ServiceInteractionDef.TAG_INVITE: poke_invite,
+    POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN: poke_inbox_forwarder_connect_via_scan,
+    POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT: poke_broadcast_create_news_connect_via_scan
+}
+
+MESSAGE_TAG_MAPPING = {
+    MESSAGE_TAG_SANDWICH_ORDER_NOW: sandwich_order_from_broadcast_pressed,
+    MESSAGE_TAG_MY_RESERVATIONS_OVERVIEW: my_reservations_overview_updated,
+    MESSAGE_TAG_MY_RESERVATIONS_DETAIL: my_reservations_detail_updated,
+    MESSAGE_TAG_DENY_SIGNUP: deny_signup,
+    POKE_TAG_LOYALTY_REMINDERS: stop_loyalty_reminders,
+    POKE_TAG_DISCUSSION_GROUPS: follow_discussion_groups,
+    POKE_TAG_INBOX_FORWARDING_REPLY: inbox_forwarding_reply_pressed
+}
+
+API_METHOD_MAPPING = {
+    API_METHOD_SOLUTION_EVENTS_LOAD: solution_load_events,
+    API_METHOD_SOLUTION_EVENTS_REMIND: solution_remind_event,
+    API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER: solution_add_to_calender_event,
+    API_METHOD_SOLUTION_EVENTS_REMOVE: solution_event_remove,
+    API_METHOD_SOLUTION_EVENTS_GUEST_STATUS: solution_event_guest_status,
+    API_METHOD_SOLUTION_EVENTS_GUESTS: solution_event_guests,
+    API_METHOD_SOLUTION_CALENDAR_BROADCAST: solution_calendar_broadcast,
+    API_METHOD_GROUP_PURCHASE_PURCHASE: solution_group_purchcase_purchase,
+    API_METHOD_SOLUTION_LOYALTY_LOAD: solution_loyalty_load,
+    API_METHOD_SOLUTION_LOYALTY_SCAN: solution_loyalty_scan,
+    API_METHOD_SOLUTION_LOYALTY_PUT: solution_loyalty_put,
+    API_METHOD_SOLUTION_LOYALTY_REDEEM: solution_loyalty_redeem,
+    API_METHOD_SOLUTION_LOYALTY_LOTTERY_CHANCE: solution_loyalty_lottery_chance,
+    API_METHOD_SOLUTION_LOYALTY_COUPLE: solution_loyalty_couple,
+    API_METHOD_SOLUTION_VOUCHER_RESOLVE: solution_voucher_resolve,
+    API_METHOD_SOLUTION_VOUCHER_PIN_ACTIVATE: solution_voucher_pin_activate,
+    API_METHOD_SOLUTION_VOUCHER_ACTIVATE: solution_voucher_activate,
+    API_METHOD_SOLUTION_VOUCHER_REDEEM: solution_voucher_redeem,
+    API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM: solution_voucher_confirm_redeem,
+    API_METHOD_SOLUTION_COUPON_REDEEM: solution_coupon_redeem,
+    API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve
+}
+
+FLOW_STATISTICS_MAPPING = {
+    POKE_TAG_ORDER: SolutionModule.ORDER,
+    POKE_TAG_SANDWICH_BAR: SolutionModule.SANDWICH_BAR,
+    POKE_TAG_APPOINTMENT: SolutionModule.APPOINTMENT,
+    POKE_TAG_REPAIR: SolutionModule.REPAIR,
+    POKE_TAG_RESERVE_PART1: SolutionModule.RESTAURANT_RESERVATION,
+    POKE_TAG_PHARMACY_ORDER: SolutionModule.PHARMACY_ORDER,
+    POKE_TAG_ASK_QUESTION: SolutionModule.ASK_QUESTION
+}
+
+CHAT_DELETED_MAPPING = {
+    POKE_TAG_CHAT_ASK_QUESTION: chat_question_deleted
+}
+
+CHAT_NEW_MESSAGE_MAPPING = {
+    POKE_TAG_CHAT_ASK_QUESTION: chat_question_new_message
+}

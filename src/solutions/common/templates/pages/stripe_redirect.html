@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stripe {% translate language, "common", "Payment loading" %}</title>
+
+  <style>
+    html {
+      background: #fff;
+      color: #222;
+      padding: 15px;
+      font: 15px/22px arial, sans-serif;
+    }
+
+    body {
+      margin: 7% auto 0;
+      max-width: 390px;
+      min-height: 180px;
+      padding: 30px 0 15px;
+    }
+
+    ins {
+      color: #777;
+      text-decoration: none;
+    }
+
+  </style>
+</head>
+<body>
+	<p>
+		<b>Stripe</b>
+	  	<ins>{% translate language, "common", "Payment loading" %}</ins>
+	</p>
+	<p>{% translate language, "common", "Redirecting to Stripe..." %}</p>
+</body>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+	var stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+	
+	stripe.redirectToCheckout({
+	  // Make the id field from the Checkout Session creation API response
+	  // available to this file, so you can provide it as parameter here
+	  // instead of the {{CHECKOUT_SESSION_ID}} placeholder.
+	  sessionId: '{{ CHECKOUT_SESSION_ID }}'
+	}).then(function (result) {
+		console.log('redirectToCheckout', result);
+		alert(result.error.message);
+	  // If `redirectToCheckout` fails due to a browser or network
+	  // error, display the localized error message to your customer
+	  // using `result.error.message`.
+	});
+</script>
+</html>

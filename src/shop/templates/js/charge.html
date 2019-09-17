@@ -1,4 +1,4 @@
-<tr class="charge-row" stripe="${customer.stripe_valid}" id='charge-${charge.id}'>
+<tr class="charge-row" id='charge-${charge.id}'>
 <td>${charge.full_date_str}</td>
 <td>${charge.last_notification_date_str}{{if charge.structured_info}}<br>${charge.structured_info}{{/if}}</td>
     <td>{{if !charge.is_recurrent}}Order{{else}}Recurring subscription{{/if}}</td>
@@ -15,7 +15,7 @@
 <td>
     <div class="btn-group btn-group-payment">
         {{if !charge.paid}}
-        <a class="btn {{if customer.stripe_valid}}btn-success{{else}}{{if charge.status == 1}}btn-danger{{else}}btn-primary{{/if}}{{/if}} dropdown-toggle"
+        <a class="btn {{if charge.status == 1}}btn-danger{{else}}btn-primary{{/if}} dropdown-toggle"
            data-toggle="dropdown" href="#">
             <i class="icon-shopping-cart icon-white"></i> Payment <span class="caret"></span>
         </a>
@@ -35,15 +35,6 @@
             <li class="divider"></li>
             {{/if}}
             {{if admin || is_reseller}}
-                {{if customer.stripe_valid && !is_reseller}}
-            <li>
-                <a class="charge-credit-card"
-                    customer_id="${charge.customer_id}"
-                    order_number="${charge.order_number}"
-                    charge_id="${charge.id}"
-                    href="#">Charge CC</a>
-            </li>
-                {{/if}}
             <li>
                 <a class="send-payment-info"
                     customer_id="${charge.customer_id}"

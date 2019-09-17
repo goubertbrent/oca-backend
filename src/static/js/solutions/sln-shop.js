@@ -23,7 +23,7 @@ var PRODUCT_SHORT_NAMES = {
     BNNR: CommonTranslations.rollup_banner,
     KKRT: CommonTranslations.loyalty_cards
 };
-var cart = [], ccInfo, callBackAfterCCLinked;
+var cart = [], payUrl;
 
 ROUTES.shop = shopRouter;
 
@@ -126,7 +126,7 @@ function renderCartInternal(checkout) {
         vat: vat.toFixed(2),
         total: total.toFixed(2),
         checkout: checkout,
-        creditCard: ccInfo,
+        payUrl: payUrl,
         t: CommonTranslations,
         cartTitle: T(checkout ? 'overview_order' : 'cart'),
         LEGAL_ENTITY_CURRENCY: LEGAL_ENTITY_CURRENCY,
@@ -145,88 +145,7 @@ function renderCartInternal(checkout) {
             removeItemFromCart(orderItem, renderCart);
         }
     });
-    function pollCCInfo(callback) {
-        getCreditCard(function (data) {
-            if (!data) {
-                // data not available yet. Try again in 500 ms...
-                console.info('Credit card info not available yet. Retrying...');
-                setTimeout(function () {
-                    pollCCInfo(callback);
-                }, 500);
-            } else {
-                callback(data);
-            }
-        });
-    }
-
-    $('#change-creditcard, #link-cc, #add-creditcard').click(function () {
-        var modal = $('#submit-order-error').modal('hide');
-        // global var
-        callBackAfterCCLinked = function () {
-            pollCCInfo(function (data) {
-                ccInfo = data ? data : false; // when undefined, it shows 'loading'.
-                renderCartInternal(checkout);
-            });
-        };
-        manageCreditCard();
-    });
-    $('#checkout').click(function () {
-        // show loading instead of 'pay with creditcard'
-        var $this = $(this);
-        if ($this.is(':disabled')) {
-            return;
-        }
-        $this.find('.normal').hide();
-        $this.find('.loading').show();
-        $this.attr('disabled', true);
-        var options = {
-            method: 'post',
-            url: '/common/store/order/pay',
-            data: {
-                data: JSON.stringify({})
-            },
-            success: function (data) {
-                // check if the save was successful.
-                var modal = $('#submit-order-error').modal('show');
-                modal.find('#close-message-dialog').click(function () {
-                    $('#submit-order-error').modal('hide');
-                });
-                if (data.success) {
-                    modal.find('.modal-header h3').text(CommonTranslations.order_complete);
-                    modal.find('.modal-body').html('<p>' + CommonTranslations.thank_you_for_your_order + '</p>');
-                    modal.find('#link-cc').hide();
-                    modal.on('hide.bs.modal', function(e){
-                        // Clear the shopping cart, redirect to the shop homepage,
-                        cart = [];
-                        window.location.hash = '/shop/';
-                    });
-                } else {
-                    // Show error msg
-                    modal.find('.modal-header h3').text(CommonTranslations.Error);
-                    modal.find('.modal-body').html('<p>' + data.errormsg + '</p>');
-                    if (data.bool) { // if the error is an error related to the credit card.
-                        modal.find('#link-cc').show();
-                    } else {
-                        modal.find('#link-cc').hide();
-                    }
-
-                }
-            },
-            error: function () {
-                var modal = $('#submit-order-error').modal('show');
-                modal.find('.modal-header h3').text('Error');
-                modal.find('.modal-body').html('<p>' + CommonTranslations.order_failed_contact_cs + '</p>');
-                modal.find('#link-cc').hide();
-            },
-            complete: function () {
-                $this.find('.normal').show();
-                $this.find('.loading').hide();
-                $this.attr('disabled', false);
-            }
-
-        };
-        sln.call(options);
-    });
+    
     renderGlobals();
 }
 
@@ -237,11 +156,11 @@ function renderCart(checkout) {
     var checkoutBtn = $('#checkout');
     checkoutBtn.attr('disabled', true);
     if (checkout) {
-        getCreditCard(function (data) {
-            ccInfo = data ? data : false;
-            renderCartInternal(checkout);
-            checkoutBtn.attr('disabled', false);
-        });
+    	getPayUrl(function (data) {
+    		payUrl = data;
+    		renderCartInternal(checkout);
+    		checkoutBtn.attr('disabled', false);
+    	});
     }
 }
 
@@ -345,12 +264,26 @@ function getOrderItems(callback) {
     sln.call(options);
 }
 
-function getCreditCard(callback) {
+function getPayUrl(callback) {
     var options = {
-        method: 'get',
-        url: '/common/billing/card/info',
+        method: 'GET',
+        url: '/common/store/order/pay/url',
         success: callback,
         error: sln.showAjaxError
     };
     sln.call(options);
 }
+
+$(function () {
+	var channelUpdates = function (data) {
+        switch (data.type) {
+            case 'solutions.common.shop.reload':
+            	getOrderItems(function () {
+            		renderItem('');
+            	});
+                break;
+        }
+    };
+	
+	sln.registerMsgCallback(channelUpdates);
+});

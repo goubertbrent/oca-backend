@@ -34,11 +34,17 @@ from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, Loyal
     LoyaltyLotteryConfirmWinnerHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
+from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
+    StripeCancelHandler, StripeWebhookHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 
 handlers = [
     ('/flex/', FlexHomeHandler),
+    ('/unauthenticated/payments/stripe', StripeHandler),
+    ('/unauthenticated/payments/stripe/success', StripeSuccessHandler),
+    ('/unauthenticated/payments/stripe/cancel', StripeCancelHandler),
+    ('/unauthenticated/payments/stripe/webhook', StripeWebhookHandler),
     ('/unauthenticated/loyalty/slide', LoyaltySlideDownloadHandler),
     ('/unauthenticated/loyalty/no_mobiles/unsubscribe_email', LoyaltyNoMobilesUnsubscribeEmailHandler),
     ('/unauthenticated/loyalty/no_mobiles/lottery_winner', LoyaltyLotteryConfirmWinnerHandler),
