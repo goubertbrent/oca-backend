@@ -447,10 +447,8 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                     if feed_names and app_id in feed_names:
                         del feed_names[app_id]
 
-        from rogerthat.consts import DEBUG
         if new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
-            if not DEBUG:
-                raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
+            raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
 
     # for the rest
     kwargs['feed_names'] = feed_names.values()
