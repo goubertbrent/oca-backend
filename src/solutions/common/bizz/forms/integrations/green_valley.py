@@ -56,7 +56,9 @@ class GvMappingField(TO):
     # maps to a direct property of a case
     type = unicode_property('type', default=GvFieldType.FIELD)
     id = unicode_property('id')
-    field = unicode_property('field')
+    # One of the following 2 properties needs to be set
+    field = unicode_property('field', default=None)
+    value = unicode_property('value', default=None)
 
 
 class GvMappingPerson(TO):
@@ -199,10 +201,15 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                     continue
                 if isinstance(gv_comp, GvMappingField):
                     value = None
-                    if isinstance(comp_val, TextInputComponentValueTO):
-                        value = comp_val.value
-                    if isinstance(comp_val, MultiSelectComponentValueTO):
-                        value = '\n'.join([c.label for c in component.choices if c.value in comp_val.values])
+                    if gv_comp.value:
+                        value = gv_comp.value
+                    elif gv_comp.id:
+                        if isinstance(comp_val, TextInputComponentValueTO):
+                            value = comp_val.value
+                        if isinstance(comp_val, MultiSelectComponentValueTO):
+                            value = '\n'.join([c.label for c in component.choices if c.value in comp_val.values])
+                    else:
+                        raise Exception('Mapping is missing either \'value\' or \'id\': %s' % gv_comp)
                     if value:
                         request[gv_comp.field] = value
                 elif isinstance(gv_comp, GvMappingPerson):

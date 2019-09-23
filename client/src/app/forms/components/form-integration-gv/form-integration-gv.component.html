@@ -37,6 +37,11 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
+        <mat-form-field>
+          <mat-label>{{ 'oca.value' | translate }}</mat-label>
+          <input matInput [(ngModel)]="component.value" (ngModelChange)="markChanged()">
+          <mat-hint>{{ 'oca.Optional' | translate }}</mat-hint>
+        </mat-form-field>
       </ng-container>
       <ng-container
         *ngSwitchCase="component.type === GvFieldType.FLEX || component.type === GvFieldType.ATTACHMENT ? component.type : false">
@@ -83,7 +88,8 @@
       <ng-container *ngIf="componentChoices[section.id][component.type]">
         <mat-form-field>
           <mat-label>{{ 'oca.component' | translate }}</mat-label>
-          <mat-select [(ngModel)]="component.id" (ngModelChange)="markChanged()" required>
+          <mat-select [(ngModel)]="component.id" (ngModelChange)="markChanged()"
+                      [required]="component.type !== GvFieldType.FIELD">
             <mat-option
               *ngFor="let component of componentChoices[section.id][component.type]; trackBy: trackComponentChoices"
               [value]="component.id">

@@ -30,6 +30,7 @@ export interface GVMappingField {
   type: GvFieldType.FIELD;
   id: string;
   field: string;
+  value: string | null;
 }
 
 export interface GVMappingConst {
