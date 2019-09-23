@@ -191,6 +191,10 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                 if isinstance(gv_comp, GvMappingConst):
                     _add_flex(flexes, gv_comp.field, gv_comp.value, gv_comp.display_value)
                     continue
+                elif isinstance(gv_comp, GvMappingField):
+                    if gv_comp.value:
+                        request[gv_comp.field] = gv_comp.value
+                        continue
                 comp_val = component_mapping.get(gv_comp.id)
                 if not comp_val:
                     logging.debug('Skipping component %s: not found in form result', gv_comp)
@@ -201,15 +205,10 @@ class GreenValleyFormIntegration(BaseFormIntegration):
                     continue
                 if isinstance(gv_comp, GvMappingField):
                     value = None
-                    if gv_comp.value:
-                        value = gv_comp.value
-                    elif gv_comp.id:
-                        if isinstance(comp_val, TextInputComponentValueTO):
-                            value = comp_val.value
-                        if isinstance(comp_val, MultiSelectComponentValueTO):
-                            value = '\n'.join([c.label for c in component.choices if c.value in comp_val.values])
-                    else:
-                        raise Exception('Mapping is missing either \'value\' or \'id\': %s' % gv_comp)
+                    if isinstance(comp_val, TextInputComponentValueTO):
+                        value = comp_val.value
+                    if isinstance(comp_val, MultiSelectComponentValueTO):
+                        value = '\n'.join([c.label for c in component.choices if c.value in comp_val.values])
                     if value:
                         request[gv_comp.field] = value
                 elif isinstance(gv_comp, GvMappingPerson):
