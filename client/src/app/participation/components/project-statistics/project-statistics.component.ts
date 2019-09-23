@@ -19,6 +19,19 @@ import { MatSort } from '@angular/material/sort';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { MerchantStatistics, ProjectStatistics } from '../../projects';
 
+interface MapCircle {
+  lat: number;
+  lon: number;
+  radius: number;
+}
+
+interface ChartOptions {
+  data: (string | number)[][];
+  columns: string[];
+  options: google.visualization.BarChartOptions;
+  type: string
+}
+
 @Component({
   selector: 'oca-project-statistics',
   templateUrl: './project-statistics.component.html',
@@ -32,27 +45,31 @@ export class ProjectStatisticsComponent implements OnInit, OnChanges {
   @ViewChildren(AgmInfoWindow) infoWindows: QueryList<ElementRef<AgmInfoWindow>>;
   @Input() statistics: Loadable<ProjectStatistics>;
   @Output() loadMore = new EventEmitter();
-  chart: { data: (string | number)[][]; columns: string[]; options: google.visualization.BarChartOptions; type: string };
-  circles: { lat: number; lon: number; radius: number }[];
+  chart: ChartOptions | null = null;
+  circles: MapCircle[];
   displayedColumns = ['name', 'amount', 'formatted_address'];
   dataSource = new MatTableDataSource();
   openInfoWindows: { [ key: string ]: boolean } = {};
 
   private previousInfoWindow: AgmInfoWindow | null = null;
-  private RADIUS_MULTIPLIER = 200;  // Biggest circle will be 200m
+  private MAX_CIRCLE_RADIUS = 200;  // Biggest circle will be 200m
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.statistics && this.statistics.data) {
-      const merchants = this.statistics.data.results
-        .filter(m => m.total > 0)
-        .sort((first, second) => second.total - first.total);
-      this.createChart(merchants, 10);
-      this.createCircles(merchants);
       this.openInfoWindows = {};
-      for (const merchant of merchants) {
-        this.openInfoWindows[ merchant.id ] = false;
+      if (this.statistics.data.results.length > 0) {
+        const merchants = this.statistics.data.results
+          .filter(m => m.total > 0)
+          .sort((first, second) => second.total - first.total);
+        this.chart = this.createChart(merchants, 10);
+        this.circles = this.createCircles(merchants);
+        for (const merchant of merchants) {
+          this.openInfoWindows[ merchant.id ] = false;
+        }
+        this.dataSource.data = merchants;
+      } else {
+        this.clear();
       }
-      this.dataSource.data = merchants;
     }
   }
 
@@ -69,15 +86,21 @@ export class ProjectStatisticsComponent implements OnInit, OnChanges {
     this.previousInfoWindow = infoWindow;
   }
 
-  private createChart(merchants: MerchantStatistics[], amount: number) {
+  private clear() {
+    this.dataSource.data = [];
+    this.chart = null;
+    this.circles = [];
+  }
+
+  private createChart(merchants: MerchantStatistics[], amount: number): ChartOptions {
     const chartData = merchants.slice(0, amount).map(m => ([m.name, m.total]));
-    this.chart = {
+    return {
       type: 'BarChart',
       columns: ['Name', ''],
       data: chartData,
       options: {
         width: this.container.nativeElement.offsetWidth - 80,
-        height: 300,
+        height: chartData.length > 3 ? 300 : 150,
         legend: { position: 'none' },
         backgroundColor: 'transparent',
         vAxis: { textStyle: { fontSize: 12 } },
@@ -86,9 +109,9 @@ export class ProjectStatisticsComponent implements OnInit, OnChanges {
     };
   }
 
-  private createCircles(merchants: MerchantStatistics[]) {
+  private createCircles(merchants: MerchantStatistics[]): MapCircle[] {
     const max = merchants[ 0 ].total;
-    this.circles = merchants.map(merchant => ({
+    return merchants.map(merchant => ({
       lat: merchant.location.lat,
       lon: merchant.location.lon,
       radius: this.getCircleRadius(max, merchant.total),
@@ -96,7 +119,7 @@ export class ProjectStatisticsComponent implements OnInit, OnChanges {
   }
 
   private getCircleRadius(maximumAmount: number, amount: number) {
-    return Math.max(amount / maximumAmount * this.RADIUS_MULTIPLIER);
+    return Math.max(amount / maximumAmount * this.MAX_CIRCLE_RADIUS);
   }
 
   rowClicked(row: MerchantStatistics) {

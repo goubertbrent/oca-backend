@@ -1,6 +1,6 @@
 <div class="stats-container" #container>
   <oca-loadable [loadable]="statistics">
-    <ng-container *ngIf="statistics.data">
+    <ng-container *ngIf="statistics.data?.results.length > 0">
       <mat-card>
         <mat-card-title>{{ 'oca.top_merchants' | translate }}</mat-card-title>
         <mat-card-content>

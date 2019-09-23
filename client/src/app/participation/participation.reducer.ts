@@ -11,7 +11,11 @@ export function participationReducer(state: ParticipationState = initialState, a
     case ParticipationActionTypes.GET_PROJECTS_FAILED:
       return { ...state, projects: onLoadableError(action.error, state.projects.data) };
     case ParticipationActionTypes.GET_PROJECT:
-      return { ...state, projectDetails: onLoadableLoad(initialState.projectDetails.data) };
+      return {
+        ...state,
+        projectDetails: onLoadableLoad(initialState.projectDetails.data),
+        projectStatistics: onLoadableLoad(initialState.projectStatistics.data),
+      };
     case ParticipationActionTypes.GET_PROJECT_COMPLETE:
       return { ...state, projectDetails: onLoadableSuccess(action.payload) };
     case ParticipationActionTypes.GET_PROJECT_FAILED:
