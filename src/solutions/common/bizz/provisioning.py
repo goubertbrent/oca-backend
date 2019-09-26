@@ -1911,10 +1911,14 @@ def put_when_where(sln_settings, current_coords, main_branding, default_lang, ta
 
     when_where_branding = generate_branding(main_branding, u'when_where', content, [map_png])
 
+    menu_label = SolutionModuleAppText.get_text(sln_settings.service_user,
+                                                SolutionModule.WHEN_WHERE,
+                                                SolutionModuleAppText.MENU_ITEM_LABEL)
+
     logging.info('Creating WHEN_WHERE menu item')
     ssmi = SolutionServiceMenuItem(u'fa-map-marker',
                                    sln_settings.menu_item_color,
-                                   common_translate(default_lang, SOLUTION_COMMON, 'when-where'),
+                                   menu_label or common_translate(default_lang, SOLUTION_COMMON, 'when-where'),
                                    tag,
                                    screen_branding=when_where_branding.id,
                                    action=SolutionModule.action_order(SolutionModule.WHEN_WHERE))
