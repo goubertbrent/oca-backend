@@ -1913,7 +1913,7 @@ def put_when_where(sln_settings, current_coords, main_branding, default_lang, ta
 
     menu_label = SolutionModuleAppText.get_text(sln_settings.service_user,
                                                 SolutionModule.WHEN_WHERE,
-                                                SolutionModuleAppText.MENU_ITEM_LABEL)
+                                                SolutionModuleAppText.MENU_ITEM_LABEL)[0]
 
     logging.info('Creating WHEN_WHERE menu item')
     ssmi = SolutionServiceMenuItem(u'fa-map-marker',

@@ -233,7 +233,8 @@ def get_free_spots(count=10):
 @arguments()
 def get_static_content():
     service_user = users.get_current_user()
-    return [SolutionStaticContentTO.fromModel(sc) for sc in get_static_content_list(service_user)]
+    static_contents = sorted(get_static_content_list(service_user), key=lambda m: tuple(reversed(m.coords)))
+    return [SolutionStaticContentTO.fromModel(sc) for sc in static_contents]
 
 
 @rest("/common/static_content/put", "post")
