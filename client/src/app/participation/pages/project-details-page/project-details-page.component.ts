@@ -18,8 +18,8 @@ import { Project, ProjectStatistics } from '../../projects';
 @Component({
   selector: 'oca-project-details-page',
   templateUrl: './project-details-page.component.html',
+  styleUrls: ['./project-details-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
 })
 export class ProjectDetailsPageComponent implements OnInit {
   project$: Observable<Loadable<Project>>;

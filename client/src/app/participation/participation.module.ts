@@ -1,3 +1,4 @@
+import { LazyMapsAPILoader } from '@agm/core';
 import { NgModule } from '@angular/core';
 import { MatPaginatorModule } from '@angular/material';
 import { MatButtonModule } from '@angular/material/button';
@@ -74,12 +75,13 @@ const routes: Routes = [
     ParticipationMainPageComponent,
     CitySettingsPageComponent,
   ],
-  providers: [ {
-    provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
-    useValue: {
-      appearance: 'standard',
-    },
-  } ],
+  providers: [
+    LazyMapsAPILoader, {
+      provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
+      useValue: {
+        appearance: 'standard',
+      },
+    } ],
 })
 export class ParticipationModule {
 }

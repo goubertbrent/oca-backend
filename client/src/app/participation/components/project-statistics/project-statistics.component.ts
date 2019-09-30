@@ -1,4 +1,4 @@
-import { AgmInfoWindow } from '@agm/core';
+import { AgmInfoWindow, LazyMapsAPILoader } from '@agm/core';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -53,6 +53,11 @@ export class ProjectStatisticsComponent implements OnInit, OnChanges {
 
   private previousInfoWindow: AgmInfoWindow | null = null;
   private MAX_CIRCLE_RADIUS = 200;  // Biggest circle will be 200m
+
+  constructor(private mapsLoader: LazyMapsAPILoader) {
+    // Temporary fix, else the map sometimes isn't loaded
+    mapsLoader.load();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.statistics && this.statistics.data) {
