@@ -41,12 +41,14 @@ def chat_question_poke(service_user, email, tag, result_key, context, service_id
     user_detail = user_details[0]
     app_user = create_app_user_by_email(user_detail.email, app_id=user_detail.app_id)
     members = [MemberTO.from_user(app_user)]
+    flags = messaging.ChatFlags.ALLOW_ANSWER_BUTTONS
     message_key = messaging.start_chat(members,
                                        settings.params['chat']['topic'],
                                        settings.params['chat']['description'],
                                        service_identity=service_identity,
                                        tag=tag,
-                                       context=context)
+                                       context=context,
+                                       flags=flags)
 
     params = None
     if settings.integration == ChatQuestionSettings.INT_CLEVER:
@@ -61,6 +63,17 @@ def _create_chat_model(message_key, integration, service_user, params):
     chat.service_user = service_user
     chat.params = params
     chat.put()
+
+
+@returns()
+@arguments(service_user=users.User, status=int, answer_id=unicode, received_timestamp=int, member=unicode,
+           message_key=unicode, tag=unicode, acked_timestamp=int, parent_message_key=unicode, result_key=unicode,
+           service_identity=unicode, user_details=[UserDetailsTO])
+def chat_question_pressed(service_user, status, answer_id, received_timestamp, member, message_key, tag,
+                          acked_timestamp, parent_message_key, result_key, service_identity, user_details):
+    if not answer_id:
+        return
+    _process_new_message(service_user, parent_message_key, answer_id, tag)
 
 
 @returns()
@@ -83,6 +96,10 @@ def chat_question_deleted(service_user, parent_message_key, member, timestamp, s
            timestamp=int, tag=unicode, service_identity=unicode, attachments=[AttachmentTO])
 def chat_question_new_message(service_user, parent_message_key, message_key, sender, message, answers,
                               timestamp, tag, service_identity, attachments):
+    _process_new_message(service_user, parent_message_key, message, tag)
+
+
+def _process_new_message(service_user, parent_message_key, message, tag):
     chat = ChatQuestion.create_key(parent_message_key).get()
     if not chat:
         return
@@ -91,9 +108,10 @@ def chat_question_new_message(service_user, parent_message_key, message_key, sen
         return
     if chat.integration != settings.integration:
         return
-    new_message = None
-    if settings.integration == ChatQuestionSettings.INT_CLEVER:
-        new_message = clever.new_question(settings, chat, message)
 
-    if new_message:
-        messaging.send_chat_message(parent_message_key, new_message)
+    messages = []
+    if settings.integration == ChatQuestionSettings.INT_CLEVER:
+        messages = clever.new_question(settings, chat, message)
+
+    for m in messages:
+        messaging.send_chat_message(parent_message_key, m['message'], answers=m.get('answers', []), tag=tag)

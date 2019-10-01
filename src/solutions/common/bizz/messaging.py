@@ -86,7 +86,7 @@ from solutions.common.bizz.menu import set_menu_item_image
 from solutions.common.bizz.order import order_received, poke_order
 from solutions.common.bizz.pharmacy.order import pharmacy_order_received
 from solutions.common.bizz.questions import chat_question_poke, \
-    chat_question_deleted, chat_question_new_message
+    chat_question_deleted, chat_question_new_message, chat_question_pressed
 from solutions.common.bizz.repair import repair_order_received
 from solutions.common.bizz.reservation import reservation_part1, my_reservations_poke, my_reservations_overview_updated, \
     my_reservations_detail_updated
@@ -920,7 +920,8 @@ MESSAGE_TAG_MAPPING = {
     MESSAGE_TAG_DENY_SIGNUP: deny_signup,
     POKE_TAG_LOYALTY_REMINDERS: stop_loyalty_reminders,
     POKE_TAG_DISCUSSION_GROUPS: follow_discussion_groups,
-    POKE_TAG_INBOX_FORWARDING_REPLY: inbox_forwarding_reply_pressed
+    POKE_TAG_INBOX_FORWARDING_REPLY: inbox_forwarding_reply_pressed,
+    POKE_TAG_CHAT_ASK_QUESTION: chat_question_pressed,
 }
 
 API_METHOD_MAPPING = {

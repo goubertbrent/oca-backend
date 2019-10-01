@@ -20,6 +20,8 @@ import logging
 
 from google.appengine.api import urlfetch
 
+from rogerthat.to.messaging import AnswerTO
+
 HEADERS = {
     'content-type': 'application/json',
     'accept': 'application/json'
@@ -45,7 +47,42 @@ def new_question(settings, chat, message):
         }
     })
     response = urlfetch.fetch(settings.params['server_url'], payload=params, method=urlfetch.POST, headers=HEADERS, deadline=10)
-    logging.debug(response.status_code)
-    logging.debug(response.content)
-    if response.status_code == 200:
-        return json.loads(response.content)['data']['output']['text'][0]
+
+    if response.status_code != 200:
+        logging.warn(response.status_code)
+        logging.warn(response.content)
+        return []
+    messages = []
+    r = json.loads(response.content)
+    chat.params['context'] = r['data']['context']
+    chat.put()
+
+    output = r['data']['output']
+
+    if output['type'] == 'TEXT':
+        messages.append({'message': output['text'][0]})
+        if output['buttonQuestion']:
+            answers = []
+            for i in range(1, len(output['text'])):
+                t = output['text'][i]
+                answer = AnswerTO()
+                answer.action = None
+                answer.caption = t['text']
+                answer.id = t['text']
+                answer.type = u'button'
+                answer.ui_flags = 0
+                answers.append(answer)
+            messages.append({'message': output['buttonQuestion'], 'answers': answers})
+
+    if output['type'] == 'BUTTON':
+        answers = []
+        for t in output['text']:
+            answer = AnswerTO()
+            answer.action = None
+            answer.caption = t['text']
+            answer.id = t['text']
+            answer.type = u'button'
+            answer.ui_flags = 0
+            answers.append(answer)
+        messages.append({'message': output['buttonQuestion'], 'answers': answers})
+    return messages
