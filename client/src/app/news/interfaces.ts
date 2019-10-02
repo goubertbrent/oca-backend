@@ -126,7 +126,7 @@ export interface NewsItem {
   statistics: NewsItemStatistics[];
   action_count: number;
   follow_count: number;
-  target_audience: NewsTargetAudience;
+  target_audience: NewsTargetAudience | null;
   role_ids: number[];
   tags: string[];
   feed_names: NewsFeedName[];

@@ -1,6 +1,6 @@
 <mat-form-field>
   <mat-label>{{ 'oca.app' | translate }}</mat-label>
-  <mat-select (ngModelChange)="createChartData()" [(ngModel)]="selectedApp" name="app">
+  <mat-select (selectionChange)="createChartData()" [(ngModel)]="selectedApp" name="app">
     <mat-option value="all">{{ 'oca.all_apps' | translate }}</mat-option>
     <mat-option *ngFor="let app of apps" [value]="app.id">
       {{ app.name }}
