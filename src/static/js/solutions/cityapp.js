@@ -137,7 +137,7 @@ $(function() {
                 'postal_codes': $('#section_settings_agenda .sln-uit-events-3-postal-codes').data('postal_codes')
             };
         } else {
-            allOk = false;
+            allOK = false;
         }
         if (allOK) {
             var data = JSON.stringify({

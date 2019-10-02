@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 Green Valley Belgium NV
+# Copyright 2019 Green Valley NV
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,10 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
-from mcfw.restapi import rest
-from mcfw.rpc import arguments, returns
-from rogerthat.rpc import users
-from rogerthat.to.statistics import AppServiceStatisticsTO
-from solutions.common.bizz.statistics import get_app_statistics
+from mcfw.properties import unicode_property, long_property
+from rogerthat.to import TO
 
 
-@rest('/common/statistics/apps', 'get', read_only_access=True)
-@returns([AppServiceStatisticsTO])
-@arguments()
-def rest_get_app_statistics():
-    return get_app_statistics(users.get_current_user())
+class RegisterAppTO(TO):
+    official_id = long_property('official_id')
+    ios_dev_team = unicode_property('ios_dev_team')

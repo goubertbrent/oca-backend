@@ -72,23 +72,6 @@ def get_mobicage_legal_entity():
     return get()
 
 
-@returns([App])
-@arguments(customer=(Customer, NoneType), demo_only=bool)
-def get_available_apps_for_customer(customer, demo_only=False):
-    if not customer:
-        return []
-    app_ids = (a for a in customer.sorted_app_ids if a != App.APP_ID_OSA_LOYALTY)
-    available_apps = get_apps_by_id(app_ids)
-    if available_apps[0].orderable_app_ids:
-        extra_app_ids = set(available_apps[0].orderable_app_ids).difference(customer.sorted_app_ids)
-        if extra_app_ids:
-            available_apps += get_apps_by_id(extra_app_ids)
-    if demo_only:
-        available_apps = filter(lambda x: x.demo, available_apps)
-    available_apps.sort(key=lambda app: app.name.upper())
-    return available_apps
-
-
 @returns([CustomerSignup])
 @arguments(city_customer=Customer, done=bool)
 def get_customer_signups(city_customer, done=False):

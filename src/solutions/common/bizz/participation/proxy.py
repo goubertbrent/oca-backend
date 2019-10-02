@@ -136,3 +136,13 @@ def update_settings(service_user, data):
     model = get_participation_city(service_user)
     url = '/cities/%s' % model.app_id
     return json.loads(_participation_request(model.secret, url, 'PUT', data).content)
+
+
+def register_app(app_id, ios_dev_team):
+    # type: (unicode, unicode) -> None
+    url = '/cities/%s/register' % app_id
+    data = {
+        'ios_dev_team': ios_dev_team,
+    }
+    secret = get_solution_server_settings().participation_server_secret
+    _participation_request(secret, url, 'POST', data)

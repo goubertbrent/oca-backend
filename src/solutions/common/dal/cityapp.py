@@ -46,6 +46,7 @@ def get_cityapp_profile(service_user):
 @returns(UitdatabankSettings)
 @arguments(service_user=users.User)
 def get_uitdatabank_settings(service_user):
+    # type: (users.User) -> UitdatabankSettings
     key = UitdatabankSettings.create_key(service_user)
     settings = key.get()
     if settings:

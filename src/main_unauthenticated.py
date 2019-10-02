@@ -18,7 +18,8 @@
 from webapp2_extras.routes import RedirectRoute
 
 import shop.handlers
-import solutions.common.restapi  # @UnusedImport
+import solutions.common.restapi
+import solutions.common.restapi.app
 import solutions.common.restapi.campaignmonitor
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
@@ -78,6 +79,7 @@ handlers = [
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))
+handlers.extend(rest_functions(solutions.common.restapi.app, authentication=NOT_AUTHENTICATED))
 handlers.extend(rest_functions(solutions.common.restapi.campaignmonitor, authentication=NOT_AUTHENTICATED))
 handlers.extend(rest_functions(shop.handlers, authentication=NOT_AUTHENTICATED))
 
