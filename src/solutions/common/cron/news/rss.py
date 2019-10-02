@@ -23,6 +23,7 @@ from xml.dom import minidom
 
 from bs4 import BeautifulSoup
 import dateutil.parser
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
 
@@ -70,6 +71,7 @@ def _worker(rss_settings_key):
     can_delete = True
 
     new_news_item_ids = []
+    last_week_datetime = datetime.now() - relativedelta(days=7)
 
     for rss_link in rss_settings.rss_links:
         app_ids = rss_link.app_ids if rss_link.app_ids else None
@@ -145,12 +147,16 @@ def _worker(rss_settings_key):
                                                   hash=scraped_item.hash,
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
+
                 if not dry_run:
-                    logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                    new_news_item_ids.append(scraped_item.id)
-                    tasks.append(create_task(create_news_item, sln_settings, broadcast_type, scraped_item.message,
-                                             scraped_item.title, scraped_item.url, rss_settings.notify,
-                                             scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name))
+                    if scraped_item.date and scraped_item.date < last_week_datetime:
+                        logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                    else:
+                        new_news_item_ids.append(scraped_item.id)
+                        logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                        tasks.append(create_task(create_news_item, sln_settings, broadcast_type, scraped_item.message,
+                                                 scraped_item.title, scraped_item.url, rss_settings.notify,
+                                                 scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first
