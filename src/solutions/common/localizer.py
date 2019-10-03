@@ -2421,7 +2421,7 @@ translations = \
          u'news_image_explanation': u'A\xf1ade una imagen a tu mensaje de difusi\xf3n para mayor expansi\xf3n. La relaci\xf3n de aspecto de la imagen debe ser 16:6, por lo que una imagen debe tener, por ejemplo 1600 p\xedxeles de ancho y 600 p\xedxeles de alto.',
          u'news_item_published': u'Noticia publicada. Aparecer\xe1 en la pesta\xf1a noticias en breve.',
          u'news_item_saved': u'Noticia guardada.',
-         u'news_item_scheduled_for_datetime': u'Publicaci\xf3mn de la noticia prevista para %(datetime)s',
+         u'news_item_scheduled_for_datetime': u'Publicaci\xf3mn de la noticia prevista para {{ datetime }}',
          u'news_items': u'Mensajes',
          u'news_label_explanation': u'Selecciona la categor\xeda de difusi\xf3n. Los usuarios pueden darse de baja de una categor\xeda para no recibir m\xe1s noticias de esa categor\xeda espec\xedfica.',
          u'news_schedule_explanation': u'Puedes elegir si deseas publicar la noticia de inmediato, o m\xe1s tarde.',
