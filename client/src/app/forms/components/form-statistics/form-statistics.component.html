@@ -26,13 +26,11 @@
               <oca-form-statistics-number-chart [values]="component.values.value"></oca-form-statistics-number-chart>
             </ng-container>
             <ng-container *ngSwitchCase="ComponentStatsType.VALUES">
-              <mat-list>
-                <mat-list-item *ngFor="let answer of component.values.value">
-                  <ng-container *ngIf="answer.value">
-                    {{ answer.value + (answer.amount === 1 ? '' : ' (' + answer.amount + ')') }}
-                  </ng-container>
-                </mat-list-item>
-              </mat-list>
+              <ng-container *ngFor="let answer of component.values.value">
+                <p *ngIf="answer.value">
+                  {{ answer.value + (answer.amount === 1 ? '' : ' (' + answer.amount + ')') }}
+                </p>
+              </ng-container>
             </ng-container>
             <ng-container *ngSwitchCase="ComponentStatsType.FILES">
               <mat-nav-list>
