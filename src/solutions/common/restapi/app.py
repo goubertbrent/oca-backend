@@ -23,7 +23,7 @@ from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app, AppDoesNotExistException
 from rogerthat.bizz.authentication import Scopes
-from solutions.common.bizz.app import import_location_data
+from solutions.common.bizz.location_data_import import import_location_data
 from solutions.common.bizz.participation.proxy import register_app
 from solutions.common.to.app import RegisterAppTO
 
