@@ -166,9 +166,8 @@ def _get_media(image_url):
     if aspect_ratio > 3 or aspect_ratio < 1.0 / 3.0:
         return None
 
-    content_type = result.headers.get('Content-Type', 'image/jpeg')
-    encoded = u'data:%s;base64,%s' % (content_type, b64encode(decoded_image))
-    return BaseMediaTO(type=MediaType.IMAGE, content=encoded)
+    # TODO: maybe copy to gcloud storage for better perf
+    return BaseMediaTO(type=MediaType.IMAGE, content=image_url)
 
 
 @arguments(news_id=(int, long), service_user=users.User)
