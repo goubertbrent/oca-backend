@@ -504,7 +504,6 @@ def rest_get_news_options():
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     info = system.get_info(service_identity)
-    info.default_app = u'be-loc'
     sln_settings = get_solution_settings(service_user)
     news_settings_key = NewsSettings.create_key(service_user, service_identity)
     keys = [news_settings_key, ShopApp.create_key(info.default_app)]
