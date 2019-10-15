@@ -272,10 +272,12 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
                 try:
                     date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
                 except TypeError:
+                    logging.debug('Could not parse date: %s', date_str)
                     date = dateutil.parser.parse(date_str)
-                    # this date contains tzinfo and needs to be removed
-                    epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
-                    date = datetime.utcfromtimestamp(epoch)
+                    if date.utcoffset():
+                        # this date contains tzinfo and needs to be removed
+                        epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
+                        date = datetime.utcfromtimestamp(epoch)
             else:
                 date = None
         except:
