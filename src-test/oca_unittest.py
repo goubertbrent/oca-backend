@@ -35,7 +35,7 @@ from rogerthat.dal import put_and_invalidate_cache, app
 from rogerthat.models import App
 from rogerthat.utils import now, guid
 
-from shop.bizz import put_app_signup_enabled
+from shop.bizz import put_shop_app
 from shop.models import RegioManagerTeam, RegioManager, LegalEntity
 from shop.products import add_all_products
 from solution_server_settings import get_solution_server_settings
@@ -180,7 +180,7 @@ class TestCase(unittest.TestCase):
 
         for app_id, new_app in apps.iteritems():
             if new_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-                put_app_signup_enabled(app_id=new_app.app_id, enabled=True)
+                put_shop_app(new_app.app_id, signup_enabled=True, paid_features_enabled=True)
 
     def setup_qr_templates(self):
         qrtemplate_keys = []

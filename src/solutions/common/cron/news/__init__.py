@@ -29,11 +29,10 @@ from html2text import HTML2Text
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
 from rogerthat.dal.service import get_default_service_identity
-from rogerthat.models.news import NewsItem
+from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.rpc import users
 from rogerthat.service.api import news
-from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, MediaType, \
-    NewsFeedNameTO
+from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, NewsFeedNameTO
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON

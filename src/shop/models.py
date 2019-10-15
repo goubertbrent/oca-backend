@@ -23,19 +23,19 @@ import re
 import time
 import urllib
 
+from google.appengine.api import users as gusers, images
+from google.appengine.api.app_identity import app_identity
+from google.appengine.ext import db, blobstore, ndb
+
 from babel import Locale
 from babel.dates import format_date, get_timezone
 from babel.numbers import get_currency_symbol, format_currency
 from dateutil.relativedelta import relativedelta
-from google.appengine.api import users as gusers, images
-from google.appengine.api.app_identity import app_identity
-from google.appengine.ext import db, blobstore, ndb
-from oauth2client.appengine import CredentialsProperty
-
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
 from mcfw.utils import chunks
+from oauth2client.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY
 from rogerthat.models import ServiceProfile
@@ -909,10 +909,10 @@ class StripePaymentItem(NdbModel):
 class StripePayment(NdbModel):
     STATUS_CREATED = 0
     STATUS_COMPLETED = 1
-    
+
     create_date = ndb.DateTimeProperty(auto_now_add=True)
     service_user = ndb.UserProperty()
-    
+
     status = ndb.IntegerProperty()
     items = ndb.LocalStructuredProperty(StripePaymentItem, repeated=True)
 
@@ -1226,52 +1226,58 @@ class AuditLog(db.Model):
     variables = db.TextProperty()
 
 
-class ShopApp(CachedModelMixIn, db.Model):
-    name = db.StringProperty(indexed=False)
-    searched_south_west_bounds = db.ListProperty(db.GeoPt)  # [south_west1, south_west2, ...]
-    searched_north_east_bounds = db.ListProperty(db.GeoPt)  # [north_east1, north_east2, ...]
-    postal_codes = db.StringListProperty()
-    signup_enabled = db.BooleanProperty(indexed=True, default=False)
+class ShopApp(NdbModel):
+    name = ndb.StringProperty(indexed=False)
+    searched_south_west_bounds = ndb.GeoPtProperty(repeated=True)  # [south_west1, south_west2, ...]
+    searched_north_east_bounds = ndb.GeoPtProperty(repeated=True)  # [north_east1, north_east2, ...]
+    postal_codes = ndb.StringProperty(repeated=True)
+    signup_enabled = ndb.BooleanProperty(default=False)
+    # When true, enables paid features like news based on location, youtube videos in news item, ...
+    paid_features_enabled = ndb.BooleanProperty(default=False)
 
     def south_west(self):
         if not self.searched_south_west_bounds:
             return None
-        return db.GeoPt(min((sw.lat for sw in self.searched_south_west_bounds)),
-                        min((sw.lon for sw in self.searched_south_west_bounds)))
+        return ndb.GeoPt(min((sw.lat for sw in self.searched_south_west_bounds)),
+                         min((sw.lon for sw in self.searched_south_west_bounds)))
 
     def north_east(self):
         if not self.searched_north_east_bounds:
             return None
-        return db.GeoPt(max((ne.lat for ne in self.searched_north_east_bounds)),
-                        max((ne.lon for ne in self.searched_north_east_bounds)))
+        return ndb.GeoPt(max((ne.lat for ne in self.searched_north_east_bounds)),
+                         max((ne.lon for ne in self.searched_north_east_bounds)))
 
     @property
     def app_id(self):
-        return self.key().name()
+        return self.key.id()
 
     @classmethod
     def create_key(cls, app_id):
-        return db.Key.from_path(cls.kind(), app_id)
+        return ndb.Key(cls, app_id)
 
     @classmethod
     def find_by_postal_code(cls, postal_code):
-        return cls.all().filter('postal_codes =', postal_code).get()
+        return cls.query().filter(cls.postal_codes == postal_code).get()
 
-    def invalidateCache(self):
-        from shop.bizz import is_signup_enabled
-        invalidate_cache(is_signup_enabled, self.app_id)
+    @classmethod
+    def list_signup_enabled(cls, enabled):
+        return cls.query().filter(cls.signup_enabled == enabled)
 
 
-class ShopAppGridPoints(db.Model):
-    points = db.ListProperty(db.GeoPt, indexed=False)
+class ShopAppGridPoints(NdbModel):
+    points = ndb.GeoPtProperty(repeated=True, indexed=False)
 
     @property
     def shop_app_key(self):
-        return self.parent_key()
+        return self.key.parent()
 
     @property
     def app_id(self):
         return self.shop_app_key.name()
+
+    @classmethod
+    def list_by_app(cls, app_id):
+        return cls.query().ancestor(ShopApp.create_key(app_id))
 
 
 class AppCss(NdbModel):

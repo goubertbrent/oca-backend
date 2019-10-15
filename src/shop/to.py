@@ -660,6 +660,7 @@ class ShopAppTO(object):
     searched_bounds = typed_property('3', BoundsTO, True)
     postal_codes = unicode_list_property('4')
     signup_enabled = bool_property('5')
+    paid_features_enabled = bool_property('paid_features_enabled')
 
     @classmethod
     def from_model(cls, model):
@@ -671,6 +672,7 @@ class ShopAppTO(object):
                               for sw, ne in zip(model.searched_south_west_bounds, model.searched_north_east_bounds)]
         to.postal_codes = model.postal_codes
         to.signup_enabled = model.signup_enabled
+        to.paid_features_enabled = model.paid_features_enabled
         return to
 
 
@@ -853,14 +855,12 @@ class ProspectHistoryTO(object):
 class SimpleAppTO(object):
     id = unicode_property('0')
     name = unicode_property('1')
-    orderable_app_ids = unicode_list_property('2')
 
-    @staticmethod
-    def create(model):
-        app = SimpleAppTO()
+    @classmethod
+    def from_model(cls, model):
+        app = cls()
         app.id = model.app_id
         app.name = model.name
-        app.orderable_app_ids = model.orderable_app_ids
         return app
 
 

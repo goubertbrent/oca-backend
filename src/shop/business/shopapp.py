@@ -19,7 +19,7 @@ import json
 import logging
 import os
 
-from google.appengine.ext import db
+from google.appengine.ext import ndb
 
 from shop.models import ShopApp
 
@@ -59,4 +59,5 @@ def set_postal_codes_for_shopapp(shop_app):
 
 
 def set_postal_codes_for_all_shopapps():
-    db.put([set_postal_codes_for_shopapp(shop_app) for shop_app in ShopApp.all() if shop_app.app_id.startswith('be-')])
+    ndb.put_multi([set_postal_codes_for_shopapp(shop_app) for shop_app in ShopApp.query()
+                   if shop_app.app_id.startswith('be-')])

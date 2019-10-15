@@ -12,8 +12,9 @@ export const enum Gender {
   CUSTOM,
 }
 
-export const enum MediaType {
+export enum MediaType {
   IMAGE = 'image',
+  YOUTUBE_VIDEO = 'video_youtube',
 }
 
 export interface KeyValueLong {
@@ -221,6 +222,8 @@ export interface NewsOptions {
     map_url?: string | null;
   };
   groups: ServiceNewsGroup[];
+  media_types: MediaType[];
+  location_filter_enabled: boolean;
 }
 
 

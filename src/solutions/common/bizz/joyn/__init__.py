@@ -20,14 +20,11 @@ import logging
 import urllib
 
 from google.appengine.api import urlfetch
-from google.appengine.api.taskqueue import taskqueue
-from google.appengine.ext import db
-from google.appengine.ext.deferred import deferred
+from google.appengine.ext import db, ndb
 
 from mcfw.cache import cached
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
-from mcfw.utils import chunks
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
@@ -125,16 +122,16 @@ def find_all_joyn_matches():
 
 
 def find_matches_for_shopapp(shop_app_key):
-    # type: (db.Key) -> None
+    # type: (ndb.Key) -> None
     # Joyn is only for belgium
-    app_id = shop_app_key.name()
+    app_id = shop_app_key.id()
     if app_id.startswith('be-'):
-        shop_app = db.get(shop_app_key)  # type: ShopApp
+        shop_app = shop_app_key.get()  # type: ShopApp
         find_matches(app_id, shop_app.postal_codes)
 
 
 def _get_shop_apps():
-    return ShopApp.all(keys_only=True)
+    return ShopApp.query()
 
 
 def _add_joyn_module(customer_id):

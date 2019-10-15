@@ -16,33 +16,32 @@
 # @@license_version:1.5@@
 
 import base64
-from collections import OrderedDict
-from contextlib import closing
 import csv
 import datetime
-from functools import partial
 import hashlib
 import json
 import logging
 import os
-from types import NoneType
 import urllib
 import urlparse
+from collections import OrderedDict
+from contextlib import closing
+from functools import partial
+from types import NoneType
 
-from babel.dates import format_datetime, get_timezone, format_date
-import cloudstorage
-from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db
 from google.appengine.ext import ndb
-import httplib2
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
 
-from mcfw.cache import cached
+import cloudstorage
+import httplib2
+from babel.dates import format_datetime, get_timezone, format_date
+from dateutil.relativedelta import relativedelta
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -88,8 +87,8 @@ from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
     ShopApp, LegalDocumentAcceptance, LegalDocumentType
-from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, SimpleAppTO, \
-    CustomerServiceTO, OrderItemTO, CompanyTO, CustomerTO
+from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, CustomerServiceTO, \
+    OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
 from solutions import SOLUTION_COMMON, translate as common_translate
@@ -1929,37 +1928,24 @@ def get_prospect_history(prospect_id):
     return ProspectHistory.all().ancestor(Prospect.create_key(prospect_id))
 
 
-@returns(bool)
-@arguments(app=SimpleAppTO)
-def put_surrounding_apps(app):
-    to_update = db.get(App.create_key(app.id))
-    to_update.orderable_app_ids = app.orderable_app_ids
-    to_update.put()
-    return True
+def put_shop_app(app_id, signup_enabled, paid_features_enabled):
+    # type: (str, bool, bool) -> ShopApp
+    key = ShopApp.create_key(app_id)
+    shop_app = key.get() or ShopApp(key=key,
+                                    name=get_app_by_id(app_id).name)
+    shop_app.signup_enabled = signup_enabled
+    shop_app.paid_features_enabled = paid_features_enabled
+    shop_app.put()
+    return shop_app
 
 
-@returns()
-@arguments(app_id=unicode, enabled=bool)
-def put_app_signup_enabled(app_id, enabled):
-    def trans():
-        key = ShopApp.create_key(app_id)
-        shop_app = ShopApp.get(key) or ShopApp(key=key,
-                                               name=get_app_by_id(app_id).name)
-        shop_app.signup_enabled = enabled
-        shop_app.put()
-
-    run_in_transaction(trans, xg=True)
-
-
-@cached(2, lifetime=0, request=True, memcache=True, datastore=False)
-@returns(bool)
-@arguments(app_id=unicode)
 def is_signup_enabled(app_id):
+    # type: (str) -> bool
     if DEBUG:
         return True
     if not app_id:
         return False
-    shop_app = ShopApp.get(ShopApp.create_key(app_id))
+    shop_app = ShopApp.create_key(app_id).get()
     return shop_app is not None and shop_app.signup_enabled
 
 

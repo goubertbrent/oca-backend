@@ -1,12 +1,6 @@
 {% extends "base.html" %}
 {% block stylesheets %}
 <style>
-    .app-container{
-        height: 50px;
-    }
-    #save-apps{
-        margin: 15px;
-    }
 </style>
 {% endblock %}
 {% block custom_javascript %}
@@ -14,8 +8,43 @@
 {% endblock %}
 {% block body %}
 <div class="container">
-    <h2>Configure app circles</h2>
-    <input type="text"  placeholder="Search for apps..." id="app-search" autocomplete="off">
-    <div id="app-circles-container"></div>
+    <table id="app-container" class="table table-striped table-bordered">
+        <thead>
+        <tr>
+            <th>App id</th>
+            <th>App name</th>
+            <th>Signup enabled</th>
+            <th>Paid features</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for app in shop_apps %}
+            <tr data-app-id="{{ app.app_id }}">
+                <td>{{ app.app_id }}{% if not app.main_service %}
+                    <div>
+                        <i class="fa fa-warning" style="color: orange;">
+                        </i>
+                        <i>This app has no main service,<br/>so it won't be shown in the signup page.</i>
+                    </div>
+                {% endif %}</td>
+                <td>{{ app.name }}</td>
+                <td>
+                    <label for="checkbox_signup_{{ app.app_id }}" class="checkbox">
+                        <input type="checkbox" id="checkbox_signup_{{ app.app_id }}"
+                               {% if app.signup_enabled %}checked{% endif %}>
+                        Signup enabled
+                    </label>
+                </td>
+                <td>
+                    <label for="checkbox_paid_features_{{ app.app_id }}" class="checkbox">
+                        <input type="checkbox" id="checkbox_paid_features_{{ app.app_id }}"
+                               {% if app.paid_features_enabled %}checked{% endif %}>
+                        Enable paid features
+                    </label>
+                </td>
+            </div>
+        {% endfor %}
+  </tbody>
+  </table>
 </div>
 {% endblock %}

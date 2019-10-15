@@ -21,10 +21,10 @@ import json
 import logging
 from types import NoneType
 
-from babel.dates import format_datetime, get_timezone
-
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
+
+from babel.dates import format_datetime, get_timezone
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
@@ -38,7 +38,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO,\
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO, \
     NewsItemListResultTO, NewsItemTO
 from rogerthat.utils import now
 from rogerthat.utils.service import get_service_identity_tuple

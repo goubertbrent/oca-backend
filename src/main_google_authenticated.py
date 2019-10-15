@@ -26,7 +26,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     HistoryTasksHandler, ProspectsUploadHandler, LoyaltySlidesHandler, UploadLoyaltySlideHandler, \
     OpenInvoicesHandler, TasksHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
-    SalesStatisticsHandler, OrderableAppsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
+    SalesStatisticsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
     ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, JoynReferralsHandler, \
     JoynMerchantMatchesHandler, JoynMerchantMatchesDeleteHandler, CustomersImportHandler
 
@@ -61,8 +61,7 @@ handlers = [
     ('/internal/shop/legal_entities', LegalEntityHandler),
     ('/internal/shop/stats', SalesStatisticsHandler),
     ('/internal/shop/hints', HintsHandler),
-    ('/internal/shop/apps', OrderableAppsHandler),
-    ('/internal/shop/signup_apps', SignupAppsHandler),
+    ('/internal/shop/apps', SignupAppsHandler),
     ('/internal/shop/stat/(.*)', StaticFileHandler),
     ('/internal/shop/customers/generate-qr', GenerateQRCodesHandler),
     ('/internal/shop/customers/app-broadcast', AppBroadcastHandler),

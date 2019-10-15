@@ -1,13 +1,4 @@
 <article class="news_preview">
-  <div class="news_image_container">
-    <div *ngIf="media" class="news_image">
-      <img [src]="media.content">
-    </div>
-  </div>
-  <div *ngIf="type == NewsItemType.QR_CODE" class="news_qr">
-    <img src="/static/images/solutions/flex/news_sample_qr.png">
-    <p>{{ qrCodeCaption }}</p>
-  </div>
   <div class="news_title">
     <div class="avatar">
       <img [src]="avatarUrl">
@@ -20,7 +11,23 @@
       </span>
     </div>
   </div>
-  <div [innerHTML]="message | markdown : {breaks: true}" class="news_content">
+  <div [innerHTML]="message | markdown : {breaks: true}" class="news_content"></div>
+  <div *ngIf="type == NewsItemType.QR_CODE" class="news_qr">
+    <img src="/static/images/solutions/flex/news_sample_qr.png">
+    <p>{{ qrCodeCaption }}</p>
+  </div>
+  <div class="news_image_container">
+    <div *ngIf="media" class="news_image">
+      <ng-container [ngSwitch]="media.type">
+        <img [src]="media.content" *ngSwitchCase="MediaType.IMAGE">
+        <ng-container *ngSwitchCase="MediaType.YOUTUBE_VIDEO">
+          <iframe width="360" height="203"
+                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                  frameborder="0" allowfullscreen
+                  [src]="youtubeUrl"></iframe>
+        </ng-container>
+      </ng-container>
+    </div>
   </div>
   <div class="news_bottom_row">
     <span class="news_button ">{{ 'oca.like' | translate }}</span>

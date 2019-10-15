@@ -25,7 +25,7 @@ from rogerthat.dal.friend import get_friends_map
 from rogerthat.models import UserProfile
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import post_app_broadcast, put_service, put_app_signup_enabled
+from shop.bizz import post_app_broadcast, put_service, put_shop_app
 from shop.business.order import cancel_subscription
 from shop.models import Customer
 from shop.view import _get_service
@@ -46,7 +46,7 @@ def _3_set_app_disabled(app_id):
     app = get_app(app_id)
     app.disabled = True
     app.put()
-    put_app_signup_enabled(app_id, False)
+    put_shop_app(app_id, False, False)
 
 
 def _4_disable_all_customers(app_id, reason, dry_run=True):

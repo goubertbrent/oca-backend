@@ -1,6 +1,7 @@
 import { FitBoundsService } from '@agm/core/services/fit-bounds';
 import { DatePipe } from '@angular/common';
 import { NgModule } from '@angular/core';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -82,6 +83,7 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
   ],
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
     FitBoundsService,
     DatePipe,
   ],

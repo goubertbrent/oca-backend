@@ -21,7 +21,7 @@ import re
 from collections import defaultdict
 from types import NoneType
 
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 
 from babel.numbers import format_currency
 from mcfw.consts import MISSING, REST_TYPE_TO
@@ -29,7 +29,6 @@ from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.properties import azzert, get_members
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from rogerthat.bizz.app import get_app
 from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.registration import get_headers_for_consent
@@ -37,10 +36,11 @@ from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
-from rogerthat.models.news import NewsGroup
+from rogerthat.models.news import NewsGroup, MediaType
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.service.api import system
@@ -61,7 +61,7 @@ from rogerthat.utils.service import create_service_identity_user, remove_slash_d
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
-from shop.models import Customer
+from shop.models import Customer, ShopApp
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
@@ -115,7 +115,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
     AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO
-from solutions.common.to.broadcast import BroadcastOptionsTO, RegionalNewsSettingsTO
+from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO
 from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
@@ -497,17 +497,24 @@ def api_send_message_to_services(organization_types=None, message=None):
 
 
 @rest("/common/news-options", "get", read_only_access=True)
-@returns(BroadcastOptionsTO)
+@returns(NewsOptionsTO)
 @arguments()
-def rest_get_broadcast_options():
+def rest_get_news_options():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     info = system.get_info(service_identity)
+    info.default_app = u'be-loc'
     sln_settings = get_solution_settings(service_user)
-    news_settings = NewsSettings.get_by_user(service_user, service_identity)
+    news_settings_key = NewsSettings.create_key(service_user, service_identity)
+    keys = [news_settings_key, ShopApp.create_key(info.default_app)]
+    news_settings, shop_app = ndb.get_multi(keys)  # type: NewsSettings, ShopApp
+    if not news_settings:
+        news_settings = NewsSettings(key=news_settings_key)
+    if not shop_app:
+        shop_app = ShopApp()
     # For demo apps and for shop sessions, creating regional news items is free.
-    default_app = get_app(info.default_app)
+    default_app = get_app_by_id(info.default_app)
     tags = news_settings.tags
     if session_.shop or default_app.demo and NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
         tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
@@ -518,10 +525,14 @@ def rest_get_broadcast_options():
     map_url = None
     if regional_news_enabled:
         regional_news_enabled = is_regional_news_enabled(default_app)
-        if DEBUG or regional_news_enabled and (default_app.app_id.startswith('be-') or default_app.demo):
+        if DEBUG or regional_news_enabled and (default_app.country == 'BE' or default_app.demo):
             map_url = '/static/js/shop/libraries/flanders.json'
     regional = RegionalNewsSettingsTO(enabled=regional_news_enabled, map_url=map_url)
-    return BroadcastOptionsTO(tags=tags, regional=regional, groups=news_groups)
+    media_types = [MediaType.IMAGE]
+    if default_app.demo or shop_app.paid_features_enabled:
+        media_types.append(MediaType.VIDEO_YOUTUBE)
+    return NewsOptionsTO(tags=tags, regional=regional, groups=news_groups, media_types=media_types,
+                         location_filter_enabled=shop_app.paid_features_enabled)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)

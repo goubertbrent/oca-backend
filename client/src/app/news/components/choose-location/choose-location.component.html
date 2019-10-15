@@ -16,7 +16,7 @@
            [formControl]="streetNameControl"
            (keydown.enter)="tryAddStreet()"
            #autoCompleteTrigger="matAutocompleteTrigger">
-    <mat-autocomplete #streetAutocomplete="matAutocomplete" 
+    <mat-autocomplete #streetAutocomplete="matAutocomplete"
                       (optionSelected)="addAddress($event.option.value)">
       <mat-option *ngFor="let option of filteredStreets$ | async" [value]="option.name">
         <span [innerHTML]="option.html || option.name"></span>

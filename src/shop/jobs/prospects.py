@@ -21,7 +21,7 @@ import urllib
 from collections import namedtuple
 
 from google.appengine.api import urlfetch
-from google.appengine.ext import deferred, db
+from google.appengine.ext import deferred, db, ndb
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
@@ -52,19 +52,17 @@ def find_prospects(app_id, postal_codes, sw_lat, sw_lon, ne_lat, ne_lon, city_na
                                                   city_name=city_name))
 
     google_maps_key = get_server_settings().googleMapsKey
-    shop_app_key = ShopApp.create_key(app_id)
+    app = get_app_by_id(app_id)
+    azzert(app)
 
     def trans():
-        app = get_app_by_id(app_id)
-        azzert(app)
-
-        shop_app = db.get(shop_app_key)
+        shop_app_key = ShopApp.create_key(app_id)
+        shop_app = shop_app_key.get()
         if not shop_app:
             shop_app = ShopApp(key=shop_app_key)
-
         shop_app.name = app.name
-        shop_app.searched_south_west_bounds.append(db.GeoPt(sw_lat, sw_lon))
-        shop_app.searched_north_east_bounds.append(db.GeoPt(ne_lat, ne_lon))
+        shop_app.searched_south_west_bounds.append(ndb.GeoPt(sw_lat, sw_lon))
+        shop_app.searched_north_east_bounds.append(ndb.GeoPt(ne_lat, ne_lon))
         shop_app.postal_codes = postal_codes
         shop_app.put()
 
@@ -72,8 +70,7 @@ def find_prospects(app_id, postal_codes, sw_lat, sw_lon, ne_lat, ne_lon, city_na
                        ne_lon, city_name, check_phone_number,
                        _transactional=True, _queue=HIGH_LOAD_WORKER_QUEUE)
 
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
+    ndb.transaction(trans)
 
 
 @returns([Point])
@@ -123,20 +120,18 @@ def _start_building_grid(google_maps_key, app_id, postal_codes, radius, sw_lat, 
                        _queue=HIGH_LOAD_WORKER_QUEUE)
 
 
+@ndb.transactional()
 def _store_grid_points(google_maps_key, app_id, postal_codes, radius, points, is_last, city_name, check_phone_number):
-    def trans():
-        db.put(ShopAppGridPoints(parent=ShopApp.create_key(app_id),
-                                 points=[db.GeoPt(*p) for p in points]))
-        if is_last:
-            deferred.defer(run_grid, google_maps_key, app_id, postal_codes, radius, city_name, check_phone_number,
-                           _transactional=True, _queue=MAPS_CONTROLLER_QUEUE)
-
-    db.run_in_transaction(trans)
+    ShopAppGridPoints(parent=ShopApp.create_key(app_id),
+                      points=[ndb.GeoPt(*p) for p in points]).put()
+    if is_last:
+        deferred.defer(run_grid, google_maps_key, app_id, postal_codes, radius, city_name, check_phone_number,
+                       _transactional=True, _queue=MAPS_CONTROLLER_QUEUE)
 
 
 def run_grid(google_maps_key, app_id, postal_codes, radius, city_name, check_phone_number):
     def trans():
-        models = ShopAppGridPoints.all().ancestor(ShopApp.create_key(app_id)).fetch(1)
+        models = ShopAppGridPoints.list_by_app(app_id).fetch(1)
         for model in models:
             for _ in xrange(4):
                 try:

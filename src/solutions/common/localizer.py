@@ -20,6 +20,11 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.youtube_url': u'YouTube url',
+         u'oca.youtube_url_hint': u'Link to a YouTube video',
+         u'oca.invalid_youtube_url': u'Invalid youtube url',
+         u'oca.media': u'Media',
+         u'oca.news_video_explanation': u'Add a video to your message for more engagement.',
          u'(Click to change)': u'(Click to change)',
          u'(No title)': u'(No title)',
          u'(optional)': u'(optional)',

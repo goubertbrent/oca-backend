@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { BaseMedia, NewsActionButton, NewsItemType } from '../../interfaces';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { BaseMedia, MediaType, NewsActionButton, NewsItemType } from '../../interfaces';
 
 @Component({
   selector: 'oca-news-item-preview-item',
@@ -7,7 +8,7 @@ import { BaseMedia, NewsActionButton, NewsItemType } from '../../interfaces';
   styleUrls: ['./news-item-preview-item.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NewsItemPreviewItemComponent {
+export class NewsItemPreviewItemComponent implements OnChanges {
   @Input() name: string;
   @Input() media?: BaseMedia | null;
   @Input() type: NewsItemType;
@@ -19,4 +20,18 @@ export class NewsItemPreviewItemComponent {
   @Input() actionButton: NewsActionButton | null;
 
   NewsItemType = NewsItemType;
+  MediaType = MediaType;
+  youtubeUrl: SafeResourceUrl | null = null;
+
+  constructor(private sanitizer: DomSanitizer) {
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.media && changes.media.currentValue) {
+      this.youtubeUrl = null;
+      if (this.media && this.media.type === MediaType.YOUTUBE_VIDEO) {
+        this.youtubeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${this.media.content}`);
+      }
+    }
+  }
 }

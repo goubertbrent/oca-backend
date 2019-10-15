@@ -19,8 +19,6 @@ from mcfw.properties import unicode_property, typed_property, bool_property, lon
 from rogerthat.to import TO
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.to.news import ServiceNewsGroupTO
-from rogerthat.to.roles import RoleTO
-from shop.to import ProductTO
 from solutions.common.to import TimestampTO, UrlTO
 
 
@@ -57,7 +55,9 @@ class RegionalNewsSettingsTO(TO):
     map_url = unicode_property('map_url')
 
 
-class BroadcastOptionsTO(TO):
+class NewsOptionsTO(TO):
     tags = unicode_list_property('tags')
     regional = typed_property('regional', RegionalNewsSettingsTO)
     groups = typed_property('groups', ServiceNewsGroupTO, True)
+    media_types = unicode_list_property('media_types')
+    location_filter_enabled = bool_property('location_filter_enabled')

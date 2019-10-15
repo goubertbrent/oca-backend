@@ -18,7 +18,7 @@ import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { GENDERS } from '../../consts';
+import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
 import {
   CreateNews,
   Gender,
@@ -65,10 +65,15 @@ export class EditNewsComponent implements OnChanges {
   };
   actionButton: UINewsActionButton | null = null;
   NewsActionButtonType = NewsActionButtonType;
-  GENDERS = GENDERS;
+  GENDERS = GENDER_OPTIONS;
+  NEWS_MEDIA_TYPE_OPTIONS: { label: string; value: MediaType | null }[] = [];
+  MediaType = MediaType;
   URL_PATTERN = '(https?:\\/\\/)?([\\w\\-])+\\.{1}([a-zA-Z]{2,63})([\\/\\w-]*)*\\/?\\??([^#\\n\\r]*)?#?([^\\n\\r]*)';
+  YOUTUBE_REGEX = new RegExp('^.*(youtu.be\\/|v\\/|embed\\/|watch\\?|youtube.com\\/user\\/[^#]*#([^\\/]*?\\/)*)\\??v?=?([^#\\&\\?]*).*');
   hasGroupVisible = false;
   showGroupInfoDetails = false;
+  youtubeUrl: string | null;
+  selectedMediaType: MediaType | null = MediaType.IMAGE;
 
   constructor(private _matDialog: MatDialog,
               private _translate: TranslateService,
@@ -91,6 +96,10 @@ export class EditNewsComponent implements OnChanges {
     }
     if (changes.newsItem && changes.newsItem.currentValue) {
       this.groupTypeChanged();
+      this.selectedMediaType = this.newsItem.media && this.newsItem.media.type;
+      if (this.newsItem.media && this.newsItem.media.type === MediaType.YOUTUBE_VIDEO) {
+        this.setYoutubeUrl(`https://youtu.be/${this.newsItem.media.content}`);
+      }
     }
     if (changes.serviceInfo && this.serviceInfo) {
       this.defaultAppId = this.serviceInfo.default_app;
@@ -104,6 +113,10 @@ export class EditNewsComponent implements OnChanges {
       for (const app of this.apps) {
         this.appMapping[ app.id ] = app;
       }
+    }
+    if (changes.options && this.options && this.options.data) {
+      const mediaTypes = this.options.data.media_types;
+      this.NEWS_MEDIA_TYPE_OPTIONS = NEWS_MEDIA_TYPE_OPTIONS.filter(o => o.value === null || mediaTypes.includes(o.value));
     }
   }
 
@@ -313,6 +326,17 @@ export class EditNewsComponent implements OnChanges {
 
   removeMedia() {
     this.newsItem = { ...this.newsItem, media: null };
+    this.setYoutubeUrl(null);
+  }
+
+  setYoutubeUrl(url: string | null) {
+    if (url) {
+      const id = this.getYoutubeVideoId(url);
+      if (id) {
+        this.newsItem = { ...this.newsItem, media: { type: MediaType.YOUTUBE_VIDEO, content: id } };
+      }
+    }
+    this.youtubeUrl = url;
   }
 
   groupTypeChanged() {
@@ -354,6 +378,15 @@ export class EditNewsComponent implements OnChanges {
       },
     };
     return this._matDialog.open(SimpleDialogComponent, config);
+  }
+
+  private getYoutubeVideoId(url: string) {
+    const result = this.YOUTUBE_REGEX.exec(url);
+    if (result) {
+      return result[ 3 ];
+    } else {
+      return null;
+    }
   }
 
   setButtonCaption($event: string | null) {

@@ -16,34 +16,34 @@
 # @@license_version:1.5@@
 
 import base64
-from cgi import FieldStorage
-from collections import namedtuple
 import csv
-from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-from types import NoneType
 import urllib
+from cgi import FieldStorage
+from collections import namedtuple
+from datetime import date, timedelta
+from types import NoneType
 
-from PIL.Image import Image  # @UnresolvedImport
-from babel import Locale
-from babel.dates import format_date, format_datetime
+import webapp2
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
-from oauth2client.client import HttpAccessTokenRefreshError
-import webapp2
 
+from PIL.Image import Image  # @UnresolvedImport
 from add_1_monkey_patches import DEBUG, APPSCALE
+from babel import Locale
+from babel.dates import format_date, format_datetime
 from mcfw.cache import cached
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
+from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
@@ -72,10 +72,10 @@ from shop.bizz import search_customer, create_or_update_customer, \
     PaymentFailedException, list_prospects, set_prospect_status, find_city_bounds, \
     put_prospect, put_regio_manager, link_prospect_to_customer, \
     list_history_tasks, put_hint, delete_hint, \
-    get_invoices, get_regiomanager_statistics, get_prospect_history, put_surrounding_apps, \
-    create_contact, create_order, export_customers_csv, put_service, update_contact, put_regio_manager_team, \
+    get_invoices, get_regiomanager_statistics, get_prospect_history, create_contact, create_order, export_customers_csv, \
+    put_service, update_contact, put_regio_manager_team, \
     get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
-    post_app_broadcast, shopOauthDecorator, get_customer_charges, put_app_signup_enabled, sign_order, import_customer
+    post_app_broadcast, shopOauthDecorator, get_customer_charges, put_shop_app, sign_order, import_customer
 from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -585,11 +585,11 @@ class ProspectsHandler(BizzManagerHandler):
 
         google_user = gusers.get_current_user()
         if is_admin(google_user):
-            shop_apps = ShopApp.all()
+            shop_apps = ShopApp.query()
         else:
             regio_manager = RegioManager.get(RegioManager.create_key(google_user.email()))
             regio_manager_team = RegioManagerTeam.get_by_id(regio_manager.team_id)
-            shop_apps = [shop_app for shop_app in ShopApp.all() if shop_app.app_id in regio_manager_team.app_ids]
+            shop_apps = [shop_app for shop_app in ShopApp.query() if shop_app.app_id in regio_manager_team.app_ids]
 
         context = get_shop_context(shop_apps=shop_apps,
                                    current_user=google_user,
@@ -921,18 +921,6 @@ class HintsHandler(BizzManagerHandler):
         self.response.out.write(template.render(path, context))
 
 
-class OrderableAppsHandler(BizzManagerHandler):
-
-    def get(self):
-        current_user = gusers.get_current_user()
-        if not is_admin(current_user):
-            self.abort(403)
-        path = os.path.join(os.path.dirname(__file__), 'html', 'apps.html')
-        context = get_shop_context(shop_apps=ShopApp.all(),
-                                   js_templates=render_js_templates(['apps']))
-        self.response.out.write(template.render(path, context))
-
-
 class SignupAppsHandler(BizzManagerHandler):
 
     def get(self):
@@ -941,7 +929,7 @@ class SignupAppsHandler(BizzManagerHandler):
             self.abort(403)
 
         # List all shop apps, joined with all city apps
-        shop_apps = list(ShopApp.all())
+        shop_apps = ShopApp.query().fetch()
         shop_app_ids = [a.app_id for a in shop_apps]
         for city_app in get_apps_by_type(App.APP_TYPE_CITY_APP):
             if city_app.app_id in shop_app_ids:
@@ -955,7 +943,7 @@ class SignupAppsHandler(BizzManagerHandler):
 
         shop_apps.sort(key=lambda a: a.name and a.name.lower())
 
-        path = os.path.join(os.path.dirname(__file__), 'html', 'signup_apps.html')
+        path = os.path.join(os.path.dirname(__file__), 'html', 'apps.html')
         context = get_shop_context(shop_apps=shop_apps)
         self.response.out.write(template.render(path, context))
 
@@ -1172,9 +1160,7 @@ def prospects_get_grid(sw_lat, sw_lon, ne_lat, ne_lon, radius=200):
 @arguments(app_id=unicode, postal_codes=[unicode])
 def save_app_postal_codes(app_id, postal_codes):
     shop_app_key = ShopApp.create_key(app_id)
-    app = ShopApp.get(shop_app_key)
-    if not app:
-        app = ShopApp(key=shop_app_key)
+    app = shop_app_key.get() or ShopApp(key=shop_app_key)
     app.postal_codes = postal_codes
     app.put()
     return RETURNSTATUS_TO_SUCCESS
@@ -1186,9 +1172,9 @@ def save_app_postal_codes(app_id, postal_codes):
 def prospects_get_shop_app(app_id):
     azzert(is_admin(gusers.get_current_user()))
     try:
-        shop_app = db.get(ShopApp.create_key(app_id))
+        shop_app = ShopApp.create_key(app_id).get()
         return ShopAppTO.from_model(shop_app) if shop_app else None
-    except BusinessException, be:
+    except BusinessException as be:
         return CityBoundsReturnStatusTO.create(False, be.message)
 
 
@@ -2320,36 +2306,21 @@ def load_prospect_history(prospect_id):
     return [ProspectHistoryTO.create(h) for h in get_prospect_history(prospect_id)]
 
 
-@rest("/internal/shop/rest/signup_apps", "get")
-@returns([ShopAppTO])
-@arguments()
-def load_signup_apps():
-    return [ShopAppTO.from_model(a) for a in ShopApp.all()]
-
-
-@rest("/internal/shop/rest/apps/signup_enabled", "post")
-@returns(ReturnStatusTO)
-@arguments(app_id=unicode, enabled=bool)
-def set_app_signup_enabled(app_id, enabled):
+@rest('/internal/shop/rest/shop-apps/<app_id:[^/]+>', 'put', type=REST_TYPE_TO)
+@returns(ShopAppTO)
+@arguments(app_id=unicode, data=ShopAppTO)
+def set_app_signup_enabled(app_id, data):
+    # type: (str, ShopAppTO) -> ShopAppTO
     azzert(is_admin(gusers.get_current_user()))
-    put_app_signup_enabled(app_id, enabled)
-    return RETURNSTATUS_TO_SUCCESS
+    model = put_shop_app(app_id, data.signup_enabled, data.paid_features_enabled)
+    return ShopAppTO.from_model(model)
 
 
 @rest("/internal/shop/rest/apps/all", "get")
 @returns([SimpleAppTO])
 @arguments()
 def load_all_apps():
-    return [SimpleAppTO.create(a) for a in get_apps([App.APP_TYPE_CITY_APP], only_visible=False)]
-
-
-@rest("/internal/shop/rest/apps/set", "post")
-@returns(ReturnStatusTO)
-@arguments(app=SimpleAppTO)
-def set_surrounding_apps(app):
-    azzert(is_admin(gusers.get_current_user()))
-    put_surrounding_apps(app)
-    return RETURNSTATUS_TO_SUCCESS
+    return [SimpleAppTO.from_model(a) for a in get_apps([App.APP_TYPE_CITY_APP], only_visible=False)]
 
 
 @rest('/internal/shop/rest/products', 'get', silent_result=True, type=REST_TYPE_TO)

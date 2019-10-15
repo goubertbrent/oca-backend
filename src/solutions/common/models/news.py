@@ -82,11 +82,6 @@ class NewsSettings(NdbModel):
     def create_key(cls, service_user, service_identity):
         return ndb.Key(cls, service_identity, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
 
-    @classmethod
-    def get_by_user(cls, service_user, service_identity):
-        key = cls.create_key(service_user, service_identity)
-        return key.get() or cls(key=key)
-
 
 class NewsReview(NdbModel):
     service_identity_user = ndb.UserProperty()

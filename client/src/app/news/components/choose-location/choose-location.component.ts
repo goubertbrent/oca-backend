@@ -33,7 +33,13 @@ export class ChooseLocationComponent implements OnInit {
   @Output() addressAdded = new EventEmitter<NewsAddress>();
 
   streetNameControl = new FormControl();
-  address: NewsAddress;
+  address: NewsAddress = {
+    zip_code: '',
+    city: '',
+    country_code: '',
+    level: 'STREET',
+    street_name: '',
+  };
   currentLocality: Locality | null;
   filteredStreets$: Observable<FilteredStreet[]>;
 
@@ -85,26 +91,19 @@ export class ChooseLocationComponent implements OnInit {
       const contains: FilteredStreet[] = [];
       const regex = new RegExp(filterValue.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&'), 'i');
 
-      this.currentLocality.streets.forEach((street) => {
-        if (this._contains(street, filterValue)) {
-          (this._startsWith(street, filterValue) ? startsWith : contains).push({
-            ...street,
-            html: street.name.replace(regex, match => `<b>${match}</b>`)
-          });
+      for (const street of this.currentLocality.streets) {
+        const streetName = street.name.toLowerCase();
+        if (streetName.includes(filterValue)) {
+          const matchedStreet = { ...street, html: street.name.replace(regex, match => `<b>${match}</b>`) };
+          if (streetName.startsWith(filterValue)) {
+            startsWith.push(matchedStreet);
+          } else {
+            contains.push(matchedStreet);
+          }
         }
-      });
-
+      }
       return [...startsWith, ...contains];
     }
     return [];
   }
-
-  private _contains(street: Street, filterValue: string) {
-    return street.name.toLowerCase().includes(filterValue);
-  }
-
-  private _startsWith(street: Street, filterValue: string) {
-    return street.name.toLowerCase().indexOf(filterValue) === 0;
-  }
-
 }

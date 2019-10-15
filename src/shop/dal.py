@@ -81,6 +81,6 @@ def get_customer_signups(city_customer, done=False):
 @returns([App])
 @arguments()
 def get_all_signup_enabled_apps():
-    signup_enabled_app_keys = ShopApp.all(keys_only=True).filter('signup_enabled', True)
-    app_ids = [app_key.name() for app_key in signup_enabled_app_keys]
+    signup_enabled_app_keys = ShopApp.list_signup_enabled(True).fetch(keys_only=True)
+    app_ids = [app_key.id() for app_key in signup_enabled_app_keys]
     return [app for app in get_apps_by_id(app_ids) if app.main_service]

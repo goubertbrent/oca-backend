@@ -35,7 +35,7 @@ from rogerthat.bizz.service import InvalidAppIdException
 from rogerthat.consts import SCHEDULED_QUEUE, ROGERTHAT_ATTACHMENTS_BUCKET, FAST_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message, ServiceIdentity, ServiceInteractionDef
-from rogerthat.models.news import NewsItem
+from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.models.properties.forms import FormResult, Form
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -47,7 +47,7 @@ from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
     FormCallbackResultTypeTO, FormAcknowledgedCallbackResultTO, PokeCallbackResultTO, \
     FlowMemberResultCallbackResultTO, MessageCallbackResultTypeTO, FlowCallbackResultTypeTO
-from rogerthat.to.news import MediaType, BaseMediaTO
+from rogerthat.to.news import BaseMediaTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, try_or_defer
