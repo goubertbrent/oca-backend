@@ -30,6 +30,7 @@ from google.appengine.ext import webapp, ndb
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
+from rogerthat.to.push import remove_html
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions.common.cron.news import html_unescape, html_to_markdown, transl, \
@@ -251,7 +252,7 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
     for item in doc.getElementsByTagName('item'):
         try:
-            title = html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue).strip()
+            title = remove_html(html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue)).strip()
             url = item.getElementsByTagName("link")[0].firstChild.nodeValue
             guid_elements = item.getElementsByTagName('guid')
             if guid_elements:
