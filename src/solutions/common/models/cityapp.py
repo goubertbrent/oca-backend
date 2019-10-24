@@ -19,10 +19,11 @@ from google.appengine.ext import db, ndb
 
 from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key, parent_ndb_key
-from rogerthat.models.common import NdbModel
+from rogerthat.models.common import NdbModel, TOProperty
 from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType
+from solutions.common.to.paddle import PaddleOrganizationUnitDetails
 
 
 class CityAppProfile(db.Model):
@@ -64,8 +65,35 @@ class UitdatabankSettings(NdbModel):
 
     @classmethod
     def create_key(cls, service_user):
-        return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user, namespace=cls.NAMESPACE))
+        return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user))
 
     @classmethod
     def list_enabled(cls):
         return cls.query().filter(cls.enabled == True)
+
+
+class PaddleOrganizationalUnits(NdbModel):
+    units = TOProperty(PaddleOrganizationUnitDetails, repeated=True)  # type: list[PaddleOrganizationUnitDetails]
+
+    @classmethod
+    def create_key(cls, service_user):
+        return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user))
+
+
+class PaddleMapping(NdbModel):
+    paddle_id = ndb.StringProperty(indexed=False)
+    title = ndb.StringProperty(indexed=False)
+    service_email = ndb.StringProperty(indexed=False)
+
+
+class PaddleSettings(NdbModel):
+    base_url = ndb.StringProperty(indexed=False)
+    mapping = ndb.StructuredProperty(PaddleMapping, indexed=False, repeated=True)  # type: list[PaddleMapping]
+
+    @property
+    def service_user(self):
+        return users.User(self.key.parent().id())
+
+    @classmethod
+    def create_key(cls, service_user):
+        return ndb.Key(cls, service_user.email(), parent=parent_ndb_key(service_user))

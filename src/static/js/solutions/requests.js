@@ -133,6 +133,12 @@ RequestsService.prototype = {
     },
     sendMessageToServices: function (data, options) {
         return this.post('/common/inbox/services', data, options);
+    },
+    getPaddleSettings: function(options){
+        return this.get('/common/settings/paddle', options);
+    },
+    savePaddleSettings: function(data, options){
+        return this.put('/common/settings/paddle', data, options);
     }
 };
 

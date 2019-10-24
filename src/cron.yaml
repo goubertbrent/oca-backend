@@ -27,6 +27,10 @@ cron:
   url: /admin/cron/shop/recurrent_billing
   schedule: every day 00:00
 
+- description: Paddle sync
+  url: /admin/cron/paddle
+  schedule: every day 00:15
+
 - description: CityApp Solution uitdatabank.be events
   url: /admin/cron/rpc/solution_cityapp_events_uitdatabank
   schedule: every day 00:30

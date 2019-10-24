@@ -20,6 +20,12 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'paddle-integration': u'Paddle integration',
+         u'paddle-explanation': u'The Paddle integration will sync the address, opening hours, phone number and email address.',
+         u'closing_days': u'Closing days',
+         u'deviating_opening_hours': u'Deviating opening hours',
+         u'paddle_organizational_unit': u'Paddle organizational unit',
+         u'oca_service': u'Our City App service',
          u'(Click to change)': u'(Click to change)',
          u'(No title)': u'(No title)',
          u'(optional)': u'(optional)',

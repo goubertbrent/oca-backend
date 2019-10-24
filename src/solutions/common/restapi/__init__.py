@@ -67,7 +67,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    get_user_defined_roles, validate_enable_or_disable_solution_module
+    get_user_defined_roles, validate_enable_or_disable_solution_module, OrganizationType
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
@@ -80,6 +80,7 @@ from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
 from solutions.common.bizz.news import is_regional_news_enabled
+from solutions.common.bizz.paddle import get_paddle_info, populate_info_from_paddle
 from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
@@ -98,6 +99,7 @@ from solutions.common.models import SolutionBrandingSettings, SolutionSettings, 
     SolutionRssScraperSettings
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
+from solutions.common.models.cityapp import PaddleSettings, PaddleMapping, PaddleOrganizationalUnits
 from solutions.common.models.forms import OcaForm
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.news import NewsSettings, NewsSettingsTags
@@ -117,6 +119,7 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO
 from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO
 from solutions.common.to.forms import GcsFileTO
+from solutions.common.to.paddle import PaddleSettingsTO, PaddleSettingsServicesTO, SimpleServiceTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
 
@@ -601,6 +604,72 @@ def settings_load():
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     to = SolutionSettingsTO.fromModel(sln_settings, sln_i_settings)
     return to
+
+
+@rest('/common/settings/paddle', 'get', type=REST_TYPE_TO)
+@returns(PaddleSettingsTO)
+@arguments()
+def rest_get_paddle_settings():
+    # type: () -> PaddleSettingsTO
+    service_user = users.get_current_user()
+    settings_key = PaddleSettings.create_key(service_user)
+    settings = settings_key.get() or PaddleSettings(key=settings_key)
+    return PaddleSettingsTO.from_model(settings)
+
+
+def _get_city_services(app_id):
+    customers = Customer.list_enabled_by_organization_type_in_app(app_id, OrganizationType.CITY)
+    return [SimpleServiceTO(name=c.name, service_email=c.service_email) for c in customers if c.service_email]
+
+
+@rest('/common/settings/paddle', 'get', type=REST_TYPE_TO)
+@returns(PaddleSettingsServicesTO)
+@arguments()
+def rest_get_paddle_settings():
+    # type: () -> PaddleSettingsServicesTO
+    service_user = users.get_current_user()
+    settings_key = PaddleSettings.create_key(service_user)
+    settings = settings_key.get() or PaddleSettings(key=settings_key)
+    si = get_service_identity(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
+    return PaddleSettingsServicesTO(settings=PaddleSettingsTO.from_model(settings),
+                                    services=_get_city_services(si.defaultAppId))
+
+
+@rest('/common/settings/paddle', 'put', type=REST_TYPE_TO)
+@returns(PaddleSettingsServicesTO)
+@arguments(data=PaddleSettingsTO)
+def rest_save_paddle_settings(data):
+    # type: (PaddleSettingsTO) -> PaddleSettingsServicesTO
+    service_user = users.get_current_user()
+    settings_key = PaddleSettings.create_key(service_user)
+    settings = settings_key.get() or PaddleSettings(key=settings_key)
+    base_url = data.base_url.rstrip('/') if data.base_url else None
+    base_url_changed = base_url != settings.base_url
+    settings.base_url = base_url
+    for m in settings.mapping:
+        for mapping in data.mapping:
+            if mapping.paddle_id == m.paddle_id:
+                m.service_email = mapping.service_email
+    to_put = [settings]
+    paddle_info = None
+    if base_url_changed:
+        if settings.base_url:
+            paddle_info = get_paddle_info(settings)
+            # Overwrite existing mapping
+            settings.mapping = [PaddleMapping(service_email=None, paddle_id=m.node.nid, title=m.node.title)
+                                for m in paddle_info.units]
+            to_put.append(paddle_info)
+        else:
+            PaddleOrganizationalUnits.create_key(service_user).delete()
+            settings.mapping = []
+    else:
+        paddle_info = PaddleOrganizationalUnits.create_key(service_user).get()
+    ndb.put_multi(to_put)
+    if paddle_info:
+        populate_info_from_paddle(settings, paddle_info)
+    si = get_service_identity(create_service_identity_user(service_user, ServiceIdentity.DEFAULT))
+    return PaddleSettingsServicesTO(settings=PaddleSettingsTO.from_model(settings),
+                                    services=_get_city_services(si.defaultAppId))
 
 
 @rest("/common/settings/defaults/all", "get")

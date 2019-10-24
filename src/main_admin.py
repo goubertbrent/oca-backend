@@ -31,6 +31,7 @@ from solutions.common.cron.forms import FinishFormsCron
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news import SolutionNewsScraper
 from solutions.common.cron.news.rss import SolutionRssScraper
+from solutions.common.cron.paddle import SyncPaddleInfoHandler
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
@@ -59,6 +60,7 @@ handlers = [
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),
     ('/admin/cron/match_joyn', MatchJoynMerchantsHandler),
     ('/admin/cron/finish_forms', FinishFormsCron),
+    ('/admin/cron/paddle', SyncPaddleInfoHandler),
     ('/admin/services', ServiceTools),
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),

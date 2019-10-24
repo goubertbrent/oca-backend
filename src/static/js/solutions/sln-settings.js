@@ -341,7 +341,7 @@ $(function () {
     };
 
     var loadSettings = function () {
-        Requests.getSettings().then(function (data) {
+        Requests.getSettings({cached: false}).then(function (data) {
             LocalCache.settings = data;
             $('.sln-set-name input').val(data.name);
             $('.sln-set-phone-number input').val(data.phone_number);
@@ -848,6 +848,14 @@ $(function () {
     // Bulk invite
     sln.configureDelayedInput($('#blukEmails'), testBulkInvites, $("#blukEmailsLabel"), false);
     $('#sendBulkEmailInvitations').click(sendBulkInvites);
+    var elemPaddleUrl = $('#paddle-url');
+    var elemPaddleMappings = $('#paddle-mappings');
+    if ($('#paddle-settings').length) {
+        Requests.getPaddleSettings().then(renderPaddleSettings);
+        elemPaddleUrl.change(function () {
+            savePaddleSettings();
+        });
+    }
 
     var settingsBranding,
         COLOR_REGEX = /^(([A-F0-9]{2}){3})$/i;
@@ -1610,5 +1618,50 @@ $(function () {
             $('#app_users_count', html).text(data.length);
             container.html(html);
         }
+    }
+
+    function savePaddleSettings(data) {
+        if (data) {
+        } else {
+            var url = elemPaddleUrl.val();
+            if (url) {
+                url = url.trim();
+            }
+            data = {base_url: url, mapping: []};
+        }
+        return Requests.savePaddleSettings(data).then(renderPaddleSettings);
+    }
+
+
+    function renderPaddleSettings(data) {
+        if (data.settings.base_url) {
+            $('.sln-set-phone-number input').prop('disabled', true);
+            $('.sln-set-email-address input').prop('disabled', true);
+            $('.sln-set-address textarea').prop('disabled', true);
+            $('.sln-set-openinghours textarea').prop('disabled', true);
+        }
+        elemPaddleUrl.val(data.settings.base_url);
+        var templateVars = {
+            services: data.services,
+            mappings: data.settings.mapping
+        };
+        elemPaddleMappings.html($.tmpl(templates['settings/paddle'], templateVars));
+        $('.paddle-service-select').change(function () {
+            var select = $(this);
+            var serviceUser = select.val();
+            var paddleId = select.closest('tr').data('paddleId').toString();
+            for (var i = 0, a = data.settings.mapping; i < a.length; i++) {
+                var mapping = a[i];
+                if (mapping.paddle_id === paddleId) {
+                    mapping.service_email = serviceUser;
+                    break;
+                }
+            }
+            savePaddleSettings(data.settings).then(function () {
+                if (data.settings.base_url) {
+                    loadSettings();
+                }
+            });
+        });
     }
 });

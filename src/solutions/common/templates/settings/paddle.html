@@ -1,0 +1,18 @@
+{% raw %}
+    {{each(i, mapping) mappings}}
+    <tr data-paddle-id="${ mapping.paddle_id }">
+        <td>${ mapping.title }</td>
+        <td>
+            <select class="paddle-service-select">
+                <option></option>
+                {{each(i, service) services}}
+                <option value="${ service.service_email }"
+                        {{if mapping.service_email=== service.service_email}}selected{{/if}}>
+                ${ service.name }
+                </option>
+                {{/each}}
+            </select>
+        </td>
+    </tr>
+    {{/each}}
+{% endraw %}

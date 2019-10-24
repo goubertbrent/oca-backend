@@ -19,11 +19,11 @@ import json
 import logging
 import os
 
-from babel import dates, Locale
-from jinja2 import StrictUndefined, Undefined
 import jinja2
 import webapp2
+from jinja2 import StrictUndefined, Undefined
 
+from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
@@ -130,7 +130,8 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'services/service_form',
         'services/modules_list',
         'services/service_search',
-        'settings/app_settings'
+        'settings/app_settings',
+        'settings/paddle'
     ],
     SolutionModule.CITY_VOUCHERS: [
         'city_vouchers/city_vouchers_list',
@@ -451,6 +452,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'service_consent': get_customer_consents(customer.user_email) if customer else None,
                   'is_city': is_city,
                   'news_review_enabled': news_review_enabled,
+                  'can_edit_paddle': is_city and session_.shop
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

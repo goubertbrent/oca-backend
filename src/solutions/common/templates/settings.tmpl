@@ -564,6 +564,23 @@
                 </label>
             </div>
             {% endif %}
+          {% if can_edit_paddle %}
+              <div id="paddle-settings">
+                  <h3>{% translate language, 'common', 'paddle-integration' %}</h3>
+                  <p>{% translate language, 'common', 'paddle-explanation' %}</p>
+                  <label for="paddle-url">Paddle URL</label>
+                  <input type="url" id="paddle-url">
+                  <table>
+                      <thead>
+                      <tr>
+                          <th>{% translate language, 'common', 'paddle_organizational_unit' %}</th>
+                          <th>{% translate language, 'common', 'oca_service' %}</th>
+                      </tr>
+                      </thead>
+                      <tbody id="paddle-mappings"></tbody>
+                  </table>
+              </div>
+          {% endif %}
         </fieldset>
     </form>
 </div>
