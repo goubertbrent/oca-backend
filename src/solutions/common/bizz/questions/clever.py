@@ -19,8 +19,9 @@ import json
 import logging
 
 from google.appengine.api import urlfetch
+from rogerthat.service.api import messaging
+from rogerthat.to.messaging import AnswerTO, MemberTO
 
-from rogerthat.to.messaging import AnswerTO
 
 HEADERS = {
     'content-type': 'application/json',
@@ -28,11 +29,35 @@ HEADERS = {
 }
 
 
-def chat_started(settings, message_key):
-    params = json.dumps({})
-    response = urlfetch.fetch(settings.params['server_url'], payload=params, method=urlfetch.POST, headers=HEADERS, deadline=10)
-    context = json.loads(response.content)['data']['context']
-    return {'context': context}
+def _do_post(settings, payload=None):
+    payload = json.dumps(payload or {})
+    response = urlfetch.fetch(
+        settings.params['server_url'], payload=payload, method=urlfetch.POST, headers=HEADERS, deadline=10)
+    return response
+
+
+def start_chat(settings, app_user, tag, context, service_identity):
+    members = [MemberTO.from_user(app_user)]
+    flags = messaging.ChatFlags.ALLOW_ANSWER_BUTTONS
+
+    logging.debug('Starting new clever chat...')
+    response = _do_post(settings)
+    result = json.loads(response.content)['data']
+    messages = _parse_output(result['output'])
+
+    parent_message_key = messaging.start_chat(members,
+                                              settings.params['chat']['topic'],
+                                              messages[0]['message'],
+                                              answers=messages[0].get('answers', []),
+                                              service_identity=service_identity,
+                                              tag=tag,
+                                              context=context,
+                                              flags=flags)
+
+    for m in messages[1:]:
+        messaging.send_chat_message(parent_message_key, m['message'], answers=m.get('answers', []), tag=tag)
+
+    return parent_message_key, {'context': result['context']}
 
 
 def chat_deleted(settings, chat):
@@ -40,49 +65,51 @@ def chat_deleted(settings, chat):
 
 
 def new_question(settings, chat, message):
-    params = json.dumps({
+    response = _do_post(settings, {
         'context': chat.params['context'],
         'input': {
             'text': message
         }
     })
-    response = urlfetch.fetch(settings.params['server_url'], payload=params, method=urlfetch.POST, headers=HEADERS, deadline=10)
-
     if response.status_code != 200:
         logging.warn(response.status_code)
         logging.warn(response.content)
         return []
-    messages = []
+
     r = json.loads(response.content)
     chat.params['context'] = r['data']['context']
     chat.put()
 
-    output = r['data']['output']
+    return _parse_output(r['data']['output'])
 
+
+def _parse_output(output):
+    messages = []
     if output['type'] == 'TEXT':
+        logging.debug(output['text'][0])
         messages.append({'message': output['text'][0]})
         if output['buttonQuestion']:
-            answers = []
-            for i in range(1, len(output['text'])):
-                t = output['text'][i]
-                answer = AnswerTO()
-                answer.action = None
-                answer.caption = t['text']
-                answer.id = t['text']
-                answer.type = u'button'
-                answer.ui_flags = 0
-                answers.append(answer)
+            logging.debug(output['buttonQuestion'])
+            answers = _create_answers(output['text'][1:])
             messages.append({'message': output['buttonQuestion'], 'answers': answers})
 
     if output['type'] == 'BUTTON':
-        answers = []
-        for t in output['text']:
-            answer = AnswerTO()
-            answer.action = None
-            answer.caption = t['text']
-            answer.id = t['text']
-            answer.type = u'button'
-            answer.ui_flags = 0
-            answers.append(answer)
+        logging.debug(output['buttonQuestion'])
+        answers = _create_answers(output['text'])
         messages.append({'message': output['buttonQuestion'], 'answers': answers})
+
     return messages
+
+
+def _create_answers(buttons):
+    answers = []
+    for btn in buttons:
+        answer = AnswerTO()
+        answer.action = None
+        answer.caption = btn['text']
+        answer.id = btn['text']
+        answer.type = u'button'
+        answer.ui_flags = 0
+        answers.append(answer)
+        logging.debug('    [%(title)s] %(text)s', btn)
+    return answers

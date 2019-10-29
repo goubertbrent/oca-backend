@@ -40,23 +40,14 @@ def chat_question_poke(service_user, email, tag, result_key, context, service_id
 
     user_detail = user_details[0]
     app_user = create_app_user_by_email(user_detail.email, app_id=user_detail.app_id)
-    members = [MemberTO.from_user(app_user)]
-    flags = messaging.ChatFlags.ALLOW_ANSWER_BUTTONS
-    message_key = messaging.start_chat(members,
-                                       settings.params['chat']['topic'],
-                                       settings.params['chat']['description'],
-                                       service_identity=service_identity,
-                                       tag=tag,
-                                       context=context,
-                                       flags=flags)
 
     params = None
     if settings.integration == ChatQuestionSettings.INT_CLEVER:
-        params = clever.chat_started(settings, message_key)
+        message_key, params = clever.start_chat(settings, app_user, tag, context, service_identity)
 
     try_or_defer(_create_chat_model, message_key, settings.integration, service_user, params or {})
-    
-    
+
+
 def _create_chat_model(message_key, integration, service_user, params):
     chat = ChatQuestion(key=ChatQuestion.create_key(message_key))
     chat.integration = integration

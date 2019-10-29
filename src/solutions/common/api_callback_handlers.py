@@ -28,7 +28,7 @@ from rogerthat.bizz.messaging import parse_to_human_readable_tag
 from rogerthat.models.properties.forms import FormResult
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
-from rogerthat.to.forms import FormSubmittedCallbackResultTO, DynamicFormValueTO, SubmitDynamicFormRequestTO
+from rogerthat.to.forms import FormSubmittedCallbackResultTO, SubmitDynamicFormRequestTO
 from rogerthat.to.messaging import AnswerTO, AttachmentTO, MemberTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING
 from rogerthat.to.messaging.service_callback_results import FlowMemberResultCallbackResultTO, \
@@ -216,7 +216,8 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
                             attachments):
     if tag in CHAT_NEW_MESSAGE_MAPPING:
         handler = CHAT_NEW_MESSAGE_MAPPING[tag]
-        handler(users.get_current_user(), parent_message_key, message_key, sender, message, answers, timestamp, tag, service_identity, attachments)
+        handler(users.get_current_user(), parent_message_key, message_key, sender,
+                message, answers, timestamp, tag, service_identity, attachments)
     elif tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):
         info = json.loads(tag[len(POKE_TAG_INBOX_FORWARDING_REPLY):])
         message_key = info['message_key']
