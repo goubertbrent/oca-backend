@@ -254,6 +254,9 @@ class GreenValleyFormIntegration(BaseFormIntegration):
             person[ATTR_PREFIX + 'group_type'] = 'REQUESTER'
             request['agents'] = {'person': person}
 
+        if not request.get('description') and not person:
+            logging.debug('Not creating case: not enough information')
+            return
         property_order = [
             'type_id',
             'subject',
