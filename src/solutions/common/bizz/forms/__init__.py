@@ -350,27 +350,6 @@ def get_finish_form_task_name(form):
     return '%s-%s-%s' % (finish_form.__name__, form.id, form.version)
 
 
-@returns(PokeCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, tag=unicode, result_key=unicode, context=unicode,
-           service_identity=unicode, user_details=[UserDetailsTO])
-def poke_forms(service_user, email, tag, result_key, context, service_identity, user_details):
-    # type: (users.User, unicode, unicode, unicode, unicode, unicode, list[UserDetailsTO]) -> PokeCallbackResultTO
-    mobiles = get_user_active_mobiles(create_app_user(users.User(user_details[0].email), user_details[0].app_id))
-    if not any(mobile_supports_feature(mobile, Features.FORMS) for mobile in mobiles):
-        main_branding = get_solution_main_branding(service_user)
-        lang = user_details[0].language
-        value = MessageCallbackResultTypeTO(message=translate(lang, SOLUTION_COMMON, 'forms_fallback_message'),
-                                            answers=[],
-                                            flags=Message.FLAG_ALLOW_DISMISS,
-                                            branding=main_branding.branding_key,
-                                            tag=None,
-                                            alert_flags=Message.ALERT_FLAG_SILENT,
-                                            dismiss_button_ui_flags=0,
-                                            attachments=[],
-                                            step_id=None)
-        return PokeCallbackResultTO(type=TYPE_MESSAGE, value=value)
-
-
 def delete_form(form_id, service_user):
     must_publish = _delete_form_menu_item(form_id)
     with users.set_user(service_user):

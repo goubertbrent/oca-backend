@@ -2,110 +2,114 @@
   <mat-label>{{ 'oca.case_type' | translate }}</mat-label>
   <input matInput [(ngModel)]="configuration.type_id" placeholder="--.----.----.----">
 </mat-form-field>
-<div *ngFor="let section of sections; trackBy: trackSections">
-  <h3>{{ section.title }}</h3>
-  <div *ngFor="let component of componentMapping[section.id]" class="mapping-row">
-    <mat-form-field>
-      <mat-label>{{ 'oca.Type' | translate }}</mat-label>
-      <mat-select [(ngModel)]="component.type">
-        <mat-option *ngFor="let option of mappingTypes" [value]="option.type">
-          {{ option.label | translate }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-    <ng-container [ngSwitch]="component.type">
-      <ng-container *ngSwitchCase="GvFieldType.CONST">
+<mat-accordion multi>
+  <mat-expansion-panel *ngFor="let section of sections; trackBy: trackSections">
+    <mat-expansion-panel-header>{{ section.title }}</mat-expansion-panel-header>
+    <ng-template matExpansionPanelContent>
+      <div *ngFor="let component of componentMapping[section.id]" class="mapping-row">
         <mat-form-field>
-          <mat-label>{{ 'oca.field_name' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.field" required (ngModelChange)="markChanged()">
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>{{ 'oca.value' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.value" required (ngModelChange)="markChanged()">
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>{{ 'oca.display_value' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.display_value" (ngModelChange)="markChanged()">
-        </mat-form-field>
-      </ng-container>
-      <ng-container *ngSwitchCase="GvFieldType.FIELD">
-        <mat-form-field>
-          <mat-label>{{ 'oca.field' | translate }}</mat-label>
-          <mat-select [(ngModel)]="component.field" required (ngModelChange)="markChanged()">
-            <mat-option *ngFor="let option of fieldOptions; trackBy: trackValueLabel" [value]="option.value">
+          <mat-label>{{ 'oca.Type' | translate }}</mat-label>
+          <mat-select [(ngModel)]="component.type">
+            <mat-option *ngFor="let option of mappingTypes" [value]="option.type">
               {{ option.label | translate }}
             </mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-form-field>
-          <mat-label>{{ 'oca.value' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.value" (ngModelChange)="markChanged()">
-          <mat-hint>{{ 'oca.Optional' | translate }}</mat-hint>
-        </mat-form-field>
-      </ng-container>
-      <ng-container
-        *ngSwitchCase="component.type === GvFieldType.FLEX || component.type === GvFieldType.ATTACHMENT ? component.type : false">
-        <mat-form-field>
-          <mat-label>{{ 'oca.field' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.field_def_id" (ngModelChange)="markChanged()" required>
-        </mat-form-field>
-      </ng-container>
-      <ng-container *ngSwitchCase="GvFieldType.ATTACHMENT">
-        <mat-form-field>
-          <mat-label>{{ 'oca.name-attachment' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.name" (ngModelChange)="markChanged()" required>
-        </mat-form-field>
-      </ng-container>
-      <ng-container *ngSwitchCase="GvFieldType.PERSON">
-        <mat-form-field>
-          <mat-label>{{ 'oca.field' | translate }}</mat-label>
-          <mat-select [(ngModel)]="component.field" required (ngModelChange)="markChanged()">
-            <mat-option *ngFor="let option of personOptions; trackBy: trackValueLabel" [value]="option.value">
-              {{ option.label | translate }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field *ngIf="personSubOptions[component.field]">
-          <mat-label>{{ 'oca.sub_field' | translate }}</mat-label>
-          <mat-select [(ngModel)]="component.sub_field" required (ngModelChange)="markChanged()">
-            <mat-option *ngFor="let option of personSubOptions[component.field]; trackBy: trackValueLabel"
-                        [value]="option.value">
-              {{ option.label | translate }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </ng-container>
-      <ng-container *ngSwitchCase="GvFieldType.LOCATION">
-        <mat-form-field>
-          <mat-label>{{ 'oca.coordinates_field' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.coordinates" (ngModelChange)="markChanged()">
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>{{ 'oca.address_field' | translate }}</mat-label>
-          <input matInput [(ngModel)]="component.address" (ngModelChange)="markChanged()">
-        </mat-form-field>
-      </ng-container>
-      <ng-container *ngIf="componentChoices[section.id][component.type]">
-        <mat-form-field>
-          <mat-label>{{ 'oca.component' | translate }}</mat-label>
-          <mat-select [(ngModel)]="component.id" (ngModelChange)="markChanged()"
-                      [required]="component.type !== GvFieldType.FIELD">
-            <mat-option
-              *ngFor="let component of componentChoices[section.id][component.type]; trackBy: trackComponentChoices"
-              [value]="component.id">
-              {{ component.title }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </ng-container>
-    </ng-container>
-    <button type="button" mat-icon-button (click)="removeMapping(section, component)">
-      <mat-icon>delete</mat-icon>
-    </button>
-  </div>
-  <div>
-    <button type="button" mat-raised-button (click)="addMapping(section)">
-      {{ 'oca.add_mapping' | translate }}
-    </button>
-  </div>
-</div>
+        <ng-container [ngSwitch]="component.type">
+          <ng-container *ngSwitchCase="GvFieldType.CONST">
+            <mat-form-field>
+              <mat-label>{{ 'oca.field_name' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.field" required (ngModelChange)="markChanged()">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.value' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.value" required (ngModelChange)="markChanged()">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.display_value' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.display_value" (ngModelChange)="markChanged()">
+            </mat-form-field>
+          </ng-container>
+          <ng-container *ngSwitchCase="GvFieldType.FIELD">
+            <mat-form-field>
+              <mat-label>{{ 'oca.field' | translate }}</mat-label>
+              <mat-select [(ngModel)]="component.field" required (ngModelChange)="markChanged()">
+                <mat-option *ngFor="let option of fieldOptions; trackBy: trackValueLabel" [value]="option.value">
+                  {{ option.label | translate }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.value' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.value" (ngModelChange)="markChanged()">
+              <mat-hint>{{ 'oca.Optional' | translate }}</mat-hint>
+            </mat-form-field>
+          </ng-container>
+          <ng-container
+            *ngSwitchCase="component.type === GvFieldType.FLEX || component.type === GvFieldType.ATTACHMENT ? component.type : false">
+            <mat-form-field>
+              <mat-label>{{ 'oca.field' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.field_def_id" (ngModelChange)="markChanged()" required>
+            </mat-form-field>
+          </ng-container>
+          <ng-container *ngSwitchCase="GvFieldType.ATTACHMENT">
+            <mat-form-field>
+              <mat-label>{{ 'oca.name-attachment' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.name" (ngModelChange)="markChanged()" required>
+            </mat-form-field>
+          </ng-container>
+          <ng-container *ngSwitchCase="GvFieldType.PERSON">
+            <mat-form-field>
+              <mat-label>{{ 'oca.field' | translate }}</mat-label>
+              <mat-select [(ngModel)]="component.field" required (ngModelChange)="markChanged()">
+                <mat-option *ngFor="let option of personOptions; trackBy: trackValueLabel" [value]="option.value">
+                  {{ option.label | translate }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field *ngIf="personSubOptions[component.field]">
+              <mat-label>{{ 'oca.sub_field' | translate }}</mat-label>
+              <mat-select [(ngModel)]="component.sub_field" required (ngModelChange)="markChanged()">
+                <mat-option *ngFor="let option of personSubOptions[component.field]; trackBy: trackValueLabel"
+                            [value]="option.value">
+                  {{ option.label | translate }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </ng-container>
+          <ng-container *ngSwitchCase="GvFieldType.LOCATION">
+            <mat-form-field>
+              <mat-label>{{ 'oca.coordinates_field' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.coordinates" (ngModelChange)="markChanged()">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.address_field' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.address" (ngModelChange)="markChanged()">
+            </mat-form-field>
+          </ng-container>
+          <ng-container *ngIf="componentChoices[section.id][component.type]">
+            <mat-form-field>
+              <mat-label>{{ 'oca.component' | translate }}</mat-label>
+              <mat-select [(ngModel)]="component.id" (ngModelChange)="markChanged()"
+                          [required]="component.type !== GvFieldType.FIELD">
+                <mat-option
+                  *ngFor="let component of componentChoices[section.id][component.type]; trackBy: trackComponentChoices"
+                  [value]="component.id">
+                  {{ component.title }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </ng-container>
+        </ng-container>
+        <button type="button" mat-icon-button (click)="removeMapping(section, component)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+      <div>
+        <button type="button" mat-raised-button (click)="addMapping(section)">
+          {{ 'oca.add_mapping' | translate }}
+        </button>
+      </div>
+    </ng-template>
+  </mat-expansion-panel>
+</mat-accordion>

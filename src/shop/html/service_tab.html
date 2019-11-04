@@ -103,13 +103,13 @@
                             </div>
 {# split the checkboxes in different colums #}
 {% for module, module_str in modules %}
-    {% if forloop.first or forloop.counter == 6 or forloop.counter == 11 or forloop.counter == 16 or forloop.counter == 21 %}
+    {% if forloop.first or forloop.counter == 8 or forloop.counter == 15 or forloop.counter == 22 or forloop.counter == 29  %}
                             <div class="span2">
     {% endif %}
                                 <label class="checkbox">
                                     <input type="checkbox" value="{{ module }}"/> {{ module_str }}
                                 </label>
-    {% if forloop.last or forloop.counter|divisibleby:5 %}
+    {% if forloop.last or forloop.counter|divisibleby:7 %}
                             </div>
     {% endif %}
 {% endfor %}

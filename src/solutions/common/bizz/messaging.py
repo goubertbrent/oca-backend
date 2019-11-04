@@ -70,10 +70,10 @@ from solutions.common.bizz.events import new_event_received, poke_new_event, API
     solution_event_guest_status, API_METHOD_SOLUTION_EVENTS_GUESTS, solution_event_guests, \
     API_METHOD_SOLUTION_CALENDAR_BROADCAST, solution_calendar_broadcast, \
     API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events
-from solutions.common.bizz.forms import poke_forms
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
+from solutions.common.integrations.qmatic import qmatic
 from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solution_loyalty_load, solution_loyalty_put, \
     API_METHOD_SOLUTION_LOYALTY_PUT, API_METHOD_SOLUTION_LOYALTY_REDEEM, solution_loyalty_redeem, \
     stop_loyalty_reminders, \
@@ -121,6 +121,7 @@ POKE_TAG_NEW_EVENT = u'agenda.new_event'
 POKE_TAG_ORDER = u"__sln__.order"
 POKE_TAG_PHARMACY_ORDER = u"__sln__.pharmacy_order"
 POKE_TAG_FORMS = u'__sln__.forms'
+POKE_TAG_Q_MATIC = u'__sln__.q_matic'
 
 POKE_TAG_EVENTS_CONNECT_VIA_SCAN = u'agenda.connect_via_scan'
 
@@ -906,11 +907,11 @@ POKE_TAG_MAPPING = {
     POKE_TAG_NEW_EVENT: poke_new_event,
     POKE_TAG_DISCUSSION_GROUPS: poke_discussion_groups,
     POKE_TAG_ORDER: poke_order,
-    POKE_TAG_FORMS: poke_forms,
     POKE_TAG_CHAT_ASK_QUESTION: chat_question_poke,
     ServiceInteractionDef.TAG_INVITE: poke_invite,
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN: poke_inbox_forwarder_connect_via_scan,
-    POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT: poke_broadcast_create_news_connect_via_scan
+    POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT: poke_broadcast_create_news_connect_via_scan,
+    POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS: trash_transfer_address_pressed
 }
 
 MESSAGE_TAG_MAPPING = {
@@ -945,7 +946,16 @@ API_METHOD_MAPPING = {
     API_METHOD_SOLUTION_VOUCHER_REDEEM: solution_voucher_redeem,
     API_METHOD_SOLUTION_VOUCHER_CONFIRM_REDEEM: solution_voucher_confirm_redeem,
     API_METHOD_SOLUTION_COUPON_REDEEM: solution_coupon_redeem,
-    API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve
+    API_METHOD_SOLUTION_COUPON_RESOLVE: solution_coupon_resolve,
+    qmatic.API_METHOD_APPOINTMENTS: qmatic.handle_method,
+    qmatic.API_METHOD_SERVICES: qmatic.handle_method,
+    qmatic.API_METHOD_BRANCHES: qmatic.handle_method,
+    qmatic.API_METHOD_DATES: qmatic.handle_method,
+    qmatic.API_METHOD_TIMES: qmatic.handle_method,
+    qmatic.API_METHOD_RESERVE: qmatic.handle_method,
+    qmatic.API_METHOD_CONFIRM: qmatic.handle_method,
+    qmatic.API_METHOD_DELETE: qmatic.handle_method,
+    qmatic.API_METHOD_CREATE_ICAL: qmatic.handle_method,
 }
 
 FLOW_STATISTICS_MAPPING = {

@@ -1,0 +1,31 @@
+{
+  "app": {
+    "oca": {
+      "add_to_calendar": "Toevoegen aan kalender",
+      "appointments": "Afspraken",
+      "cancel": "Annuleren",
+      "close": "Sluiten",
+      "confirm": "Bevestigen",
+      "confirm_appointment": "Afspraak bevestigen",
+      "confirm_delete_appointment": "Bent u zeker dat u de afspraak \"{{title}}\" wilt annuleren?",
+      "create_appointment": "Afspraak maken",
+      "date": "Datum",
+      "email": "E-mailadres",
+      "error": "Fout",
+      "first_name": "Voornaam",
+      "former_appointments": "Vorige afspraken",
+      "last_name": "Achternaam",
+      "location": "Locatie",
+      "no": "Nee",
+      "no_upcoming_appointments_yet": "U heeft geen toekomstige afspraken",
+      "notes": "Notities",
+      "phone": "Telefoonnummer",
+      "retry": "Opnieuw proberen",
+      "service": "Dienst",
+      "time": "Tijd",
+      "unknown_error": "Er is een fout opgetreden, probeer het later opnieuw.",
+      "via_app": "Via de {{ appName }} app",
+      "yes": "Ja"
+    }
+  }
+}

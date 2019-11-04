@@ -16,22 +16,23 @@
 # @@license_version:1.5@@
 
 import base64
-from contextlib import closing
-from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-from types import NoneType
 import urllib
+from contextlib import closing
+from datetime import timedelta, datetime
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import jinja2
+from google.appengine.ext import db, deferred
+
+import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from babel.numbers import format_currency
-from google.appengine.ext import db, deferred
-import jinja2
-
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -52,11 +53,10 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
-    OrganizationType
+    OrganizationType, OCAEmbeddedApps
 from solutions.common.bizz.events import provision_events_branding
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
@@ -66,7 +66,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
-    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT
+    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
 from solutions.common.bizz.reservation import put_default_restaurant_settings
@@ -84,6 +84,7 @@ from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
+from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
     SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionModuleAppText
 from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
@@ -103,7 +104,6 @@ from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, SolutionCalenda
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
-
 
 try:
     from cStringIO import StringIO
@@ -137,6 +137,7 @@ POKE_TAGS = {
     SolutionModule.JOBS: None,
     SolutionModule.FORMS: None,
     SolutionModule.PARTICIPATION: None,
+    SolutionModule.Q_MATIC: POKE_TAG_Q_MATIC,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -794,12 +795,11 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 
         args = [ssmi.icon_name, ssmi.label, ssmi.tag, coords, ssmi.icon_color, ssmi.screen_branding, ssmi.static_flow,
                 ssmi.requires_wifi, ssmi.run_in_background, ssmi.is_broadcast_settings, ssmi.broadcast_branding,
-                ssmi.roles, ssmi.action, ssmi.link]
-        kwargs = dict(fall_through=fall_through)
+                ssmi.roles, ssmi.action, ssmi.link, fall_through, None, ssmi.embedded_app]
         if db.is_in_transaction():
-            on_trans_committed(system.put_menu_item, *args, **kwargs)
+            on_trans_committed(system.put_menu_item, *args)
         else:
-            system.put_menu_item(*args, **kwargs)
+            system.put_menu_item(*args)
 
         if coords not in all_taken_coords:
             all_taken_coords.append(coords)
@@ -1988,6 +1988,25 @@ def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, de
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_q_matic_module(sln_settings, current_coords, main_branding, default_lang, tag):
+    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+    qmatic_settings = get_qmatic_settings(sln_settings.service_user)
+    if not qmatic_settings.enabled:
+        if current_coords:
+            system.delete_menu_item(current_coords)
+        return []
+    item = SolutionServiceMenuItem(u'fa-calendar',
+                                   sln_settings.menu_item_color,
+                                   common_translate(default_lang, SOLUTION_COMMON, 'appointments'),
+                                   tag,
+                                   action=SolutionModule.action_order(SolutionModule.Q_MATIC),
+                                   embedded_app=OCAEmbeddedApps.OCA)
+    return [item]
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -2038,6 +2057,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.JOBS: _dummy_put,
     SolutionModule.FORMS: _dummy_put,
     SolutionModule.PARTICIPATION: _dummy_put,
+    SolutionModule.Q_MATIC: put_q_matic_module,
 }
 
 MODULES_DELETE_FUNCS = {
@@ -2066,4 +2086,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.JOBS: _default_delete,
     SolutionModule.FORMS: _default_delete,
     SolutionModule.PARTICIPATION: _default_delete,
+    SolutionModule.Q_MATIC: _default_delete,
 }

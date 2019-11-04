@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8"/>
+  <title>Our City App</title>
+
+  <base href="/"/>
+
+  <meta name="viewport"
+        content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <meta name="msapplication-tap-highlight" content="no"/>
+
+  <link rel="icon" type="image/png" href="assets/icon/favicon.png"/>
+</head>
+
+<body>
+<app-root></app-root>
+<script>
+    function nothing() {
+    }
+
+    if (window.location.port === '4201') {
+        rogerthat = {
+            context: func => func({context: null}),
+            api: {
+                call: nothing,
+                callbacks: {
+                    resultReceived: nothing,
+                },
+            },
+            callbacks: {
+                ready(callback) {
+                    callback();
+                },
+                serviceDataUpdated: nothing,
+                userDataUpdated: nothing,
+                qrCodeScanned: nothing,
+            },
+            user: {
+                language: 'en',
+                data: {},
+            },
+            system: {
+                appId: 'em-be-osa-demo2',
+                appVersion: '2.1.5555',
+            },
+            service: {
+                data: {},
+            },
+            menuItem: {
+                hashedTag: 'q_matic',
+                label: 'Q-matic',
+            },
+            util: {
+                uuid: () => {
+                    return Math.random().toString();
+                },
+            },
+        };
+    }
+</script>
+<script src="cordova.js"></script>
+</body>
+
+</html>

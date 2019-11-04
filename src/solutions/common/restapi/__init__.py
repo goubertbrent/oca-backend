@@ -94,6 +94,7 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
     get_solution_news_publishers, get_user_from_key, get_calendar_items
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
+from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, save_qmatic_settings
 from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, RestaurantMenu, \
     SolutionRssScraperSettings
@@ -1577,6 +1578,20 @@ def rest_save_branding_settings(branding_settings):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest('/common/q-matic', 'get')
+@returns(dict)
+@arguments()
+def rest_get_qmatic_settings():
+    return get_qmatic_settings(users.get_current_user()).to_dict()
+
+
+@rest('/common/q-matic', 'put')
+@returns(dict)
+@arguments(data=dict)
+def rest_save_qmatic_settings(data):
+    return save_qmatic_settings(users.get_current_user(), data['url'], data['auth_token']).to_dict()
 
 
 @rest("/common/repair/settings/load", "get", read_only_access=True)

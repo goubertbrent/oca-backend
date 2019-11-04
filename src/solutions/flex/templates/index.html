@@ -420,6 +420,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
                                 <li section="section_settings_roles"><a href="#/settings/roles">{% translate language, "common", "settings-app-users-and-roles" %}</a></li>
                             {% endif %}
+                            {% if not is_layout_user and (SolutionModule.Q_MATIC in sln_settings.modules) %}
+                                <li section="section_settings_q_matic"><a href="#/settings/q-matic">Q-Matic</a></li>
+                            {% endif %}
                         </ul>
 
                         <section id="section_general">
@@ -525,6 +528,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
         {% endif %}
         {% if not is_layout_user and (sln_settings.uses_inbox() or SolutionModule.BROADCAST in sln_settings.modules or SolutionModule.AGENDA in sln_settings.modules) %}
                         {%- include 'roles_settings.tmpl' %}
+        {% endif %}
+        {% if not is_layout_user and SolutionModule.Q_MATIC in sln_settings.modules %}
+                        {%- include 'settings/q_matic.tmpl' %}
         {% endif %}
                     </div>
  {% endif %}

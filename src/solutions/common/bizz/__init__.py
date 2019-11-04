@@ -14,22 +14,24 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from __future__ import unicode_literals
 
-from collections import defaultdict
-from datetime import datetime
 import importlib
 import logging
 import os
 import time
+from collections import defaultdict
+from datetime import datetime
 from types import NoneType
 
-from PIL.Image import Image
-from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
-import pytz
 
+import pytz
+import solutions
+from PIL.Image import Image
+from babel.dates import format_date, format_time, format_datetime, get_timezone
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
@@ -38,7 +40,8 @@ from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding
 from rogerthat.bizz.rtemail import generate_auto_login_url
-from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, AvatarImageNotSquareException
+from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, \
+    AvatarImageNotSquareException
 from rogerthat.consts import FAST_QUEUE, DEBUG
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.dal.app import get_app_by_id
@@ -64,7 +67,6 @@ from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
@@ -77,6 +79,13 @@ from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
+
+
+class OCAEmbeddedApps(Enum):
+    # Contains shared functionality that is the same for many of the services
+    # Including but not limitted to: q-matic appointments
+    OCA = 'oca'
+
 
 CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
 ASSOCIATION_BROADCAST_TYPES = [u'News', u'Events']
@@ -114,6 +123,7 @@ class SolutionModule(Enum):
     JOBS = u'jobs'
     FORMS = u'forms'
     PARTICIPATION = u'participation'
+    Q_MATIC = u'q_matic'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -236,10 +246,11 @@ class SolutionServiceMenuItem(TO):
     coords = long_list_property('13')
     action = long_property('14')
     link = typed_property('15', ServiceMenuItemLinkTO)
+    embedded_app = unicode_property('embedded_app')
 
     def __init__(self, icon_name, icon_color, label, tag, screen_branding=None, requires_wifi=False,
                  run_in_background=True, static_flow=None, roles=None, is_broadcast_settings=False,
-                 broadcast_branding=None, broadcast_types=None, coords=None, action=0, link=None):
+                 broadcast_branding=None, broadcast_types=None, coords=None, action=0, link=None, embedded_app=None):
         self.icon_name = icon_name
         self.icon_color = icon_color
         self.label = label
@@ -255,6 +266,7 @@ class SolutionServiceMenuItem(TO):
         self.coords = [] if coords is None else coords
         self.action = action
         self.link = link
+        self.embedded_app = embedded_app
 
 BASE_CODE = ServiceApiException.BASE_CODE_SOLUTIONS
 

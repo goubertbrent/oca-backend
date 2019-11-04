@@ -1,0 +1,25 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'app.oca.create_appointment' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <app-create-appointment [services]="services$ | async"
+                          [branches]="branches$ | async"
+                          [dates]="dates$ | async"
+                          [times]="times$ | async"
+                          [showLocation]="selectedService != null"
+                          [showDates]="selectedBranch !== null"
+                          [showTimes]="selectedDate !== null"
+                          [showLoading]="isLoading$ | async"
+                          (serviceSelected)="serviceChanged($event)"
+                          (branchSelected)="branchChanged($event)"
+                          (dateSelected)="dateChanged($event)"
+                          (timeSelected)="timeChanged($event)"
+                          (confirmAppointment)="confirmAppointment($event)"></app-create-appointment>
+
+</ion-content>

@@ -1,0 +1,31 @@
+{
+  "app": {
+    "oca": {
+      "add_to_calendar": "Add to calendar",
+      "appointments": "Appointments",
+      "cancel": "Cancel",
+      "close": "Close",
+      "confirm": "Confirm",
+      "confirm_appointment": "Confirm appointment",
+      "confirm_delete_appointment": "Are you sure you want to delete the appointment \"{{title}}\"?",
+      "create_appointment": "Create appointment",
+      "date": "Date",
+      "email": "Email address",
+      "error": "Error",
+      "first_name": "First name",
+      "former_appointments": "Former appointments",
+      "last_name": "Last name",
+      "location": "Location",
+      "no": "No",
+      "no_upcoming_appointments_yet": "You don't have any upcoming appointments",
+      "notes": "Notes",
+      "phone": "Phone number",
+      "retry": "Retry",
+      "service": "Service",
+      "time": "Time",
+      "unknown_error": "An unknown error occurred, please retry again later.",
+      "via_app": "Via the {{ appName }} app",
+      "yes": "Yes"
+    }
+  }
+}

@@ -136,7 +136,7 @@ $(function () {
 
     function router(urlHash) {
         var page = urlHash[1];
-        if (['general', 'branding', 'broadcast', 'app', 'roles'].indexOf(page) === -1) {
+        if (['general', 'branding', 'broadcast', 'app', 'roles', 'q-matic'].indexOf(page) === -1) {
             page = 'general';
             window.location.hash = '#/' + urlHash[0] + '/' + page;
             return;
@@ -149,8 +149,10 @@ $(function () {
             renderAppSettings();
         } else if (page === 'roles') {
             renderRolesSettings();
-        } else if (page == 'broadcast') {
+        } else if (page === 'broadcast') {
             getBroadcastRssSettings(renderRssSettings);
+        } else if (page === 'q-matic') {
+            Requests.getQmaticSettings().then(renderQmaticSettings);
         }
     }
 
@@ -1662,6 +1664,42 @@ $(function () {
                     loadSettings();
                 }
             });
+        });
+    }
+
+    function renderQmaticSettings(settings) {
+        var url = $('#qmatic_url');
+        var authToken = $('#qmatic_auth_token');
+        var saveButton = $('#btn_save_qmatic_settings');
+        url.val(settings.url);
+        authToken.val(settings.auth_token);
+        saveButton.prop('disabled', false);
+        saveButton.click(function () {
+            if (saveButton.prop('disabled')) {
+                return;
+            }
+            saveButton.prop('disabled', true);
+            var data = {
+                url: url.val(),
+                auth_token: authToken.val(),
+            };
+            Requests.saveQmaticSettings(data, {showError: false})
+                .then(function () {
+                    saveButton.prop('disabled', false);
+                })
+                .catch(function (err) {
+                    saveButton.prop('disabled', false);
+                    if (err.responseJSON.error) {
+                        saveButton.prop('disabled', false);
+                        if (err.responseJSON.error === 'errors.invalid_qmatic_credentials') {
+                            sln.alert(T('errors.invalid_qmatic_credentials'));
+                        } else {
+                            sln.alert(err.responseJSON.error);
+                        }
+                    } else {
+                        sln.showAjaxError();
+                    }
+                });
         });
     }
 });
