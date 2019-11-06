@@ -166,6 +166,7 @@ DEFAULT_COORDS = {
     SolutionModule.JOYN: None,
     SolutionModule.FORMS: None,
     SolutionModule.PARTICIPATION: None,
+    SolutionModule.REPORTS: None,
     SolutionModule.Q_MATIC: {
         POKE_TAG_Q_MATIC: {
             'preferred_page': 0,
