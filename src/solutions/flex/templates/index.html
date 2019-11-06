@@ -147,6 +147,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 {% if SolutionModule.FORMS in sln_settings.modules and not loyalty %}
                         <li menu="forms"><a href="#/forms">{% translate language, "common", "forms" %}</a></li>
 {% endif %}
+{% if SolutionModule.REPORTS in sln_settings.modules and not loyalty %}
+                        <li menu="reports"><a href="#/reports">{% translate language, "common", "oca.reports" %}</a></li>
+{% endif %}
 {% if SolutionModule.PARTICIPATION in sln_settings.modules and not loyalty %}
                         <li menu="participation"><a href="#/participation">{% translate language, "common", "participation" %}</a></li>
 {% endif %}

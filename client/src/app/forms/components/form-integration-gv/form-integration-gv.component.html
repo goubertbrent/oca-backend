@@ -87,6 +87,17 @@
               <input matInput [(ngModel)]="component.address" (ngModelChange)="markChanged()">
             </mat-form-field>
           </ng-container>
+          <ng-container *ngSwitchCase="GvFieldType.CONSENT">
+            <mat-form-field>
+              <mat-label>{{ 'oca.value' | translate }}</mat-label>
+              <mat-select [(ngModel)]="component.value_id" required>
+                <mat-option *ngFor="let option of formComponentValues[section.id][component.id]" [value]="option.value">
+                  {{ option.label }}
+                </mat-option>
+              </mat-select>
+              <mat-hint>{{ 'oca.report_consent_field_info' | translate }}</mat-hint>
+            </mat-form-field>
+          </ng-container>
           <ng-container *ngIf="componentChoices[section.id][component.type]">
             <mat-form-field>
               <mat-label>{{ 'oca.component' | translate }}</mat-label>

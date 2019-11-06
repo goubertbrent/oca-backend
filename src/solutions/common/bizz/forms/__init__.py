@@ -15,19 +15,19 @@
 #
 # @@license_version:1.5@@
 
-from datetime import datetime
 import json
 import logging
-from os import path
 import random
+from datetime import datetime
+from os import path
 
-import cloudstorage
-import dateutil
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 
+import cloudstorage
+import dateutil
 from mcfw.consts import MISSING
 from mcfw.imaging import recolor_png
 from mcfw.rpc import arguments, returns
@@ -37,7 +37,7 @@ from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import SCHEDULED_QUEUE, MC_RESERVED_TAG_PREFIX
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.mobile import get_user_active_mobiles
-from rogerthat.dal.profile import get_profile_infos, get_user_profile
+from rogerthat.dal.profile import get_profile_infos, get_user_profile, get_service_profile
 from rogerthat.models import Message, ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.rpc.users import get_current_session
@@ -152,6 +152,13 @@ def _update_form(model, created_form, settings, can_edit_integrations):
             title=created_form.title,
         )
     model.put()
+    service_profile = get_service_profile(model.service_user)
+    integration_models = ndb.get_multi((FormIntegrationConfiguration.create_key(model.service_user, i.provider)
+                                        for i in model.integrations))
+    integration_configs = {i.provider: i for i in integration_models}
+    for integration in model.integrations:
+        conf = integration_configs[integration.provider]
+        get_form_integration(conf).update_configuration(model.id, integration.configuration, service_profile)
 
 
 def _get_form_avatar_url(service_user):
@@ -377,25 +384,25 @@ def _delete_submissions(submission_keys):
 
 def create_form_submission(service_user, details, form):
     # type: (users.User, UserDetailsTO, SubmitDynamicFormRequestTO) -> FormSubmittedCallbackResultTO
-    user = create_app_user_by_email(details.email, details.app_id)
     form_key = OcaForm.create_key(form.id, service_user)
     oca_form = form_key.get()  # type: OcaForm
     # Check if form is no longer accepting responses, else return error
     if oca_form.finished:  # TODO: replace with not oca_form.visible and not form.test
+        user = create_app_user_by_email(details.email, details.app_id)
         lang = get_user_profile(user).language
         error = translate(lang, SOLUTION_COMMON, 'oca.form_ended_error')
         return FormSubmittedCallbackResultTO(valid=False, error=error)
 
-    try_or_defer(_save_form_submission, user, form, service_user)
+    try_or_defer(_save_form_submission, details, form, service_user)
     return FormSubmittedCallbackResultTO()
 
 
-def _save_form_submission(user, form_result, service_user):
-    # type: (users.User, SubmitDynamicFormRequestTO, users.User) -> None
+def _save_form_submission(user_details, form_result, service_user):
+    # type: (UserDetailsTO, SubmitDynamicFormRequestTO, users.User) -> None
     oca_form = OcaForm.create_key(form_result.id, service_user).get()  # type: OcaForm
     enabled_integrations = [i for i in oca_form.integrations if i.enabled]
     submission = FormSubmission(form_id=form_result.id,
-                                user=user.email(),
+                                user=user_details.toAppUser().email(),
                                 version=form_result.version,
                                 test=form_result.test,
                                 pending_integration_submits=[i.provider for i in enabled_integrations])
@@ -409,12 +416,13 @@ def _save_form_submission(user, form_result, service_user):
     submission.sections = [s.to_dict() for s in sections]
     submission.put()
     try_or_defer(update_form_statistics, service_user, submission, get_random_shard_number(submission.form_id))
-    schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form_result.id)
+    schedule_tasks([create_task(_submit_form_to_integration, service_user, i.provider, submission.key, form_result.id,
+                                user_details)
                     for i in enabled_integrations])
 
 
-def _submit_form_to_integration(service_user, integration_provider, submission_key, form_id):
-    # type: (users.User, str, ndb.Key, long) -> None
+def _submit_form_to_integration(service_user, integration_provider, submission_key, form_id, user_details):
+    # type: (users.User, str, ndb.Key, long, UserDetailsTO) -> None
     integration_key = FormIntegrationConfiguration.create_key(service_user, integration_provider)
     oca_form_key = OcaForm.create_key(form_id, service_user)
     submission, config, oca_form = ndb.get_multi([submission_key, integration_key, oca_form_key])
@@ -432,7 +440,9 @@ def _submit_form_to_integration(service_user, integration_provider, submission_k
         return
     with users.set_user(service_user):
         form = service_api.get_form(form_id)
-    reference = form_integration.submit(integration_model.configuration, submission, form)
+    service_profile = get_service_profile(oca_form.service_user)
+    reference = form_integration.submit(integration_model.configuration, submission, form, service_profile,
+                                        user_details)
     try_or_defer(_set_reference_and_remove_sensitive_info, form, submission_key, reference, integration_provider)
 
 

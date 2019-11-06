@@ -536,7 +536,7 @@ def rest_get_news_options():
         media_types.append(MediaType.VIDEO_YOUTUBE)
     return NewsOptionsTO(tags=tags, regional=regional, groups=news_groups, media_types=media_types,
                          # location_filter_enabled=shop_app.paid_features_enabled)
-                         location_filter_enabled=default_app.demo)
+                         location_filter_enabled=default_app.demo or DEBUG)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)

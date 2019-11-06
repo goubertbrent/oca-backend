@@ -1,0 +1,13 @@
+<mat-toolbar color="primary">
+  <button mat-icon-button (click)="backClicked()">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1 class="flex-grow">{{ 'oca.edit_incident' | translate }}</h1>
+</mat-toolbar>
+<div class="page-margin" *ngIf="incident$ | async as incident">
+  <oca-edit-incident [incident]="incident.result" [disabled]="incident.state === LOADING" (saveClicked)="saveIncident($event)"
+                     *ngIf="incident.result"></oca-edit-incident>
+  <div class="spinner-container">
+    <mat-spinner diameter="50" mode="indeterminate" *ngIf="incident.state === LOADING"></mat-spinner>
+  </div>
+</div>

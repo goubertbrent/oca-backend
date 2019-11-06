@@ -21,8 +21,9 @@
   </mat-toolbar>
   <div class="integration-block" *ngIf="response.data.result.external_reference">
     <span>{{ 'oca.reference' | translate }}</span>:
-    <a [href]="response.data.result.external_reference.url"
-       target="_blank">{{ response.data.result.external_reference.id }}</a>
+    <a [routerLink]="['/reports/incidents', response.data.result.external_reference]">
+      {{ response.data.result.external_reference }}
+    </a>
   </div>
   <mat-card class="section-card" *ngFor="let section of response.data.result.sections">
     <mat-card-header>

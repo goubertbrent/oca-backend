@@ -39,6 +39,7 @@ export const routes: Routes = [
   { path: 'forms', loadChildren: () => import('./forms/oca-forms.module').then(m => m.OcaFormsModule) },
   { path: 'participation', loadChildren: () => import('./participation/participation.module').then(m => m.ParticipationModule) },
   { path: 'news', loadChildren: () => import('./news/news.module').then(m => m.NewsModule) },
+  { path: 'reports', loadChildren: () => import('./reports/reports.module').then(m => m.ReportsModule) },
 ];
 
 @NgModule({

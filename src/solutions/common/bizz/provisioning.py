@@ -138,6 +138,7 @@ POKE_TAGS = {
     SolutionModule.FORMS: None,
     SolutionModule.PARTICIPATION: None,
     SolutionModule.Q_MATIC: POKE_TAG_Q_MATIC,
+    SolutionModule.REPORTS: None,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -2058,6 +2059,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.FORMS: _dummy_put,
     SolutionModule.PARTICIPATION: _dummy_put,
     SolutionModule.Q_MATIC: put_q_matic_module,
+    SolutionModule.REPORTS: _dummy_put,
 }
 
 MODULES_DELETE_FUNCS = {
@@ -2087,4 +2089,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.FORMS: _default_delete,
     SolutionModule.PARTICIPATION: _default_delete,
     SolutionModule.Q_MATIC: _default_delete,
+    SolutionModule.REPORTS: _default_delete,
 }

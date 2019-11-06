@@ -87,6 +87,7 @@ def get_currency_name(locale, currency_symbol):
 # Translations used on the web client with 'oca.' prefix
 TRANSLATION_MAPPING = {
     'Alert',
+    'All',
     'Attachment',
     'Broadcast',
     'Call',
@@ -99,6 +100,7 @@ TRANSLATION_MAPPING = {
     'Email',
     'Enabled',
     'Error',
+    'Icon',
     'Label',
     'Load more',
     'Maximum',
@@ -203,6 +205,7 @@ TRANSLATION_MAPPING = {
     'scheduled_for_datetime',
     'send_email',
     'statistics',
+    'status',
     'street',
     'target_audience',
     'this_field_is_required',

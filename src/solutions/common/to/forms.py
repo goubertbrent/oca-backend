@@ -18,9 +18,7 @@
 from mcfw.properties import bool_property, unicode_property, typed_property, long_property
 from rogerthat.to import TO, PaginatedResultTO
 from rogerthat.to.forms import DynamicFormTO, FormSectionValueTO
-from solutions.common.bizz.forms import get_form_integration
-from solutions.common.bizz.forms.integrations import GreenValleyFormIntegration
-from solutions.common.models.forms import OcaForm, FormSubmission, FormIntegrationConfiguration
+from solutions.common.models.forms import OcaForm
 
 
 class FormTombolaTO(TO):
@@ -71,20 +69,7 @@ class FormSubmissionTO(TO):
     sections = typed_property('sections', FormSectionValueTO, True)
     submitted_date = unicode_property('submitted_date')
     version = long_property('version')
-    external_reference = typed_property('external_reference', dict)
-
-    @classmethod
-    def from_model(cls, model, integration_config=None):
-        # type: (FormSubmission, FormIntegrationConfiguration) -> FormSubmissionTO
-        d = model.to_dict(exclude=['external_reference'])
-        if model.external_reference:
-            integration = get_form_integration(integration_config)
-            if isinstance(integration, GreenValleyFormIntegration):
-                d['external_reference'] = {
-                    'id': model.external_reference,
-                    'url': '%s/do/overview' % integration.configuration.base_url,
-                }
-        return cls.from_dict(d)
+    external_reference = unicode_property('external_reference')
 
 
 class FormSubmissionListTO(PaginatedResultTO):

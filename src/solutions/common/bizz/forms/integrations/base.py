@@ -14,9 +14,10 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
+from rogerthat.models import ServiceProfile
 from rogerthat.to import TO
 from rogerthat.to.forms import DynamicFormTO
+from rogerthat.to.service import UserDetailsTO
 from solutions.common.models.forms import FormSubmission
 
 
@@ -27,6 +28,10 @@ class BaseFormIntegration(object):
         # type: (dict) -> None
         self.configuration = configuration
 
-    def submit(self, form_configuration, submission_key, form):
-        # type: (dict, FormSubmission, DynamicFormTO) -> str
+    def submit(self, form_configuration, submission_key, form, service_profile, user_details):
+        # type: (dict, FormSubmission, DynamicFormTO, ServiceProfile, UserDetailsTO) -> str
+        raise NotImplementedError()
+
+    def update_configuration(self, form_id, configuration, service_profile):
+        # type: (int, dict, ServiceProfile) -> None
         raise NotImplementedError()

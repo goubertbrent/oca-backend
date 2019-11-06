@@ -20,6 +20,7 @@
     ROUTES.forms = router;
     ROUTES.participation = router;
     ROUTES.news = router;
+    ROUTES.reports = router;
     var element = document.getElementById('dashboard');
     var baseUrl = DEBUG ? 'http://localhost:4300/' : '/static/client/index.html#/';
     var topMenu = $('#topmenu');

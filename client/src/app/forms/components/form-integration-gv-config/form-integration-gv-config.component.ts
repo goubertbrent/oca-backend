@@ -12,8 +12,6 @@ export class FormIntegrationGvConfigComponent {
   @Input() configuration: GVIntegrationConfig;
   @Output() configurationChanged = new EventEmitter<GVIntegrationConfig>();
 
-  showPassword = false;
-
   save(form: NgForm) {
     if (form.form.valid) {
       this.configurationChanged.emit(this.configuration);

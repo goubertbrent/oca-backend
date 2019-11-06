@@ -3,9 +3,6 @@ export enum FormIntegrationProvider {
 }
 
 export interface GVIntegrationConfig {
-  username: string;
-  password: string;
-  base_url: string;
 }
 
 export interface IntegrationConfigurationGV {
@@ -24,6 +21,7 @@ export enum GvFieldType {
   LOCATION = 'location',
   ATTACHMENT = 'attachment',
   PERSON = 'person',
+  CONSENT = 'consent',
 }
 
 export interface GVMappingField {
@@ -67,13 +65,20 @@ export interface GVMappingPerson {
   sub_field: string;
 }
 
+export interface GVMappingConsent {
+  type: GvFieldType.CONSENT;
+  id: string;
+  value_id: string;
+}
+
 export type GVComponentMapping =
   GVMappingField
   | GVMappingConst
   | GVMappingFlex
   | GVMappingLocation
   | GVMappingAttachment
-  | GVMappingPerson;
+  | GVMappingPerson
+  | GVMappingConsent;
 
 export interface GVSectionMapping {
   id: string;

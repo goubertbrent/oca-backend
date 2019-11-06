@@ -124,6 +124,7 @@ class SolutionModule(Enum):
     FORMS = u'forms'
     PARTICIPATION = u'participation'
     Q_MATIC = u'q_matic'
+    REPORTS = u'reports'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -152,6 +153,7 @@ class SolutionModule(Enum):
         JOBS: 'jobs',
         FORMS: 'forms',
         PARTICIPATION: 'participation',
+        REPORTS: 'oca.reports',
     }
 
     INBOX_MODULES = (ASK_QUESTION, SANDWICH_BAR, APPOINTMENT, REPAIR, GROUP_PURCHASE, ORDER, RESTAURANT_RESERVATION,

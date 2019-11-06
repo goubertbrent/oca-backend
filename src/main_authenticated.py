@@ -37,12 +37,14 @@ import solutions.common.restapi.hints
 import solutions.common.restapi.holiday
 import solutions.common.restapi.locations
 import solutions.common.restapi.loyalty
+import solutions.common.restapi.maps
 import solutions.common.restapi.news
 import solutions.common.restapi.order
 import solutions.common.restapi.participation
 import solutions.common.restapi.payments
 import solutions.common.restapi.pharmacy.order
 import solutions.common.restapi.qanda
+import solutions.common.restapi.reports
 import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.statistics
@@ -85,6 +87,7 @@ handlers.extend(rest_functions(solutions.common.restapi.hints))
 handlers.extend(rest_functions(solutions.common.restapi.holiday))
 handlers.extend(rest_functions(solutions.common.restapi.locations))
 handlers.extend(rest_functions(solutions.common.restapi.loyalty))
+handlers.extend(rest_functions(solutions.common.restapi.maps))
 handlers.extend(rest_functions(solutions.common.restapi.news))
 handlers.extend(rest_functions(solutions.common.restapi.order))
 handlers.extend(rest_functions(solutions.common.restapi.participation))
@@ -92,6 +95,7 @@ handlers.extend(rest_functions(solutions.common.restapi.payments))
 handlers.extend(rest_functions(solutions.common.restapi.pharmacy.order))
 handlers.extend(rest_functions(solutions.common.restapi.reservation))
 handlers.extend(rest_functions(solutions.common.restapi.qanda))
+handlers.extend(rest_functions(solutions.common.restapi.reports))
 handlers.extend(rest_functions(solutions.common.restapi.store))
 handlers.extend(rest_functions(solutions.common.restapi.statistics))
 

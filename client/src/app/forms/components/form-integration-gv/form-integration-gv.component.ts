@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormComponentType } from '../../interfaces/enums';
-import { FormSection, InputComponents } from '../../interfaces/forms';
+import { FormSection, InputComponents, Value } from '../../interfaces/forms';
 import { GVComponentMapping, GvFieldType, GVIntegrationFormConfig, GVSectionMapping } from '../../interfaces/integrations';
 
 interface ValueLabel {
@@ -36,6 +36,8 @@ export class FormIntegrationGVComponent implements OnChanges {
     };
   };
 
+  formComponentValues: { [ key: string ]: { [ key: string ]: Value[] } } = {};
+
   mappingTypes = [
     { type: GvFieldType.FIELD, label: 'oca.field' },
     { type: GvFieldType.FLEX, label: 'oca.custom_field' },
@@ -43,6 +45,7 @@ export class FormIntegrationGVComponent implements OnChanges {
     { type: GvFieldType.ATTACHMENT, label: 'oca.Attachment' },
     { type: GvFieldType.LOCATION, label: 'oca.location' },
     { type: GvFieldType.PERSON, label: 'oca.person' },
+    { type: GvFieldType.CONSENT, label: 'oca.user_consent' },
   ];
 
   fieldOptions: ValueLabel[] = [
@@ -91,12 +94,14 @@ export class FormIntegrationGVComponent implements OnChanges {
     if (this.configuration && this.sections) {
       this.componentChoices = {};
       for (const section of this.sections) {
+        this.formComponentValues[ section.id ] = {};
         const choices: { [key in Exclude<GvFieldType, GvFieldType.CONST>]: InputComponents[] } = {
           [ GvFieldType.LOCATION ]: [],
           [ GvFieldType.PERSON ]: [],
           [ GvFieldType.ATTACHMENT ]: [],
           [ GvFieldType.FLEX ]: [],
           [ GvFieldType.FIELD ]: [],
+          [ GvFieldType.CONSENT ]: [],
         };
         for (const component of section.components) {
           switch (component.type) {
@@ -107,10 +112,12 @@ export class FormIntegrationGVComponent implements OnChanges {
               choices[ GvFieldType.FIELD ].push(component);
               choices[ GvFieldType.FLEX ].push(component);
               choices[ GvFieldType.PERSON ].push(component);
+              choices[ GvFieldType.CONSENT ].push(component);
               break;
             case FormComponentType.MULTI_SELECT:
               choices[ GvFieldType.FIELD ].push(component);
               choices[ GvFieldType.FLEX ].push(component);
+              choices[ GvFieldType.CONSENT ].push(component);
               break;
             case FormComponentType.DATETIME:
               break;
@@ -122,6 +129,9 @@ export class FormIntegrationGVComponent implements OnChanges {
               break;
             default:
               throw Error(`Unhandled component ${component}`);
+          }
+          if (component.type === FormComponentType.SINGLE_SELECT || component.type === FormComponentType.MULTI_SELECT) {
+            this.formComponentValues[ section.id ][ component.id ] = component.choices;
           }
         }
         this.componentChoices[ section.id ] = choices;

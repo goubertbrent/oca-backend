@@ -1,0 +1,25 @@
+<form #form="ngForm" (ngSubmit)="submit(form)">
+  <mat-card class="incident-card">
+    <mat-card-title>{{ incident.details.title }}</mat-card-title>
+    <mat-card-subtitle>{{ incident.report_date | date : 'medium' }}</mat-card-subtitle>
+    <mat-card-content>
+      <p>{{ 'oca.external_id_x' | translate : {id: incident.external_id} }}</p>
+      <div [innerHTML]="incident.details.description | markdown : {breaks: true}"></div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-form-field>
+    <mat-label>{{ 'oca.status' | translate }}</mat-label>
+    <mat-select name="details.status" [(ngModel)]="incident.details.status" [disabled]="disabled">
+      <mat-option *ngFor="let status of statuses" [value]="status.value">{{ status.label | translate }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <div class="slide-toggle-margin" *ngIf="incident.details.geo_location && incident.user_consent">
+    <mat-slide-toggle name="visible" [(ngModel)]="incident.visible">
+      {{ 'oca.visible_on_reports_map' | translate }}
+    </mat-slide-toggle>
+  </div>
+  <div>
+    <button mat-raised-button [disabled]="disabled">{{ 'oca.Save' | translate }}</button>
+  </div>
+</form>

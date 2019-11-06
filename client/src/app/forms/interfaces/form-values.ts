@@ -121,5 +121,5 @@ export interface MergedFormResponse {
   submissionId: number;
   sections: ResponseFormSectionValue[];
   submitted_date: string;
-  external_reference?: ExternalReference;
+  external_reference?: string;
 }

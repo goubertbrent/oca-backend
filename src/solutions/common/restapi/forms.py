@@ -106,14 +106,9 @@ def rest_delete_form(form_id):
 def rest_list_responses(form_id, cursor=None, page_size=50):
     service_user = users.get_current_user()
     responses, cursor, more = list_responses(service_user, form_id, cursor, page_size)
-    integrations = get_form_integrations(service_user).fetch()
-    if integrations:
-        integration = integrations[0]
-    else:
-        integration = None
     return FormSubmissionListTO(cursor=cursor and cursor.to_websafe_string(),
                                 more=more,
-                                results=[FormSubmissionTO.from_model(model, integration) for model in responses])
+                                results=[FormSubmissionTO.from_model(model) for model in responses])
 
 
 @rest('/common/forms/<form_id:\d+>/submissions/<submission_id:[^/]+>', 'delete')

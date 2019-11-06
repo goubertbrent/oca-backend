@@ -1,0 +1,9 @@
+<mat-nav-list>
+  <cdk-virtual-scroll-viewport [itemSize]="72" class="incidents-viewport">
+    <a mat-list-item [routerLink]="item.id" *cdkVirtualFor="let item of incidents.results; trackBy: trackById">
+      <mat-icon mat-list-icon>{{ iconsForStatus[item.details.status] }}</mat-icon>
+      <h4 mat-line>{{ item.details.title }}</h4>
+      <p mat-line>{{ item.report_date | date : 'medium' }}</p>
+    </a>
+  </cdk-virtual-scroll-viewport>
+</mat-nav-list>

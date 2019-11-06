@@ -309,7 +309,7 @@ export interface FormResponse {
   id: number;
   sections: FormSectionValue[];
   submitted_date: string;
-  external_reference?: ExternalReference;
+  external_reference?: string;
   version: number;
 }
 
