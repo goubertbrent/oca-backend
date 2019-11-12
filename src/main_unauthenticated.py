@@ -33,6 +33,7 @@ from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, Prospect
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
+from solutions.common.handlers.vcard import VCardHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
@@ -59,6 +60,8 @@ handlers = [
     ('/shop/prospects/discover/callback', ProspectDiscoverCallbackHandler),
     ('/customers/map/([a-z-_0-9]+)/services', CustomerMapServicesHandler),
     ('/customers/map/([a-z-_0-9]+)', CustomerMapHandler),
+    RedirectRoute('/vcards', VCardHandler, 'vcard', strict_slash=True),
+    RedirectRoute('/vcards/<user_id:[^/]+>', VCardHandler, 'vcard', strict_slash=True),
     RedirectRoute('/customers/setpassword', CustomerSetPasswordHandler, 'set_password', strict_slash=True),
     RedirectRoute('/customers/setpassword/<app_id:[^/]+>', CustomerSetPasswordHandler, 'set_password_app',
                   strict_slash=True),

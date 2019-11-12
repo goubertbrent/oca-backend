@@ -61,6 +61,10 @@ handlers:
   script: main_unauthenticated.app
   secure: always
 
+- url: /vcards/?.*
+  script: main_unauthenticated.app
+  secure: always
+
 - url: /unauthenticated/loyalty/.*
   script: main_unauthenticated.app
   secure: always
