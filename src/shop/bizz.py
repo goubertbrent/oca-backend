@@ -2249,7 +2249,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     signup = CustomerSignup(parent=city_customer)
 
     signup.company_name = company.name
-    signup.company_organization_type = company.organization_type
+    signup.company_organization_type = company.organization_type or ServiceProfile.ORGANIZATION_TYPE_PROFIT
     signup.company_address1 = company.address1
     signup.company_zip_code = company.zip_code
     signup.company_city = company.city

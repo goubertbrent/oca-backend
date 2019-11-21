@@ -16,7 +16,7 @@
  * @@license_version:1.5@@
  */
 
-$(function() {
+$(function () {
     'use strict';
 
     function RequestsService() {
@@ -92,8 +92,8 @@ $(function() {
         container: 'recaptcha_container',
     });
 
-    $('form').submit(function(event){
-      event.preventDefault();
+    $('form').submit(function (event) {
+        event.preventDefault();
     });
 
     init();
@@ -106,14 +106,14 @@ $(function() {
         $('#language').change(languageChanged);
         $('#app').change(appSelected);
         $('select').change(validateInput);
-        $('input[type!=checkbox][type!=radio]').each(function() {
+        $('input[type!=checkbox][type!=radio]').each(function () {
             var input = this;
-            sln.configureDelayedInput($(input), function() {
+            sln.configureDelayedInput($(input), function () {
                 validateInput(input);
             }, null, false, 1000);
         });
         var vatInput = $('#enterprise_vat');
-        sln.configureDelayedInput(vatInput, function() {
+        sln.configureDelayedInput(vatInput, function () {
             validateVat(vatInput);
         }, null, false, 3000, true);
 
@@ -131,7 +131,7 @@ $(function() {
 
         var selectFirstType = true;
         var controlsContainer = $('#organization_types > div[class=controls]');
-        $.each(types, function(type, label) {
+        $.each(types, function (type, label) {
             controlsContainer.append(
                 $.tmpl(TMPL_ORG_TYPE, {
                     value: type,
@@ -159,6 +159,7 @@ $(function() {
         if (!app) {
             return;
         }
+        $('#next').attr('disabled', true);
 
         requests.getAppInfo(app.app_id, getSelectedLanguage()).then(function (appInfo) {
             setEditableOrganizationTypes(appInfo.organization_types);
@@ -183,8 +184,8 @@ $(function() {
     }
 
     function validateVat(input) {
-        var vat = input.val().replace(/\s/g,'');
-        if(!vat) {
+        var vat = input.val().replace(/\s/g, '');
+        if (!vat) {
             // clear any prev errors/warnings
             clearErrors(input);
             return;
@@ -242,7 +243,7 @@ $(function() {
     function gatherFromInputs(divName) {
         var result = {};
 
-        $('#' + divName + ' input').each(function(i, el) {
+        $('#' + divName + ' input').each(function (i, el) {
             var fieldName = $(el).attr('id').replace(divName + '_', '');
             result[fieldName] = $(el).val().trim();
         });
@@ -278,6 +279,7 @@ $(function() {
     }
 
     recaptchaLoader.onLoadCallback = doSignup;
+
     function signup() {
         // validate first
         nextStep();
@@ -300,7 +302,7 @@ $(function() {
         }
     }
 
-    window.signupCallback = function(recaptchaToken) {
+    window.signupCallback = function (recaptchaToken) {
         sln.showProcessing(CommonTranslations.SUBMITTING_DOT_DOT_DOT);
         getSignupDetails(recaptchaToken).then(function (signupDetails) {
             sln.call({
@@ -339,20 +341,20 @@ $(function() {
     }
 
     function nextStep() {
-        if(currentStep === 2) {
+        if (currentStep === 2) {
             var vatError = $('#enterprise_vat').next('p[class=text-error]');
-            if(vatError.length) {
+            if (vatError.length) {
                 return;
             }
         }
 
-        if(!validateInputs(getCurrentTab()) || isLastStep()) {
+        if (!validateInputs(getCurrentTab()) || isLastStep()) {
             return;
         }
 
-        if(isFirstStep()) {
+        if (isFirstStep()) {
             // redirect to the signup page if the user already in/have an app
-            if($('input[name=already_in_app]:checked').val() === 'yes') {
+            if ($('input[name=already_in_app]:checked').val() === 'yes') {
                 // Preserve app id in url
                 window.location.pathname = window.location.pathname.replace('signup', 'signin');
                 return;
@@ -374,7 +376,7 @@ $(function() {
     }
 
     function previousStep() {
-        if(isFirstStep()) {
+        if (isFirstStep()) {
             return;
         }
         if (currentStep === 2) {
@@ -398,13 +400,13 @@ $(function() {
         showHideButtons();
 
         /* refill some info from the previous one */
-        if(currentStep === 2) {
+        if (currentStep === 2) {
             var city = getSelectedApp().name;
             fillInput('enterprise_city', city);
             fillInput('contact_city', city);
         }
 
-        if(currentStep === 3) {
+        if (currentStep === 3) {
             copyInput('enterprise_user_email', 'contact_user_email');
             copyInput('enterprise_telephone', 'contact_telephone');
         }
@@ -419,7 +421,7 @@ $(function() {
     }
 
     function showHideButtons() {
-        if(isLastStep()) {
+        if (isLastStep()) {
             $('#signup').show();
             $('#next').hide();
         } else {
@@ -427,18 +429,18 @@ $(function() {
             $('#next').show();
         }
 
-        if(isFirstStep()) {
+        if (isFirstStep()) {
             $('#back').hide();
         } else {
             $('#back').show();
         }
     }
 
-    $(window).keydown(function(event) {
+    $(window).keydown(function (event) {
         // if enter is pressed and is not the last step
         // then go the next step
-        if(event.keyCode == 13) {
-            if(!isLastStep()) {
+        if (event.keyCode == 13) {
+            if (!isLastStep()) {
                 event.preventDefault();
                 nextStep();
             } else {
@@ -447,8 +449,8 @@ $(function() {
         }
     });
 
-    $('.legal-all-versions').click(function(event) {
-        // open all versions page in a new windiw
+    $('.legal-all-versions').click(function (event) {
+        // open all versions page in a new window
         event.preventDefault();
         window.open($(this).attr('href'), '_blank');
     });
