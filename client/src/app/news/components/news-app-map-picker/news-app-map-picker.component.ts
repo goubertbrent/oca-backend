@@ -76,9 +76,6 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
   @Input() defaultAppId: string;
   @Input() appStatistics: AppStatisticsMapping;
   @Input() mapUrl: string;
-
-  private _appIds: string[];
-  private mapData: CountryMapData;
   private colors = {
     [ AreaValue.DEFAULT ]: '#ffffff',
     [ AreaValue.DEFAULT_APP ]: '#6a8acd',
@@ -93,6 +90,13 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
   private $: typeof jQuery;
   private initializedMapUrl: string;
 
+  constructor(private changeDetectorRef: ChangeDetectorRef,
+              private translate: TranslateService,
+              private http: HttpClient) {
+  }
+
+  private _appIds: string[];
+
   get appIds(): string[] {
     return this._appIds;
   }
@@ -103,11 +107,6 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
       this.onChange(values);
     }
     this._appIds = values;
-  }
-
-  constructor(private changeDetectorRef: ChangeDetectorRef,
-              private translate: TranslateService,
-              private http: HttpClient) {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -154,7 +153,7 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
 
   private getTooltip(city: string) {
     const appId = this.appNameMapping[ city ];
-    if (appId) {
+    if (appId && !this.readonly) {
       const stats = this.appStatistics[ appId ] || { total_user_count: 0, app_id: appId };
       const userCount = stats.total_user_count;
       const costCount = appId === this.defaultAppId ? 0 : userCount;
@@ -221,7 +220,6 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
     const [jq, _] = await Promise.all([import('jquery'), import('jquery-mapael')]);
     const $ = (jq as any).default as typeof jQuery;
     this.$ = $;
-    this.mapData = mapData;
     const areas: { [ key: string ]: MapaelArea } = {};
     for (const areaName of Object.keys(mapData.cities)) {
       const appId = this.appNameMapping[ areaName ];
@@ -240,9 +238,7 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
           },
         },
       };
-      if (!this.readonly) {
-        area.tooltip = { content: this.getTooltip(areaName) };
-      }
+      area.tooltip = { content: this.getTooltip(areaName) };
       areas[ areaName ] = area;
     }
     const options = {
@@ -303,8 +299,8 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
     }
     ($ as any).mapael.maps = {
       ...($ as any).mapael.maps, cities: {
-        width: this.mapData.width,
-        height: this.mapData.height,
+        width: mapData.width,
+        height: mapData.height,
         getCoords: (lat: number, lon: number) => ({ x: 1, y: 1 }),
         elems: mapData.cities,
       },

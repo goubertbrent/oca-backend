@@ -13,7 +13,6 @@ import { MatChipEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
-import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
@@ -38,7 +37,7 @@ import {
 @Component({
   selector: 'oca-edit-news',
   templateUrl: './edit-news.component.html',
-  styleUrls: [ './edit-news.component.scss' ],
+  styleUrls: ['./edit-news.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditNewsComponent implements OnChanges {
@@ -106,7 +105,7 @@ export class EditNewsComponent implements OnChanges {
     }
     if ((changes.serviceInfo || changes.newsItem) && this.newsItem && this.serviceInfo) {
       this.hasLocal = this.newsItem.app_ids.includes(this.serviceInfo.default_app);
-      this.hasRegional = !this.hasLocal || this.newsItem.app_ids.length > 1;
+      this.hasRegional = !this.hasLocal || this.isRegional();
     }
     if (changes.apps && this.apps) {
       this.appMapping = {};
@@ -233,7 +232,7 @@ export class EditNewsComponent implements OnChanges {
       appIds = this.newsItem.app_ids.filter(a => a !== defaultAppId);
       this.hasRegional = true;
     } else {
-      appIds = [ ...this.newsItem.app_ids, defaultAppId ];
+      appIds = [...this.newsItem.app_ids, defaultAppId];
     }
     this.newsItem = { ...this.newsItem, app_ids: appIds };
     this.hasLocal = !this.hasLocal;
@@ -256,7 +255,7 @@ export class EditNewsComponent implements OnChanges {
 
   addApp($event: MatSelectChange, matSelect: MatSelect) {
     if (!this.newsItem.app_ids.includes($event.value)) {
-      this.newsItem = { ...this.newsItem, app_ids: [ ...this.newsItem.app_ids, $event.value ] };
+      this.newsItem = { ...this.newsItem, app_ids: [...this.newsItem.app_ids, $event.value] };
     }
     matSelect.value = null;
   }
@@ -369,15 +368,12 @@ export class EditNewsComponent implements OnChanges {
     return group ? group.name : '';
   }
 
-  private showError(message: string) {
-    const config: MatDialogConfig<SimpleDialogData> = {
-      data: {
-        ok: this._translate.instant('oca.Close'),
-        message,
-        title: this._translate.instant('oca.Alert'),
-      },
+  setButtonCaption($event: string | null) {
+    this.newsItem = {
+      ...this.newsItem,
+      action_button: { ...this.newsItem.action_button as NewsActionButton, caption: ($event || '').trim() },
     };
-    return this._matDialog.open(SimpleDialogComponent, config);
+    this.setActionButton(this.newsItem.action_button);
   }
 
   private getYoutubeVideoId(url: string) {
@@ -389,11 +385,7 @@ export class EditNewsComponent implements OnChanges {
     }
   }
 
-  setButtonCaption($event: string | null) {
-    this.newsItem = {
-      ...this.newsItem,
-      action_button: { ...this.newsItem.action_button as NewsActionButton, caption: ($event || '').trim() },
-    };
-    this.setActionButton(this.newsItem.action_button);
+  private isRegional() {
+    return this.newsItem.app_ids.filter(a => a !== 'rogerthat').length > 1;
   }
 }

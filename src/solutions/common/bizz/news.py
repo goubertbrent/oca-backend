@@ -345,8 +345,6 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
         raise BusinessException('Please select at least one app to publish this news in')
 
     default_app = get_app(si.defaultAppId)
-    if App.APP_ID_ROGERTHAT in si.appIds and App.APP_ID_ROGERTHAT not in app_ids:
-        app_ids.append(App.APP_ID_ROGERTHAT)
     if default_app.demo and App.APP_ID_ROGERTHAT in app_ids:
         app_ids.remove(App.APP_ID_ROGERTHAT)
 
