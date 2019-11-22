@@ -53,9 +53,9 @@
           <mat-icon>edit</mat-icon>
           <span>&nbsp;{{ 'oca.Edit' | translate }}</span>
         </a>
-        <button (click)="deleteItem.emit(item)" *ngIf="!item.published" mat-button color="warn">
+        <button (click)="deleteItem.emit(item)" mat-button color="warn">
           <mat-icon>delete</mat-icon>
-          <span>&nbsp;{{ 'oca.Cancel' | translate }}</span>
+          <span>&nbsp;{{ 'oca.delete' | translate }}</span>
         </button>
       </mat-card-actions>
     </mat-card>
