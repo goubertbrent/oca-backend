@@ -1,7 +1,7 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { MapConfig } from './maps';
-import { Incident, IncidentList } from './pages/reports';
+import { Incident, IncidentList, IncidentStatus } from './pages/reports';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
@@ -9,8 +9,13 @@ export class ReportsService {
   constructor(private http: HttpClient) {
   }
 
-  getIncidents() {
-    return this.http.get<IncidentList>('/common/reports/incidents');
+  getIncidents(data: { status: IncidentStatus; cursor: string | null }) {
+    const object: { [ key: string ]: string } = { status: data.status };
+    if (data.cursor) {
+      object.cursor = data.cursor;
+    }
+    const params = new HttpParams({ fromObject: object });
+    return this.http.get<IncidentList>('/common/reports/incidents', { params });
   }
 
   getIncident(id: string) {

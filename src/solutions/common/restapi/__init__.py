@@ -43,6 +43,7 @@ from rogerthat.models import ServiceIdentity
 from rogerthat.models.news import NewsGroup, MediaType
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
+from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import system
 from rogerthat.service.api.news import list_groups
 from rogerthat.service.api.system import get_flow_statistics
@@ -2096,3 +2097,11 @@ def api_get_translations(lang):
         elif DEBUG:
             logging.warning('Translation not found for language %s: %s', lang, key)
     return {'oca': mapping}
+
+
+@rest('/common/consts', 'get', read_only_access=True, silent=True, silent_result=True)
+@returns(dict)
+@arguments()
+def api_get_consts():
+    session = get_current_session()
+    return {'is_shop_user': session.shop}

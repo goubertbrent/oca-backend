@@ -1,6 +1,6 @@
 import { Action } from '@ngrx/store';
 import { MapConfig } from './maps';
-import { Incident, IncidentList } from './pages/reports';
+import { Incident, IncidentList, IncidentStatus } from './pages/reports';
 
 export const enum ReportsActionTypes {
   GET_INCIDENTS = '[reports] Get incidents',
@@ -23,7 +23,7 @@ export const enum ReportsActionTypes {
 export class GetIncidentsAction implements Action {
   readonly type = ReportsActionTypes.GET_INCIDENTS;
 
-  constructor(public payload: { cursor: string | null }) {
+  constructor(public payload: { status: IncidentStatus, cursor: string | null }) {
   }
 }
 

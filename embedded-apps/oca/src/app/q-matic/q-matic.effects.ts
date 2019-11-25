@@ -8,7 +8,6 @@ import { of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AppState } from '../reducers';
 import { RogerthatService } from '../rogerthat/rogerthat.service';
-import { downloadFile } from '../shared/utils';
 import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes } from './appointments';
 import {
   CancelAppointmentAction,
@@ -16,7 +15,10 @@ import {
   CancelAppointmentSuccessAction,
   ConfirmAppointmentAction,
   ConfirmAppointmentFailedAction,
-  ConfirmAppointmentSuccessAction, CreateIcalAction, CreateIcalFailedAction, CreateIcalSuccessAction,
+  ConfirmAppointmentSuccessAction,
+  CreateIcalAction,
+  CreateIcalFailedAction,
+  CreateIcalSuccessAction,
   GetAppointmentsAction,
   GetAppointmentsFailedAction,
   GetAppointmentsSuccessAction,
@@ -147,10 +149,10 @@ export class QMaticEffects {
 
   @Effect() createIcal$ = this.actions$.pipe(
     ofType<CreateIcalAction>(QMaticActionTypes.CREATE_ICAL),
-    switchMap(action => this.rogerthatService.apiCall<{ url: string; file_name: string }>(ApiCalls.CREATE_ICAL, action.payload).pipe(
+    switchMap(action => this.rogerthatService.apiCall<{ message: string }>(ApiCalls.CREATE_ICAL, action.payload).pipe(
       map(result => new CreateIcalSuccessAction(result)),
       tap(result => {
-        downloadFile(result.payload.file_name, 'text/calendar', result.payload.url);
+        this.showDialog(result.payload.message);
       }),
       catchError(err => {
         this.showErrorDialog(action, err);
@@ -164,6 +166,15 @@ export class QMaticEffects {
               private translate: TranslateService,
               private router: Router,
               private rogerthatService: RogerthatService) {
+  }
+
+  private async showDialog(message: string) {
+    const dialog = await this.alertController.create({
+      message, buttons: [
+        { text: this.translate.instant('app.oca.close') },
+      ],
+    });
+    await dialog.present();
   }
 
   private async showErrorDialog(failedAction: QMaticActions, error: any) {

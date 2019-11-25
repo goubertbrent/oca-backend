@@ -1,5 +1,6 @@
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Injectable, NgModule } from '@angular/core';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, RouterModule, Routes } from '@angular/router';
@@ -18,6 +19,7 @@ import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
 import { CUSTOM_LOCALE_PROVIDER } from './locales';
 import { metaReducers, reducers } from './reducers';
+import { SharedModule } from './shared/shared.module';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -52,8 +54,8 @@ export const routes: Routes = [
     StoreModule.forRoot(reducers, {
       metaReducers, runtimeChecks: {
         // TODO: enable in dev mode
-        strictActionImmutability: false,
-        strictActionSerializability: false,
+        strictActionImmutability: !environment.production,
+        strictActionSerializability: !environment.production,
         strictStateImmutability: false,
         strictStateSerializability: false,
       },
@@ -71,9 +73,13 @@ export const routes: Routes = [
         useClass: MissingTranslationWarnHandler,
       },
     }),
+    SharedModule,
   ],
-  exports: [],
-  providers: [CUSTOM_LOCALE_PROVIDER],
+  exports: [SharedModule],
+  providers: [
+    CUSTOM_LOCALE_PROVIDER,
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' } },
+  ],
   bootstrap: [ AppComponent ],
 })
 export class AppModule {

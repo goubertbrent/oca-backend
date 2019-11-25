@@ -20,25 +20,27 @@ import hashlib
 import json
 import logging
 import uuid
+from base64 import b64encode
 from datetime import datetime
 
 from google.appengine.api import urlfetch
-from google.appengine.ext.deferred import deferred
 
 import cloudstorage
 import dateutil
+from babel.dates import format_date, format_time
 from icalendar import Calendar, Event, vCalAddress, vText
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import returns, arguments
 from models import QMaticSettings, QMaticUser
-from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.app import get_app
 from rogerthat.consts import DEBUG
 from rogerthat.rpc import users
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
+from rogerthat.utils import send_mail
+from rogerthat.utils.app import get_app_id_from_app_user, get_human_user_from_app_user
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending
-from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
 
 API_METHOD_APPOINTMENTS = 'integrations.qmatic.appointments'
@@ -128,7 +130,8 @@ def get_user_hash(app_user):
 
 
 @returns(SendApiCallCallbackResultTO)
-@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode, service_identity=unicode,
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
            user_details=[UserDetailsTO])
 def handle_method(service_user, email, method, params, tag, service_identity, user_details):
     # type: (users.User, str, str, str, str, str, list[UserDetailsTO]) -> SendApiCallCallbackResultTO
@@ -157,7 +160,7 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
         elif API_METHOD_DELETE == method:
             result = delete_appointment(settings, app_user, **jsondata)
         elif API_METHOD_CREATE_ICAL == method:
-            result = create_ical(settings, **jsondata)
+            result = create_ical(settings, app_user, **jsondata)
         else:
             raise Exception('Qmatic method not found')
 
@@ -268,10 +271,12 @@ def get_appointment(qmatic_settings, appointment_id):
     return do_request(qmatic_settings, url)
 
 
-def create_ical(qmatic_settings, appointment_id):
+def create_ical(qmatic_settings, app_user, appointment_id):
+    # type: (QMaticSettings, users.User, str) -> dict
     result = get_appointment(qmatic_settings, appointment_id)
     if result.status_code != 200:
         return result
+    sln_settings = get_solution_settings(qmatic_settings.service_user)
     appointment = json.loads(result.content)['appointment']
     cal = Calendar()
     cal.add('prodid', '-//Our City App//calendar//')
@@ -298,8 +303,10 @@ def create_ical(qmatic_settings, appointment_id):
         organizer_email = customer['email']
         organizer_name = customer['name']
     event.add('location', location)
-    event.add('dtstart', dateutil.parser.parse(appointment['start']))
-    event.add('dtend', dateutil.parser.parse(appointment['end']))
+    start_date = dateutil.parser.parse(appointment['start'])
+    event.add('dtstart', start_date)
+    end_date = dateutil.parser.parse(appointment['end'])
+    event.add('dtend', end_date)
     event.add('dtstamp', datetime.utcnow())
     event.add('created', datetime.utcfromtimestamp(appointment['created'] / 1000))
     event.add('updated', datetime.utcfromtimestamp(appointment['updated'] / 1000))
@@ -307,13 +314,34 @@ def create_ical(qmatic_settings, appointment_id):
     organizer.params['cn'] = vText(organizer_name)
     event.add('organizer', organizer)
     cal.add_component(event)
-    path = '/%s/tmp/q-matic/%s.ics' % (OCA_FILES_BUCKET, appointment_id)
-    with cloudstorage.open(path, 'w', 'text/calendar') as f:
-        f.write(cal.to_ical())
-    url = get_serving_url(path)
-    deferred.defer(_delete_file, path, _countdown=60)
-    file_name = '%s.ics' % appointment['title']
-    return {'url': url, 'file_name': file_name}
+
+    to_email = organizer_email or get_human_user_from_app_user(app_user).email()
+    app_id = get_app_id_from_app_user(app_user)
+    app = get_app(app_id)
+    from_ = '%s <%s>' % (app.name, app.dashboard_email_address)
+    ical_attachment = ('%s.ics' % appointment['title'] or 'Event', b64encode(cal.to_ical()))
+    subject = appointment['title']
+    lang = sln_settings.main_language
+    when = '%s, %s - %s' % (
+        format_date(start_date, format='full', locale=lang),
+        format_time(start_date, format='short', locale=lang),
+        format_time(end_date, format='short', locale=lang),
+    )
+    body = [
+        appointment['title'],
+        '',
+        '%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'when'), when),
+    ]
+
+    if location:
+        body.append('%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'oca.location'), location))
+    if appointment['notes']:
+        body.append('%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'Note'), appointment['notes']))
+
+    # TODO shouldn't allow this more than 3 times to avoid spam
+    send_mail(from_, to_email, subject, '\n'.join(body), attachments=[ical_attachment])
+    msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'an_email_has_been_sent_with_appointment_event')
+    return {'message': msg}
 
 
 def _get_qmatic_user(app_user):

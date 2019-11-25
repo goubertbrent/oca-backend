@@ -23,9 +23,9 @@ from solutions.common.bizz.reports import list_incidents, get_incident, update_i
 
 @rest('/common/reports/incidents', 'get', read_only_access=True, silent_result=True)
 @returns(dict)
-@arguments(cursor=unicode)
-def rest_list_incidents(cursor=None):
-    params = {}
+@arguments(status=unicode, cursor=unicode)
+def rest_list_incidents(status=None, cursor=None):
+    params = {'status': status}
     if cursor:
         params['cursor'] = cursor
     return list_incidents(users.get_current_user(), params)

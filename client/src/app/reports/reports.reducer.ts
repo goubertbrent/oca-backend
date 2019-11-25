@@ -6,9 +6,17 @@ export function reportsReducer(state: ReportsState = initialState, action: Repor
   switch (action.type) {
     case ReportsActionTypes.GET_INCIDENTS:
       // no cursor => reset
-      return { ...state, incidents: action.payload.cursor ? state.incidents : initialState.incidents };
+      return { ...state, incidents: stateLoading(action.payload.cursor ? state.incidents.result : initialState.incidents.result) };
     case ReportsActionTypes.GET_INCIDENTS_COMPLETE:
-      return { ...state, incidents: { ...action.payload, results: [...state.incidents.results, ...action.payload.results] } };
+      return {
+        ...state,
+        incidents: stateSuccess({
+          ...action.payload,
+          results: [...(state.incidents.result ? state.incidents.result.results : []), ...action.payload.results],
+        }),
+      };
+    case ReportsActionTypes.GET_INCIDENTS_FAILED:
+      return { ...state, incidents: stateError(action.error, state.incidents.result) };
     case ReportsActionTypes.GET_MAP_CONFIG:
       return { ...state, mapConfig: stateLoading(initialState.mapConfig.result) };
     case ReportsActionTypes.GET_MAP_CONFIG_COMPLETE:

@@ -1,9 +1,2 @@
-<mat-toolbar color="primary">
-  <h1 class="flex-grow">{{ 'oca.reports' | translate }}</h1>
-  <span class="icons-row">
-    <a mat-icon-button routerLink="/reports/settings">
-      <mat-icon>settings</mat-icon>
-    </a>
-  </span>
-</mat-toolbar>
+<mat-progress-bar mode="indeterminate" *ngIf="loading$ | async"></mat-progress-bar>
 <oca-incident-list [incidents]="incidents$ | async" (loadMore)="loadMoreIncidents($event)"></oca-incident-list>

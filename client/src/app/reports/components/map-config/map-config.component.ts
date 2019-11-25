@@ -12,6 +12,7 @@ import { MapButton, MapConfig } from '../../maps';
 })
 export class MapConfigComponent {
   @Input() filters: { value: string; label: string }[];
+  @Input() showExtendedConfig: boolean;
 
   @Input() set mapConfig(value: MapConfig) {
     this._mapConfig = deepCopy(value);

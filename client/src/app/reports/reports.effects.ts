@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { ErrorService } from '../shared/errors/error.service';
 import {
-  GetIncidentAction, GetIncidentCompleteAction, GetIncidentFailedAction,
+  GetIncidentAction,
+  GetIncidentCompleteAction,
   GetIncidentsAction,
   GetIncidentsCompleteAction,
   GetIncidentsFailedAction,
@@ -18,55 +18,58 @@ import {
   ReportsActionTypes,
   SaveMapConfigAction,
   SaveMapConfigCompleteAction,
-  SaveMapConfigFailedAction, UpdateIncidentAction, UpdateIncidentCompleteAction, UpdateIncidentFailedAction,
+  SaveMapConfigFailedAction,
+  UpdateIncidentAction,
+  UpdateIncidentCompleteAction,
+  UpdateIncidentFailedAction,
 } from './reports.actions';
 import { ReportsService } from './reports.service';
 import { ReportsState } from './reports.state';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsEffects {
-  // TODO: error handling (dialog?)(
   @Effect() getIncidents$ = this.actions$.pipe(
     ofType<GetIncidentsAction>(ReportsActionTypes.GET_INCIDENTS),
-    switchMap(() => this.reportsService.getIncidents().pipe(
+    switchMap(action => this.reportsService.getIncidents(action.payload).pipe(
       map(result => new GetIncidentsCompleteAction(result)),
-      catchError(err => this.errorService.toAction(GetIncidentsFailedAction, err)))),
+      catchError(err => this.errorService.handleError(action, GetIncidentsFailedAction, err)))),
   );
 
   @Effect() getIncident$ = this.actions$.pipe(
     ofType<GetIncidentAction>(ReportsActionTypes.GET_INCIDENT),
     switchMap(action => this.reportsService.getIncident(action.payload.id).pipe(
       map(result => new GetIncidentCompleteAction(result)),
-      catchError(err => this.errorService.toAction(GetIncidentFailedAction, err)))),
+      catchError(err => this.errorService.handleError(action, SaveMapConfigFailedAction, err)))),
   );
 
   @Effect() updateIncident$ = this.actions$.pipe(
     ofType<UpdateIncidentAction>(ReportsActionTypes.UPDATE_INCIDENT),
     switchMap(action => this.reportsService.updateIncident(action.payload).pipe(
       map(result => new UpdateIncidentCompleteAction(result)),
-      catchError(err => this.errorService.toAction(UpdateIncidentFailedAction, err)))),
+      tap(result => this.snackbar.open(this.translate.instant('oca.incident_saved'), '', { duration: 5000 })),
+      catchError(err => this.errorService.handleError(action, UpdateIncidentFailedAction, err)))),
   );
 
   @Effect() getMapConfig$ = this.actions$.pipe(
     ofType<GetMapConfigAction>(ReportsActionTypes.GET_MAP_CONFIG),
-    switchMap(() => this.reportsService.getMapConfig().pipe(
+    switchMap(action => this.reportsService.getMapConfig().pipe(
       map(result => new GetMapConfigCompleteAction(result)),
-      catchError(err => this.errorService.toAction(GetMapConfigFailedAction, err)))),
+      catchError(err => this.errorService.handleError(action, GetMapConfigFailedAction, err)))),
   );
 
   @Effect() saveMapConfig$ = this.actions$.pipe(
     ofType<SaveMapConfigAction>(ReportsActionTypes.SAVE_MAP_CONFIG),
     switchMap(action => this.reportsService.saveMapConfig(action.payload).pipe(
       map(result => new SaveMapConfigCompleteAction(result)),
-      catchError(err => this.errorService.toAction(SaveMapConfigFailedAction, err)))),
+      tap(result => this.snackbar.open(this.translate.instant('oca.settings_saved'), '', { duration: 5000 })),
+      catchError(err => this.errorService.handleError(action, SaveMapConfigFailedAction, err)))),
   );
 
   constructor(private actions$: Actions<ReportsActions>,
               private store: Store<ReportsState>,
               private reportsService: ReportsService,
-              private errorService: ErrorService,
               private snackbar: MatSnackBar,
               private translate: TranslateService,
-              private router: Router) {
+              private errorService: ErrorService) {
   }
 }

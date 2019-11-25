@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
+import { isShopUser } from '../../../shared/shared.state';
 import { CallStateType, ResultState } from '../../../shared/util';
 import { MapConfig } from '../../maps';
 import { GetMapConfigAction, SaveMapConfigAction } from '../../reports.actions';
@@ -14,6 +15,7 @@ import { ReportsMapFilter } from '../reports';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReportsSettingsPageComponent implements OnInit {
+  isShopUser$: Observable<boolean>;
   mapConfig$: Observable<ResultState<MapConfig>>;
   filters = [
     { value: ReportsMapFilter.ALL, label: 'oca.All' },
@@ -29,6 +31,7 @@ export class ReportsSettingsPageComponent implements OnInit {
   ngOnInit() {
     this.store.dispatch(new GetMapConfigAction());
     this.mapConfig$ = this.store.pipe(select(getMapConfig));
+    this.isShopUser$ = this.store.pipe(select(isShopUser));
   }
 
   onSaved($event: MapConfig) {

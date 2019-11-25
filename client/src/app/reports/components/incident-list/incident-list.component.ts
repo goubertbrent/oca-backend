@@ -10,11 +10,6 @@ import { Incident, IncidentList, IncidentStatus } from '../../pages/reports';
 export class IncidentListComponent {
   @Input() incidents: IncidentList;
   @Output() loadMore = new EventEmitter<{ cursor: string }>();
-  iconsForStatus = {
-    [ IncidentStatus.NEW ]: 'report',
-    [ IncidentStatus.IN_PROGRESS ]: 'timelapse',
-    [ IncidentStatus.RESOLVED ]: 'done',
-  };
 
   trackById(index: number, incident: Incident) {
     return incident.id;

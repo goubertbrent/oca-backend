@@ -1,13 +1,13 @@
 import { LazyMapsAPILoader } from '@agm/core';
 import { NgModule } from '@angular/core';
-import { MatPaginatorModule } from '@angular/material';
 import { MatButtonModule } from '@angular/material/button';
 import { MatNativeDateModule, MatRippleModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MAT_FORM_FIELD_DEFAULT_OPTIONS, MatFormFieldModule } from '@angular/material/form-field';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule } from '@angular/material/sort';
@@ -77,7 +77,6 @@ const routes: Routes = [
   ],
   providers: [
     LazyMapsAPILoader,
-    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' } }
   ],
 })
 export class ParticipationModule {

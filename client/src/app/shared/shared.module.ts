@@ -7,12 +7,12 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
-import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
@@ -69,18 +69,14 @@ import { MaxValidator, MinValidator } from './validators/validators';
     MatInputModule,
     MatListModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTabsModule,
   ],
   entryComponents:
     [
       SimpleDialogComponent,
       UserAutoCompleteDialogComponent,
     ],
-  providers: [ {
-    provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
-    useValue: {
-      appearance: 'standard',
-    },
-  } ],
   exports: [
     GoogleChartsModule,
     AgmCoreModule,
@@ -99,6 +95,7 @@ import { MaxValidator, MinValidator } from './validators/validators';
     MatListModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
     MatTabsModule,
     SimpleDialogComponent,
     LoadableComponent,

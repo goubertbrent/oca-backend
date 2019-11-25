@@ -28,31 +28,33 @@
       </ng-container>
     </mat-select>
   </mat-form-field>
-  <ng-container *ngFor="let button of mapConfig.buttons; let i = index">
-    <h4>{{ 'oca.button_x' | translate : {button: i + 1}  }}</h4>
-    <button type="button" mat-stroked-button (click)="removeButton(button)">
-      <mat-icon>close</mat-icon>
-      {{ 'oca.delete' | translate }}
-    </button>
-    <mat-form-field>
-      <mat-label>{{ 'oca.Label' | translate }}</mat-label>
-      <input type="text" matInput [name]="'text' + i" [(ngModel)]="button.text">
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>{{ 'oca.Icon' | translate }}</mat-label>
-      <input type="text" matInput [name]="'icon' + i" [(ngModel)]="button.icon">
-      <mat-hint>See <a href="https://fontawesome.com/v4.7.0/icons">https://fontawesome.com/v4.7.0/icons</a></mat-hint>
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>{{ 'oca.action' | translate }}</mat-label>
-      <input type="url" matInput [name]="'action' + i" [(ngModel)]="button.action" required>
-    </mat-form-field>
-    <mat-form-field>
-      <mat-label>{{ 'oca.color' | translate }}</mat-label>
-      <input type="text" matInput [name]="'color' + i" [(ngModel)]="button.color">
-    </mat-form-field>
+  <ng-container *ngIf="showExtendedConfig">
+    <ng-container *ngFor="let button of mapConfig.buttons; let i = index">
+      <h4>{{ 'oca.button_x' | translate : {button: i + 1}  }}</h4>
+      <button type="button" mat-stroked-button (click)="removeButton(button)">
+        <mat-icon>close</mat-icon>
+        {{ 'oca.delete' | translate }}
+      </button>
+      <mat-form-field>
+        <mat-label>{{ 'oca.Label' | translate }}</mat-label>
+        <input type="text" matInput [name]="'text' + i" [(ngModel)]="button.text">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'oca.Icon' | translate }}</mat-label>
+        <input type="text" matInput [name]="'icon' + i" [(ngModel)]="button.icon">
+        <mat-hint>See <a href="https://fontawesome.com/v4.7.0/icons">https://fontawesome.com/v4.7.0/icons</a></mat-hint>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'oca.action' | translate }}</mat-label>
+        <input type="url" matInput [name]="'action' + i" [(ngModel)]="button.action" required>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'oca.color' | translate }}</mat-label>
+        <input type="text" matInput [name]="'color' + i" [(ngModel)]="button.color">
+      </mat-form-field>
+    </ng-container>
+    <button type="button" mat-stroked-button (click)="addButton()">{{ 'oca.add_button' | translate }}</button>
   </ng-container>
-  <button type="button" mat-stroked-button (click)="addButton()">{{ 'oca.add_button' | translate }}</button>
   <div class="button-container">
     <button mat-raised-button>{{ 'oca.Save' | translate }}</button>
   </div>

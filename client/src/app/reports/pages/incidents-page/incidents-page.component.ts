@@ -1,28 +1,37 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { select, Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { GetIncidentsAction } from '../../reports.actions';
-import { getIncidents, ReportsState } from '../../reports.state';
-import { IncidentList } from '../reports';
+import { getIncidents, incidentsLoading, ReportsState } from '../../reports.state';
+import { IncidentList, IncidentStatus } from '../reports';
 
 @Component({
   selector: 'oca-incidents-page',
   templateUrl: './incidents-page.component.html',
-  styleUrls: ['./incidents-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IncidentsPageComponent implements OnInit {
   incidents$: Observable<IncidentList>;
+  loading$: Observable<boolean>;
 
-  constructor(private store: Store<ReportsState>) {
+  private currentStatus: IncidentStatus;
+  private routeParamsSubscription: Subscription;
+
+  constructor(private store: Store<ReportsState>,
+              private route: ActivatedRoute) {
   }
 
   ngOnInit() {
-    this.store.dispatch(new GetIncidentsAction({ cursor: null }));
+    this.routeParamsSubscription = this.route.params.subscribe(params => {
+      this.currentStatus = params.status;
+      this.store.dispatch(new GetIncidentsAction({ status: this.currentStatus, cursor: null }));
+    });
     this.incidents$ = this.store.pipe(select(getIncidents));
+    this.loading$ = this.store.pipe(select(incidentsLoading));
   }
 
   loadMoreIncidents($event: { cursor: string }) {
-    this.store.dispatch(new GetIncidentsAction($event));
+    this.store.dispatch(new GetIncidentsAction({ status: this.currentStatus, cursor: $event.cursor }));
   }
 }

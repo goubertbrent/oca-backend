@@ -39,3 +39,7 @@ export interface BrandingSettings {
   logo_url: string | null;
   avatar_url: string | null;
 }
+
+export interface GlobalConfig {
+  is_shop_user: boolean;
+}

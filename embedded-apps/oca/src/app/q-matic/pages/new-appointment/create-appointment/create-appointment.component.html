@@ -1,4 +1,4 @@
-<form (ngSubmit)="confirm()" #form="ngForm">
+<form (ngSubmit)="confirm(form)" #form="ngForm">
   <ion-list>
     <ion-item>
       <ion-label>{{ 'app.oca.service' | translate }}</ion-label>
@@ -55,7 +55,7 @@
       <ion-spinner></ion-spinner>
     </div>
     <div class="ion-padding" *ngIf="showTimes">
-      <ion-button type="submit" expand="block" [disabled]="form.form.invalid || showLoading">
+      <ion-button type="submit" expand="block" [disabled]="showLoading">
         {{ 'app.oca.confirm_appointment' | translate }}
       </ion-button>
     </div>

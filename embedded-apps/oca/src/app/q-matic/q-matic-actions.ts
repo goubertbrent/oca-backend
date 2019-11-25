@@ -213,7 +213,7 @@ export class CreateIcalAction implements Action {
 export class CreateIcalSuccessAction implements Action {
   readonly type = QMaticActionTypes.CREATE_ICAL_SUCCESS;
 
-  constructor(public payload: { url: string, file_name: string }) {
+  constructor(public payload: { message: string }) {
   }
 }
 

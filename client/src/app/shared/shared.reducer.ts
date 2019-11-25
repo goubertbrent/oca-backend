@@ -1,6 +1,7 @@
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from './loadable/loadable';
 import { SharedActions, SharedActionTypes } from './shared.actions';
 import { initialSharedState, SharedState } from './shared.state';
+import { stateLoading, stateSuccess } from './util';
 
 export function sharedReducer(state: SharedState = initialSharedState, action: SharedActions): SharedState {
   switch (action.type) {
@@ -46,6 +47,10 @@ export function sharedReducer(state: SharedState = initialSharedState, action: S
       return { ...state, brandingSettings: onLoadableSuccess(action.payload) };
     case SharedActionTypes.GET_BRANDING_SETTINGS_FAILED:
       return { ...state, brandingSettings: onLoadableError(action.error, initialSharedState.brandingSettings.data) };
+    case SharedActionTypes.GET_GLOBAL_CONFIG:
+      return { ...state, globalConfig: stateLoading(initialSharedState.globalConfig.result) };
+    case SharedActionTypes.GET_GLOBAL_CONFIG_COMPLETE:
+      return { ...state, globalConfig: stateSuccess(action.payload) };
   }
   return state;
 }

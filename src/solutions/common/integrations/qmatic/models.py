@@ -18,12 +18,17 @@ from google.appengine.ext import ndb
 
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
+from rogerthat.rpc import users
 
 
 class QMaticSettings(NdbModel):
     url = ndb.StringProperty()
     auth_token = ndb.StringProperty()
     enabled = ndb.BooleanProperty(default=False)
+
+    @property
+    def service_user(self):
+        return users.User(self.key.id())
 
     @classmethod
     def create_key(cls, service_user):

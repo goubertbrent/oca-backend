@@ -23,7 +23,6 @@ export interface IncidentStatusDate {
 }
 
 export interface IncidentDetails {
-  status: IncidentStatus;
   title: string;
   description: string;
   geo_location: { lat: number; lon: number; };
@@ -39,6 +38,7 @@ export interface Incident {
   integration: string;
   source: string;
   external_id: string;
+  status: IncidentStatus;
   details: IncidentDetails;
 }
 

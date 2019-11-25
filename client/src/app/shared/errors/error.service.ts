@@ -1,16 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Action } from '@ngrx/store';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Action, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
+import { SharedState } from '../shared.state';
 import { ApiError } from './errors';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class ErrorService {
 
-  constructor(private translate: TranslateService) {
+  constructor(private translate: TranslateService,
+              private snackbar: MatSnackBar,
+              private store: Store<SharedState>) {
   }
 
   getErrorMessage(error: ApiError): string {
@@ -44,5 +46,19 @@ export class ErrorService {
   toAction(action: any, error: any): Observable<Action> {
     const message = this.getMessage(error);
     return of(new (action as any)(message));
+  }
+
+  /**
+   * Shows a snackbar with a 'retry' button to retry the failed action
+   */
+  handleError(originalAction: Action, failAction: any, error: any): Observable<Action> {
+    this.showRetrySnackbar(originalAction, error);
+    return this.toAction(failAction, error);
+  }
+
+  showRetrySnackbar(failedAction: Action, error: any) {
+    const message = this.getMessage(error);
+    const retry = this.translate.instant('oca.Retry');
+    this.snackbar.open(message, retry).onAction().subscribe(() => this.store.dispatch(failedAction));
   }
 }

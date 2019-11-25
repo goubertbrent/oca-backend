@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Budget } from './billing/billing';
-import { BrandingSettings, SolutionSettings } from './interfaces/oca';
+import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
 import { App, AppStatistics, ServiceIdentityInfo, ServiceMenuDetail } from './interfaces/rogerthat';
 
 @Injectable({ providedIn: 'root' })
@@ -35,5 +35,9 @@ export class SharedService {
 
   getBrandingSettings() {
     return this.http.get<BrandingSettings>('/common/settings/branding');
+  }
+
+  getGlobalConstants(){
+    return this.http.get<GlobalConfig>('/common/consts');
   }
 }

@@ -110,6 +110,7 @@ TRANSLATION_MAPPING = {
     'Optional',
     'PDF',
     'Phone number',
+    'Retry',
     'Save',
     'Settings',
     'Time',

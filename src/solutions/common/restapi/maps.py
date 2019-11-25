@@ -20,6 +20,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import validate_app_admin
 from rogerthat.dal.service import get_service_identity
 from rogerthat.rpc import users
+from rogerthat.rpc.users import get_current_session
 from rogerthat.utils.service import create_service_identity_user
 from solutions.common.bizz.maps import get_map_settings, save_map_settings
 from solutions.common.to.reports import MapConfigTO
@@ -42,4 +43,5 @@ def rest_put_map_settings(map_tag, data):
     service_user = users.get_current_user()
     app_id = get_service_identity(create_service_identity_user(service_user)).defaultAppId
     validate_app_admin(service_user, [app_id])
-    return MapConfigTO.from_model(save_map_settings(app_id, map_tag, data))
+    is_shop_user = get_current_session().shop
+    return MapConfigTO.from_model(save_map_settings(app_id, map_tag, data, is_shop_user))

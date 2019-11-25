@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
-import { of } from 'rxjs';
-import { catchError, first, map, switchMap } from 'rxjs/operators';
+import { of, timer } from 'rxjs';
+import { catchError, first, map, mergeMap, retryWhen, startWith, switchMap } from 'rxjs/operators';
 import { transformErrorResponse } from './errors/errors';
 import {
   GetAppsAction,
@@ -10,10 +10,15 @@ import {
   GetAppsFailedAction,
   GetAppStatisticsAction,
   GetAppStatisticsCompleteAction,
-  GetAppStatisticsFailedAction, GetBrandingSettingFailedAction, GetBrandingSettingsAction, GetBrandingSettingsCompleteAction,
+  GetAppStatisticsFailedAction,
+  GetBrandingSettingFailedAction,
+  GetBrandingSettingsAction,
+  GetBrandingSettingsCompleteAction,
   GetBudgetAction,
   GetBudgetCompleteAction,
   GetBudgetFailedAction,
+  GetGlobalConfigAction,
+  GetGlobalConfigCompleteAction,
   GetInfoAction,
   GetInfoCompleteAction,
   GetInfoFailedAction,
@@ -31,6 +36,15 @@ import { getApps, getAppStatistics, getServiceIdentityInfo, getServiceMenu, Shar
 
 @Injectable({ providedIn: 'root' })
 export class SharedEffects {
+
+  @Effect() getGlobalConfig$ = this.actions$.pipe(
+    startWith(new GetGlobalConfigAction()),
+    ofType<GetGlobalConfigAction>(SharedActionTypes.GET_GLOBAL_CONFIG),
+    switchMap(() => this.sharedService.getGlobalConstants().pipe(
+      map(data => new GetGlobalConfigCompleteAction(data)),
+      retryWhen(attempts => attempts.pipe(mergeMap(() => timer(2000)))),
+    )));
+
   @Effect() getMenu$ = this.actions$.pipe(
     ofType<GetMenuAction>(SharedActionTypes.GET_MENU),
     switchMap(() => this.store.pipe(select(getServiceMenu), first())),

@@ -29,8 +29,8 @@ def get_map_settings(app_id, map_tag):
 
 
 @ndb.transactional(xg=True)
-def save_map_settings(app_id, map_tag, data):
-    # type: (str, str, MapConfigTO) -> MapConfig
+def save_map_settings(app_id, map_tag, data, is_shop_user):
+    # type: (str, str, MapConfigTO, bool) -> MapConfig
     all_tags = [GIPOD_TAG, REPORTS_TAG]
     models = ndb.get_multi([MapConfig.create_key(app_id, tag) for tag in all_tags])  # type: list[MapConfig]
     to_put = []
@@ -41,7 +41,8 @@ def save_map_settings(app_id, map_tag, data):
         model.center = GeoPt(data.center.lat, data.center.lon)
         model.distance = data.distance
         if model.tag == map_tag:
-            model.buttons = data.buttons
+            if is_shop_user:
+                model.buttons = data.buttons
             model.default_filter = data.default_filter
             model.filters = data.filters
             config = model
