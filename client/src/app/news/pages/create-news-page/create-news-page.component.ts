@@ -39,7 +39,7 @@ export class CreateNewsPageComponent implements OnInit {
       take(1),
     ) as Observable<NonNullLoadable<ServiceIdentityInfo>>;
     const itemFromStorage: Partial<CreateNews> | null = JSON.parse(localStorage.getItem('news.item') || '{}');
-    combineLatest([ serviceInfo$, newsOptions$ ]).pipe(take(1)).subscribe(([ serviceInfo, newsOptions ]) => {
+    combineLatest([serviceInfo$, newsOptions$]).pipe(take(1)).subscribe(([serviceInfo, newsOptions]) => {
       if (newsOptions.data.groups.length === 0) {
         const config: MatDialogConfig<SimpleDialogData> = {
           data: {
@@ -48,14 +48,14 @@ export class CreateNewsPageComponent implements OnInit {
             ok: this.translate.instant('oca.ok'),
           },
         };
-        this.matDialog.open(SimpleDialogComponent, config).afterClosed().subscribe(() => this.router.navigate([ 'news', 'list']));
+        this.matDialog.open(SimpleDialogComponent, config).afterClosed().subscribe(() => this.router.navigate(['news', 'list']));
         return;
       }
       const data = serviceInfo.data as ServiceIdentityInfo;
       // Prefer city group type as default
-      const groups = newsOptions.data.groups.sort((first, second) => first.group_type === NewsGroupType.CITY ? -1 : 1);
+      const groups = newsOptions.data.groups.concat().sort((first, second) => first.group_type === NewsGroupType.CITY ? -1 : 1);
       let item: CreateNews = {
-        app_ids: [ data.default_app ],
+        app_ids: [data.default_app],
         scheduled_at: null,
         tags: [],
         media: null,

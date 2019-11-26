@@ -175,6 +175,10 @@ export class EditNewsComponent implements OnChanges {
         case NewsActionButtonType.EMAIL:
           this.actionButton.email = button.action.split('mailto://')[ 1 ] || button.action;
           break;
+        case NewsActionButtonType.MENU_ITEM:
+          // After publishing an item, the tag is hashed. Ensure it isn't hashed twice by resetting it here.
+          this.actionButton.button.action = `smi://${button.id}`;
+          break;
       }
     }
   }
