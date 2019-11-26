@@ -16,14 +16,14 @@
 # @@license_version:1.5@@
 import logging
 
-import webapp2 as webapp2
-
+from mcfw.exceptions import HttpBadRequestException
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions.common.bizz import common_provision
 from solutions.common.bizz.paddle import populate_info_from_paddle, get_paddle_info
 from solutions.common.models.cityapp import PaddleSettings
+import webapp2 as webapp2
 
 
 class SyncPaddleInfoHandler(webapp2.RequestHandler):
@@ -37,7 +37,11 @@ def _get_settings():
 
 def update_paddle_info(settings_key):
     settings = settings_key.get()  # type: PaddleSettings
-    data = get_paddle_info(settings)
+    try:
+        data = get_paddle_info(settings)
+    except HttpBadRequestException:
+        logging.error('Failed to update paddle info for %s with url %s' , settings.service_user, settings.base_url, _suppress=False)
+        return
     data.put()
     updated_settings = populate_info_from_paddle(settings, data)
     logging.debug('Updated %d services with updated info from paddle', len(updated_settings))
