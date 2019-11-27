@@ -15,19 +15,21 @@
 #
 # @@license_version:1.5@@
 
+from HTMLParser import HTMLParser
+from base64 import b64encode
 import hashlib
 import importlib
 import logging
 import urlparse
-from HTMLParser import HTMLParser
-from base64 import b64encode
 
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import webapp, ndb
-
 from html2text import HTML2Text
+from html5lib.sanitizer import HTMLSanitizerMixin
+
 from mcfw.rpc import arguments, returns
 from mcfw.utils import chunks
+from rogerthat.consts import DEBUG
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.rpc import users
@@ -38,6 +40,7 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
+
 
 BROADCAST_TYPE_NEWS = u"News"
 
@@ -195,3 +198,30 @@ def html_to_markdown(html_content, base_url=None):
     converter = HTML2Text(baseurl=base_url, bodywidth=0)
     converter.ignore_images = True
     return converter.handle(html_content)
+
+
+class TestIsHTMLParser(HTMLParser):
+
+    def __init__(self, *args, **kwargs):
+        HTMLParser.__init__(self, *args, **kwargs)
+        self.elements = set()
+
+    def handle_starttag(self, tag, attrs):
+        self.elements.add(tag)
+
+    def handle_endtag(self, tag):
+        self.elements.add(tag)
+
+
+def is_html(text):
+    try:
+        elements = set(HTMLSanitizerMixin.acceptable_elements)
+        parser = TestIsHTMLParser()
+        parser.feed(text)
+        return_value = True if parser.elements.intersection(elements) else False
+        if DEBUG:
+            logging.debug('is_html:%s elements: %s', return_value, parser.elements)
+        return return_value
+    except:
+        logging.exception('Failed to determine if text was html')
+    return True # behaviour before this was always expect it was html

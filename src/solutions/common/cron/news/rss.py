@@ -34,7 +34,8 @@ from rogerthat.to.push import remove_html
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions.common.cron.news import html_unescape, html_to_markdown, transl, \
-    create_news_item, update_news_item, news_item_hash, delete_news_item
+    create_news_item, update_news_item, news_item_hash, delete_news_item, \
+    is_html
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 
@@ -125,7 +126,7 @@ def _worker(rss_settings_key):
 
         saved_items = {item.key.id(): item for item in ndb.get_multi(keys) if
                        item}  # type: dict[str, SolutionRssScraperItem]
-
+        
         for scraped_item in items:
             # Backwards compat - in the past only url was used as key
             item = saved_items.get(scraped_item.guid) or saved_items.get(scraped_item.url)
@@ -241,7 +242,7 @@ class ScrapedItem(object):
         self.rss_url = rss_url
         self.image_url = image_url
         self.hash = news_item_hash(title, message, image_url)
-
+    
 
 def _parse_items(xml_content, service_identity, service_user, rss_url):
     # type: (str, str, users.User, str) -> ([ScrapedItem], [ndb.Key])
@@ -265,6 +266,8 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
                 logging.info('description not found or empty for %s', item.childNodes)
                 continue
             description_html = description_tags[0].firstChild.nodeValue
+            if not is_html(description_html):
+                description_html = u'<br/>'.join(description_html.splitlines())
             message = html_to_markdown(description_html, base_url)
             date_tags = item.getElementsByTagName('pubDate')
             image_url = get_image_url(item, description_html)
