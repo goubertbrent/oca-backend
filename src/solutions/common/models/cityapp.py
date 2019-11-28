@@ -27,7 +27,6 @@ from solutions.common.to.paddle import PaddleOrganizationUnitDetails
 
 
 class CityAppProfile(db.Model):
-
     # Run params in cron of CityAppSolutionGatherEvents
     gather_events_enabled = db.BooleanProperty(indexed=False, default=False)
 
@@ -87,7 +86,7 @@ class PaddleMapping(NdbModel):
 
 
 class PaddleSettings(NdbModel):
-    base_url = ndb.StringProperty(indexed=False)
+    base_url = ndb.StringProperty()
     mapping = ndb.StructuredProperty(PaddleMapping, indexed=False, repeated=True)  # type: list[PaddleMapping]
 
     @property

@@ -608,17 +608,6 @@ def settings_load():
     return to
 
 
-@rest('/common/settings/paddle', 'get', type=REST_TYPE_TO)
-@returns(PaddleSettingsTO)
-@arguments()
-def rest_get_paddle_settings():
-    # type: () -> PaddleSettingsTO
-    service_user = users.get_current_user()
-    settings_key = PaddleSettings.create_key(service_user)
-    settings = settings_key.get() or PaddleSettings(key=settings_key)
-    return PaddleSettingsTO.from_model(settings)
-
-
 def _get_city_services(app_id):
     customers = Customer.list_enabled_by_organization_type_in_app(app_id, OrganizationType.CITY)
     return [SimpleServiceTO(name=c.name, service_email=c.service_email) for c in customers if c.service_email]
