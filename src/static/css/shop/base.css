@@ -16,18 +16,18 @@
  * @@license_version:1.5@@
  */
 
-.shop-home-background{
+.shop-home-background {
     position: absolute;
     height: 100%;
     width: 100%;
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-    background-image: url(/static/images/shop/Wallpaper_OnzeStadApp.jpg);
+    background-image: url(/static/images/shop/oca_wallpaper.jpg);
     z-index: -1;
 }
 
-.container-padding{
+.container-padding {
     padding-right: 2px;
 }
 
