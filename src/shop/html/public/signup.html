@@ -23,9 +23,9 @@
 
 {% block content %}
             <div class="span12" style="float: none; margin: 0 auto;">
-                <h1 class="white-text">{% translate language, "common", "signup" %}</h1>
+                <h1>{% translate language, "common", "signup" %}</h1>
                 <div class="span12">
-                    <p id="signup_note" class="white-text" style="word-wrap: break-word;" align="justify">
+                    <p id="signup_note" style="word-wrap: break-word;" align="justify">
                         {% if email_verified %}
                         {% translate language, "common", "your_registration_request_submitted" %}
                         {% else %}

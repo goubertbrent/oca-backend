@@ -27,7 +27,7 @@ html, body {
     position: relative;
 }
 #header {
-    height: 100%;
+    height: 66px;
     width: 100%;
 }
 #body {
@@ -35,23 +35,22 @@ html, body {
     padding-bottom: 100px;   /* Height of the footer */
 }
 #logo {
-    margin: 15px;
-    width: 40px;
-    height: 40px;
+    margin: 8px 16px 8px 16px;
+    width: 50px;
+    height: 50px;
     display: inline-block;
 }
 
 #home-link {
-    margin: 15px;
     text-decoration: none;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    margin-right: 16px;
 }
 
 form {
     margin: 0;
-}
-
-.white-text {
-    color: white;
 }
 
 .box-small-width {

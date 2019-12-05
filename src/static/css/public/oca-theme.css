@@ -15,14 +15,19 @@
  *
  * @@license_version:1.5@@
  */
+:root {
+    --oca-color: #3abb9e;
+    --oca-color-hover: #3A9175;
+    --text-button-color: white;
+}
 
 #main_container {
     background: url(/static/images/public/background.jpg) no-repeat;
     background-size: cover;
 }
 
-#header{
-    background-color: #5cc4bf;
+#header {
+    background-color: var(--oca-color);
 }
 
 #logo{
@@ -32,15 +37,15 @@
 }
 
 .btn-wizard {
-    background: #5cc4bf;
-    color: white;
+    background: var(--oca-color);
+    color: var(--text-button-color);
 }
 
 .btn-wizard:hover, .btn-wizard:focus, .btn-wizard:active {
-    background: #44918d;
-    color: white;
+    background: var(--oca-color-hover);
+    color: var(--text-button-color);
 }
 
 .white-box {
-    border: 1px solid #44ca9b;
+    border: 1px solid var(--oca-color);
 }

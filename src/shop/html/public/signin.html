@@ -16,17 +16,18 @@
 
 {% block content %}
     <div id="signin_box" class="span6 box-small-width" style="float: none; margin: 0 auto;">
-        <h1 class="white-text">{% translate language, "common", "sign-in" %}</h1>
-        <p id="singin_note" class="white-text" style="word-wrap: break-word;" align="justify">
+        <h1>{% translate language, "common", "sign-in" %}</h1>
+        <p id="singin_note" style="word-wrap: break-word;" align="justify">
             {% translate language, "common", "signin_note" %}
         </p>
 
         <form id="signin_form" class="white-box">
-            <input id="email" type="email" class="input-block-level"
+            <input id="email" type="email" class="input-block-level" autocomplete="current-email"
                    placeholder="{% translate language, 'common', 'email_address' %}" required>
             <div>
                 <input id="password" type="password" class="input-block-level"
-                       placeholder="{% translate language, 'common', 'password' %}" minlength="5" required>
+                       placeholder="{% translate language, 'common', 'password' %}" minlength="5" required
+                       autocomplete="current-password">
                 <button id="signin_button" class="btn btn-wizard pull-right" type="button">
                     {% translate language, "common", "sign-in" %}
                 </button>

@@ -315,7 +315,7 @@ $(function () {
                         var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
                         sln.alert(message, null, CommonTranslations.ERROR);
                     } else {
-                        $('#signup_note').removeClass('white-text').parent().addClass('white-box');
+                        $('#signup_note').parent().addClass('white-box');
                         $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
                         $('#signup_box').hide();
                         $('#go_back').show();
