@@ -39,12 +39,10 @@
     <orderEntry type="library" name="Google App Engine SDK" level="project" />
   </component>
   <component name="PyDocumentationSettings">
+    <option name="format" value="GOOGLE" />
     <option name="myDocStringFormat" value="Google" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Jinja2" />
-  </component>
-  <component name="TestRunnerService">
-    <option name="PROJECT_TEST_RUNNER" value="Unittests" />
   </component>
 </module>
