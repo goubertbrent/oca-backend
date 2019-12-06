@@ -30,6 +30,7 @@ from google.appengine.ext import webapp, ndb
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
+from rogerthat.to import TO
 from rogerthat.to.push import remove_html
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
@@ -38,6 +39,7 @@ from solutions.common.cron.news import html_unescape, html_to_markdown, transl, 
     is_html
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
+from mcfw.properties import unicode_property
 
 
 BROADCAST_TYPE_NEWS = u"News"
@@ -117,7 +119,7 @@ def _worker(rss_settings_key):
 
         logging.info('Scraping rss for url %s in dry_run %s', rss_link.url, dry_run)
 
-        items, keys = _parse_items(response.content, service_identity, service_user, rss_link.url)
+        items, keys = _parse_items(response.content, rss_link.url, service_user, service_identity)
         scraped_items.extend(items)
         if items:
             oldest_dates[rss_link.url] = sorted([s for s in items], key=lambda x: x.date)[0].date
@@ -244,7 +246,7 @@ class ScrapedItem(object):
         self.hash = news_item_hash(title, message, image_url)
     
 
-def _parse_items(xml_content, service_identity, service_user, rss_url):
+def _parse_items(xml_content, rss_url, service_user=None, service_identity=None):
     # type: (str, str, users.User, str) -> ([ScrapedItem], [ndb.Key])
     doc = minidom.parseString(xml_content)
     items = []
@@ -288,13 +290,14 @@ def _parse_items(xml_content, service_identity, service_user, rss_url):
             logging.debug(item.childNodes)
             logging.debug("url: %s", url)
             raise
-
-        url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
-        # Always add url key for backwards compatibility - in the past only url was used as key
-        keys.append(url_key)
-        if guid:
-            guid_key = SolutionRssScraperItem.create_key(service_user, service_identity, guid)
-            keys.append(guid_key)
+        
+        if service_user:
+            url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
+            # Always add url key for backwards compatibility - in the past only url was used as key
+            keys.append(url_key)
+            if guid:
+                guid_key = SolutionRssScraperItem.create_key(service_user, service_identity, guid)
+                keys.append(guid_key)
 
         items.append(ScrapedItem(title, url, guid, message, date, rss_url, image_url))
     return items, keys
@@ -316,4 +319,4 @@ def get_image_url(item, description_html):
         doc = BeautifulSoup(description_html, features='lxml')
         img_tag = doc.find('img')
         if img_tag:
-            return img_tag['src']
+            return img_tag['src'].decode('utf8')

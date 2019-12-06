@@ -16,14 +16,15 @@
 # @@license_version:1.5@@
 
 import base64
+from collections import defaultdict
 import logging
 import re
-from collections import defaultdict
 from types import NoneType
 
+from babel.numbers import format_currency
+from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
 
-from babel.numbers import format_currency
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.properties import azzert, get_members
@@ -86,7 +87,8 @@ from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
-from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls
+from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls, \
+    _validate_rss_urls
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.consts import TRANSLATION_MAPPING
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
@@ -549,6 +551,32 @@ def rest_get_broadcast_rss_feeds():
     service_identity = session_.service_identity
     rss_settings = SolutionRssScraperSettings.create_key(service_user, service_identity).get()
     return SolutionRssSettingsTO.from_model(rss_settings)
+
+
+@rest("/common/broadcast/rss/validate", "get", read_only_access=True)
+@returns(dict)
+@arguments(url=unicode)
+def rest_validate_rss_feed(url):
+    from solutions.common.cron.news.rss import _parse_items
+    try:
+        response = urlfetch.fetch(url, deadline=10)
+        items, _ = _parse_items(response.content, url)
+    except Exception as e:
+        return {'exception': e.message}
+
+    l = []
+    for item in items:
+        l.append({
+            'title': item.title,
+            'url': item.url,
+            'guid': item.guid,
+            'id': item.id,
+            'message': item.message,
+            'date': str(item.date),
+            'rss_url': item.rss_url,
+            'image_url': item.image_url
+        })
+    return {'items': l}
 
 
 @rest("/common/broadcast/rss", 'put', type=REST_TYPE_TO)
