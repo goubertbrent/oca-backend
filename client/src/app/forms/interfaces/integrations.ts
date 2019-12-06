@@ -49,6 +49,8 @@ export interface GVMappingLocation {
   id: string;
   coordinates: string;
   address: string;
+  location_type: string;
+  location_type_value: string;
 }
 
 export interface GVMappingAttachment {

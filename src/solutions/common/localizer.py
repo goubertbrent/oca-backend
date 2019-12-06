@@ -1042,6 +1042,8 @@ translations = \
          u'oca.contains_sensitive_information': u'Contains sensitive information',
          u'oca.continue_to_next_section': u'Continue to next page',
          u'oca.coordinates_field': u'Coordinates field',
+         u'oca.location_type_choice': u'Location type field name',
+         u'oca.location_type_value': u'Location type value',
          u'oca.create_form': u'Create survey',
          u'oca.create_message': u'Create message',
          u'oca.create_news_item': u'Create a message for this survey',

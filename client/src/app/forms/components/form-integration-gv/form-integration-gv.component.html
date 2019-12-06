@@ -86,6 +86,14 @@
               <mat-label>{{ 'oca.address_field' | translate }}</mat-label>
               <input matInput [(ngModel)]="component.address" (ngModelChange)="markChanged()">
             </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.location_type_choice' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.location_type" (ngModelChange)="markChanged()" placeholder="locatiebepaling_blocks">
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'oca.location_type_value' | translate }}</mat-label>
+              <input matInput [(ngModel)]="component.location_type_value" (ngModelChange)="markChanged()" placeholder="kaart">
+            </mat-form-field>
           </ng-container>
           <ng-container *ngSwitchCase="GvFieldType.CONSENT">
             <mat-form-field>
