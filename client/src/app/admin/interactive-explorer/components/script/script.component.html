@@ -1,0 +1,64 @@
+<ng-container *ngIf="script">
+  <ngx-monaco-editor (onInit)="onMonacoInit($event)" [(ngModel)]="script.source"
+                     [options]="options" class="ie-code-editor"></ngx-monaco-editor>
+  <div class="ie-code-meta">
+    <form #form="ngForm" (ngSubmit)="submit()" class="ie-side-padding">
+      <a mat-icon-button routerLink="..">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <mat-form-field>
+        <mat-label>{{ 'ie.name' | translate }}</mat-label>
+        <input [(ngModel)]="script.name" matInput name="name" required>
+      </mat-form-field>
+      <button class="ie-button-margin" mat-icon-button [disabled]="loading">
+        <mat-icon>save</mat-icon>
+      </button>
+      <button
+        [disabled]="loading"
+        (click)="deleteScript()"
+        class="ie-button-margin" color="warn" mat-icon-button type="button">
+        <mat-icon>delete</mat-icon>
+      </button>
+      <div>
+        <p>{{ 'ie.created_by_x_on_date_y' | translate : {
+          author: script.author,
+          date: script.created_on | date : dateFormat
+        } }}</p>
+        <p>{{ 'ie.last_modified_on_date' | translate : {date: script.modified_on | date : dateFormat} }}</p>
+      </div>
+    </form>
+    <div class="ie-side-padding">
+      <h3 *ngIf="runResult">{{ 'ie.last_result' | translate }}</h3>
+      <mat-progress-bar mode="indeterminate" *ngIf="isRunning"></mat-progress-bar>
+      <ng-container *ngIf="runResult">
+        <button (click)="showFullscreen.emit(runResult)" *ngIf="!runResult?.task_id" mat-raised-button
+                type="button">
+          {{ 'ie.fullscreen' | translate }}
+        </button>
+        <p *ngIf="runResult?.task_id">{{ 'ie.task_name' | translate : {name: runResult.task_id} }}</p>
+        <pre *ngIf="runResult" [innerHTML]="runResult.result" class="ie-result">{{ runResult.result }}</pre>
+      </ng-container>
+    </div>
+    <mat-list>
+      <mat-list-item (click)="scrollToFunction(func)" *ngFor="let func of script.functions; trackBy: trackFunctions">
+        <h3 matLine>{{ func.name }}</h3>
+        <p *ngIf="func.last_run as res" matLine>
+          {{ 'ie.last_run_by_x' | translate: {date: res.date | date : 'dd/MM/yy HH:mm', user: res.user} }}
+        </p>
+        <a *ngIf="func.last_run" [href]="func.last_run.url" [matTooltip]="'ie.logs' | translate" mat-icon-button
+           rel="noreferrer" target="_blank">
+          <mat-icon svgIcon="ie:logs"></mat-icon>
+        </a>
+        <button (click)="runFunction(func)" [disabled]="isRunning" [matTooltip]="'ie.run' | translate" color="primary"
+                mat-icon-button>
+          <mat-icon>play_arrow</mat-icon>
+        </button>
+        <button (click)="deferFunction(func)" [disabled]="isRunning" [matTooltip]="'ie.defer' | translate"
+                color="primary"
+                mat-icon-button>
+          <mat-icon>access_time</mat-icon>
+        </button>
+      </mat-list-item>
+    </mat-list>
+  </div>
+</ng-container>

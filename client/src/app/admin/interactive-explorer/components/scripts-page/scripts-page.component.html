@@ -1,0 +1,12 @@
+<div>
+  <mat-nav-list role="list">
+    <a *ngFor="let script of scripts$ | async" [routerLink]="script.id" mat-list-item role="listitem">
+      <h4 matLine>{{ script.name }}</h4>
+    </a>
+  </mat-nav-list>
+  <div class="ie-fab-bottom-right">
+    <button (click)="createScript()" mat-fab [disabled]="isCreatingScript$ | async">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>

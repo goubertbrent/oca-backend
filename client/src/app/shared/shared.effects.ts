@@ -38,7 +38,6 @@ import { getApps, getAppStatistics, getServiceIdentityInfo, getServiceMenu, Shar
 export class SharedEffects {
 
   @Effect() getGlobalConfig$ = this.actions$.pipe(
-    startWith(new GetGlobalConfigAction()),
     ofType<GetGlobalConfigAction>(SharedActionTypes.GET_GLOBAL_CONFIG),
     switchMap(() => this.sharedService.getGlobalConstants().pipe(
       map(data => new GetGlobalConfigCompleteAction(data)),

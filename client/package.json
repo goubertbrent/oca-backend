@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --configuration hmr --host 0.0.0.0",
-    "build": "ng build --prod --base-href=/static/web",
+    "build": "ng build --prod --base-href=/static/client",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"
@@ -39,6 +39,7 @@
     "jquery-mapael": "^2.2.0",
     "marked": "^0.7.0",
     "ng2-simplemde": "^2.1.0",
+    "ngx-monaco-editor": "^8.1.1",
     "rxjs": "~6.5.3",
     "tslib": "^1.10.0",
     "zone.js": "~0.10.2"

@@ -42,6 +42,7 @@ export const routes: Routes = [
   { path: 'participation', loadChildren: () => import('./participation/participation.module').then(m => m.ParticipationModule) },
   { path: 'news', loadChildren: () => import('./news/news.module').then(m => m.NewsModule) },
   { path: 'reports', loadChildren: () => import('./reports/reports.module').then(m => m.ReportsModule) },
+  { path: 'admin', loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule) },
 ];
 
 @NgModule({

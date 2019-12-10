@@ -1,0 +1,22 @@
+{
+  "ie": {
+    "are_you_sure_remove_script": "This script is quite large. Are you sure you want to remove it?",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirmation": "Confirmation",
+    "created_by_x_on_date_y": "Created by {{ author }} on {{ date }}",
+    "defer": "Defer",
+    "fullscreen": "Fullscreen",
+    "last_modified_on_date": "Last modified on {{ date }}",
+    "last_result": "Last result",
+    "last_run_by_x": "Last run {{ date }} by {{ user }}",
+    "logs": "Logs",
+    "name": "Name",
+    "no": "No",
+    "ok": "Ok",
+    "run": "Run",
+    "scripts": "Scripts",
+    "task_name": "Task name: {{ name }}",
+    "yes": "Yes"
+  }
+}

@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
+import admin.explorer.api
+from admin.explorer.handlers import ExplorerHandler
+from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.cron import RecurrentBilling, ExportResellerInvoicesHandler, \
     CleanupUnverifiedSignupRequests, MatchJoynMerchantsHandler
@@ -65,6 +67,9 @@ handlers = [
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
+    ('/admin/explorer', ExplorerHandler),
 ]
+
+handlers.extend(rest_functions(admin.explorer.api))
 
 app = RogerthatWSGIApplication(handlers, True, name="main_admin", google_authenticated=True)
