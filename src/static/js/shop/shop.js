@@ -1681,39 +1681,6 @@ $(function () {
             });
         });
 
-    $('#button_validate_vat').unbind('click').click(function () {
-        var vat = $('#customer_form #vat').val();
-        $('#tab-details input, #tab-details select:not(#customer_organization_type)').val('');
-        $('#customer_form #vat').val(vat);
-        sln.call({
-            url: '/unauthenticated/osa/company/info',
-            data: {
-                vat: vat
-            },
-            success: function (data) {
-                if (data.errormsg) {
-                    $('#new_customer_error span').text(data.errormsg);
-                    $('#new_customer_error').show();
-                    setCountryByVat(vat);
-                    return;
-                }
-                $('#new_customer_error').hide();
-                $('#customer_form #vat').val(data.vat);
-                $('#customer_form #customer_name').val(data.name);
-                $('#customer_form #address1').val(data.address1);
-                $('#customer_form #address2').val(data.address2);
-                $('#customer_form #zipcode').val(data.zip_code);
-                $('#customer_form #city').val(data.city);
-                $('#customer_form #country').val(data.country).change();
-                $('#customer_form #customer_organization_type').val('' + OrganizationType.MERCHANT);
-            },
-            error: function () {
-                $('#new_customer_error span').text('Unknown error occurred!');
-                $('#new_customer_error').show();
-            }
-        });
-    });
-
     $('#country').change(function () {
         if (!currentCustomer.id) {
             // set default language to the main language of this country

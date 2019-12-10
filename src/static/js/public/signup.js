@@ -195,48 +195,7 @@ $(function () {
             if (isDigit(vat[0])) {
                 vat = country + vat;
             }
-
-            $('#next').attr('disabled', true);
-            sln.call({
-                url: '/unauthenticated/osa/company/info',
-                type: 'get',
-                data: {
-                    vat: vat,
-                    country: country
-                },
-                success: function (data) {
-                    var errorMessage, warningMessage;
-                    if (data.errormsg && !data.vat) {
-                        errorMessage = SignupTranslations.VAT_INVALID;
-                    } else if (data.errormsg && data.vat) {
-                        // vat format is valid, but it's unknown
-                        warningMessage = SignupTranslations.VAT_UNKNOWN;
-                    } else if (data.country.toUpperCase() !== country) {
-                        errorMessage = SignupTranslations.VAT_INCORRECT_COUNTRY;
-                    } else {
-                        fillInput('enterprise_name', data.name);
-                        fillInput('enterprise_address1', data.address1 + (data.address2 ? ', ' + data.address2 : ''));
-                        fillInput('enterprise_zip_code', data.zip_code);
-                        fillInput('enterprise_city', data.city);
-                    }
-
-                    if (data.vat) {
-                        $('#enterprise_vat').val(data.vat);
-                    }
-
-                    $('#next').attr('disabled', false);
-                    clearErrors(input);
-                    if (errorMessage) {
-                        $('<p class="text-error">' + errorMessage + '</p>').insertAfter(input);
-                    } else if (warningMessage) {
-                        $('<p class="text-warning">' + warningMessage + '</p>').insertAfter(input);
-                    }
-                },
-                error: function () {
-                    $('#next').attr('disabled', false);
-                    sln.showAjaxError();
-                }
-            });
+            $('#enterprise_vat').val(vat);
         });
     }
 

@@ -581,54 +581,6 @@ def parse_euvat_address_eu(address):
     return address1, address2, zip_code, city
 
 
-class ValidateVatReturnStatusTO(ReturnStatusTO):
-    vat = unicode_property('vat')
-
-    @classmethod
-    def create(cls, success, errormsg, vat=None):
-        to = super(ValidateVatReturnStatusTO, cls).create(success, errormsg)
-        to.vat = vat
-        return to
-
-
-@rest("/unauthenticated/osa/company/info", "get", read_only_access=True, authenticated=False)
-@returns((ValidateVatReturnStatusTO, CompanyTO))
-@arguments(vat=unicode, country=unicode)
-def get_company_info(vat, country=None):
-    vat = vat.strip().upper().replace(' ', '')
-    if country:
-        try:
-            vat = normalize_vat(country, vat)
-        except BusinessException as ex:
-            return ValidateVatReturnStatusTO.create(False, unicode(ex.message))
-
-    url = 'http://euvat.ga/api/info/%s' % urllib.quote(vat)
-    logging.info(url)
-    try:
-        response = urlfetch.fetch(url, deadline=10, validate_certificate=False)
-    except DeadlineExceededError:
-        response = None
-
-    if not response or response.status_code != 200:
-        return ValidateVatReturnStatusTO.create(False, u'VAT number could not be validated!',
-                                                vat=vat)
-    logging.info(response.content)
-    data = json.loads(response.content)
-    if not data['valid']:
-        return ValidateVatReturnStatusTO.create(False, data.get(u'message', u'VAT number could not be validated!'),
-                                                vat=vat)
-
-    comp = CompanyTO()
-    comp.name = data.get('traderName')
-    address = data.get('traderAddress')
-    if address:
-        comp.address1, comp.address2, comp.zip_code, comp.city = parse_euvat_address_eu(address)
-    comp.country = data['countryCode']
-    comp.vat = comp.country + data['vatNumber']
-    comp.organization_type = ServiceProfile.ORGANIZATION_TYPE_PROFIT
-    return comp
-
-
 @rest('/unauthenticated/osa/signup/app-info/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
 @returns(dict)
 @arguments(app_id=unicode, language=unicode)
