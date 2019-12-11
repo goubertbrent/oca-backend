@@ -2315,7 +2315,7 @@ def complete_customer_signup(email, data):
             raise InvalidUrlException
 
         timestamp = signup.timestamp
-        if not (timestamp < now() < timestamp + 24 * 3600):
+        if not (timestamp < now() < timestamp + (3 * 24 * 3600)):
             raise ExpiredUrlException
 
         if signup.inbox_message_key:
