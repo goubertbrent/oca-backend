@@ -19,7 +19,7 @@ from admin.explorer.handlers import ExplorerHandler
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.cron import RecurrentBilling, ExportResellerInvoicesHandler, \
-    CleanupUnverifiedSignupRequests, MatchJoynMerchantsHandler
+    CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
 from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.budget import BudgetCheckHandler
@@ -60,7 +60,6 @@ handlers = [
     ('/admin/cron/shop/recurrent_billing', RecurrentBilling),
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),
-    ('/admin/cron/match_joyn', MatchJoynMerchantsHandler),
     ('/admin/cron/finish_forms', FinishFormsCron),
     ('/admin/cron/paddle', SyncPaddleInfoHandler),
     ('/admin/services', ServiceTools),

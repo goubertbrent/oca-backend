@@ -27,8 +27,7 @@ from shop.view import BizzAdminHandler, OrdersHandler, OrderPdfHandler, ChargesH
     OpenInvoicesHandler, TasksHandler, LoginAsCustomerHandler, RegioManagersHandler, ExportEmailAddressesHandler, \
     LoyaltySlidesNewOrderHandler, UploadLoyaltySlideNewOrderHandler, CustomersHandler, HintsHandler, \
     SalesStatisticsHandler, SignupAppsHandler, shopOauthDecorator, ShopLogoutHandler, \
-    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, JoynReferralsHandler, \
-    JoynMerchantMatchesHandler, JoynMerchantMatchesDeleteHandler, CustomersImportHandler
+    ExpiredSubscriptionsHandler, LegalEntityHandler, CityVouchersHandler, CustomersImportHandler
 
 handlers = [
     ('/internal/shop/?', BizzAdminHandler),
@@ -53,9 +52,6 @@ handlers = [
     ('/internal/shop/city/vouchers', CityVouchersHandler),
     ('/internal/shop/login_as', LoginAsCustomerHandler),
     ('/internal/shop/contacts_export', ExportEmailAddressesHandler),
-    ('/internal/shop/joyn_referrals', JoynReferralsHandler),
-    ('/internal/shop/joyn_merchant_matches', JoynMerchantMatchesHandler),
-    ('/internal/shop/joyn_merchant_matches/delete', JoynMerchantMatchesDeleteHandler),
     ('/internal/shop/customers', CustomersHandler),
     ('/internal/shop/expired_subscriptions', ExpiredSubscriptionsHandler),
     ('/internal/shop/legal_entities', LegalEntityHandler),

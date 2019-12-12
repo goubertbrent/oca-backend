@@ -134,7 +134,7 @@ def run_script(script_id, data):
                                        time=run_result.time if run_result else None,
                                        succeeded=run_result.succeeded if run_result else True)
             break
-    script.put_async()
+    script.put()
     result = f.last_run.to_dict()
     if run_result:
         result.update(run_result.to_dict())

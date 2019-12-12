@@ -133,7 +133,6 @@ POKE_TAGS = {
     SolutionModule.STATIC_CONTENT: None,
     SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
-    SolutionModule.JOYN: None,
     SolutionModule.JOBS: None,
     SolutionModule.FORMS: None,
     SolutionModule.PARTICIPATION: None,
@@ -1249,9 +1248,7 @@ def put_loyalty(sln_settings, current_coords, main_branding, default_lang, tag):
                 loyalty_settings.content_uri = qr_code.content_uri
 
             limited = False
-            if SolutionModule.JOYN in sln_settings.modules:
-                limited = True
-            elif customer and customer.country == "BE":
+            if customer and customer.country == "BE":
                 if sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
                     limited = True
 
@@ -1962,7 +1959,7 @@ def delete_discussion_groups(sln_settings, current_coords, service_menu):
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def put_hidden_city_wide_lottery(sln_settings, current_coords, main_branding, default_lang, tag):
-    if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.JOYN in sln_settings.modules:
+    if SolutionModule.LOYALTY in sln_settings.modules:
         raise Exception(u"hidden_city_wide_lottery and loyalty should not be used together")
 
     service_user = sln_settings.service_user
@@ -2054,7 +2051,6 @@ MODULES_PUT_FUNCS = {
     SolutionModule.STATIC_CONTENT: put_static_content,
     SolutionModule.WHEN_WHERE: put_when_where,
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: put_hidden_city_wide_lottery,
-    SolutionModule.JOYN: _dummy_put,
     SolutionModule.JOBS: _dummy_put,
     SolutionModule.FORMS: _dummy_put,
     SolutionModule.PARTICIPATION: _dummy_put,
@@ -2084,7 +2080,6 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.STATIC_CONTENT: delete_static_content,
     SolutionModule.WHEN_WHERE: _default_delete,
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
-    SolutionModule.JOYN: _default_delete,
     SolutionModule.JOBS: _default_delete,
     SolutionModule.FORMS: _default_delete,
     SolutionModule.PARTICIPATION: _default_delete,

@@ -516,7 +516,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             if not service_modules.issubset(module_set):
                 raise ModulesNotAllowedException(sorted([m for m in service_modules if m not in module_set]))
 
-    has_loyalty = any([m in service.modules for m in [SolutionModule.LOYALTY, SolutionModule.JOYN]])
+    has_loyalty = any([m in service.modules for m in [SolutionModule.LOYALTY]])
     if customer.has_loyalty != has_loyalty:
         customer.has_loyalty = has_loyalty
     customer.managed_organization_types = service.managed_organization_types

@@ -45,7 +45,6 @@ var service_identity = '{{service_identity}}';
 var isLoyaltyTablet = {% if loyalty %}true{% else %}false{% endif %};
 var CITY_APP_ID = "{{ city_app_id }}";
 var isDemoApp = {% if is_demo_app %}true{% else %}false{% endif %};
-var OCA_LOYALTY_LIMITTED = {% if oca_loyalty_limited %}true{% else %}false{% endif %};
 
 $.ajaxSetup({
     headers: { 'X-Logged-In-As': service_user_email }
@@ -201,8 +200,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
         {% if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
                        <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "oca-loyalty" %}<span
                                class="badge badge-important sln-loyalty-badge"></span></a></li>
-        {% elif joyn_supported %}
-                        <li menu="joyn"><a href="#/joyn">{% translate language, "common", "joyn" %}</a></li>
         {% endif %}
     {% endif %}
     {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules and not loyalty %}
@@ -339,9 +336,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% if not loyalty %}
         {%- include 'loyalty.tmpl' %}
     {% endif %}
-    {% if joyn_supported %}
-        {%- include 'joyn.tmpl' %}
-    {% endif %}
     {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
         {%- include 'city_vouchers/city_vouchers.tmpl' %}
     {% endif %}
@@ -409,7 +403,7 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 <li class="" section="section_settings_mobile_payments"><a href="#">{% translate language, "common", "mobile_payments" %}</a></li>
                             {% endif %}
                             {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
-                                <li section="section_settings_loyalty"><a href="#">{% if oca_loyalty_limited %}{% translate language, "common", "oca-terminal" %}{% else %}{% translate language, "common", "oca-loyalty" %}{% endif %}</a></li>
+                                <li section="section_settings_loyalty"><a href="#">{% translate language, "common", "oca-loyalty" %}</a></li>
                             {% endif %}
                             {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules %}
                                 <li section="section_settings_city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>

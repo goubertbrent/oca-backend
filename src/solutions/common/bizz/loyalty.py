@@ -2021,27 +2021,3 @@ def remove_city_postal_code(app_id, postal_code):
         city.postal_codes.remove(postal_code)
         city.put()
         send_postal_code_update_message(postal_code, True)
-
-
-@returns(bool)
-@arguments(country=unicode, modules=[unicode], app_ids=[unicode])
-def is_joyn_available(country, modules, app_ids):
-    return SolutionModule.JOYN in modules or country == 'BE'
-
-
-@returns(bool)
-@arguments(joyn_available=bool, sln_settings=SolutionSettings)
-def is_oca_loyalty_limited(joyn_available, sln_settings):
-    from add_1_monkey_patches import DEBUG
-    if DEBUG:
-        return False
-    if SolutionModule.JOYN in sln_settings.modules:
-        return True
-
-    if sln_settings.activated_modules \
-            and SolutionModule.LOYALTY in sln_settings.activated_modules \
-            and sln_settings.activated_modules[SolutionModule.LOYALTY].timestamp <= 0:
-        # LOYALTY was enabled before JOYN was available --> full OSA Loyalty functionality
-        return False
-
-    return joyn_available

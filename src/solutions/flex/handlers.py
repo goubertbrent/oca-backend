@@ -50,7 +50,6 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.functionalities import get_functionalities
-from solutions.common.bizz.loyalty import is_joyn_available, is_oca_loyalty_limited
 from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES, \
@@ -393,8 +392,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
         if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
             vouchers_settings = get_city_vouchers_settings(city_app_id)
 
-        joyn_available = is_joyn_available(country, sln_settings.modules, active_app_ids)
-        oca_loyalty_limited = is_oca_loyalty_limited(joyn_available, sln_settings)
         city_service_user = get_service_user_for_city(city_app_id)
         is_city = service_user == city_service_user
         city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
@@ -423,8 +420,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'week_days': week_days,
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
-                  'oca_loyalty_limited': oca_loyalty_limited,
-                  'joyn_supported': joyn_available,
                   'city_app_id': city_app_id,
                   'is_demo_app': is_demo_app,
                   'functionality_modules': functionality_modules,

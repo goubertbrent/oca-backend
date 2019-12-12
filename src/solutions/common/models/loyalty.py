@@ -654,16 +654,3 @@ class CityPostalCodes(db.Model):
     @classmethod
     def create_key(cls, app_id):
         return db.Key.from_path(cls.kind(), app_id)
-
-
-class JoynReferral(NdbModel):
-    TYPE_BUTTON_DASHBOARD = 1
-    action_dates = ndb.DateTimeProperty(repeated=True, indexed=False)  # type: list[datetime]
-
-    @property
-    def customer_id(self):
-        return self.key.id()
-
-    @classmethod
-    def create_key(cls, service_user, customer_id):
-        return ndb.Key(cls, customer_id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))

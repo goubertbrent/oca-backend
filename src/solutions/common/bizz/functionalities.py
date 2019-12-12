@@ -19,7 +19,6 @@ from __future__ import unicode_literals
 
 from solutions import translate as common_translate, SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.loyalty import is_joyn_available
 
 OTHER_LANGUAGES = ['nl']
 
@@ -79,11 +78,7 @@ class Functionality(object):
             return self.translate('repairs')
         elif self.name == SolutionModule.DISCUSSION_GROUPS:
             return self.translate('group-chat')
-        elif self.name == SolutionModule.JOYN:
-            return self.translate('joyn-loyalty')
         elif self.name == SolutionModule.LOYALTY:
-            if self.is_oca_terminal():
-                return self.translate('oca-terminal')
             return self.translate('oca-loyalty')
         else:
             translation = self.translate(self.name)
@@ -91,29 +86,14 @@ class Functionality(object):
                 return self.translate(self.name.replace('_', '-'))
             return translation
 
-    def is_oca_terminal(self):
-        if self.name == SolutionModule.LOYALTY:
-            if self.activated_modules:
-                if SolutionModule.JOYN in self.activated_modules:
-                    return True
-                if self.country == "BE":
-                    if SolutionModule.LOYALTY not in self.activated_modules \
-                            or self.activated_modules[SolutionModule.LOYALTY].timestamp > 0:
-                        return True
-        return False
-
     @property
     def description(self):
-        if self.is_oca_terminal():
-            return self.translate('oca-terminal-description')
         return self.translate('module-description-%s' % self.name)
 
     @property
     def screenshot_image(self):
         name = self.name
-        if self.is_oca_terminal():
-            name = 'terminal'
-        elif name == SolutionModule.DISCUSSION_GROUPS:
+        if name == SolutionModule.DISCUSSION_GROUPS:
             name = SolutionModule.ASK_QUESTION
         return '/static/images/solutions/func_%s.jpg' % name
 
@@ -131,13 +111,12 @@ class Functionality(object):
                 'screenshot_image': self.screenshot_image
             }}
 
-        if not self.is_oca_terminal():
-            for language in OTHER_LANGUAGES:
-                default_media = MEDIA.get(language)
-                if default_media:
-                    module_media = default_media.get(self.name)
-                    if module_media:
-                        languages_media[language] = module_media
+        for language in OTHER_LANGUAGES:
+            default_media = MEDIA.get(language)
+            if default_media:
+                module_media = default_media.get(self.name)
+                if module_media:
+                    languages_media[language] = module_media
 
         return languages_media
 
@@ -163,13 +142,9 @@ def get_functionalities(country, language, my_modules, activated_modules, app_id
 
     if SolutionModule.CITY_APP in my_modules:
         modules.remove(SolutionModule.LOYALTY)
-        modules.remove(SolutionModule.JOYN)
 
     elif SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in modules:
         modules.remove(SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
-
-    if SolutionModule.JOYN in modules and not is_joyn_available(country, my_modules, app_ids):
-        modules.remove(SolutionModule.JOYN)
 
     functionalities = [Functionality(country, language, activated_modules, module) for module in modules]
     info = {func.name: func.to_dict() for func in functionalities}

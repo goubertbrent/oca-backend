@@ -128,8 +128,6 @@ class SolutionModule(Enum):
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
-    JOYN = u'joyn'
-
     MODULES_TRANSLATION_KEYS = {
         AGENDA: 'agenda',
         APPOINTMENT: 'appointment',
@@ -149,7 +147,6 @@ class SolutionModule(Enum):
         STATIC_CONTENT: 'static-content',
         QR_CODES: 'settings-qr-codes',
         WHEN_WHERE: 'when-where',
-        JOYN: 'joyn',
         JOBS: 'jobs',
         FORMS: 'forms',
         PARTICIPATION: 'participation',
@@ -166,7 +163,7 @@ class SolutionModule(Enum):
     ASSOCIATION_MODULES = {AGENDA, ASK_QUESTION, BROADCAST, BULK_INVITE, STATIC_CONTENT}
     POSSIBLE_MODULES = {AGENDA, APPOINTMENT, ASK_QUESTION, BROADCAST, BULK_INVITE, DISCUSSION_GROUPS, GROUP_PURCHASE,
                         LOYALTY, MENU, ORDER, PHARMACY_ORDER, REPAIR, RESTAURANT_RESERVATION, SANDWICH_BAR,
-                        STATIC_CONTENT, JOYN, FORMS, PARTICIPATION}
+                        STATIC_CONTENT, FORMS, PARTICIPATION}
     MANDATORY_MODULES = {BILLING, QR_CODES, WHEN_WHERE}
 
     # order these in the order you want to show them in the apps
@@ -180,7 +177,7 @@ class SolutionModule(Enum):
 
     FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT, JOYN}
+                             APPOINTMENT}
 
     @classmethod
     def all(cls):
@@ -625,7 +622,6 @@ def broadcast_updates_pending(sln_settings):
 @returns(NoneType)
 @arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User], friends=[BaseMemberTO])
 def common_provision(service_user, sln_settings=None, broadcast_to_users=None, friends=None):
-    from solutions.common.bizz.joyn.merchants import re_index as merchant_re_index
 
     try:
         start = time.time()
@@ -692,8 +688,6 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 sln_settings = db.run_in_transaction(trans)
             broadcast_updates_pending(sln_settings)
-
-        deferred.defer(merchant_re_index, service_user, _countdown=2)
 
         logging.debug('Provisioning took %s seconds', time.time() - start)
     except (AvatarImageNotSquareException, TranslatedException, BusinessException):
@@ -1042,11 +1036,6 @@ def validate_enable_or_disable_solution_module(service_user, module, enabled, fo
     if not enabled or force:
         return True, None
 
-    if module == SolutionModule.JOYN:
-        sln_settings = get_solution_settings(service_user)
-        if SolutionModule.LOYALTY in sln_settings.modules:
-            return True, common_translate(sln_settings.main_language, SOLUTION_COMMON, u'activating_joyn_will_disable_your_current_loyalty')
-
     return True, None
 
 
@@ -1070,28 +1059,24 @@ def enable_or_disable_solution_module(service_user, module, enabled):
                 to_put.append(order_settings)
         elif module == SolutionModule.HIDDEN_CITY_WIDE_LOTTERY:
             deactivate_solution_module(sln_settings, SolutionModule.LOYALTY)
-            deactivate_solution_module(sln_settings, SolutionModule.JOYN)
         elif module == SolutionModule.LOYALTY:
-            deactivate_solution_module(sln_settings, SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
-        elif module == SolutionModule.JOYN:
             deactivate_solution_module(sln_settings, SolutionModule.HIDDEN_CITY_WIDE_LOTTERY)
 
         # don't enable loyalty if this is a city service
         if SolutionModule.CITY_APP in sln_settings.modules:
-            if module == SolutionModule.LOYALTY or module == SolutionModule.JOYN:
+            if module == SolutionModule.LOYALTY:
                 return
     else:
         deactivate_solution_module(sln_settings, module)
 
     # set customer has_loyalty if the module is loyalty
-    if module == SolutionModule.LOYALTY or module == SolutionModule.JOYN:
+    if module == SolutionModule.LOYALTY:
         from shop.models import Customer
         customer = Customer.get_by_service_email(service_user.email())
         if customer:
             customer.has_loyalty = enabled
             to_put.append(customer)
-    if module != SolutionModule.JOYN:
-        sln_settings.updates_pending = True
+    sln_settings.updates_pending = True
     to_put.append(sln_settings)
     put_and_invalidate_cache(*to_put)
     broadcast_updates_pending(sln_settings)

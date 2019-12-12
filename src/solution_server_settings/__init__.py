@@ -134,12 +134,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                   doc="Createsend api key",
                                   order=1601)
 
-    joyn_client_id = add_meta(db.StringProperty(indexed=False),
-                                  doc="Joyn client_id",
-                                  order=1701)
-    joyn_client_secret = add_meta(db.StringProperty(indexed=False),
-                                  doc="Joyn client_secret",
-                                  order=1702)
     participation_server_url = add_meta(db.StringProperty(indexed=False),
                                         doc='Participation server url',
                                         order=1803)
@@ -197,12 +191,12 @@ class CampaignMonitorWebhook(NdbModel):
     @property
     def id(self):
         return self.key.id()
-    
+
     def get_organization_lists(self):
         if not self.organization_lists:
             self.organization_lists = []
         return self.organization_lists
-    
+
     def add_organization_list(self, ol):
         self.get_organization_lists().append(ol)
 

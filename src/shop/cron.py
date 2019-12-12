@@ -20,7 +20,6 @@ import webapp2
 from shop.jobs import clean_unverified_signups
 from shop.jobs.export_reseller_invoices import export_reseller_invoices_this_week
 from shop.jobs.recurrentbilling import schedule_recurrent_billing
-from solutions.common.bizz.joyn import find_all_joyn_matches
 
 
 class RecurrentBilling(webapp2.RequestHandler):
@@ -38,9 +37,3 @@ class CleanupUnverifiedSignupRequests(webapp2.RequestHandler):
 
     def get(self):
         clean_unverified_signups.job()
-
-
-class MatchJoynMerchantsHandler(webapp2.RequestHandler):
-
-    def get(self):
-        find_all_joyn_matches()

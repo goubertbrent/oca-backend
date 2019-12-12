@@ -16,7 +16,6 @@
 # @@license_version:1.5@@
 
 import logging
-from datetime import datetime
 from types import NoneType
 
 from google.appengine.ext import db
@@ -29,13 +28,11 @@ from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.dal.profile import get_profile_infos
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
-from rogerthat.rpc.users import get_current_user
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
-from shop.dal import get_customer
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import loyalty as loyalty_bizz, broadcast_updates_pending, get_app_info_cached, \
@@ -49,8 +46,7 @@ from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_soluti
     get_solution_city_wide_lottery_loyalty_visits_for_user
 from solutions.common.models import SolutionSettings
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyScan, SolutionLoyaltyLottery, \
-    SolutionLoyaltyExport, SolutionLoyaltyIdentitySettings, SolutionCityWideLotteryVisit, SolutionCityWideLottery, \
-    JoynReferral
+    SolutionLoyaltyExport, SolutionLoyaltyIdentitySettings, SolutionCityWideLotteryVisit, SolutionCityWideLottery
 from solutions.common.to import TimestampTO
 from solutions.common.to.loyalty import LoyaltySettingsTO, LoyaltySlideTO, ExtendedUserDetailsTO, \
     LoyaltyScanTO, LOYALTY_SETTINGS_MAPPING, SolutionLoyaltyVisitTO, LoyaltyRevenueDiscountSettingsTO, \
@@ -113,8 +109,7 @@ def load_specific_loyalty_settings(loyalty_type):
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules or \
-            SolutionModule.JOYN in sln_settings.modules:
+    if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
         loyalty_type = None
 
     def trans():
@@ -139,8 +134,6 @@ def put_loyalty_settings(loyalty_type, loyalty_settings, loyalty_website):
             sln_settings = get_solution_settings(service_user)
             if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
                 loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_CITY_WIDE_LOTTERY
-            if SolutionModule.JOYN in sln_settings.modules:
-                loyalty_type = SolutionLoyaltySettings.LOYALTY_TYPE_SLIDES_ONLY
             sln_settings.updates_pending = True
 
             sln_loyalty_settings = SolutionLoyaltySettings.get_by_user(service_user)
@@ -842,16 +835,3 @@ def restapi_remove_city_postal_codes(app_id, postal_code):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
-
-
-@rest('/common/loyalty/joyn', 'post')
-@returns()
-@arguments()
-def restapi_click_joyn():
-    service_user = get_current_user()
-    customer = get_customer(service_user)
-    if customer:
-        key = JoynReferral.create_key(service_user, customer.id)
-        referral = key.get() or JoynReferral(key=key)
-        referral.action_dates.append(datetime.now())
-        referral.put()

@@ -163,7 +163,6 @@ DEFAULT_COORDS = {
 
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
 
-    SolutionModule.JOYN: None,
     SolutionModule.FORMS: None,
     SolutionModule.PARTICIPATION: None,
     SolutionModule.REPORTS: None,

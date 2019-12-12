@@ -36,7 +36,7 @@ from google.appengine.ext.webapp import template
 from PIL.Image import Image  # @UnresolvedImport
 from add_1_monkey_patches import DEBUG, APPSCALE
 from babel import Locale
-from babel.dates import format_date, format_datetime
+from babel.dates import format_date
 from mcfw.cache import cached
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
@@ -112,7 +112,6 @@ from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz import SolutionModule, get_all_existing_broadcast_types
 from solutions.common.bizz.city_vouchers import put_city_voucher_settings, put_city_voucher_user, \
     delete_city_voucher_user
-from solutions.common.bizz.joyn import _add_joyn_module
 from solutions.common.bizz.locations import create_new_location
 from solutions.common.bizz.loyalty import update_all_user_data_admins
 from solutions.common.bizz.qanda import re_index_question
@@ -121,8 +120,6 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city, invalidate_service_user_for_city
 from solutions.common.dal.hints import get_all_solution_hints, get_solution_hints
 from solutions.common.models.city_vouchers import SolutionCityVoucherSettings
-from solutions.common.models.joyn import JoynMerchantMatches, JoynMerchantMatchStatus
-from solutions.common.models.loyalty import JoynReferral
 from solutions.common.models.qanda import Question, QuestionReply
 from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
@@ -710,83 +707,6 @@ class ExportEmailAddressesHandler(BizzManagerHandler):
             writer.writerow((export.email.encode("utf-8"),
                              export.first_name.encode("utf-8"),
                              export.last_name.encode("utf-8")))
-
-
-class JoynReferralsHandler(BizzManagerHandler):
-
-    def get(self):
-        azzert(is_admin(gusers.get_current_user()))
-        referrals = JoynReferral.query().fetch(None)  # type: list[JoynReferral]
-        customers = db.get([Customer.create_key(ref.customer_id) for ref in referrals])
-        result = []
-        for ref, customer in zip(referrals, customers):
-            result.append({
-                'customer': {
-                    'id': customer.id,
-                    'name': customer.name
-                },
-                'referral': {
-                    'action_timestamp': ', '.join(format_datetime(d, locale='nl') for d in ref.action_dates[-5:])
-                }
-            })
-        context = get_shop_context(referrals=sorted(result, key=lambda r: r['customer']['name']))
-        path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_referrals.html')
-        self.response.write(template.render(path, context))
-
-
-class JoynMerchantMatchesHandler(BizzManagerHandler):
-
-    def get(self):
-        azzert(is_admin(gusers.get_current_user()))
-        matches = JoynMerchantMatches.list_new().fetch(None)
-        context = get_shop_context(matches=matches, total_matches=len(matches))
-        path = os.path.join(os.path.dirname(__file__), 'html', 'joyn_merchant_matches.html')
-        self.response.write(template.render(path, context))
-
-    def post(self):
-        azzert(is_admin(gusers.get_current_user()))
-        joyn_merchant_id = self.request.get("joyn_merchant_id")
-        customer_id = self.request.get("customer_id")
-        logging.debug('joyn merchant %s connected to %s', joyn_merchant_id, customer_id)
-        if not (joyn_merchant_id and customer_id):
-            self.abort(400)
-            return
-        joyn_merchant_id = long(joyn_merchant_id)
-        customer_id = long(customer_id)
-
-        match_key = JoynMerchantMatches.create_key(joyn_merchant_id)
-        match = match_key.get()
-        if not match:
-            self.abort(400)
-            return
-        match.customer_id = customer_id
-        match.status = JoynMerchantMatchStatus.MATCHED
-        match.put()
-
-        deferred.defer(_add_joyn_module, customer_id)
-        import time
-        time.sleep(1)  # Ensure datastore consistency
-        self.redirect('/internal/shop/joyn_merchant_matches')
-
-
-class JoynMerchantMatchesDeleteHandler(BizzManagerHandler):
-
-    def post(self):
-        azzert(is_admin(gusers.get_current_user()))
-        joyn_merchant_id = self.request.get("joyn_merchant_id")
-        if not joyn_merchant_id:
-            self.abort(400)
-            return
-        joyn_merchant_id = long(joyn_merchant_id)
-
-        match_key = JoynMerchantMatches.create_key(joyn_merchant_id)
-        match = match_key.get()
-        match.status = JoynMerchantMatchStatus.REMOVED
-        match.put()
-
-        import time
-        time.sleep(1)  # dirty but otherwise list shows old items
-        self.redirect('/internal/shop/joyn_merchant_matches')
 
 
 class CustomersImportHandler(BizzManagerHandler):
