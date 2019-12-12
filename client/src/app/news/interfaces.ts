@@ -70,6 +70,7 @@ export enum NewsActionButtonType {
   EMAIL,
   ATTACHMENT,
   MENU_ITEM,
+  OPEN,
 }
 
 export interface BaseNewsButton {
@@ -99,12 +100,23 @@ export interface NewsActionButtonMenuItem extends BaseNewsButton {
   type: NewsActionButtonType.MENU_ITEM;
 }
 
+export interface NewsActionButtonOpen extends BaseNewsButton {
+  type: NewsActionButtonType.OPEN;
+  params: {
+    action: string;
+    action_type?: string;
+    title?: string;
+    service?: string;
+  };
+}
+
 export type UINewsActionButton =
   NewsActionButtonWebsite
   | NewsActionButtonPhone
   | NewsActionButtonEmail
   | NewsActionButtonAttachment
-  | NewsActionButtonMenuItem;
+  | NewsActionButtonMenuItem
+  | NewsActionButtonOpen;
 
 export interface BaseMedia {
   type: MediaType;

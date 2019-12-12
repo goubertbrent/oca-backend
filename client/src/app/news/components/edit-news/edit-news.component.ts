@@ -17,7 +17,7 @@ import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
+import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS, OPEN_OPTIONS } from '../../consts';
 import {
   CreateNews,
   Gender,
@@ -47,7 +47,7 @@ export class EditNewsComponent implements OnChanges {
   @Input() appStatistics: AppStatisticsMapping;
   @Input() serviceInfo: ServiceIdentityInfo | null;
   @Input() options: Loadable<NewsOptions>;
-  @Input() actionButtons: Loadable<UINewsActionButton[]>;
+  @Input() actionButtons: Loadable<Readonly<UINewsActionButton>[]>;
   @Input() remainingBudget: string;
   @Input() brandingSettings: Loadable<BrandingSettings>;
   @Output() save = new EventEmitter<CreateNews>();
@@ -66,6 +66,7 @@ export class EditNewsComponent implements OnChanges {
   NewsActionButtonType = NewsActionButtonType;
   GENDERS = GENDER_OPTIONS;
   NEWS_MEDIA_TYPE_OPTIONS: { label: string; value: MediaType | null }[] = [];
+  openOptions = OPEN_OPTIONS;
   MediaType = MediaType;
   URL_PATTERN = '(https?:\\/\\/)?([\\w\\-])+\\.{1}([a-zA-Z]{2,63})([\\/\\w-]*)*\\/?\\??([^#\\n\\r]*)?#?([^\\n\\r]*)';
   YOUTUBE_REGEX = new RegExp('^.*(youtu.be\\/|v\\/|embed\\/|watch\\?|youtube.com\\/user\\/[^#]*#([^\\/]*?\\/)*)\\??v?=?([^#\\&\\?]*).*');
@@ -146,6 +147,10 @@ export class EditNewsComponent implements OnChanges {
   actionButtonSelected(event: MatSelectChange) {
     if (this.actionButtons.data) {
       this.newsItem = { ...this.newsItem, action_button: this.actionButton ? this.actionButton.button : null };
+      if (this.actionButton && this.actionButton.type === NewsActionButtonType.OPEN) {
+        // Ensure correct label
+        this.setOpenAction(this.actionButton.params.action);
+      }
     }
   }
 
@@ -166,8 +171,7 @@ export class EditNewsComponent implements OnChanges {
       if (!this.actionButton) {
         return;
       }
-      this.actionButton.button.caption = button.caption;
-      this.actionButton.button.action = button.action;
+      this.actionButton = { ...this.actionButton, button: { ...this.actionButton.button, caption: button.caption, action: button.action } };
       switch (this.actionButton.type) {
         case NewsActionButtonType.PHONE:
           this.actionButton.phone = button.action.split('tel://')[ 1 ] || button.action;
@@ -178,6 +182,15 @@ export class EditNewsComponent implements OnChanges {
         case NewsActionButtonType.MENU_ITEM:
           // After publishing an item, the tag is hashed. Ensure it isn't hashed twice by resetting it here.
           this.actionButton.button.action = `smi://${button.id}`;
+          break;
+        case NewsActionButtonType.OPEN:
+          const split = button.action.split('open://')[ 1 ];
+          try {
+            this.actionButton.params = JSON.parse(split);
+          } catch (e) {
+            console.error(`Could not parse action button params: ${split}`);
+            this.actionButton.params = { action: 'scan' };
+          }
           break;
       }
     }
@@ -198,6 +211,9 @@ export class EditNewsComponent implements OnChanges {
         case NewsActionButtonType.EMAIL:
           action = `mailto://${value}`;
           break;
+        case NewsActionButtonType.OPEN:
+          action = `open://${value}`;
+          break;
         default:
           action = value;
       }
@@ -206,6 +222,16 @@ export class EditNewsComponent implements OnChanges {
       this.newsItem = { ...this.newsItem, action_button: null };
     }
     this.setActionButton(this.newsItem.action_button);
+  }
+
+  setOpenAction(action: string) {
+    if (this.actionButton && this.actionButton.type === NewsActionButtonType.OPEN) {
+      const item = OPEN_OPTIONS.find(o => o.value === action);
+      if (item) {
+        this.actionButton.button.caption = this._translate.instant(item.label);
+      }
+      this.updateButton(JSON.stringify({ ...this.actionButton.params, action }));
+    }
   }
 
   toggleScheduledAt() {

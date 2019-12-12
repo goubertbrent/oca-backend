@@ -20,6 +20,9 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.open_app_function': u'Open app function',
+         u'oca.profile': u'Profile',
+         u'oca.function': u'Function',
          u'oca.reports': u'Reports',
          u'oca.filters': u'Filters',
          u'oca.default_filter': u'Default filter',
@@ -3947,6 +3950,9 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.open_app_function': u'Open app functie',
+         u'oca.profile': u'Profiel',
+         u'oca.function': u'Functie',
          u'(Click to change)': u'(Klik om te veranderen)',
          u'(No title)': u'(Geen titel)',
          u'(optional)': u'(optioneel)',

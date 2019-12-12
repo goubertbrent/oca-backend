@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { ServiceMenuDetail } from '../shared/interfaces/rogerthat';
 import { Loadable, NonNullLoadable, onLoadableSuccess } from '../shared/loadable/loadable';
+import { OPEN_OPTIONS } from './consts';
 import {
   CityAppLocations,
   CreateNews,
@@ -55,8 +56,9 @@ export class NewsService {
     return this._http.get<CityAppLocations>(`/common/locations/${appId}`);
   }
 
-  getActionButtons(menu: Loadable<ServiceMenuDetail>): NonNullLoadable<UINewsActionButton[]> {
+  getActionButtons(menu: Loadable<ServiceMenuDetail>): NonNullLoadable<Readonly<UINewsActionButton>[]> {
     if (menu.data) {
+      const defaultOpenOption = OPEN_OPTIONS[ 0 ];
       const result: UINewsActionButton[] = [
         {
           type: NewsActionButtonType.WEBSITE,
@@ -79,6 +81,16 @@ export class NewsService {
           label: this._translate.instant('oca.Phone number'),
           phone: '',
           button: { action: '', caption: this._translate.instant('oca.Call'), id: 'phone' },
+        },
+        {
+          type: NewsActionButtonType.OPEN,
+          label: this._translate.instant('oca.open_app_function'),
+          params: { action: defaultOpenOption.value },
+          button: {
+            action: `open://{"action": "${defaultOpenOption.value}"}`,
+            caption: this._translate.instant(defaultOpenOption.label),
+            id: 'open',
+          },
         },
         // use 'as' to ignore bug in typescript: Type 'NewsActionButtonType' is not assignable to type 'NewsActionButtonType.MENU_ITEM'.
         ...menu.data.items.map(item => ({

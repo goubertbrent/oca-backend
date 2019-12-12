@@ -150,15 +150,17 @@
                   <ng-container *ngSwitchCase="NewsActionButtonType.ATTACHMENT">
                     <mat-form-field>
                       <mat-label>{{ 'oca.Attachment' | translate }}</mat-label>
-                      <input #input="ngModel" [ngModel]="actionButton.button.action" matInput name="attachment_url" readonly
-                            required type="url">
+                      <input #input="ngModel" [ngModel]="actionButton.button.action" matInput name="attachment_url"
+                             readonly
+                             required type="url">
                       <a *ngIf="actionButton.button.action"
-                        [href]="actionButton.button.action" mat-icon-button
-                        matSuffix
-                        target="_blank">
+                         [href]="actionButton.button.action" mat-icon-button
+                         matSuffix
+                         target="_blank">
                         <mat-icon>open_in_new</mat-icon>
                       </a>
-                      <mat-error *ngIf="input.errors?.required">{{ 'oca.please_select_attachment' | translate }}</mat-error>
+                      <mat-error
+                        *ngIf="input.errors?.required">{{ 'oca.please_select_attachment' | translate }}</mat-error>
                     </mat-form-field>
                     <div>
                       <button (click)="addAttachment()" mat-raised-button type="button">
@@ -166,6 +168,14 @@
                       </button>
                     </div>
                   </ng-container>
+                  <mat-form-field *ngSwitchCase="NewsActionButtonType.OPEN">
+                    <mat-label>{{ 'oca.function' | translate }}</mat-label>
+                    <mat-select (ngModelChange)="setOpenAction($event)" [(ngModel)]="actionButton.params.action"
+                                name="params_action">
+                      <mat-option *ngFor="let option of openOptions"
+                                  [value]="option.value">{{ option.label | translate }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
                 </ng-container>
               </div>
             </mat-card-content>

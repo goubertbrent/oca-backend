@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { of, timer } from 'rxjs';
-import { catchError, first, map, mergeMap, retryWhen, startWith, switchMap } from 'rxjs/operators';
+import { catchError, first, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
 import { transformErrorResponse } from './errors/errors';
 import {
   GetAppsAction,
@@ -39,6 +39,7 @@ export class SharedEffects {
 
   @Effect() getGlobalConfig$ = this.actions$.pipe(
     ofType<GetGlobalConfigAction>(SharedActionTypes.GET_GLOBAL_CONFIG),
+    take(1),
     switchMap(() => this.sharedService.getGlobalConstants().pipe(
       map(data => new GetGlobalConfigCompleteAction(data)),
       retryWhen(attempts => attempts.pipe(mergeMap(() => timer(2000)))),
