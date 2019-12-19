@@ -256,7 +256,7 @@ def _parse_items(xml_content, rss_url, service_user=None, service_identity=None)
     for item in doc.getElementsByTagName('item'):
         try:
             title = remove_html(html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue)).strip()
-            url = item.getElementsByTagName("link")[0].firstChild.nodeValue
+            url = item.getElementsByTagName("link")[0].firstChild.nodeValue.strip()
             guid_elements = item.getElementsByTagName('guid')
             if guid_elements:
                 guid = guid_elements[0].firstChild.nodeValue
