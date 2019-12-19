@@ -221,6 +221,30 @@ class SolutionMessage(db.Model):
         return str(self.key())
 
 
+class SetupGooglePlaceIdLocation(NdbModel):
+    service_identity = ndb.StringProperty(indexed=False)
+    place_id = ndb.StringProperty()
+    perfect_match = ndb.BooleanProperty()
+    matches = ndb.JsonProperty()
+
+
+class SetupGooglePlaceId(NdbModel):
+    default_app_id = ndb.StringProperty()
+    locations = ndb.StructuredProperty(SetupGooglePlaceIdLocation, repeated=True)
+
+    @property
+    def uid(self):
+        return self.key.id()
+
+    @classmethod
+    def list_by_place_id(cls, place_id):
+        return cls.query().filter(cls.place_id == place_id)
+
+    @classmethod
+    def create_key(cls, uid):
+        return ndb.Key(cls, uid)
+
+
 class SolutionIdentitySettings(db.Expando):
     name = db.StringProperty(indexed=False)
     phone_number = db.StringProperty(indexed=False)
@@ -247,6 +271,8 @@ class SolutionIdentitySettings(db.Expando):
     payment_enabled = db.BooleanProperty(default=False)
     payment_optional = db.BooleanProperty(default=True)
     payment_test_mode = db.BooleanProperty(default=DEBUG)
+    
+    google_place_id = db.StringProperty(indexed=True, default=None)
 
     @staticmethod
     def create_key(service_user, service_identity):
