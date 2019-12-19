@@ -44,7 +44,7 @@ from solutions.common.models.sandwich import SandwichSettings, \
 class SandwichAutoBroadcastCronHandler(webapp.RequestHandler):
 
     def get(self):
-        deferred.defer(_schedule_auto_broadcasts)
+        pass # deferred.defer(_schedule_auto_broadcasts)
 
 
 def _schedule_auto_broadcasts():
