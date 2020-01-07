@@ -16,17 +16,18 @@
 # @@license_version:1.5@@
 from __future__ import unicode_literals
 
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
-
-from google.appengine.api import urlfetch
-from google.appengine.api.apiproxy_stub_map import UserRPC
-from google.appengine.ext import db
 
 from babel.dates import get_day_names
+from google.appengine.api import urlfetch
+from google.appengine.api.apiproxy_stub_map import UserRPC
+from google.appengine.ext import db, deferred
+
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpBadRequestException
+from rogerthat.bizz.opening_hours import save_textual_opening_hours
 from rogerthat.consts import DEBUG
 from rogerthat.rpc import users
 from solutions import translate, SOLUTION_COMMON
@@ -173,6 +174,7 @@ def populate_info_from_paddle(paddle_settings, paddle_data):
             hours = _opening_hours_to_str(sln_settings.main_language, paddle_info.opening_hours)
             changed = changed or hours != sln_settings.opening_hours
             sln_settings.opening_hours = hours
+            deferred.defer(save_textual_opening_hours, mapping.service_email, sln_settings.opening_hours)
         if paddle_info.node.address and paddle_info.node.address.is_valid():
             new_address = _get_address_str(paddle_info.node.address)
             changed = changed or sln_settings.address != new_address

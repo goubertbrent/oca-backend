@@ -15,12 +15,14 @@
 #
 # @@license_version:1.5@@
 
+from google.appengine.ext import db, deferred
+
+from mcfw.rpc import returns, arguments
+from rogerthat.bizz.opening_hours import save_textual_opening_hours
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.utils.transactions import on_trans_committed
-from google.appengine.ext import db, deferred
-from mcfw.rpc import returns, arguments
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import common_provision
@@ -62,6 +64,7 @@ def create_new_location(service_user, name, broadcast_to_users=None):
         sln_settings.identities.append(service_identity)
         sln_settings.put()
         on_trans_committed(_create_service_identity, service_user, sln_i_settings, broadcast_to_users)
+        on_trans_committed(save_textual_opening_hours, sln_i_settings.service_identity_user.email(), sln_i_settings.opening_hours)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)

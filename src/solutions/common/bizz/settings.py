@@ -16,9 +16,9 @@
 # @@license_version:1.5@@
 
 import base64
+from cStringIO import StringIO
 import cgi
 import logging
-from cStringIO import StringIO
 from types import NoneType
 from xml.dom import minidom
 
@@ -27,6 +27,7 @@ from google.appengine.ext import db, deferred, ndb
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
+from rogerthat.bizz.opening_hours import save_textual_opening_hours
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.dal import put_and_invalidate_cache
 from rogerthat.rpc import users
@@ -45,6 +46,7 @@ from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding
 from solutions.common.to import SolutionSettingsTO
 from solutions.common.utils import is_default_service_identity
+
 
 SLN_LOGO_WIDTH = 640
 SLN_LOGO_HEIGHT = 240
@@ -70,6 +72,7 @@ def save_settings(service_user, service_identity, data):
     sln_i_settings.name = data.name
     sln_i_settings.description = data.description
     sln_i_settings.opening_hours = data.opening_hours
+    deferred.defer(save_textual_opening_hours, service_user.email() if is_default_service_identity(service_identity) else sln_i_settings.service_identity_user.email(), sln_settings.opening_hours)
     sln_i_settings.phone_number = data.phone_number
 
     if data.email_address and data.email_address != service_user.email():
