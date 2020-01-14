@@ -248,7 +248,12 @@ class ScrapedItem(object):
 
 def _parse_items(xml_content, rss_url, service_user=None, service_identity=None):
     # type: (str, str, users.User, str) -> ([ScrapedItem], [ndb.Key])
-    doc = minidom.parseString(xml_content)
+    try:
+        doc = minidom.parseString(xml_content)
+    except:
+        logging.warn('Failed to parse xml_content', exc_info=True)
+        logging.debug(xml_content)
+        return [], []
     items = []
     keys = []
     parsed_url = urlparse(rss_url)

@@ -553,7 +553,7 @@ def rest_get_broadcast_rss_feeds():
     return SolutionRssSettingsTO.from_model(rss_settings)
 
 
-@rest("/common/broadcast/rss/validate", "get", read_only_access=True)
+@rest("/common/broadcast/rss/validate", "get", read_only_access=True, silent_result=True)
 @returns(dict)
 @arguments(url=unicode)
 def rest_validate_rss_feed(url):
