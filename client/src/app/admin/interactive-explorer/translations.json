@@ -1,6 +1,6 @@
 {
   "ie": {
-    "are_you_sure_remove_script": "This script is quite large. Are you sure you want to remove it?",
+    "are_you_sure_remove_script": "Are you sure you want to remove this script?",
     "cancel": "Cancel",
     "close": "Close",
     "confirmation": "Confirmation",

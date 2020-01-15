@@ -24,11 +24,11 @@ import time
 import traceback
 from datetime import datetime
 
+import autopep8
 from google.appengine.api import users
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 
-import autopep8
 from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException, HttpConflictException
 from mcfw.rpc import arguments, returns
 from models import Script, ScriptFunction, LastScriptRun
@@ -54,8 +54,8 @@ def get_script(script_id):
 def update_script(script_id, script):
     model = get_script(script_id)
     if model.version != script.version:
-        msg = 'Cannot save, script has been modified by %s on %s. Please reload the page.' % (model.modified_by,
-                                                                                              model.modified_on)
+        msg = 'Cannot save script, it has been modified by %s on %s. Please reload the page.' % (model.modified_by,
+                                                                                                 model.modified_on)
         raise HttpConflictException('oca.error', {'message': msg})
     return _put_script(model, script)
 

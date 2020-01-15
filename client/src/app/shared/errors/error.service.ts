@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { Action, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
@@ -31,10 +31,11 @@ export class ErrorService {
   getMessage(error: any): string {
     if (error instanceof HttpErrorResponse) {
       if (error.error && error.error.error) {
-        if (error.error.error === 'oca.error') {
-          return error.error.message;
+        const e = error.error as ApiError;
+        if (e.error === 'oca.error') {
+          return e.data.message;
         }
-        return error.error.error;
+        return e.error;
       }
     }
     if (error instanceof Error) {
@@ -51,14 +52,14 @@ export class ErrorService {
   /**
    * Shows a snackbar with a 'retry' button to retry the failed action
    */
-  handleError(originalAction: Action, failAction: any, error: any): Observable<Action> {
-    this.showRetrySnackbar(originalAction, error);
+  handleError(originalAction: Action, failAction: any, error: any, duration?: number): Observable<Action> {
+    this.showRetrySnackbar(originalAction, error, { duration });
     return this.toAction(failAction, error);
   }
 
-  showRetrySnackbar(failedAction: Action, error: any) {
+  showRetrySnackbar(failedAction: Action, error: any, config?: MatSnackBarConfig) {
     const message = this.getMessage(error);
     const retry = this.translate.instant('oca.Retry');
-    this.snackbar.open(message, retry).onAction().subscribe(() => this.store.dispatch(failedAction));
+    this.snackbar.open(message, retry, config).onAction().subscribe(() => this.store.dispatch(failedAction));
   }
 }

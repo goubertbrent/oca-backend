@@ -50,7 +50,7 @@
           <mat-icon svgIcon="ie:logs"></mat-icon>
         </a>
         <button (click)="runFunction(func)" [disabled]="isRunning" [matTooltip]="'ie.run' | translate" color="primary"
-                mat-icon-button>
+                mat-icon-button #runButton>
           <mat-icon>play_arrow</mat-icon>
         </button>
         <button (click)="deferFunction(func)" [disabled]="isRunning" [matTooltip]="'ie.defer' | translate"

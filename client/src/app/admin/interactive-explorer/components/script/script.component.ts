@@ -1,6 +1,17 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { hasModifierKey } from '@angular/cdk/keycodes';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  HostListener,
+  Input,
+  Output,
+  QueryList,
+  ViewChild,
+  ViewChildren,
+} from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { RunResult, RunScript, Script, ScriptFunction } from '../../scripts';
+import { LastScriptRun, RunResult, RunScript, Script, ScriptFunction } from '../../scripts';
 
 @Component({
   selector: 'oca-ie-script',
@@ -20,6 +31,41 @@ export class ScriptComponent {
   @Output() remove = new EventEmitter<Script>();
   @Output() showFullscreen = new EventEmitter<RunResult>();
   @ViewChild('form', { static: false }) form: NgForm;
+  @ViewChildren('runButton') runButtons: QueryList<HTMLAnchorElement>;
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyUp(event: KeyboardEvent) {
+    if (hasModifierKey(event, 'ctrlKey') || event.metaKey) {
+      if (event.key === 's') {
+        event.preventDefault();
+        this.submit();
+      } else if (event.key === 'r') {
+        event.preventDefault();
+        // re-run last ran script
+        if (this.script && this.script.functions.length) {
+          const funcs = this.script.functions
+            .filter(f => f.last_run !== null)
+            .sort((f1, f2) => {
+              return new Date((f2.last_run as LastScriptRun).date).getTime() - new Date((f1.last_run as LastScriptRun).date).getTime();
+            });
+          if (funcs.length) {
+            this.runFunction(funcs[ 0 ]);
+          }
+        }
+      } else if (['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)) {
+        event.preventDefault();
+        const number = parseInt(event.key, 10);
+        const buttons = this.runButtons.toArray();
+        const index = number === 0 ? 10 : number - 1;
+        if (index in buttons) {
+          buttons[ number - 1 ].focus();
+        }
+      }
+    } else if (event.key === 'F11' && this.runResult) {
+      event.preventDefault();
+      this.showFullscreen.emit(this.runResult);
+    }
+  }
 
   /**
    * Reference to the monaco editor
@@ -37,15 +83,15 @@ export class ScriptComponent {
   }
 
   runFunction(func: ScriptFunction) {
-    this.run.emit(<RunScript>{ deferred: false, function: func.name, id: (<Script>this.script).id });
+    this.run.emit({ deferred: false, function: func.name, id: (this.script as Script).id });
   }
 
   deferFunction(func: ScriptFunction) {
-    this.run.emit(<RunScript>{ deferred: true, function: func.name, id: (<Script>this.script).id });
+    this.run.emit({ deferred: true, function: func.name, id: (this.script as Script).id });
   }
 
   deleteScript() {
-    this.remove.emit(<Script>this.script);
+    this.remove.emit(this.script as Script);
   }
 
   scrollToFunction(func: ScriptFunction) {

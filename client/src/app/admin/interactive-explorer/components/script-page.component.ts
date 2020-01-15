@@ -57,25 +57,22 @@ export class ScriptPageComponent implements OnInit {
   }
 
   onRemove(script: Script) {
-    if (script.source.length < 2000) {
-      this.store.dispatch(new DeleteScriptAction(script.id));
-    } else {
-      this.matDialog.open(SimpleDialogComponent, {
-        data: {
-          ok: this.translate.instant('ie.yes'),
-          cancel: this.translate.instant('ie.cancel'),
-          message: this.translate.instant('ie.are_you_sure_remove_script', { name: script.name }),
-          title: this.translate.instant('ie.confirmation'),
-        },
-      }).afterClosed().subscribe((result: SimpleDialogResult) => {
-        if (result && result.submitted) {
-          this.store.dispatch(new DeleteScriptAction(script.id));
-        }
-      });
-    }
+    this.matDialog.open(SimpleDialogComponent, {
+      data: {
+        ok: this.translate.instant('ie.yes'),
+        cancel: this.translate.instant('ie.cancel'),
+        message: this.translate.instant('ie.are_you_sure_remove_script', { name: script.name }),
+        title: this.translate.instant('ie.confirmation'),
+      },
+    }).afterClosed().subscribe((result: SimpleDialogResult) => {
+      if (result && result.submitted) {
+        this.store.dispatch(new DeleteScriptAction(script.id));
+      }
+    });
   }
 
   onShowFullscreen(runResult: RunResult) {
+    this.matDialog.closeAll();
     this.matDialog.open(RunResultDialogComponent, { data: runResult });
   }
 

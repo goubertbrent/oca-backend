@@ -7,21 +7,23 @@ import * as actions from './scripts.actions';
 import { GetScriptsFailedAction, ScriptsActions, ScriptsActionTypes } from './scripts.actions';
 import { ScriptsService } from './scripts.service';
 
+const RETRY_DURATION = 10000;
+
 @Injectable()
 export class ScriptsEffects {
 
   @Effect() getScripts$ = this.actions$.pipe(
     ofType<actions.GetScriptsAction>(ScriptsActionTypes.GET_SCRIPTS),
-    switchMap(() => this.scriptsService.getScripts().pipe(
+    switchMap(action => this.scriptsService.getScripts().pipe(
       map(result => new actions.GetScriptsCompleteAction(result)),
-      catchError(err => this.errorService.toAction(GetScriptsFailedAction, err)),
+      catchError(err => this.errorService.handleError(action, GetScriptsFailedAction, err, RETRY_DURATION)),
     )));
 
   @Effect() getScript$ = this.actions$.pipe(
     ofType<actions.GetScriptAction>(ScriptsActionTypes.GET_SCRIPT),
     switchMap(action => this.scriptsService.getScript(action.payload).pipe(
       map(result => new actions.GetScriptCompleteAction(result)),
-      catchError(err => this.errorService.toAction(actions.GetScriptFailedAction, err)),
+      catchError(err => this.errorService.handleError(action, actions.GetScriptFailedAction, err, RETRY_DURATION)),
     )));
 
   @Effect() createScript$ = this.actions$.pipe(
@@ -29,14 +31,14 @@ export class ScriptsEffects {
     switchMap(action => this.scriptsService.createScript(action.payload).pipe(
       map(result => new actions.CreateScriptCompleteAction(result)),
       tap(result => this.router.navigate([`/admin/scripts/${result.payload.id}`])),
-      catchError(err => this.errorService.toAction(actions.CreateScriptFailedAction, err)),
+      catchError(err => this.errorService.handleError(action, actions.CreateScriptFailedAction, err, RETRY_DURATION)),
     )));
 
   @Effect() updateScript$ = this.actions$.pipe(
     ofType<actions.UpdateScriptAction>(ScriptsActionTypes.UPDATE_SCRIPT),
     switchMap(action => this.scriptsService.updateScript(action.payload).pipe(
       map(result => new actions.UpdateScriptCompleteAction(result)),
-      catchError(err => this.errorService.toAction(actions.UpdateScriptFailedAction, err)),
+      catchError(err => this.errorService.handleError(action, actions.UpdateScriptFailedAction, err, RETRY_DURATION)),
     )));
 
   @Effect() deleteScript$ = this.actions$.pipe(
@@ -44,14 +46,14 @@ export class ScriptsEffects {
     switchMap(action => this.scriptsService.deleteScript(action.payload).pipe(
       map(result => new actions.DeleteScriptCompleteAction(result)),
       tap(() => this.navigateToParentRoute()),
-      catchError(err => this.errorService.toAction(actions.DeleteScriptFailedAction, err)),
+      catchError(err => this.errorService.handleError(action, actions.DeleteScriptFailedAction, err, RETRY_DURATION)),
     )));
 
   @Effect() runFunction$ = this.actions$.pipe(
     ofType<actions.RunScriptAction>(ScriptsActionTypes.RUN_SCRIPT),
     switchMap(action => this.scriptsService.runFunction(action.payload).pipe(
       map(result => new actions.RunScriptCompleteAction(result)),
-      catchError(err => this.errorService.toAction(actions.RunScriptFailedAction, err)),
+      catchError(err => this.errorService.handleError(action, actions.RunScriptFailedAction, err, RETRY_DURATION)),
     )));
 
   constructor(private actions$: Actions<ScriptsActions>,
