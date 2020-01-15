@@ -2233,8 +2233,9 @@ def send_signup_verification_email(city_customer, signup, host=None):
     }
     message = JINJA_ENVIRONMENT.get_template('emails/signup_verification.tmpl').render(params)
     html_message = JINJA_ENVIRONMENT.get_template('emails/signup_verification_html.tmpl').render(params)
-    city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
-    send_mail(city_from, signup.customer_email, subject, message, html=html_message)
+    app = get_app_by_id(city_customer.default_app_id)
+    from_email = "%s <%s>" % (app.name, app.dashboard_email_address)
+    send_mail(from_email, signup.customer_email, subject, message, html=html_message)
 
 
 @returns()

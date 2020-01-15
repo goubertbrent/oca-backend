@@ -22,6 +22,7 @@ from google.appengine.ext.deferred import deferred
 
 from mcfw.rpc import serialize_complex_value
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
@@ -38,6 +39,7 @@ from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO
+
 
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
@@ -225,8 +227,9 @@ def _send_denied_signup_email(city_customer, signup, lang, reason):
     message = common_translate(lang, SOLUTION_COMMON,
                                u'signup_request_denial_reason', reason=reason)
 
-    city_from = '%s <%s>' % (city_customer.name, city_customer.user_email)
-    send_mail(city_from, signup.customer_email, subject, message)
+    app = get_app_by_id(city_customer.default_app_id)
+    from_email = "%s <%s>" % (app.name, app.dashboard_email_address)
+    send_mail(from_email, signup.customer_email, subject, message)
 
 
 def set_customer_signup_status(city_customer, signup, approved, reason=None):
