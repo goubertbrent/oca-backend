@@ -72,7 +72,7 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
         formResponses: onLoadableSuccess(responsesAdapter.removeOne(action.payload.submissionId, state.formResponses.data)),
       };
     case FormsActionTypes.DELETE_FORM_COMPLETE:
-      return { ...state, forms: { ...state.forms, data: removeItem(state.forms.data as FormSettings[], action.form, 'id') } };
+      return { ...state, forms: { ...state.forms, data: removeItem(state.forms.data as FormSettings[], action.form.id, 'id') } };
     case FormsActionTypes.GET_RESPONSE:
       return {
         ...state,

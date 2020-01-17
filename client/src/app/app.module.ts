@@ -55,8 +55,8 @@ export const routes: Routes = [
     StoreModule.forRoot(reducers, {
       metaReducers, runtimeChecks: {
         // TODO: enable in dev mode
-        strictActionImmutability: !environment.production,
-        strictActionSerializability: !environment.production,
+        strictActionImmutability: false,
+        strictActionSerializability: false,
         strictStateImmutability: false,
         strictStateSerializability: false,
       },
