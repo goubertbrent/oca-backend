@@ -316,6 +316,9 @@ def _choose_tombola_winners(form_id, service_user):
         return
     all_keys = FormSubmission.list(form_id).fetch(ndb.query._MAX_LIMIT, keys_only=True)
     key_count = len(all_keys)
+    if not key_count:
+        logging.debug('No participants for tombola %s :(', form_id)
+        return
     max_index = key_count - 1
     random_keys = []
     while len(random_keys) < form.tombola.winner_count:
