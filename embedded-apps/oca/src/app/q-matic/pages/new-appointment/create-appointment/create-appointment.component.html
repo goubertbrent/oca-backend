@@ -2,7 +2,7 @@
   <ion-list>
     <ion-item>
       <ion-label>{{ 'app.oca.service' | translate }}</ion-label>
-      <ion-select ngModel name="service" (ionChange)="onServiceSelected(serviceSelect.value)" required #serviceSelect>
+      <ion-select ngModel name="service" (ionChange)="onServiceSelected($event.detail.value)" required>
         <ion-select-option *ngFor="let service of services" [value]="service.publicId">
           {{ service.name }}
         </ion-select-option>
@@ -11,7 +11,7 @@
 
     <ion-item *ngIf="showLocation">
       <ion-label>{{ 'app.oca.location' | translate }}</ion-label>
-      <ion-select ngModel name="branch" (ionChange)="branchSelected.emit(branchSelect.value)" required #branchSelect>
+      <ion-select ngModel name="branch" (ionChange)="branchSelected.emit($event.detail.value)" required>
         <ion-select-option *ngFor="let branch of branches" [value]="branch.publicId">
           {{ branch.name }}
         </ion-select-option>
@@ -20,7 +20,7 @@
 
     <ion-item *ngIf="showDates">
       <ion-label>{{ 'app.oca.date' | translate }}</ion-label>
-      <ion-select ngModel name="date" (ionChange)="dateSelected.emit(dateSelect.value)" required #dateSelect>
+      <ion-select ngModel name="date" (ionChange)="dateSelected.emit($event.detail.value)" required>
         <ion-select-option *ngFor="let date of dates" [value]="date.value">
           {{ date.date | date }}
         </ion-select-option>
@@ -30,7 +30,7 @@
     <ng-container *ngIf="showTimes">
       <ion-item>
         <ion-label>{{ 'app.oca.time' | translate }}</ion-label>
-        <ion-select ngModel name="time" (ionChange)="timeSelected.emit(timeSelect.value)" required #timeSelect>
+        <ion-select ngModel name="time" (ionChange)="timeSelected.emit($event.detail.value)" required>
           <ion-select-option *ngFor="let time of times" [value]="time">{{ time }}</ion-select-option>
         </ion-select>
       </ion-item>

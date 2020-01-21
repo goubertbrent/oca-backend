@@ -20,6 +20,9 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'jcc-appointments': u'Appointments via JCC',
+         u'jcc_appointments_info': u'This integration makes it possible to create appointments and reservations in your JCC environment via the app',
+         u'oca.jcc_appointments': u'Appointments via JCC',
          u'oca.open_app_function': u'Open app function',
          u'oca.profile': u'Profile',
          u'oca.function': u'Function',
@@ -37,6 +40,8 @@ translations = \
          u'oca.incident_saved': u'Incident saved',
          u'oca.external_id_x': u'External id: {{ id }}',
          u'oca.default_map_position': u'Default map position',
+         u'activities': u'Activities',
+         u'appointment_not_found': u'Appointment not found',
          u'an_email_has_been_sent_with_appointment_event': u'An email has been sent with appointment details, check your mailbox!',
          u'oca.user_consent': u'User consent',
          u'oca.settings_saved': u'Settings saved',
@@ -3937,6 +3942,9 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'jcc-appointments': u'Afspraken via JCC',
+         u'jcc_appointments_info': u'Deze integratie maakt het mogelijk om afspraken en reservaties te maken in uw JCC omgeving via de app',
+         u'oca.jcc_appointments': u'Afspraken via JCC',
          u'oca.open_app_function': u'Open app functie',
          u'oca.profile': u'Profiel',
          u'oca.function': u'Functie',

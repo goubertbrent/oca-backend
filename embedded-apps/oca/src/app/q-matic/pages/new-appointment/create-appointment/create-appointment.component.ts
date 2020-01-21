@@ -1,12 +1,14 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormGroup, NgForm } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
+import { NgForm } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
+import { markFormGroupTouched } from '../../../../shared/form-utils';
 import { CreateAppointment, QMaticBranch, QMaticCustomer, QMaticService } from '../../../appointments';
 
 @Component({
   selector: 'app-create-appointment',
   templateUrl: './create-appointment.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
 export class CreateAppointmentComponent {
   @Input() services: QMaticService[];
@@ -25,7 +27,7 @@ export class CreateAppointmentComponent {
   @Output() confirmAppointment = new EventEmitter<Omit<CreateAppointment, 'reservation_id'>>();
 
   customer: Partial<QMaticCustomer> = {
-    firstName: (rogerthat.user as any).first_name || rogerthat.user.name.split(' ')[ 0 ],
+    firstName: rogerthat.user.firstName || rogerthat.user.name.split(' ')[ 0 ],
     lastName: this.getLastName(),
     email: rogerthat.user.account,
     phone: null,
@@ -33,8 +35,7 @@ export class CreateAppointmentComponent {
 
   selectedService: QMaticService;
 
-  constructor(private translate: TranslateService,
-              private changeDetectorRef: ChangeDetectorRef) {
+  constructor(private translate: TranslateService) {
   }
 
   onServiceSelected(value: string) {
@@ -44,7 +45,7 @@ export class CreateAppointmentComponent {
 
   confirm(form: NgForm) {
     if (!form.form.valid) {
-      this.markFormGroupTouched(form.form);
+      markFormGroupTouched(form.form);
       return;
     }
     this.confirmAppointment.emit({
@@ -54,18 +55,9 @@ export class CreateAppointmentComponent {
     });
   }
 
-  private markFormGroupTouched(formGroup: FormGroup) {
-    for (const control of Object.values(formGroup.controls)) {
-      // setValue ensures the pristine/touched status of the ionic element is updated
-      control.setValue(control.value);
-      control.markAsTouched();
-      control.markAsDirty();
-    }
-  }
-
   private getLastName() {
     const split = rogerthat.user.name.split(' ');
     split.shift();
-    return (rogerthat.user as any).last_name || split.join(' ');
+    return rogerthat.user.lastName || split.join(' ');
   }
 }

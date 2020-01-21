@@ -97,6 +97,7 @@ from solutions.common.dal import get_solution_settings, get_static_content_list,
     get_solution_news_publishers, get_user_from_key, get_calendar_items
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
+from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings, save_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, save_qmatic_settings
 from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, RestaurantMenu, \
@@ -1610,6 +1611,20 @@ def rest_get_qmatic_settings():
 @arguments(data=dict)
 def rest_save_qmatic_settings(data):
     return save_qmatic_settings(users.get_current_user(), data['url'], data['auth_token']).to_dict()
+
+
+@rest('/common/jcc-appointments', 'get')
+@returns(dict)
+@arguments()
+def rest_get_jcc_settings():
+    return get_jcc_settings(users.get_current_user()).to_dict()
+
+
+@rest('/common/jcc-appointments', 'put')
+@returns(dict)
+@arguments(data=dict)
+def rest_save_jcc_settings(data):
+    return save_jcc_settings(users.get_current_user(), data['url']).to_dict()
 
 
 @rest("/common/repair/settings/load", "get", read_only_access=True)

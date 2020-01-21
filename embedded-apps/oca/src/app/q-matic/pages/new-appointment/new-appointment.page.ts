@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { AppState } from '../../../reducers';
@@ -9,6 +9,7 @@ import { getBranches, getDates, getServices, getTimes, isLoadingNewAppointmentIn
 @Component({
   templateUrl: 'new-appointment.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
 export class NewAppointmentPage implements OnInit {
   services$: Observable<QMaticService[]>;

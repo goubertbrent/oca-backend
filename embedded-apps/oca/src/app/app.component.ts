@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
@@ -15,6 +15,7 @@ import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from './shared/consts';
   selector: 'app-root',
   templateUrl: 'app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
   constructor(private platform: Platform,
@@ -57,16 +58,30 @@ export class AppComponent {
         });
       });
     });
-    this.actions$.subscribe(action => console.log(JSON.stringify(action)));
+    this.actions$.subscribe(action => {
+      const { type, ...rest } = action;
+      return console.log(`${type} - ${JSON.stringify(rest)}`);
+    });
   }
 
   private shouldExitApp(): boolean {
-    const whitelist = ['/q-matic/appointments'];
+    const whitelist = ['/q-matic/appointments', '/jcc-appointments/appointments'];
     return whitelist.includes(this.router.url);
   }
 
   private getRootPage(context: RogerthatContext | null): string[] {
-    return ['q-matic'];
+    const TAGS = {
+      Q_MATIC: sha256('__sln__.q_matic'),
+      JCC_APPOINTMENTS: sha256('__sln__.jcc_appointments'),
+    };
+    switch (rogerthat.menuItem.hashedTag) {
+      case TAGS.Q_MATIC:
+        return ['q-matic'];
+      case TAGS.JCC_APPOINTMENTS:
+        return ['jcc-appointments'];
+      default:
+        return ['q-matic'];
+    }
   }
 
   private useLanguage(language: string) {

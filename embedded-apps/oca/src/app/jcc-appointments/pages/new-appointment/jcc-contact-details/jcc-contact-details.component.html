@@ -1,0 +1,44 @@
+<form>
+  <p>{{ 'app.oca.fields_with_asterisk_are_required' | translate }}</p>
+  <ion-list>
+    <ion-item *ngFor="let field of fields">
+      <ion-label position="floating">
+        {{ field.Description | translate }}
+        <span *ngIf="field.IsRequired" aria-hidden="true"> *</span>
+      </ion-label>
+      <ng-container [ngSwitch]="field.DataType">
+        <ng-container *ngSwitchCase="'select'">
+          <ion-select (ionChange)="setField(field.Name, $event.detail.value)"
+                      [name]="field.Name"
+                      [ngModel]="$any(contactDetails)[field.Name]">
+            <ion-select-option *ngFor="let option of field.Choices" [value]="option.value">
+              {{ option.label | translate }}
+            </ion-select-option>
+          </ion-select>
+        </ng-container>
+        <ng-container *ngSwitchCase="'date'">
+          <ion-datetime (ionChange)="setDateField(field.Name, $event.detail.value)"
+                        [max]="maxDate"
+                        [name]="field.Name"
+                        min="1900"
+                        ngModel></ion-datetime>
+        </ng-container>
+        <ng-container *ngSwitchCase="'textarea'">
+          <ion-textarea (ionChange)="setField(field.Name, $event.detail.value)"
+                        [name]="field.Name"
+                        [ngModel]="$any(contactDetails)[field.Name]"
+                        [required]="field.IsRequired"></ion-textarea>
+        </ng-container>
+        <ng-container *ngSwitchDefault>
+          <ion-input (ionChange)="setField(field.Name, $event.detail.value)"
+                     [autocomplete]="field.AutoCompleteAttribute"
+                     [name]="field.Name"
+                     [ngModel]="$any(contactDetails)[field.Name]"
+                     [required]="field.IsRequired"
+                     [type]="field.DataType"
+          ></ion-input>
+        </ng-container>
+      </ng-container>
+    </ion-item>
+  </ion-list>
+</form>

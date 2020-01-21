@@ -136,7 +136,7 @@ $(function () {
 
     function router(urlHash) {
         var page = urlHash[1];
-        if (['general', 'branding', 'broadcast', 'app', 'roles', 'q-matic'].indexOf(page) === -1) {
+        if (['general', 'branding', 'broadcast', 'app', 'roles', 'q-matic', 'jcc-appointments'].indexOf(page) === -1) {
             page = 'general';
             window.location.hash = '#/' + urlHash[0] + '/' + page;
             return;
@@ -153,6 +153,8 @@ $(function () {
             getBroadcastRssSettings(renderRssSettings);
         } else if (page === 'q-matic') {
             Requests.getQmaticSettings().then(renderQmaticSettings);
+        } else if (page === 'jcc-appointments') {
+            Requests.getJccSettings().then(renderJccSettings);
         }
     }
 
@@ -1696,6 +1698,35 @@ $(function () {
                         } else {
                             sln.alert(err.responseJSON.error);
                         }
+                    } else {
+                        sln.showAjaxError();
+                    }
+                });
+        });
+    }
+
+    function renderJccSettings(settings) {
+        var url = $('#jcc_url');
+        var saveButton = $('#btn_save_jcc_settings');
+        url.val(settings.url);
+        saveButton.prop('disabled', false);
+        saveButton.click(function () {
+            if (saveButton.prop('disabled')) {
+                return;
+            }
+            saveButton.prop('disabled', true);
+            var data = {
+                url: url.val(),
+            };
+            Requests.saveJccSettings(data, {showError: false})
+                .then(function () {
+                    saveButton.prop('disabled', false);
+                })
+                .catch(function (err) {
+                    saveButton.prop('disabled', false);
+                    if (err.responseJSON.error) {
+                        saveButton.prop('disabled', false);
+                        sln.alert(err.responseJSON.error);
                     } else {
                         sln.showAjaxError();
                     }

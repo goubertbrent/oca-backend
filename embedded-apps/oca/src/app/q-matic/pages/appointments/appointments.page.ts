@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { AlertController } from '@ionic/angular';
 import { select, Store } from '@ngrx/store';
@@ -22,6 +23,7 @@ export class AppointmentsPage implements OnInit {
 
   constructor(private store: Store<AppState>,
               private translate: TranslateService,
+              private datePipe: DatePipe,
               private alertController: AlertController) {
   }
 
@@ -37,7 +39,7 @@ export class AppointmentsPage implements OnInit {
   async cancelAppointment(appointment: Appointment<Date>) {
     const alert = await this.alertController.create({
       header: this.translate.instant('app.oca.confirm'),
-      message: this.translate.instant('app.oca.confirm_delete_appointment', { title: appointment.title }),
+      message: this.translate.instant('app.oca.confirm_delete_appointment', { date: this.datePipe.transform(appointment.start, 'medium') }),
       buttons: [
         {
           text: this.translate.instant('app.oca.no'),

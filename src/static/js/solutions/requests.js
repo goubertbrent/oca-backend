@@ -145,6 +145,12 @@ RequestsService.prototype = {
     },
     saveQmaticSettings: function(data, options){
         return this.put('/common/q-matic', data, options);
+    },
+    getJccSettings: function(options){
+        return this.get('/common/jcc-appointments', options);
+    },
+    saveJccSettings: function(data, options){
+        return this.put('/common/jcc-appointments', data, options);
     }
 };
 

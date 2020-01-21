@@ -72,10 +72,10 @@ handlers:
 - url: /unauthenticated/osa/.*
   script: main_unauthenticated.app
   secure: always
-  
+
 - url: /unauthenticated/payments/.*
   script: main_unauthenticated.app
-  secure: always  
+  secure: always
 
 - url: /version
   script: main_unauthenticated.app

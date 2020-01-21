@@ -1,0 +1,93 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'app.oca.create_appointment' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <mat-accordion>
+    <mat-expansion-panel (opened)="stepOpened(Step.PRODUCTS)"
+                         [disabled]="disabledSteps[Step.PRODUCTS]"
+                         [expanded]="expandedPanels[Step.PRODUCTS]">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'app.oca.activities' | translate }}</mat-panel-title>
+      </mat-expansion-panel-header>
+      <app-jcc-create-appointment (deleteProduct)="deleteProduct($event)"
+                                  (infoClicked)="showProductRequisites($event)"
+                                  (productSelected)="addProduct($event)"
+                                  (updateProduct)="updateProduct($event)"
+                                  [productCounts]="productCounts$ | async"
+                                  [productsLoading]="productsLoading$ | async"
+                                  [products]="selectableProducts$ | async"
+                                  [selectedProducts]="selectedProducts$ | async"></app-jcc-create-appointment>
+      <mat-action-row>
+        <ion-button (click)="showStep2()" type="button">
+          {{ 'app.oca.next' | translate }}
+        </ion-button>
+      </mat-action-row>
+    </mat-expansion-panel>
+    <mat-expansion-panel (opened)="stepOpened(Step.LOCATION_DATE)"
+                         [disabled]="disabledSteps[Step.LOCATION_DATE]"
+                         [expanded]="expandedPanels[Step.LOCATION_DATE]">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'app.oca.location_and_time' | translate }}</mat-panel-title>
+        <mat-panel-description>
+
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <app-jcc-location-time (dayPicked)="onDayPicked($event)"
+                             (locationPicked)="onLocationPicked($event)"
+                             (timePicked)="onTimePicked($event)"
+                             [availableDays]="availableDays$ | async"
+                             [availableTimes]="availableTimes$ | async"
+                             [locations]="locations$ | async"></app-jcc-location-time>
+      <mat-action-row>
+        <ion-button (click)="setCurrentStep(Step.PRODUCTS)" type="button">
+          {{ 'app.oca.previous' | translate }}
+        </ion-button>
+        <ion-button (click)="showStep3()" type="button">
+          {{ 'app.oca.next' | translate }}
+        </ion-button>
+      </mat-action-row>
+    </mat-expansion-panel>
+
+    <mat-expansion-panel (opened)="stepOpened(Step.CONTACT_INFO)"
+                         [disabled]="disabledSteps[Step.CONTACT_INFO]"
+                         [expanded]="expandedPanels[Step.CONTACT_INFO]">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'app.oca.contact_details' | translate }}</mat-panel-title>
+      </mat-expansion-panel-header>
+      <app-jcc-contact-details [requiredFields]="requiredFields$ | async"
+                               (detailsChanged)="updateClientDetails($event)"></app-jcc-contact-details>
+      <mat-action-row>
+        <ion-button (click)="setCurrentStep(Step.LOCATION_DATE)" type="button">
+          {{ 'app.oca.previous' | translate }}
+        </ion-button>
+        <ion-button (click)="showStep4()" type="button">
+          {{ 'app.oca.next' | translate }}
+        </ion-button>
+      </mat-action-row>
+    </mat-expansion-panel>
+
+    <mat-expansion-panel (opened)="stepOpened(Step.CONFIRM)"
+                         [disabled]="disabledSteps[Step.CONFIRM]"
+                         [expanded]="expandedPanels[Step.CONFIRM]">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'app.oca.confirm_appointment' | translate }}</mat-panel-title>
+      </mat-expansion-panel-header>
+     <app-jcc-appointment-details [selectedProducts]="selectedProducts$ | async" [location]="selectedLocation" [appointment]="appointment"></app-jcc-appointment-details>
+      <mat-action-row>
+        <ion-button (click)="setCurrentStep(Step.CONTACT_INFO)" type="button">
+          {{ 'app.oca.previous' | translate }}
+        </ion-button>
+        <ion-button (click)="confirmAppointment()" type="button">
+          {{ 'app.oca.confirm_appointment' | translate }}
+        </ion-button>
+      </mat-action-row>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+</ion-content>

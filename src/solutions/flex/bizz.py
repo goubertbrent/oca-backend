@@ -30,7 +30,8 @@ from solutions.common.bizz import create_or_update_solution_service, SolutionMod
 from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMENT, POKE_TAG_ASK_QUESTION, \
     POKE_TAG_GROUP_PURCHASE, POKE_TAG_MENU, POKE_TAG_REPAIR, POKE_TAG_SANDWICH_BAR, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_NEW_EVENT, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, POKE_TAG_PHARMACY_ORDER, \
-    POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_Q_MATIC
+    POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_Q_MATIC, \
+    POKE_TAG_JCC_APPOINTMENTS
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language
 from solutions.common.dal import get_solution_settings
@@ -74,7 +75,7 @@ DEFAULT_COORDS = {
             "priority": 20
         },
         POKE_TAG_BROADCAST_CREATE_NEWS: {
-            "preferred_page":-1,
+            "preferred_page": -1,
             "coords": [-1, -1, -1],
             "priority": 1
         }
@@ -168,6 +169,13 @@ DEFAULT_COORDS = {
     SolutionModule.REPORTS: None,
     SolutionModule.Q_MATIC: {
         POKE_TAG_Q_MATIC: {
+            'preferred_page': 0,
+            'coords': [-1, -1, -1],
+            'priority': 5,
+        }
+    },
+    SolutionModule.JCC_APPOINTMENTS: {
+        POKE_TAG_JCC_APPOINTMENTS: {
             'preferred_page': 0,
             'coords': [-1, -1, -1],
             'priority': 5,

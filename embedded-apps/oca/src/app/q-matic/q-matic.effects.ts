@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AppState } from '../reducers';
 import { RogerthatService } from '../rogerthat/rogerthat.service';
+import { ErrorService } from '../shared/error.service';
 import { Appointment, ListAppointments, ListBranches, ListDates, ListServices, ListTimes } from './appointments';
 import {
   CancelAppointmentAction,
@@ -60,7 +61,7 @@ export class QMaticEffects {
     switchMap(action => this.rogerthatService.apiCall<ListAppointments>(ApiCalls.APPOINTMENTS).pipe(
       map(result => new GetAppointmentsSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetAppointmentsFailedAction(err));
       })),
     ));
@@ -70,7 +71,7 @@ export class QMaticEffects {
     switchMap(action => this.rogerthatService.apiCall<ListServices>(ApiCalls.SERVICES).pipe(
       map(result => new GetServicesSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetServicesFailedAction(err));
       })),
     ));
@@ -80,7 +81,7 @@ export class QMaticEffects {
     switchMap(action => this.rogerthatService.apiCall<ListBranches>(ApiCalls.BRANCHES, action.payload).pipe(
       map(result => new GetBranchesSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetBranchesFailedAction(err));
       })),
     ));
@@ -90,7 +91,7 @@ export class QMaticEffects {
     switchMap(action => this.rogerthatService.apiCall<ListDates>(ApiCalls.DATES, action.payload).pipe(
       map(result => new GetDatesSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetDatesFailedAction(err));
       })),
     ));
@@ -100,7 +101,7 @@ export class QMaticEffects {
     switchMap(action => this.rogerthatService.apiCall<ListTimes>(ApiCalls.TIMES, action.payload).pipe(
       map(result => new GetTimesSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetTimesFailedAction(err));
       })),
     ));
@@ -121,7 +122,7 @@ export class QMaticEffects {
         customer: action.payload.customer,
       }))),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new ReserveDateFailedAction(err));
       })),
     ));
@@ -132,7 +133,7 @@ export class QMaticEffects {
       map(result => new ConfirmAppointmentSuccessAction(result)),
       tap(() => this.router.navigate(['/q-matic', 'appointments'])),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new ConfirmAppointmentFailedAction(err));
       })),
     ));
@@ -142,7 +143,7 @@ export class QMaticEffects {
     switchMap(action => this.rogerthatService.apiCall<null>(ApiCalls.DELETE, action.payload).pipe(
       map(() => new CancelAppointmentSuccessAction(action.payload)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new CancelAppointmentFailedAction(err));
       })),
     ));
@@ -155,7 +156,7 @@ export class QMaticEffects {
         this.showDialog(result.payload.message);
       }),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new CreateIcalFailedAction(err));
       })),
     ));
@@ -165,43 +166,14 @@ export class QMaticEffects {
               private alertController: AlertController,
               private translate: TranslateService,
               private router: Router,
-              private rogerthatService: RogerthatService) {
+              private rogerthatService: RogerthatService,
+              private errorService: ErrorService) {
   }
 
   private async showDialog(message: string) {
     const dialog = await this.alertController.create({
       message, buttons: [
         { text: this.translate.instant('app.oca.close') },
-      ],
-    });
-    await dialog.present();
-  }
-
-  private async showErrorDialog(failedAction: QMaticActions, error: any) {
-    let errorMessage: string;
-    if (typeof error === 'string') {
-      errorMessage = error;
-    } else {
-      errorMessage = this.translate.instant('app.oca.unknown_error');
-    }
-    const top = await this.alertController.getTop();
-    if (top) {
-      await top.dismiss();
-    }
-    const dialog = await this.alertController.create({
-      header: this.translate.instant('app.oca.error'),
-      message: errorMessage,
-      buttons: [
-        {
-          text: this.translate.instant('app.oca.close'),
-          role: 'cancel',
-        },
-        {
-          text: this.translate.instant('app.oca.retry'),
-          handler: () => {
-            this.store.dispatch(failedAction);
-          },
-        },
       ],
     });
     await dialog.present();

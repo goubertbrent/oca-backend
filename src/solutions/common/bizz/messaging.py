@@ -73,6 +73,8 @@ from solutions.common.bizz.events import new_event_received, poke_new_event, API
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
+from solutions.common.integrations.jcc import jcc_appointments
+from solutions.common.integrations.jcc.models import JccApiMethod
 from solutions.common.integrations.qmatic import qmatic
 from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solution_loyalty_load, solution_loyalty_put, \
     API_METHOD_SOLUTION_LOYALTY_PUT, API_METHOD_SOLUTION_LOYALTY_REDEEM, solution_loyalty_redeem, \
@@ -122,6 +124,7 @@ POKE_TAG_ORDER = u"__sln__.order"
 POKE_TAG_PHARMACY_ORDER = u"__sln__.pharmacy_order"
 POKE_TAG_FORMS = u'__sln__.forms'
 POKE_TAG_Q_MATIC = u'__sln__.q_matic'
+POKE_TAG_JCC_APPOINTMENTS = u'__sln__.jcc_appointments'
 
 POKE_TAG_EVENTS_CONNECT_VIA_SCAN = u'agenda.connect_via_scan'
 
@@ -957,6 +960,9 @@ API_METHOD_MAPPING = {
     qmatic.API_METHOD_DELETE: qmatic.handle_method,
     qmatic.API_METHOD_CREATE_ICAL: qmatic.handle_method,
 }
+for method in JccApiMethod.all():
+    API_METHOD_MAPPING[method] = jcc_appointments.handle_method
+
 
 FLOW_STATISTICS_MAPPING = {
     POKE_TAG_ORDER: SolutionModule.ORDER,

@@ -18,10 +18,10 @@
 <body>
 <app-root></app-root>
 <script>
-    function nothing() {
-    }
-
     if (window.location.port === '4201') {
+        function nothing() {
+        }
+
         rogerthat = {
             context: func => func({context: null}),
             api: {
@@ -59,6 +59,7 @@
                 },
             },
         };
+        sha256 = a => a;
     }
 </script>
 <script src="cordova.js"></script>

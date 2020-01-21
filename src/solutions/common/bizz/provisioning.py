@@ -66,7 +66,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
     POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
-    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC
+    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
 from solutions.common.bizz.reservation import put_default_restaurant_settings
@@ -84,6 +84,7 @@ from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.dal.repair import get_solution_repair_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_restaurant_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
+from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
     SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionModuleAppText
@@ -138,6 +139,7 @@ POKE_TAGS = {
     SolutionModule.PARTICIPATION: None,
     SolutionModule.Q_MATIC: POKE_TAG_Q_MATIC,
     SolutionModule.REPORTS: None,
+    SolutionModule.JCC_APPOINTMENTS: POKE_TAG_JCC_APPOINTMENTS,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -2005,6 +2007,25 @@ def put_q_matic_module(sln_settings, current_coords, main_branding, default_lang
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_jcc_appointments_module(sln_settings, current_coords, main_branding, default_lang, tag):
+    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+    jcc_settings = get_jcc_settings(sln_settings.service_user)
+    if not jcc_settings.enabled:
+        if current_coords:
+            system.delete_menu_item(current_coords)
+        return []
+    item = SolutionServiceMenuItem(u'fa-calendar',
+                                   sln_settings.menu_item_color,
+                                   common_translate(default_lang, SOLUTION_COMMON, 'appointments'),
+                                   tag,
+                                   action=SolutionModule.action_order(SolutionModule.JCC_APPOINTMENTS),
+                                   embedded_app=OCAEmbeddedApps.OCA)
+    return [item]
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -2056,6 +2077,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.PARTICIPATION: _dummy_put,
     SolutionModule.Q_MATIC: put_q_matic_module,
     SolutionModule.REPORTS: _dummy_put,
+    SolutionModule.JCC_APPOINTMENTS: put_jcc_appointments_module,
 }
 
 MODULES_DELETE_FUNCS = {
@@ -2085,4 +2107,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.PARTICIPATION: _default_delete,
     SolutionModule.Q_MATIC: _default_delete,
     SolutionModule.REPORTS: _default_delete,
+    SolutionModule.JCC_APPOINTMENTS: _default_delete,
 }

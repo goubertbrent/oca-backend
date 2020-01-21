@@ -1,0 +1,38 @@
+<form #form="ngForm">
+  <ion-list>
+    <ion-item>
+      <ion-label position="floating">{{ 'app.oca.location' | translate }}</ion-label>
+      <ion-select (ngModelChange)="setLocation($event)"
+                  [ngModel]="selectedLocation"
+                  interface="popover"
+                  name="location"
+                  required>
+        <ion-select-option *ngFor="let location of locations" [value]="location.locationID">
+          {{ location.locationDesc }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">{{ 'app.oca.date' | translate }}</ion-label>
+      <ion-select (ngModelChange)="setDate($event)"
+                  [ngModel]="selectedDate"
+                  name="date"
+                  required>
+        <ion-select-option *ngFor="let date of availableDays" [value]="date">
+          {{ date | date : 'EEEE, d/M/yy' }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-item *ngIf="selectedDate">
+      <ion-label position="floating">{{ 'app.oca.time' | translate }}</ion-label>
+      <ion-select (ngModelChange)="setTime($event)"
+                  [ngModel]="selectedTime"
+                  name="time"
+                  required>
+        <ion-select-option *ngFor="let date of availableTimes" [value]="date">
+          {{ date | date : 'shortTime' }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+  </ion-list>
+</form>
