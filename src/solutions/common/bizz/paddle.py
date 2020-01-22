@@ -32,9 +32,9 @@ from rogerthat.consts import DEBUG
 from rogerthat.rpc import users
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
-from solutions.common.models.cityapp import PaddleSettings, PaddleOrganizationalUnits
+from solutions.common.models.cityapp import PaddleOrganizationalUnits, PaddleSettings
 from solutions.common.to.paddle import PaddleOrganizationalUnitsTO, PaddleOrganizationUnitDetails, PaddleOpeningHours, \
-    PaddleRegularOpeningHours, PaddleAddress
+    PaddleAddress
 
 
 def get_organizational_units(base_url):
@@ -137,7 +137,10 @@ def _opening_hours_to_str(language, opening_hours):
         lines.append('')
         description = exceptional.description if exceptional.description else translate(language, SOLUTION_COMMON,
                                                                                         'deviating_opening_hours')
-        lines.append('%s: %s - %s' % (description, exceptional.start, exceptional.end))
+        if exceptional.end:
+            lines.append('%s: %s - %s' % (description, exceptional.start, exceptional.end))
+        else:
+            lines.append('%s: %s' % (description, exceptional.start))
         lines.append(_get_opening_hours_text(day_names, exceptional.opening_hours))
     return '\n'.join(lines).strip()
 
