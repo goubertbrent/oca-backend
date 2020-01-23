@@ -16,6 +16,7 @@
 # @@license_version:1.5@@
 from mcfw.properties import unicode_property, long_property, typed_property
 from rogerthat.to import TO
+from typing import List
 
 
 class PaddleMappingTO(TO):
@@ -82,7 +83,7 @@ class PaddleNode(TO):
     telephone = unicode_property('telephone')
     title = unicode_property('title')
     twitter = unicode_property('twitter')
-    vat_number = unicode_property('vat_number')
+    vat_number = unicode_property('PaddleRegularOpeningHoursvat_number')
     website = unicode_property('website')
 
 
@@ -93,13 +94,13 @@ class PaddlePeriod(TO):
 
 
 class PaddleRegularOpeningHours(TO):
-    friday = typed_property('friday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
-    monday = typed_property('monday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
-    saturday = typed_property('saturday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
-    sunday = typed_property('sunday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
-    thursday = typed_property('thursday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
-    tuesday = typed_property('tuesday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
-    wednesday = typed_property('wednesday', PaddlePeriod, True, default=[])  # type: list[PaddlePeriod]
+    friday = typed_property('friday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
+    monday = typed_property('monday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
+    saturday = typed_property('saturday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
+    sunday = typed_property('sunday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
+    thursday = typed_property('thursday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
+    tuesday = typed_property('tuesday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
+    wednesday = typed_property('wednesday', PaddlePeriod, True, default=[])  # type: List[PaddlePeriod]
 
 
 class PaddleExceptionalOpeningHours(TO):
@@ -110,9 +111,9 @@ class PaddleExceptionalOpeningHours(TO):
 
 
 class PaddleOpeningHours(TO):
-    closing_days = typed_property('closing_days', PaddlePeriod, True)  # type: list[PaddlePeriod]
-    exceptional_opening_hours = typed_property('exceptional_opening_hours',
-                                               PaddleExceptionalOpeningHours)  # type: PaddleExceptionalOpeningHours
+    closing_days = typed_property('closing_days', PaddlePeriod, True)  # type: List[PaddlePeriod]
+    exceptional_opening_hours = typed_property('exceptional_opening_hours', PaddleExceptionalOpeningHours,
+                                               True, default=[])  # type: List[PaddleExceptionalOpeningHours]
     regular = typed_property('regular', PaddleRegularOpeningHours)  # type: PaddleRegularOpeningHours
 
 
