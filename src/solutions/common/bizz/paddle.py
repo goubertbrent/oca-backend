@@ -16,15 +16,15 @@
 # @@license_version:1.5@@
 from __future__ import unicode_literals
 
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 
-from babel.dates import get_day_names
 from google.appengine.api import urlfetch
 from google.appengine.api.apiproxy_stub_map import UserRPC
 from google.appengine.ext import db, deferred
 
+from babel.dates import get_day_names
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpBadRequestException
 from rogerthat.bizz.opening_hours import save_textual_opening_hours
@@ -34,7 +34,7 @@ from solutions import translate, SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.models.cityapp import PaddleOrganizationalUnits, PaddleSettings
 from solutions.common.to.paddle import PaddleOrganizationalUnitsTO, PaddleOrganizationUnitDetails, PaddleOpeningHours, \
-    PaddleAddress
+    PaddleAddress, PaddleRegularOpeningHours
 
 
 def get_organizational_units(base_url):
@@ -100,7 +100,7 @@ def _get_period_text(periods):
 
 
 def _get_opening_hours_text(day_names, opening_hours):
-    # type: (str, PaddleRegularOpeningHours) -> object
+    # type: (str, PaddleRegularOpeningHours) -> str
     lines = []
     days = [opening_hours.monday, opening_hours.tuesday, opening_hours.wednesday,
             opening_hours.thursday, opening_hours.friday, opening_hours.saturday,
@@ -113,8 +113,8 @@ def _get_opening_hours_text(day_names, opening_hours):
     return '\n'.join(lines).strip()
 
 
-def _opening_hours_to_str(language, opening_hours):
-    # type: (str, PaddleOpeningHours) -> str
+def _opening_hours_to_str(language, opening_hours, current_date):
+    # type: (str, PaddleOpeningHours, datetime) -> str
     day_names = get_day_names(locale=language)
     lines = []
     regular = _get_opening_hours_text(day_names, opening_hours.regular)
@@ -122,26 +122,32 @@ def _opening_hours_to_str(language, opening_hours):
         lines.append(regular)
 
     if opening_hours.closing_days:
-        now = datetime.now()
         closing_days_in_future = []
         for day in opening_hours.closing_days:
             start_date = datetime.strptime(day.start, '%d-%m-%Y')
-            if start_date > now:
+            if start_date >= current_date:
                 closing_days_in_future.append(day)
         if closing_days_in_future:
             lines.append('')
             lines.append(translate(language, SOLUTION_COMMON, 'closing_days'))
             lines.append(_get_period_text(closing_days_in_future))
-    exceptional = opening_hours.exceptional_opening_hours
-    if exceptional and exceptional.opening_hours is not MISSING:
+    if opening_hours.exceptional_opening_hours:
         lines.append('')
-        description = exceptional.description if exceptional.description else translate(language, SOLUTION_COMMON,
-                                                                                        'deviating_opening_hours')
-        if exceptional.end:
-            lines.append('%s: %s - %s' % (description, exceptional.start, exceptional.end))
+        lines.append(translate(language, SOLUTION_COMMON, 'deviating_opening_hours'))
+    for exception in opening_hours.exceptional_opening_hours:
+        start_date = datetime.strptime(exception.start, '%d-%m-%Y')
+        if start_date < current_date:
+            continue
+        lines.append('')
+        if exception.end:
+            date_str = '%s - %s' % (exception.start, exception.end)
         else:
-            lines.append('%s: %s' % (description, exceptional.start))
-        lines.append(_get_opening_hours_text(day_names, exceptional.opening_hours))
+            date_str = exception.start
+        line = '%s: %s' % (exception.description.strip(), date_str) if exception.description else date_str
+        lines.append(line)
+        hours = _get_opening_hours_text(day_names, exception.opening_hours)
+        if hours:
+            lines.append(hours)
     return '\n'.join(lines).strip()
 
 
@@ -174,7 +180,7 @@ def populate_info_from_paddle(paddle_settings, paddle_data):
             changed = True
             sln_settings.qualified_identifier = paddle_info.node.email
         if paddle_info.opening_hours:
-            hours = _opening_hours_to_str(sln_settings.main_language, paddle_info.opening_hours)
+            hours = _opening_hours_to_str(sln_settings.main_language, paddle_info.opening_hours, datetime.now())
             changed = changed or hours != sln_settings.opening_hours
             sln_settings.opening_hours = hours
             deferred.defer(save_textual_opening_hours, mapping.service_email, sln_settings.opening_hours)
