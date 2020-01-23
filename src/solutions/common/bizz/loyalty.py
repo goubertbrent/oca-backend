@@ -261,7 +261,7 @@ def update_user_data_user_loyalty(service_user, service_identity, email, app_id,
         try:
             system.put_user_data(email, json.dumps(user_data), service_identity, app_id)
         except FriendNotFoundException:
-            logging.warning('user %s is not a friend of %s', email, service_user.email())
+            logging.debug('user %s is not a friend of %s', email, service_user.email())
 
 
 @returns()
