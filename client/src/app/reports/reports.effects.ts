@@ -80,8 +80,6 @@ export class ReportsEffects {
 
   @Effect() getStatistics$ = this.actions$.pipe(
     ofType<GetIncidentStatisticsAction>(ReportsActionTypes.GET_INCIDENT_STATISTICS),
-    distinctUntilChanged(({ payload: { month, year } }, { payload: { month: month1, year: year1 } }) =>
-      year === year1 && month === month1),
     switchMap(action => this.reportsService.getStatistics(action.payload.year, action.payload.month).pipe(
       map(result => new GetIncidentStatisticsCompleteAction(result)),
       catchError(err => this.errorService.handleError(action, GetIncidentStatisticsFailedAction, err, 5000)))),

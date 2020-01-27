@@ -4,7 +4,7 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { combineLatest, Observable, Subscription } from 'rxjs';
-import { filter, map, tap, withLatestFrom } from 'rxjs/operators';
+import { filter, map, skip, tap, withLatestFrom } from 'rxjs/operators';
 import {
   INCIDENT_STATUSES,
   IncidentStatistics,
@@ -101,7 +101,7 @@ export class IncidentStatisticsPageComponent implements OnInit, OnDestroy {
     this.subs.push(this.yearControl.valueChanges.pipe(withLatestFrom(this.months$)).subscribe(([year, stats]) => {
       this.monthControl.setValue(stats[ year ][ 0 ]);
     }));
-    this.subs.push(this.monthControl.valueChanges.subscribe(month => {
+    this.subs.push(this.monthControl.valueChanges.pipe(skip(1)).subscribe(month => {
       this.store.dispatch(new GetIncidentStatisticsAction({ year: this.yearControl.value, month }));
     }));
     const stats$ = this.store.pipe(select(getIncidentStatistics));
