@@ -1,0 +1,53 @@
+<mat-progress-bar *ngIf="statisticsLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<form *ngIf="statisticsList$ | async as list" [formGroup]="formGroup">
+  <mat-form-field class="small-selector">
+    <mat-label>{{ 'oca.year' | translate }}</mat-label>
+    <mat-select [formControl]="yearControl">
+      <mat-option *ngFor="let result of list.results" [value]="result.year">
+        {{ result.year }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field class="small-selector">
+    <mat-label>{{ 'oca.month' | translate }}</mat-label>
+    <mat-select [formControl]="monthControl">
+      <mat-option *ngFor="let month of (months$ | async)[yearControl.value]" [value]="month">
+        {{ month }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <agm-map *ngIf="showMap$ | async"
+           [fitBounds]="true"
+           [scrollwheel]="null"
+           gestureHandling="cooperative">
+    <agm-marker *ngFor="let marker of mapMarkers$ | async"
+                [agmFitBounds]="true"
+                [latitude]="marker.lat"
+                [longitude]="marker.lon">
+      <agm-info-window>
+        <p>{{ marker.status }}</p>
+        <p>{{ marker.tags }}</p>
+      </agm-info-window>
+    </agm-marker>
+  </agm-map>
+  <google-chart *ngIf="categoryChart$ | async as chart"
+                [columnNames]="chart.columnNames"
+                [data]="chart.dataTable"
+                [options]="chart.options"
+                [type]="chart.chartType"></google-chart>
+
+  <mat-form-field>
+    <mat-label>{{ 'oca.category' | translate }}</mat-label>
+    <mat-select [formControl]="tagControl" multiple>
+      <mat-option *ngFor="let tag of filterableTagList$ | async" [value]="tag.id">
+        {{ tag.name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <google-chart *ngIf="filteredChart$ | async as chart"
+                [columnNames]="chart.columnNames"
+                [data]="chart.dataTable"
+                [options]="chart.options"
+                [type]="chart.chartType"></google-chart>
+</form>

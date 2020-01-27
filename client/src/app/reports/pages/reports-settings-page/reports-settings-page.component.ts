@@ -6,7 +6,7 @@ import { CallStateType, ResultState } from '../../../shared/util';
 import { MapConfig } from '../../maps';
 import { GetMapConfigAction, SaveMapConfigAction } from '../../reports.actions';
 import { getMapConfig, ReportsState } from '../../reports.state';
-import { ReportsMapFilter } from '../reports';
+import { ReportsMapFilter } from '../../reports';
 
 @Component({
   selector: 'oca-reports-settings-page',

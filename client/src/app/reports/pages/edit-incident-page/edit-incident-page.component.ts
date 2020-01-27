@@ -5,9 +5,9 @@ import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CallStateType, deepCopy, ResultState } from '../../../shared/util';
+import { Incident } from '../../reports';
 import { GetIncidentAction, UpdateIncidentAction } from '../../reports.actions';
 import { getIncident, ReportsState } from '../../reports.state';
-import { Incident } from '../reports';
 
 @Component({
   selector: 'oca-edit-incident-page',

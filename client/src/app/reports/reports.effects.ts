@@ -3,7 +3,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Actions, Effect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
 import { ErrorService } from '../shared/errors/error.service';
 import {
   GetIncidentAction,
@@ -11,9 +11,15 @@ import {
   GetIncidentsAction,
   GetIncidentsCompleteAction,
   GetIncidentsFailedAction,
+  GetIncidentStatisticsAction,
+  GetIncidentStatisticsCompleteAction,
+  GetIncidentStatisticsFailedAction,
   GetMapConfigAction,
   GetMapConfigCompleteAction,
   GetMapConfigFailedAction,
+  ListIncidentStatisticsAction,
+  ListIncidentStatisticsCompleteAction,
+  ListIncidentStatisticsFailedAction,
   ReportsActions,
   ReportsActionTypes,
   SaveMapConfigAction,
@@ -63,6 +69,22 @@ export class ReportsEffects {
       map(result => new SaveMapConfigCompleteAction(result)),
       tap(result => this.snackbar.open(this.translate.instant('oca.settings_saved'), '', { duration: 5000 })),
       catchError(err => this.errorService.handleError(action, SaveMapConfigFailedAction, err)))),
+  );
+
+  @Effect() listStatistics$ = this.actions$.pipe(
+    ofType<ListIncidentStatisticsAction>(ReportsActionTypes.LIST_INCIDENT_STATISTICS),
+    switchMap(action => this.reportsService.listStatistics().pipe(
+      map(result => new ListIncidentStatisticsCompleteAction(result)),
+      catchError(err => this.errorService.handleError(action, ListIncidentStatisticsFailedAction, err, 5000)))),
+  );
+
+  @Effect() getStatistics$ = this.actions$.pipe(
+    ofType<GetIncidentStatisticsAction>(ReportsActionTypes.GET_INCIDENT_STATISTICS),
+    distinctUntilChanged(({ payload: { month, year } }, { payload: { month: month1, year: year1 } }) =>
+      year === year1 && month === month1),
+    switchMap(action => this.reportsService.getStatistics(action.payload.year, action.payload.month).pipe(
+      map(result => new GetIncidentStatisticsCompleteAction(result)),
+      catchError(err => this.errorService.handleError(action, GetIncidentStatisticsFailedAction, err, 5000)))),
   );
 
   constructor(private actions$: Actions<ReportsActions>,

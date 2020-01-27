@@ -13,9 +13,9 @@ import { EditIncidentComponent } from './components/edit-incident/edit-incident.
 import { IncidentListComponent } from './components/incident-list/incident-list.component';
 import { MapConfigComponent } from './components/map-config/map-config.component';
 import { EditIncidentPageComponent } from './pages/edit-incident-page/edit-incident-page.component';
+import { IncidentStatisticsPageComponent } from './pages/incident-statistics-page/incident-statistics-page.component';
 import { IncidentsPageComponent } from './pages/incidents-page/incidents-page.component';
 import { IncidentsTabsPageComponent } from './pages/incidents-tabs-page/incidents-tabs-page.component';
-import { IncidentStatus } from './pages/reports';
 import { ReportsSettingsPageComponent } from './pages/reports-settings-page/reports-settings-page.component';
 import { ReportsEffects } from './reports.effects';
 import { reportsReducer } from './reports.reducer';
@@ -25,7 +25,8 @@ const routes: Routes = [
   { path: '', redirectTo: 'incidents', pathMatch: 'full' },
   {
     path: 'incidents', component: IncidentsTabsPageComponent, children: [
-      { path: '', redirectTo: IncidentStatus.NEW, pathMatch: 'full' },
+      { path: '', redirectTo: 'statistics', pathMatch: 'full' },
+      { path: 'statistics', component: IncidentStatisticsPageComponent },
       { path: ':status', component: IncidentsPageComponent },
     ],
   },
@@ -54,6 +55,7 @@ const routes: Routes = [
     EditIncidentPageComponent,
     EditIncidentComponent,
     IncidentsTabsPageComponent,
+    IncidentStatisticsPageComponent,
   ],
 })
 export class ReportsModule {

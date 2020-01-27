@@ -14,7 +14,7 @@ import { NgForm } from '@angular/forms';
 import { LastScriptRun, RunResult, RunScript, Script, ScriptFunction } from '../../scripts';
 
 @Component({
-  selector: 'oca-ie-script',
+  selector: 'oca-script',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: 'script.component.html',
   styleUrls: ['script.component.scss'],

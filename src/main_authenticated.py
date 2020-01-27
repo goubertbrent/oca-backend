@@ -15,19 +15,6 @@
 #
 # @@license_version:1.5@@
 
-from mcfw.restapi import rest_functions
-from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
-from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
-    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
-    FlowStatisticsExportHandler
-from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
-    ExportVoucherHandler
-from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
-from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
-from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
-    LoyaltySlideOverlayHandler, ExportLoyaltyHandler
-from solutions.common.handlers.menu import ExportMenuHandler
-from solutions.common.handlers.service import LoginAsServiceHandler
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -44,11 +31,24 @@ import solutions.common.restapi.participation
 import solutions.common.restapi.payments
 import solutions.common.restapi.pharmacy.order
 import solutions.common.restapi.qanda
-import solutions.common.restapi.reports
 import solutions.common.restapi.reservation
 import solutions.common.restapi.services
 import solutions.common.restapi.statistics
 import solutions.common.restapi.store
+from mcfw.restapi import rest_functions
+from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
+from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
+    OrderPdfHandler, UploadStaticContentPDFHandler, GetSolutionLogoHandler, GetSolutionAvatarHandler, \
+    FlowStatisticsExportHandler
+from solutions.common.handlers.city_vouchers import CityVouchersDownloadHandler, CityVoucherExportHandler, \
+    ExportVoucherHandler
+from solutions.common.handlers.discussion_groups import DiscussionGroupsPdfHandler
+from solutions.common.handlers.events import EventsGoogleOauth2callbackHandler
+from solutions.common.handlers.loyalty import UploadLoyaltySlideHandler, LoyaltySlidePreviewHandler, \
+    LoyaltySlideOverlayHandler, ExportLoyaltyHandler
+from solutions.common.handlers.menu import ExportMenuHandler
+from solutions.common.handlers.reports import ReportsHandler
+from solutions.common.handlers.service import LoginAsServiceHandler
 from solutions.flex.handlers import FlexHomeHandler, FlexLogoutHandler, TermsAndConditionsHandler
 
 handlers = [
@@ -73,6 +73,7 @@ handlers = [
     ('/common/city/vouchers/qr/download/(\d+)', CityVouchersDownloadHandler),
     ('/common/city_vouchers/export', CityVoucherExportHandler),
     ('/common/restaurant/menu/export', ExportMenuHandler),
+    ('/common/reports/.*', ReportsHandler),
     ('/terms', TermsAndConditionsHandler),
 ]
 
@@ -95,7 +96,6 @@ handlers.extend(rest_functions(solutions.common.restapi.payments))
 handlers.extend(rest_functions(solutions.common.restapi.pharmacy.order))
 handlers.extend(rest_functions(solutions.common.restapi.reservation))
 handlers.extend(rest_functions(solutions.common.restapi.qanda))
-handlers.extend(rest_functions(solutions.common.restapi.reports))
 handlers.extend(rest_functions(solutions.common.restapi.store))
 handlers.extend(rest_functions(solutions.common.restapi.statistics))
 

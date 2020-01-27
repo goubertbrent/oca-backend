@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { Incident, INCIDENT_STATUSES } from '../../pages/reports';
+import { Incident, INCIDENT_STATUSES } from '../../reports';
 
 @Component({
   selector: 'oca-edit-incident',

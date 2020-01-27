@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.year': u'Year',
+         u'oca.month': u'Month',
          u'jcc-appointments': u'Appointments via JCC',
          u'jcc_appointments_info': u'This integration makes it possible to create appointments and reservations in your JCC environment via the app',
          u'oca.jcc_appointments': u'Appointments via JCC',

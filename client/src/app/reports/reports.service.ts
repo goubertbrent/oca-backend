@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { MapConfig } from './maps';
-import { Incident, IncidentList, IncidentStatus } from './pages/reports';
+import { Incident, IncidentList, IncidentStatisticsList, IncidentStatus, RawIncidentStatistics } from './reports';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
@@ -32,5 +32,17 @@ export class ReportsService {
 
   saveMapConfig(payload: MapConfig) {
     return this.http.put<MapConfig>('/common/maps/reports', payload);
+  }
+
+  listStatistics() {
+    return this.http.get<IncidentStatisticsList>('/common/reports/incident-statistics');
+  }
+
+  getStatistics(year: number, month?: number) {
+    let url = `/common/reports/incident-statistics/${year}`;
+    if (month) {
+      url += `/${month}`;
+    }
+    return this.http.get<RawIncidentStatistics>(url);
   }
 }

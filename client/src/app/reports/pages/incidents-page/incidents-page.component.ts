@@ -4,7 +4,7 @@ import { select, Store } from '@ngrx/store';
 import { Observable, Subscription } from 'rxjs';
 import { GetIncidentsAction } from '../../reports.actions';
 import { getIncidents, incidentsLoading, ReportsState } from '../../reports.state';
-import { IncidentList, IncidentStatus } from '../reports';
+import { IncidentList, IncidentStatus } from '../../reports';
 
 @Component({
   selector: 'oca-incidents-page',

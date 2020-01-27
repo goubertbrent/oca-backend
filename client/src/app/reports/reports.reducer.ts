@@ -41,6 +41,21 @@ export function reportsReducer(state: ReportsState = initialState, action: Repor
       return { ...state, incident: stateSuccess(action.payload) };
     case ReportsActionTypes.UPDATE_INCIDENT_FAILED:
       return { ...state, incident: stateError(action.error, state.incident.result) };
+    case ReportsActionTypes.LIST_INCIDENT_STATISTICS:
+      return {
+        ...state, statisticsList: stateLoading(initialState.statisticsList.result),
+        statistics: initialState.statistics,
+      };
+    case ReportsActionTypes.LIST_INCIDENT_STATISTICS_COMPLETE:
+      return { ...state, statisticsList: stateSuccess(action.payload) };
+    case ReportsActionTypes.LIST_INCIDENT_STATISTICS_FAILED:
+      return { ...state, statisticsList: stateError(action.error, state.statisticsList.result) };
+    case ReportsActionTypes.GET_INCIDENT_STATISTICS:
+      return { ...state, statistics: stateLoading(initialState.statistics.result) };
+    case ReportsActionTypes.GET_INCIDENT_STATISTICS_COMPLETE:
+      return { ...state, statistics: stateSuccess(action.payload) };
+    case ReportsActionTypes.GET_INCIDENT_STATISTICS_FAILED:
+      return { ...state, statistics: stateError(action.error, state.statistics.result) };
   }
   return state;
 }

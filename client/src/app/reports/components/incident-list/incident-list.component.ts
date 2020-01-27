@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { Incident, IncidentList, IncidentStatus } from '../../pages/reports';
+import { Incident, IncidentList, IncidentStatus } from '../../reports';
 
 @Component({
   selector: 'oca-incident-list',

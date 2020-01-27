@@ -1,6 +1,6 @@
 import { Action } from '@ngrx/store';
 import { MapConfig } from './maps';
-import { Incident, IncidentList, IncidentStatus } from './pages/reports';
+import { Incident, IncidentList, IncidentStatisticsList, IncidentStatus, RawIncidentStatistics } from './reports';
 
 export const enum ReportsActionTypes {
   GET_INCIDENTS = '[reports] Get incidents',
@@ -18,6 +18,12 @@ export const enum ReportsActionTypes {
   SAVE_MAP_CONFIG = '[reports] Save map config',
   SAVE_MAP_CONFIG_COMPLETE = '[reports] Save map config complete',
   SAVE_MAP_CONFIG_FAILED = '[reports] Save map config failed',
+  LIST_INCIDENT_STATISTICS = '[reports] List incident statistics',
+  LIST_INCIDENT_STATISTICS_COMPLETE = '[reports] List incident statistics complete',
+  LIST_INCIDENT_STATISTICS_FAILED = '[reports] List incident statistics failed',
+  GET_INCIDENT_STATISTICS = '[reports] Get incident statistics',
+  GET_INCIDENT_STATISTICS_COMPLETE = '[reports] Get incident statistics complete',
+  GET_INCIDENT_STATISTICS_FAILED = '[reports] Get incident statistics failed',
 }
 
 export class GetIncidentsAction implements Action {
@@ -122,6 +128,45 @@ export class SaveMapConfigFailedAction implements Action {
   }
 }
 
+export class ListIncidentStatisticsAction implements Action {
+  readonly type = ReportsActionTypes.LIST_INCIDENT_STATISTICS;
+}
+
+export class ListIncidentStatisticsCompleteAction implements Action {
+  readonly type = ReportsActionTypes.LIST_INCIDENT_STATISTICS_COMPLETE;
+
+  constructor(public payload: IncidentStatisticsList) {
+  }
+}
+
+export class ListIncidentStatisticsFailedAction implements Action {
+  readonly type = ReportsActionTypes.LIST_INCIDENT_STATISTICS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
+export class GetIncidentStatisticsAction implements Action {
+  readonly type = ReportsActionTypes.GET_INCIDENT_STATISTICS;
+
+  constructor(public payload: { year: number; month?: number }) {
+  }
+}
+
+export class GetIncidentStatisticsCompleteAction implements Action {
+  readonly type = ReportsActionTypes.GET_INCIDENT_STATISTICS_COMPLETE;
+
+  constructor(public payload: RawIncidentStatistics) {
+  }
+}
+
+export class GetIncidentStatisticsFailedAction implements Action {
+  readonly type = ReportsActionTypes.GET_INCIDENT_STATISTICS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
 export type ReportsActions = GetIncidentsAction
   | GetIncidentsCompleteAction
   | GetIncidentsFailedAction
@@ -136,4 +181,10 @@ export type ReportsActions = GetIncidentsAction
   | GetIncidentFailedAction
   | UpdateIncidentAction
   | UpdateIncidentCompleteAction
-  | UpdateIncidentFailedAction;
+  | UpdateIncidentFailedAction
+  | ListIncidentStatisticsAction
+  | ListIncidentStatisticsCompleteAction
+  | ListIncidentStatisticsFailedAction
+  | GetIncidentStatisticsAction
+  | GetIncidentStatisticsCompleteAction
+  | GetIncidentStatisticsFailedAction;

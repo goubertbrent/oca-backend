@@ -28,9 +28,15 @@ export function HttpLoaderFactory(http: HttpClient) {
 
 @Injectable()
 export class MissingTranslationWarnHandler implements MissingTranslationHandler {
+  warnedKeys = new Set<string>();
 
   handle(params: MissingTranslationHandlerParams) {
+    if (this.warnedKeys.has(params.key)) {
+      // Already warned
+      return;
+    }
     const lang = params.translateService.currentLang;
+    this.warnedKeys.add(params.key);
     console.warn(`Missing translation for key '${params.key}' for language '${lang}'`);
     return params.key;
   }

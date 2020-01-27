@@ -17,13 +17,13 @@ import { RunResultDialogComponent } from './result-dialog/result-dialog.componen
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   template: `
-    <oca-ie-script [loading]="isLoading$ | async"
-                   [isRunning]="isRunning$ | async"
-                   [script]="script$ | async"
-                   [runResult]="runResult$ | async"
-                   (save)="onSave($event)" (run)="onRun($event)"
-                   (showFullscreen)="onShowFullscreen($event)"
-                   (remove)="onRemove($event)"></oca-ie-script>`,
+    <oca-script [loading]="isLoading$ | async"
+                [isRunning]="isRunning$ | async"
+                [script]="script$ | async"
+                [runResult]="runResult$ | async"
+                (save)="onSave($event)" (run)="onRun($event)"
+                (showFullscreen)="onShowFullscreen($event)"
+                (remove)="onRemove($event)"></oca-script>`,
 })
 
 export class ScriptPageComponent implements OnInit {
