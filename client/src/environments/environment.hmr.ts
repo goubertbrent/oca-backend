@@ -4,4 +4,5 @@ export const environment = {
   production: false,
   hmr: true,
   googleMapsKey,
+  assetsBaseUrl: '/assets',
 };

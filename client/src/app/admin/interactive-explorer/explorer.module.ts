@@ -18,6 +18,7 @@ import { StoreModule } from '@ngrx/store';
 import { MissingTranslationHandler, MissingTranslationHandlerParams, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MonacoEditorModule, NgxMonacoEditorConfig } from 'ngx-monaco-editor';
 import { environment } from '../../../environments/environment';
+import { MissingTranslationWarnHandler } from '../../app.module';
 import { RunResultDialogComponent } from './components/result-dialog/result-dialog.component';
 import { ScriptPageComponent } from './components/script-page.component';
 import { ScriptComponent } from './components/script/script.component';
@@ -36,24 +37,13 @@ const COMPONENTS = [
 const entryComponents = [RunResultDialogComponent];
 
 const monacoConfig: NgxMonacoEditorConfig = {
-  baseUrl: environment.production ? '/static/client/assets' : '/assets',
+  baseUrl: environment.assetsBaseUrl,
   defaultOptions: {
     scrollBeyondLastLine: false,
     theme: 'vs-dark',
     language: 'python',
   },
 };
-
-@Injectable()
-export class MissingTranslationWarnHandler implements MissingTranslationHandler {
-
-  handle(params: MissingTranslationHandlerParams) {
-    console.log(params);
-    const lang = params.translateService.currentLang;
-    console.warn(`Missing translation for key '${params.key}' for language '${lang}'`);
-    return params.key;
-  }
-}
 
 const routes: Routes = [
   { path: '', component: ScriptsPageComponent },

@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.total_per_category': u'Total per category',
+         u'oca.total_per_subcategory': u'Total per subcategory',
          u'oca.year': u'Year',
          u'oca.month': u'Month',
          u'jcc-appointments': u'Appointments via JCC',
@@ -3944,6 +3946,10 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.total_per_category': u'Totaal per categorie',
+         u'oca.total_per_subcategory': u'Totaal per subcategorie',
+         u'oca.year': u'Jaar',
+         u'oca.month': u'Maand',
          u'jcc-appointments': u'Afspraken via JCC',
          u'jcc_appointments_info': u'Deze integratie maakt het mogelijk om afspraken en reservaties te maken in uw JCC omgeving via de app',
          u'oca.jcc_appointments': u'Afspraken via JCC',

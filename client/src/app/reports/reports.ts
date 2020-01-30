@@ -11,10 +11,10 @@ export const enum IncidentStatus {
   RESOLVED = 'resolved',
 }
 
-export const INCIDENT_STATUSES: { value: IncidentStatus; label: string }[] = [
-  { value: IncidentStatus.NEW, label: 'oca.new' },
-  { value: IncidentStatus.IN_PROGRESS, label: 'oca.in_progress' },
-  { value: IncidentStatus.RESOLVED, label: 'oca.resolved' },
+export const INCIDENT_STATUSES = [
+  { value: IncidentStatus.NEW, label: 'oca.new', icon: 'report', color: '#ff3d29' },
+  { value: IncidentStatus.IN_PROGRESS, label: 'oca.in_progress', icon: 'timelapse', color: '#FF9900' },
+  { value: IncidentStatus.RESOLVED, label: 'oca.resolved', icon: 'done', color: '#00E64D' },
 ];
 
 export interface IncidentStatusDate {

@@ -6,6 +6,7 @@ import {
   IncidentList,
   IncidentStatistics,
   IncidentStatisticsList,
+  IncidentStatus,
   IncidentTagType,
   RawIncidentStatistics,
   TagFilter,
@@ -85,6 +86,19 @@ export const getIncidentStatistics = createSelector(featureSelector, (s): Incide
     });
   }
   return EMPTY_ARRAY;
+});
+export const getIncidentStatisticsTotals = createSelector(getIncidentStatistics, incidents => {
+  const totals = {
+    [ IncidentStatus.NEW ]: 0,
+    [ IncidentStatus.IN_PROGRESS ]: 0,
+    [ IncidentStatus.RESOLVED ]: 0,
+  };
+  for (const incident of incidents) {
+    for (const status of incident.statuses) {
+      totals[ status ]++;
+    }
+  }
+  return totals;
 });
 
 

@@ -1,5 +1,6 @@
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { NgModule } from '@angular/core';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -45,6 +46,7 @@ const routes: Routes = [
     ScrollingModule,
     MatSnackBarModule,
     MatSlideToggleModule,
+    MatChipsModule,
   ],
   exports: [],
   declarations: [

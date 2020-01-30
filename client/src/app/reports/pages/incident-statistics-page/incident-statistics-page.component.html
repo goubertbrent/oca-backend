@@ -1,28 +1,41 @@
 <mat-progress-bar *ngIf="statisticsLoading$ | async" mode="indeterminate"></mat-progress-bar>
 <form *ngIf="statisticsList$ | async as list" [formGroup]="formGroup">
-  <mat-form-field class="small-selector">
-    <mat-label>{{ 'oca.year' | translate }}</mat-label>
-    <mat-select [formControl]="yearControl">
-      <mat-option *ngFor="let result of list.results" [value]="result.year">
-        {{ result.year }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
-  <mat-form-field class="small-selector">
-    <mat-label>{{ 'oca.month' | translate }}</mat-label>
-    <mat-select [formControl]="monthControl">
-      <mat-option *ngFor="let month of (months$ | async)[yearControl.value]" [value]="month">
-        {{ month }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
+  <div class="top-row">
+    <div class="total-list">
+      <div *ngFor="let total of totals$ | async" class="total-item">
+        <mat-icon [style.color]="total.color">{{ total.icon }}</mat-icon>
+        <span class="total-label">{{ total.label | translate }}</span>
+        <span class="total-amount">{{ total.amount }}</span>
+      </div>
+    </div>
+    <div class="date-selectors">
+      <mat-form-field class="small-selector">
+        <mat-label>{{ 'oca.year' | translate }}</mat-label>
+        <mat-select [formControl]="yearControl">
+          <mat-option *ngFor="let result of list.results" [value]="result.year">
+            {{ result.year }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="small-selector">
+        <mat-label>{{ 'oca.month' | translate }}</mat-label>
+        <mat-select [formControl]="monthControl">
+          <mat-option *ngFor="let month of (months$ | async)[yearControl.value]" [value]="month">
+            {{ month }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
   <agm-map *ngIf="showMap$ | async"
            [fitBounds]="true"
            [scrollwheel]="null"
+           (mapReady)="onMapReady($event)"
            gestureHandling="cooperative">
     <agm-marker *ngFor="let marker of mapMarkers$ | async"
                 [agmFitBounds]="true"
                 [latitude]="marker.lat"
+                [iconUrl]="marker.markerIcon"
                 [longitude]="marker.lon">
       <agm-info-window>
         <p>{{ marker.status }}</p>
@@ -30,24 +43,23 @@
       </agm-info-window>
     </agm-marker>
   </agm-map>
-  <google-chart *ngIf="categoryChart$ | async as chart"
-                [columnNames]="chart.columnNames"
-                [data]="chart.dataTable"
-                [options]="chart.options"
-                [type]="chart.chartType"></google-chart>
+  <ng-container *ngIf="categoryChart$ | async as chart">
+    <h4>{{ 'oca.total_per_category' | translate }}</h4>
+    <google-chart [columnNames]="chart.columnNames"
+                  [data]="chart.dataTable"
+                  [options]="chart.options"
+                  [type]="chart.chartType"></google-chart>
 
-  <mat-form-field>
-    <mat-label>{{ 'oca.category' | translate }}</mat-label>
-    <mat-select [formControl]="tagControl" multiple>
-      <mat-option *ngFor="let tag of filterableTagList$ | async" [value]="tag.id">
-        {{ tag.name }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
-
-  <google-chart *ngIf="filteredChart$ | async as chart"
-                [columnNames]="chart.columnNames"
-                [data]="chart.dataTable"
-                [options]="chart.options"
-                [type]="chart.chartType"></google-chart>
+    <h4 *ngIf="(filterableTagList$ | async).length">{{ 'oca.total_per_subcategory' | translate }}</h4>
+  </ng-container>
+  <mat-chip-list [formControl]="tagControl" class="filter-list" multiple>
+    <mat-chip (click)="toggleSelectedTag(tag)"
+              *ngFor="let tag of filterableTagList$ | async"
+              [value]="tag.id">{{ tag.name }}</mat-chip>
+  </mat-chip-list>
+  <google-chart *ngIf="filteredChart"
+                [columnNames]="filteredChart.columnNames"
+                [data]="filteredChart.dataTable"
+                [options]="filteredChart.options"
+                [type]="filteredChart.chartType"></google-chart>
 </form>
