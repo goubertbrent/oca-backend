@@ -32,7 +32,9 @@
               </mat-form-field>
 
               <p>{{ 'oca.message' | translate }}</p>
-              <simplemde [(ngModel)]="newsItem.message" name="description"></simplemde>
+              <td-text-editor [(ngModel)]="newsItem.message"
+                              [options]="EASYMDE_OPTIONS"
+                              name="description"></td-text-editor>
             </mat-card-content>
           </mat-card>
 

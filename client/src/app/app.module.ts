@@ -85,7 +85,7 @@ export const routes: Routes = [
 })
 export class AppModule {
   constructor(private translate: TranslateService, private router: Router, private route: ActivatedRoute) {
-    window.onmessage = e => {
+    window.onmessage = (e: MessageEvent) => {
       if (e.data && e.data.type === 'oca.set_language') {
         translate.use(e.data.language);
       }

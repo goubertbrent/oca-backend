@@ -5,7 +5,9 @@
   </mat-form-field>
   <p>{{ 'oca.description' | translate }}</p>
   <div class="description-editor">
-    <simplemde [(ngModel)]="_project.description" name="description"></simplemde>
+    <td-text-editor [(ngModel)]="_project.description"
+                    [options]="EASYMDE_OPTIONS"
+                    name="description"></td-text-editor>
   </div>
   <mat-form-field>
     <mat-label>{{ 'oca.required_scans' | translate }}</mat-label>

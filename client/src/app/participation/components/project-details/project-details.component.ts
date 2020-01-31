@@ -12,13 +12,14 @@ import {
   ViewChild,
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
+import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import { deepCopy } from '../../../shared/util/misc';
 import { CreateProject, Project } from '../../projects';
 
 @Component({
   selector: 'oca-project-details',
   templateUrl: './project-details.component.html',
-  styleUrls: [ './project-details.component.scss' ],
+  styleUrls: ['./project-details.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProjectDetailsComponent implements OnChanges, AfterViewInit {
@@ -27,6 +28,7 @@ export class ProjectDetailsComponent implements OnChanges, AfterViewInit {
   @Input() project: Project | CreateProject;
   @Input() loading = false;
   @Output() saved = new EventEmitter<Project | CreateProject>();
+  EASYMDE_OPTIONS = EASYMDE_OPTIONS;
   _project: Project | CreateProject;
   getCurrencySymbol = getCurrencySymbol;
 

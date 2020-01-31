@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { ControlContainer, NgForm } from '@angular/forms';
 import { MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
+import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import {
   COMPONENT_TYPES,
   ComponentTypeItem,
@@ -47,6 +48,7 @@ export class FormFieldComponent {
   @Input() readonlyIds = false;
   @Output() removeComponent = new EventEmitter<FormComponent>();
   @Output() componentChange = new EventEmitter<FormComponent>();
+  EASYMDE_OPTIONS = EASYMDE_OPTIONS;
   FormComponentType = FormComponentType;
   COMPONENT_TYPES = COMPONENT_TYPES;
   KEYBOARD_TYPES = KEYBOARD_TYPES;

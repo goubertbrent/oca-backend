@@ -31,8 +31,10 @@
   <div class="field" *ngIf="showDescription">
     <p>{{ 'oca.description' | translate }}</p>
     <div class="description-editor">
-      <simplemde [name]="name + '_description'" [(ngModel)]="component.description"
-                 (ngModelChange)="changed()"></simplemde>
+      <td-text-editor (ngModelChange)="changed()"
+                      [(ngModel)]="component.description"
+                      [name]="name + '_description'"
+                      [options]="EASYMDE_OPTIONS"></td-text-editor>
     </div>
   </div>
   <ng-container [ngSwitch]="component.type">

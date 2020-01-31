@@ -14,12 +14,11 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { CovalentTextEditorModule } from '@covalent/text-editor';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
 import { GoogleChartsModule } from 'angular-google-charts';
-import { SIMPLEMDE_CONFIG, SimplemdeModule } from 'ng2-simplemde/no-style';
-import { Options as SimpleMDEOptions } from 'simplemde';
 import { environment } from '../../environments/environment';
 import { SimpleDialogComponent } from './dialog/simple-dialog.component';
 import { LoadableComponent } from './loadable/loadable.component';
@@ -45,15 +44,7 @@ import { MaxValidator, MinValidator } from './validators/validators';
     AgmCoreModule.forRoot({
       apiKey: environment.googleMapsKey,
     }),
-    SimplemdeModule.forRoot({
-      provide: SIMPLEMDE_CONFIG,
-      useValue: {
-        autoDownloadFontAwesome: false,
-        spellChecker: false,
-        status: false,
-        toolbar: ['bold', 'italic', 'strikethrough', 'unordered-list', 'link'],
-      } as SimpleMDEOptions,
-    }),
+    CovalentTextEditorModule,
     TranslateModule,
     StoreModule.forFeature('shared', sharedReducer),
     EffectsModule.forFeature([SharedEffects]),
@@ -80,7 +71,7 @@ import { MaxValidator, MinValidator } from './validators/validators';
   exports: [
     GoogleChartsModule,
     AgmCoreModule,
-    SimplemdeModule,
+    CovalentTextEditorModule,
     TranslateModule,
     HttpClientModule,
     FormsModule,

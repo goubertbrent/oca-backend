@@ -1,7 +1,7 @@
 <oca-loadable [loadable]="settings">
   <form #form="ngForm" (ngSubmit)="submit(form)" *ngIf="_settings">
     <p>{{ 'oca.description' | translate }}</p>
-    <simplemde [(ngModel)]="_settings.info" name="description"></simplemde>
+    <td-text-editor [(ngModel)]="_settings.info" name="description"></td-text-editor>
     <button [disabled]="settings.loading" class="save-button" mat-raised-button>
       {{ 'oca.Save' | translate }}
     </button>

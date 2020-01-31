@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, fo
 import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } from '@angular/forms';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
+import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
@@ -12,7 +13,7 @@ import { FormValidatorType } from '../../interfaces/validators';
 @Component({
   selector: 'oca-edit-form-section',
   templateUrl: './edit-form-section.component.html',
-  styleUrls: [ './edit-form-section.component.scss' ],
+  styleUrls: ['./edit-form-section.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ {
     provide: NG_VALUE_ACCESSOR,
@@ -63,6 +64,7 @@ export class EditFormSectionComponent implements ControlValueAccessor {
 
   showDescription = false;
 
+  EASYMDE_OPTIONS = EASYMDE_OPTIONS;
   FormComponentType = FormComponentType;
   private _section: FormSection;
   private _canAddComponents = true;

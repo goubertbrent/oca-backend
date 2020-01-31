@@ -13,6 +13,7 @@ import { MatChipEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
+import { EASYMDE_OPTIONS } from '../../../../environments/config';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
@@ -63,6 +64,7 @@ export class EditNewsComponent implements OnChanges {
     cost: string;
   };
   actionButton: UINewsActionButton | null = null;
+  EASYMDE_OPTIONS = EASYMDE_OPTIONS;
   NewsActionButtonType = NewsActionButtonType;
   GENDERS = GENDER_OPTIONS;
   NEWS_MEDIA_TYPE_OPTIONS: { label: string; value: MediaType | null }[] = [];
