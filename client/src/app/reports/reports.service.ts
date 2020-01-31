@@ -1,5 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { EMPTY_ARRAY } from '../shared/util';
 import { MapConfig } from './maps';
 import { Incident, IncidentList, IncidentStatisticsList, IncidentStatus, RawIncidentStatistics } from './reports';
 
@@ -38,11 +40,15 @@ export class ReportsService {
     return this.http.get<IncidentStatisticsList>('/common/reports/incident-statistics');
   }
 
-  getStatistics(year: number, month?: number) {
-    let url = `/common/reports/incident-statistics/${year}`;
-    if (month) {
-      url += `/${month}`;
+  getStatistics(dates: string[]): Observable<RawIncidentStatistics[]> {
+    if (dates.length === 0) {
+      return of(EMPTY_ARRAY);
     }
-    return this.http.get<RawIncidentStatistics>(url);
+    const url = `/common/reports/incident-statistics/details`;
+    let params = new HttpParams();
+    for (const date of dates) {
+      params = params.append('date', date);
+    }
+    return this.http.get<RawIncidentStatistics[]>(url, { params });
   }
 }

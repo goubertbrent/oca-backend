@@ -1,6 +1,8 @@
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { NgModule } from '@angular/core';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatRippleModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -8,6 +10,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { Store, StoreModule } from '@ngrx/store';
+import { SelectAllOptionModule } from '../shared/select-all-option/select-all-option.module';
 import { GetGlobalConfigAction } from '../shared/shared.actions';
 import { SharedModule } from '../shared/shared.module';
 import { EditIncidentComponent } from './components/edit-incident/edit-incident.component';
@@ -21,6 +24,7 @@ import { ReportsSettingsPageComponent } from './pages/reports-settings-page/repo
 import { ReportsEffects } from './reports.effects';
 import { reportsReducer } from './reports.reducer';
 import { ReportsState } from './reports.state';
+import { PaginatedChartsComponent } from './components/paginated-charts/paginated-charts.component';
 
 const routes: Routes = [
   { path: '', redirectTo: 'incidents', pathMatch: 'full' },
@@ -47,6 +51,9 @@ const routes: Routes = [
     MatSnackBarModule,
     MatSlideToggleModule,
     MatChipsModule,
+    MatRippleModule,
+    SelectAllOptionModule,
+    MatPaginatorModule,
   ],
   exports: [],
   declarations: [
@@ -58,6 +65,7 @@ const routes: Routes = [
     EditIncidentComponent,
     IncidentsTabsPageComponent,
     IncidentStatisticsPageComponent,
+    PaginatedChartsComponent,
   ],
 })
 export class ReportsModule {

@@ -1,4 +1,4 @@
-import { stateError, stateLoading, stateSuccess } from '../shared/util';
+import { EMPTY_ARRAY, stateError, stateLoading, stateSuccess } from '../shared/util';
 import { ReportsActions, ReportsActionTypes } from './reports.actions';
 import { initialState, ReportsState } from './reports.state';
 
@@ -51,11 +51,14 @@ export function reportsReducer(state: ReportsState = initialState, action: Repor
     case ReportsActionTypes.LIST_INCIDENT_STATISTICS_FAILED:
       return { ...state, statisticsList: stateError(action.error, state.statisticsList.result) };
     case ReportsActionTypes.GET_INCIDENT_STATISTICS:
-      return { ...state, statistics: stateLoading(initialState.statistics.result) };
+      return { ...state, statistics: stateLoading(state.statistics.result) };
     case ReportsActionTypes.GET_INCIDENT_STATISTICS_COMPLETE:
-      return { ...state, statistics: stateSuccess(action.payload) };
+      // This list only ever grows
+      return { ...state, statistics: stateSuccess([...(state.statistics.result || EMPTY_ARRAY), ...action.payload]) };
     case ReportsActionTypes.GET_INCIDENT_STATISTICS_FAILED:
       return { ...state, statistics: stateError(action.error, state.statistics.result) };
+    case ReportsActionTypes.SET_INCIDENT_STATS_FILTER:
+      return { ...state, statisticsFilter: action.payload };
   }
   return state;
 }

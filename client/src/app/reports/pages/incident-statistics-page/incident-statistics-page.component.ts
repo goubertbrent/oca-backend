@@ -1,12 +1,15 @@
 import { MapsAPILoader } from '@agm/core';
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { FormStyle, getLocaleMonthNames, TranslationWidth } from '@angular/common';
+import { ChangeDetectionStrategy, Component, Inject, LOCALE_ID, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { combineLatest, Observable, Subscription } from 'rxjs';
-import { filter, map, skip, take, tap, withLatestFrom } from 'rxjs/operators';
+import { combineLatest, Observable, of, Subscription } from 'rxjs';
+import { filter, map, take, tap, withLatestFrom } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
+import { chunks, EMPTY_ARRAY } from '../../../shared/util';
 import {
+  Chart,
   INCIDENT_STATUSES,
   IncidentStatistics,
   IncidentStatisticsList,
@@ -15,9 +18,9 @@ import {
   TagFilter,
   TagFilterMapping,
 } from '../../reports';
-import { GetIncidentStatisticsAction, ListIncidentStatisticsAction } from '../../reports.actions';
+import { GetIncidentStatisticsAction, ListIncidentStatisticsAction, SetIncidentStatsFilterAction } from '../../reports.actions';
 import {
-  getIncidentStatistics,
+  getFilteredIncidentsStats,
   getIncidentStatisticsTotals,
   getStatisticsList,
   getStatisticsMonths,
@@ -30,15 +33,8 @@ import {
 
 interface TagStats {
   [ key: string ]: {
-    [P in IncidentStatus]: number;
+    [P in IncidentStatus | 'total']: number;
   };
-}
-
-interface Chart {
-  chartType: string;
-  dataTable: (string | number)[][];
-  columnNames: string[];
-  options: google.visualization.BarChartOptions;
 }
 
 interface ItemMarker {
@@ -53,9 +49,10 @@ const DEFAULT_TAG_STATS = {
   [ IncidentStatus.NEW ]: 0,
   [ IncidentStatus.IN_PROGRESS ]: 0,
   [ IncidentStatus.RESOLVED ]: 0,
+  total: 0,
 };
 
-type StatusMapping = { [T in IncidentStatus]: { label: string; markerIcon: google.maps.Icon; } };
+type StatusMapping = { [T in IncidentStatus]: { label: string; markerIcon: any  /*google.maps.Icon*/; } };
 
 @Component({
   selector: 'oca-incident-statistics-page',
@@ -66,25 +63,29 @@ type StatusMapping = { [T in IncidentStatus]: { label: string; markerIcon: googl
 export class IncidentStatisticsPageComponent implements OnInit, OnDestroy {
   statisticsLoading$: Observable<boolean>;
   statisticsList$: Observable<IncidentStatisticsList | null>;
+  yearValues$: Observable<number[]>;
   months$: Observable<{ [ key: number ]: number[] }>;
   filterableTagList$: Observable<TagFilter[]>;
   tagMapping$: Observable<TagFilterMapping>;
-  categoryChart$: Observable<Chart | null>;
+  categoryCharts$: Observable<Chart[]>;
   totals$: Observable<{ value: IncidentStatus, label: string; amount: number; icon: string; color: string; }[]>;
-  filteredChart: Chart | null = null;
+  filteredCharts$: Observable<Chart[]>;
   mapMarkers$: Observable<ItemMarker[]>;
   showMap$: Observable<boolean>;
   formGroup: FormGroup;
-  yearControl = new FormControl();
-  monthControl = new FormControl();
+  yearControl = new FormControl([]);
+  monthControl = new FormControl([]);
   tagControl = new FormControl([]);
+  months: { value: number; label: string }[] = [];
+  monthValues: number[] = [];
 
   private subs: Subscription[] = [];
   private statusMapping$: Observable<StatusMapping>;
 
   constructor(private store: Store<ReportsState>,
               private translate: TranslateService,
-              private mapsLoader: MapsAPILoader) {
+              private mapsLoader: MapsAPILoader,
+              @Inject(LOCALE_ID) private currentLocale: string) {
     this.formGroup = new FormGroup({
       year: this.yearControl,
       month: this.monthControl,
@@ -92,6 +93,9 @@ export class IncidentStatisticsPageComponent implements OnInit, OnDestroy {
     });
     // temp fix
     this.mapsLoader.load();
+    this.months = getLocaleMonthNames(this.currentLocale, FormStyle.Standalone, TranslationWidth.Wide)
+      .map((label, index) => ({ label, value: index + 1 }));
+    this.monthValues = this.months.map(m => m.value);
   }
 
   ngOnInit() {
@@ -100,52 +104,55 @@ export class IncidentStatisticsPageComponent implements OnInit, OnDestroy {
     this.statisticsList$ = this.store.pipe(select(getStatisticsList), filter(list => list.categories.length > 0), tap(stats => {
       if (stats && stats.results.length) {
         const first = stats.results[ 0 ];
-        this.yearControl.setValue(first.year);
-        this.monthControl.setValue(first.months[ 0 ]);
+        this.yearControl.setValue([first.year]);
+        this.monthControl.setValue([new Date().getMonth() + 1]);
       }
     }));
+    this.yearValues$ = this.statisticsList$.pipe(map(list => list ? list.results.map(r => r.year) : EMPTY_ARRAY));
     this.months$ = this.store.pipe(select(getStatisticsMonths));
-    this.subs.push(this.yearControl.valueChanges.pipe(withLatestFrom(this.months$)).subscribe(([year, stats]) => {
-      this.monthControl.setValue(stats[ year ][ 0 ]);
+    this.subs.push(combineLatest([this.yearControl.valueChanges, this.monthControl.valueChanges]).subscribe(([years, months]) => {
+      this.fetchStats(years, months);
+      this.store.dispatch(new SetIncidentStatsFilterAction({ years, months }));
     }));
-    this.subs.push(this.monthControl.valueChanges.pipe(skip(1)).subscribe(month => {
-      this.store.dispatch(new GetIncidentStatisticsAction({ year: this.yearControl.value, month }));
-    }));
-    const stats$ = this.store.pipe(select(getIncidentStatistics));
+    const stats$ = this.store.pipe(select(getFilteredIncidentsStats));
     const statsMapping$ = stats$.pipe(map(stats => this.getStatsMapping(stats)));
     this.filterableTagList$ = combineLatest([this.store.pipe(select(getTagList)), statsMapping$]).pipe(
       // Only return categories which have stats, so we don't show any buttons which don't do anything
-      map(([tags, tagMapping]) => tags.filter(t => t.type === IncidentTagType.CATEGORY && t.id in tagMapping)),
+      map(([tags, tagMapping]) => tags
+        .filter(t => t.type === IncidentTagType.CATEGORY && t.id in tagMapping)
+        .sort((first, second) => tagMapping[ second.id ].total - tagMapping[ first.id ].total)),
     );
     this.tagMapping$ = this.store.pipe(select(getTagNameMapping));
-    this.categoryChart$ = statsMapping$.pipe(
+    this.categoryCharts$ = statsMapping$.pipe(
       withLatestFrom(this.tagMapping$),
-      map(([tagMapping, tagNames]) => this.getTagChart(tagMapping, tagNames, (tag => tag.type === IncidentTagType.CATEGORY))),
+      map(([tagMapping, tagNames]) => this.getPaginatedTagCharts(tagMapping, tagNames, (tag => tag.type === IncidentTagType.CATEGORY))),
     );
     const relatedTags$ = combineLatest([this.tagControl.valueChanges, stats$]).pipe(
       map(([tagFilter, stats]) => this.getRelatedTags(stats, tagFilter)),
     );
-    this.subs.push(combineLatest([relatedTags$, statsMapping$, this.tagMapping$]).subscribe(([relatedTags, tagMapping, tagNames]) => {
-      this.filteredChart = this.getTagChart(tagMapping, tagNames, (tag => relatedTags.includes(tag.id)));
-    }));
-    this.statusMapping$ = this.translate.get(INCIDENT_STATUSES.map(s => s.label)).pipe(map(translations => {
-      const MARKER_SIZE = new google.maps.Size(24, 24);
-      const { assetsBaseUrl } = environment;
-      return ({
-        [ IncidentStatus.NEW ]: {
-          label: translations[ INCIDENT_STATUSES[ 0 ].label ],
-          markerIcon: { url: `${assetsBaseUrl}/map-icon-red.svg`, scaledSize: MARKER_SIZE },
-        },
-        [ IncidentStatus.IN_PROGRESS ]: {
-          label: translations[ INCIDENT_STATUSES[ 1 ].label ],
-          markerIcon: { url: `${assetsBaseUrl}/map-icon-orange.svg`, scaledSize: MARKER_SIZE },
-        },
-        [ IncidentStatus.RESOLVED ]: {
-          label: translations[ INCIDENT_STATUSES[ 2 ].label ],
-          markerIcon: { url: `${assetsBaseUrl}/map-icon-green.svg`, scaledSize: MARKER_SIZE },
-        },
-      });
-    }));
+    this.filteredCharts$ = combineLatest([relatedTags$, statsMapping$, this.tagMapping$]).pipe(
+      map(([relatedTags, tagMapping, tagNames]) =>
+        this.getPaginatedTagCharts(tagMapping, tagNames, (tag => relatedTags.includes(tag.id))),
+      ),
+    );
+
+    const MARKER_SIZE = { width: 24, height: 24 };
+    const { assetsBaseUrl } = environment;
+    const [newIncidents, inProgress, resolved] = INCIDENT_STATUSES;
+    this.statusMapping$ = of({
+      [ IncidentStatus.NEW ]: {
+        label: this.translate.instant(newIncidents.label),
+        markerIcon: { url: `${assetsBaseUrl}/${newIncidents.mapIcon}`, scaledSize: MARKER_SIZE },
+      },
+      [ IncidentStatus.IN_PROGRESS ]: {
+        label: this.translate.instant(inProgress.label),
+        markerIcon: { url: `${assetsBaseUrl}/${inProgress.mapIcon}`, scaledSize: MARKER_SIZE },
+      },
+      [ IncidentStatus.RESOLVED ]: {
+        label: this.translate.instant(resolved.label),
+        markerIcon: { url: `${assetsBaseUrl}/${resolved.mapIcon}`, scaledSize: MARKER_SIZE },
+      },
+    });
     this.mapMarkers$ = combineLatest([stats$, this.tagMapping$, this.statusMapping$]).pipe(
       map(([stats, tagMapping, statusMapping]) => {
         const markers: ItemMarker[] = [];
@@ -223,6 +230,7 @@ export class IncidentStatisticsPageComponent implements OnInit, OnDestroy {
         }
         for (const status of incidentStats.statuses) {
           tagMapping[ tag ][ status ]++;
+          tagMapping[ tag ].total++;
         }
       }
     }
@@ -247,38 +255,59 @@ export class IncidentStatisticsPageComponent implements OnInit, OnDestroy {
     return [...relatedTags];
   }
 
-  private getTagChart(tagMapping: TagStats, tagNames: TagFilterMapping, tagFilter: (item: TagFilter) => boolean): Chart | null {
+  private getPaginatedTagCharts(tagMapping: TagStats, tagNames: TagFilterMapping, tagFilter: (item: TagFilter) => boolean): Chart[] {
     const tags = Object.values(tagNames).filter(tagFilter);
-    const dataTable: [string, number, number, number][] = [];
+    const dataTable: [string, number, number, number, number][] = [];
     for (const tag of tags) {
       if (tag.id in tagMapping) {
         const stat = tagMapping[ tag.id ];
-        dataTable.push([tag.name, stat[ IncidentStatus.NEW ], stat[ IncidentStatus.IN_PROGRESS ], stat[ IncidentStatus.RESOLVED ]]);
+        const n = stat[ IncidentStatus.NEW ];
+        const p = stat[ IncidentStatus.IN_PROGRESS ];
+        const r = stat[ IncidentStatus.RESOLVED ];
+        dataTable.push([tag.name, n, p, r, n + p + r]);
       }
     }
     if (!dataTable.length) {
-      return null;
+      return EMPTY_ARRAY;
     }
-    return {
-      chartType: 'BarChart',
-      dataTable,
-      columnNames: [
-        'Tag',
-        this.translate.instant('oca.new'),
-        this.translate.instant('oca.in_progress'),
-        this.translate.instant('oca.resolved'),
-      ],
-      options: {
-        width: 800,
-        // Minimum 250 to ensure the horizontal axis shows up
-        height: Math.max(250, dataTable.length * 100),
-        backgroundColor: 'transparent',
-        isStacked: false,
-        legend: { position: 'right' },
-        animation: { duration: 400, easing: 'inAndOut', startup: true },
-        chartArea: { height: '85%', width: '60%' },
-        colors: INCIDENT_STATUSES.map(s => s.color),
-      },
-    };
+    // Sort by largest total amount of statuses
+    const dataTables = dataTable.sort((first, second) => second[ 4 ] - first[ 4 ]).map((row) => {
+      row.pop();
+      return row;
+    });
+    const height = 500;
+    const width = window.innerWidth - 16;
+    const pageSize = 10;
+    const results: Chart[] = [];
+    for (const table of chunks(dataTables, pageSize)) {
+      results.push({
+        chartType: 'ColumnChart',
+        dataTable: table,
+        columnNames: [
+          'Tag',
+          ...INCIDENT_STATUSES.map(s => this.translate.instant(s.label)),
+        ],
+        options: {
+          width,
+          height,
+          backgroundColor: 'transparent',
+          legend: { position: 'top' },
+          animation: { duration: 400, easing: 'inAndOut', startup: true },
+          chartArea: { height: height - 100, width: width - 200 },
+          colors: INCIDENT_STATUSES.map(s => s.color),
+        },
+      });
+    }
+    return results;
+  }
+
+  private fetchStats(years: number[], months: number[]) {
+    const dates: string[] = [];
+    for (const year of years) {
+      for (const month of months) {
+        dates.push(new Date(year, month - 1, 1).toISOString());
+      }
+    }
+    this.store.dispatch(new GetIncidentStatisticsAction({ dates }));
   }
 }

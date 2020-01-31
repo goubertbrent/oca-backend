@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Actions, Effect, ofType } from '@ngrx/effects';
-import { Store } from '@ngrx/store';
+import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { catchError, distinctUntilChanged, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
 import { ErrorService } from '../shared/errors/error.service';
 import {
   GetIncidentAction,
@@ -30,7 +30,7 @@ import {
   UpdateIncidentFailedAction,
 } from './reports.actions';
 import { ReportsService } from './reports.service';
-import { ReportsState } from './reports.state';
+import { getAllIncidentStatistics, ReportsState } from './reports.state';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsEffects {
@@ -80,9 +80,28 @@ export class ReportsEffects {
 
   @Effect() getStatistics$ = this.actions$.pipe(
     ofType<GetIncidentStatisticsAction>(ReportsActionTypes.GET_INCIDENT_STATISTICS),
-    switchMap(action => this.reportsService.getStatistics(action.payload.year, action.payload.month).pipe(
-      map(result => new GetIncidentStatisticsCompleteAction(result)),
-      catchError(err => this.errorService.handleError(action, GetIncidentStatisticsFailedAction, err, 5000)))),
+    withLatestFrom(this.store.pipe(select(getAllIncidentStatistics))),
+    switchMap(([action, allStats]) => {
+      const currentDate = new Date();
+      const toFetch: Date[] = action.payload.dates.map(d => new Date(d)).filter(d => d < currentDate);
+      const availableStats = new Map<number, number[]>();
+      for (const { year, month } of allStats) {
+        const currentStats = availableStats.get(year) || [];
+        availableStats.set(year, [...currentStats, month]);
+      }
+      const missingStats: string[] = [];
+      for (const date of toFetch) {
+        const months = availableStats.get(date.getFullYear());
+        // January = 0 in js
+        const month = date.getMonth() + 1;
+        if (!months || !months.includes(month)) {
+          missingStats.push(`${date.getFullYear()}-${date.getMonth() + 1}`);
+        }
+      }
+      return this.reportsService.getStatistics(missingStats).pipe(
+        map(result => new GetIncidentStatisticsCompleteAction(result)),
+        catchError(err => this.errorService.handleError(action, GetIncidentStatisticsFailedAction, err, 5000)));
+    }),
   );
 
   constructor(private actions$: Actions<ReportsActions>,

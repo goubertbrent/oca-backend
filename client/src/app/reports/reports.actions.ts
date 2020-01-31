@@ -24,6 +24,7 @@ export const enum ReportsActionTypes {
   GET_INCIDENT_STATISTICS = '[reports] Get incident statistics',
   GET_INCIDENT_STATISTICS_COMPLETE = '[reports] Get incident statistics complete',
   GET_INCIDENT_STATISTICS_FAILED = '[reports] Get incident statistics failed',
+  SET_INCIDENT_STATS_FILTER = '[reports] Set incident statistics filter',
 }
 
 export class GetIncidentsAction implements Action {
@@ -149,14 +150,14 @@ export class ListIncidentStatisticsFailedAction implements Action {
 export class GetIncidentStatisticsAction implements Action {
   readonly type = ReportsActionTypes.GET_INCIDENT_STATISTICS;
 
-  constructor(public payload: { year: number; month?: number }) {
+  constructor(public payload: { dates: string[] }) {
   }
 }
 
 export class GetIncidentStatisticsCompleteAction implements Action {
   readonly type = ReportsActionTypes.GET_INCIDENT_STATISTICS_COMPLETE;
 
-  constructor(public payload: RawIncidentStatistics) {
+  constructor(public payload: RawIncidentStatistics[]) {
   }
 }
 
@@ -164,6 +165,13 @@ export class GetIncidentStatisticsFailedAction implements Action {
   readonly type = ReportsActionTypes.GET_INCIDENT_STATISTICS_FAILED;
 
   constructor(public error: string) {
+  }
+}
+
+export class SetIncidentStatsFilterAction implements Action {
+  readonly type = ReportsActionTypes.SET_INCIDENT_STATS_FILTER;
+
+  constructor(public payload: { years: number[]; months: number[] }) {
   }
 }
 
@@ -187,4 +195,5 @@ export type ReportsActions = GetIncidentsAction
   | ListIncidentStatisticsFailedAction
   | GetIncidentStatisticsAction
   | GetIncidentStatisticsCompleteAction
-  | GetIncidentStatisticsFailedAction;
+  | GetIncidentStatisticsFailedAction
+  | SetIncidentStatsFilterAction;

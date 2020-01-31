@@ -5,7 +5,9 @@ import {
   Incident,
   IncidentList,
   IncidentStatistics,
+  IncidentStatisticsFilter,
   IncidentStatisticsList,
+  IncidentStatsPerMonth,
   IncidentStatus,
   IncidentTagType,
   RawIncidentStatistics,
@@ -19,7 +21,8 @@ export interface ReportsState {
   incident: ResultState<Incident>;
   mapConfig: ResultState<MapConfig>;
   statisticsList: ResultState<IncidentStatisticsList>;
-  statistics: ResultState<RawIncidentStatistics>;
+  statistics: ResultState<RawIncidentStatistics[]>;
+  statisticsFilter: IncidentStatisticsFilter | null;
 }
 
 
@@ -29,6 +32,7 @@ export const initialState: ReportsState = {
   mapConfig: initialStateResult,
   statisticsList: initialStateResult,
   statistics: initialStateResult,
+  statisticsFilter: null,
 };
 
 const featureSelector = createFeatureSelector<ReportsState>('reports');
@@ -73,33 +77,62 @@ export const getTagNameMapping = createSelector(getTagList, list => {
   }
   return tagNames;
 });
-export const getIncidentStatistics = createSelector(featureSelector, (s): IncidentStatistics[] => {
+
+export const getAllIncidentStatistics = createSelector(featureSelector, (s): IncidentStatsPerMonth[] => {
   if (s.statistics.result) {
-    return s.statistics.result.statistics.map(item => {
-      const locationArray: [number, number] | [] = item[ 3 ];
-      return {
-        incidentId: item[ 0 ],
-        statuses: item[ 1 ],
-        tags: item[ 2 ],
-        location: locationArray.length ? { lat: locationArray[ 0 ], lon: locationArray[ 1 ] } : null,
-      } as IncidentStatistics;
+    return s.statistics.result.map(monthStats => ({
+      ...monthStats, data: monthStats.data.map(item => {
+        const locationArray: [number, number] | [] = item[ 3 ];
+        const converted: IncidentStatistics = {
+          incidentId: item[ 0 ],
+          statuses: item[ 1 ],
+          tags: item[ 2 ],
+          location: locationArray.length ? { lat: locationArray[ 0 ], lon: locationArray[ 1 ] } : null,
+        };
+        return converted;
+      }),
+    })).sort((first, second) => {
+      if (first.year === second.year) {
+        return first.month - second.month;
+      }
+      return first.year - second.year;
     });
   }
   return EMPTY_ARRAY;
 });
-export const getIncidentStatisticsTotals = createSelector(getIncidentStatistics, incidents => {
+
+export const getIncidentFilter = createSelector(featureSelector, s => s.statisticsFilter);
+export const getFilteredIncidentsStats = createSelector(getAllIncidentStatistics, getIncidentFilter, (stats, filter) => {
+  const resultMap = new Map<string, IncidentStatistics>();
+  for (const statsPerMonth of stats) {
+    if (!filter || filter.years.includes(statsPerMonth.year) && filter.months.includes(statsPerMonth.month)) {
+      for (const incident of statsPerMonth.data) {
+        const itemStats = resultMap.get(incident.incidentId);
+        let mergedStats: IncidentStatistics;
+        if (itemStats) {
+          // Keep last location, categories, tags but merge the statuses
+          mergedStats = { ...itemStats, statuses: [...new Set([...itemStats.statuses, ...incident.statuses])] };
+        } else {
+          mergedStats = incident;
+        }
+        resultMap.set(incident.incidentId, mergedStats);
+      }
+    }
+  }
+  return [...resultMap.values()];
+});
+
+export const getIncidentStatisticsTotals = createSelector(getFilteredIncidentsStats, stats => {
   const totals = {
     [ IncidentStatus.NEW ]: 0,
     [ IncidentStatus.IN_PROGRESS ]: 0,
     [ IncidentStatus.RESOLVED ]: 0,
   };
-  for (const incident of incidents) {
-    for (const status of incident.statuses) {
+  for (const { statuses } of stats) {
+    for (const status of statuses) {
       totals[ status ]++;
     }
   }
   return totals;
 });
-
-
 

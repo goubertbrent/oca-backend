@@ -12,9 +12,9 @@ export const enum IncidentStatus {
 }
 
 export const INCIDENT_STATUSES = [
-  { value: IncidentStatus.NEW, label: 'oca.new', icon: 'report', color: '#ff3d29' },
-  { value: IncidentStatus.IN_PROGRESS, label: 'oca.in_progress', icon: 'timelapse', color: '#FF9900' },
-  { value: IncidentStatus.RESOLVED, label: 'oca.resolved', icon: 'done', color: '#00E64D' },
+  { value: IncidentStatus.NEW, label: 'oca.new', icon: 'report', color: '#ff3d29', mapIcon: 'map-icon-red.svg' },
+  { value: IncidentStatus.IN_PROGRESS, label: 'oca.in_progress', icon: 'timelapse', color: '#FF9900', mapIcon: 'map-icon-orange.svg' },
+  { value: IncidentStatus.RESOLVED, label: 'oca.resolved', icon: 'done', color: '#00E64D', mapIcon: 'map-icon-green.svg' },
 ];
 
 export interface IncidentStatusDate {
@@ -68,7 +68,9 @@ export interface IncidentStatisticsList {
 }
 
 export interface RawIncidentStatistics {
-  statistics: [
+  year: number;
+  month: number;
+  data: [
     string,  // Incident id
     IncidentStatus[],
     string[],  // tags
@@ -86,6 +88,12 @@ export interface IncidentStatistics {
   } | null;
 }
 
+export interface IncidentStatsPerMonth {
+  year: number;
+  month: number;
+  data: IncidentStatistics[];
+}
+
 export interface TagFilterMapping {
   [ key: string ]: TagFilter;
 }
@@ -94,4 +102,17 @@ export interface TagFilter {
   id: string;
   type: IncidentTagType;
   name: string;
+}
+
+export interface IncidentStatisticsFilter {
+  years: number[];
+  months: number[];
+}
+
+
+export interface Chart {
+  chartType: string;
+  dataTable: (string | number)[][];
+  columnNames: string[];
+  options: google.visualization.BarChartOptions;
 }

@@ -1,0 +1,7 @@
+<mat-checkbox (change)="toggleSelection($event)"
+              (click)="$event.stopPropagation()"
+              [checked]="isChecked$ | async"
+              [indeterminate]="isIndeterminate$ | async"
+              class="mat-option">
+  {{ text }}
+</mat-checkbox>

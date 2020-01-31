@@ -1,0 +1,10 @@
+<ng-container *ngIf="charts && charts[selectedIndex] as chart">
+  <google-chart [columnNames]="chart.columnNames"
+                [data]="chart.dataTable"
+                [options]="chart.options"
+                [type]="chart.chartType"></google-chart>
+  <mat-paginator (page)="onPageChanged($event)"
+                 [hidePageSize]="true"
+                 [length]="pageLength"
+                 [pageSize]="1"></mat-paginator>
+</ng-container>
