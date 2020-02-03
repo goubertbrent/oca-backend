@@ -347,15 +347,18 @@ $(function () {
     var loadSettings = function () {
         Requests.getSettings({cached: false}).then(function (data) {
             LocalCache.settings = data;
+            $('.sln-set-timezone select').val(data.timezone);
             $('.sln-set-name input').val(data.name);
             $('.sln-set-phone-number input').val(data.phone_number);
-            $('.sln-set-currency select').val(data.currency);
+            $('.sln-set-email-address input').val(data.email_address);
             $('.sln-set-description textarea').val(data.description);
+            $('.sln-set-currency select').val(data.currency);
             $('.sln-set-openinghours textarea').val(data.opening_hours);
             $('.sln-set-address textarea').val(data.address);
-            $('.sln-set-timezone select').val(data.timezone);
             $('.sln-set-search-keywords textarea').val(data.search_keywords);
-            $('.sln-set-email-address input').val(data.email_address);
+            $('.sln-set-place-types').data('place_types', data.place_types);
+            renderPlaceTypes();
+            
             searchEnabled = data.search_enabled;
             searchEnabledCheck = data.search_enabled_check;
             setServiceVisible(searchEnabled);
@@ -831,6 +834,30 @@ $(function () {
     sln.configureDelayedInput($('.sln-set-timezone select'), saveSettings, null, false);
     sln.configureDelayedInput($('.sln-set-search-keywords textarea'), saveSettings);
     sln.configureDelayedInput($('.sln-set-email-address input'), saveSettings);
+    
+    $('#sln-set-place-type-add').click(function() {
+    	var html = $.tmpl(templates.place_type_select_modal, {
+    		CommonTranslations : CommonTranslations,
+            placeTypes: LocalCache.place_types,
+            selectedPlaceType: LocalCache.place_types[0]['key']
+        });
+
+        var modal = sln.createModal(html);
+        $('button[action=submit]', modal).click(function() {
+            var key = $('#place_type_select').val();
+            modal.modal('hide');
+            
+            var placeTypes = $('.sln-set-place-types').data('place_types');
+            if (placeTypes.indexOf(key) !== -1) {
+            	return;
+            }
+            placeTypes.push(key);
+            
+            $('.sln-set-place-types').data('place_types', placeTypes);
+            renderPlaceTypes();
+            saveSettings();
+        });
+    });
 
     $('#newsletter-checkbox').change(function () {
         saveConsent('newsletter', $(this).prop('checked'));
@@ -843,6 +870,16 @@ $(function () {
     // billing tab
     sln.configureDelayedInput($('.sln-set-iban input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-bic input'), saveSettings);
+    
+    sln.call({
+        url: '/common/settings/place_types',
+        method: 'get',
+        success: function (placeTypes) {
+            LocalCache.place_types = placeTypes
+            renderPlaceTypes();
+        },
+        error: sln.showAjaxError
+    });
 
     loadSettings();
     inboxLoadForwarders();
@@ -1165,6 +1202,7 @@ $(function () {
             search_enabled: searchEnabled,
             search_enabled_check: searchEnabledCheck,
             search_keywords: $('.sln-set-search-keywords textarea').val(),
+            place_types: $('.sln-set-place-types').data('place_types'),
             email_address: $('.sln-set-email-address input').val(),
             timezone: $('.sln-set-timezone select').val(),
             events_visible: eventsEnabled,
@@ -1703,6 +1741,38 @@ $(function () {
                     }
                 });
         });
+    }
+    
+    var deletePlaceType = function() {
+        var placeType = $(this).attr('place_type');
+        var myPlaceTypes = $('.sln-set-place-types').data('place_types');
+        myPlaceTypes.splice(myPlaceTypes.indexOf(placeType), 1);
+        $('.sln-set-place-types').data('place_types', myPlaceTypes);
+        renderPlaceTypes();
+        saveSettings();
+    };
+    
+    function renderPlaceTypes() {
+    	if (LocalCache.place_types === undefined) {
+    		return;
+    	}
+    	var myPlaceTypes = $('.sln-set-place-types').data('place_types');
+    	if (myPlaceTypes === undefined) {
+    		return;
+    	}
+    	var placeTypes = [];
+    	for (var i = 0, a = LocalCache.place_types; i < a.length; i++) {
+    		if (myPlaceTypes.indexOf(a[i]['key']) !== -1) {
+    			placeTypes.push(a[i]);
+            }
+    	}
+    	var htmlElement = $('.sln-set-place-types table tbody');
+        htmlElement.empty();
+        var html = $.tmpl(templates.place_type_settings, {
+        	placeTypes: placeTypes
+        });
+        htmlElement.append(html);
+        htmlElement.find('button[action="deletePlaceType"]').click(deletePlaceType);
     }
 
     function renderJccSettings(settings) {

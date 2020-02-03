@@ -273,6 +273,7 @@ class SolutionIdentitySettings(db.Expando):
     payment_test_mode = db.BooleanProperty(default=DEBUG)
     
     google_place_id = db.StringProperty(indexed=True, default=None)
+    place_types = db.StringListProperty(indexed=False)
 
     @staticmethod
     def create_key(service_user, service_identity):
@@ -343,7 +344,7 @@ class SolutionSettings(SolutionIdentitySettings):
     modules_to_put = db.StringListProperty(default=[])
     modules_to_remove = db.StringListProperty(default=[])
     activated_modules = ActivatedModulesProperty()
-
+    
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)
     event_notifications_enabled = db.BooleanProperty(indexed=False, default=False)

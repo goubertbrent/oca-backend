@@ -431,6 +431,8 @@ def populate_identity(sln_settings, main_branding_key):
         identity.search_config.locations = search_config_locations
         identity.qualified_identifier = sln_i_settings.qualified_identifier
         identity.content_branding_hash = content_branding_hash
+        identity.place_types_user_default = False
+        identity.place_types = sln_i_settings.place_types
         system.put_identity(identity)
 
         default_app_id = identity.app_ids[0]

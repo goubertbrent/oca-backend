@@ -92,6 +92,8 @@ DEFAULT_JS_TEMPLATES = [
     'settings/upload_image',
     'functionalities/functionality',
     'budget_balance_warning',
+    'place_type_settings',
+    'place_type_select_modal'
 ]
 
 VECTOR_MAPS = {

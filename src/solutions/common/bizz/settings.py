@@ -109,6 +109,9 @@ def save_settings(service_user, service_identity, data):
         sln_settings.iban = data.iban
     if data.bic is not MISSING:
         sln_settings.bic = data.bic
+        
+    if data.place_types is not MISSING:
+        sln_i_settings.place_types = data.place_types
 
     sln_settings.updates_pending = True
     validate_sln_settings(sln_settings)

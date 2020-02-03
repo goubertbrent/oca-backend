@@ -32,6 +32,7 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.maps.services.place_types import PlaceType, TRANSLATION_KEYS
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
@@ -51,11 +52,11 @@ from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.to.friends import FriendListResultTO, ServiceMenuDetailTO
-from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
+from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, KeyValueTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.to.system import ServiceIdentityInfoTO
-from rogerthat.translations import DEFAULT_LANGUAGE
+from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
     get_app_id_from_app_user
 from rogerthat.utils.channel import send_message
@@ -635,6 +636,21 @@ def settings_load():
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
     to = SolutionSettingsTO.fromModel(sln_settings, sln_i_settings)
     return to
+
+
+@rest('/common/settings/place_types', 'get', read_only_access=True, silent_result=True)
+@returns([KeyValueTO])
+@arguments()
+def rest_get_place_types():
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    
+    l = []
+    for place_type in PlaceType.all():
+        for key in TRANSLATION_KEYS.get(place_type, []):
+            l.append(KeyValueTO(key=place_type, value=localize(sln_settings.main_language, key)))
+            break
+    return sorted(l, key=lambda x: x.value)
 
 
 def _get_city_services(app_id):

@@ -382,4 +382,5 @@ COMMON_JS_KEYS = {
     'text_color': 'Text color',
     'upload_picture_here': 'Upload a picture here',
     'use_your_smartphone': 'Use your smartphone',
+    'place_types': 'Place types',
 }

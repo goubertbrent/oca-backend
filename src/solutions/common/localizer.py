@@ -62,6 +62,7 @@ translations = \
          u'1 stamp per scan': u'1 stamp per scan',
          u'<Picture>': u'<Picture>',
          u'<Video>': u'<Video>',
+         u'Place types': u'Place types',
          u'About': u'About',
          u'Abuse': u'Abuse',
          u'Action button caption is empty': u'Action button caption is empty',

@@ -149,30 +149,31 @@ class LatLonTO(TO):
 
 
 class SolutionSettingsTO(TO):
-    name = unicode_property('1')
-    description = unicode_property('2')
-    opening_hours = unicode_property('3')
-    address = unicode_property('4')
-    phone_number = unicode_property('5')
-    updates_pending = bool_property('6')
-    facebook_page = unicode_property('7', default=None)
-    facebook_name = unicode_property('8', default=None)
-    facebook_action = unicode_property('9', default=None)
-    currency = unicode_property('10')
-    search_enabled = bool_property('11')
-    timezone = unicode_property('12')
-    events_visible = bool_property('13')
-    event_notifications_enabled = bool_property('14')
-    search_keywords = unicode_property('15')
-    email_address = unicode_property('16')
-    inbox_email_reminders = bool_property('17')
-    twitter_username = unicode_property('18')
-    holidays = long_list_property('19')
-    holiday_out_of_office_message = unicode_property('20')
-    iban = unicode_property('21')
-    bic = unicode_property('22')
-    publish_changes_users = unicode_list_property('23', default=[])
-    search_enabled_check = bool_property('24')
+    name = unicode_property('name')
+    description = unicode_property('description')
+    opening_hours = unicode_property('opening_hours')
+    address = unicode_property('address')
+    phone_number = unicode_property('phone_number')
+    updates_pending = bool_property('updates_pending')
+    facebook_page = unicode_property('facebook_page', default=None)
+    facebook_name = unicode_property('facebook_name', default=None)
+    facebook_action = unicode_property('facebook_action', default=None)
+    currency = unicode_property('currency')
+    search_enabled = bool_property('search_enabled')
+    timezone = unicode_property('timezone')
+    events_visible = bool_property('events_visible')
+    event_notifications_enabled = bool_property('event_notifications_enabled')
+    search_keywords = unicode_property('search_keywords')
+    place_types = unicode_list_property('place_types')
+    email_address = unicode_property('email_address')
+    inbox_email_reminders = bool_property('inbox_email_reminders')
+    twitter_username = unicode_property('twitter_username')
+    holidays = long_list_property('holidays')
+    holiday_out_of_office_message = unicode_property('holiday_out_of_office_message')
+    iban = unicode_property('iban')
+    bic = unicode_property('bic')
+    publish_changes_users = unicode_list_property('publish_changes_users', default=[])
+    search_enabled_check = bool_property('search_enabled_check')
     location = typed_property('location', LatLonTO)
 
     @staticmethod
@@ -196,6 +197,7 @@ class SolutionSettingsTO(TO):
         to.events_visible = sln_settings.events_visible
         to.event_notifications_enabled = sln_settings.event_notifications_enabled
         to.search_keywords = sln_i_settings.search_keywords
+        to.place_types = sln_i_settings.place_types
         to.email_address = sln_i_settings.qualified_identifier or sln_settings.service_user.email()
         to.inbox_email_reminders = sln_i_settings.inbox_email_reminders_enabled if sln_i_settings.inbox_email_reminders_enabled else False
         to.twitter_username = sln_settings.twitter_username
