@@ -17,7 +17,7 @@ import { UploadFileService } from '../upload-file.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UploadFileDialogComponent implements OnDestroy {
-  @ViewChild(ImageCropperComponent, { static: false }) imageCropper: ImageCropperComponent;
+  @ViewChild(ImageCropperComponent) imageCropper: ImageCropperComponent;
 
   selectedTabIndex = 1;
   selectedImageUrl: string | null = null;

@@ -18,6 +18,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
+            "aot": true,
             "outputPath": "../build/static/client",
             "index": "src/index.html",
             "main": "src/main.ts",
@@ -60,10 +61,20 @@
                   "type": "initial",
                   "maximumWarning": "2mb",
                   "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
                 }
               ]
             },
             "hmr": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
@@ -163,5 +174,8 @@
       }
     }
   },
-  "defaultProject": "oca-web"
+  "defaultProject": "oca-web",
+  "cli": {
+    "analytics": "90c95fd6-d9ec-4808-b308-36131c8e8334"
+  }
 }

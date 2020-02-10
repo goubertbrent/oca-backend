@@ -5,6 +5,7 @@ import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { ErrorService } from '../shared/errors/error.service';
+import { GetGlobalConfigAction } from '../shared/shared.actions';
 import {
   GetIncidentAction,
   GetIncidentCompleteAction,
@@ -71,5 +72,6 @@ export class ReportsEffects {
               private snackbar: MatSnackBar,
               private translate: TranslateService,
               private errorService: ErrorService) {
+    this.store.dispatch(new GetGlobalConfigAction());
   }
 }

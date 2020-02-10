@@ -25,7 +25,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
-import { Store, StoreModule } from '@ngrx/store';
+import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
 import { UploadFileModule } from '../shared/upload-file';
@@ -49,10 +49,8 @@ import { FormValidatorsComponent } from './components/form-validators/form-valid
 import { NextActionEditorComponent } from './components/next-action-editor/next-action-editor.component';
 import { SelectInputListComponent } from './components/select-input-list/select-input-list.component';
 import { routes } from './forms-routes';
-import { GetIntegrationsAction } from './forms.actions';
 import { FormsEffects } from './forms.effects';
 import { formsReducer } from './forms.reducer';
-import { FormsState } from './forms.state';
 import { MatStepperIntlImpl } from './mat-stepper-intl-impl';
 import { FormDetailsPageComponent } from './pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './pages/form-list-page/form-list-page.component';
@@ -125,7 +123,4 @@ import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-se
   ],
 })
 export class OcaFormsModule {
-  constructor(private store: Store<FormsState>) {
-    this.store.dispatch(new GetIntegrationsAction());
-  }
 }

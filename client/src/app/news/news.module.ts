@@ -1,4 +1,3 @@
-import { FitBoundsService } from '@agm/core/services/fit-bounds';
 import { DatePipe } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -17,7 +16,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
-import { Store, StoreModule } from '@ngrx/store';
+import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { MatStepperIntlImpl } from '../forms/mat-stepper-intl-impl';
 import { DateTimeInputModule } from '../shared/date-time-input/date-time-input.module';
@@ -34,10 +33,8 @@ import { NewsItemPreviewComponent } from './components/news-item-preview/news-it
 import { NewsLocationComponent } from './components/news-location/news-location.component';
 import { NewsReachComponent } from './components/news-reach/news-reach.component';
 import { routes } from './news-routes';
-import { GetNewsOptionsAction } from './news.actions';
 import { NewsEffects } from './news.effects';
 import { newsReducer } from './news.reducer';
-import { NewsState } from './news.state';
 import { CreateNewsPageComponent } from './pages/create-news-page/create-news-page.component';
 import { EditNewsPageComponent } from './pages/edit-news-page/edit-news-page.component';
 import { NewsDetailPageComponent } from './pages/news-detail-page/news-detail-page.component';
@@ -84,7 +81,6 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
-    FitBoundsService,
     DatePipe,
   ],
   entryComponents: [
@@ -92,7 +88,4 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
   ],
 })
 export class NewsModule {
-  constructor(private _store: Store<NewsState>) {
-    this._store.dispatch(new GetNewsOptionsAction());
-  }
 }

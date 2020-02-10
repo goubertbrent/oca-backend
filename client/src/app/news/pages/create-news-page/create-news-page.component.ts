@@ -51,7 +51,7 @@ export class CreateNewsPageComponent implements OnInit {
         this.matDialog.open(SimpleDialogComponent, config).afterClosed().subscribe(() => this.router.navigate(['news', 'list']));
         return;
       }
-      const data = serviceInfo.data as ServiceIdentityInfo;
+      const data = serviceInfo.data;
       // Prefer city group type as default
       const groups = newsOptions.data.groups.concat().sort((first, second) => first.group_type === NewsGroupType.CITY ? -1 : 1);
       let item: CreateNews = {

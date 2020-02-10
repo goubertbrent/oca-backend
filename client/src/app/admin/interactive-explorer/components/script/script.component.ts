@@ -30,7 +30,7 @@ export class ScriptComponent {
   @Output() run = new EventEmitter<RunScript>();
   @Output() remove = new EventEmitter<Script>();
   @Output() showFullscreen = new EventEmitter<RunResult>();
-  @ViewChild('form', { static: false }) form: NgForm;
+  @ViewChild('form') form: NgForm;
   @ViewChildren('runButton') runButtons: QueryList<HTMLAnchorElement>;
 
   @HostListener('window:keydown', ['$event'])

@@ -1,11 +1,11 @@
 import { LatLngBoundsLiteral, LatLngLiteral, MouseEvent } from '@agm/core';
-import { FitBoundsService } from '@agm/core/services/fit-bounds';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { ReplaySubject, Subject } from 'rxjs';
 import { filter, map, takeUntil } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
+import { FitBoundsService } from '../../../shared/fit-bounds/fit-bounds.service';
 import { LocationBounds, NewsGeoAddress } from '../../interfaces';
 
 @Component({

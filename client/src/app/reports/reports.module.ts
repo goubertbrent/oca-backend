@@ -6,8 +6,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
-import { Store, StoreModule } from '@ngrx/store';
-import { GetGlobalConfigAction } from '../shared/shared.actions';
+import { StoreModule } from '@ngrx/store';
 import { SharedModule } from '../shared/shared.module';
 import { EditIncidentComponent } from './components/edit-incident/edit-incident.component';
 import { IncidentListComponent } from './components/incident-list/incident-list.component';
@@ -19,7 +18,6 @@ import { IncidentStatus } from './pages/reports';
 import { ReportsSettingsPageComponent } from './pages/reports-settings-page/reports-settings-page.component';
 import { ReportsEffects } from './reports.effects';
 import { reportsReducer } from './reports.reducer';
-import { ReportsState } from './reports.state';
 
 const routes: Routes = [
   { path: '', redirectTo: 'incidents', pathMatch: 'full' },
@@ -57,7 +55,4 @@ const routes: Routes = [
   ],
 })
 export class ReportsModule {
-  constructor(private store: Store<ReportsState>) {
-    this.store.dispatch(new GetGlobalConfigAction());
-  }
 }

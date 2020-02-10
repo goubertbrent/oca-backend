@@ -1,2 +1,1 @@
-declare module 'jquery-mapael' {
-}
+declare module 'jquery-mapael';

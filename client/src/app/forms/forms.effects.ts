@@ -6,7 +6,7 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { catchError, first, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, first, map, startWith, switchMap, tap } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
 import { ErrorService } from '../shared/errors/error.service';
 import { transformErrorResponse } from '../shared/errors/errors';
@@ -227,6 +227,7 @@ export class FormsEffects {
   );
 
   @Effect() getIntegrations$ = this.actions$.pipe(
+    startWith(new GetIntegrationsAction()),
     ofType<GetIntegrationsAction>(FormsActionTypes.GET_INTEGRATIONS),
     switchMap(() => this.formsService.getIntegrations().pipe(
       map(data => new GetIntegrationsCompleteAction(data)),

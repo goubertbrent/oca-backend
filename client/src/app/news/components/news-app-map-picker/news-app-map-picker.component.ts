@@ -87,7 +87,7 @@ export class NewsAppMapPickerComponent implements ControlValueAccessor, OnChange
 
   };
   private appNameMapping: { [ key: string ]: string; }; // key: app name, value: app id
-  private $: typeof jQuery;
+  private $: typeof jQuery | null;
   private initializedMapUrl: string;
 
   constructor(private changeDetectorRef: ChangeDetectorRef,
@@ -194,11 +194,13 @@ ${this.translate.instant('oca.broadcast-estimated-reach')}: ${estimatedReach.low
       };
     }
     // Update the map
-    this.$(this.mapContainer.nativeElement).trigger('update', [{
-      mapOptions: {
-        areas,
-      },
-    }]);
+    if (this.$) {
+      this.$(this.mapContainer.nativeElement).trigger('update', [{
+        mapOptions: {
+          areas,
+        },
+      }]);
+    }
   }
 
   private getAreaValue(areaName: string, selected: boolean): AreaValue {

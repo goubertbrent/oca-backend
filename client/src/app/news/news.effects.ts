@@ -7,7 +7,7 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { catchError, first, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, first, map, startWith, switchMap, tap } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
 import { ErrorService } from '../shared/errors/error.service';
 import { transformErrorResponse } from '../shared/errors/errors';
@@ -45,6 +45,7 @@ import { getLocations, NewsState } from './news.state';
 @Injectable()
 export class NewsEffects {
   @Effect() getNewsOptions$ = this.actions$.pipe(
+    startWith(new GetNewsOptionsAction()),
     ofType<GetNewsOptionsAction>(NewsActionTypes.GET_NEWS_OPTIONS),
     switchMap(() => this.newsService.getNewsOptions().pipe(
       map(data => new GetNewsOptionsCompleteAction(data)),
