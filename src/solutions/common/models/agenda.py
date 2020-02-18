@@ -57,7 +57,7 @@ class Event(db.Model, _Event):
     external_link = db.StringProperty(indexed=False)
 
     title = db.StringProperty(indexed=False)
-    place = db.StringProperty(indexed=False)
+    place = db.StringProperty(indexed=False, multiline=True)
     description = db.TextProperty()
     organizer = db.StringProperty(indexed=False)
     url = db.StringProperty(indexed=False)

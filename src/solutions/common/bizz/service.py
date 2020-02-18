@@ -44,7 +44,7 @@ from solutions.common.to import SolutionInboxMessageTO
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
 SMART_EMAILS = {
-    '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 2 * 60,
+    '8dd5fe5f-02eb-40f9-b9fa-9a48d52952b4': 1,
     'e6b456af-a811-4540-903c-5135cd6e4802': 2 * DAY,
     'c87c3b2c-e1e8-4680-914e-6f81f2bd37f5': 4 * DAY,
 }
