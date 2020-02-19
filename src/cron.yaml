@@ -16,6 +16,10 @@ cron:
   url: /admin/cron/rpc/solution_sync_google_calendar_events
   schedule: every day 23:30
 
+- description: Reindex all periodic events
+  url: /admin/cron/rpc/re_index_periodic_events
+  schedule: 1 of month 09:00
+
 - description: Shop recurrent billing
   url: /admin/cron/shop/recurrent_billing
   schedule: every day 00:00

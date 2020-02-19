@@ -230,7 +230,7 @@ class Event(NdbModel):
             day_additions = 0
             if self.opening_hours:
                 # Loop over every day to find all days on which the event occurs
-                while True:
+                while True and len(dates) < 100:
                     for opening_hour in self.opening_hours:
                         start_date = base_date.replace(hour=opening_hour.opening_hour,
                                                        minute=opening_hour.opening_minute,
@@ -250,10 +250,12 @@ class Event(NdbModel):
                     break
             else:
                 # Special case - event has no opening_hours, so assume it's open every day
-                base_date = self.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                # Limit this to 100 occurrences, because some people insert end dates 3000 years in the future
+                # (see https://io.uitdatabank.be/event/9105dc14-602a-4a2a-b11f-68ca77f7ea8d)
+                base_date = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
                 start_date = base_date
                 day_additions = 0
-                while self.end_date > start_date:
+                while self.end_date > start_date and len(dates) < 100:
                     start_date = base_date + relativedelta(days=day_additions)
                     end_date = start_date + relativedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
                     day_additions += 1
@@ -271,6 +273,10 @@ class Event(NdbModel):
                 start_of_day = datetime(start.year, start.month, start.day)
                 end_of_day = datetime(end.year, end.month, end.day, 23, 59, 59, 999999)
                 dates.append((start_of_day, end_of_day))
+
+    @classmethod
+    def list_by_calendar_type(cls, calendar_type):
+        return cls.query().filter(cls.calendar_type == calendar_type)
 
 
 class SolutionGoogleCredentials(NdbModel):

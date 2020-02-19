@@ -144,3 +144,24 @@ class TestEvents(oca_unittest.TestCase):
         self.assertEqual(datetime(2020, 1, 5), last_start)
         self.assertEqual(datetime(2020, 1, 6, 23, 59, 59, 999999), last_end)
         self.assertEqual(2, len(dates))
+
+    def test_crappy_end_date(self):
+        # No opening hours, and end date is a few thousand years in the future
+        # Should only return 100 occurrences, as to not overload the search index with a million occurrence dates...
+        event = Event(calendar_type=EventCalendarType.PERIODIC,
+                      end_date=datetime(5201, 6, 28),
+                      start_date=datetime(2019, 9, 1))
+        dates = event.get_occurrence_dates(datetime(2020, 2, 18))
+        first_start, first_end = dates[0]
+        self.assertEqual(datetime(2020, 2, 18), first_start)
+        self.assertEqual(100, len(dates))
+
+    def test_crappy_end_date_with_hours(self):
+        event = Event(calendar_type=EventCalendarType.PERIODIC,
+                      end_date=datetime(5201, 6, 28),
+                      start_date=datetime(2019, 9, 1), )
+        event.opening_hours = [EventOpeningPeriod(close=u'1630', day=1, open=u'1330')]
+        dates = event.get_occurrence_dates(datetime(2020, 2, 17))
+        first_start, first_end = dates[0]
+        self.assertEqual(datetime(2020, 2, 17, 13, 30), first_start)
+        self.assertEqual(100, len(dates))

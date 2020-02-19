@@ -27,7 +27,7 @@ from typing import Dict, Tuple, List, Generator, Iterable
 from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import DEBUG
 from rogerthat.models.elasticsearch import ElasticsearchSettings
-from solutions.common.models.agenda import Event
+from solutions.common.models.agenda import Event, EventCalendarType
 
 
 def _request(path, method=urlfetch.GET, payload=None, allowed_status_codes=(200, 204)):
@@ -155,6 +155,12 @@ def re_index_all_events():
     run_job(_get_all_events, [], _index_events, [], mode=MODE_BATCH)
 
 
+def re_index_periodic_events():
+    # Some events have only 100 occurrences because they have no opening hours specified
+    # These should be updated periodically so the old dates are removed and future dates are added to the index
+    run_job(_get_periodic_events, [], _index_events, [], mode=MODE_BATCH)
+
+
 def delete_events_from_index(keys):
     # type: (List[ndb.Key]) -> None
     if keys:
@@ -220,6 +226,10 @@ def search_events(start_date, end_date, app_id=None, service=None, search_string
 
 def _get_all_events():
     return Event.query()
+
+
+def _get_periodic_events():
+    return Event.list_by_calendar_type(EventCalendarType.PERIODIC)
 
 
 def _index_events(events_or_keys):

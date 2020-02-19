@@ -25,7 +25,7 @@ from google.appengine.ext import ndb
 from rogerthat.bizz.job import run_job
 from rogerthat.rpc import users
 from solutions.common.bizz.events import update_events_from_google
-from solutions.common.bizz.events.events_search import delete_events_from_index
+from solutions.common.bizz.events.events_search import delete_events_from_index, re_index_periodic_events
 from solutions.common.models.agenda import SolutionCalendar, Event
 
 
@@ -37,6 +37,12 @@ class CleanupSolutionEvents(webapp2.RequestHandler):
         logging.info('Cleaning up %d expired Event models' % len(event_keys))
         delete_events_from_index(event_keys)
         ndb.delete_multi(event_keys)
+
+
+class ReIndexPeriodicEventsHandler(webapp2.RequestHandler):
+
+    def get(self):
+        re_index_periodic_events()
 
 
 class SolutionSyncGoogleCalendarEvents(webapp2.RequestHandler):

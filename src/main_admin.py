@@ -25,7 +25,8 @@ from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.budget import BudgetCheckHandler
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler, \
     SolutionCityVoucherExpiredReminderHandler
-from solutions.common.cron.events.events import CleanupSolutionEvents, SolutionSyncGoogleCalendarEvents
+from solutions.common.cron.events.events import CleanupSolutionEvents, SolutionSyncGoogleCalendarEvents, \
+    ReIndexPeriodicEventsHandler
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.forms import FinishFormsCron
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
@@ -38,6 +39,7 @@ from solutions.common.handlers.admin.services import ServiceTools
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
+    ('/admin/cron/rpc/re_index_periodic_events', ReIndexPeriodicEventsHandler),
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
