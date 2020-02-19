@@ -17,10 +17,10 @@
 @import '~@ionic/angular/css/display.css';
 /* Optional CSS utils that can be commented out */
 @import "~@ionic/angular/css/padding.css";
-@import "~@ionic/angular/css/float-elements.css";
-@import "~@ionic/angular/css/text-alignment.css";
-@import "~@ionic/angular/css/text-transformation.css";
-@import "~@ionic/angular/css/flex-utils.css";
+//@import "~@ionic/angular/css/float-elements.css";
+//@import "~@ionic/angular/css/text-alignment.css";
+//@import "~@ionic/angular/css/text-transformation.css";
+//@import "~@ionic/angular/css/flex-utils.css";
 
 .spinner-container {
   display: flex;
@@ -28,7 +28,6 @@
   align-items: center;
   height: 80px;
 }
-
 
 @import '~@angular/material/theming';
 // Plus imports for other components in your app.
@@ -46,3 +45,7 @@ $app-theme: mat-light-theme($app-primary, $app-accent);
 // Include the theme styles for only specified components to reduce bundle size
 @include mat-core-theme($app-theme);
 @include mat-expansion-panel-theme($app-theme);
+
+ion-toolbar > ion-title {
+  text-transform: uppercase;
+}

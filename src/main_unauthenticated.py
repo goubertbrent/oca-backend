@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
 from webapp2_extras.routes import RedirectRoute
 
 import shop.handlers
@@ -33,11 +32,11 @@ from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, Prospect
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
-from solutions.common.handlers.vcard import VCardHandler
 from solutions.common.handlers.maps import FlandersHandler
 from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
     StripeCancelHandler, StripeWebhookHandler
+from solutions.common.handlers.vcard import VCardHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 

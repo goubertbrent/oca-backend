@@ -1,6 +1,4 @@
-import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { EffectsModule } from '@ngrx/effects';
@@ -15,8 +13,6 @@ import { Q_MATIC_FEATURE } from './q-matic.state';
 @NgModule({
   imports: [
     IonicModule,
-    CommonModule,
-    FormsModule,
     RouterModule.forChild(Q_MATIC_ROUTES),
     EffectsModule.forFeature([QMaticEffects]),
     StoreModule.forFeature(Q_MATIC_FEATURE, qmaticReducer),

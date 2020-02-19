@@ -30,21 +30,21 @@ def api_get_scripts():
     return [script.to_dict() for script in get_scripts()]
 
 
-@rest('/admin/api/scripts', 'post', type=REST_TYPE_TO)
+@rest('/admin/api/scripts', 'post', type=REST_TYPE_TO, silent=True, silent_result=True)
 @returns(dict)
 @arguments(data=CreateScriptTO)
 def api_create_script(data):
     return create_script(data).to_dict()
 
 
-@rest('/admin/api/scripts/<script_id:[^/]+>', 'get')
+@rest('/admin/api/scripts/<script_id:[^/]+>', 'get', silent_result=True)
 @returns(dict)
 @arguments(script_id=(int, long))
 def api_get_script(script_id):
     return get_script(script_id).to_dict()
 
 
-@rest('/admin/api/scripts/<script_id:[^/]+>', 'put', type=REST_TYPE_TO)
+@rest('/admin/api/scripts/<script_id:[^/]+>', 'put', type=REST_TYPE_TO, silent=True, silent_result=True)
 @returns(dict)
 @arguments(script_id=(int, long), data=UpdateScriptTO)
 def api_update_script(script_id, data):

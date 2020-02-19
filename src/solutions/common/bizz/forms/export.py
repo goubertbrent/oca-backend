@@ -23,11 +23,9 @@ import cloudstorage
 import xlwt
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
-from rogerthat.models.forms import Form
 from rogerthat.rpc import users
 from rogerthat.service.api.forms import service_api
-from rogerthat.to.forms import FormSectionTO, ParagraphComponentTO, FormSectionValueTO, FieldComponentTO, \
-    DatetimeComponentValueTO
+from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, DatetimeComponentValueTO
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.consts import OCA_FILES_BUCKET

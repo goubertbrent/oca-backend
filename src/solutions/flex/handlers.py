@@ -96,10 +96,6 @@ DEFAULT_JS_TEMPLATES = [
     'place_type_select_modal'
 ]
 
-VECTOR_MAPS = {
-    'BE': 'flanders.json'
-}
-
 MODULES_JS_TEMPLATE_MAPPING = {
     SolutionModule.AGENDA: [
         'events_add',
@@ -108,8 +104,6 @@ MODULES_JS_TEMPLATE_MAPPING = {
         'events_events',
         'events_settings',
         'events_calendar_settings',
-        'events_guests_modal',
-        'events_guests_table',
         'events_uitcalendar_settings'
     ],
     SolutionModule.APPOINTMENT: [

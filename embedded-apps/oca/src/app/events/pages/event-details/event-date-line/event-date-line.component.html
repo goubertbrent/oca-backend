@@ -1,0 +1,23 @@
+<ng-container *ngIf="hoursOnly; else withDays">
+  <span>{{ start | date : 'EEEE' }}</span>
+  <span class="date-part">{{ 'app.oca.from' | translate }}</span>
+  <span>{{ start | date : hourFormat }}</span>
+  <span class="date-part">{{ 'app.oca.until' | translate }}</span>
+  <span>{{ end | date : hourFormat }}</span>
+</ng-container>
+<ng-template #withDays>
+  <ng-container *ngIf="isSameDay; else otherDay">
+    <span class="date-part first-date">{{ start | date : 'EE' }}</span>
+    <span>{{ start | date : 'MMMM d y' }}</span>
+    <span class="date-part">{{ 'app.oca.from' | translate }}</span>
+    <span>{{ start | date : hourFormat }}</span>
+    <span class="date-part">{{ 'app.oca.until' | translate }}</span>
+    <span>{{ end | date : hourFormat }}</span>
+  </ng-container>
+  <ng-template #otherDay>
+    <span class="date-part first-date">{{ 'app.oca.from' | translate }}</span>
+    <span>{{ start | date : dateFormat }}</span>
+    <span class="date-part">{{ 'app.oca.until' | translate }}</span>
+    <span>{{ end | date : dateFormat }}</span>
+  </ng-template>
+</ng-template>

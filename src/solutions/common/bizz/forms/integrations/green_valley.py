@@ -15,8 +15,6 @@
 #
 # @@license_version:1.5@@
 
-from mimetypes import guess_extension
-
 from google.appengine.api import urlfetch
 
 from rogerthat.bizz.maps.reports import _do_request
@@ -27,22 +25,6 @@ from solutions.common.to.forms import FormSubmissionTO
 
 class GreenValleyConfiguration(TO):
     pass
-
-
-def _add_flex(flexes, field_def_id, value, display_value=None):
-    flex = {'field_def_id': field_def_id}
-    if value:
-        flex['string_value'] = value
-    if display_value:
-        flex['display_value'] = display_value
-    flexes.append({'flex': flex})
-
-
-def _get_extension(content_type):
-    ext = guess_extension(content_type)
-    if ext == '.jpe':
-        ext = '.jpg'
-    return ext
 
 
 class GreenValleyFormIntegration(BaseFormIntegration):

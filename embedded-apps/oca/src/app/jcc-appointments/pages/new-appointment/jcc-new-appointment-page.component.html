@@ -60,8 +60,8 @@
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'app.oca.contact_details' | translate }}</mat-panel-title>
       </mat-expansion-panel-header>
-      <app-jcc-contact-details [requiredFields]="requiredFields$ | async"
-                               (detailsChanged)="updateClientDetails($event)"></app-jcc-contact-details>
+      <app-jcc-contact-details (detailsChanged)="updateClientDetails($event)"
+                               [requiredFields]="requiredFields$ | async"></app-jcc-contact-details>
       <mat-action-row>
         <ion-button (click)="setCurrentStep(Step.LOCATION_DATE)" type="button">
           {{ 'app.oca.previous' | translate }}
@@ -78,7 +78,8 @@
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'app.oca.confirm_appointment' | translate }}</mat-panel-title>
       </mat-expansion-panel-header>
-     <app-jcc-appointment-details [selectedProducts]="selectedProducts$ | async" [location]="selectedLocation" [appointment]="appointment"></app-jcc-appointment-details>
+      <app-jcc-appointment-details [appointment]="appointment" [location]="selectedLocation"
+                                   [selectedProducts]="selectedProducts$ | async"></app-jcc-appointment-details>
       <mat-action-row>
         <ion-button (click)="setCurrentStep(Step.CONTACT_INFO)" type="button">
           {{ 'app.oca.previous' | translate }}

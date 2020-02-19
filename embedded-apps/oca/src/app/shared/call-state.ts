@@ -66,7 +66,7 @@ export function isStatus<T extends ResultState<any, any>>(status: CallStateType)
   return map((value: T) => value.state === status);
 }
 
-const EMPTY_ARRAY: unknown[] = [];
+export const EMPTY_ARRAY: any[] = [];
 
 export function resultOrEmptyArray<ResultType extends Array<any>, ErrorType>(result: ResultState<ResultType, ErrorType>): ResultType {
   if (result.state === CallStateType.SUCCESS) {

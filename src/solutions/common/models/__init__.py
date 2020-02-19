@@ -271,7 +271,7 @@ class SolutionIdentitySettings(db.Expando):
     payment_enabled = db.BooleanProperty(default=False)
     payment_optional = db.BooleanProperty(default=True)
     payment_test_mode = db.BooleanProperty(default=DEBUG)
-    
+
     google_place_id = db.StringProperty(indexed=True, default=None)
     place_types = db.StringListProperty(indexed=False)
 
@@ -347,7 +347,6 @@ class SolutionSettings(SolutionIdentitySettings):
     
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)
-    event_notifications_enabled = db.BooleanProperty(indexed=False, default=False)
     default_calendar = db.IntegerProperty(indexed=False)
     uitdatabank_actor_id = db.StringProperty(indexed=True)
 
@@ -362,7 +361,6 @@ class SolutionSettings(SolutionIdentitySettings):
     twitter_username = db.StringProperty(indexed=False)
 
     # Branding
-    events_branding_hash = db.StringProperty(indexed=False)
     loyalty_branding_hash = db.StringProperty(indexed=False)
 
     service_disabled = db.BooleanProperty(default=False)
@@ -672,15 +670,6 @@ register(SolutionEmailSettings, s_solution_email_settings, ds_solution_email_set
 class FileBlob(db.Model):
     content = db.BlobProperty()
     service_user_email = db.StringProperty()
-
-
-class SolutionNewsScraperSettings(db.Model):
-    urls = db.StringListProperty(indexed=False)
-
-    @staticmethod
-    def create_key(service_user):
-        return db.Key.from_path(SolutionNewsScraperSettings.kind(), service_user.email(),
-                                parent=parent_key(service_user, SOLUTION_COMMON))
 
 
 class SolutionRssLink(NdbModel):

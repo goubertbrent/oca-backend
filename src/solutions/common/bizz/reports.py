@@ -18,7 +18,6 @@ from google.appengine.api import urlfetch
 
 from rogerthat.bizz.maps.reports import _do_request
 from rogerthat.dal.profile import get_service_profile
-from rogerthat.rpc import users
 
 
 def list_incidents(service_user, params):

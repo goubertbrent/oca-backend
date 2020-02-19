@@ -1,0 +1,41 @@
+.media-list {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  display: flex;
+  flex-wrap: nowrap;
+  max-height: 40vh;
+
+  .media-container {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
+  figure {
+    margin: 0;
+  }
+
+  img {
+    width: 100vw;
+    object-fit: cover;
+    max-height: calc(40vh - 24px);
+  }
+
+  figcaption {
+    margin-top: 8px;
+    font-size: 12px;
+    text-align: center;
+  }
+}
+
+.event-details {
+  white-space: pre-line;
+}
+
+::ng-deep .mat-expansion-panel-body, mat-expansion-panel-header {
+  padding: 0 !important;
+}
+
+.back-button {
+  --ion-color-base: rgba(128, 128, 128, .75) !important
+}

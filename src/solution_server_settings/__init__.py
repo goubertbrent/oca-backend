@@ -64,12 +64,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     shop_gcs_bucket = add_meta(db.StringProperty(indexed=False), doc='Cloud storage bucket for shop-related files',
                                order=311)
 
-    solution_news_scrapers = add_meta(db.StringListProperty(indexed=False),
-                                      doc="News scrapers  (2 entries per combination. eg: - be_loc - test@example.com)",
-                                      order=601)
-    solution_events_scrapers = add_meta(db.StringListProperty(indexed=False),
-                                        doc="Events scrapers  (2 entries per combination. eg: - be_loc - test@example.com)",
-                                        order=602)
     solution_qanda_info_receivers = add_meta(db.StringListProperty(indexed=False),
                                              doc="The email addresses that will receive an e-mail when a question has been asked",
                                              order=603)

@@ -958,13 +958,10 @@ def create_news_publisher(app_user, service_user, solution):
 
 
 def get_user_defined_roles():
-    from solutions.common.bizz.messaging import POKE_TAG_BROADCAST_CREATE_NEWS, \
-        POKE_TAG_NEW_EVENT
+    from solutions.common.bizz.messaging import POKE_TAG_BROADCAST_CREATE_NEWS
 
-    def is_user_defined(role):
-        return role.name not in [POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_NEW_EVENT]
-
-    return filter(is_user_defined, list_roles())
+    user_defined_roles = [POKE_TAG_BROADCAST_CREATE_NEWS]
+    return [role for role in list_roles() if role.name not in user_defined_roles]
 
 
 @returns()

@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-from rogerthat.to.forms import FormSectionTO, FieldComponentTO, FormSectionValueTO
+
+from rogerthat.to.forms import FieldComponentTO
 
 
 # Removes questions marked with containing sensitive information from the form results

@@ -20,11 +20,11 @@ import json
 import logging
 from datetime import datetime
 
+from babel.dates import get_day_names
 from google.appengine.api import urlfetch
 from google.appengine.api.apiproxy_stub_map import UserRPC
 from google.appengine.ext import db, deferred
 
-from babel.dates import get_day_names
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpBadRequestException
 from rogerthat.bizz.opening_hours import save_textual_opening_hours

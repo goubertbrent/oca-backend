@@ -1,8 +1,8 @@
-<form (ngSubmit)="confirm(form)" #form="ngForm">
+<form #form="ngForm" (ngSubmit)="confirm(form)">
   <ion-list>
     <ion-item>
       <ion-label>{{ 'app.oca.service' | translate }}</ion-label>
-      <ion-select ngModel name="service" (ionChange)="onServiceSelected($event.detail.value)" required>
+      <ion-select (ionChange)="onServiceSelected($event.detail.value)" name="service" ngModel required>
         <ion-select-option *ngFor="let service of services" [value]="service.publicId">
           {{ service.name }}
         </ion-select-option>
@@ -11,7 +11,7 @@
 
     <ion-item *ngIf="showLocation">
       <ion-label>{{ 'app.oca.location' | translate }}</ion-label>
-      <ion-select ngModel name="branch" (ionChange)="branchSelected.emit($event.detail.value)" required>
+      <ion-select (ionChange)="branchSelected.emit($event.detail.value)" name="branch" ngModel required>
         <ion-select-option *ngFor="let branch of branches" [value]="branch.publicId">
           {{ branch.name }}
         </ion-select-option>
@@ -20,7 +20,7 @@
 
     <ion-item *ngIf="showDates">
       <ion-label>{{ 'app.oca.date' | translate }}</ion-label>
-      <ion-select ngModel name="date" (ionChange)="dateSelected.emit($event.detail.value)" required>
+      <ion-select (ionChange)="dateSelected.emit($event.detail.value)" name="date" ngModel required>
         <ion-select-option *ngFor="let date of dates" [value]="date.value">
           {{ date.date | date }}
         </ion-select-option>
@@ -30,32 +30,32 @@
     <ng-container *ngIf="showTimes">
       <ion-item>
         <ion-label>{{ 'app.oca.time' | translate }}</ion-label>
-        <ion-select ngModel name="time" (ionChange)="timeSelected.emit($event.detail.value)" required>
+        <ion-select (ionChange)="timeSelected.emit($event.detail.value)" name="time" ngModel required>
           <ion-select-option *ngFor="let time of times" [value]="time">{{ time }}</ion-select-option>
         </ion-select>
       </ion-item>
       <ion-item>
         <ion-label position="floating">{{ 'app.oca.first_name' | translate }}</ion-label>
-        <ion-input type="text" name="first_name" required [(ngModel)]="customer.firstName"></ion-input>
+        <ion-input [(ngModel)]="customer.firstName" name="first_name" required type="text"></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="floating">{{ 'app.oca.last_name' | translate }}</ion-label>
-        <ion-input type="text" name="last_name" required [(ngModel)]="customer.lastName"></ion-input>
+        <ion-input [(ngModel)]="customer.lastName" name="last_name" required type="text"></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="floating">{{ 'app.oca.email' | translate }}</ion-label>
-        <ion-input type="email" name="email" required [(ngModel)]="customer.email"></ion-input>
+        <ion-input [(ngModel)]="customer.email" name="email" required type="email"></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="floating">{{ 'app.oca.phone' | translate }}</ion-label>
-        <ion-input type="phone" name="phone" required [(ngModel)]="customer.phone"></ion-input>
+        <ion-input [(ngModel)]="customer.phone" name="phone" required type="phone"></ion-input>
       </ion-item>
     </ng-container>
-    <div class="spinner-container" *ngIf="showLoading">
+    <div *ngIf="showLoading" class="spinner-container">
       <ion-spinner></ion-spinner>
     </div>
-    <div class="ion-padding" *ngIf="showTimes">
-      <ion-button type="submit" expand="block" [disabled]="showLoading">
+    <div *ngIf="showTimes" class="ion-padding">
+      <ion-button [disabled]="showLoading" expand="block" type="submit">
         {{ 'app.oca.confirm_appointment' | translate }}
       </ion-button>
     </div>

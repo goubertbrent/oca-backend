@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from html2text import HTML2Text
 
 from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceIdentity
@@ -29,6 +30,7 @@ def is_default_service_identity(service_identity):
     if service_identity == ServiceIdentity.DEFAULT:
         return True
     return False
+
 
 @returns(users.User)
 @arguments(service_user=users.User, service_identity=unicode)
@@ -52,5 +54,14 @@ def limit_string(string, limit):
         string = string.rsplit(' ', 1)[0] + '...'
     return string
 
+
 def get_extension_for_content_type(content_type):
     return content_type.split("/")[1]
+
+
+def html_to_markdown(html_content, base_url=None):
+    if not html_content:
+        return html_content
+    converter = HTML2Text(baseurl=base_url, bodywidth=0)
+    converter.ignore_images = True
+    return converter.handle(html_content)

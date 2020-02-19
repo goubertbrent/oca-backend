@@ -35,9 +35,6 @@ $(function() {
     var setting_time = false;
 
     var STATUS_AVAILABLE = 'available';
-    var STATUS_RESTAURANT_CLOSED = 'restaurant-closed';
-    var STATUS_KITCHEN_CLOSED = 'kitchen-closed';
-    var STATUS_PAST_RESERVATION = 'past-reservation';
     var STATUS_SHORT_NOTICE = 'short-notice';
     var STATUS_TO_MANY_PEOPLE = 'too-many-people';
     var STATUS_NO_TABLES = 'no-tables';
@@ -392,12 +389,12 @@ $(function() {
 
                 renderShift();
                 renderTables();
-                
-                
+
+
                 if (restaurant_settings.shifts.length == 0) {
                     $("#reservations_menu span.badge").removeClass("badge-success").removeClass("badge-warning")
                     .removeClass("badge-important").addClass('badge-important').text('!');
-                    
+
                     $(".reservations-has-shifts").hide();
                     $(".reservations-no-shifts").show();
                 } else {
@@ -412,11 +409,11 @@ $(function() {
     var updateStatistics = function(date) {
         if (reservation_stats_loading)
             return;
-        
+
         if (restaurant_settings && restaurant_settings.shifts && restaurant_settings.shifts.length == 0) {
             return;
         }
-        
+
         reservation_stats_loading = true;
         return sln.call({
             url : "/common/restaurant/reservation-stats",
@@ -427,11 +424,11 @@ $(function() {
             },
             success : function(stats) {
                 reservation_stats_loading = false;
-                
+
                 if (restaurant_settings && restaurant_settings.shifts && restaurant_settings.shifts.length == 0) {
                     return;
                 }
-                
+
                 $.each([ 'today', 'tomorrow', 'next_week' ], function(i, when) {
                     var stts = stats[when];
                     var rate = stts.capacity == 0 ? 0 : stts.reservations / stts.capacity * 100;
@@ -1026,10 +1023,11 @@ $(function() {
                 weekDaysStrs.push(DAYS_STR[o - 1]);
             });
             shift.weekDaysStr = weekDaysStrs.join(", ");
-            shift.detailStr = CommonTranslations.FROM_X_TO_Y_ON_Z
-                .replace("%(start)s", shift.startStr)
-                .replace("%(end)s", shift.endStr)
-                .replace("%(date)s", shift.weekDaysStr);
+            shift.detailStr = T('from-x-to-y-on-z', {
+                start: shift.startStr,
+                end: shift.endStr,
+                date: shift.weekDaysStr
+            });
         });
         var html = $.tmpl(templates.reservation_shiftcontents, {
             shifts : restaurant_settings.shifts
@@ -1332,7 +1330,7 @@ $(function() {
         }
     });
     $("#addshiftbutton").click(addShift);
-    
+
     $("#addtable").click(function() {
         showEditTable();
     });

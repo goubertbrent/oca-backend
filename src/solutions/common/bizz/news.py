@@ -29,6 +29,7 @@ from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
+from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_ndb_key
 from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.service import get_service_identity
@@ -446,7 +447,8 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                         del feed_names[app_id]
 
         if new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
-            raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
+            if not DEBUG:
+                raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
 
     # for the rest
     kwargs['feed_names'] = feed_names.values()

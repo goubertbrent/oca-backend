@@ -20,19 +20,16 @@ import datetime
 import json
 import logging
 import os
-import urllib
 
 import webapp2
-from google.appengine.api import search, urlfetch, users as gusers
-from google.appengine.api.urlfetch_errors import DeadlineExceededError
+from dateutil.relativedelta import relativedelta
+from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
 
-from dateutil.relativedelta import relativedelta
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpNotFoundException
-from mcfw.properties import unicode_property
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
@@ -59,7 +56,7 @@ from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.dal import get_all_signup_enabled_apps
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
-    normalize_vat, Quotation, AppCss
+    Quotation, AppCss
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
@@ -189,7 +186,8 @@ def export_invoices(year, month):
             for order_item in reversed(i['order_items']):
                 order_item['count'] = invoice_model.charge.subscription_extension_length or 1
                 product = all_products[order_item['product_code']]
-                if not (product.is_subscription_discount or product.is_subscription or product.is_subscription_extension):
+                if not (
+                    product.is_subscription_discount or product.is_subscription or product.is_subscription_extension):
                     i['order_items'].remove(order_item)
 
             # add the subscription extensions like XCTY
@@ -549,7 +547,8 @@ class CustomerEmailConsentHandler(PublicPageHandler):
         context = u'User email preferences'
         update_customer_consents(self.request.get('email'), {
             SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
-            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
+            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(
+                SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
         }, get_headers_for_consent(self.request), context)
         self.redirect('/customers/signin')
 

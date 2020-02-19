@@ -14,23 +14,3 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
-import importlib
-
-from google.appengine.ext import deferred
-from mcfw.utils import chunks
-from rogerthat.rpc import users
-from solution_server_settings import get_solution_server_settings
-import webapp2
-
-
-class SolutionEventsScraper(webapp2.RequestHandler):
-
-    def get(self):
-        solution_server_settings = get_solution_server_settings()
-        for module_name, service_user in chunks(solution_server_settings.solution_events_scrapers, 2):
-            try:
-                module = importlib.import_module("solutions.common.cron.events.%s" % module_name)
-                getattr(module, 'check_for_events')(users.User(service_user))
-            except:
-                pass

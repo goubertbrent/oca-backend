@@ -137,13 +137,13 @@ RequestsService.prototype = {
     getPaddleSettings: function(options){
         return this.get('/common/settings/paddle', options);
     },
-    savePaddleSettings: function(data, options){
+    savePaddleSettings: function (data, options) {
         return this.put('/common/settings/paddle', data, options);
     },
-    getQmaticSettings: function(options){
+    getQmaticSettings: function (options) {
         return this.get('/common/q-matic', options);
     },
-    saveQmaticSettings: function(data, options){
+    saveQmaticSettings: function (data, options) {
         return this.put('/common/q-matic', data, options);
     },
     getJccSettings: function(options){
@@ -151,6 +151,9 @@ RequestsService.prototype = {
     },
     saveJccSettings: function(data, options){
         return this.put('/common/jcc-appointments', data, options);
+    },
+    createEvent: function (data, options) {
+        return this.post('/common/events/put', data, options);
     }
 };
 

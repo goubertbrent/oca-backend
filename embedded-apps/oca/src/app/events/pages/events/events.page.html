@@ -1,0 +1,61 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'app.oca.events' | translate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ng-container *ngIf="shouldShowNews$ | async">
+    <h2 class="ion-padding-start section-title">{{ 'app.oca.news' | translate }}</h2>
+    <app-news-list (itemClicked)="onNewsItemClicked($event)"
+                   [loading]="newsLoading$ | async"
+                   [newsItems]="newsStreamItems$ | async"></app-news-list>
+  </ng-container>
+  <h2 class="ion-padding-start section-title">{{ 'app.oca.agenda' | translate }}</h2>
+  <app-event-filter (delayedSearch)="delayedSearch$.next($event)"
+                    (searched)="doSearch($event)"
+                    *ngIf="eventsFilter$ | async as filter"
+                    [endDate]="filter.endDate"
+                    [query]="filter.query"
+                    [selectedPeriod]="filter.period"
+                    [startDate]="filter.startDate"></app-event-filter>
+  <ion-list>
+    <ion-item *ngFor="let item of events$ | async; trackBy: trackById" [routerLink]="[item.id]">
+      <ion-thumbnail class="event-image" slot="start">
+        <img *ngIf="item.imageUrl; else iconTmpl" [src]="item.imageUrl" class="rounded-thumbnail"/>
+        <ng-template #iconTmpl>
+          <app-calendar-icon [date]="item.startDate"></app-calendar-icon>
+        </ng-template>
+      </ion-thumbnail>
+      <ion-label>
+        <p class="event-date ellipsis">{{ item.calendarSummary }}</p>
+        <h2 class="event-title ellipsis">{{ item.title }}</h2>
+        <p class="ellipsis">{{ item.place }}</p>
+      </ion-label>
+    </ion-item>
+    <ng-container *ngIf="eventsLoading$ | async">
+      <ion-item *ngFor="let item of fakeItems">
+        <ion-thumbnail slot="start">
+          <ion-skeleton-text animated></ion-skeleton-text>
+        </ion-thumbnail>
+        <ion-label>
+          <h3>
+            <ion-skeleton-text animated style="width: 80%;"></ion-skeleton-text>
+          </h3>
+          <p>
+            <ion-skeleton-text animated style="width: 60%;"></ion-skeleton-text>
+          </p>
+          <p>
+            <ion-skeleton-text animated style="width: 40%;"></ion-skeleton-text>
+          </p>
+        </ion-label>
+      </ion-item>
+    </ng-container>
+  </ion-list>
+  <ion-infinite-scroll (ionInfinite)="loadMore()">
+    <ion-infinite-scroll-content></ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+</ion-content>

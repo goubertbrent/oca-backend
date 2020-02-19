@@ -58,7 +58,6 @@ def save_branding_settings(service_user, branding_settings_to):
         branding_settings.show_avatar = branding_settings_to.show_avatar
         branding_settings.modification_time = now()
 
-        sln_settings.events_branding_hash = None
         sln_settings.updates_pending = True
 
         to_be_put = [branding_settings, sln_settings]

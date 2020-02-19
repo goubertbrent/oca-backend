@@ -1,0 +1,86 @@
+<ion-header *ngIf="hasNoMedia$ | async">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button icon="close"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-fab *ngIf="!(hasNoMedia$ | async)" horizontal="start" slot="fixed" vertical="top">
+    <ion-fab-button (click)="goBack()" class="back-button" color="dark" size="small">
+      <ion-icon name="close"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+  <ng-container *ngIf="event$ | async as event">
+    <div *ngIf="event.media.length" class="media-list">
+      <div *ngFor="let media of event.media" class="media-container">
+        <figure *ngIf="media.type === 'image'">
+          <img [alt]="media.copyright" [src]="media.url"/>
+          <figcaption *ngIf="media.copyright">© {{ media.copyright }}</figcaption>
+        </figure>
+      </div>
+    </div>
+    <h4 class="ion-padding-start ion-padding-end">{{ event.title }}</h4>
+    <div [innerHTML]="event.description | markdown : {breaks: true}"
+         class="ion-padding-start ion-padding-end event-details"></div>
+    <ion-list>
+      <ion-item *ngIf="event.place" [href]="placeUrl$ | async">
+        <ion-icon name="pin" slot="start"></ion-icon>
+        <ion-label>{{ event.place }}</ion-label>
+      </ion-item>
+      <ng-container *ngIf="timeDetails$ | async as timeDetails">
+        <ion-item>
+          <ion-icon name="time" slot="start"></ion-icon>
+          <ion-label [ngSwitch]="event.calendar_type">
+            <p *ngSwitchCase="CalendarType.SINGLE">
+              <app-event-date-line [endDate]="timeDetails.endDate"
+                                   [startDate]="timeDetails.startDate"></app-event-date-line>
+            </p>
+            <ng-container *ngSwitchDefault>
+              <mat-accordion *ngIf="timeDetails.periods.length > 0">
+                <mat-expansion-panel #panel>
+                  <mat-expansion-panel-header collapsedHeight="32px" expandedHeight="32px">
+                    <p *ngIf="panel.expanded">{{ 'app.oca.opening_periods' | translate }}</p>
+                    <app-event-date-line *ngIf="!panel.expanded"
+                                         [endDate]="timeDetails.periods[0].end"
+                                         [startDate]="timeDetails.periods[0].start"></app-event-date-line>
+                  </mat-expansion-panel-header>
+                  <p *ngFor="let period of timeDetails.periods">
+                    <app-event-date-line [endDate]="period.end"
+                                         [startDate]="period.start"></app-event-date-line>
+                  </p>
+                </mat-expansion-panel>
+              </mat-accordion>
+              <ng-container
+                *ngIf="event.calendar_type === CalendarType.PERIODIC || event.calendar_type === CalendarType.PERMANENT">
+                <!-- Only for 'period' and 'permanent' calendar types, so include start and end date-->
+                <p>
+                  <app-event-date-line [endDate]="timeDetails.endDate"
+                                       [startDate]="timeDetails.startDate"
+                                       dateFormat="MMMM d y"></app-event-date-line>
+                </p>
+                <p *ngIf="timeDetails.hours.length">
+                  <b>{{ 'app.oca.open_on' | translate }}:</b>
+                </p>
+                <p *ngFor="let openingPeriod of timeDetails.hours">
+                  <app-event-date-line [endDate]="openingPeriod.until"
+                                       [hoursOnly]="true"
+                                       [startDate]="openingPeriod.from"></app-event-date-line>
+                </p>
+              </ng-container>
+            </ng-container>
+          </ion-label>
+        </ion-item>
+      </ng-container>
+      <ion-item *ngIf="event.external_link" [href]="event.external_link">
+        <ion-icon name="open" slot="start"></ion-icon>
+        <ion-label>{{ 'app.oca.more_info' | translate }}</ion-label>
+      </ion-item>
+      <ion-item (click)="addToCalendar(event)" [disabled]="isAddingToCalendar$ | async" type="button">
+        <ion-icon name="calendar" slot="start"></ion-icon>
+        <ion-label>{{ 'app.oca.add_to_calendar' | translate }}</ion-label>
+      </ion-item>
+    </ion-list>
+  </ng-container>
+</ion-content>

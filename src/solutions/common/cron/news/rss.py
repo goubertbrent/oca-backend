@@ -34,12 +34,13 @@ from rogerthat.to import TO
 from rogerthat.to.push import remove_html
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
-from solutions.common.cron.news import html_unescape, html_to_markdown, transl, \
+from solutions.common.cron.news import html_unescape, transl, \
     create_news_item, update_news_item, news_item_hash, delete_news_item, \
     is_html
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
-from mcfw.properties import unicode_property
+from solutions.common.utils import html_to_markdown
+from mcfw.properties import unicode_property, typed_property
 
 
 BROADCAST_TYPE_NEWS = u"News"
@@ -119,7 +120,7 @@ def _worker(rss_settings_key):
 
         logging.info('Scraping rss for url %s in dry_run %s', rss_link.url, dry_run)
 
-        items, keys = _parse_items(response.content, rss_link.url, service_user, service_identity)
+        items, keys = parse_rss_items(response.content, rss_link.url, service_user, service_identity)
         scraped_items.extend(items)
         if items:
             oldest_dates[rss_link.url] = sorted([s for s in items], key=lambda x: x.date)[0].date
@@ -128,7 +129,7 @@ def _worker(rss_settings_key):
 
         saved_items = {item.key.id(): item for item in ndb.get_multi(keys) if
                        item}  # type: dict[str, SolutionRssScraperItem]
-        
+
         for scraped_item in items:
             # Backwards compat - in the past only url was used as key
             item = saved_items.get(scraped_item.guid) or saved_items.get(scraped_item.url)
@@ -244,9 +245,9 @@ class ScrapedItem(object):
         self.rss_url = rss_url
         self.image_url = image_url
         self.hash = news_item_hash(title, message, image_url)
-    
 
-def _parse_items(xml_content, rss_url, service_user=None, service_identity=None):
+
+def parse_rss_items(xml_content, rss_url, service_user=None, service_identity=None):
     # type: (str, str, users.User, str) -> ([ScrapedItem], [ndb.Key])
     try:
         doc = minidom.parseString(xml_content)
@@ -254,10 +255,23 @@ def _parse_items(xml_content, rss_url, service_user=None, service_identity=None)
         logging.warn('Failed to parse xml_content', exc_info=True)
         logging.debug(xml_content)
         return [], []
+
+    root_tag = doc.firstChild.tagName
+    if root_tag == 'rss':
+        return _flavor_rss_items(doc, rss_url, service_user=service_user, service_identity=service_identity)
+    elif root_tag == 'feed':
+        return _flavor_atom_items(doc, rss_url, service_user=service_user, service_identity=service_identity)
+
+    logging.error(u'Unknown rss flavor %s', root_tag)
+    return [], []
+
+
+def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
     items = []
     keys = []
     parsed_url = urlparse(rss_url)
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
+
     for item in doc.getElementsByTagName('item'):
         try:
             title = remove_html(html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue)).strip()
@@ -285,7 +299,7 @@ def _parse_items(xml_content, rss_url, service_user=None, service_identity=None)
                 except TypeError:
                     logging.debug('Could not parse date: %s', date_str)
                     date = dateutil.parser.parse(date_str, dayfirst=True)
-                    if date.utcoffset():
+                    if date.utcoffset() is not None:
                         # this date contains tzinfo and needs to be removed
                         epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
                         date = datetime.utcfromtimestamp(epoch)
@@ -295,7 +309,7 @@ def _parse_items(xml_content, rss_url, service_user=None, service_identity=None)
             logging.debug(item.childNodes)
             logging.debug("url: %s", url)
             raise
-        
+
         if service_user:
             url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
             # Always add url key for backwards compatibility - in the past only url was used as key
@@ -305,6 +319,49 @@ def _parse_items(xml_content, rss_url, service_user=None, service_identity=None)
                 keys.append(guid_key)
 
         items.append(ScrapedItem(title, url, guid, message, date, rss_url, image_url))
+    return items, keys
+
+
+def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
+    items = []
+    keys = []
+    for element in doc.getElementsByTagName('entry'):
+        to = AtomEntry.from_element(element)
+        if not to:
+            continue
+
+        date = None
+        date_str = to.updated or to.published
+        if date_str:
+            try:
+                date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
+            except TypeError:
+                logging.debug('Could not parse date: %s', date_str)
+                date = dateutil.parser.parse(date_str, dayfirst=True)
+                if date.utcoffset() is not None:
+                    # this date contains tzinfo and needs to be removed
+                    epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
+                    date = datetime.utcfromtimestamp(epoch)
+
+        image_url = None
+        url = None
+        for link in to.links:
+            if link.rel == 'alternate':
+                url = link.href
+            elif link.rel == 'enclosure' and link.type_.startswith('image/'):
+                image_url = link.href
+
+        if not url:
+            continue
+
+        if service_user:
+            url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
+            # Always add url key for backwards compatibility - in the past only url was used as key
+            keys.append(url_key)
+            guid_key = SolutionRssScraperItem.create_key(service_user, service_identity, to.id_)
+            keys.append(guid_key)
+
+        items.append(ScrapedItem(to.title.value, url, to.id_, to.summary.value, date, rss_url, image_url))
     return items, keys
 
 
@@ -325,3 +382,78 @@ def get_image_url(item, description_html):
         img_tag = doc.find('img')
         if img_tag:
             return img_tag['src'].decode('utf8')
+
+
+def get_elements_by_tag(element, tag):
+    return [i for i in element.getElementsByTagName(tag)]
+
+
+class AtomText(TO):
+    type_ = unicode_property('type')
+    value = unicode_property('value')
+
+    @classmethod
+    def from_element(cls, element):
+        to = cls()
+        to.type_ = element.getAttribute('type')
+        to.value = remove_html(html_unescape(element.firstChild.nodeValue)).strip()
+        return to
+
+class AtomLink(TO):
+    href = unicode_property('href')
+    rel = unicode_property('rel')
+    title = unicode_property('title')
+    type_ = unicode_property('type')
+
+    @classmethod
+    def from_element(cls, element):
+        to = cls()
+        to.href = element.getAttribute('href')
+        to.rel = element.getAttribute('rel')
+        to.title = element.getAttribute('title')
+        to.type_ = element.getAttribute('type')
+        return to
+
+
+class AtomEntry(TO):
+    title = typed_property('title', AtomText, False)
+    id_ = unicode_property('id')
+
+    published = unicode_property('published', default=None)
+    updated = unicode_property('updated', default=None)
+
+    links = typed_property('links', AtomLink, True, default=[])
+    summary = typed_property('summary', AtomText, False, default=None)
+
+    @classmethod
+    def from_element(cls, element):
+        to = cls()
+
+        title_elements = get_elements_by_tag(element, 'title')
+        if not title_elements:
+            logging.debug('no title_elements')
+            return None
+        to.title = AtomText.from_element(title_elements[0])
+
+        id_elements = get_elements_by_tag(element, 'id')
+        if not id_elements:
+            logging.debug('no id_elements')
+            return None
+        to.id_ = id_elements[0].firstChild.nodeValue
+
+        published_elements = get_elements_by_tag(element, 'published')
+        to.published = published_elements[0].firstChild.nodeValue if published_elements else None
+
+        updated_elements = get_elements_by_tag(element, 'updated')
+        to.updated = updated_elements[0].firstChild.nodeValue if updated_elements else None
+
+        link_elements = get_elements_by_tag(element, 'link')
+        to.links = [AtomLink.from_element(link) for link in link_elements]
+
+        summary_elements = get_elements_by_tag(element, 'summary')
+        if not summary_elements:
+            logging.debug('no summary_elements')
+            return None
+        to.summary = AtomText.from_element(summary_elements[0])
+
+        return to

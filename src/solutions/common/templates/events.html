@@ -7,7 +7,7 @@
 
 {{each(i, calendar) calendars}}
     <section id="section_calendar_${calendar.id}" {{if i != 0}}style="display:none;"{{/if}}>
-        <button class="addevent btn btn-primary" calendar_id="${calendar.id}">${CommonTranslations.EVENT_ADD}</button>
+        <button class="addevent btn btn-primary" calendar_id="${calendar.id}">${T('events-add')}</button>
         <br> <br>
 		{{if calendar.events.length}}
 		<table class="table table-striped table-bordered">

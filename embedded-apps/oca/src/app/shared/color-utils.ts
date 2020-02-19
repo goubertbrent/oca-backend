@@ -25,10 +25,11 @@ export function rgbToString(c: RGB): string {
 
 export function setColor(name: string, value: string) {
   const color = generateColor(name, value);
-  document.documentElement.style.setProperty(`--ion-color-${color.name}`, color.value);
-  document.documentElement.style.setProperty(`--ion-color-${color.name}-rgb`, color.valueRgb);
-  document.documentElement.style.setProperty(`--ion-color-${color.name}-contrast`, color.contrast);
-  document.documentElement.style.setProperty(`--ion-color-${color.name}-contrast-rgb`, color.contrastRgb);
-  document.documentElement.style.setProperty(`--ion-color-${color.name}-shade`, color.shade);
-  document.documentElement.style.setProperty(`--ion-color-${color.name}-tint`, color.tint);
+  const style = document.documentElement.style;
+  style.setProperty(`--ion-color-${color.name}`, color.value);
+  style.setProperty(`--ion-color-${color.name}-rgb`, color.valueRgb);
+  style.setProperty(`--ion-color-${color.name}-contrast`, color.contrast);
+  style.setProperty(`--ion-color-${color.name}-contrast-rgb`, color.contrastRgb);
+  style.setProperty(`--ion-color-${color.name}-shade`, color.shade);
+  style.setProperty(`--ion-color-${color.name}-tint`, color.tint);
 }

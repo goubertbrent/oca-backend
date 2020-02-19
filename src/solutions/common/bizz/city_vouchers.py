@@ -21,7 +21,6 @@ from datetime import datetime
 
 from google.appengine.ext import db, deferred
 
-from babel.numbers import get_currency_symbol
 from dateutil.relativedelta import relativedelta
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
@@ -292,7 +291,8 @@ def _resolve_voucher(service_user, service_identity, url):
     r_dict["uid"] = sln_city_voucher.uid
     if sln_city_voucher.activated:
         if sln_city_voucher.expired:
-            raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Voucher has expired'))
+            raise BusinessException(
+                common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Voucher has expired'))
         r_dict["status"] = 1
         r_dict["value"] = sln_city_voucher.value
         r_dict["redeemed_value"] = sln_city_voucher.redeemed_value

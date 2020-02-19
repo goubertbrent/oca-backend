@@ -12,7 +12,6 @@ export interface SolutionSettings {
   search_enabled: boolean;
   timezone: string;
   events_visible: boolean;
-  event_notifications_enabled: boolean;
   search_keywords: string;
   email_address: string;
   inbox_email_reminders: boolean;

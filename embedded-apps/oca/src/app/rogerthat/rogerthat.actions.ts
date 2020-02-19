@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { CameraType, QrCodeScannedContent, RogerthatError } from 'rogerthat-plugin';
+import { CameraType, GetNewsStreamItemsRequestTO, GetNewsStreamItemsResponseTO, QrCodeScannedContent } from 'rogerthat-plugin';
 import { ServiceData, UserData } from './rogerthat';
 
 export const enum RogerthatActionTypes {
@@ -9,6 +9,9 @@ export const enum RogerthatActionTypes {
   SCAN_QR_CODE_STARTED = '[rogerthat] Scan QR code started',
   SCAN_QR_CODE_UPDATE = '[rogerthat] Scan QR code update',
   SCAN_QR_CODE_FAILED = '[rogerthat] Scan QR code failed',
+  GET_NEWS_STREAM_ITEMS = '[rogerthat] Get news stream items',
+  GET_NEWS_STREAM_ITEMS_COMPLETE = '[rogerthat] Get news stream items complete',
+  GET_NEWS_STREAM_ITEMS_FAILED = '[rogerthat] Get news stream items failed',
 }
 
 export class SetUserDataAction implements Action {
@@ -50,11 +53,35 @@ export class ScanQrCodeFailedAction implements Action {
   }
 }
 
+export class GetNewsStreamItemsAction implements Action {
+  readonly type = RogerthatActionTypes.GET_NEWS_STREAM_ITEMS;
+
+  constructor(public payload: GetNewsStreamItemsRequestTO) {
+  }
+}
+
+export class GetNewsStreamItemsCompleteAction implements Action {
+  readonly type = RogerthatActionTypes.GET_NEWS_STREAM_ITEMS_COMPLETE;
+
+  constructor(public payload: GetNewsStreamItemsResponseTO) {
+  }
+}
+
+export class GetNewsStreamItemsFailedAction implements Action {
+  readonly type = RogerthatActionTypes.GET_NEWS_STREAM_ITEMS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
 
 export type RogerthatActions = SetUserDataAction
   | SetServiceDataAction
   | ScanQrCodeAction
   | ScanQrCodeStartedAction
   | ScanQrCodeUpdateAction
-  | ScanQrCodeFailedAction;
+  | ScanQrCodeFailedAction
+  | GetNewsStreamItemsAction
+  | GetNewsStreamItemsCompleteAction
+  | GetNewsStreamItemsFailedAction;
 

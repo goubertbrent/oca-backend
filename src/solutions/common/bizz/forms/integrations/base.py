@@ -14,11 +14,8 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-from rogerthat.models import ServiceProfile
+
 from rogerthat.to import TO
-from rogerthat.to.forms import DynamicFormTO
-from rogerthat.to.service import UserDetailsTO
-from solutions.common.models.forms import FormSubmission
 
 
 class BaseFormIntegration(object):

@@ -1,10 +1,14 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { TranslateService } from '@ngx-translate/core';
-import { CameraType, RogerthatCallbacks, RogerthatContext, RogerthatError } from 'rogerthat-plugin';
-import { Observable, of, Subject, throwError } from 'rxjs';
-import { filter, mergeMap } from 'rxjs/operators';
-import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from '../shared/consts';
+import {
+  CameraType,
+  GetNewsStreamItemsRequestTO,
+  GetNewsStreamItemsResponseTO,
+  RogerthatCallbacks,
+  RogerthatContext,
+} from 'rogerthat-plugin';
+import { from, Observable, of, Subject, throwError } from 'rxjs';
+import { filter, map, mergeMap, take } from 'rxjs/operators';
 import { AppVersion } from './rogerthat';
 import { ScanQrCodeUpdateAction, SetServiceDataAction, SetUserDataAction } from './rogerthat.actions';
 import { RogerthatState } from './rogerthat.state';
@@ -15,48 +19,45 @@ export class RogerthatService {
   private apiCallResult$ = new Subject<{ method: string; result: any; error: string | null; tag: string }>();
 
   constructor(private ngZone: NgZone,
-              private store: Store<RogerthatState>,
-              private translate: TranslateService) {
+              private store: Store<RogerthatState>) {
   }
 
   initialize() {
     this.store.dispatch(new SetUserDataAction(rogerthat.user.data));
     this.store.dispatch(new SetServiceDataAction(rogerthat.service.data));
     const cb = rogerthat.callbacks as RogerthatCallbacks;
+    // Callbacks aren't using promises so these need to run in the ngZone
     cb.qrCodeScanned(result => this.ngZone.run(() => this.store.dispatch(new ScanQrCodeUpdateAction(result))));
     cb.userDataUpdated(() => this.ngZone.run(() => this.store.dispatch(new SetUserDataAction(rogerthat.user.data))));
     cb.serviceDataUpdated(() => this.ngZone.run(() => this.store.dispatch(new SetServiceDataAction(rogerthat.service.data))));
-    rogerthat.api.callbacks.resultReceived((method, result, error, tag) =>
+    rogerthat.api.callbacks.resultReceived((method, result, error, tag) => {
       this.ngZone.run(() => this.apiCallResult$.next({
         method,
         result: result ? JSON.parse(result) : null,
         error,
         tag,
-      })));
+      }));
+    });
     const [major, minor, patch] = rogerthat.system.appVersion.split('.').slice(0, 3).map(s => parseInt(s, 10));
     this.version = { major, minor, patch };
   }
 
   getContext(): Observable<RogerthatContext | null> {
-    const zone = this.ngZone;
-    return new Observable<RogerthatContext | null>(emitter => {
-      rogerthat.context(success, error);
-
-      function success(context: { context: RogerthatContext | null }) {
-        zone.run(() => {
-          emitter.next(context.context);
-          emitter.complete();
-        });
-      }
-
-      function error(err: RogerthatError) {
-        zone.run(() => {
-          emitter.error(err);
-        });
-      }
-    });
+    return from(rogerthat.context()).pipe(map(result => result.context));
   }
 
+  isSupported(androidVersion: [number, number, number], iosVersion: [number, number, number]) {
+    if (rogerthat.system.os === 'android') {
+      return this.isGreaterVersion(...androidVersion);
+    } else {
+      return this.isGreaterVersion(...iosVersion);
+    }
+  }
+
+  isGreaterVersion(major: number, minor: number, patch: number) {
+    const v = this.version;
+    return (major < v.major || major === v.major && minor < v.minor || major === v.major && minor === v.minor && patch <= v.patch);
+  }
 
   apiCall<T>(method: string, data?: any, tag?: string | null): Observable<T> {
     if (!tag) {
@@ -71,27 +72,16 @@ export class RogerthatService {
     return this.apiCallResult$.pipe(
       filter(r => r.method === method && r.tag === tag),
       mergeMap(result => result.error ? throwError(result.error) : of(result.result as T)),
+      take(1),
     );
   }
 
-  startScanningQrCode(cameraType: CameraType): Observable<null> {
-    const zone = this.ngZone;
-    return new Observable(emitter => {
-      rogerthat.camera.startScanningQrCode(cameraType, success, error);
+  getNewsStreamItems(request: GetNewsStreamItemsRequestTO): Observable<GetNewsStreamItemsResponseTO> {
+    return from(rogerthat.news.getNewsStreamItems(request));
+  }
 
-      function success() {
-        zone.run(() => {
-          emitter.next(null);
-          emitter.complete();
-        });
-      }
-
-      function error(err: RogerthatError) {
-        zone.run(() => {
-          emitter.error(err);
-        });
-      }
-    });
+  startScanningQrCode(cameraType: CameraType): Observable<void> {
+    return from(rogerthat.camera.startScanningQrCode(cameraType));
   }
 
 }

@@ -8,18 +8,18 @@
 </ion-header>
 
 <ion-content>
-  <app-create-appointment [services]="services$ | async"
+  <app-create-appointment (branchSelected)="branchChanged($event)"
+                          (confirmAppointment)="confirmAppointment($event)"
+                          (dateSelected)="dateChanged($event)"
+                          (serviceSelected)="serviceChanged($event)"
+                          (timeSelected)="timeChanged($event)"
                           [branches]="branches$ | async"
                           [dates]="dates$ | async"
-                          [times]="times$ | async"
-                          [showLocation]="selectedService != null"
+                          [services]="services$ | async"
                           [showDates]="selectedBranch !== null"
-                          [showTimes]="selectedDate !== null"
                           [showLoading]="isLoading$ | async"
-                          (serviceSelected)="serviceChanged($event)"
-                          (branchSelected)="branchChanged($event)"
-                          (dateSelected)="dateChanged($event)"
-                          (timeSelected)="timeChanged($event)"
-                          (confirmAppointment)="confirmAppointment($event)"></app-create-appointment>
+                          [showLocation]="selectedService != null"
+                          [showTimes]="selectedDate !== null"
+                          [times]="times$ | async"></app-create-appointment>
 
 </ion-content>

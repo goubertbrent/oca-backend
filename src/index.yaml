@@ -31,28 +31,11 @@ indexes:
   - name: first_name
 
 - kind: Event
-  properties:
-  - name: app_ids
-  - name: deleted
-  - name: first_start_date
-  
-- kind: Event
-  properties:
-  - name: deleted
-  - name: last_start_date
-
-- kind: Event
-  ancestor: yes
-  properties:
-  - name: deleted
-  - name: first_start_date
-  
-- kind: Event
   ancestor: yes
   properties:
   - name: calendar_id
   - name: deleted
-  - name: first_start_date
+  - name: start_date
 
 - kind: Event
   ancestor: yes
@@ -62,7 +45,8 @@ indexes:
 - kind: Event
   ancestor: yes
   properties:
-  - name: start
+  - name: deleted
+  - name: source
 
 - kind: Invoice
   properties:

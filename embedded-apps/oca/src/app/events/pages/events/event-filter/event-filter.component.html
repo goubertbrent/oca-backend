@@ -1,0 +1,36 @@
+<ion-searchbar (ionChange)="queryChanged($event.detail.value)"
+               [animated]="false"
+               [autocorrect]="true"
+               [placeholder]="'app.oca.search_events' | translate"
+               [value]="query"></ion-searchbar>
+<form #form="ngForm">
+  <div class="chip-container">
+    <ion-chip (click)="periodChanged(period.key)"
+              *ngFor="let period of periods; let first=first; let last=last"
+              [class.first-item]="first"
+              [class.last-item]="last"
+              [color]="period.key === selectedPeriod ? 'primary' : null">
+      {{ period.label | translate : period.params }}
+    </ion-chip>
+  </div>
+  <ion-list *ngIf="selectedPeriod === DATE_RANGE">
+    <ion-item>
+      <ion-label>{{ 'app.oca.from' | translate }}</ion-label>
+      <ion-datetime (ionChange)="setStartDate($event.detail.value)"
+                    [min]="minStartDate"
+                    [value]="startDate"
+                    [yearValues]="yearValues"
+                    name="startDate"
+                    required></ion-datetime>
+    </ion-item>
+    <ion-item>
+      <ion-label>{{ 'app.oca.until' | translate }}</ion-label>
+      <ion-datetime (ionChange)="setEndDate($event.detail.value)"
+                    [min]="startDate"
+                    [value]="endDate"
+                    [yearValues]="yearValues"
+                    name="endDate"
+                    required></ion-datetime>
+    </ion-item>
+  </ion-list>
+</form>

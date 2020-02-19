@@ -11,7 +11,7 @@
     "target": "http://localhost:8080",
     "secure": false
   },
-  "/_ah": {
+  "/admin/api": {
     "target": "http://localhost:8080",
     "secure": false
   }

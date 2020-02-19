@@ -14,10 +14,10 @@
       <p>{{ appointment.notes }}</p>
     </ng-container>
     <ng-container *ngIf="appointment.status === AppointmentStatus.BOOKED">
-      <ion-button color="danger" size="small" (click)="cancelClicked.emit(appointment)">
+      <ion-button (click)="cancelClicked.emit(appointment)" color="danger" size="small">
         {{ 'app.oca.cancel' | translate }}
       </ion-button>
-      <ion-button size="small" (click)="addToCalendarClicked.emit(appointment)">
+      <ion-button (click)="addToCalendarClicked.emit(appointment)" size="small">
         {{ 'app.oca.add_to_calendar' | translate }}
       </ion-button>
     </ng-container>

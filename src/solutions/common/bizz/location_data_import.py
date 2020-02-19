@@ -21,7 +21,6 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 
 from mcfw.cache import cached
-from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import arguments, returns
 from rogerthat.utils.location import geo_code
 from solutions.common.models.news import CityAppLocations, LocationBounds, Street, Locality
@@ -60,7 +59,7 @@ def _import_location_data(data, app_id, country_code, official_id):
         country_code=country_code,
     )
     data_in_city = data[str(official_id)]
-    for postal_code, locality in data_in_city.iteritems():
+    for locality in data_in_city.itervalues():
         geocoded = _geo_code(locality['name'], {'components': 'country:%s' % country_code})
         geometry = geocoded['geometry']
         if 'bounds' not in geometry:

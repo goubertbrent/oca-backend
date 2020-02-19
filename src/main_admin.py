@@ -25,13 +25,10 @@ from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.budget import BudgetCheckHandler
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler, \
     SolutionCityVoucherExpiredReminderHandler
-from solutions.common.cron.events import SolutionEventsScraper
-from solutions.common.cron.events.events import CleanupSolutionEvents, ReminderSolutionEvents, \
-    SolutionSyncGoogleCalendarEvents, UpdateSolutionEventStartDate
+from solutions.common.cron.events.events import CleanupSolutionEvents, SolutionSyncGoogleCalendarEvents
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.forms import FinishFormsCron
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
-from solutions.common.cron.news import SolutionNewsScraper
 from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.paddle import SyncPaddleInfoHandler
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
@@ -41,8 +38,6 @@ from solutions.common.handlers.admin.services import ServiceTools
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
-    ('/admin/cron/rpc/reminder_solution_events', ReminderSolutionEvents),
-    ('/admin/cron/rpc/update_first_start_solution_events', UpdateSolutionEventStartDate),
     ('/admin/cron/rpc/solution_sync_google_calendar_events', SolutionSyncGoogleCalendarEvents),
     ('/admin/cron/rpc/solution_cityapp_events_uitdatabank', CityAppSolutionEventsUitdatabank),
     ('/admin/cron/rpc/shop_export_reseller_invoices', ExportResellerInvoicesHandler),
@@ -52,8 +47,6 @@ handlers = [
     ('/admin/cron/rpc/solution_expired_vouchers_reminder', SolutionCityVoucherExpiredReminderHandler),
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/rpc/city_association_statistics', CreateNonProfitStatistics),
-    ('/admin/cron/rpc/solution_events_scraper', SolutionEventsScraper),
-    ('/admin/cron/rpc/solution_news_scraper', SolutionNewsScraper),
     ('/admin/cron/rpc/solution_rss_scraper', SolutionRssScraper),
     ('/admin/cron/rpc/solution_city_vouchers', SolutionCityVouchersExportHandler),
     ('/admin/cron/rpc/solutions_news_budget_updater', BudgetCheckHandler),

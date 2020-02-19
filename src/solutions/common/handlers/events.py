@@ -30,9 +30,11 @@ class EventsGoogleOauth2callbackHandler(webapp2.RequestHandler):
         code = self.request.get("code", None)
         error = self.request.get("error", None)
         if error:
-            send_message(service_user, u"solutions.common.calendar.google.callback", success=False, calendar_id=calendarId)
+            send_message(service_user, u"solutions.common.calendar.google.callback", success=False,
+                         calendar_id=calendarId)
         else:
             success = save_google_credentials(service_user, calendarId, code)
-            send_message(service_user, u"solutions.common.calendar.google.callback", success=success, calendar_id=calendarId)
+            send_message(service_user, u"solutions.common.calendar.google.callback", success=success,
+                         calendar_id=calendarId)
 
         self.response.write("Loading...")

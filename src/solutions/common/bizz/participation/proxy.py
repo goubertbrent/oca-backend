@@ -26,7 +26,6 @@ from mcfw.restapi import GenericRESTRequestHandler
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.restapi.service_panel import generate_api_key
-from rogerthat.rpc import users
 from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
 from solutions import translate, SOLUTION_COMMON

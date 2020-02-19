@@ -20,7 +20,6 @@ from google.appengine.ext.ndb import GeoPt
 from rogerthat.bizz.maps.gipod import GIPOD_TAG
 from rogerthat.bizz.maps.reports import REPORTS_TAG
 from rogerthat.models.maps import MapConfig
-from solutions.common.to.reports import MapConfigTO
 
 
 def get_map_settings(app_id, map_tag):

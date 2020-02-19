@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from __future__ import unicode_literals
 
 import base64
 import json
@@ -27,21 +28,22 @@ from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import jinja2
-from google.appengine.ext import db, deferred
-
-import solutions
 from babel import dates
 from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
 from babel.numbers import format_currency
+from google.appengine.ext import db, deferred
+from typing import List
+
+import solutions
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
 from rogerthat.bizz.features import Features
-from rogerthat.consts import DAY
-from rogerthat.dal import parent_key, put_and_invalidate_cache
-from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, ServiceProfile
+from rogerthat.consts import DAY, DEBUG
+from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_ndb_key
+from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App
 from rogerthat.models.properties.app import AutoConnectedService
-from rogerthat.models.utils import allocate_id
+from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.service.api.news import list_groups
@@ -57,14 +59,13 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
     OrganizationType, OCAEmbeddedApps
-from solutions.common.bizz.events import provision_events_branding
 from solutions.common.bizz.group_purchase import provision_group_purchase_branding
 from solutions.common.bizz.loyalty import provision_loyalty_branding, get_loyalty_slide_footer
 from solutions.common.bizz.menu import _put_default_menu, get_item_image_url
 from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPOINTMENT, POKE_TAG_REPAIR, \
     POKE_TAG_SANDWICH_BAR, POKE_TAG_EVENTS, POKE_TAG_MENU, POKE_TAG_WHEN_WHERE, \
-    POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, POKE_TAG_NEW_EVENT, \
-    POKE_TAG_EVENTS_CONNECT_VIA_SCAN, POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
+    POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, \
+    POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS
 from solutions.common.bizz.order import ORDER_FLOW_NAME
@@ -75,9 +76,8 @@ from solutions.common.bizz.system import generate_branding
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_GRAM, UNIT_KG, SECONDS_IN_HOUR, \
     SECONDS_IN_DAY, SECONDS_IN_MINUTE, SECONDS_IN_WEEK
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, \
-    get_solution_group_purchase_settings, get_solution_calendars, get_static_content_keys, \
-    get_solution_identity_settings, get_solution_settings_or_identity_settings, get_solution_news_publishers, \
-    get_calendar_items
+    get_solution_group_purchase_settings, get_static_content_keys, \
+    get_solution_identity_settings, get_solution_settings_or_identity_settings, get_solution_news_publishers
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.cityapp import invalidate_service_user_for_city, get_uitdatabank_settings
 from solutions.common.dal.order import get_solution_order_settings
@@ -88,9 +88,8 @@ from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings
 from solutions.common.models import SolutionMainBranding, SolutionSettings, SolutionBrandingSettings, \
     SolutionAutoBroadcastTypes, SolutionQR, RestaurantMenu, SolutionModuleAppText
-from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
+from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
-from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.models.discussion_groups import SolutionDiscussionGroup
 from solutions.common.models.group_purchase import SolutionGroupPurchase
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyLottery, \
@@ -101,7 +100,7 @@ from solutions.common.models.properties import MenuItem, ActivatedModules, \
 from solutions.common.models.reservation import RestaurantProfile
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichSettings, SandwichOption
 from solutions.common.models.static_content import SolutionStaticContent
-from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, SolutionCalendarTO, TimestampTO
+from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
@@ -111,28 +110,27 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-
 POKE_TAGS = {
-    SolutionModule.AGENDA:        POKE_TAG_EVENTS,
-    SolutionModule.APPOINTMENT:   POKE_TAG_APPOINTMENT,
-    SolutionModule.ASK_QUESTION:  POKE_TAG_ASK_QUESTION,
-    SolutionModule.BROADCAST:     ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
-    SolutionModule.BILLING:       None,
-    SolutionModule.BULK_INVITE:   None,
-    SolutionModule.CITY_APP:      None,
+    SolutionModule.AGENDA: POKE_TAG_EVENTS,
+    SolutionModule.APPOINTMENT: POKE_TAG_APPOINTMENT,
+    SolutionModule.ASK_QUESTION: POKE_TAG_ASK_QUESTION,
+    SolutionModule.BROADCAST: ServiceMenuDef.TAG_MC_BROADCAST_SETTINGS,
+    SolutionModule.BILLING: None,
+    SolutionModule.BULK_INVITE: None,
+    SolutionModule.CITY_APP: None,
     SolutionModule.CITY_VOUCHERS: None,
     SolutionModule.DISCUSSION_GROUPS: POKE_TAG_DISCUSSION_GROUPS,
     SolutionModule.GROUP_PURCHASE: POKE_TAG_GROUP_PURCHASE,
-    SolutionModule.LOYALTY:       POKE_TAG_LOYALTY,
-    SolutionModule.MENU:          POKE_TAG_MENU,
-    SolutionModule.ORDER:         POKE_TAG_ORDER,
+    SolutionModule.LOYALTY: POKE_TAG_LOYALTY,
+    SolutionModule.MENU: POKE_TAG_MENU,
+    SolutionModule.ORDER: POKE_TAG_ORDER,
     SolutionModule.PHARMACY_ORDER: POKE_TAG_PHARMACY_ORDER,
-    SolutionModule.QR_CODES:      None,
-    SolutionModule.REPAIR:        POKE_TAG_REPAIR,
+    SolutionModule.QR_CODES: None,
+    SolutionModule.REPAIR: POKE_TAG_REPAIR,
     SolutionModule.RESTAURANT_RESERVATION: None,
-    SolutionModule.SANDWICH_BAR:  POKE_TAG_SANDWICH_BAR,
+    SolutionModule.SANDWICH_BAR: POKE_TAG_SANDWICH_BAR,
     SolutionModule.STATIC_CONTENT: None,
-    SolutionModule.WHEN_WHERE:    POKE_TAG_WHEN_WHERE,
+    SolutionModule.WHEN_WHERE: POKE_TAG_WHEN_WHERE,
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: None,
     SolutionModule.JOBS: None,
     SolutionModule.FORMS: None,
@@ -265,7 +263,8 @@ def get_and_store_content_branding(service_user, language):
                                                         branding_settings.show_avatar,
                                                         {'language': language,
                                                          'loyalty_type': loyalty_settings.loyalty_type,
-                                                         'auto_login_link': "%s&loyalty=1" % generate_auto_login_url(service_user),
+                                                         'auto_login_link': "%s&loyalty=1" % generate_auto_login_url(
+                                                             service_user),
                                                          'website': loyalty_settings.website})
 
                         content = content.encode('utf8')
@@ -282,7 +281,8 @@ def get_and_store_content_branding(service_user, language):
                                 if f_name == "js":
                                     if f_name_in_map == "app_translations.js":
                                         content = JINJA_ENVIRONMENT.get_template(
-                                            "content_branding/%s/%s" % (f_name, f_name_in_map)).render({'language': language}).encode("utf-8")
+                                            "content_branding/%s/%s" % (f_name, f_name_in_map)).render(
+                                            {'language': language}).encode("utf-8")
                                 zip_.writestr("%s/%s" % (f_name, f_name_in_map), content)
                             content = None
                         else:
@@ -336,30 +336,8 @@ def create_inbox_forwarding_flow(main_branding_key, main_language):
 
 
 def create_inbox_forwarding_qr_code(service_identity, identifier):
-    return qr.create("Receive inbox messages", POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, None, service_identity, identifier)
-
-
-@returns()
-@arguments(sln_calendar=SolutionCalendar, main_branding_key=unicode, main_language=unicode)
-def _configure_calendar_admin_qr_code(sln_calendar, main_branding_key, main_language):
-    qr_code = create_calendar_admin_qr_code(sln_calendar, main_branding_key, main_language)
-
-    def trans():
-        sc = db.get(sln_calendar.key())
-        sc.connector_qrcode = qr_code.image_uri
-        sc.put()
-    db.run_in_transaction(trans)
-
-
-@returns(QRDetailsTO)
-@arguments(sc=SolutionCalendar, main_branding_key=unicode, main_language=unicode)
-def create_calendar_admin_qr_code(sc, main_branding_key, main_language):
-    flow_params = dict(branding_key=main_branding_key, language=main_language, calendar=sc)
-    flow = JINJA_ENVIRONMENT.get_template('flows/events_connect_via_scan.xml').render(flow_params)
-    connect_via_scan_flow = system.put_flow(flow.encode('utf-8'), multilanguage=False)
-    info = json.dumps(dict(calendar_id=sc.calendar_id)).decode('utf8')
-    tag = POKE_TAG_EVENTS_CONNECT_VIA_SCAN + info
-    return qr.create("Calendar admin connect %s" % sc.name, tag, None, None, connect_via_scan_flow.identifier)
+    return qr.create("Receive inbox messages", POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, None, service_identity,
+                     identifier)
 
 
 @returns(QRDetailsTO)
@@ -386,7 +364,7 @@ def populate_identity(sln_settings, main_branding_key):
 
     content_branding_hash = None
     if SolutionModule.LOYALTY in sln_settings.modules or \
-            SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
+        SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
         solution_loyalty_settings = get_and_store_content_branding(
             sln_settings.service_user, sln_settings.main_language)
         content_branding_hash = solution_loyalty_settings.branding_key
@@ -489,19 +467,17 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
     holiday_dates = []
     holiday_dates_str = []
     cur_date = now()
+    lang = sln_settings.main_language
+    tz = sln_settings.tz_info
     for d1, d2 in sln_i_settings.holiday_tuples:
         # don't include holidays in the past
         if cur_date < d2:
             holiday_dates.append({'from': d1, 'to': d2})
-            holiday_dates_str.append(common_translate(sln_settings.main_language,
-                                                      SOLUTION_COMMON,
-                                                      'date_until_date',
-                                                      from_date=format_date(datetime.fromtimestamp(d1, tz=get_timezone(sln_settings.timezone)),
-                                                                            format='medium',
-                                                                            locale=sln_settings.main_language),
-                                                      until_date=format_date(datetime.fromtimestamp(d2, tz=get_timezone(sln_settings.timezone)),
-                                                                             format='medium',
-                                                                             locale=sln_settings.main_language)))
+            from_date = format_date(datetime.fromtimestamp(d1, tz=tz), 'medium', lang)
+            until_date = format_date(datetime.fromtimestamp(d2, tz=tz), 'medium', lang)
+            holiday_dates_str.append(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'date_until_date',
+                                                      from_date=from_date,
+                                                      until_date=until_date))
 
     address_url = None
     if sln_i_settings.address and sln_i_settings.location:
@@ -561,27 +537,6 @@ def populate_identity_and_publish(sln_settings, main_branding_key):
 
 @returns(dict)
 @arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
-def get_app_data_agenda(sln_settings, service_identity, default_app_id):
-    calendars = get_solution_calendars(sln_settings.service_user, sln_settings.solution)  # type: list[SolutionCalendar]
-    solution_calendars = [c.to_dict() for c in get_calendar_items(sln_settings, calendars)]
-
-    if SolutionModule.CITY_APP in sln_settings.modules:
-        city_app_profile_key = CityAppProfile.create_key(sln_settings.service_user)
-        city_app_profile = CityAppProfile.get(city_app_profile_key)
-        if city_app_profile and city_app_profile.gather_events_enabled:
-            lang = sln_settings.main_language
-            for organization_type in CityAppProfile.EVENTS_ORGANIZATION_TYPES:
-                name = ServiceProfile.localized_plural_organization_type(organization_type, lang, default_app_id)
-                calendar = SolutionCalendarTO(id=organization_type, name=name)
-                solution_calendars.append(calendar.to_dict())
-
-    return {
-        'solutionCalendars': solution_calendars
-    }
-
-
-@returns(dict)
-@arguments(sln_settings=SolutionSettings, service_identity=unicode, default_app_id=unicode)
 def get_app_data_broadcast(sln_settings, service_identity, default_app_id):
     with users.set_user(sln_settings.service_user):
         si = system.get_info(service_identity)
@@ -622,8 +577,9 @@ def get_app_data_loyalty(sln_settings, service_identity, default_app_id):
         app_data["loyalty_2"] = {"dates": []}
         ll_info = SolutionLoyaltyLottery.load_pending(sln_settings.service_user, service_identity)
         if ll_info:
-            app_data["loyalty_2"]["dates"].append({"date": serialize_complex_value(TimestampTO.fromEpoch(ll_info.end_timestamp), TimestampTO, False),
-                                                   "winnings": ll_info.winnings})
+            app_data["loyalty_2"]["dates"].append(
+                {"date": serialize_complex_value(TimestampTO.fromEpoch(ll_info.end_timestamp), TimestampTO, False),
+                 "winnings": ll_info.winnings})
     elif loyalty_settings.loyalty_type == SolutionLoyaltySettings.LOYALTY_TYPE_STAMPS:
         app_data["loyalty_3"] = {"settings": serialize_complex_value(loyalty_settings, LoyaltyStampsSettingsTO, False)}
 
@@ -674,6 +630,11 @@ def _configure_inbox_qr_code_if_needed(sln_settings, main_branding):
 @returns(SolutionSettings)
 @arguments(sln_settings=SolutionSettings, coords_dict=dict, main_branding=SolutionMainBranding, default_lang=unicode)
 def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang):
+    if DEBUG:
+        # When developing sometimes a service might have a module that doesn't exist on the current code base.
+        # This could be because a new module has been added in a yet-to-be-merged feature branch
+        sln_settings.modules = [m for m in sln_settings.modules if m in coords_dict]
+        sln_settings.provisioned_modules = [m for m in sln_settings.provisioned_modules if m in coords_dict]
     for module in sln_settings.modules:
         # Check if coords are supplied for each module in settings.modules
         azzert(module in coords_dict)
@@ -816,83 +777,37 @@ def provision_all_modules(sln_settings, coords_dict, main_branding, default_lang
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
            default_lang=unicode, tag=unicode)
 def put_agenda(sln_settings, current_coords, main_branding, default_lang, tag):
-
+    # type: (SolutionSettings, List[int], SolutionMainBranding, str, str) -> List[SolutionServiceMenuItem]
     ssmis = []
-    role_id = None
-    roles = system.list_roles()
-    for role in roles:
-        if role.name == POKE_TAG_NEW_EVENT:
-            role_id = role.id
-            break
-    if not role_id:
-        role_id = system.put_role(POKE_TAG_NEW_EVENT, ServiceRole.TYPE_MANAGED)
-
-    ssmi = SolutionServiceMenuItem(u"fa-plus-square-o",
-                                   sln_settings.menu_item_color,
-                                   common_translate(default_lang, SOLUTION_COMMON, 'create-event'),
-                                   POKE_TAG_NEW_EVENT,
-                                   roles=[role_id],
-                                   action=0)
-    ssmis.append(ssmi)
 
     if not sln_settings.default_calendar:
-        sc_id = allocate_id(SolutionCalendar, parent=parent_key(sln_settings.service_user, sln_settings.solution))
-
-        def trans():
-            sc = SolutionCalendar(key=SolutionCalendar.create_key(sc_id, sln_settings.service_user, sln_settings.solution),
-                                  name="Default",
-                                  deleted=False)
-            sln_settings.default_calendar = sc_id
-            put_and_invalidate_cache(sln_settings, sc)
-            return sc
-
-        xg_on = db.create_transaction_options(xg=True)
-        sc = db.run_in_transaction_options(xg_on, trans)
-
-        if db.is_in_transaction():
-            on_trans_committed(
-                _configure_calendar_admin_qr_code, sc, main_branding.branding_key, sln_settings.main_language)
-        else:
-            _configure_calendar_admin_qr_code(sc, main_branding.branding_key, sln_settings.main_language)
+        sc_id = ndb_allocate_id(SolutionCalendar, parent_ndb_key(sln_settings.service_user, sln_settings.solution))
+        sc = SolutionCalendar(key=SolutionCalendar.create_key(sc_id, sln_settings.service_user, sln_settings.solution),
+                              name='Default',
+                              deleted=False)
+        sln_settings.default_calendar = sc_id
+        sln_settings.put()
+        sc.put()
 
     if sln_settings.events_visible:
-        provision_events_branding(sln_settings, main_branding, default_lang)
-
-        # Configure automatic broadcast types
-        broadcast_types = list()
-        for c in get_solution_calendars(sln_settings.service_user, sln_settings.solution, True):
-            broadcast_types.append(
-                common_translate(default_lang, SOLUTION_COMMON, u'calendar-broadcast-type') % dict(name=c.name))
-        SolutionAutoBroadcastTypes(
-            key_name=SolutionModule.AGENDA, parent=sln_settings, broadcast_types=broadcast_types).put()
-
-        if default_lang == "nl" and SolutionModule.CITY_APP in sln_settings.modules \
-                and get_uitdatabank_settings(sln_settings.service_user).enabled:
+        if default_lang == "nl" and SolutionModule.CITY_APP in sln_settings.modules and get_uitdatabank_settings(
+            sln_settings.service_user).enabled:
             icon = u"uit"
             label = u"in %s" % sln_settings.name
         else:
             icon = u"fa-book"
             label = common_translate(default_lang, SOLUTION_COMMON, 'agenda')
 
-        ssmi = SolutionServiceMenuItem(icon,
-                                       sln_settings.menu_item_color,
-                                       label,
-                                       tag,
-                                       screen_branding=sln_settings.events_branding_hash,
-                                       broadcast_types=broadcast_types,
-                                       action=SolutionModule.action_order(SolutionModule.AGENDA))
-        ssmis.append(ssmi)
+        ssmis.append(SolutionServiceMenuItem(icon,
+                                             sln_settings.menu_item_color,
+                                             label,
+                                             tag,
+                                             action=SolutionModule.action_order(SolutionModule.AGENDA),
+                                             embedded_app=OCAEmbeddedApps.OCA))
     else:
-        delete_agenda_item(sln_settings, current_coords, None)
+        _default_delete(sln_settings, current_coords, None)
 
     return ssmis
-
-
-@returns(NoneType)
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
-def delete_agenda_item(sln_settings, current_coords, service_menu):
-    _default_delete(sln_settings, current_coords, service_menu)
-    SolutionAutoBroadcastTypes(key_name=SolutionModule.AGENDA, parent=sln_settings, broadcast_types=list()).put()
 
 
 @returns(NoneType)
@@ -907,30 +822,7 @@ def delete_qr_codes(sln_settings, current_coords, service_menu):
 
 @returns(NoneType)
 @arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
-def delete_agenda(sln_settings, current_coords, service_menu):
-    delete_agenda_item(sln_settings, current_coords, service_menu)
-    current_coords = get_coords_of_service_menu_item(service_menu, POKE_TAG_NEW_EVENT)
-    _default_delete(sln_settings, current_coords, service_menu)
-
-    admins_to_delete = []
-    for admin_key in SolutionCalendarAdmin.all(keys_only=True).ancestor(parent_key(sln_settings.service_user, sln_settings.solution)):
-        admins_to_delete.append(admin_key)
-
-    db.delete(admins_to_delete)
-    role_id = None
-    roles = system.list_roles()
-    for role in roles:
-        if role.name == POKE_TAG_NEW_EVENT:
-            role_id = role.id
-            break
-    if role_id:
-        on_trans_committed(system.delete_role, role_id, True)
-
-
-@returns(NoneType)
-@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
 def delete_broadcast(sln_settings, current_coords, service_menu):
-    """like delete_agenda but for broadcast"""
     _default_delete(sln_settings, current_coords, service_menu)
     # create news menu
     create_news_coords = get_coords_of_service_menu_item(service_menu,
@@ -1092,6 +984,7 @@ def _configure_inbox_forwarding_qr_code(service_user, service_identity, flow_ide
             sln_i_settings = get_solution_identity_settings(service_user, service_identity)
         sln_i_settings.inbox_connector_qrcode = qrcode.image_uri
         sln_i_settings.put()
+
     db.run_in_transaction(trans)
 
 
@@ -2044,7 +1937,6 @@ def _default_delete(sln_settings, current_coords, service_menu=None):
 
 
 MODULES_GET_APP_DATA_FUNCS = {
-    SolutionModule.AGENDA: get_app_data_agenda,
     SolutionModule.BROADCAST: get_app_data_broadcast,
     SolutionModule.CITY_VOUCHERS: get_app_data_city_vouchers,
     SolutionModule.GROUP_PURCHASE: get_app_data_group_purchase,
@@ -2083,7 +1975,7 @@ MODULES_PUT_FUNCS = {
 }
 
 MODULES_DELETE_FUNCS = {
-    SolutionModule.AGENDA: delete_agenda,
+    SolutionModule.AGENDA: _default_delete,
     SolutionModule.APPOINTMENT: _default_delete,
     SolutionModule.ASK_QUESTION: _default_delete,
     SolutionModule.BILLING: _default_delete,

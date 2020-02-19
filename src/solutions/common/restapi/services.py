@@ -399,7 +399,7 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
 
 def copy_accepted_terms_of_use(signup_key, service_user):
     # type: (db.Key, users.User) -> None
-    original_key = LegalDocumentAcceptance.create_key(ndb.Key.from_old_key(signup_key),
+    original_key = LegalDocumentAcceptance.create_key(ndb.Key.from_old_key(signup_key),  # @UndefinedVariable
                                                       LegalDocumentType.TERMS_AND_CONDITIONS)
     doc = original_key.get()  # type: LegalDocumentAcceptance
     if doc:

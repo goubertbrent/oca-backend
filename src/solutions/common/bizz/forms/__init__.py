@@ -21,22 +21,20 @@ import random
 from datetime import datetime
 from os import path
 
+import cloudstorage
+import dateutil
 from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 
-import cloudstorage
-import dateutil
 from mcfw.consts import MISSING
 from mcfw.imaging import recolor_png
 from mcfw.rpc import arguments, returns
-from rogerthat.bizz.features import mobile_supports_feature, Features
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job import run_job, MODE_BATCH
 from rogerthat.consts import SCHEDULED_QUEUE, MC_RESERVED_TAG_PREFIX
 from rogerthat.dal import parent_ndb_key
-from rogerthat.dal.mobile import get_user_active_mobiles
 from rogerthat.dal.profile import get_profile_infos, get_user_profile, get_service_profile
 from rogerthat.models import Message, ServiceIdentity
 from rogerthat.rpc import users
@@ -46,11 +44,9 @@ from rogerthat.service.api.forms import service_api
 from rogerthat.to.forms import DynamicFormTO, FormSubmittedCallbackResultTO, \
     SubmitDynamicFormRequestTO, FormSectionValueTO
 from rogerthat.to.messaging import MemberTO
-from rogerthat.to.messaging.service_callback_results import PokeCallbackResultTO, TYPE_MESSAGE, \
-    MessageCallbackResultTypeTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import try_or_defer, parse_color
-from rogerthat.utils.app import create_app_user, create_app_user_by_email
+from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions import SOLUTION_COMMON, translate
 from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_in_service_menu

@@ -1,7 +1,7 @@
 <app-appointment-products-overview [selectedProducts]="selectedProducts"></app-appointment-products-overview>
 <ion-list>
   <ion-list-header>{{ 'app.oca.location_and_time' | translate }}</ion-list-header>
-  <ion-item class="summary-item" *ngIf="location">
+  <ion-item *ngIf="location" class="summary-item">
     <ion-label>{{ 'app.oca.location' | translate }}</ion-label>
     <ion-note color="contrast" slot="end">{{ location.locationDesc }}</ion-note>
   </ion-item>
@@ -13,7 +13,6 @@
 <ion-list>
   <ion-list-header>{{ 'app.oca.contact_details' | translate }}</ion-list-header>
   <ng-container *ngFor="let field of clientFields">
-    <!-- TODO: the $any probably won't be needed when using ivy since there will be proper type inference -->
     <ion-item *ngIf="$any(appointment)[field.Name] as value" class="summary-item">
       <ion-label>{{ field.Description | translate }}</ion-label>
       <ion-note color="contrast" slot="end">{{ value }}</ion-note>

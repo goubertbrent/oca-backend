@@ -8,7 +8,6 @@
         <tr>
             <th>${ T('Email') }</th>
             {{if inbox_enabled}}<th>${ T('inbox-forwarder') }</th>{{/if}}
-            {{if agenda_enabled}}<th>${ T('calendar-admin') }</th>{{/if}}
             {{if broadcast_enabled}}<th>${ T('news-publisher') }</th>{{/if}}
             <th></th>
         </tr>
@@ -32,19 +31,6 @@
                         {{if forwarder_type == 'mobile'}}${T('Mobile')} <i class="fa fa-mobile"></i>{{/if}}
                         {{if forwarder_type == 'email'}}${T('Email')} <i class="icon-user"></i>{{/if}}
                         {{if j < user_roles.forwarder_types.length - 1}}, {{/if}}
-                        {{/each}}
-                    </label>
-                </div>
-            </td>
-            {{/if}}
-            {{if agenda_enabled}}
-            <td>
-                <div class="checkbox">
-                    <label>
-                        <input name="calendar" type="checkbox" {{if user_roles.calendar_admin}}checked{{/if}} disabled
-                        calendar_ids="{{each(i, calendar) user_roles.calendars}}${calendar.id}{{if i < user_roles.calendars.length - 1}},{{/if}}{{/each}}">
-                        {{each(i, calendar) user_roles.calendars}}
-                            ${calendar.name}{{if i < user_roles.calendars.length - 1}}, {{/if}}
                         {{/each}}
                     </label>
                 </div>

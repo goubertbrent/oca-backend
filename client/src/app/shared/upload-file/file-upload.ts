@@ -10,7 +10,12 @@ export interface UploadFormFileReference {
   id: number;
 }
 
-export type UploadFileReference = UploadFormFileReference;
+export interface UploadEventFileReference {
+  type: 'event';
+  id: number;
+}
+
+export type UploadFileReference = UploadFormFileReference | UploadEventFileReference;
 
 export interface UploadFileDialogConfig {
   reference?: UploadFileReference;

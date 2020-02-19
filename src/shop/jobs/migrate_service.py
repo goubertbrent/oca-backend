@@ -15,11 +15,11 @@
 #
 # @@license_version:1.5@@
 
-from contextlib import closing
 import json
 import logging
-from types import NoneType
 import uuid
+from contextlib import closing
+from types import NoneType
 
 from google.appengine.ext import db, deferred
 
@@ -51,16 +51,14 @@ from rogerthat.utils.service import create_service_identity_user, get_service_us
 from rogerthat.utils.transactions import on_trans_committed, run_in_xg_transaction
 from shop.bizz import re_index_customer
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.provisioning import put_qr_codes, populate_identity, create_calendar_admin_qr_code, \
-    create_inbox_forwarding_qr_code, put_loyalty, create_inbox_forwarding_flow
+from solutions.common.bizz.provisioning import put_qr_codes, populate_identity, create_inbox_forwarding_qr_code, \
+    put_loyalty, create_inbox_forwarding_flow
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, get_solution_identity_settings
 from solutions.common.dal.cityapp import invalidate_service_user_for_city
 from solutions.common.models import SolutionQR, SolutionMainBranding
-from solutions.common.models.agenda import EventReminder, SolutionCalendar
 from solutions.common.models.loyalty import SolutionLoyaltySettings, SolutionLoyaltyIdentitySettings
 from solutions.common.models.reservation import RestaurantReservation, RestaurantProfile
 from solutions.common.utils import create_service_identity_user_wo_default, is_default_service_identity
-
 
 try:
     from cStringIO import StringIO
@@ -237,7 +235,6 @@ def _delete_search_indexes(service_user):
 
 
 def _put_and_invalidate_cache_and_allocate_ids(*models):
-
     @db.non_transactional
     def _allocate_non_transactional():
         _allocate()
@@ -318,6 +315,7 @@ def _2000_migrate_user_data(job_key):
                 job = _get_job(job_key)
                 job.set_user_datas(job_user_datas)
                 job.put()
+
             db.run_in_transaction(trans_update_user_datas)
 
     # Set the next phase
@@ -575,7 +573,8 @@ def _5000_migrate_non_ancestor_models(job_key):
         models.append(model)
 
     logging.info("2/ Collecting MessageFlowRunRecords")
-    for model in MessageFlowRunRecord.all().filter("service_identity >=", job.from_service_user.email() + '/').filter("service_identity <", job.from_service_user.email() + u"/\ufffd"):
+    for model in MessageFlowRunRecord.all().filter("service_identity >=", job.from_service_user.email() + '/').filter(
+        "service_identity <", job.from_service_user.email() + u"/\ufffd"):
         identity = get_identity_from_service_identity_user(users.User(model.service_identity))
         model.service_identity = create_service_identity_user(job.to_service_user, identity).email()
         models.append(model)
@@ -629,6 +628,7 @@ def _migrate_ancestor_models(job, from_ancestor_key):
             _migrate_models(job, old_models)
             return True
         return False
+
     xg_on = db.create_transaction_options(xg=True)
     while db.run_in_transaction_options(xg_on, trans):
         pass
@@ -674,7 +674,7 @@ def _7000_migrate_solution(job_key):
             old_model = db.get(SolutionMainBranding.create_key(job.from_service_user))
             if old_model:
                 kwargs = copy_model_properties(old_model)
-                new_model = SolutionMainBranding(key=SolutionMainBranding.create_key(job.to_service_user),**kwargs)
+                new_model = SolutionMainBranding(key=SolutionMainBranding.create_key(job.to_service_user), **kwargs)
                 new_models.append(new_model)
                 old_models.append(old_model)
 
@@ -703,19 +703,7 @@ def _7000_migrate_solution(job_key):
                     r.service_user = to_si_user
                 _put_and_invalidate_cache_and_allocate_ids(*reservations)
 
-        logging.info('2/ Migrate EventReminders')
-        for service_identity in identities:
-            from_si_user = create_service_identity_user(job.from_service_user)
-            to_si_user = create_service_identity_user(job.to_service_user)
-            while True:
-                reminders = EventReminder.all().filter('service_identity_user', from_si_user).fetch(300)
-                if not reminders:
-                    break
-                for r in reminders:
-                    r.service_identity_user = to_si_user
-                _put_and_invalidate_cache_and_allocate_ids(*reminders)
-
-        logging.info('3/ Migrate RestaurantProfile.reserve_flow_part2')
+        logging.info('2/ Migrate RestaurantProfile.reserve_flow_part2')
         restaurant_profile = db.get(RestaurantProfile.create_key(job.from_service_user))
         if restaurant_profile and restaurant_profile.reserve_flow_part2:
             old_part2_key = db.Key(restaurant_profile.reserve_flow_part2)
@@ -725,12 +713,12 @@ def _7000_migrate_solution(job_key):
             restaurant_profile.reserve_flow_part2 = str(new_part2_key)
             _put_and_invalidate_cache_and_allocate_ids(restaurant_profile)
 
-        logging.info('4/ Delete all SolutionQRs. They will be recreated when provisioning.')
+        logging.info('3/ Delete all SolutionQRs. They will be recreated when provisioning.')
         for service_identity in identities:
             service_identity_user = create_service_identity_user_wo_default(job.from_service_user, service_identity)
             db.delete(SolutionQR.all(keys_only=True).ancestor(parent_key_unsafe(service_identity_user, job.solution)))
 
-        logging.info('5/ Delete Loyalty QR. It will be recreated when provisioning.')
+        logging.info('4/ Delete Loyalty QR. It will be recreated when provisioning.')
         if SolutionModule.LOYALTY in old_sln_settings.modules:
             for service_identity in identities:
                 if is_default_service_identity(service_identity):
@@ -743,7 +731,7 @@ def _7000_migrate_solution(job_key):
                     loyalty_i_settings.content_uri = None
                     _put_and_invalidate_cache_and_allocate_ids(loyalty_i_settings)
 
-        logging.info('6/ Change ancestor keys of solution models.')
+        logging.info('5/ Change ancestor keys of solution models.')
         for solution in ['common', job.solution]:
             for service_identity in identities:
                 if is_default_service_identity(service_identity):
@@ -794,6 +782,7 @@ def _8000_finish_models(job_key):
             to_service_profile.enabled = job.service_enabled
             to_service_profile.solution = job.solution
             to_service_profile.put()
+
         db.run_in_transaction(trans2)
 
         logging.info("3/ couple the service to the customer")
@@ -806,6 +795,7 @@ def _8000_finish_models(job_key):
 
                 deferred.defer(re_index_customer, db.Key(job.customer_key),
                                _queue=MIGRATION_QUEUE, _transactional=True)
+
             db.run_in_transaction(trans3)
         else:
             logging.debug('There was no customer')
@@ -823,6 +813,7 @@ def _8000_finish_models(job_key):
                         logging.debug("Granting role %s to %s for %s", role, app_user_email, new_si_user)
                         p.grant_role(new_si_user, role)
                 p.put()
+
             db.run_in_transaction(trans4)
 
         logging.debug("5/ finish solution models")
@@ -839,15 +830,6 @@ def _8000_finish_models(job_key):
                     logging.debug('- Provisioning %s', SolutionModule.QR_CODES)
                     put_qr_codes(sln_settings, None, main_branding, sln_settings.main_language, None)
 
-                logging.debug('- Creating QR codes for calendar admins')
-                calendars_to_put = []
-                for sc in SolutionCalendar.all().ancestor(parent_key(sln_settings.service_user, sln_settings.solution)).filter("deleted =", False):
-                    qr_code = create_calendar_admin_qr_code(sc, main_branding.branding_key, sln_settings.main_language)
-                    sc.connector_qrcode = qr_code.image_uri
-                    calendars_to_put.append(sc)
-                if calendars_to_put:
-                    db.put(calendars_to_put)
-
                 logging.debug('- Creating QR codes for inbox forwarding')
                 flow_identifier = create_inbox_forwarding_flow(main_branding.branding_key, sln_settings.main_language)
                 qrcode = create_inbox_forwarding_qr_code(None, flow_identifier)
@@ -860,6 +842,7 @@ def _8000_finish_models(job_key):
                             sln_i_settings = get_solution_identity_settings(sln_settings.service_user, service_identity)
                             sln_i_settings.inbox_connector_qrcode = qrcode.image_uri
                             sln_i_settings.put()
+
                         db.run_in_transaction(trans)
                 put_and_invalidate_cache(sln_settings)
             finally:
@@ -896,6 +879,7 @@ def _make_friends(job_key, app_user, si_user, fsic_str_key=None):
             job = db.get(job_key)
             job.fsic_keys.remove(fsic_str_key)
             job.put()
+
         db.run_in_transaction(trans)
         return
 
@@ -982,7 +966,8 @@ def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
     from_profile = _get_db_profile_not_cached(from_service_user)
     bizz_check(from_profile, 'ServiceProfile %s not found' % from_service_user)
     bizz_check(isinstance(from_profile, ServiceProfile),
-               'Profile %s is not of expected type ServiceProfile, but of type %s' % (from_service_user, from_profile.kind()))
+               'Profile %s is not of expected type ServiceProfile, but of type %s' % (
+               from_service_user, from_profile.kind()))
 
     service_email = u"service-%s@rogerth.at" % uuid.uuid4()
 
@@ -1011,6 +996,7 @@ def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
             customer = db.get(customer_key)
             customer.user_email = to_user.email()
             customer.put()
+
         db.run_in_transaction(trans, customer.key())
 
         if SolutionModule.CITY_APP in settings.modules:

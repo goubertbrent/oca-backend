@@ -11,9 +11,6 @@
                 {{if inbox_enabled}}
                 <label><input id="is_inbox_forwarder" type="checkbox" /> ${T('inbox-forwarder')}</label>
                 {{/if}}
-                {{if agenda_enabled && calendars.length > 0}}
-                <label><input id="is_calendar_admin" type="checkbox" /> ${T('calendar-admin')}</label>
-                {{/if}}
                 {{if broadcast_enabled}}
                 <label><input id="is_news_publisher" type="checkbox" /> ${T('news-publisher')}</label>
                 {{/if}}
@@ -26,19 +23,6 @@
             <div class="radio">
                 <label><input type="radio" name="forwarder_type" forwarder_type="mobile" checked/> ${T('Mobile')} <i class="fa fa-mobile"></i></label>
                 <label><input type="radio" name="forwarder_type" forwarder_type="email"/> ${T('Email')} <i class="icon-user"></i></label>
-            </div>
-        </div>
-        {{/if}}
-        {{if agenda_enabled && calendars.length > 0}}
-        <div id="calendar_selection" style="display:none;">
-            <hr />
-            <h4>${T('calendar_select_one_at_least')}</h4>
-            <div class="control-group">
-                <div class="checkbox">
-                {{each(i, calendar) calendars}}
-                    <label><input calendar_id=${calendar.id} type="checkbox" /> ${calendar.name}</label>
-                {{/each}}
-                </div>
             </div>
         </div>
         {{/if}}

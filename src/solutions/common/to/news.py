@@ -15,9 +15,8 @@
 #
 # @@license_version:1.5@@
 
-from mcfw.properties import unicode_property, long_property, bool_property, \
-    typed_property, unicode_list_property, long_list_property
-from rogerthat.to import TO, PaginatedResultTO
+from mcfw.properties import unicode_property, long_property, typed_property, unicode_list_property, long_list_property
+from rogerthat.to import TO
 
 from rogerthat.to.news import NewsItemTO, NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO
 

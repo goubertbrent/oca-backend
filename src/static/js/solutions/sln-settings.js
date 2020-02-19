@@ -24,7 +24,6 @@ $(function () {
     var searchEnabled = true;
     var searchEnabledCheck = true;
     var eventsEnabled = true;
-    var eventNotificationsEnabled = false;
     var inboxEmailRemindersEnabled = true;
     var isPublishing = false;
     var TMPL_SET_AVATAR = '<label>' + CommonTranslations.AVATAR + ': ' + CommonTranslations.CLICK_TO_CHANGE
@@ -47,7 +46,7 @@ $(function () {
         + '     <div style="padding:10px"><b>' + sln.htmlize(CommonTranslations.sample_address) + '</b></div>'
         + '  </div></div><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
 
-    var TMPL_SET_EMAIL = '<label>' + CommonTranslations.EMAIL_ADDRESS + ':</label><input type="text" placeholder="'
+    var TMPL_SET_EMAIL = '<label>' + T('E-mail address') + ':</label><input type="text" placeholder="'
         + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
 
     var TMPL_UPDATES_PENDING = '<div class="alert">'
@@ -89,11 +88,6 @@ $(function () {
     var TMPL_SET_EVENTS_VISIBLE = '<div class="btn-group">'
         + '      <button class="btn btn-success" id="eventsVisible">' + CommonTranslations.VISIBLE + '</button>'
         + '      <button class="btn" id="eventsInvisible">&nbsp;</button>' + '</div>';
-
-    var TMPL_EVENT_NOTIFICATIONS = '<div class="btn-group">'
-        + '      <button class="btn" id="disableEventsNotifications">&nbsp;</button>'
-        + '      <button class="btn btn-danger" id="enableEventsNotifications">' + CommonTranslations.enable_notifications + '</button>'
-        + '</div>';
 
     var TMPL_SET_INBOX_EMAIL_REMINDERS_ENABLED = '<div class="btn-group">' //
         + '    <button class="btn btn-success" id="inboxEmailRemindersEnabled">' //
@@ -364,7 +358,6 @@ $(function () {
             setServiceVisible(searchEnabled);
             eventsEnabled = data.events_visible;
             setEventsVisible(eventsEnabled);
-            setEventNotifications(data.event_notifications_enabled);
             inboxEmailRemindersEnabled = data.inbox_email_reminders;
             setInboxEmailRemindersStatus(inboxEmailRemindersEnabled);
             toggleUpdatesPending(data.updates_pending);
@@ -413,14 +406,14 @@ $(function () {
             $('#bulkInviteEmailList li').click(deleteEmailFromList);
         }
         $("#sendBulkEmailInvitations").val(numberOfEmails)
-            .text(CommonTranslations.SEND_INVITATION_TO_X_EMAILS.replace("%(amount)d", numberOfEmails));
+            .text(T('send-invitation-to-x-emails', {amount: numberOfEmails}));
     };
 
     var deleteEmailFromList = function () {
         $(this).remove();
         var numberOfEmails = $("#sendBulkEmailInvitations").val() - 1;
         $("#sendBulkEmailInvitations").val(numberOfEmails)
-            .text(CommonTranslations.SEND_INVITATION_TO_X_EMAILS.replace("%(amount)d", numberOfEmails));
+            .text(T('send-invitation-to-x-emails', {amount: numberOfEmails}));
     };
 
     var sendBulkInvites = function () {
@@ -448,9 +441,8 @@ $(function () {
                         $("#bulkInviteEmailList").empty();
                         $("#sendBulkEmailInvitations").val(0)
                             .click(sendBulkInvites)
-                            .text(CommonTranslations.SEND_INVITATION_TO_X_EMAILS.replace("%(amount)d", 0));
-                        sln.alert(CommonTranslations.ALL_INVITES_WERE_SENT_SUCCESSFULLY, null,
-                            CommonTranslations.INVITES_SENT, null);
+                            .text(T('send-invitation-to-x-emails', {amount: 0}));
+                        sln.alert(T('All invites were sent successfully'), null, T('Invites sent'), null);
                     }
                 },
                 error: sln.showAjaxError
@@ -494,11 +486,11 @@ $(function () {
     function setServiceVisible(newSearchEnabled) {
         searchEnabled = newSearchEnabled;
         if (newSearchEnabled) {
-            $('#section_general #serviceVisible').addClass("btn-success").text(CommonTranslations.SERVICE_VISIBLE);
+            $('#section_general #serviceVisible').addClass("btn-success").text(T('service-visible'));
             $('#section_general #serviceInvisible').removeClass("btn-danger").html('&nbsp;');
         } else {
             $('#section_general #serviceVisible').removeClass("btn-success").html('&nbsp;');
-            $('#section_general #serviceInvisible').addClass("btn-danger").text(CommonTranslations.SERVICE_INVISIBLE);
+            $('#section_general #serviceInvisible').addClass("btn-danger").text(T('service-invisible'));
         }
     }
 
@@ -515,48 +507,14 @@ $(function () {
     function setEventsVisible(newEventsEnabled) {
         eventsEnabled = newEventsEnabled;
         if (newEventsEnabled) {
-            $('#eventsVisible').addClass("btn-success").text(CommonTranslations.AGENDA_ENABLED);
+            $('#eventsVisible').addClass("btn-success").text(T('agenda-enabled'));
             $('#eventsInvisible').removeClass("btn-danger").html('&nbsp;');
             $("#topmenu li[menu|='events']").css('display', 'block');
         } else {
             $('#eventsVisible').removeClass("btn-success").html('&nbsp;');
-            $('#eventsInvisible').addClass("btn-danger").text(CommonTranslations.AGENDA_DISABLED);
+            $('#eventsInvisible').addClass("btn-danger").text(T('agenda-disabled'));
             $("#topmenu li[menu|='events']").css('display', 'none');
         }
-    }
-
-    function setEventNotifications(enabled) {
-        eventNotificationsEnabled = enabled;
-        if (enabled) {
-            $('#disableEventsNotifications').addClass("btn-success").text(CommonTranslations.disable_notifications);
-            $('#enableEventsNotifications').removeClass("btn-danger").html('&nbsp;');
-        } else {
-            $('#disableEventsNotifications').removeClass("btn-success").html('&nbsp;');
-            $('#enableEventsNotifications').addClass("btn-danger").text(CommonTranslations.enable_notifications);
-        }
-    }
-
-    function enableEventsNotifications() {
-        setEventNotifications(!eventNotificationsEnabled);
-        saveEventNotificationsSettings();
-    }
-
-    function disableEventsNotifications() {
-        setEventNotifications(!eventNotificationsEnabled);
-        saveEventNotificationsSettings();
-    }
-
-    function saveEventNotificationsSettings() {
-        sln.call({
-            url: '/common/settings/events/notifications/save',
-            type: 'POST',
-            data: {
-                notifications_enabled: eventNotificationsEnabled
-            },
-            success: function (data) {
-            },
-            error: sln.showAjaxError
-        });
     }
 
     function inboxLoadForwarders() {
@@ -620,7 +578,7 @@ $(function () {
     $("#add_email_inbox_forwarder").click(function () {
         sln.input(function (value) {
             addInboxForwarder(value, 'email');
-        }, CommonTranslations.EMAIL_ADDRESS);
+        }, T('E-mail address'));
     });
 
     var setInboxEmailRemindersStatus = function (newInboxEmailRemindersStatus) {
@@ -650,10 +608,10 @@ $(function () {
 
     $("#add_mobile_inbox_forwarder").click(function () {
         var html = $.tmpl(TMPL_MOBILE_INBOX_FORWARDER_INPUT, {
-            header: CommonTranslations.ADD_MOBILE_INBOX_FORWARDERS,
+            header: T('add-mobile-inbox-forwarders'),
             cancelBtn: CommonTranslations.CANCEL,
             submitBtn: CommonTranslations.ADD,
-            placeholder: CommonTranslations.follower_name_or_email,
+            placeholder: T('follower_name_or_email'),
             value: ""
         });
         var modal = sln.createModal(html, function (modal) {
@@ -682,7 +640,7 @@ $(function () {
 
     var addHoliday = function () {
         var html = $.tmpl(templates.holiday_addholiday, {
-            header: CommonTranslations.ADD_HOLIDAY,
+            header: T('settings-add-holiday'),
             cancelBtn: CommonTranslations.CANCEL,
             submitBtn: CommonTranslations.SAVE,
             CommonTranslations: CommonTranslations
@@ -817,13 +775,10 @@ $(function () {
     $(".sln-set-search-keywords").html(TMPL_SET_SEARCH_KEYWORDS);
     $('.sln-set-search-keywords a[data-toggle="tooltip"]').tooltip();
     $(".sln-set-events-visibility").html(TMPL_SET_EVENTS_VISIBLE);
-    $(".sln-set-events-notifications").html(TMPL_EVENT_NOTIFICATIONS);
     $('#section_general').find('#serviceVisible').click(serviceVisible);
     $('#section_general').find('#serviceInvisible').click(serviceInvisible);
     $('#eventsVisible').click(eventsVisible);
     $('#eventsInvisible').click(eventsInvisible);
-    $('#enableEventsNotifications').click(enableEventsNotifications);
-    $('#disableEventsNotifications').click(disableEventsNotifications);
 
     sln.configureDelayedInput($('.sln-set-name input'), saveSettings);
     sln.configureDelayedInput($('.sln-set-phone-number input'), saveSettings);
@@ -1206,7 +1161,6 @@ $(function () {
             email_address: $('.sln-set-email-address input').val(),
             timezone: $('.sln-set-timezone select').val(),
             events_visible: eventsEnabled,
-            event_notifications_enabled: eventNotificationsEnabled,
             inbox_email_reminders: inboxEmailRemindersEnabled,
             iban: $('.sln-set-iban input').val(),
             bic: $('.sln-set-bic input').val()
@@ -1410,7 +1364,6 @@ $(function () {
             var html = $.tmpl(templates['settings/app_user_add_roles'], {
                 calendars: calendars,
                 inbox_enabled: inboxEnabled,
-                agenda_enabled: agendaEnabled,
                 broadcast_enabled: broadcastEnabled
             });
 
@@ -1427,15 +1380,6 @@ $(function () {
                 }
             });
 
-            // show calendars selection if calendar admin
-            $('#is_calendar_admin', modal).change(function () {
-                if ($(this).is(':checked')) {
-                    $('#calendar_selection', modal).show();
-                } else {
-                    $('#calendar_selection', modal).hide();
-                }
-            });
-
             // search the existing users
             // just like events add admin or add inbox forwarer
             var searchInput = $('#app_user_email_input', modal);
@@ -1449,13 +1393,12 @@ $(function () {
 
             $('button[action="submit"]', modal).click(function () {
                 var userKey = $(this).attr('user_key');
-                var inboxForwarder, calendarAdmin, newsPublisher;
+                var inboxForwarder, newsPublisher;
                 inboxForwarder = $('#is_inbox_forwarder').is(':checked');
-                calendarAdmin = $('#is_calendar_admin').is(':checked');
                 newsPublisher = $('#is_news_publisher').is(':checked');
                 var forwarderType = $('input[name=forwarder_type]:checked').attr('forwarder_type');
                 // user selected no roles
-                if (!(inboxForwarder || calendarAdmin || newsPublisher)) {
+                if (!(inboxForwarder || newsPublisher)) {
                     sln.alert(CommonTranslations.roles_please_select_one_role_at_least, null, CommonTranslations.ERROR);
                     return;
                 }
@@ -1464,35 +1407,19 @@ $(function () {
                 // this email address can be for a non-existing user
                 // so he/she cannot has any role other than email inbox forwarder
                 if (!userKey) {
-                    if ((inboxForwarder && (forwarderType == 'mobile')) || calendarAdmin || newsPublisher) {
+                    if ((inboxForwarder && (forwarderType === 'mobile')) || newsPublisher) {
                         // we need a valid user (not just an email) in these cases
-                        sln.alert(CommonTranslations.roles_please_provide_user, null, CommonTranslations.ERROR);
+                        sln.alert(T('roles_please_provide_user'), null, CommonTranslations.ERROR);
                         return;
                     }
                     // this is an email inbox forwarder
                     // so check the input email address
                     userKey = $('#app_user_email_input').val();
                     if (!userKey) {
-                        sln.alert(CommonTranslations.roles_please_provide_email, null, CommonTranslations.ERROR);
+                        sln.alert(T('roles_please_provide_email'), null, CommonTranslations.ERROR);
                         return;
                     }
                 }
-
-                calendars = [];
-                if (calendarAdmin) {
-                    // get calendars
-                    $('#calendar_selection', modal).find('input[type=checkbox]:checked').each(function () {
-                        calendars.push({
-                            id: parseInt($(this).attr('calendar_id'))
-                        });
-                    });
-
-                    if (calendars.length < 1) {
-                        sln.alert(CommonTranslations.calendar_please_select_one_at_least, null, CommonTranslations.ERROR);
-                        return;
-                    }
-                }
-
                 // only add a forwarder type per time
                 // to disable other roles for any email that doesn't exist as a user
                 var forwarderTypes = [forwarderType];
@@ -1504,18 +1431,16 @@ $(function () {
                         key: userKey,
                         user_roles: {
                             inbox_forwarder: inboxForwarder,
-                            calendar_admin: calendarAdmin,
                             news_publisher: newsPublisher,
                             forwarder_types: forwarderTypes,
-                            calendars: calendars
                         }
                     },
                     success: function (data) {
-                        if (!data.success) {
-                            sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                        } else {
+                        if (data.success) {
                             modal.modal('hide');
                             renderRolesSettings();
+                        } else {
+                            sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                         }
                     },
                     error: sln.showAjaxError
@@ -1538,11 +1463,10 @@ $(function () {
 
         function render(data) {
             var html = $.tmpl(templates['settings/app_user_roles'], {
-                t: CommonTranslations,
+                T: T,
                 roles: data,
                 inbox_enabled: inboxEnabled,
-                agenda_enabled: agendaEnabled,
-                broadcast_enabled: broadcastEnabled
+                broadcast_enabled: broadcastEnabled,
             });
 
             $('#add_user_roles', html).click(function () {
@@ -1572,7 +1496,7 @@ $(function () {
                     });
                 }
 
-                var confirmMessage = CommonTranslations.roles_delete_confirmation.replace('%(email)s', email);
+                var confirmMessage = T('roles_delete_confirmation', {email: email});
                 sln.confirm(confirmMessage, doDelete, null, null, null, null);
 
                 function doDelete() {
@@ -1586,10 +1510,10 @@ $(function () {
                             calendar_ids: calendarIds
                         },
                         success: function (data) {
-                            if (!data.success) {
-                                sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                            } else {
+                            if (data.success) {
                                 renderRolesSettings();
+                            } else {
+                                sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                             }
                         },
                         error: sln.showAjaxError
@@ -1624,12 +1548,12 @@ $(function () {
                 container.find('#add_admin').click(addAdmin);
             }
 
-            function addAdmin(email) {
+            function addAdmin() {
                 function add(email) {
                     var serviceEmails = LocalCache.settings.service_admins;
                     if (serviceEmails && serviceEmails.length) {
                         if (serviceEmails.indexOf(email) !== -1) {
-                            sln.alert(CommonTranslations.x_already_exists.replace('%(x)s', email));
+                            sln.alert(T('x_already_exists', {x: email}));
                             return;
                         }
                     }
@@ -1642,19 +1566,18 @@ $(function () {
                             user_email: email,
                         },
                         success: function (result) {
-                            if (!result.success) {
-                                sln.alert(result.errormsg, null, CommonTranslations.ERROR);
-                            } else {
+                            if (result.success) {
                                 serviceEmails.push(email);
                                 renderAdminSettings(serviceEmails);
+                            } else {
+                                sln.alert(result.errormsg, null, CommonTranslations.ERROR);
                             }
                         },
                         error: sln.showAjaxError
                     });
                 }
 
-                sln.input(add, CommonTranslations.EMAIL_ADDRESS, null,
-                    CommonTranslations.EMAIL_ADDRESS, '', 'email');
+                sln.input(add, T('E-mail address'), null, T('E-mail address'), '', 'email');
             }
 
             $('#app_users_count', html).text(data.length);

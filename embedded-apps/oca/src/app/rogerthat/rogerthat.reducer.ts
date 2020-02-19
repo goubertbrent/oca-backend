@@ -15,6 +15,12 @@ export function rogerthatReducer(state = initialRogerthatState, action: Rogertha
       return { ...state, scannedQrCode: stateSuccess(action.payload) };
     case RogerthatActionTypes.SCAN_QR_CODE_FAILED:
       return { ...state, scannedQrCode: stateError(action.error, initialRogerthatState.scannedQrCode.result) };
+    case RogerthatActionTypes.GET_NEWS_STREAM_ITEMS:
+      return { ...state, newsStreamItems: stateLoading(initialRogerthatState.newsStreamItems.result) };
+    case RogerthatActionTypes.GET_NEWS_STREAM_ITEMS_COMPLETE:
+      return { ...state, newsStreamItems: stateSuccess(action.payload) };
+    case RogerthatActionTypes.GET_NEWS_STREAM_ITEMS_FAILED:
+      return { ...state, newsStreamItems: stateError(action.error, initialRogerthatState.newsStreamItems.result) };
   }
   return state;
 }

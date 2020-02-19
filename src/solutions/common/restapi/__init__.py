@@ -16,9 +16,9 @@
 # @@license_version:1.5@@
 
 import base64
-from collections import defaultdict
 import logging
 import re
+from collections import defaultdict
 from types import NoneType
 
 from babel.numbers import format_currency
@@ -37,9 +37,9 @@ from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.consts import DEBUG
-from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks
+from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
 from rogerthat.dal.app import get_app_by_id
-from rogerthat.dal.profile import get_user_profile, get_service_or_user_profile, get_profile_key
+from rogerthat.dal.profile import get_user_profile, get_profile_key
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.news import NewsGroup, MediaType
@@ -57,8 +57,8 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.to.system import ServiceIdentityInfoTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
-from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
-    get_app_id_from_app_user
+from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, get_app_id_from_app_user, \
+    get_app_user_tuple
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
@@ -70,11 +70,11 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    get_user_defined_roles, validate_enable_or_disable_solution_module, OrganizationType
+    get_user_defined_roles, validate_enable_or_disable_solution_module, OrganizationType, get_default_app_id, \
+    get_organization_type
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
-from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars, \
-    create_calendar_admin, delete_calendar_admin
+from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars
 from solutions.common.bizz.group_purchase import save_group_purchase, delete_group_purchase, broadcast_group_purchase, \
     new_group_purchase_subscription
 from solutions.common.bizz.images import upload_file, list_files
@@ -84,18 +84,16 @@ from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, 
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
 from solutions.common.bizz.news import is_regional_news_enabled
 from solutions.common.bizz.paddle import get_paddle_info, populate_info_from_paddle
-from solutions.common.bizz.provisioning import create_calendar_admin_qr_code
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
-from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls, \
-    _validate_rss_urls
+from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
 from solutions.common.consts import TRANSLATION_MAPPING
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
-    get_solution_main_branding, get_event_by_id, get_solution_calendars, get_solution_inbox_messages, \
+    get_solution_calendars, get_solution_inbox_messages, \
     get_solution_identity_settings, get_solution_settings_or_identity_settings, \
-    get_solution_news_publishers, get_user_from_key, get_calendar_items
+    get_solution_news_publishers, is_existing_friend
 from solutions.common.dal.appointment import get_solution_appointment_settings
 from solutions.common.dal.repair import get_solution_repair_orders, get_solution_repair_settings
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings, save_jcc_settings
@@ -103,7 +101,7 @@ from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, sav
 from solutions.common.localizer import translations
 from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, RestaurantMenu, \
     SolutionRssScraperSettings
-from solutions.common.models.agenda import SolutionCalendar, SolutionCalendarAdmin
+from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
 from solutions.common.models.cityapp import PaddleSettings, PaddleMapping, PaddleOrganizationalUnits
 from solutions.common.models.forms import OcaForm
@@ -117,12 +115,12 @@ from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO, SolutionSettingsTO, \
     MenuTO, EventItemTO, PublicEventItemTO, SolutionAppointmentWeekdayTimeframeTO, BrandingSettingsTO, \
     SolutionRepairOrderTO, SandwichSettingsTO, SandwichOrderTO, SolutionGroupPurchaseTO, \
-    SolutionGroupPurchaseSettingsTO, SolutionCalendarTO, EventGuestTO, SolutionInboxForwarder, SolutionInboxesTO, \
+    SolutionGroupPurchaseSettingsTO, SolutionCalendarTO, SolutionInboxForwarder, SolutionInboxesTO, \
     SolutionInboxMessageTO, SolutionAppointmentSettingsTO, \
     SolutionRepairSettingsTO, UrlReturnStatusTO, ImageReturnStatusTO, SolutionUserKeyLabelTO, \
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
-    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO
+    AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO, CreateEventItemTO
 from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO
 from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.paddle import PaddleSettingsTO, PaddleSettingsServicesTO, SimpleServiceTO
@@ -165,38 +163,13 @@ def public_load_menu(service_user_email):
 @arguments(service_user_email=unicode)
 def public_load_events(service_user_email):
     from solutions.common.dal import get_public_event_list
-    from rogerthat.models import ServiceProfile
 
     if service_user_email and service_user_email != MISSING:
         service_user = users.User(service_user_email)
-        sp_up = get_service_or_user_profile(service_user)
-        if sp_up and isinstance(sp_up, ServiceProfile):
-            if sp_up.solution:
-                return map(PublicEventItemTO.fromPublicEventItemObject,
-                           get_public_event_list(service_user, sp_up.solution))
-            else:
-                logging.debug("Could not load public events for: %s (ServiceProfile.solution None)", service_user_email)
-        else:
-            logging.debug("Could not load public events for: %s (ServiceProfile None)", service_user_email)
+        return [PublicEventItemTO.fromPublicEventItemObject(e) for e in get_public_event_list(service_user)]
     else:
         logging.debug("Could not load public events (service_user_email None|MISSING)")
     return None
-
-
-@rest("/solutions/common/public/events/picture", "get", authenticated=False, silent_result=True)
-@returns(PictureReturnStatusTO)
-@arguments(service_user_email=unicode, event_id=long, picture_version=long)
-def public_event_picture(service_user_email, event_id, picture_version=0):
-    service_user = users.User(service_user_email)
-    sln_settings = get_solution_settings(service_user)
-    event = get_event_by_id(service_user, sln_settings.solution, event_id)
-    if not event or not event.picture:
-        return PictureReturnStatusTO.create(False, None)
-
-    response = GenericRESTRequestHandler.getCurrentResponse()
-    response.headers['Cache-Control'] = "public, max-age=31536000"  # Cache forever (1 year)
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return PictureReturnStatusTO.create(picture=unicode(event.picture))
 
 
 @rest("/solutions/common/public/group_purchase/picture", "get", authenticated=False, silent_result=True)
@@ -254,7 +227,7 @@ def put_static_content(static_content):
     try:
         bizz_put_static_content(service_user, static_content)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -266,7 +239,7 @@ def rest_delete_static_content(static_content_id=None):
     try:
         delete_static_content(service_user, static_content_id)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -342,7 +315,7 @@ def inbox_message_update_reply(key, message):
     try:
         send_reply(service_user, key, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -371,39 +344,29 @@ def inbox_message_forward(key, to_email):
 @returns(ReturnStatusTO)
 @arguments(key=unicode, starred=bool)
 def inbox_message_update_starred(key, starred):
-    service_user = users.get_current_user()
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity
-    sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    try:
-        sim = SolutionInboxMessage.get(key)
-        sim.starred = starred
-        sim.put()
-        send_message(service_user, u"solutions.common.messaging.update",
-                     service_identity=service_identity,
-                     message=serialize_complex_value(
-                         SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
-                         SolutionInboxMessageTO, False))
-        deferred.defer(update_user_data_admins, service_user, service_identity)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
+    inbox_message = SolutionInboxMessage.get(key)
+    inbox_message.starred = starred
+    inbox_message.put()
+    return _after_inbox_message_updated(inbox_message)
 
 
 @rest("/common/inbox/message/update/read", "post")
 @returns(ReturnStatusTO)
 @arguments(key=unicode, read=bool)
 def inbox_message_update_read(key, read):
-    service_user = users.get_current_user()
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity
-    sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    inbox_message = SolutionInboxMessage.get(key)
+    inbox_message.read = read
+    inbox_message.put()
+    return _after_inbox_message_updated(inbox_message)
+
+
+def _after_inbox_message_updated(inbox_message):
+    # type: (SolutionInboxMessage) -> ReturnStatusTO
     try:
-        sim = SolutionInboxMessage.get(key)
-        sim.read = read
-        sim.put()
+        service_user = users.get_current_user()
+        service_identity = users.get_current_session().service_identity
+        sln_settings = get_solution_settings(service_user)
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
                      message=serialize_complex_value(
@@ -411,7 +374,7 @@ def inbox_message_update_read(key, read):
                          SolutionInboxMessageTO, False))
         deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -438,7 +401,7 @@ def inbox_message_update_trashed(key, trashed):
         if not sim.deleted:
             deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -452,7 +415,7 @@ def inbox_message_update_deleted():
     try:
         delete_all_trash(service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -467,7 +430,7 @@ def export_inbox_messages(email=''):
     try:
         send_statistics_export_email(service_user, service_identity, email, sln_settings)
         return RETURNSTATUS_TO_SUCCESS
-    except InvalidEmailFormatException, ex:
+    except InvalidEmailFormatException as ex:
         error_msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'invalid_email_format',
                                      email=ex.email)
         return ReturnStatusTO.create(False, error_msg)
@@ -559,26 +522,24 @@ def rest_get_broadcast_rss_feeds():
 @returns(dict)
 @arguments(url=unicode)
 def rest_validate_rss_feed(url):
-    from solutions.common.cron.news.rss import _parse_items
+    from solutions.common.cron.news.rss import parse_rss_items
     try:
-        response = urlfetch.fetch(url, deadline=10)
-        items, _ = _parse_items(response.content, url)
+        response = urlfetch.fetch(url, deadline=10)  # type: urlfetch._URLFetchResult
+        items, _ = parse_rss_items(response.content, url)
     except Exception as e:
+        logging.exception('Failed to validate url')
         return {'exception': e.message}
 
-    l = []
-    for item in items:
-        l.append({
-            'title': item.title,
-            'url': item.url,
-            'guid': item.guid,
-            'id': item.id,
-            'message': item.message,
-            'date': str(item.date),
-            'rss_url': item.rss_url,
-            'image_url': item.image_url
-        })
-    return {'items': l}
+    return {'items': [{
+        'title': item.title,
+        'url': item.url,
+        'guid': item.guid,
+        'id': item.id,
+        'message': item.message,
+        'date': str(item.date),
+        'rss_url': item.rss_url,
+        'image_url': item.image_url
+    } for item in items]}
 
 
 @rest("/common/broadcast/rss", 'put', type=REST_TYPE_TO)
@@ -606,7 +567,7 @@ def broadcast_validate_url(url, allow_empty=False):
                 url = "http://%s" % url
             validate_broadcast_url(url, sln_settings.main_language)
         return UrlReturnStatusTO.create(True, None, url)
-    except BusinessException, e:
+    except BusinessException as e:
         return UrlReturnStatusTO.create(False, e.message, url)
 
 
@@ -644,7 +605,7 @@ def settings_load():
 def rest_get_place_types():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-    
+
     l = []
     for place_type in PlaceType.all():
         for key in TRANSLATION_KEYS.get(place_type, []):
@@ -781,20 +742,6 @@ def rest_update_avatar(image):
     return BrandingSettingsTO.from_model(set_avatar(users.get_current_user(), image))
 
 
-@rest("/common/settings/events/notifications/save", "post")
-@returns(ReturnStatusTO)
-@arguments(notifications_enabled=bool)
-def agenda_set_event_notifications(notifications_enabled):
-    try:
-        sln_settings = get_solution_settings(users.get_current_user())
-        logging.debug(notifications_enabled)
-        sln_settings.event_notifications_enabled = notifications_enabled
-        sln_settings.put()
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException as e:
-        return ReturnStatusTO.create(False, e.message)
-
-
 @rest("/common/settings/consent", "post")
 @returns(ReturnStatusTO)
 @arguments(consent_type=unicode, enabled=bool)
@@ -815,7 +762,7 @@ def menu_save(menu):
         service_user = users.get_current_user()
         save_menu(service_user, menu)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -829,7 +776,7 @@ def menu_import(file_contents):
         service_user = users.get_current_user()
         import_menu_from_excel(service_user, file_contents)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -842,7 +789,7 @@ def menu_save_name(name):
         service_user = users.get_current_user()
         save_menu_name(service_user, name)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -870,7 +817,7 @@ def bulk_invite(emails, invitation_message):
         service_identity = session_.service_identity
         bulk_invite(service_user, service_identity, emails, invitation_message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -881,7 +828,7 @@ def delete_calendar(calendar_id):
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     try:
-        sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
+        sc = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
         if sc.events.count(1) > 0:
             raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON,
                                                      'calendar-remove-failed-has-events'))
@@ -903,9 +850,9 @@ def save_calendar(calendar):
     sln_settings = get_solution_settings(service_user)
     try:
         if calendar.id:
-            sc = SolutionCalendar.get_by_id(calendar.id, parent_key(service_user, sln_settings.solution))
+            sc = SolutionCalendar.create_key(calendar.id, service_user, sln_settings.solution).get()
         else:
-            sc = SolutionCalendar(parent=parent_key(service_user, sln_settings.solution), deleted=False)
+            sc = SolutionCalendar(parent=parent_ndb_key(service_user, sln_settings.solution))
 
         for c in get_solution_calendars(service_user, sln_settings.solution):
 
@@ -915,19 +862,12 @@ def save_calendar(calendar):
                                                              'calendar-name-already-exists', name=calendar.name))
 
         sc.name = calendar.name
-        sc.broadcast_enabled = calendar.broadcast_enabled
-
         sln_settings.updates_pending = True
-        put_and_invalidate_cache(sc, sln_settings)
-        if not sc.connector_qrcode:
-            main_branding = get_solution_main_branding(service_user)
-            qr_code = create_calendar_admin_qr_code(sc, main_branding.branding_key, sln_settings.main_language)
-            sc.connector_qrcode = qr_code.image_uri
-            sc.put()
+        db.put([sln_settings, sc])
         broadcast_updates_pending(sln_settings)
 
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -937,8 +877,9 @@ def save_calendar(calendar):
 def load_calendar():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-    return [SolutionCalendarWebTO.fromSolutionCalendar(sln_settings, c, True, True, False)
-            for c in get_solution_calendars(service_user, sln_settings.solution)]
+    base_url = get_server_settings().baseUrl
+    return [SolutionCalendarWebTO.fromSolutionCalendar(sln_settings, calendar, base_url, True)
+            for calendar in get_solution_calendars(service_user, sln_settings.solution)]
 
 
 @rest("/common/calendar/load/more", "get", silent_result=True, read_only_access=True)
@@ -947,48 +888,9 @@ def load_calendar():
 def load_calendar_more(calendar_id, cursor=None):
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-    c = SolutionCalendar.get_by_id(calendar_id, parent=parent_key(service_user, sln_settings.solution))
-    return SolutionCalendarWebTO.fromSolutionCalendar(sln_settings, c, True, True, False, cursor)
-
-
-@rest("/common/calendar/admin/add", "post")
-@returns(ReturnStatusTO)
-@arguments(calendar_id=(int, long), key=unicode)
-def calendar_add_admin(calendar_id, key):
-    service_user = users.get_current_user()
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity
-    sln_settings = get_solution_settings(service_user)
-    try:
-        sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
-        if not sc:
-            raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
-
-        app_user, _ = get_user_from_key(key, service_identity)
-        create_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
-
-
-@rest("/common/calendar/admin/delete", "post")
-@returns(ReturnStatusTO)
-@arguments(calendar_id=(int, long), key=unicode)
-def calendar_remove_admin(calendar_id, key):
-    service_user = users.get_current_user()
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity
-    sln_settings = get_solution_settings(service_user)
-    try:
-        sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
-        if not sc:
-            raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
-
-        app_user, _ = get_user_from_key(key, service_identity)
-        delete_calendar_admin(calendar_id, app_user, service_user, sln_settings.solution)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
+    base_url = get_server_settings().baseUrl
+    calendar = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
+    return SolutionCalendarWebTO.fromSolutionCalendar(sln_settings, calendar, base_url, True, cursor)
 
 
 @rest("/common/calendar/google/authenticate/url", "get", read_only_access=True)
@@ -1014,39 +916,41 @@ def calendar_put_google_import(calendar_id, google_calendars):
     sln_settings = get_solution_settings(service_user)
     try:
         def trans():
-            sc = SolutionCalendar.get_by_id(calendar_id, parent_key(service_user, sln_settings.solution))
+            sc = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
             if not sc:
                 raise BusinessException(
                     common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
 
             deferred.defer(update_events_from_google, service_user, calendar_id, _transactional=True)
 
-            sc.google_calendar_ids = list()
-            sc.google_calendar_names = list()
+            sc.google_calendar_ids = []
+            sc.google_calendar_names = []
             for google_calendar in google_calendars:
                 sc.google_calendar_ids.append(google_calendar.key)
                 sc.google_calendar_names.append(google_calendar.label)
             sc.google_sync_events = bool(sc.google_calendar_ids)
             sc.put()
 
-        db.run_in_transaction(trans)
+        ndb.transaction(trans)
 
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
-@rest("/common/events/put", "post")
-@returns(ReturnStatusTO)
-@arguments(event=EventItemTO)
-def put_event(event):
+@rest("/common/events/put", "post", type=REST_TYPE_TO)
+@returns(EventItemTO)
+@arguments(data=CreateEventItemTO)
+def put_event(data):
     from solutions.common.bizz.events import put_event as put_event_bizz
     try:
         service_user = users.get_current_user()
-        put_event_bizz(service_user, event)
-        return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
-        return ReturnStatusTO.create(False, e.message)
+        sln_settings = get_solution_settings(service_user)
+        org_type = get_organization_type(service_user)
+        event = put_event_bizz(sln_settings, data, get_default_app_id(service_user), org_type)
+        return EventItemTO.from_model(event, get_server_settings().baseUrl, destination_app=False)
+    except BusinessException as e:
+        raise HttpBadRequestException(e.message)
 
 
 @rest("/common/events/delete", "post")
@@ -1058,22 +962,8 @@ def delete_event(event_id):
         service_user = users.get_current_user()
         delete_event_bizz(service_user, event_id)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
-
-
-@rest("/common/events/guests", "post", read_only_access=True)
-@returns([EventGuestTO])
-@arguments(event_id=(int, long))
-def guests_event(event_id):
-    service_user = users.get_current_user()
-    sln_settings = get_solution_settings(service_user)
-    event = get_event_by_id(service_user, sln_settings.solution, event_id)
-    guests = []
-    if event:
-        for guest in event.guests:
-            guests.append(EventGuestTO.fromEventGuest(guest))
-    return guests
 
 
 @rest("/common/events/uit/actor/load", "get", read_only_access=True)
@@ -1180,30 +1070,16 @@ def users_load_roles():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
 
-    # get inbox forwarders, calendar admins and news publishers
+    # get inbox forwarders and news publishers
     inbox_forwarders = inbox_load_forwarders()
-    parent = parent_key(service_user, sln_settings.solution)
-
-    calendars = [c for c in SolutionCalendar.all().ancestor(parent)]
-
-    deleted_calendar_keys = [c.key() for c in calendars if c.deleted]
-    calendar_admins = []
-    for admin in SolutionCalendarAdmin.all().ancestor(parent):
-        if admin.calendar_key not in deleted_calendar_keys:
-            calendar_admins.append(admin)
-
     news_publishers = get_solution_news_publishers(service_user, sln_settings.solution)
 
     # create AppUserRolesTO for every role type
     # with different additional information for every type
     all_user_roles = defaultdict(AppUserRolesTO)
 
-    TYPE_MOBILE = SolutionSettings.INBOX_FORWARDER_TYPE_MOBILE
-    TYPE_EMAIL = SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL
-    mobile_inbox_forwarders = filter(lambda f: f.type == TYPE_MOBILE,
-                                     inbox_forwarders)
-    email_inbox_forwarders = filter(lambda f: f.type == TYPE_EMAIL,
-                                    inbox_forwarders)
+    mobile_inbox_forwarders = [f for f in inbox_forwarders if f.type == SolutionSettings.INBOX_FORWARDER_TYPE_MOBILE]
+    email_inbox_forwarders = [f for f in inbox_forwarders if f.type == SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL]
 
     # mobile forwarders may have an app id
     for forwarder in mobile_inbox_forwarders:
@@ -1216,18 +1092,7 @@ def users_load_roles():
         user_roles.app_user_email = email
         user_roles.app_id = app_id
         # additional info: forwarder type
-        user_roles.add_forwarder_type(TYPE_MOBILE)
-
-    calendar_items = {c.id: c for c in get_calendar_items(sln_settings, calendars)}
-    for admin in calendar_admins:
-        email = admin.app_user.email()
-        user_roles = all_user_roles[email]
-        user_roles.app_user_email = email
-        user_roles.app_id = get_app_id_from_app_user(admin.app_user)
-        # additional info: calendars
-        calendar = calendar_items.get(admin.calendar_key.id())
-        if calendar:
-            user_roles.add_calendar(calendar)
+        user_roles.add_forwarder_type(SolutionSettings.INBOX_FORWARDER_TYPE_MOBILE)
 
     for publisher in news_publishers:
         email = publisher.app_user.email()
@@ -1246,14 +1111,14 @@ def users_load_roles():
             # user_email may contain an app id, so check if it contains
             # email, then append the email forwarder type
             if email in user_email:
-                user_roles.add_forwarder_type(TYPE_EMAIL)
+                user_roles.add_forwarder_type(SolutionSettings.TYPE_EMAIL)
                 has_roles = True
 
         # no user roles for this email, then create it
         if not has_roles:
             user_roles = all_user_roles[email]
             user_roles.app_user_email = email
-            user_roles.add_forwarder_type(TYPE_EMAIL)
+            user_roles.add_forwarder_type(SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL)
 
     return all_user_roles.values()
 
@@ -1262,6 +1127,7 @@ def users_load_roles():
 @returns(ReturnStatusTO)
 @arguments(key=unicode, user_roles=AppUserRolesTO)
 def users_add_user_roles(key, user_roles):
+    # type: (str, AppUserRolesTO) -> ReturnStatusTO
     """ set different app roles for a user """
     try:
         service_user = users.get_current_user()
@@ -1272,7 +1138,9 @@ def users_add_user_roles(key, user_roles):
                                                                     service_identity)
 
         # try first to get the user from user key
-        app_user, is_existing_user = get_user_from_key(key, service_identity)
+        app_user = users.User(key)
+        email, app_id = get_app_user_tuple(app_user)
+        is_existing_user = is_existing_friend(email, app_id, service_identity)
 
         # add inbox forwarder
         if user_roles.inbox_forwarder:
@@ -1295,20 +1163,12 @@ def users_add_user_roles(key, user_roles):
             sln_i_settings.put()
 
         if is_existing_user:
-            # add as a calendar admin
-            if user_roles.calendar_admin:
-                calendars = user_roles.calendars
-                for calendar in calendars:
-                    calendar_id = calendar.id
-                    create_calendar_admin(calendar_id, app_user, service_user,
-                                          sln_settings.solution)
-
             # add as news publisher
             if user_roles.news_publisher:
                 create_news_publisher(app_user, service_user, sln_settings.solution)
 
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1324,9 +1184,7 @@ def users_delete_user_roles(key, forwarder_types, calendar_ids):
         sln_settings = get_solution_settings(service_user)
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings,
                                                                     service_identity)
-
-        # try first to get the user profile from user key
-        app_user, _ = get_user_from_key(key, service_identity)
+        app_user = users.User(key)
 
         # inbox
         if forwarder_types:
@@ -1340,17 +1198,11 @@ def users_delete_user_roles(key, forwarder_types, calendar_ids):
                     forwarders.remove(key)
             sln_i_settings.put()
 
-        # calendars
-        if calendar_ids:
-            for calendar_id in calendar_ids:
-                delete_calendar_admin(calendar_id, app_user, service_user,
-                                      sln_settings.solution)
-
         # news
         delete_news_publisher(app_user, service_user, sln_settings.solution)
 
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1376,7 +1228,7 @@ def rest_add_service_email(user_email):
             return ReturnStatusTO.create(False, message)
         add_service_admin(service_user, user_email, base_url)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1505,7 +1357,7 @@ def put_appointment_settings(text_1):
         broadcast_updates_pending(sln_settings)
         send_message(service_user, u"solutions.common.appointment.settings.update")
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1519,7 +1371,7 @@ def put_appointment_weekday_timeframe(appointment_id, day, time_from, time_until
     try:
         put_appointment_weekday_timeframe_bizz(service_user, appointment_id, day, time_from, time_until)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1543,7 +1395,7 @@ def delete_appointment_weekday_timeframe(appointment_id):
     try:
         delete_appointment_weekday_timeframe_bizz(service_user, appointment_id)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1570,30 +1422,30 @@ def rest_get_branding_settings_and_menu():
         for x in xrange(4):
             coords = 'x'.join(map(str, [x, y, z]))
             label = None
-            iconName = None
+            icon_name = None
             if y == 0:
                 if x == 0:
                     label = service_menu.aboutLabel or u'About'
-                    iconName = u'fa-info'
+                    icon_name = u'fa-info'
                 elif x == 1:
                     label = service_menu.messagesLabel or u'History'
-                    iconName = u'fa-envelope'
+                    icon_name = u'fa-envelope'
                 elif x == 2:
                     if service_menu.phoneNumber:
                         label = service_menu.callLabel or u'Call'
-                    iconName = u'fa-phone'
+                    icon_name = u'fa-phone'
                 elif x == 3:
                     if service_menu.shareQRId:
                         label = service_menu.shareLabel or u'Recommend'
-                        iconName = u'fa-thumbs-o-up'
-                iconUrl = None
+                        icon_name = u'fa-thumbs-o-up'
+                icon_url = None
             else:
                 smi = smi_dict.get(coords)
                 label = smi.label if smi else None
-                iconUrl = smi.iconUrl if smi else None
-                iconName = smi.iconName if smi else None
+                icon_url = smi.iconUrl if smi else None
+                icon_name = smi.iconName if smi else None
 
-            row.append(ServiceMenuItemWithCoordinatesTO.create(label, iconName, iconUrl, coords))
+            row.append(ServiceMenuItemWithCoordinatesTO.create(label, icon_name, icon_url, coords))
         service_menu_items.append(ServiceMenuItemWithCoordinatesListTO.create(row))
     return BrandingSettingsAndMenuItemsTO.create(branding_settings_to, service_menu_items)
 
@@ -1672,7 +1524,7 @@ def put_repair_settings(text_1):
         broadcast_updates_pending(sln_settings)
         send_message(service_user, u"solutions.common.repair.settings.update")
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1684,7 +1536,7 @@ def repair_order_delete(order_key, message):
     try:
         delete_repair_order(service_user, order_key, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1708,7 +1560,7 @@ def repair_order_send_message(order_key, order_status, message):
     try:
         send_message_for_repair_order(service_user, order_key, order_status, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1824,7 +1676,7 @@ def sandwich_order_reply(sandwich_id, message):
     try:
         reply_sandwich_order(service_user, service_identity, sandwich_id, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1838,7 +1690,7 @@ def sandwich_order_ready(sandwich_id, message):
     try:
         ready_sandwich_order(service_user, service_identity, sandwich_id, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1852,7 +1704,7 @@ def sandwich_order_delete(sandwich_id, message):
     try:
         delete_sandwich_order(service_user, service_identity, sandwich_id, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1866,7 +1718,7 @@ def group_purchase_broadcast(group_purchase_id, message=unicode):
     try:
         broadcast_group_purchase(service_user, service_identity, group_purchase_id, message)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1892,7 +1744,7 @@ def group_purchase_save(group_purchase):
     try:
         save_group_purchase(service_user, service_identity, group_purchase)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1906,7 +1758,7 @@ def group_purchase_delete(group_purchase_id):
     try:
         delete_group_purchase(service_user, service_identity, group_purchase_id)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1918,7 +1770,7 @@ def group_purchase_subscription_add(group_purchase_id, name, units):
     try:
         new_group_purchase_subscription(service_user, None, group_purchase_id, name, None, units)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1952,7 +1804,7 @@ def group_purchase_settings_save(group_purchase_settings):
 
         broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
-    except BusinessException, e:
+    except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 
 
@@ -1970,7 +1822,7 @@ def upload_menu_item_image(image=None, image_id_to_delete=None):
         image = create_file_blob(service_user, base64.b64decode(image.split(',', 1)[1]))
         return ImageReturnStatusTO.create(True, None, image.key().id())
 
-    except BusinessException, ex:
+    except BusinessException as ex:
         return ImageReturnStatusTO.create(False, ex.message, None)
 
 

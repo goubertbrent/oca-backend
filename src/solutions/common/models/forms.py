@@ -111,7 +111,7 @@ class TombolaWinner(NdbModel):
         return users.User(self.key.parent().id())
 
     @classmethod
-    def create_key(cls, id, service_user):
+    def create_key(cls, id, service_user):  # @ReservedAssignment
         return ndb.Key(cls, id, parent=parent_ndb_key(service_user, SOLUTION_COMMON))
 
     @classmethod

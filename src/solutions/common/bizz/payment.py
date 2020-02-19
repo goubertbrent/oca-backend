@@ -94,13 +94,14 @@ def get_providers_settings(service_user, service_identity):
             if provider:
                 results.append(provider)
             else:
-                provider = ServicePaymentProviderTO(provider_id=provider_id,
-                                                    fee=ServicePaymentProviderFeeTO(
-                                                        amount=ServicePaymentProviderFeeTO.amount.default,
-                                                        precision=ServicePaymentProviderFeeTO.precision.default,
-                                                        currency=None
-                                                    ),
-                                                    enabled=False)
+                provider = ServicePaymentProviderTO(
+                    provider_id=provider_id,
+                    fee=ServicePaymentProviderFeeTO(
+                        amount=ServicePaymentProviderFeeTO.amount.default,  # @UndefinedVariable
+                        precision=ServicePaymentProviderFeeTO.precision.default,  # @UndefinedVariable
+                        currency=None
+                    ),
+                    enabled=False)
                 provider.settings = PAYMENT_SETTINGS_MAPPING[provider_id]()
                 results.append(provider)
         return results

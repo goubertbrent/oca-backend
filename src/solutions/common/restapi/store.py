@@ -15,11 +15,9 @@
 #
 # @@license_version:1.5@@
 
-from contextlib import closing
 import logging
 
 from google.appengine.ext import db
-from google.appengine.ext.deferred import deferred
 
 from mcfw.properties import azzert
 from mcfw.restapi import rest
@@ -29,15 +27,12 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.to import RETURNSTATUS_TO_SUCCESS, ReturnStatusTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import now, today
+from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.bizz import send_order_email, generate_order_or_invoice_pdf, create_task, broadcast_task_updates
 from shop.business.legal_entities import get_vat_pct
-from shop.business.prospect import create_prospect_from_customer
 from shop.constants import STORE_MANAGER
 from shop.dal import get_customer
-from shop.models import Order, OrderItem, Product, ShopTask, Prospect, Customer, \
-    RegioManagerTeam, Contact, StripePayment, StripePaymentItem
+from shop.models import Order, OrderItem, Product, RegioManagerTeam, Contact, StripePayment, StripePaymentItem
 from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatusTO
 from solution_server_settings import get_solution_server_settings
 from solutions import translate, SOLUTION_COMMON
@@ -47,7 +42,7 @@ from solutions.common.dal import get_solution_settings
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    from StringIO import StringIO  # @UnusedImport
 
 
 @rest("/common/store/order_items", "get", read_only_access=True)

@@ -15,15 +15,15 @@
 #
 # @@license_version:1.5@@
 
-from datetime import datetime, timedelta, time
 import json
 import logging
+from datetime import datetime, timedelta, time
 from types import NoneType, FunctionType
 
 import pytz
-
 from babel.dates import format_date, format_time
 from google.appengine.ext import db, deferred
+
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.dal import put_and_invalidate_cache, parent_key_unsafe
@@ -41,7 +41,6 @@ from rogerthat.to.messaging.service_callback_results import FlowMemberResultCall
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import bizz_check, unset_flag, set_flag, is_flag_set, now, get_epoch_from_datetime
-from rogerthat.utils.app import create_app_user, create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import get_service_user_from_service_identity_user
 from solutions import translate as common_translate
@@ -63,7 +62,6 @@ from solutions.common.to import TimestampTO, SolutionInboxMessageTO
 from solutions.common.to.reservation import RestaurantReservationStatisticsTO, RestaurantReservationStatisticTO, \
     RestaurantShiftTO, TableTO
 from solutions.common.utils import create_service_identity_user_wo_default, is_default_service_identity
-
 
 STATUS_AVAILABLE = u'available'
 STATUS_RESTAURANT_CLOSED = u'restaurant-closed'

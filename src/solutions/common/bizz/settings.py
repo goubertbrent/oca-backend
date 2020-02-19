@@ -39,6 +39,7 @@ from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
 from solutions.common.bizz import _get_location, broadcast_updates_pending
 from solutions.common.bizz.images import upload_file
+from solutions.common.cron.news.rss import parse_rss_items
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.exceptions.settings import InvalidRssLinksException
@@ -131,7 +132,7 @@ def set_avatar(service_user, image):
     content_type = _meta.lstrip('data:').split(';')[0]
     file_ = cgi.FieldStorage(StringIO(jpg_bytes), {'content-type': content_type})
     branding_settings_key = SolutionBrandingSettings.create_key(service_user)
-    reference = ndb.Key.from_old_key(branding_settings_key)
+    reference = ndb.Key.from_old_key(branding_settings_key)  # @UndefinedVariable
     uploaded_file = upload_file(service_user, file_, 'branding/avatar', reference)
 
     def trans():
@@ -160,7 +161,7 @@ def set_logo(service_user, image):
     content_type = _meta.lstrip('data:').split(';')[0]
     file_ = cgi.FieldStorage(StringIO(jpg_bytes), {'content-type': content_type})
     branding_settings_key = SolutionBrandingSettings.create_key(service_user)
-    reference = ndb.Key.from_old_key(branding_settings_key)
+    reference = ndb.Key.from_old_key(branding_settings_key)  # @UndefinedVariable
     uploaded_file = upload_file(service_user, file_, 'branding/logo', reference)
 
     branding_settings = db.get(branding_settings_key)  # type: SolutionBrandingSettings
@@ -187,7 +188,6 @@ def _regenerate_branding_with_logo(service_user):
 
         common_settings = get_solution_settings(service_user)
         common_settings.updates_pending = True
-        common_settings.events_branding_hash = None
 
         put_and_invalidate_cache(sln_main_branding, common_settings)
         return common_settings
@@ -222,15 +222,10 @@ def _validate_rss_urls(urls):
         if response.status_code != 200:
             invalid_urls.append(rss_url)
         else:
-            # try and load as rss and check if title, link and description exist and is set
             try:
-                doc = minidom.parseString(response.content)
-                first_item = doc.getElementsByTagName('item')[0]
-                title = first_item.getElementsByTagName("title")[0].firstChild.nodeValue
-                url = first_item.getElementsByTagName("link")[0].firstChild.nodeValue
-                if not title or not url:
-                    raise Exception('Missing title or url for %s' % rss_url)
-                valid_urls.append(rss_url)
+                items, _ = parse_rss_items(response.content, rss_url)
+                if not items:
+                    raise Exception('Missing items %s' % rss_url)
             except Exception as e:
                 logging.debug('Error while validating url: %s' % e.message, exc_info=True)
                 invalid_urls.append(rss_url)

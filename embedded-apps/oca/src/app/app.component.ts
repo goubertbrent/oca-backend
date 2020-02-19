@@ -2,13 +2,13 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewEncapsulatio
 import { Router } from '@angular/router';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-import { Platform } from '@ionic/angular';
+import { AlertController, Platform } from '@ionic/angular';
+import { AlertOptions } from '@ionic/core';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
-import { RogerthatContext } from 'rogerthat-plugin';
-import { RogerthatService } from './rogerthat/rogerthat.service';
+import { DEFAULT_LOCALE, getLocaleFromLanguage } from './locales';
+import { RogerthatService } from './rogerthat';
 import { setColor } from './shared/color-utils';
-import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from './shared/consts';
 
 
 @Component({
@@ -25,37 +25,36 @@ export class AppComponent {
               private translate: TranslateService,
               private cdRef: ChangeDetectorRef,
               private actions$: Actions,
-              private router: Router) {
+              private router: Router,
+              private alertController: AlertController) {
     this.initializeApp();
   }
 
   initializeApp() {
-    this.translate.setDefaultLang(DEFAULT_LANGUAGE);
+    this.translate.setDefaultLang(DEFAULT_LOCALE);
     this.platform.ready().then(() => {
       this.splashScreen.hide();
       this.platform.backButton.subscribe(() => {
         if (this.shouldExitApp()) {
-          (navigator as any).app.exitApp();
+          this.exit();
         }
       });
       rogerthat.callbacks.ready(() => {
-        this.useLanguage(rogerthat.user.language);
-        if (rogerthat.system.hasOwnProperty('colors')) {
-          // @ts-ignore
+        this.translate.use(getLocaleFromLanguage(rogerthat.user.language));
+        if (rogerthat.system.colors) {
           setColor('primary', rogerthat.system.colors.primary);
           if (rogerthat.system.os === 'ios') {
             this.statusBar.styleDefault();
           } else {
-            // @ts-ignore
             this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
           }
         } else {
           this.statusBar.styleDefault();
         }
         this.rogerthatService.initialize();
-        this.rogerthatService.getContext().subscribe(context => {
-          this.router.navigate(this.getRootPage(context));
-        });
+        if (this.isCompatible()) {
+          this.router.navigate(this.getRootPage());
+        }
       });
     });
     this.actions$.subscribe(action => {
@@ -65,39 +64,43 @@ export class AppComponent {
   }
 
   private shouldExitApp(): boolean {
-    const whitelist = ['/q-matic/appointments', '/jcc-appointments/appointments'];
+    const whitelist = ['/q-matic/appointments', 'jcc-appointments/appointments', '/events'];
     return whitelist.includes(this.router.url);
   }
 
-  private getRootPage(context: RogerthatContext | null): string[] {
+  private getRootPage(): string[] {
     const TAGS = {
       Q_MATIC: sha256('__sln__.q_matic'),
+      EVENTS: sha256('agenda'),
       JCC_APPOINTMENTS: sha256('__sln__.jcc_appointments'),
     };
-    switch (rogerthat.menuItem.hashedTag) {
-      case TAGS.Q_MATIC:
-        return ['q-matic'];
-      case TAGS.JCC_APPOINTMENTS:
-        return ['jcc-appointments'];
-      default:
-        return ['q-matic'];
-    }
+    const PAGE_MAPPING = {
+      [ TAGS.Q_MATIC ]: ['q-matic'],
+      [ TAGS.EVENTS ]: ['events'],
+      [ TAGS.JCC_APPOINTMENTS ]: ['jcc-appointments'],
+    };
+    const tag = rogerthat.menuItem.hashedTag in PAGE_MAPPING ? rogerthat.menuItem.hashedTag : TAGS.EVENTS;
+    return PAGE_MAPPING[ tag ];
   }
 
-  private useLanguage(language: string) {
-    let lang;
-    if (SUPPORTED_LANGUAGES.indexOf(language) === -1) {
-      const split = language.split('_')[ 0 ];
-      if (SUPPORTED_LANGUAGES.indexOf(split) === -1) {
-        lang = DEFAULT_LANGUAGE;
-      } else {
-        lang = split;
-      }
-    } else {
-      lang = language;
+  private exit() {
+    rogerthat.app.exit();
+  }
+
+  private isCompatible(): boolean {
+    if (!rogerthat.system.debug && !this.rogerthatService.isSupported([2, 1, 1], [2, 1, 1])) {
+      const opts: AlertOptions = {
+        header: this.translate.instant('app.oca.update_required'),
+        message: this.translate.instant('app.oca.update_app_to_use_feat'),
+        buttons: [{ role: 'cancel', text: this.translate.instant('app.oca.ok') }],
+      };
+      this.alertController.create(opts).then(alert => {
+        alert.present();
+        alert.onDidDismiss().then(() => this.exit());
+      });
+      return false;
     }
-    console.log(`Set language to ${lang}`);
-    this.translate.use(lang);
+    return true;
   }
 
 }

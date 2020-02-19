@@ -86,7 +86,7 @@ export class CancelAppointmentAction implements Action {
 export class CancelAppointmentSuccessAction implements Action {
   readonly type = JccAppointmentsActionTypes.CANCEL_APPOINTMENT_SUCCESS;
 
-  constructor(public payload: {appointmentID: string}) {
+  constructor(public payload: { appointmentID: string }) {
   }
 }
 

@@ -16,6 +16,7 @@
 # @@license_version:1.5@@
 
 from google.appengine.ext import ndb
+from typing import List
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key, parent_ndb_key_unsafe
@@ -76,7 +77,7 @@ class NewsSettingsTags(Enum):
 
 
 class NewsSettings(NdbModel):
-    tags = ndb.StringProperty(repeated=True, choices=NewsSettingsTags.all())
+    tags = ndb.StringProperty(repeated=True, choices=NewsSettingsTags.all())  # type: List[str]
 
     @classmethod
     def create_key(cls, service_user, service_identity):

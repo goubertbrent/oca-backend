@@ -11,25 +11,25 @@
 
 <ion-content>
   <ng-container *ngIf="appointments$ | async as appointments">
-    <app-appointment-card [appointment]="appointment"
+    <app-appointment-card (addToCalendarClicked)="addToCalendar($event)"
                           (cancelClicked)="cancelAppointment($event)"
-                          (addToCalendarClicked)="addToCalendar($event)"
-                          *ngFor="let appointment of appointments.upcoming">
+                          *ngFor="let appointment of appointments.upcoming"
+                          [appointment]="appointment">
     </app-appointment-card>
-    <p class="ion-padding" *ngIf="showNoResults$ | async">
+    <p *ngIf="showNoResults$ | async" class="ion-padding">
       {{ 'app.oca.no_upcoming_appointments_yet' | translate }}
     </p>
     <ng-container *ngIf="appointments.past.length > 0">
       <h2 class="ion-padding">{{ 'app.oca.former_appointments' | translate }}</h2>
-      <app-appointment-card [appointment]="appointment"
-                            *ngFor="let appointment of appointments.past">
+      <app-appointment-card *ngFor="let appointment of appointments.past"
+                            [appointment]="appointment">
       </app-appointment-card>
     </ng-container>
   </ng-container>
   <div *ngIf="isLoading$ | async" class="spinner-container">
     <ion-spinner></ion-spinner>
   </div>
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+  <ion-fab horizontal="end" slot="fixed" vertical="bottom">
     <ion-fab-button routerLink="/q-matic/new-appointment">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>

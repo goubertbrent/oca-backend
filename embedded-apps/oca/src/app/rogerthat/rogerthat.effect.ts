@@ -3,6 +3,9 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import {
+  GetNewsStreamItemsAction,
+  GetNewsStreamItemsCompleteAction,
+  GetNewsStreamItemsFailedAction,
   RogerthatActions,
   RogerthatActionTypes,
   ScanQrCodeAction,
@@ -22,6 +25,12 @@ export class RogerthatEffects {
       catchError(err => of(new ScanQrCodeFailedAction(err.message)))),
     ));
 
+  @Effect() getNewsStreamItems = this.actions$.pipe(
+    ofType<GetNewsStreamItemsAction>(RogerthatActionTypes.GET_NEWS_STREAM_ITEMS),
+    switchMap(action => this.rogerthatService.getNewsStreamItems(action.payload).pipe(
+      map(result => new GetNewsStreamItemsCompleteAction(result)),
+      catchError(err => of(new GetNewsStreamItemsFailedAction(err.message)))),
+    ));
 
   constructor(private actions$: Actions<RogerthatActions>,
               private rogerthatService: RogerthatService) {

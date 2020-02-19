@@ -26,13 +26,6 @@
       <excludeFolder url="file://$MODULE_DIR$/embedded-apps/oca/www" />
       <excludeFolder url="file://$MODULE_DIR$/node_modules" />
     </content>
-    <content url="file://$MODULE_DIR$/../rogerthat-backend">
-      <sourceFolder url="file://$MODULE_DIR$/../rogerthat-backend/src-generator" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../rogerthat-backend/src-renderer" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../rogerthat-backend/src-test" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../rogerthat-backend/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/build/lib" isTestSource="false" />
-    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="simplemde" level="application" />

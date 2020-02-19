@@ -19,7 +19,7 @@ import { Product, ProductDetails, SelectedProduct, SelectedProductsMapping } fro
   encapsulation: ViewEncapsulation.None,
 })
 export class JccCreateAppointmentComponent implements OnChanges {
-  @ViewChild(IonicSelectableComponent, {static: true}) selectableComponent: IonicSelectableComponent;
+  @ViewChild(IonicSelectableComponent, { static: true }) selectableComponent: IonicSelectableComponent;
   @Input() products: Product[];
   @Input() selectedProducts: SelectedProduct[];
   @Input() productCounts: SelectedProductsMapping;

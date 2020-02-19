@@ -15,17 +15,17 @@
 #
 # @@license_version:1.5@@
 
-from base64 import b64encode
-from datetime import datetime
 import json
 import logging
+from base64 import b64encode
+from datetime import datetime
 from types import NoneType
 
 import cloudstorage
+import pytz
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from google.appengine.ext.deferred import PermanentTaskFailure
-import pytz
 
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, object_factory
@@ -64,18 +64,11 @@ from solutions.common.bizz.coupons import API_METHOD_SOLUTION_COUPON_REDEEM, sol
     solution_coupon_resolve, API_METHOD_SOLUTION_COUPON_RESOLVE
 from solutions.common.bizz.customer_signups import deny_signup
 from solutions.common.bizz.discussion_groups import poke_discussion_groups, follow_discussion_groups
-from solutions.common.bizz.events import new_event_received, poke_new_event, API_METHOD_SOLUTION_EVENTS_REMIND, \
-    solution_remind_event, API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, solution_add_to_calender_event, \
-    API_METHOD_SOLUTION_EVENTS_REMOVE, solution_event_remove, API_METHOD_SOLUTION_EVENTS_GUEST_STATUS, \
-    solution_event_guest_status, API_METHOD_SOLUTION_EVENTS_GUESTS, solution_event_guests, \
-    API_METHOD_SOLUTION_CALENDAR_BROADCAST, solution_calendar_broadcast, \
+from solutions.common.bizz.events import API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, add_event_to_calender, \
     API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
-from solutions.common.integrations.jcc import jcc_appointments
-from solutions.common.integrations.jcc.models import JccApiMethod
-from solutions.common.integrations.qmatic import qmatic
 from solutions.common.bizz.loyalty import API_METHOD_SOLUTION_LOYALTY_LOAD, solution_loyalty_load, solution_loyalty_put, \
     API_METHOD_SOLUTION_LOYALTY_PUT, API_METHOD_SOLUTION_LOYALTY_REDEEM, solution_loyalty_redeem, \
     stop_loyalty_reminders, \
@@ -96,6 +89,9 @@ from solutions.common.bizz.sandwich import order_sandwich_received, \
     sandwich_order_from_broadcast_pressed
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
+from solutions.common.integrations.jcc import jcc_appointments
+from solutions.common.integrations.jcc.models import JccApiMethod
+from solutions.common.integrations.qmatic import qmatic
 from solutions.common.migrations.trash_calendar.bizz import POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS, \
     trash_transfer_address_pressed
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
@@ -119,14 +115,11 @@ POKE_TAG_WHEN_WHERE = u'when_where'
 POKE_TAG_MENU = u'menu'
 POKE_TAG_MENU_ITEM_IMAGE_UPLOAD = u'menu_item_image_upload'
 POKE_TAG_EVENTS = u'agenda'
-POKE_TAG_NEW_EVENT = u'agenda.new_event'
 POKE_TAG_ORDER = u"__sln__.order"
 POKE_TAG_PHARMACY_ORDER = u"__sln__.pharmacy_order"
 POKE_TAG_FORMS = u'__sln__.forms'
 POKE_TAG_Q_MATIC = u'__sln__.q_matic'
 POKE_TAG_JCC_APPOINTMENTS = u'__sln__.jcc_appointments'
-
-POKE_TAG_EVENTS_CONNECT_VIA_SCAN = u'agenda.connect_via_scan'
 
 POKE_TAG_INBOX_FORWARDING_REPLY = u"inbox_forwarding_reply"
 POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX = u"inbox_forwarding_reply_text_box"
@@ -899,7 +892,6 @@ FMR_POKE_TAG_MAPPING = {
     POKE_TAG_RESERVE_PART1: reservation_part1,
     POKE_TAG_ORDER: order_received,
     POKE_TAG_PHARMACY_ORDER: pharmacy_order_received,
-    POKE_TAG_NEW_EVENT: new_event_received,
     POKE_TAG_MENU_ITEM_IMAGE_UPLOAD: set_menu_item_image,
     POKE_TAG_ASK_QUESTION: question_asked,
     POKE_TAG_BROADCAST_CREATE_NEWS: broadcast_create_news_item
@@ -907,7 +899,6 @@ FMR_POKE_TAG_MAPPING = {
 
 POKE_TAG_MAPPING = {
     POKE_TAG_MY_RESERVATIONS: my_reservations_poke,
-    POKE_TAG_NEW_EVENT: poke_new_event,
     POKE_TAG_DISCUSSION_GROUPS: poke_discussion_groups,
     POKE_TAG_ORDER: poke_order,
     POKE_TAG_CHAT_ASK_QUESTION: chat_question_poke,
@@ -930,12 +921,7 @@ MESSAGE_TAG_MAPPING = {
 
 API_METHOD_MAPPING = {
     API_METHOD_SOLUTION_EVENTS_LOAD: solution_load_events,
-    API_METHOD_SOLUTION_EVENTS_REMIND: solution_remind_event,
-    API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER: solution_add_to_calender_event,
-    API_METHOD_SOLUTION_EVENTS_REMOVE: solution_event_remove,
-    API_METHOD_SOLUTION_EVENTS_GUEST_STATUS: solution_event_guest_status,
-    API_METHOD_SOLUTION_EVENTS_GUESTS: solution_event_guests,
-    API_METHOD_SOLUTION_CALENDAR_BROADCAST: solution_calendar_broadcast,
+    API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER: add_event_to_calender,
     API_METHOD_GROUP_PURCHASE_PURCHASE: solution_group_purchcase_purchase,
     API_METHOD_SOLUTION_LOYALTY_LOAD: solution_loyalty_load,
     API_METHOD_SOLUTION_LOYALTY_SCAN: solution_loyalty_scan,

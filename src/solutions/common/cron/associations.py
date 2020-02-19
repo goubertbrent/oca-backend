@@ -33,6 +33,7 @@ from solutions.common.models.static_content import SolutionStaticContent
 
 
 class CreateNonProfitStatistics(webapp.RequestHandler):
+
     def get(self):
         deferred.defer(update_statistic)
 
@@ -58,8 +59,9 @@ def update_statistic():
 
     future_event_count_dict = {}
 
-    for future_event_key in Event.get_future_event_keys(current_date):
-        service_email = future_event_key.parent().name()
+    event_keys = Event.list_greater_than_start_date(current_date)
+    for future_event_key in event_keys:
+        service_email = future_event_key.key.parent().id()
         if service_email not in future_event_count_dict:
             future_event_count_dict[service_email] = 1
         else:

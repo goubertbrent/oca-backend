@@ -15,46 +15,28 @@
 #
 # @@license_version:1.5@@
 
-from HTMLParser import HTMLParser
-from base64 import b64encode
 import hashlib
-import importlib
 import logging
 import urlparse
+from HTMLParser import HTMLParser
 
 from google.appengine.api import urlfetch, images
-from google.appengine.ext import webapp, ndb
-from html2text import HTML2Text
+from google.appengine.ext import ndb
 from html5lib.sanitizer import HTMLSanitizerMixin
 
 from mcfw.rpc import arguments, returns
-from mcfw.utils import chunks
 from rogerthat.consts import DEBUG
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.rpc import users
 from rogerthat.service.api import news
 from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, NewsFeedNameTO
-from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
 
-
 BROADCAST_TYPE_NEWS = u"News"
-
-
-class SolutionNewsScraper(webapp.RequestHandler):
-
-    def get(self):
-        solution_server_settings = get_solution_server_settings()
-        for module_name, service_user in chunks(solution_server_settings.solution_news_scrapers, 2):
-            try:
-                module = importlib.import_module("solutions.common.cron.news.%s" % module_name)
-                getattr(module, 'check_for_news')(users.User(service_user))
-            except:
-                pass
 
 
 def transl(key, language):
@@ -192,14 +174,6 @@ def linestrip(s):
     return '\n'.join((line.strip() for line in s.splitlines()))
 
 
-def html_to_markdown(html_content, base_url=None):
-    if not html_content:
-        return html_content
-    converter = HTML2Text(baseurl=base_url, bodywidth=0)
-    converter.ignore_images = True
-    return converter.handle(html_content)
-
-
 class TestIsHTMLParser(HTMLParser):
 
     def __init__(self, *args, **kwargs):
@@ -224,4 +198,4 @@ def is_html(text):
         return return_value
     except:
         logging.exception('Failed to determine if text was html')
-    return True # behaviour before this was always expect it was html
+    return True  # behaviour before this was always expect it was html

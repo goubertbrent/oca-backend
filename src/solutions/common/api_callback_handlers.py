@@ -41,13 +41,12 @@ from rogerthat.utils.models import reconstruct_key
 from solutions.common.bizz.bulk_invite import bulk_invite_result
 from solutions.common.bizz.customer_signups import process_updated_customer_signup_message
 from solutions.common.bizz.discussion_groups import discussion_group_deleted
-from solutions.common.bizz.events import solution_add_admin_to_calendar
 from solutions.common.bizz.forms import create_form_submission
 from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.bizz.loyalty import loyalty_qr_register, loyalty_qr_register_result, redeem_lottery_winners
 from solutions.common.bizz.messaging import API_METHOD_MAPPING, POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX, \
-    reply_on_inbox_forwarding, MESSAGE_TAG_MAPPING, POKE_TAG_MAPPING, POKE_TAG_EVENTS_CONNECT_VIA_SCAN, \
-    MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT, MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, POKE_TAG_RESERVE_PART2, \
+    reply_on_inbox_forwarding, MESSAGE_TAG_MAPPING, POKE_TAG_MAPPING, MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT, \
+    MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, POKE_TAG_RESERVE_PART2, \
     POKE_TAG_INBOX_FORWARDING_REPLY, POKE_TAG_DISCUSSION_GROUPS, \
     CHAT_DELETED_MAPPING, CHAT_NEW_MESSAGE_MAPPING
 from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
@@ -85,8 +84,6 @@ def common_messaging_poke(email, tag, result_key, context, service_identity, use
         handler = POKE_TAG_MAPPING[tag]
     elif tag and tag.startswith(STATIC_CONTENT_TAG_PREFIX):
         return None
-    elif tag and tag.startswith(POKE_TAG_EVENTS_CONNECT_VIA_SCAN):
-        handler = solution_add_admin_to_calendar
     else:
         logging.info("Unconfigured messaging.poke tag: %s" % tag)
         raise NotImplementedError()

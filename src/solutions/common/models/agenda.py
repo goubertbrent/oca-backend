@@ -14,80 +14,20 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from __future__ import unicode_literals
 
-from google.appengine.ext import db, ndb
+from datetime import datetime, date
+
+from dateutil.relativedelta import relativedelta
+from google.appengine.ext import ndb
+from oauth2client.appengine import CredentialsNDBProperty
+from typing import Tuple, List
 
 from mcfw.utils import Enum
-from oauth2client.appengine import CredentialsProperty
-from rogerthat.dal import parent_key, parent_ndb_key
+from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
-from rogerthat.utils import now
-from rogerthat.utils.service import get_service_user_from_service_identity_user, \
-    get_identity_from_service_identity_user
-from solutions.common.models.properties import SolutionUserProperty
-
-
-class _Event(object):
-    SOURCE_CMS = 0
-    SOURCE_UITDATABANK_BE = 1
-    SOURCE_GOOGLE_CALENDAR = 2
-    SOURCE_SCRAPER = 3
-
-    def get_first_event_date(self):
-        if len(self.start_dates) > 1:
-            first_start_date = self.start_dates[-1]
-            now_ = now()
-            for start_date in self.start_dates:
-                if start_date > now_:
-                    first_start_date = start_date
-                    break
-            return first_start_date
-        else:
-            return self.start_dates[0]
-
-
-class Event(db.Model, _Event):
-    app_ids = db.StringListProperty(indexed=True)
-    organization_type = db.IntegerProperty(indexed=True)
-    calendar_id = db.IntegerProperty(indexed=True)
-
-    source = db.IntegerProperty(indexed=True, default=_Event.SOURCE_CMS)
-    external_id = db.StringProperty(indexed=True)  # ID from source database
-    external_link = db.StringProperty(indexed=False)
-
-    title = db.StringProperty(indexed=False)
-    place = db.StringProperty(indexed=False, multiline=True)
-    description = db.TextProperty()
-    organizer = db.StringProperty(indexed=False)
-    url = db.StringProperty(indexed=False)
-
-    first_start_date = db.IntegerProperty(indexed=True, default=0)
-    last_start_date = db.IntegerProperty(indexed=True)
-    start_dates = db.ListProperty(int, indexed=False)  # seconds from midnight till end
-    end_dates = db.ListProperty(int, indexed=False)
-    deleted = db.BooleanProperty(indexed=True, default=False)
-    picture = db.BlobProperty()
-    picture_version = db.IntegerProperty(indexed=False, default=0)
-
-    @property
-    def service_user(self):
-        return users.User(self.parent_key().name())
-
-    @property
-    def solution(self):
-        return self.parent_key().kind()
-
-    @property
-    def guests(self):
-        return EventGuest.all().ancestor(self.key())
-
-    def guests_count(self, status):
-        return EventGuest.all(keys_only=True).ancestor(self.key()).filter("status =", status).count(None)
-
-    @classmethod
-    def get_future_event_keys(cls, current_date):
-        return db.Query(cls, keys_only=True).filter('deleted =', False).filter('last_start_date >', current_date)
+from solutions.common.models.forms import UploadedFile
 
 
 class EventMediaType(Enum):
@@ -95,38 +35,96 @@ class EventMediaType(Enum):
 
 
 class EventMedia(NdbModel):
-    url = ndb.StringProperty(indexed=False)
-    type = ndb.StringProperty(choices=EventMediaType.all(), indexed=False)
-    copyright = ndb.StringProperty(indexed=False)
+    url = ndb.TextProperty()
+    type = ndb.TextProperty(choices=EventMediaType.all())
+    copyright = ndb.TextProperty()
+    ref = ndb.KeyProperty(UploadedFile)
 
 
-class NdbEvent(NdbModel, _Event):
+class EventDate(NdbModel):
+    # Only one of both properties should be set - use 'date' for all-day events, datetime otherwise.
+    date = ndb.DateProperty()
+    datetime = ndb.DateTimeProperty()
+
+
+class EventPeriod(NdbModel):
+    start = ndb.StructuredProperty(EventDate)  # type: EventDate
+    end = ndb.StructuredProperty(EventDate)  # type: EventDate
+
+
+class EventOpeningPeriod(NdbModel):
+    # Mapping from datetime.weekday to our mapping
+    DAY_MAPPING = {
+        0: 1,
+        1: 2,
+        2: 3,
+        3: 4,
+        4: 5,
+        5: 6,
+        6: 0,
+    }
+    open = ndb.StringProperty()  # 0000-2359
+    close = ndb.StringProperty()
+    # A number from 0–6, corresponding to the days of the week, starting on Sunday. For example, 2 means Tuesday.
+    day = ndb.IntegerProperty()
+
+    @property
+    def opening_hour(self):
+        return int(self.open[:2])
+
+    @property
+    def opening_minute(self):
+        return int(self.open[2:])
+
+    @property
+    def close_hour(self):
+        return int(self.close[:2])
+
+    @property
+    def close_minute(self):
+        return int(self.close[2:])
+
+
+class EventCalendarType(Enum):
+    SINGLE = 'single'
+    MULTIPLE = 'multiple'
+    PERIODIC = 'periodic'
+    PERMANENT = 'permanent'
+
+
+class Event(NdbModel):
+    SOURCE_CMS = 0
+    SOURCE_UITDATABANK_BE = 1
+    SOURCE_GOOGLE_CALENDAR = 2
+
     app_ids = ndb.StringProperty(indexed=True, repeated=True)
     organization_type = ndb.IntegerProperty(indexed=True)
     calendar_id = ndb.IntegerProperty(indexed=True)
-
-    source = ndb.IntegerProperty(indexed=True, default=_Event.SOURCE_CMS)
+    source = ndb.IntegerProperty(indexed=True, default=SOURCE_CMS)
     external_id = ndb.StringProperty(indexed=True)  # ID from source database
-    external_link = ndb.StringProperty(indexed=False)
-
-    title = ndb.StringProperty(indexed=False)
-    place = ndb.StringProperty(indexed=False)
+    external_link = ndb.TextProperty()
+    title = ndb.TextProperty()
+    place = ndb.TextProperty()
     description = ndb.TextProperty()
-    organizer = ndb.StringProperty(indexed=False)
-    url = ndb.StringProperty(indexed=False)
+    organizer = ndb.TextProperty()
+    url = ndb.TextProperty()
+    calendar_type = ndb.StringProperty(choices=EventCalendarType.all())
+    start_date = ndb.DateTimeProperty()  # type: datetime
+    end_date = ndb.DateTimeProperty()  # type: datetime
+    # only to be used in combination with calendar_type single or multiple
+    periods = ndb.LocalStructuredProperty(EventPeriod, repeated=True)  # type: List[EventPeriod]
+    # Only used in case calendar_type is periodic or permanent
+    opening_hours = ndb.LocalStructuredProperty(EventOpeningPeriod, repeated=True)  # type: List[EventOpeningPeriod]
+    deleted = ndb.BooleanProperty(indexed=True, default=False)
+    media = ndb.StructuredProperty(EventMedia, repeated=True, indexed=False)  # type: List[EventMedia]
 
+    # TODO: remove these properties after migration _005_migrate_events has ran
     first_start_date = ndb.IntegerProperty(indexed=True, default=0)
     last_start_date = ndb.IntegerProperty(indexed=True)
     start_dates = ndb.IntegerProperty(repeated=True, indexed=False)  # seconds from midnight till end
     end_dates = ndb.IntegerProperty(repeated=True, indexed=False)
-    deleted = ndb.BooleanProperty(indexed=True, default=False)
     picture = ndb.BlobProperty()  # Deprecated
     picture_version = ndb.IntegerProperty(indexed=False, default=0)  # Deprecated
-    media = ndb.StructuredProperty(EventMedia, repeated=True, indexed=False)
-
-    @classmethod
-    def _get_kind(cls):
-        return Event.kind()
 
     @property
     def id(self):
@@ -141,115 +139,194 @@ class NdbEvent(NdbModel, _Event):
         return self.key.parent().kind()
 
     @classmethod
+    def create_key(cls, event_id, service_user, solution):
+        return ndb.Key(cls, event_id, parent=parent_ndb_key(service_user, solution))
+
+    @classmethod
     def list_by_source_and_id(cls, event_parent_key, source, external_id):
-        return cls.query(ancestor=event_parent_key).filter(cls.source == source).filter(cls.external_id == external_id)
-
-    @classmethod
-    def get_app_events(cls, app_id):
-        return cls.query() \
-            .filter(cls.app_ids == app_id) \
-            .filter(cls.deleted == False).order(cls.first_start_date)
-
-    @classmethod
-    def get_service_events(cls, service_user, solution):
-        return cls.query(ancestor=parent_ndb_key(service_user, solution)) \
-            .filter(cls.deleted == False) \
-            .order(cls.first_start_date)
+        return cls.query(ancestor=event_parent_key) \
+            .filter(cls.source == source) \
+            .filter(cls.external_id == external_id)
 
     @classmethod
     def list_by_calendar(cls, ancestor, calendar_id):
         return cls.query(ancestor=ancestor) \
             .filter(cls.calendar_id == calendar_id) \
             .filter(cls.deleted == False) \
-            .order(cls.first_start_date)
-
-
-class EventReminder(db.Model):
-    STATUS_PENDING = 1
-    STATUS_REMINDED = 2
-
-    service_identity_user = db.UserProperty(indexed=True)
-    human_user = db.UserProperty(indexed=True)  # app_user
-    event_id = db.IntegerProperty(indexed=True)
-    event_start_epoch = db.IntegerProperty(indexed=True)
-    remind_before = db.IntegerProperty(indexed=True)
-    status = db.IntegerProperty(required=True, default=STATUS_PENDING)
-
-    @property
-    def service_user(self):
-        return get_service_user_from_service_identity_user(self.service_identity_user)
-
-    @property
-    def service_identity(self):
-        return get_identity_from_service_identity_user(self.service_identity_user)
+            .order(cls.start_date)
 
     @classmethod
-    def list_by_status(cls, status):
-        return cls.all(keys_only=True).filter('status', status)
+    def list_visible_by_source(cls, service_user, solution, source):
+        return cls.query(ancestor=parent_ndb_key(service_user, solution)) \
+            .filter(cls.deleted == False) \
+            .filter(cls.source == source)
+
+    @classmethod
+    def list_less_than_end_date(cls, date):
+        return cls.query().filter(cls.end_date < date)
+
+    @classmethod
+    def list_greater_than_start_date(cls, date):
+        return cls.query().filter(cls.start_date > date)
+
+    def get_closest_occurrence(self, date):
+        # type: (datetime) -> Tuple[EventDate, EventDate]
+        if self.calendar_type == EventCalendarType.SINGLE:
+            if self.start_date > date:
+                return EventDate(datetime=self.start_date), EventDate(datetime=self.end_date)
+        elif self.calendar_type == EventCalendarType.MULTIPLE:
+            periods_after_date = sorted((period for period in self.periods
+                                         if (period.start.date or period.start.datetime) > date),
+                                        key=lambda p: p.start.date or p.start.datetime)
+            if periods_after_date:
+                period = periods_after_date[0]
+                return period.start, period.end
+        else:
+            date = date if date > self.start_date else self.start_date
+            if not self.opening_hours:
+                # Special case - user was too lazy to specify hours -> assume it happens everyday
+                if date <= self.end_date:
+                    next_date = date.replace(hour=self.start_date.hour, minute=self.start_date.minute,
+                                             second=self.start_date.second, microsecond=0)
+                    next_date_end = date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                    return EventDate(datetime=next_date), EventDate(datetime=next_date_end)
+                else:
+                    # Event is never happening again
+                    return None, None
+            day_additions = 0
+            for _ in xrange(7):
+                for opening_hour in self.opening_hours:
+                    start_date = date.replace(hour=opening_hour.opening_hour, minute=opening_hour.opening_minute,
+                                              second=0, microsecond=0) + relativedelta(days=day_additions)
+                    if start_date < date:
+                        continue
+                    event_weekday = EventOpeningPeriod.DAY_MAPPING[start_date.weekday()]
+                    if opening_hour.day == event_weekday:
+                        end_date = date.replace(hour=opening_hour.close_hour, minute=opening_hour.close_minute,
+                                                second=0, microsecond=0) + relativedelta(days=day_additions)
+                        return EventDate(datetime=start_date), EventDate(datetime=end_date)
+                day_additions += 1
+        return None, None
+
+    def get_occurrence_dates(self, current_datetime):
+        # type: (datetime) -> List[Tuple[datetime, datetime]]
+        # To be used for search only
+        current_date = date(current_datetime.year, current_datetime.month, current_datetime.day)
+        dates = []
+        if self.calendar_type == EventCalendarType.SINGLE:
+            if self.end_date > current_datetime:
+                # Useful for 'all day' events
+                if self.periods:
+                    period = self.periods[0]
+                    self._add_period(current_date, current_datetime, dates, period)
+                else:
+                    dates.append((self.start_date, self.end_date))
+        elif self.calendar_type == EventCalendarType.MULTIPLE:
+            for period in self.periods:
+                self._add_period(current_date, current_datetime, dates, period)
+        else:
+            base_date = current_datetime if current_datetime > self.start_date else self.start_date
+            end_of_day_of_last_day = self.end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            day_additions = 0
+            if self.opening_hours:
+                # Loop over every day to find all days on which the event occurs
+                while True:
+                    for opening_hour in self.opening_hours:
+                        start_date = base_date.replace(hour=opening_hour.opening_hour,
+                                                       minute=opening_hour.opening_minute,
+                                                       second=0, microsecond=0) + relativedelta(days=day_additions)
+                        if start_date > end_of_day_of_last_day:
+                            # No more occurrences - stop iterating
+                            break
+                        event_weekday = EventOpeningPeriod.DAY_MAPPING[start_date.weekday()]
+                        if opening_hour.day == event_weekday:
+                            end_date = base_date.replace(hour=opening_hour.close_hour, minute=opening_hour.close_minute,
+                                                         second=0, microsecond=0) + relativedelta(days=day_additions)
+                            if end_date <= end_of_day_of_last_day:
+                                dates.append((start_date, end_date))
+                    else:
+                        day_additions += 1
+                        continue
+                    break
+            else:
+                # Special case - event has no opening_hours, so assume it's open every day
+                base_date = self.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                start_date = base_date
+                day_additions = 0
+                while self.end_date > start_date:
+                    start_date = base_date + relativedelta(days=day_additions)
+                    end_date = start_date + relativedelta(hours=23, minutes=59, seconds=59, microseconds=999999)
+                    day_additions += 1
+                    dates.append((start_date, end_date))
+        return dates
+
+    def _add_period(self, current_date, current_datetime, dates, period):
+        if period.start.datetime:
+            if period.end.datetime > current_datetime:
+                dates.append((period.start.datetime, period.end.datetime))
+        else:
+            if period.end.date >= current_date:
+                end = period.end.date
+                start = period.start.date
+                start_of_day = datetime(start.year, start.month, start.day)
+                end_of_day = datetime(end.year, end.month, end.day, 23, 59, 59, 999999)
+                dates.append((start_of_day, end_of_day))
 
 
-class SolutionCalendarAdmin(db.Model):
-    timestamp = db.IntegerProperty(indexed=False)
-    app_user = db.UserProperty(indexed=True)
-
-    @property
-    def calendar_key(self):
-        return self.parent_key()
-
-    @staticmethod
-    def createKey(app_user, solutions_calendar_key):
-        return db.Key.from_path(SolutionCalendarAdmin.kind(), app_user.email(), parent=solutions_calendar_key)
-
-
-class SolutionGoogleCredentials(db.Model):
-    email = db.StringProperty(indexed=False)
-    name = db.StringProperty(indexed=False)
-    gender = db.StringProperty(indexed=False)
-    picture = db.StringProperty(indexed=False)
-    credentials = CredentialsProperty(indexed=False)
+class SolutionGoogleCredentials(NdbModel):
+    email = ndb.TextProperty()
+    name = ndb.TextProperty()
+    gender = ndb.TextProperty()
+    picture = ndb.TextProperty()
+    credentials = CredentialsNDBProperty()
 
     @property
     def id(self):
-        return self.key().name()
+        return self.key.id()
 
-    @staticmethod
-    def createKey(google_id):
-        return db.Key.from_path(SolutionGoogleCredentials.kind(), google_id)
+    @classmethod
+    def create_key(cls, google_id):
+        return ndb.Key(cls, google_id)
 
 
-class SolutionCalendar(db.Model):
-    name = db.StringProperty(indexed=False)
-    deleted = db.BooleanProperty(indexed=True, default=False)
-    connector_qrcode = db.StringProperty(indexed=False)
-    broadcast_enabled = db.BooleanProperty(indexed=True, default=False)
-    google_sync_events = db.BooleanProperty(indexed=True, default=False)
-
-    google_credentials = db.StringProperty(indexed=False)
-    google_calendar_ids = db.StringListProperty(indexed=False, default=[])
-    google_calendar_names = db.StringListProperty(indexed=False, default=[])
+class SolutionCalendar(NdbModel):
+    name = ndb.TextProperty()
+    deleted = ndb.BooleanProperty(default=False)
+    google_sync_events = ndb.BooleanProperty(default=False)
+    google_credentials = ndb.TextProperty()
+    google_calendar_ids = ndb.TextProperty(repeated=True)
+    google_calendar_names = ndb.TextProperty(repeated=True)
 
     @property
     def service_user(self):
-        return users.User(self.parent_key().name())
+        return users.User(self.key.parent().id())
 
     @property
     def solution(self):
-        return self.parent_key().kind()
+        return self.key.parent().kind()
 
     @property
     def calendar_id(self):
-        return long(self.key().id())
-
-    @classmethod
-    def create_key(cls, calendar_id, service_user, solution):
-        return db.Key.from_path(cls.kind(), calendar_id, parent=parent_key(service_user, solution))
-
-    def get_admins(self):
-        return SolutionCalendarAdmin.all().ancestor(self.key())
+        return long(self.key.id())
 
     @property
     def events(self):
-        return NdbEvent.list_by_calendar(parent_ndb_key(self.service_user, self.solution), self.calendar_id)
+        return Event.list_by_calendar(parent_ndb_key(self.service_user, self.solution), self.calendar_id)
+
+    @classmethod
+    def create_key(cls, calendar_id, service_user, solution):
+        return ndb.Key(cls, calendar_id, parent=parent_ndb_key(service_user, solution))
+
+    @classmethod
+    def list(cls, service_user, solution, include_deleted=False):
+        qry = cls.query(ancestor=parent_ndb_key(service_user, solution))
+        if not include_deleted:
+            qry = qry.filter(cls.deleted == False)
+        return qry
+
+    @classmethod
+    def list_with_google_sync(cls):
+        return cls.query().filter(cls.google_sync_events == True)
 
     def events_with_cursor(self, cursor, count):
         start_cursor = cursor and ndb.Cursor.from_websafe_string(cursor)
@@ -259,40 +336,5 @@ class SolutionCalendar(db.Model):
     def get_google_credentials(self):
         if not self.google_credentials:
             return None
-        sgc = SolutionGoogleCredentials.get(SolutionGoogleCredentials.createKey(self.google_credentials))
-        return sgc.credentials
-
-    @classmethod
-    def list_with_google_sync(cls):
-        return cls.all(keys_only=True).filter('google_sync_events', True)
-
-
-class EventGuest(db.Model):
-    STATUS_GOING = 1
-    STATUS_MAYBE = 2
-    STATUS_NOT_GOING = 3
-
-    # as in translation keys
-    STATUS_KEYS = {
-        STATUS_GOING: u'Going',
-        STATUS_MAYBE: u'Maybe',
-        STATUS_NOT_GOING: u'Not going'
-    }
-
-    guest = SolutionUserProperty(indexed=False)
-    timestamp = db.IntegerProperty(indexed=False)
-    status = db.IntegerProperty(indexed=True)
-
-    chat_key = db.StringProperty(indexed=False)
-
-    @property
-    def status_str(self):
-        return EventGuest.STATUS_KEYS.get(self.status)
-
-    @property
-    def app_user(self):
-        return users.User(self.key().name())
-
-    @staticmethod
-    def createKey(app_user, event_key):
-        return db.Key.from_path(EventGuest.kind(), app_user.email(), parent=event_key)
+        credentials = SolutionGoogleCredentials.create_key(self.google_credentials).get()
+        return credentials.credentials

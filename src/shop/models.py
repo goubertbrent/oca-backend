@@ -1284,7 +1284,7 @@ class AppCss(NdbModel):
     content = ndb.TextProperty()
 
     @classmethod
-    def create_key(cls, type, app_id):
+    def create_key(cls, type, app_id):  # @ReservedAssignment
         return ndb.Key('App', app_id, cls, type)
 
 
@@ -1792,7 +1792,7 @@ class LegalDocumentAcceptance(NdbModel):
     headers = ndb.JsonProperty()
 
     @classmethod
-    def create_key(cls, parent_key, type):
+    def create_key(cls, parent_key, type):  # @ReservedAssignment
         # type: (ndb.Key, unicode) -> ndb.Key
         return ndb.Key(cls._get_kind(), type, parent=parent_key)
 

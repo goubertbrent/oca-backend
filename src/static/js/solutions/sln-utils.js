@@ -928,17 +928,9 @@ var createLib = function() {
                 originalValue = value;
             });
         },
-        parseToEventDateTime: function(epoch) {
-            return sln.parseDateToEventDateTime(new Date(epoch));
-        },
-        parseDateToEventDateTime: function(d) {
-            return WEEK_DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear()
-                + ", " + CommonTranslations.STARTING_AT + ": " + sln.padLeft(d.getHours(), 2, "0") + ":"
-                + sln.padLeft(d.getMinutes(), 2, "0");
-        },
-        parseDateToDateTime: function(d) {
-            return WEEK_DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear()
-                + " " + sln.padLeft(d.getHours(), 2, "0") + ":" + sln.padLeft(d.getMinutes(), 2, "0");
+        parseDateToEventDateTime: function (d, daysOnly) {
+            return WEEK_DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() +
+                ' ' + sln.padLeft(d.getHours(), 2, "0") + ':' + sln.padLeft(d.getMinutes(), 2, '0');
         },
         _InboxCallbackListener: undefined,
         _InboxActionResults: [],
@@ -952,7 +944,6 @@ var createLib = function() {
                 $.each(results, function(i, result) {
                     listener(result.chatId, result.actions);
                 });
-                results = [];
             }
         },
         setInboxActions: function(chatId, actions) {

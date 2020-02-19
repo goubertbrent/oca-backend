@@ -15,24 +15,29 @@
 #
 # @@license_version:1.5@@
 
+from __future__ import unicode_literals
+
 import datetime
+import time
 import urllib
+
+from google.appengine.ext import ndb
 
 from mcfw.consts import MISSING
 from mcfw.properties import unicode_property, long_property, bool_property, typed_property, long_list_property, \
     unicode_list_property, float_property
 from mcfw.rpc import parse_complex_value, serialize_complex_value
-from rogerthat.dal.profile import get_user_profile
+from rogerthat.models import NdbProfile
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, TO
 from rogerthat.to.messaging import AttachmentTO
-from rogerthat.utils import get_epoch_from_datetime, urlencode
+from rogerthat.utils import get_epoch_from_datetime
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
     SolutionIdentitySettings
-from solutions.common.models.agenda import NdbEvent
+from solutions.common.models.agenda import Event, EventCalendarType, EventPeriod, EventDate
 from solutions.common.models.properties import MenuCategory
 
 
@@ -162,7 +167,6 @@ class SolutionSettingsTO(TO):
     search_enabled = bool_property('search_enabled')
     timezone = unicode_property('timezone')
     events_visible = bool_property('events_visible')
-    event_notifications_enabled = bool_property('event_notifications_enabled')
     search_keywords = unicode_property('search_keywords')
     place_types = unicode_list_property('place_types')
     email_address = unicode_property('email_address')
@@ -195,7 +199,6 @@ class SolutionSettingsTO(TO):
         to.search_enabled = sln_settings.search_enabled
         to.timezone = sln_settings.timezone
         to.events_visible = sln_settings.events_visible
-        to.event_notifications_enabled = sln_settings.event_notifications_enabled
         to.search_keywords = sln_i_settings.search_keywords
         to.place_types = sln_i_settings.place_types
         to.email_address = sln_i_settings.qualified_identifier or sln_settings.service_user.email()
@@ -309,62 +312,98 @@ class TimestampTO(object):
         return get_epoch_from_datetime(self.toDateTime())
 
 
-class EventGuestTO(object):
-    email = unicode_property('1')
-    name = unicode_property('2')
-    language = unicode_property('3')
-    avatar_url = unicode_property('4')
-    app_id = unicode_property('5')
-    status = long_property('6')
+class EventDateTO(TO):
+    date = unicode_property('date')
+    datetime = unicode_property('datetime')
 
-    @staticmethod
-    def fromEventGuest(obj):
-        e = EventGuestTO()
-        e.email = obj.guest.email
-        e.name = obj.guest.name
-        e.language = obj.guest.language
-        e.avatar_url = obj.guest.avatar_url
-        e.app_id = obj.guest.app_id
-        e.status = obj.status
-        return e
+    @classmethod
+    def from_model(cls, model):
+        to = cls()
+        if model.date:
+            to.date = model.date.isoformat().decode('utf-8')
+        else:
+            to.datetime = model.datetime.isoformat() + 'Z'
+        return to
 
 
-class PublicEventItemTO(object):
-    id = long_property('1')
-    title = unicode_property('2')
-    place = unicode_property('3')
-    description = unicode_property('4')
-    start_dates = long_list_property('5')
-    end_dates = long_list_property('6')
+class EventPeriodTO(TO):
+    start = typed_property('start', EventDateTO)
+    end = typed_property('end', EventDateTO)
 
-    @staticmethod
-    def fromPublicEventItemObject(obj):
-        item = PublicEventItemTO()
-        item.id = obj.key().id()
-        item.title = unicode(obj.title)
-        item.place = unicode(obj.place)
-        item.description = unicode(obj.description)
-        item.start_dates = list()
-        item.end_dates = list()
-        for start_date, end_date in zip(obj.start_dates, obj.end_dates):
-            item.start_dates.append(start_date)
-            sd = datetime.datetime.utcfromtimestamp(start_date)
-            seconds_since_midnight = (sd - sd.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
-            if end_date >= seconds_since_midnight:
-                item.end_dates.append(start_date - seconds_since_midnight + end_date)
-            else:
-                item.end_dates.append(start_date - seconds_since_midnight + 86400 + end_date)
-        return item
+    @classmethod
+    def from_model(cls, model):
+        return cls(start=EventDateTO.from_model(model.start),
+                   end=EventDateTO.from_model(model.end))
 
 
 class EventMediaTO(TO):
     type = unicode_property('type')
     url = unicode_property('url')
+    thumbnail_url = unicode_property('thumbnail_url')
     copyright = unicode_property('copyright')
 
     @classmethod
-    def from_model(cls, model):
-        return cls(type=model.type, url=model.url, copyright=model.copyright)
+    def from_model(cls, event, model, base_url, service_email, event_id):
+
+        if event.source == Event.SOURCE_UITDATABANK_BE:
+            # For events from uit (95% of events), use their thumbnail service
+            thumbnail_url = '%s?width=152&height=152&crop=auto&scale=both' % model.url
+        else:
+            # TODO: create own thumbnail service
+            # For now we just return the original url
+            thumbnail_url = model.url
+        return cls(
+            type=model.type,
+            url=model.url,
+            copyright=model.copyright,
+            thumbnail_url=thumbnail_url,
+        )
+
+
+class OpeningPeriodTO(TO):
+    open = unicode_property('open')
+    close = unicode_property('close')
+    day = long_property('day')
+
+
+class PublicEventItemTO(TO):
+    id = long_property('1')
+    title = unicode_property('2')
+    place = unicode_property('3')
+    description = unicode_property('4')
+    # deprecated
+    start_dates = long_list_property('5')
+    # deprecated
+    end_dates = long_list_property('6')
+    calendar_type = unicode_property('calendar_type')
+    start_date = unicode_property('start_date')
+    end_date = unicode_property('end_date')
+    periods = typed_property('periods', EventPeriodTO, True)
+    opening_hours = typed_property('opening_hours', OpeningPeriodTO, True)
+
+    @classmethod
+    def fromPublicEventItemObject(cls, obj):
+        # type: (Event) -> PublicEventItemTO
+        item = cls()
+        item.id = obj.key.id()
+        item.title = unicode(obj.title)
+        item.place = unicode(obj.place)
+        item.description = unicode(obj.description)
+        item.periods = [EventPeriodTO.from_model(period) for period in obj.periods]
+        item.start_dates = []
+        item.end_dates = []
+        item.start_date = obj.start_date.isoformat() + 'Z'
+        item.end_date = obj.end_date.isoformat() + 'Z'
+        item.calendar_type = obj.calendar_type
+        item.opening_hours = [OpeningPeriodTO.from_model(hours) for hours in obj.opening_hours]
+        if obj.calendar_type == EventCalendarType.SINGLE:
+            obj.periods = [EventPeriod(start=EventDate(datetime=obj.start_date), end=EventDate(datetime=obj.end_date))]
+        for period in obj.periods:
+            start_date = period.start.datetime or period.start.date
+            end_date = period.end.datetime or period.end.date
+            item.start_dates.append(time.mktime(start_date.timetuple()))
+            item.end_dates.append(time.mktime(end_date.timetuple()))
+        return item
 
 
 class EventItemTO(TO):
@@ -372,90 +411,63 @@ class EventItemTO(TO):
     title = unicode_property('2')
     place = unicode_property('3')
     description = unicode_property('4')
-    start_dates = typed_property('5', TimestampTO, True)
-    end_dates = long_list_property('6')
+    start_date = unicode_property('start_date')
+    end_date = unicode_property('end_date')
+    calendar_type = unicode_property('calendar_type')
+    periods = typed_property('periods', EventPeriodTO, True, default=[])
+    opening_hours = typed_property('opening_hours', OpeningPeriodTO, True, default=[])
     can_edit = bool_property('7')
     source = long_property('8')
     external_link = unicode_property('9')
-    picture = unicode_property('10')
-    new_picture = bool_property('11')
-    end_dates_timestamps = typed_property('12', TimestampTO, True)
     calendar_id = long_property('13')
     organizer = unicode_property('14')
     service_user_email = unicode_property('15')
-    media = typed_property('media', EventMediaTO, True)
+    media = typed_property('media', EventMediaTO, True, default=[])
 
-    @staticmethod
-    def from_model(obj, include_picture=False, destination_app=True, service_user=None):
-        item = EventItemTO()
-        item.id = obj.id
-        item.title = unicode(obj.title)
-        item.place = unicode(obj.place)
-        item.description = unicode(obj.description)
-        item.start_dates = []
-        item.end_dates = []
-        item.end_dates_timestamps = []
-        for start_date, end_date in zip(obj.start_dates, obj.end_dates):
-            item.start_dates.append(TimestampTO.fromDatetime(datetime.datetime.utcfromtimestamp(start_date)))
-            item.end_dates.append(end_date)
-            sd = datetime.datetime.utcfromtimestamp(start_date)
-            seconds_since_midnight = (sd - sd.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
-            offset = 0 if end_date >= seconds_since_midnight else 86400
-            item.end_dates_timestamps.append(TimestampTO.fromDatetime(
-                datetime.datetime.utcfromtimestamp(start_date - seconds_since_midnight + offset + end_date)))
-
-        item.can_edit = obj.source == NdbEvent.SOURCE_CMS
-        item.source = obj.source
-        if obj.source == NdbEvent.SOURCE_UITDATABANK_BE:
-            item.external_link = u"http://www.uitinvlaanderen.be/agenda/e/%s/%s" % (urlencode({"": obj.title})[1:],
-                                                                                    urlencode({"": obj.external_id})[
-                                                                                    1:])
-        elif obj.source == NdbEvent.SOURCE_GOOGLE_CALENDAR and not destination_app:
-            item.external_link = obj.external_link
-        elif obj.source == NdbEvent.SOURCE_SCRAPER:
-            item.external_link = obj.external_link
-        else:
-            item.external_link = obj.url or None
-        if include_picture:
-            item.picture = unicode(obj.picture) if obj.picture else None
-        else:
-            if obj.picture:
-                server_settings = get_server_settings()
-                base_url = server_settings.baseUrl
-                params = urllib.urlencode(dict(service_user_email=obj.service_user.email(),
-                                               event_id=item.id,
-                                               picture_version=obj.picture_version))
-                item.picture = "%s/solutions/common/public/events/picture?%s" % (base_url, params)
-            else:
-                item.picture = None
-        item.new_picture = False
-        item.calendar_id = obj.calendar_id
-        if service_user and obj.service_user != service_user:
+    @classmethod
+    def from_model(cls, obj, base_url, include_picture=False, destination_app=True, service_user=None):
+        # type: (Event, bool, bool, users.User) -> EventItemTO
+        event_service_user = obj.service_user
+        item = cls(
+            id=obj.id,
+            title=obj.title,
+            place=obj.place,
+            description=obj.description,
+            start_date=obj.start_date.isoformat() + 'Z',
+            end_date=obj.end_date.isoformat() + 'Z',
+            calendar_type=obj.calendar_type,
+            periods=[EventPeriodTO.from_model(d) for d in obj.periods],
+            opening_hours=[OpeningPeriodTO.from_dict(period.to_dict()) for period in obj.opening_hours],
+            can_edit=obj.source == Event.SOURCE_CMS,
+            source=obj.source,
+            service_user_email=event_service_user.email(),
+            media=[EventMediaTO.from_model(obj, media, base_url, event_service_user.email(), obj.id)
+                   for media in obj.media],
+            organizer=obj.organizer,
+            calendar_id=obj.calendar_id,
+            external_link=obj.external_link or obj.url,
+        )
+        if service_user and event_service_user != service_user:
             item.calendar_id = obj.organization_type
-        item.organizer = obj.organizer
-        item.service_user_email = obj.service_user.email()
-        item.media = [EventMediaTO.from_model(media) for media in obj.media]
         return item
+
+
+class CreateEventItemTO(EventItemTO):
+    picture = unicode_property('picture')
 
 
 class SolutionCalendarTO(TO):
     id = long_property('1')
     name = unicode_property('2')
-    admins = typed_property('3', SolutionUserKeyLabelTO, True, default=[])
     can_delete = bool_property('4', default=False)
-    connector_qrcode = unicode_property('5', default=None)
     events = typed_property('6', EventItemTO, True, default=[])
-    broadcast_enabled = bool_property('7', default=False)
 
     @classmethod
-    def fromSolutionCalendar(cls, sln_settings, obj, admins):
+    def fromSolutionCalendar(cls, sln_settings, obj):
         return cls(
             id=obj.calendar_id,
             name=obj.name,
-            admins=admins,
             can_delete=sln_settings.default_calendar != obj.calendar_id,
-            connector_qrcode=obj.connector_qrcode,
-            broadcast_enabled=obj.broadcast_enabled,
             events=[],
         )
 
@@ -465,30 +477,17 @@ class SolutionCalendarWebTO(SolutionCalendarTO):
     has_more = bool_property('51')
 
     @staticmethod
-    def fromSolutionCalendar(sln_settings, obj, include_events=False, include_events_picture=False,
-                             include_admin_deleting=True, cursor=None, cursor_count=10):
+    def fromSolutionCalendar(sln_settings, obj, base_url, include_events=False, cursor=None):
         item = SolutionCalendarWebTO()
         item.id = obj.calendar_id
         item.name = obj.name
-        item.admins = list()
-        for admin in obj.get_admins():
-            up = get_user_profile(admin.app_user)
-            if up:
-                sif = SolutionUserKeyLabelTO()
-                sif.key = admin.app_user.email()
-                human_user = get_human_user_from_app_user(admin.app_user)
-                sif.label = u"%s (%s)" % (up.name, human_user.email())
-                item.admins.append(sif)
         item.can_delete = sln_settings.default_calendar != item.id
-        item.connector_qrcode = obj.connector_qrcode
-        item.events = list()
+        item.events = []
         item.cursor = None
         item.has_more = False
         if include_events:
-            item.cursor, events, item.has_more = obj.events_with_cursor(cursor, cursor_count)
-            for e in events:
-                item.events.append(EventItemTO.from_model(e, include_events_picture, False))
-        item.broadcast_enabled = obj.broadcast_enabled
+            item.cursor, events, item.has_more = obj.events_with_cursor(cursor, 10)
+            item.events = [EventItemTO.from_model(e, base_url, destination_app=False) for e in events]
         return item
 
 
@@ -1029,15 +1028,10 @@ class AppUserRolesTO(object):
     app_id = unicode_property('2')
 
     inbox_forwarder = bool_property('3')
-    calendar_admin = bool_property('4')
     news_publisher = bool_property('5')
 
     # forwarder types assigned to app user (mobile, email)
     forwarder_types = unicode_list_property('6')
-
-    # in case the user is a calendar admin
-    # he may be an admin of many calendars (list)
-    calendars = typed_property('7', SolutionCalendarTO, True)
 
     def add_forwarder_type(self, forwarder_type):
         """Add a forwarder type if not exists."""
@@ -1047,15 +1041,6 @@ class AppUserRolesTO(object):
         if forwarder_type not in self.forwarder_types:
             self.forwarder_types.append(forwarder_type)
             self.inbox_forwarder = True
-
-    def add_calendar(self, calendar):
-        """Add a calendar if not exists."""
-        if self.calendars is MISSING:
-            self.calendars = []
-
-        if not any([calendar.id == c.id for c in self.calendars]):
-            self.calendars.append(calendar)
-            self.calendar_admin = True
 
 
 class CustomerSignupTO(object):

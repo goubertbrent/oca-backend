@@ -49,17 +49,17 @@
             service: {
                 data: {},
             },
-            menuItem: {
-                hashedTag: 'q_matic',
-                label: 'Q-matic',
+          menuItem: {
+            hashedTag: 'q_matic',
+            label: 'Q-matic',
+          },
+          util: {
+            uuid: () => {
+              return Math.random().toString();
             },
-            util: {
-                uuid: () => {
-                    return Math.random().toString();
-                },
-            },
+          },
         };
-        sha256 = a => a;
+      sha256 = a => a;
     }
 </script>
 <script src="cordova.js"></script>

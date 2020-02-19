@@ -15,10 +15,9 @@
 #
 # @@license_version:1.5@@
 
-from google.appengine.ext import db, ndb
+from google.appengine.ext import ndb
 
-from mcfw.rpc import arguments, returns
-from rogerthat.dal import parent_key, parent_ndb_key
+from rogerthat.dal import parent_ndb_key
 from rogerthat.models.common import NdbModel, TOProperty
 from rogerthat.rpc import users
 from solutions.common import SOLUTION_COMMON
@@ -26,29 +25,24 @@ from solutions.common.bizz import OrganizationType
 from solutions.common.to.paddle import PaddleOrganizationUnitDetails
 
 
-class CityAppProfile(db.Model):
+class CityAppProfile(NdbModel):
     # Run params in cron of CityAppSolutionGatherEvents
-    gather_events_enabled = db.BooleanProperty(indexed=False, default=False)
-
-    review_news = db.BooleanProperty(indexed=False)
+    gather_events_enabled = ndb.BooleanProperty(indexed=False, default=False)
+    review_news = ndb.BooleanProperty(indexed=False, default=False)
 
     EVENTS_ORGANIZATION_TYPES = [OrganizationType.NON_PROFIT, OrganizationType.PROFIT, OrganizationType.CITY,
                                  OrganizationType.EMERGENCY]
 
     @property
     def service_user(self):
-        return users.User(self.parent_key().name())
+        return users.User(self.key.id())
 
-    @staticmethod
-    @returns(db.Key)
-    @arguments(service_user=users.User)
-    def create_key(service_user):
-        return db.Key.from_path(CityAppProfile.kind(), 'profile', parent=parent_key(service_user, SOLUTION_COMMON))
+    @classmethod
+    def create_key(cls, service_user):
+        return ndb.Key(cls, 'profile', parent=parent_ndb_key(service_user, SOLUTION_COMMON))
 
 
 class UitdatabankSettings(NdbModel):
-    VERSION_1 = u'1'
-    VERSION_2 = u'2'
     VERSION_3 = u'3'
 
     enabled = ndb.BooleanProperty(indexed=True, default=False)

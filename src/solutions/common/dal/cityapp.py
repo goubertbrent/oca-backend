@@ -17,7 +17,7 @@
 
 import logging
 
-from google.appengine.ext import db
+from google.appengine.ext import ndb
 
 from mcfw.cache import invalidate_cache, cached
 from mcfw.rpc import arguments, returns
@@ -28,19 +28,16 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models.cityapp import CityAppProfile, UitdatabankSettings
 
 
+@ndb.transactional()
 @returns(CityAppProfile)
 @arguments(service_user=users.User)
 def get_cityapp_profile(service_user):
-
-    def trans():
-        cityapp_profile = CityAppProfile.get(CityAppProfile.create_key(service_user))
-        if not cityapp_profile:
-            cityapp_profile = CityAppProfile(key=CityAppProfile.create_key(service_user))
-            cityapp_profile.gather_events_enabled = False
-            cityapp_profile.put()
-        return cityapp_profile
-
-    return trans() if db.is_in_transaction() else db.run_in_transaction(trans)
+    key = CityAppProfile.create_key(service_user)
+    cityapp_profile = key.get()
+    if not cityapp_profile:
+        cityapp_profile = CityAppProfile(key=key)
+        cityapp_profile.put()
+    return cityapp_profile
 
 
 @returns(UitdatabankSettings)

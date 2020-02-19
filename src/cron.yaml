@@ -1,11 +1,4 @@
 cron:
-- description: Solution events reminders
-  url: /admin/cron/rpc/reminder_solution_events
-  schedule: every 15 minutes
-
-- description: Solution update first start solution events
-  url: /admin/cron/rpc/update_first_start_solution_events
-  schedule: every 15 minutes
 
 - description: Solution Sandwich auto broadcast
   url: /admin/cron/rpc/solution_module_sandwich_auto_broadcast
@@ -39,17 +32,9 @@ cron:
   url: /admin/cron/rpc/city_association_statistics
   schedule: every day 00:30
 
-- description: Solution events scraper
-  url: /admin/cron/rpc/solution_events_scraper
-  schedule: every day 01:00
-
 - description: Solution events cleanup
   url: /admin/cron/rpc/cleanup_solution_events
   schedule: every day 08:00
-
-- description: Solution news scraper
-  url: /admin/cron/rpc/solution_news_scraper
-  schedule: every day 18:00
 
 - description: Solution regional news budget check/update
   url: /admin/cron/rpc/solutions_news_budget_updater

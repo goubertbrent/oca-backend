@@ -16,18 +16,20 @@
 # @@license_version:1.5@@
 
 from google.appengine.ext import db
+from typing import List, Dict
 
 from mcfw.cache import cached
 from mcfw.rpc import returns, arguments
-from rogerthat.dal import parent_key, generator, parent_key_unsafe
+from rogerthat.dal import parent_key, parent_key_unsafe
 from rogerthat.dal.profile import get_profile_infos
 from rogerthat.rpc import users
 from rogerthat.service.api import friends
-from rogerthat.utils.app import sanitize_app_user, get_human_user_from_app_user
+from rogerthat.utils.app import get_human_user_from_app_user
+from solutions import SOLUTION_FLEX
 from solutions.common import SOLUTION_COMMON
-from solutions.common.models import SolutionSettings, SolutionMainBranding, RestaurantMenu, SolutionScheduledBroadcast,\
-    SolutionInboxMessage, SolutionEmailSettings, SolutionIdentitySettings, SolutionNewsPublisher
-from solutions.common.models.agenda import Event, EventReminder, SolutionCalendar, SolutionCalendarAdmin
+from solutions.common.models import SolutionSettings, SolutionMainBranding, RestaurantMenu, SolutionInboxMessage, \
+    SolutionEmailSettings, SolutionIdentitySettings, SolutionNewsPublisher
+from solutions.common.models.agenda import SolutionCalendar, Event
 from solutions.common.models.group_purchase import SolutionGroupPurchaseSettings
 from solutions.common.models.static_content import SolutionStaticContent
 from solutions.common.to import SolutionUserKeyLabelTO, SolutionCalendarTO
@@ -134,88 +136,27 @@ def get_news_publisher_from_app_user(app_user, service_user, solution):
     return publisher
 
 
-@returns([SolutionCalendar])
-@arguments(service_user=users.User, solution=unicode, filter_broadcast_disabled=bool)
-def get_solution_calendars(service_user, solution, filter_broadcast_disabled=False):
-    if filter_broadcast_disabled:
-        qry = SolutionCalendar.gql("WHERE ANCESTOR IS :ancestor AND deleted=False AND broadcast_enabled=True")
-    else:
-        qry = SolutionCalendar.gql("WHERE ANCESTOR IS :ancestor AND deleted=False")
-    qry.bind(ancestor=parent_key(service_user, solution))
-    return generator(qry.run())
+def get_solution_calendars(service_user, solution):
+    # type: (users.User, str) -> List[SolutionCalendar]
+    return SolutionCalendar.list(service_user, solution)
 
 
 def get_calendar_items(sln_settings, calendars):
-    # type: (SolutionSettings, list[SolutionCalendar]) -> list[SolutionCalendarTO]
-    calendars = list(calendars)
-    calendar_mapping = {c.calendar_id: c for c in calendars if c}  # type: dict[int, SolutionCalendar]
-    admin_queries = {calendar.calendar_id: calendar.get_admins() for calendar in calendars}
-    admins = {calendar_id: list(admins_qry) for calendar_id, admins_qry in admin_queries.iteritems()}
-    admin_users = []
-    for admins_list in admins.itervalues():
-        for admin in admins_list:
-            admin_users.append(admin.app_user)
-    profiles = {profile.user.email(): profile for profile in get_profile_infos(admin_users)}
-    calendar_items = {}
-    for calendar_id, admins in admins.iteritems():
-        admin_objects = []
-        for admin in admins:
-            human_user = get_human_user_from_app_user(admin.app_user)
-            profile = profiles[admin.app_user.email()]
-            admin_objects.append(SolutionUserKeyLabelTO(
-                key=admin.app_user.email(),
-                label=u'%s (%s)' % (profile.name, human_user.email()),
-            ))
-        calendar = calendar_mapping[calendar_id]
-        calendar_items[calendar_id] = SolutionCalendarTO.fromSolutionCalendar(sln_settings, calendar, admin_objects)
-    return [calendar_items.get(c.calendar_id) for c in calendars]
-
-
-@returns([SolutionCalendar])
-@arguments(service_user=users.User, solution=unicode, app_user=users.User, filter_deleted=bool)
-def get_solution_calendars_for_user(service_user, solution, app_user, filter_deleted=True):
-    calendars = []
-    for calendar in db.get([c.calendar_key for c in SolutionCalendarAdmin.all().ancestor(parent_key(service_user, solution)).filter("app_user =", app_user)]):
-        if not(filter_deleted and calendar.deleted):
-            calendars.append(calendar)
-    return calendars
-
-
-@returns([long])
-@arguments(service_user=users.User, solution=unicode, app_user=users.User, filter_deleted=bool)
-def get_solution_calendar_ids_for_user(service_user, solution, app_user, filter_deleted=True):
-    calendar_ids = []
-    for calendar in get_solution_calendars_for_user(service_user, solution, app_user, filter_deleted):
-        calendar_ids.append(calendar.calendar_id)
-    return calendar_ids
+    # type: (SolutionSettings, List[SolutionCalendar]) -> List[SolutionCalendarTO]
+    return [SolutionCalendarTO.fromSolutionCalendar(sln_settings, calendar) for calendar in calendars]
 
 
 @returns([Event])
-@arguments(service_user=users.User, solution=unicode)
-def get_event_list(service_user, solution):
-    qry = Event.gql("WHERE ANCESTOR IS :ancestor AND deleted=False")
-    qry.bind(ancestor=parent_key_unsafe(service_user, solution))
-    return generator(qry.run())
-
-
-@returns([Event])
-@arguments(service_user=users.User, solution=unicode)
-def get_public_event_list(service_user, solution):
-    qry = Event.gql("WHERE ANCESTOR IS :ancestor AND deleted=False AND source = :source")
-    qry.bind(ancestor=parent_key(service_user, solution), source=Event.SOURCE_CMS)
-    return generator(qry.run())
+@arguments(service_user=users.User)
+def get_public_event_list(service_user):
+    return Event.list_visible_by_source(service_user, SOLUTION_FLEX, Event.SOURCE_CMS)
 
 
 @returns(Event)
 @arguments(service_user=users.User, solution=unicode, id_=(int, long))
 def get_event_by_id(service_user, solution, id_):
-    return Event.get_by_id(id_, parent_key(service_user, solution))
-
-
-@returns(bool)
-@arguments(app_user=users.User, event_id=(int, long), event_start_epoch=(int, long), remind_before=(int, long))
-def is_reminder_set(app_user, event_id, event_start_epoch, remind_before):
-    return len(EventReminder.all().filter("event_id =", event_id).filter("human_user =", app_user).filter("event_start_epoch =", event_start_epoch).filter("remind_before =", remind_before).fetch(1)) > 0
+    # type: (users.User, str, int) -> Event
+    return Event.create_key(id_, service_user, solution).get()
 
 
 @returns([SolutionStaticContent])
@@ -241,12 +182,6 @@ def get_solution_group_purchase_settings(service_user, solution):
     return sgps
 
 
-@returns([SolutionScheduledBroadcast])
-@arguments(service_user=users.User)
-def get_solution_scheduled_broadcasts(service_user):
-    return SolutionScheduledBroadcast.all().ancestor(parent_key(service_user, SOLUTION_COMMON)).filter("deleted =", False).order("broadcast_epoch")
-
-
 @cached(1)
 @returns(SolutionEmailSettings)
 @arguments()
@@ -257,29 +192,7 @@ def get_solution_email_settings():
     return sln_email_settings
 
 
-@returns(tuple)
-@arguments(user_key=unicode, service_identity=unicode)
-def get_user_from_key(user_key, service_identity=None):
-    """
-    Gets a user from user key
-
-    :param user_key: unicode as <email>:<app_id>
-
-    :returns: a tuple with the user and if it's an existing user or not.
-              (users.User, bool)
-    """
-    try:
-        app_user = sanitize_app_user(users.User(user_key))
-
-        try:
-            email, app_id = user_key.split(':')
-        except ValueError:
-            email, app_id = user_key, None
-
-        status = friends.get_status(email, service_identity, app_id)
-        is_existing_user = status.is_friend and not status.deactivated
-    except AssertionError:
-        is_existing_user = False
-        app_user = users.User(user_key)
-
-    return app_user, is_existing_user
+def is_existing_friend(email, app_id, service_identity):
+    # type: (str, str, str) -> bool
+    status = friends.get_status(email, service_identity, app_id)
+    return status.is_friend and not status.deactivated

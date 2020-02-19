@@ -14,17 +14,19 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
-
 from cgi import FieldStorage
 from mimetypes import guess_extension
 
-from google.appengine.ext import ndb
-
 import cloudstorage
+from google.appengine.ext import ndb
+from typing import List
+
 from mcfw.exceptions import HttpBadRequestException
+from rogerthat.models.utils import ndb_allocate_ids
 from rogerthat.rpc import users
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import read_file_in_chunks
+from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.models.forms import UploadedFile
 
@@ -37,7 +39,7 @@ def upload_file(service_user, uploaded_file, prefix, reference=None):
     extension = guess_extension(content_type)
     if not extension:
         raise HttpBadRequestException('oca.attachment_must_be_of_type')
-    file_id = UploadedFile.allocate_ids(1)[0]
+    file_id = ndb_allocate_ids(UploadedFile, 1)[0]
     cloudstorage_path = '/%(bucket)s/services/%(service)s/%(prefix)s/%(file_id)d%(extension)s' % {
         'bucket': OCA_FILES_BUCKET,
         'service': service_user.email(),
@@ -61,5 +63,20 @@ def upload_file(service_user, uploaded_file, prefix, reference=None):
 
 
 def list_files(service_user):
-    # type: (users.User) -> list[UploadedFile]
+    # type: (users.User) -> List[UploadedFile]
     return UploadedFile.list_by_user(service_user)
+
+
+def remove_files(keys):
+    # type: (List[ndb.Key]) -> None
+    to_remove = ndb.get_multi(keys)  # type: List[UploadedFile]
+    tasks = [create_task(_delete_from_gcs, uploaded_file.cloudstorage_path) for uploaded_file in to_remove]
+    schedule_tasks(tasks)
+    ndb.delete_multi(keys)
+
+
+def _delete_from_gcs(cloudstorage_path):
+    try:
+        cloudstorage.delete(cloudstorage_path)
+    except cloudstorage.NotFoundError:
+        pass

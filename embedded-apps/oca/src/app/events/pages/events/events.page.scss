@@ -1,0 +1,28 @@
+.section-title {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.event-title {
+  color: var(--ion-color-primary);
+  font-weight: bold;
+}
+
+.event-date {
+  font-weight: bold;
+}
+
+.event-image {
+  width: 64px;
+  height: 64px;
+}
+
+.rounded-thumbnail {
+  border-radius: 8px;
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
