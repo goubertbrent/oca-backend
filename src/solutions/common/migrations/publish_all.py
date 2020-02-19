@@ -17,7 +17,6 @@
 
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import MIGRATION_QUEUE
-from rogerthat.rpc import users
 from solutions.common.bizz import common_provision
 from solutions.common.models import SolutionSettings
 
@@ -36,4 +35,6 @@ def _get_solution_settings_keys(module):
 
 
 def _publish(sln_settings_key):
-    common_provision(users.User(sln_settings_key.name()))
+    sln_settings = db.get(sln_settings_key)  # type: SolutionSettings
+    if not sln_settings.service_disabled:
+        common_provision(sln_settings.service_user), sln_settings)
