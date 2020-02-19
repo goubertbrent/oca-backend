@@ -380,8 +380,16 @@ def delete_event(service_user, event_id):
            service_identity=unicode,
            user_details=[UserDetailsTO])
 def solution_load_events(service_user, email, method, params, tag, service_identity, user_details):
+    r = SendApiCallCallbackResultTO()
     sln_settings = get_solution_settings(service_user)
     data = json.loads(params)
+    if 'startDate' not in data:
+        r.result = json.dumps({
+            'events': [],
+            'has_more': False,
+            'cursor': None,
+        }).decode('utf8')
+        return r
     cursor = data.get('cursor', None)
 
     app_id = None
@@ -394,7 +402,6 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
     if not app_id:
         service = service_user.email()
     cursor, events = search_events(data['startDate'], data['endDate'], app_id, service, data.get('query'), cursor, 15)
-    r = SendApiCallCallbackResultTO()
     base_url = get_server_settings().baseUrl
     r.result = json.dumps({
         'events': [EventItemTO.from_model(e, base_url, service_user=service_user).to_dict() for e in events],
