@@ -171,20 +171,25 @@ def _migrate_event(event_key):
         if len(event.start_dates) == 1:
             event.calendar_type = EventCalendarType.SINGLE
             event.start_date = datetime.utcfromtimestamp(event.start_dates[0] + offset)
-            event.start_date = datetime.utcfromtimestamp(event.start_dates[0] + offset)
             end_date = event.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            event.end_date = end_date + relativedelta(seconds=event.end_dates[0] + offset)
+            end_date = end_date + relativedelta(seconds=event.end_dates[0] + offset)
+            if end_date < event.start_date:
+                end_date = end_date + relativedelta(days=1)
+            event.end_date = end_date
         else:
             event.calendar_type = EventCalendarType.MULTIPLE
             event.periods = []
             for start_timestamp, end_seconds in zip(event.start_dates, event.end_dates):
                 start_date = datetime.utcfromtimestamp(start_timestamp + offset)
                 end_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                end_date = end_date + relativedelta(seconds=end_seconds + offset)
+                if end_date < start_date:
+                    end_date = end_date + relativedelta(days=1)
                 event.periods.append(EventPeriod(
                     start=EventDate(datetime=start_date),
-                    end=EventDate(datetime=end_date + relativedelta(seconds=end_seconds + offset)),
+                    end=EventDate(datetime=end_date),
                 ))
-                event.start_date = event.periods[0].start.datetime
-                event.end_date = event.periods[-1].end.datetime
+            event.start_date = event.periods[0].start.datetime
+            event.end_date = event.periods[-1].end.datetime
         event.put()
         index_events([event])
