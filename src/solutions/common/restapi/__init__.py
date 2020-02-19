@@ -834,8 +834,9 @@ def delete_calendar(calendar_id):
                                                      'calendar-remove-failed-has-events'))
 
         sc.deleted = True
+        sc.put()
         sln_settings.updates_pending = True
-        put_and_invalidate_cache(sc, sln_settings)
+        put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
@@ -862,8 +863,9 @@ def save_calendar(calendar):
                                                              'calendar-name-already-exists', name=calendar.name))
 
         sc.name = calendar.name
+        sc.put()
         sln_settings.updates_pending = True
-        db.put([sln_settings, sc])
+        put_and_invalidate_cache(sln_settings)
         broadcast_updates_pending(sln_settings)
 
         return RETURNSTATUS_TO_SUCCESS
