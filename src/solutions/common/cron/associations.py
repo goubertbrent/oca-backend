@@ -15,6 +15,7 @@
 #
 # @@license_version:1.5@@
 
+from datetime import datetime
 import logging
 
 from google.appengine.ext import webapp, db
@@ -22,9 +23,8 @@ from google.appengine.ext.deferred import deferred
 
 from mcfw.utils import chunks
 from rogerthat.models.news import NewsItem
-from rogerthat.utils import now
+from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.service import get_service_user_from_service_identity_user
-
 from shop.models import Customer
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.models.agenda import Event
@@ -48,7 +48,8 @@ def get_news_of_last_month(published=True):
 def update_statistic():
     # Completely rebuilds statistics on run.
 
-    current_date = now()
+    current_date = datetime.now()
+    current_date_epoch = get_epoch_from_datetime(current_date)
     broadcast_count_dict = {}
     for news_item in get_news_of_last_month():
         service_email = get_service_user_from_service_identity_user(news_item.sender).email()
@@ -94,7 +95,7 @@ def update_statistic():
             service_email = customer.service_email
             if customer.app_id not in statistics:
                 stats = AssociationStatistic(key_name=customer.app_id)
-                stats.generated_on = current_date
+                stats.generated_on = current_date_epoch
                 statistics[customer.app_id] = stats
             else:
                 stats = statistics[customer.app_id]

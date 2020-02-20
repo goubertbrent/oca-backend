@@ -370,7 +370,7 @@ def _after_inbox_message_updated(inbox_message):
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
                      message=serialize_complex_value(
-                         SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
+                         SolutionInboxMessageTO.fromModel(inbox_message, sln_settings, sln_i_settings, True),
                          SolutionInboxMessageTO, False))
         deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
