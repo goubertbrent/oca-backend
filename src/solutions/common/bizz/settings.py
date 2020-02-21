@@ -250,9 +250,16 @@ def save_rss_urls(service_user, service_identity, data):
         raise InvalidRssLinksException(invalid_urls)
 
     rss_settings.notify = data.notify
-    rss_settings.rss_links = [SolutionRssLink(url=scraper.url,
-                                              dry_runned=current_dict.get(scraper.url, False),
-                                              group_type=scraper.group_type if scraper.group_type else None,
-                                              app_ids=[app_id for app_id in scraper.app_ids if app_id]) for scraper in data.scrapers]
+    scraper_urls = []
+    rss_links = []
+    for scraper in reversed(data.scrapers):
+        if scraper.url in scraper_urls:
+            continue
+        scraper_urls.append(scraper.url)
+        rss_links.append(SolutionRssLink(url=scraper.url,
+                                         dry_runned=current_dict.get(scraper.url, False),
+                                         group_type=scraper.group_type if scraper.group_type else None,
+                                         app_ids=[app_id for app_id in scraper.app_ids if app_id]))
+    rss_settings.rss_links = [rss_link for rss_link in reversed(rss_links)]
     rss_settings.put()
     return rss_settings
