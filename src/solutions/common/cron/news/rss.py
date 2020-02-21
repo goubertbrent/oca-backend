@@ -325,6 +325,8 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
 def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
     items = []
     keys = []
+    parsed_url = urlparse(rss_url)
+    base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
     for element in doc.getElementsByTagName('entry'):
         to = AtomEntry.from_element(element)
         if not to:
@@ -343,25 +345,38 @@ def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
                     epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
                     date = datetime.utcfromtimestamp(epoch)
 
-        image_url = None
         url = None
+        image_url = None
         for link in to.links:
             if link.rel == 'alternate':
                 url = link.href
             elif link.rel == 'enclosure' and link.type_.startswith('image/'):
                 image_url = link.href
 
-        if not url:
+        description = None
+        if to.summary:
+            description = to.summary.value
+        if to.content:
+            if to.content.type_ in ('text',):
+                description = to.summary.value
+            elif to.content.type_ in ('html', 'xhtml',):
+                description_html = to.content.value
+                if not is_html(description_html):
+                    description_html = u'<br/>'.join(description_html.splitlines())
+                description = html_to_markdown(description_html, base_url)
+
+        if not description:
             continue
 
         if service_user:
-            url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
-            # Always add url key for backwards compatibility - in the past only url was used as key
-            keys.append(url_key)
+            if url:
+                # Always add url key for backwards compatibility - in the past only url was used as key
+                url_key = SolutionRssScraperItem.create_key(service_user, service_identity, url)
+                keys.append(url_key)
             guid_key = SolutionRssScraperItem.create_key(service_user, service_identity, to.id_)
             keys.append(guid_key)
 
-        items.append(ScrapedItem(to.title.value, url, to.id_, to.summary.value, date, rss_url, image_url))
+        items.append(ScrapedItem(to.title.value, url or to.id_, to.id_, description, date, rss_url, image_url))
     return items, keys
 
 
@@ -424,6 +439,7 @@ class AtomEntry(TO):
 
     links = typed_property('links', AtomLink, True, default=[])
     summary = typed_property('summary', AtomText, False, default=None)
+    content = typed_property('content', AtomText, False, default=None)
 
     @classmethod
     def from_element(cls, element):
@@ -451,9 +467,13 @@ class AtomEntry(TO):
         to.links = [AtomLink.from_element(link) for link in link_elements]
 
         summary_elements = get_elements_by_tag(element, 'summary')
-        if not summary_elements:
-            logging.debug('no summary_elements')
+        content_elements = get_elements_by_tag(element, 'content')
+        if not summary_elements and not content_elements:
+            logging.debug('no summary_elements or content_elements')
             return None
-        to.summary = AtomText.from_element(summary_elements[0])
+        if summary_elements:
+            to.summary = AtomText.from_element(summary_elements[0])
+        if content_elements:
+            to.content = AtomText.from_element(content_elements[0])
 
         return to
