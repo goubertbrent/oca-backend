@@ -95,15 +95,6 @@ def create_events_index():
                 'time_frames': {
                     'type': 'date_range',
                 },
-                # Not using type 'date_range' here since you can't sort on that.
-                # We'll have to do with this contraption instead.
-                'occurrences': {
-                    'type': 'nested',
-                    'properties': {
-                        'start_date': {'type': 'date'},
-                        'end_date': {'type': 'date'},
-                    }
-                },
                 'place': {
                     'type': 'text'
                 },
@@ -127,6 +118,8 @@ def _index_event(event):
     if event.deleted:
         yield {'delete': {'_id': event.key.urlsafe()}}
     else:
+        # TODO: in order to make it possible to order by start date, we should create a new document for
+        # every occurrence of an event, which is not great.
         doc = {
             'app_ids': event.app_ids,
             'service': event.service_user.email(),

@@ -1113,7 +1113,7 @@ def users_load_roles():
             # user_email may contain an app id, so check if it contains
             # email, then append the email forwarder type
             if email in user_email:
-                user_roles.add_forwarder_type(SolutionSettings.TYPE_EMAIL)
+                user_roles.add_forwarder_type(SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL)
                 has_roles = True
 
         # no user roles for this email, then create it
