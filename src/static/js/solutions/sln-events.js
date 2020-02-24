@@ -641,7 +641,7 @@ $(function () {
 
     loadCalendars();
 
-    $('.sln-set-events-uit-actor p').html(sln.htmlize(T('event-uit-actor')));
+    $('.sln-set-events-uit-actor p').html(T('event-uit-actor'));
     $('.sln-set-events-uit-actor').show();
     loadUitId();
     $('.sln-set-events-uit-actor input').change(putUitId);
