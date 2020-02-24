@@ -1142,7 +1142,7 @@ def users_add_user_roles(key, user_roles):
         # try first to get the user from user key
         app_user = users.User(key)
         email, app_id = get_app_user_tuple(app_user)
-        is_existing_user = is_existing_friend(email, app_id, service_identity)
+        is_existing_user = is_existing_friend(email.email(), app_id, service_identity)
 
         # add inbox forwarder
         if user_roles.inbox_forwarder:

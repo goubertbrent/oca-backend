@@ -345,7 +345,7 @@ class EventMediaTO(TO):
     @classmethod
     def from_model(cls, event, model, base_url, service_email, event_id):
 
-        if event.source == Event.SOURCE_UITDATABANK_BE:
+        if event.source == Event.SOURCE_UITDATABANK_BE and 'uitdatabank.be' in model.url:
             # For events from uit (95% of events), use their thumbnail service
             thumbnail_url = '%s?width=152&height=152&crop=auto&scale=both' % model.url
         else:
