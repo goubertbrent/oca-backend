@@ -6,7 +6,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build --prod && rm -f oca.zip && cd www && zip -qr ../oca.zip . && du -h ../oca.zip",
+    "build": "ng build --prod && rm -f oca.zip && cd www && zip -qr ../oca.zip . && du ../oca.zip",
     "build-debug": "ng build --source-map=false && rm -f oca.zip && cd www && zip -qr ../oca.zip . && du -h ../oca.zip",
     "test": "ng test",
     "lint": "ng lint",

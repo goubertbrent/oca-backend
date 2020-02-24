@@ -71,11 +71,13 @@ export class EventsService {
         endDate.setDate(startDate.getDate() + 3);
         break;
       case EventFilterPeriod.NEXT_7:
-      case EventFilterPeriod.RANGE:
         endDate.setDate(startDate.getDate() + 7);
         break;
       case EventFilterPeriod.NEXT_30:
         endDate.setDate(startDate.getDate() + 30);
+        break;
+      case EventFilterPeriod.RANGE:
+        endDate.setMonth(startDate.getMonth() + 12);
         break;
     }
     return { startDate, endDate };

@@ -1,17 +1,20 @@
 import { registerLocaleData } from '@angular/common';
-import localeEn from '@angular/common/locales/en';
+import localeEnGB from '@angular/common/locales/en-GB';
 import localeNl from '@angular/common/locales/nl';
 import { LOCALE_ID, Provider } from '@angular/core';
 import { LangChangeEvent, TranslateService } from '@ngx-translate/core';
 
 // Since we have the locale files locally just register all of them
-registerLocaleData(localeEn);
+registerLocaleData(localeEnGB);
 registerLocaleData(localeNl);
 
-type SupportedLocale = 'en' | 'nl';
+// en-GB to avoid the month/day/year date formatting that americans use
+type SupportedLocale = 'en-GB' | 'nl';
 export const DEFAULT_LOCALE = 'nl';
+export const SUPPORTED_LOCALES: SupportedLocale[] = ['en-GB', 'nl'];
 // Must match filenames of the files in assets/i18n
-export const SUPPORTED_LOCALES: SupportedLocale[] = ['en', 'nl'];
+export const SUPPORTED_LANGUAGES = ['en', 'nl'];
+export const DEFAULT_LANGUAGE = 'nl';
 
 /**
  * Switches the runtime locale based on the current language
@@ -38,6 +41,15 @@ export function getLocaleFromLanguage(language: string) {
     }
   }
   return DEFAULT_LOCALE;
+}
+
+export function getLanguage(language: string) {
+  for (const locale of SUPPORTED_LANGUAGES) {
+    if (language.startsWith(locale)) {
+      return locale;
+    }
+  }
+  return DEFAULT_LANGUAGE;
 }
 
 export const CUSTOM_LOCALE_PROVIDER: Provider = {

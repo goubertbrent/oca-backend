@@ -19,7 +19,7 @@ export class EventFilterComponent {
 
   @Output() searched = new EventEmitter<GetEventsParams>();
   @Output() delayedSearch = new EventEmitter<GetEventsParams>();
-  @ViewChild('form', { static: true }) form: NgForm;
+  @ViewChild('form') form: NgForm;
   DATE_RANGE = EventFilterPeriod.RANGE;
   minStartDate = new Date().toISOString();
   yearValues = [new Date().getFullYear(), new Date().getFullYear() + 1];

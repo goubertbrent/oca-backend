@@ -6,7 +6,7 @@ import { AlertController, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
 import { Actions } from '@ngrx/effects';
 import { TranslateService } from '@ngx-translate/core';
-import { DEFAULT_LOCALE, getLocaleFromLanguage } from './locales';
+import { DEFAULT_LOCALE, getLanguage } from './locales';
 import { RogerthatService } from './rogerthat';
 import { setColor } from './shared/color-utils';
 
@@ -40,7 +40,7 @@ export class AppComponent {
         }
       });
       rogerthat.callbacks.ready(() => {
-        this.translate.use(getLocaleFromLanguage(rogerthat.user.language));
+        this.translate.use(getLanguage(rogerthat.user.language));
         if (rogerthat.system.colors) {
           setColor('primary', rogerthat.system.colors.primary);
           if (rogerthat.system.os === 'ios') {

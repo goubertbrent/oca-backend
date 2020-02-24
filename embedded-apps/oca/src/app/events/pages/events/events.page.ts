@@ -47,7 +47,7 @@ export class EventsPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    const period = EventFilterPeriod.NEXT_7;
+    const period = this.service ? EventFilterPeriod.RANGE : EventFilterPeriod.NEXT_7;
     const { startDate, endDate } = this.eventsService.getStartEndDate(period);
     this.doSearch({ startDate: startDate.toISOString(), endDate: endDate.toISOString(), period });
     this.events$ = this.store.pipe(
