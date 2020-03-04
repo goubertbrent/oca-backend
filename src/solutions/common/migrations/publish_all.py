@@ -38,4 +38,4 @@ def _get_solution_settings_keys(module):
 def _publish(sln_settings_key):
     sln_settings = db.get(sln_settings_key)  # type: SolutionSettings
     if not sln_settings.service_disabled:
-        common_provision(sln_settings.service_user), sln_settings)
+        common_provision(sln_settings.service_user, sln_settings)
