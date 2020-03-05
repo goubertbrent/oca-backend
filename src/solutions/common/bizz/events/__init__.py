@@ -444,9 +444,10 @@ def add_event_to_calender(service_user, email, method, params, tag, service_iden
     body = [
         event.title,
         '',
-        event.description,
-        '%s: %s' % (translate(lang, SOLUTION_COMMON, 'when'), when),
     ]
+    if event.description:
+        body.append(event.description)
+    body.append('%s: %s' % (translate(lang, SOLUTION_COMMON, 'when'), when))
     if event.place:
         body.append('%s: %s' % (translate(lang, SOLUTION_COMMON, 'oca.location'), event.place))
 
