@@ -15,10 +15,11 @@
 #
 # @@license_version:1.5@@
 
+from HTMLParser import HTMLParser
 import hashlib
 import logging
+from types import NoneType
 import urlparse
-from HTMLParser import HTMLParser
 
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import ndb
@@ -35,6 +36,7 @@ from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
+
 
 BROADCAST_TYPE_NEWS = u"News"
 
@@ -57,13 +59,13 @@ def get_full_url(base_url, potential_partial_url):
 
 
 @returns()
-@arguments(sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode, permalink=unicode,
-           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode], feed_name=unicode)
-def create_news_item(sln_settings, broadcast_type, message, title, permalink, notify=False, image_url=None,
-                     item_key=None, app_ids=None, feed_name=None):
+@arguments(sln_settings=SolutionSettings, group_type=unicode, message=unicode, title=unicode, permalink=unicode,
+           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode], feed_name=unicode, timestamp=(NoneType, int ,long))
+def create_news_item(sln_settings, group_type, message, title, permalink, notify=False, image_url=None,
+                     item_key=None, app_ids=None, feed_name=None, timestamp=None):
     service_user = sln_settings.service_user
     logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s - %s - Notification: %s', service_user, message,
-                 title, broadcast_type, permalink, image_url, notify)
+                 title, group_type, permalink, image_url, notify)
 
     with users.set_user(service_user):
         link_caption = transl(u'More info', sln_settings.main_language)
@@ -88,7 +90,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
                                  message=message,
                                  news_type=NewsItem.TYPE_NORMAL,
                                  flags=flags,
-                                 broadcast_type=broadcast_type,
+                                 group_type=group_type,
                                  action_buttons=[action_button],
                                  qr_code_content=None,
                                  qr_code_caption=None,
@@ -96,6 +98,7 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
                                  app_ids=news_app_ids,
                                  feed_names=feed_names,
                                  media=_get_media(get_full_url(permalink, image_url)),
+                                 timestamp=timestamp,
                                  accept_missing=True)
         if item_key:
             scraped_item = item_key.get()
@@ -104,11 +107,11 @@ def create_news_item(sln_settings, broadcast_type, message, title, permalink, no
 
 
 @returns()
-@arguments(news_id=(int, long), sln_settings=SolutionSettings, broadcast_type=unicode, message=unicode, title=unicode,
+@arguments(news_id=(int, long), sln_settings=SolutionSettings, group_type=unicode, message=unicode, title=unicode,
            permalink=unicode, image_url=unicode)
-def update_news_item(news_id, sln_settings, broadcast_type, message, title, permalink, image_url):
+def update_news_item(news_id, sln_settings, group_type, message, title, permalink, image_url):
     service_user = sln_settings.service_user
-    logging.info('Updating news item:\n- %s\n- %s\n- %s\n- %s\n - %s', service_user, message, title, broadcast_type,
+    logging.info('Updating news item:\n- %s\n- %s\n- %s\n- %s\n - %s', service_user, message, title, group_type,
                  permalink)
 
     with users.set_user(service_user):
@@ -123,7 +126,7 @@ def update_news_item(news_id, sln_settings, broadcast_type, message, title, perm
                      message=message,
                      news_type=existing_item.type,
                      flags=existing_item.flags,
-                     broadcast_type=existing_item.broadcast_type,
+                     group_type=group_type,
                      action_buttons=[action_button],
                      scheduled_at=0,
                      app_ids=existing_item.app_ids,

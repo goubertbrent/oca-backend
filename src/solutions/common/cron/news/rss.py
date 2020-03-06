@@ -79,30 +79,23 @@ def _worker(rss_settings_key):
     last_week_datetime = datetime.now() - relativedelta(days=7)
 
     for rss_link in rss_settings.rss_links:
-        app_ids = rss_link.app_ids if rss_link.app_ids else None
-        feed_name = None
-        broadcast_type_key = BROADCAST_TYPE_NEWS
-        if rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_EVENTS:
-            broadcast_type_key = BROADCAST_TYPE_EVENTS
-        elif rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_TRAFFIC:
-            if BROADCAST_TYPE_TRAFIC in sln_settings.broadcast_types:
-                broadcast_type_key = BROADCAST_TYPE_TRAFIC
-            else:
-                broadcast_type_key = BROADCAST_TYPE_TRAFFIC
-        elif rss_link.group_type and rss_link.group_type == NewsGroup.TYPE_PRESS:
-            broadcast_type_key = BROADCAST_TYPE_PRESS
-            feed_name = u'press'
-
-        if broadcast_type_key not in sln_settings.broadcast_types:
-            logging.info(sln_settings.broadcast_types)
-            logging.error("process_rss_links failed for '%s' and url '%s' no broadcast type found with name '%s'",
+        if not rss_link.group_type or rss_link.group_type not in (NewsGroup.TYPE_CITY,
+                                                                  NewsGroup.TYPE_PROMOTIONS,
+                                                                  NewsGroup.TYPE_EVENTS,
+                                                                  NewsGroup.TYPE_TRAFFIC,
+                                                                  NewsGroup.TYPE_PRESS,):
+            logging.error("process_rss_links failed for '%s' and url '%s' invalid group_type found '%s'",
                           service_user,
                           rss_link.url,
-                          broadcast_type_key)
+                          rss_link.group_type)
             can_delete = False
             continue
 
-        broadcast_type = transl(broadcast_type_key, sln_settings.main_language)
+        app_ids = rss_link.app_ids if rss_link.app_ids else None
+        if rss_link.group_type == NewsGroup.TYPE_PRESS:
+            feed_name = u'press'
+        else:
+            feed_name = None
 
         dry_run = not rss_link.dry_runned
         if dry_run:
@@ -139,7 +132,7 @@ def _worker(rss_settings_key):
                 if not item.dry_run and item.news_id and scraped_item.hash != item.hash:
                     logging.debug('update_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
                     new_news_item_ids.append(scraped_item.id)
-                    tasks.append(create_task(update_news_item, item.news_id, sln_settings, broadcast_type,
+                    tasks.append(create_task(update_news_item, item.news_id, sln_settings, rss_link.group_type,
                                              scraped_item.message, scraped_item.title, scraped_item.url,
                                              scraped_item.image_url))
                     item.hash = scraped_item.hash
@@ -148,20 +141,20 @@ def _worker(rss_settings_key):
                 new_key = SolutionRssScraperItem.create_key(service_user, service_identity, scraped_item.id)
                 new_item = SolutionRssScraperItem(key=new_key,
                                                   timestamp=now(),
-                                                  dry_run=dry_run,
+                                                  dry_run=False,
                                                   hash=scraped_item.hash,
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
 
-                if not dry_run:
-                    if scraped_item.date and scraped_item.date < last_week_datetime:
-                        logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                    else:
-                        new_news_item_ids.append(scraped_item.id)
-                        logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                        tasks.append(create_task(create_news_item, sln_settings, broadcast_type, scraped_item.message,
-                                                 scraped_item.title, scraped_item.url, rss_settings.notify,
-                                                 scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name))
+                if not dry_run and scraped_item.date and scraped_item.date < last_week_datetime:
+                    logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                else:
+                    new_news_item_ids.append(scraped_item.id)
+                    logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                    timestamp = get_epoch_from_datetime(scraped_item.date) if scraped_item.date else None
+                    tasks.append(create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
+                                             scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
+                                             scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name, timestamp=timestamp))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first
