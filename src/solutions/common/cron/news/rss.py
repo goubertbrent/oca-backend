@@ -146,7 +146,7 @@ def _worker(rss_settings_key):
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
 
-                if not dry_run and scraped_item.date and scraped_item.date < last_week_datetime:
+                if scraped_item.date and scraped_item.date < last_week_datetime:
                     logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
                 else:
                     new_news_item_ids.append(scraped_item.id)
