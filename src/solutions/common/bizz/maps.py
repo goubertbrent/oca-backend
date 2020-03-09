@@ -19,6 +19,7 @@ from google.appengine.ext.ndb import GeoPt
 
 from rogerthat.bizz.maps.gipod import GIPOD_TAG
 from rogerthat.bizz.maps.reports import REPORTS_TAG
+from rogerthat.bizz.maps.services import SERVICES_TAG
 from rogerthat.models.maps import MapConfig
 
 
@@ -30,7 +31,7 @@ def get_map_settings(app_id, map_tag):
 @ndb.transactional(xg=True)
 def save_map_settings(app_id, map_tag, data, is_shop_user):
     # type: (str, str, MapConfigTO, bool) -> MapConfig
-    all_tags = [GIPOD_TAG, REPORTS_TAG]
+    all_tags = [GIPOD_TAG, REPORTS_TAG, SERVICES_TAG]
     models = ndb.get_multi([MapConfig.create_key(app_id, tag) for tag in all_tags])  # type: list[MapConfig]
     to_put = []
     config = None
