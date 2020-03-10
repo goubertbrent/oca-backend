@@ -1831,12 +1831,8 @@ def _get_service(customer_id, current_user):
 
     settings = get_solution_settings(service_user)
     svc = CustomerServiceTO()
-    svc.name = settings.name
     svc.email = customer.user_email
-    svc.address = settings.address
-    svc.phone_number = settings.phone_number
     svc.language = settings.main_language
-    svc.currency = settings.currency
     svc.modules = settings.modules
     svc.broadcast_types = settings.broadcast_types
     svc.apps = get_default_service_identity(service_user).sorted_app_ids

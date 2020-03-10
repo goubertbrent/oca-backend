@@ -16,7 +16,7 @@ export class CustomLocaleId extends String {
     super();
     translate.onLangChange.subscribe((language: LangChangeEvent) => {
       const newLocale = this.getLocaleFromLanguage(language.lang);
-      getLocaleModule(newLocale as SupportedLocale).then(mod => {
+      getLocaleModule(newLocale).then(mod => {
         this.currentLocale = newLocale;
         registerLocaleData(mod.default);
       });

@@ -1,46 +1,56 @@
-import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpEvent, HttpEventType, HttpRequest } from '@angular/common/http';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnDestroy, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ProgressSpinnerMode } from '@angular/material/progress-spinner';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject } from 'rxjs';
-import { takeUntil, tap } from 'rxjs/operators';
-import { UploadedFile, UploadFileDialogConfig } from '../file-upload';
+import { takeUntil } from 'rxjs/operators';
+import { GcsFile, UploadedFile, UploadFileDialogConfig } from '../file-upload';
 import { ImageCropperComponent } from '../image-cropper/image-cropper.component';
 import { UploadFileService } from '../upload-file.service';
 
 
+export class UploadedFileResult {
+  constructor(public result: UploadedFile | GcsFile | string) {
+  }
+
+  getUrl(): string {
+    return typeof this.result === 'string' ? this.result : this.result.url;
+  }
+}
+
 @Component({
   selector: 'oca-upload-file-dialog',
   templateUrl: './upload-file-dialog.component.html',
-  styleUrls: [ './upload-file-dialog.component.scss' ],
+  styleUrls: ['./upload-file-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UploadFileDialogComponent implements OnDestroy {
   @ViewChild(ImageCropperComponent) imageCropper: ImageCropperComponent;
 
-  selectedTabIndex = 1;
   selectedImageUrl: string | null = null;
   showProgress = false;
   uploadPercent = 0;
   progressMode: ProgressSpinnerMode = 'indeterminate';
   uploadError: string | null = null;
   selectedFile: File | null = null;
-  images$: Observable<UploadedFile[]>;
+  readonly images$: Observable<GcsFile[]>;
+  readonly galleryImages$: Observable<GcsFile[]>;
+  readonly showGallery: boolean;
 
   private destroyed$ = new Subject();
-
 
   constructor(@Inject(MAT_DIALOG_DATA) public data: UploadFileDialogConfig,
               private dialogRef: MatDialogRef<UploadFileDialogComponent>,
               private changeDetectorRef: ChangeDetectorRef,
               private uploadFileService: UploadFileService,
+              private http: HttpClient,
               private translate: TranslateService) {
-    this.images$ = this.uploadFileService.getFiles().pipe(tap(results => {
-      if (results.length === 0) {
-        this.selectedTabIndex = 0;
-      }
-    }));
+    this.showGallery = !!data.gallery;
+    if (data.gallery) {
+      this.galleryImages$ = this.uploadFileService.getGalleryFiles(data.gallery.prefix);
+    }
+    this.images$ = this.uploadFileService.getFiles(data.listPrefix);
     data.accept = data.accept || 'image/png,image/jpeg';
     data.cropOptions = {
       viewMode: 1,
@@ -56,8 +66,8 @@ export class UploadFileDialogComponent implements OnDestroy {
     };
   }
 
-  filePicked(file: UploadedFile) {
-    this.dialogRef.close(file);
+  filePicked(file: GcsFile) {
+    this.dialogRef.close(new UploadedFileResult(file));
   }
 
   removeFile() {
@@ -94,7 +104,7 @@ export class UploadFileDialogComponent implements OnDestroy {
   save() {
     this.showProgress = true;
     this.progressMode = 'indeterminate';
-    this.getFile().then(blob => {
+    this.getFile().then(async blob => {
       this.progressMode = 'determinate';
       this.changeDetectorRef.markForCheck();
       if (!blob) {
@@ -109,9 +119,10 @@ export class UploadFileDialogComponent implements OnDestroy {
             this.uploadPercent = (100 * event.loaded) / (event.total as number);
             break;
           case HttpEventType.Response:
+            // Done - submit result
             this.showProgress = false;
             const body: UploadedFile = event.body as UploadedFile;
-            this.dialogRef.close(body);
+            this.dialogRef.close(new UploadedFileResult(body));
             break;
         }
         this.changeDetectorRef.markForCheck();

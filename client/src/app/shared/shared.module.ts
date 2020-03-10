@@ -43,6 +43,7 @@ import { MaxValidator, MinValidator } from './validators/validators';
     GoogleChartsModule.forRoot(),
     AgmCoreModule.forRoot({
       apiKey: environment.googleMapsKey,
+      libraries: ['places'],
     }),
     CovalentTextEditorModule,
     TranslateModule,

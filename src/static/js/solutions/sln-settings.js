@@ -18,36 +18,9 @@
 
 // Settings module
 $(function () {
-    'use strict';
-    var AVATAR_URL = '/common/settings/my_avatar';
-    var LOGO_URL = '/common/settings/my_logo';
-    var searchEnabled = true;
-    var searchEnabledCheck = true;
     var eventsEnabled = true;
     var inboxEmailRemindersEnabled = true;
     var isPublishing = false;
-    var TMPL_SET_AVATAR = '<label>' + CommonTranslations.AVATAR + ': ' + CommonTranslations.CLICK_TO_CHANGE
-        + '</label><div id="avatar_div"><img src="/common/settings/my_avatar" class="settings_avatar"></div>';
-    var TMPL_SET_LOGO = '<label>' + CommonTranslations.LOGO + ': ' + CommonTranslations.CLICK_TO_CHANGE
-        + '</label><div id="logo_div"><img src="/common/settings/my_logo"></div>';
-    var TMPL_SET_NAME = '<label>' + CommonTranslations.NAME + ':</label><input type="text" maxlength="50" required minlength="2" placeholder="'
-        + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
-    var TMPL_SET_PHONE_NUMBER = '<label>' + CommonTranslations.PHONE_NUMBER
-        + ':</label><input type="text" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
-    var TMPL_SET_DESCRIPTION = '<label>' + CommonTranslations.description
-        + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
-        + '" rows="6"></textarea>';
-    var TMPL_SET_OPENINGHOURS = '<label>' + CommonTranslations.OPENING_HOURS
-        + ':</label><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT
-        + '" rows="6"></textarea>';
-    var TMPL_SET_ADDRESS = '<label>' + CommonTranslations.ADDRESS + ':</label>'
-        + '<div id="address_geocode_error" style="display:none">'
-        + '  <div class="alert alert-warning">' + CommonTranslations.address_geocode_error + '\n' + CommonTranslations.eg
-        + '     <div style="padding:10px"><b>' + sln.htmlize(CommonTranslations.sample_address) + '</b></div>'
-        + '  </div></div><textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
-
-    var TMPL_SET_EMAIL = '<label>' + T('E-mail address') + ':</label><input type="text" placeholder="'
-        + CommonTranslations.ENTER_DOT_DOT_DOT + '">';
 
     var TMPL_UPDATES_PENDING = '<div class="alert">'
         + '    <button id="publish_changes" type="button" class="btn btn-warning pull-right">'
@@ -63,27 +36,6 @@ $(function () {
         + '<td style="width: 75%;"">${email}</td>'
         + '<td><button class="btn btn-danger pull-right" action="delete_user"><i class="fa fa-trash"></i></button></td>'
         + '</tr>';
-
-    var TMPL_REQUIRED_PENDING = '<div class="alert alert-danger">' //
-        + '    <h4>' //
-        + CommonTranslations.REQUIRED //
-        + '    </h4>' //
-        + '    <ul id="required_fields"></ul>' //
-        + '</div>';
-
-    var TMPL_SET_VISIBLE = '<div class="btn-group">' //
-        + '    <button class="btn btn-success" id="serviceVisible">' //
-        + CommonTranslations.VISIBLE //
-        + '    </button>' //
-        + '    <button class="btn" id="serviceInvisible">&nbsp;</button>' //
-        + '</div>';
-
-    var TMPL_SET_SEARCH_KEYWORDS = '<label>' //
-        + 'Search keywords:' + '    <a data-toggle="tooltip" data-placement="right" data-title="'
-        + CommonTranslations.SEARCH_KEYWORDS_HINT + '">' + '        <i class="icon-info-sign"></i>' //
-        + '    </a>' //
-        + '</label>' //
-        + '<textarea class="span6" placeholder="' + CommonTranslations.ENTER_DOT_DOT_DOT + '" rows="4"></textarea>';
 
     var TMPL_SET_EVENTS_VISIBLE = '<div class="btn-group">'
         + '      <button class="btn btn-success" id="eventsVisible">' + CommonTranslations.VISIBLE + '</button>'
@@ -130,16 +82,19 @@ $(function () {
 
     function router(urlHash) {
         var page = urlHash[1];
-        if (['general', 'branding', 'broadcast', 'app', 'roles', 'q-matic', 'jcc-appointments'].indexOf(page) === -1) {
-            page = 'general';
+        if (!page) {
+            page = 'service-info';
             window.location.hash = '#/' + urlHash[0] + '/' + page;
             return;
         }
-        $('#settings').find('li[section=' + page + ']').find('a').click();
-
-        if (page === 'branding') {
+        $('#settings').find('li[section=section_' + page + ']').find('a').click();
+        var dashboardDisplay = 'none';
+        if (page === 'service-info') {
+            dashboardDisplay = 'block';
+            newDashboardRouter(['settings']);
+        } else if (page === 'branding') {
             showSettingsBranding();
-        } else if (page === 'app') {
+        } else if (page === 'app-settings') {
             renderAppSettings();
         } else if (page === 'roles') {
             renderRolesSettings();
@@ -149,7 +104,11 @@ $(function () {
             Requests.getQmaticSettings().then(renderQmaticSettings);
         } else if (page === 'jcc-appointments') {
             Requests.getJccSettings().then(renderJccSettings);
+        } else if (page === 'paddle') {
+            Requests.getPaddleSettings().then(renderPaddleSettings);
         }
+        // From sln-new-dashboard.js
+        dashboardContainer.style.display = dashboardDisplay;
     }
 
     function publishChanges() {
@@ -224,94 +183,38 @@ $(function () {
         });
     };
 
-    var showDefaultSettingsWarning = function (defaults) {
-        if (defaults.length) {
-            var warning = CommonTranslations.default_settings_warning + '<br/><br/>';
-            for (var i = 0; i < defaults.length; i++) {
-                warning += '<b>' + CommonTranslations[defaults[i]] + '</b><br/>';
-                warning += CommonTranslations[('default_settings_warning_' + defaults[i]).toLowerCase()];
-                warning += '<br/><br/>';
-            }
-            sln.alert(warning, null, CommonTranslations.ERROR);
+    function publishChangesToUsers (friends) {
+        if (isPublishing) {
+            console.debug('Publishing in progress...');
+            // do nothing
+            return;
         }
-    };
-
-    var validateDefaultSettings = function (callback) {
+        isPublishing = true;
+        var args = {};
+        if (friends && friends.length) {
+            args.friends = friends;
+        }
+        sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
         sln.call({
-            url: '/common/settings/defaults/all',
-            method: 'get',
-            success: function (defaults) {
-                if (defaults.length) {
-                    showDefaultSettingsWarning(defaults);
-                } else {
-                    callback();
+            url: "/common/settings/publish_changes",
+            type: "POST",
+            data: args,
+            success: function (data) {
+                sln.hideProcessing();
+                if (data.success && !args.friends) {
+                    toggleUpdatesPending(false);
+                } else if (!data.success) {
+                    sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
                 }
+                isPublishing = false;
             },
-            error: sln.showAjaxError
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                sln.hideProcessing();
+                sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
+                isPublishing = false;
+            }
         });
-    };
-
-    var publishChangesToUsers = function (friends) {
-        function publish() {
-            validateDefaultSettings(function () {
-                if (isPublishing) {
-                    console.debug('Publishing in progress...');
-                    // do nothing
-                    return;
-                }
-                isPublishing = true;
-                var args = {};
-                if (friends && friends.length) {
-                    args.friends = friends;
-                }
-                sln.showProcessing(CommonTranslations.PUBLISHING_DOT_DOT_DOT);
-                sln.call({
-                    url: "/common/settings/publish_changes",
-                    type: "POST",
-                    data: args,
-                    success: function (data) {
-                        sln.hideProcessing();
-                        if (data.success && !args.friends) {
-                            toggleUpdatesPending(false);
-                        } else if (!data.success) {
-                            sln.alert(sln.htmlize(data.errormsg), null, T('ERROR'));
-                        }
-                        isPublishing = false;
-                    },
-                    error: function (XMLHttpRequest, textStatus, errorThrown) {
-                        sln.hideProcessing();
-                        sln.showAjaxError(XMLHttpRequest, textStatus, errorThrown);
-                        isPublishing = false;
-                    }
-                });
-            });
-        }
-
-        function setSearchEnabled(neverCheckAgain, enabled) {
-            if (neverCheckAgain) {
-                searchEnabledCheck = false;
-            }
-            setServiceVisible(enabled);
-            if (!searchEnabledCheck || enabled) {
-                saveSettings().then(function () {
-                    publish();
-                });
-            } else {
-                publish();
-            }
-        }
-
-        if (!searchEnabled && searchEnabledCheck) {
-            // ask the user to enable search for this service before publishing
-            sln.confirm(CommonTranslations.enable_search_before_publishing, function (neverCheckAgain) {
-                setSearchEnabled(neverCheckAgain, true);
-            }, function (neverCheckAgain) {
-                setSearchEnabled(neverCheckAgain, false);
-            }, CommonTranslations.YES, CommonTranslations.NO, CommonTranslations.visibility, null, true);
-        } else {
-            publish();
-        }
-    };
+    }
 
     var saveTryPublishUsers = function (userKeys) {
         if (userKeys.length) {
@@ -336,26 +239,12 @@ $(function () {
         } else {
             $("#sln-updates-pending-warning").fadeOut('fast');
         }
+        resizeDashboard();  // Defined in sln-new-dashboard.js
     };
 
     var loadSettings = function () {
         Requests.getSettings({cached: false}).then(function (data) {
             LocalCache.settings = data;
-            $('.sln-set-timezone select').val(data.timezone);
-            $('.sln-set-name input').val(data.name);
-            $('.sln-set-phone-number input').val(data.phone_number);
-            $('.sln-set-email-address input').val(data.email_address);
-            $('.sln-set-description textarea').val(data.description);
-            $('.sln-set-currency select').val(data.currency);
-            $('.sln-set-openinghours textarea').val(data.opening_hours);
-            $('.sln-set-address textarea').val(data.address);
-            $('.sln-set-search-keywords textarea').val(data.search_keywords);
-            $('.sln-set-place-types').data('place_types', data.place_types);
-            renderPlaceTypes();
-            
-            searchEnabled = data.search_enabled;
-            searchEnabledCheck = data.search_enabled_check;
-            setServiceVisible(searchEnabled);
             eventsEnabled = data.events_visible;
             setEventsVisible(eventsEnabled);
             inboxEmailRemindersEnabled = data.inbox_email_reminders;
@@ -370,7 +259,6 @@ $(function () {
             if (data.publish_changes_users) {
                 LocalCache.settings.try_publish_user_keys = data.publish_changes_users;
             }
-            renderHolidays(data);
         });
     };
 
@@ -386,7 +274,9 @@ $(function () {
                 }
             }
         } else if (data.type === 'solutions.common.settings.avatar.updated') {
-            avatarUpdated();
+            avatarUpdated(data.avatar_url);
+        } else if (data.type === 'solutions.common.settings.logo.updated') {
+            logoUpdated(data.logo_url);
         } else if (data.type === 'solution.common.settings.roles.updated') {
             renderRolesSettings();
         }
@@ -471,27 +361,6 @@ $(function () {
         var li = $(this).parent().addClass("active");
         settingsElem.find("section").hide();
         settingsElem.find("section#" + li.attr("section")).show();
-    }
-
-    function serviceVisible() {
-        setServiceVisible(!searchEnabled);
-        saveSettings();
-    }
-
-    function serviceInvisible() {
-        setServiceVisible(!searchEnabled);
-        saveSettings();
-    }
-
-    function setServiceVisible(newSearchEnabled) {
-        searchEnabled = newSearchEnabled;
-        if (newSearchEnabled) {
-            $('#section_general #serviceVisible').addClass("btn-success").text(T('service-visible'));
-            $('#section_general #serviceInvisible').removeClass("btn-danger").html('&nbsp;');
-        } else {
-            $('#section_general #serviceVisible').removeClass("btn-success").html('&nbsp;');
-            $('#section_general #serviceInvisible').addClass("btn-danger").text(T('service-invisible'));
-        }
     }
 
     function eventsVisible() {
@@ -632,187 +501,14 @@ $(function () {
         });
     });
 
-    /* HOLIDAYS */
-
-    var to_epoch = function (textField) {
-        return Math.floor(textField.data('datepicker').date.valueOf() / 1000);
-    };
-
-    var addHoliday = function () {
-        var html = $.tmpl(templates.holiday_addholiday, {
-            header: T('settings-add-holiday'),
-            cancelBtn: CommonTranslations.CANCEL,
-            submitBtn: CommonTranslations.SAVE,
-            CommonTranslations: CommonTranslations
-        });
-
-        $('.date', html).datepicker({
-            format: sln.getLocalDateFormat()
-        }).datepicker('setValue', sln.today());
-
-        var modal = sln.createModal(html);
-        $('button[action="submit"]', modal).click(function () {
-            sln.call({
-                url: "/common/settings/holiday/add",
-                type: "POST",
-                data: {
-                    data: JSON.stringify({
-                        holiday: {
-                            start: to_epoch($("#holiday-start")), // beginning of the day
-                            end: to_epoch($("#holiday-end")) + 86399
-                            // end of the day
-                        }
-                    })
-                },
-                success: function (data) {
-                    if (!data.success) {
-                        sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                        return;
-                    }
-                    loadSettings();
-                    modal.modal('hide');
-                },
-                error: sln.showAjaxError
-            });
-        });
-    };
-
-    var saveOOFMessage = function (oofMessage) {
-        sln.call({
-            url: "/common/settings/holiday/out_of_office_message",
-            type: "POST",
-            data: {
-                data: JSON.stringify({
-                    message: oofMessage
-                })
-            },
-            success: function (data) {
-                if (!data.success) {
-                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
-                loadSettings();
-            },
-            error: sln.showAjaxError
-        });
-    };
-
-    var deleteHoliday = function () {
-        var epochStart = $(this).parents('tr').data('epochStart');
-        sln.confirm(CommonTranslations.HOLIDAY_REMOVE_CONFIRMATION, function () {
-            sln.call({
-                url: "/common/settings/holiday/delete",
-                type: "POST",
-                data: {
-                    data: JSON.stringify({
-                        holiday: {
-                            start: epochStart
-                        }
-                    })
-                },
-                success: function (data) {
-                    if (!data.success) {
-                        sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                    }
-                    loadSettings();
-                },
-                error: sln.showAjaxError
-            });
-        }, null, CommonTranslations.YES, CommonTranslations.NO);
-    };
-
-    var renderHolidays = function (sln_settings) {
-        $("#oof-message").val(sln_settings.holiday_out_of_office_message);
-
-        var $holidays = $("#holidays");
-        $holidays.empty();
-        var holidays = [];
-        $.each(sln_settings.holidays, function (i, holiday) {
-            if (i % 2 == 0) {
-                holidays[i / 2] = {
-                    start: sln.formatDate(holiday, false, false, false),
-                    epochStart: holiday
-                };
-            } else {
-                holidays[(i - 1) / 2].end = sln.formatDate(holiday, false, false, false);
-            }
-        });
-        var html = $.tmpl(templates.holiday_holiday, {
-            holidays: holidays,
-            CommonTranslations: CommonTranslations
-        });
-        $.each(holidays, function (i, holiday) {
-            $($("tr", html).get(i)).data('epochStart', holiday.epochStart);
-        });
-        $holidays.append(html);
-        $("#holidays button").click(deleteHoliday);
-    };
-
-    $("#addholiday").click(addHoliday);
-    sln.configureDelayedInput($("#oof-message"), saveOOFMessage);
-
-
-    /* END HOLIDAYS */
-
-    $(".sln-set-avatar").html(TMPL_SET_AVATAR);
-    $("#avatar_div").click(uploadAvatar);
-    $(".sln-set-logo").html(TMPL_SET_LOGO);
-    $('#logo_div').click(uploadLogo).css({'width': '320px', 'height': (320 * SLN_LOGO_HEIGHT / SLN_LOGO_WIDTH) + 'px'});
-    $(".sln-set-name").html(TMPL_SET_NAME);
-    $(".sln-set-email-address").html(TMPL_SET_EMAIL);
-    $(".sln-set-phone-number").html(TMPL_SET_PHONE_NUMBER);
-
-    $(".sln-set-description").html(TMPL_SET_DESCRIPTION);
-    $(".sln-set-openinghours").html(TMPL_SET_OPENINGHOURS);
-    $('.sln-set-address').html(TMPL_SET_ADDRESS);
     $("#sln-updates-pending-warning").html(TMPL_UPDATES_PENDING).hide();
     $("#sln-updates-pending-warning #publish_changes").click(publishChanges);
     $("#sln-updates-pending-warning #try_publish_changes").click(tryPublishChanges);
 
-    $("#sln-required-warning").html(TMPL_REQUIRED_PENDING).hide();
-
     $("#settings").find("> ul > li > a").click(settingTabPress);
-    $(".sln-set-visibility").html(TMPL_SET_VISIBLE);
-    $(".sln-set-search-keywords").html(TMPL_SET_SEARCH_KEYWORDS);
-    $('.sln-set-search-keywords a[data-toggle="tooltip"]').tooltip();
     $(".sln-set-events-visibility").html(TMPL_SET_EVENTS_VISIBLE);
-    $('#section_general').find('#serviceVisible').click(serviceVisible);
-    $('#section_general').find('#serviceInvisible').click(serviceInvisible);
     $('#eventsVisible').click(eventsVisible);
     $('#eventsInvisible').click(eventsInvisible);
-
-    sln.configureDelayedInput($('.sln-set-name input'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-phone-number input'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-currency select'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-description textarea'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-openinghours textarea'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-address textarea'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-timezone select'), saveSettings, null, false);
-    sln.configureDelayedInput($('.sln-set-search-keywords textarea'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-email-address input'), saveSettings);
-    
-    $('#sln-set-place-type-add').click(function() {
-    	var html = $.tmpl(templates.place_type_select_modal, {
-    		CommonTranslations : CommonTranslations,
-            placeTypes: LocalCache.place_types,
-            selectedPlaceType: LocalCache.place_types[0]['key']
-        });
-
-        var modal = sln.createModal(html);
-        $('button[action=submit]', modal).click(function() {
-            var key = $('#place_type_select').val();
-            modal.modal('hide');
-            
-            var placeTypes = $('.sln-set-place-types').data('place_types');
-            if (placeTypes.indexOf(key) !== -1) {
-            	return;
-            }
-            placeTypes.push(key);
-            
-            $('.sln-set-place-types').data('place_types', placeTypes);
-            renderPlaceTypes();
-            saveSettings();
-        });
-    });
 
     $('#newsletter-checkbox').change(function () {
         saveConsent('newsletter', $(this).prop('checked'));
@@ -823,18 +519,8 @@ $(function () {
     });
 
     // billing tab
-    sln.configureDelayedInput($('.sln-set-iban input'), saveSettings);
-    sln.configureDelayedInput($('.sln-set-bic input'), saveSettings);
-    
-    sln.call({
-        url: '/common/settings/place_types',
-        method: 'get',
-        success: function (placeTypes) {
-            LocalCache.place_types = placeTypes
-            renderPlaceTypes();
-        },
-        error: sln.showAjaxError
-    });
+    sln.configureDelayedInput($('#sln-set-iban'), saveSettings);
+    sln.configureDelayedInput($('#sln-set-bic'), saveSettings);
 
     loadSettings();
     inboxLoadForwarders();
@@ -846,12 +532,9 @@ $(function () {
     $('#sendBulkEmailInvitations').click(sendBulkInvites);
     var elemPaddleUrl = $('#paddle-url');
     var elemPaddleMappings = $('#paddle-mappings');
-    if ($('#paddle-settings').length) {
-        Requests.getPaddleSettings().then(renderPaddleSettings);
-        elemPaddleUrl.change(function () {
-            savePaddleSettings();
-        });
-    }
+    elemPaddleUrl.change(function () {
+        savePaddleSettings();
+    });
 
     var settingsBranding,
         COLOR_REGEX = /^(([A-F0-9]{2}){3})$/i;
@@ -875,7 +558,7 @@ $(function () {
             elemBrandingSettings.html(html);
             renderSettingsBrandingPreview();
 
-            //bind events
+            // bind events
 
             var elemColorScheme = $("#color_scheme"),
                 elemShowName = $('#show_name'),
@@ -898,14 +581,6 @@ $(function () {
                 settingsBranding.branding_settings.show_avatar = showAvatar;
                 $("#preview_frame").contents().find('body').toggleClass('show_avatar', showAvatar);
                 resizeBranding();
-            });
-
-            $('#logo_div').click(function () {
-                // uploadLogo is globally defined in sln-settings.js
-                uploadLogo(function () {
-                    logoUpdated();
-                    renderSettingsBranding();
-                });
             });
 
             $('#save_button', elemBrandingSettings).click(function () {
@@ -1032,13 +707,15 @@ $(function () {
         $('#branding_settings_preview').html(html);
 
 
-        //bind events
+        // bind events
         var elemIframe = $('#preview_frame').load(function () {
             var contents = elemIframe.contents();
             contents.find('body').toggleClass('show_identity_name', settingsBranding.branding_settings.show_identity_name);
             contents.find('body').toggleClass('show_avatar', settingsBranding.branding_settings.show_avatar);
-            contents.find('#avatar').css('background-image', 'url(' + AVATAR_URL + ')');
-            contents.find('#logo').attr('src', LOGO_URL);
+            var avatarUrl = settingsBranding.branding_settings.avatar_url || '/static/images/avatar-placeholder.jpg';
+            var logoUrl = settingsBranding.branding_settings.logo_url || '/static/images/logo-placeholder.jpg';
+            contents.find('#avatar').css('background-image', 'url(' + avatarUrl + ')');
+            contents.find('#logo').attr('src', logoUrl);
             resizeBranding();
             recolorPreviewFrame();
             setTimeout(resizeBranding, 200);
@@ -1056,137 +733,15 @@ $(function () {
         }
     }
 
-    function uploadImage(popupHeader, updateUrl, width, height, successCallback, circle_preview) {
-        var html = $.tmpl(templates['settings/upload_image'], {
-            header: popupHeader,
-            width: width,
-            height: height,
-            circle_preview: circle_preview,
-        });
-        var modal = sln.createModal(html);
-        var imageElem = $('#avatarUpload', modal);
-        var imagePreview = $('.cropped_image_preview img', modal);
-        var selectedFile = null;
-        $('#newAvatar', modal).change(fileSelected);
-
-        function fileSelected() {
-            var CROP_OPTIONS = {
-                viewMode: 1,
-                dragMode: 'crop',
-                rotatable: true,
-                autoCropArea: 1.0,
-                minContainerWidth: width,
-                minContainerHeight: height,
-                aspectRatio: width / height,
-                preview: '.cropped_image_preview'
-            };
-            sln.readFile(this, imageElem, 'dataURL', function () {
-                imagePreview.parent().show();
-                imagePreview.attr('src', imageElem.attr('src'));
-                imageElem.cropper('destroy');
-                imageElem.cropper(CROP_OPTIONS);
-            });
-            selectedFile = this.value;
-        }
-
-
-        $('button[action="submit"]', modal).click(function () {
-            if (!selectedFile) {
-                sln.alert(T('No image selected yet'));
-                return;
-            }
-            var options = {
-                width: width,
-                height: height,
-                imageSmoothingEnabled: true,
-                imageSmoothingQuality: 'high',
-            };
-            var image = imageElem.cropper('getCroppedCanvas', options).toDataURL('image/png');
-            sln.showProcessing();
-            sln.call({
-                url: updateUrl,
-                data: {
-                    image: image
-                },
-                type: 'POST',
-                success: function (result) {
-                    sln.hideProcessing();
-                    modal.modal('hide');
-                    if (typeof successCallback === 'function') {
-                        successCallback();
-                    }
-                }
-            });
-        });
-    }
-
     function saveSettings() {
-        var allOK = true;
-        $('#required_fields').empty();
-        // Check name
-        if ($('.sln-set-name').attr('required_setting') && !$('.sln-set-name input').val()) {
-            $('.sln-set-name input').addClass("error");
-            $('#required_fields').append('<li>' + CommonTranslations.NAME_IS_REQUIRED + '</li>');
-            allOK = false;
-        } else {
-            $('.sln-set-name input').removeClass("error");
-        }
-        // Check phone_number
-        if ($('.sln-set-phone-number').attr('required_setting') && !$('.sln-set-phone-number input').val()) {
-            $('.sln-set-phone-number input').addClass("error");
-            $('#required_fields').append('<li>' + CommonTranslations['phone-required'] + '</li>');
-            allOK = false;
-        } else {
-            $('.sln-set-phone-number input').removeClass("error");
-        }
-
-        if (!allOK) {
-            $("#sln-required-warning").fadeIn('slow');
-            $("#sln-updates-pending-warning").fadeOut('fast');
-            return;
-        }
-        $("#sln-required-warning").fadeOut('fast');
-        // do post
         var data = {
-            name: $('.sln-set-name input').val(),
-            phone_number: $('.sln-set-phone-number input').val(),
-            currency: $('.sln-set-currency select').val(),
-            description: $('.sln-set-description textarea').val(),
-            opening_hours: $('.sln-set-openinghours textarea').val(),
-            address: $('.sln-set-address textarea').val(),
-            search_enabled: searchEnabled,
-            search_enabled_check: searchEnabledCheck,
-            search_keywords: $('.sln-set-search-keywords textarea').val(),
-            place_types: $('.sln-set-place-types').data('place_types'),
-            email_address: $('.sln-set-email-address input').val(),
-            timezone: $('.sln-set-timezone select').val(),
             events_visible: eventsEnabled,
             inbox_email_reminders: inboxEmailRemindersEnabled,
-            iban: $('.sln-set-iban input').val(),
-            bic: $('.sln-set-bic input').val()
+            iban: $('#sln-set-iban').val(),
+            bic: $('#sln-set-bic').val()
         };
         return Requests.saveSettings(data).then(function (settings) {
-            $('#address_geocode_error').toggle(settings.location === null);
         });
-    }
-
-    function uploadLogo(successCallback) {
-        var popupHeader = T('Change logo');
-        var updateUrl = '/common/settings/logo';
-        // SLN_LOGO_WIDTH & SLN_LOGO_HEIGHT defined in common/bizz/settings.py and rendered as js var in index.html
-        uploadImage(popupHeader, updateUrl, SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT, successCallback);
-    }
-
-    function uploadAvatar() {
-        var popupHeader = T('Change avatar');
-        var previewWidth = 150;
-        var previewHeight = 150;
-        var updateUrl = '/common/settings/avatar';
-        var url = $(".sln-set-avatar").attr('url');
-        if (url) {
-            updateUrl = url;
-        }
-        uploadImage(popupHeader, updateUrl, previewWidth, previewHeight, null, true);
     }
 
     function saveConsent(consent_type, enabled) {
@@ -1221,7 +776,7 @@ $(function () {
     }
 
     function addBroadcastNewsPublisher() {
-        $('li[section=section_settings_roles]').find('a').click();
+        $('li[section=section_roles]').find('a').click();
         renderRolesSettings();
         // show the add roles dialog with only news publisher option
         addRoles(false, false, true);
@@ -1300,18 +855,14 @@ $(function () {
         });
     }
 
-    function avatarUpdated() {
-        // Update in branding preview and in 'general' settings
-        var avatarUrl = AVATAR_URL + '?_=' + new Date().getTime();
-        $('#avatar_div').find('.settings_avatar').attr('src', avatarUrl);
-        $('#preview_frame').contents().find('#avatar').css('background-image', 'url(' + avatarUrl + ')');
+    function avatarUpdated(url) {
+        // Update in branding preview
+        $('#preview_frame').contents().find('#avatar').css('background-image', 'url(' + url + ')');
     }
 
-    function logoUpdated() {
-        // Update in branding preview and in 'general' settings
-        var logoUrl = LOGO_URL + '?_=' + new Date().getTime();
-        $('#logo_div').find('img').attr('src', logoUrl);
-        $('#preview_frame').contents().find('#logo').attr('src', logoUrl);
+    function logoUpdated(url) {
+        // Update in branding preview
+        $('#preview_frame').contents().find('#logo').attr('src', url);
     }
 
     function saveAppSettings() {
@@ -1334,7 +885,7 @@ $(function () {
                 settings: appSettings,
                 sln: sln
             });
-            $('#section_app_settings').html(html);
+            $('#section_app-settings').html(html);
             $('#birthday_message_enabled').change(saveAppSettings);
             sln.configureDelayedInput($('#birthday_message'), saveAppSettings);
         }
@@ -1452,11 +1003,11 @@ $(function () {
     function renderRolesSettings() {
         // check if inbox, agenda and broadcast modules are enabled
         // cannot figure out another way to check it from the client side!
-        var inboxEnabled = $('#section_settings_inbox').length > 0;
-        var agendaEnabled = $('#section_settings_agenda').length > 0;
-        var broadcastEnabled = $('#section_settings_broadcast').length > 0;
+        var inboxEnabled = $('#section_inbox').length > 0;
+        var agendaEnabled = $('#section_agenda').length > 0;
+        var broadcastEnabled = $('#section_broadcast').length > 0;
 
-        var container = $('#section_settings_roles').find('.user-roles');
+        var container = $('#section_roles').find('.user-roles');
         container.html(TMPL_LOADING_SPINNER);
 
         getAllUserRoles(render);
@@ -1526,7 +1077,7 @@ $(function () {
             loadAdmins();
 
             function loadAdmins() {
-                $('#section_settings_roles').find('.admin-logins').html(TMPL_LOADING_SPINNER);
+                $('#section_roles').find('.admin-logins').html(TMPL_LOADING_SPINNER);
                 sln.call({
                     url: '/common/users/admins',
                     type: 'get',
@@ -1538,7 +1089,7 @@ $(function () {
             function renderAdminSettings(adminEmails) {
                 LocalCache.settings.service_admins = adminEmails;
 
-                var container = $('#section_settings_roles').find('.admin-logins');
+                var container = $('#section_roles').find('.admin-logins');
 
                 var html = $.tmpl(templates['settings/app_user_admins'], {
                     admins: adminEmails,
@@ -1597,14 +1148,7 @@ $(function () {
         return Requests.savePaddleSettings(data).then(renderPaddleSettings);
     }
 
-
     function renderPaddleSettings(data) {
-        if (data.settings.base_url) {
-            $('.sln-set-phone-number input').prop('disabled', true);
-            $('.sln-set-email-address input').prop('disabled', true);
-            $('.sln-set-address textarea').prop('disabled', true);
-            $('.sln-set-openinghours textarea').prop('disabled', true);
-        }
         elemPaddleUrl.val(data.settings.base_url);
         var templateVars = {
             services: data.services,
@@ -1664,38 +1208,6 @@ $(function () {
                     }
                 });
         });
-    }
-    
-    var deletePlaceType = function() {
-        var placeType = $(this).attr('place_type');
-        var myPlaceTypes = $('.sln-set-place-types').data('place_types');
-        myPlaceTypes.splice(myPlaceTypes.indexOf(placeType), 1);
-        $('.sln-set-place-types').data('place_types', myPlaceTypes);
-        renderPlaceTypes();
-        saveSettings();
-    };
-    
-    function renderPlaceTypes() {
-    	if (LocalCache.place_types === undefined) {
-    		return;
-    	}
-    	var myPlaceTypes = $('.sln-set-place-types').data('place_types');
-    	if (myPlaceTypes === undefined) {
-    		return;
-    	}
-    	var placeTypes = [];
-    	for (var i = 0, a = LocalCache.place_types; i < a.length; i++) {
-    		if (myPlaceTypes.indexOf(a[i]['key']) !== -1) {
-    			placeTypes.push(a[i]);
-            }
-    	}
-    	var htmlElement = $('.sln-set-place-types table tbody');
-        htmlElement.empty();
-        var html = $.tmpl(templates.place_type_settings, {
-        	placeTypes: placeTypes
-        });
-        htmlElement.append(html);
-        htmlElement.find('button[action="deletePlaceType"]').click(deletePlaceType);
     }
 
     function renderJccSettings(settings) {

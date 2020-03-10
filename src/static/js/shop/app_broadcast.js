@@ -46,7 +46,6 @@ $(function() {
                     customer_id : customer.id
                 },
                 success : function(service) {
-                    console.log('Service retrieved', service);
                     customer.service = service;
                     if (!service.app_infos || !service.app_infos.length) {
                         return sln.alert('This customer has no apps');

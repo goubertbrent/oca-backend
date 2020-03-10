@@ -3,6 +3,7 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { of, timer } from 'rxjs';
 import { catchError, first, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
+import { ErrorService } from './errors/error.service';
 import { transformErrorResponse } from './errors/errors';
 import {
   GetAppsAction,
@@ -30,6 +31,9 @@ import {
   GetSolutionSettingsFailedAction,
   SharedActions,
   SharedActionTypes,
+  UpdateAvatarAction,
+  UpdateAvatarCompleteAction,
+  UpdateAvatarFailedAction, UpdateLogoAction, UpdateLogoCompleteAction, UpdateLogoFailedAction,
 } from './shared.actions';
 import { SharedService } from './shared.service';
 import { getApps, getAppStatistics, getServiceIdentityInfo, getServiceMenu, SharedState } from './shared.state';
@@ -114,14 +118,31 @@ export class SharedEffects {
 
   @Effect() getBrandingSettings$ = this.actions$.pipe(
     ofType<GetBrandingSettingsAction>(SharedActionTypes.GET_BRANDING_SETTINGS),
-    switchMap(() => this.sharedService.getBrandingSettings().pipe(
+    switchMap(action => this.sharedService.getBrandingSettings().pipe(
       map(data => new GetBrandingSettingsCompleteAction(data)),
-      catchError(err => of(new GetBrandingSettingFailedAction(transformErrorResponse(err))))),
+      catchError(err => this.errorService.handleError(action, GetBrandingSettingFailedAction, err))),
+    ),
+  );
+
+  @Effect() updateAvatar$ = this.actions$.pipe(
+    ofType<UpdateAvatarAction>(SharedActionTypes.UPDATE_AVATAR),
+    switchMap(action => this.sharedService.updateAvatar(action.payload.avatar_url).pipe(
+      map(data => new UpdateAvatarCompleteAction(data)),
+      catchError(err => this.errorService.handleError(action, UpdateAvatarFailedAction, err))),
+    ),
+  );
+
+  @Effect() updateLogo$ = this.actions$.pipe(
+    ofType<UpdateLogoAction>(SharedActionTypes.UPDATE_LOGO),
+    switchMap(action => this.sharedService.updateLogo(action.payload.logo_url).pipe(
+      map(data => new UpdateLogoCompleteAction(data)),
+      catchError(err => this.errorService.handleError(action, UpdateLogoFailedAction, err))),
     ),
   );
 
   constructor(private actions$: Actions<SharedActions>,
               private store: Store<SharedState>,
+              private errorService: ErrorService,
               private sharedService: SharedService) {
   }
 }

@@ -29,31 +29,10 @@
                                 </div>
                             </div>
                             <div class="control-group">
-                                <label class="control-label" for="service_name">Name</label>
-
-                                <div class="controls">
-                                    <input type="text" id="service_name" required="required"/>
-                                </div>
-                            </div>
-                            <div class="control-group">
-                                <label class="control-label" for="service_email">E-mail</label>
+                                <label class="control-label" for="service_email">Login e-mail</label>
 
                                 <div class="controls">
                                     <input type="email" id="service_email" required="required"/>
-                                </div>
-                            </div>
-                            <div class="control-group">
-                                <label class="control-label" for="service_address">Address</label>
-
-                                <div class="controls">
-                                    <textarea id="service_address" rows="2"></textarea>
-                                </div>
-                            </div>
-                            <div class="control-group">
-                                <label class="control-label" for="service_phone_number">Phone number</label>
-
-                                <div class="controls">
-                                    <input type="tel" id="service_phone_number"/>
                                 </div>
                             </div>
                             <div class="control-group">
@@ -77,17 +56,6 @@
                                         <option value="">Choose language...</option>
                                         {% for code, lang in languages %}
                                         <option value="{{ code }}">{{ lang }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="control-group">
-                                <label class="control-label" for="service_currency">Currency</label>
-
-                                <div class="controls">
-                                    <select id="service_currency">
-                                        {% for currency, name in currencies %}
-                                        <option value="{{ currency }}">{{ name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>

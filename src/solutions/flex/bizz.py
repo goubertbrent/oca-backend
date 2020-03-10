@@ -20,6 +20,7 @@ import uuid
 
 from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceMenuDef
+from rogerthat.models.settings import SyncedNameValue
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.to.messaging import BaseMemberTO
@@ -216,12 +217,12 @@ def provision(service_user, friends=None, transactional=True):
 
 
 @returns(ProvisionResponseTO)
-@arguments(email=unicode, name=unicode, address=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
+@arguments(email=unicode, name=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
            modules=[unicode], broadcast_types=[unicode], apps=[unicode], allow_redeploy=bool, organization_type=int,
-           search_enabled=bool, qualified_identifier=unicode, broadcast_to_users=[users.User])
-def create_flex_service(email, name, address, phone_number, languages, currency, modules, broadcast_types, apps,
+           search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue])
+def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, apps,
                         allow_redeploy, organization_type=OrganizationType.PROFIT, search_enabled=False,
-                        qualified_identifier=None, broadcast_to_users=None):
+                        broadcast_to_users=None, websites=None):
     from rogerthat.bizz.rtemail import EMAIL_REGEX
 
     redeploy = allow_redeploy and get_solution_settings(users.User(email)) is not None
@@ -233,11 +234,11 @@ def create_flex_service(email, name, address, phone_number, languages, currency,
         owner_user_email = service_email
         service_email = u"service-%s@rogerth.at" % uuid.uuid4()
 
-    return create_or_update_solution_service(SOLUTION_FLEX, service_email, name, branding_url, menu_item_color, address,
+    return create_or_update_solution_service(SOLUTION_FLEX, service_email, name, branding_url, menu_item_color,
                                              phone_number, languages, currency, redeploy, organization_type, modules,
                                              broadcast_types, apps, owner_user_email=owner_user_email,
-                                             search_enabled=search_enabled, qualified_identifier=qualified_identifier,
-                                             broadcast_to_users=broadcast_to_users)
+                                             search_enabled=search_enabled, broadcast_to_users=broadcast_to_users,
+                                             websites=websites)
 
 
 @returns(AssociationStatistic)

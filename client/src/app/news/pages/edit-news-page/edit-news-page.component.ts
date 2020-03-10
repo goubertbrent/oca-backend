@@ -42,7 +42,7 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
   serviceInfo$: Observable<Loadable<ServiceIdentityInfo>>;
   apps$: Observable<Loadable<App[]>>;
   appStatistics$: Observable<AppStatisticsMapping>;
-  brandingSettings$: Observable<Loadable<BrandingSettings>>;
+  brandingSettings$: Observable<BrandingSettings | null>;
   remainingBudget$: Observable<string>;
 
   private hasRegionalNewsData = false;

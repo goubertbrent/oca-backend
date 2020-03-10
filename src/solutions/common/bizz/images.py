@@ -62,8 +62,13 @@ def upload_file(service_user, uploaded_file, prefix, reference=None):
     return file_model
 
 
-def list_files(service_user):
-    # type: (users.User) -> List[UploadedFile]
+def list_files(service_user, prefix=None):
+    # type: (users.User, str) -> List[UploadedFile]
+    if prefix:
+        path = '/%(bucket)s/services/%(service)s/%(prefix)s' % {'bucket': OCA_FILES_BUCKET,
+                                                                'service': service_user.email(),
+                                                                'prefix': prefix}
+        return UploadedFile.list_by_user_and_path(service_user, path)
     return UploadedFile.list_by_user(service_user)
 
 

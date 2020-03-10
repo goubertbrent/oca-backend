@@ -6,6 +6,8 @@ import { App, AppStatistics, ServiceIdentityInfo, ServiceMenuDetail } from './in
 
 @Injectable({ providedIn: 'root' })
 export class SharedService {
+  hasYoutubeApi = false;
+
   constructor(private http: HttpClient) {
   }
 
@@ -37,7 +39,25 @@ export class SharedService {
     return this.http.get<BrandingSettings>('/common/settings/branding');
   }
 
-  getGlobalConstants(){
+  getGlobalConstants() {
     return this.http.get<GlobalConfig>('/common/consts');
+  }
+
+  ensureYoutubeLoaded() {
+    if (!this.hasYoutubeApi) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[ 0 ];
+      (firstScriptTag.parentNode as HTMLBodyElement).insertBefore(tag, firstScriptTag);
+      this.hasYoutubeApi = true;
+    }
+  }
+
+  updateAvatar(avatar_url: string) {
+    return this.http.put<BrandingSettings>('/common/settings/avatar', { avatar_url });
+  }
+
+  updateLogo(logo_url: string) {
+    return this.http.put<BrandingSettings>('/common/settings/logo', { logo_url });
   }
 }

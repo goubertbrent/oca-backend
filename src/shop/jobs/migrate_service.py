@@ -986,7 +986,6 @@ def migrate_and_create_user_profile(executor_user, from_service_user, to_user):
     si = get_default_service_identity_not_cached(from_service_user)
     si.qualifiedIdentifier = to_user.email()
     settings = get_solution_settings(from_service_user)
-    settings.qualified_identifier = to_user.email()
     settings.login = to_user
     put_and_invalidate_cache(to_profile, si, settings)
 

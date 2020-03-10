@@ -143,13 +143,9 @@ def _broadcast(sln_settings_key, sandwich_settings_key, broadcast_type):
             identities.extend(sln_settings.identities)
         for service_identity in identities:
             sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-            if sln_i_settings.is_in_holiday_for_date(now()):
-                logging.info("Not sending out sandwich broadcast '%s'. %s is in holiday.",
-                             broadcast_type, sln_i_settings.service_user)
-            else:
-                logging.info("Sending broadcast to users of %s with broadcast type %s",
-                             sln_i_settings.service_user, broadcast_type)
-                messaging.broadcast(broadcast_type, message, answers, flags, branding, tag, service_identity,
-                                    alert_flags, timeout=timeout)
+            logging.info("Sending broadcast to users of %s with broadcast type %s",
+                         sln_i_settings.service_user, broadcast_type)
+            messaging.broadcast(broadcast_type, message, answers, flags, branding, tag, service_identity,
+                                alert_flags, timeout=timeout)
     finally:
         users.clear_user()

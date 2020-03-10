@@ -54,10 +54,9 @@ class LotteryTest(oca_unittest.TestCase):
     def _create_service(self, email, org_type=OrganizationType.PROFIT, city_wide_lottery=False):
         self.set_datastore_hr_probability(1)
 
-        loyalty_module = SolutionModule.HIDDEN_CITY_WIDE_LOTTER if city_wide_lottery else SolutionModule.LOYALTY
+        loyalty_module = SolutionModule.HIDDEN_CITY_WIDE_LOTTERY if city_wide_lottery else SolutionModule.LOYALTY
         service = create_flex_service(email,
                                       name="test",
-                                      address="test address",
                                       phone_number="",
                                       languages=["en", "nl"],
                                       currency=u"EUR",

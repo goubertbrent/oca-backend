@@ -21,12 +21,12 @@ import time
 from contextlib import closing
 from types import NoneType
 
-from google.appengine.ext import db, deferred
-
 import pytz
 from babel.dates import format_datetime, get_timezone
+from google.appengine.ext import db, deferred
+
 from mcfw.properties import azzert, object_factory
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from mcfw.rpc import returns, arguments
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
 from rogerthat.models import Message
 from rogerthat.models.properties.forms import PayWidgetResult
@@ -41,13 +41,13 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, try_or_defer
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.transactions import run_in_transaction
-from solutions import translate
-from solutions import translate as common_translate
+from solutions import translate, translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _get_value, broadcast_updates_pending
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.payment import get_transaction_details
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
     get_solution_settings_or_identity_settings
@@ -210,11 +210,10 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
         message.category_key = unicode(o.key())
         message.put()
 
+        service_info = get_service_info(service_user, service_identity)
         sm_data = [{u"type": u"solutions.common.orders.update"},
                    {u"type": u"solutions.common.messaging.update",
-                    u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings,
-                                                                                         sln_i_settings, True),
-                                                        SolutionInboxMessageTO, False)}]
+                    u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict()}]
         send_message(service_user, sm_data, service_identity=service_identity)
 
         app_user = user_details[0].toAppUser()
@@ -326,8 +325,7 @@ def delete_order(service_user, order_key, message):
 
     order = db.run_in_transaction(txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.orders.deleted", u'order_key': order_key})
+    sm_data = [{u"type": u"solutions.common.orders.deleted", u'order_key': order_key}]
 
     sln_settings = get_solution_settings(service_user)
     if message:
@@ -339,10 +337,11 @@ def delete_order(service_user, order_key, message):
                 'if_email': sim_parent.sender.email
             }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
+            service_info = get_service_info(service_user, _identity)
 
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                            u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
         else:
             branding = get_solution_main_branding(service_user).branding_key
             member = MemberTO()
@@ -367,10 +366,10 @@ def delete_order(service_user, order_key, message):
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
 
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
-
+        service_info = get_service_info(service_user, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                     True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)
 
@@ -392,8 +391,7 @@ def send_message_for_order(service_user, order_key, order_status, message):
 
     order = db.run_in_transaction(txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.orders.update"})
+    sm_data = [{u"type": u"solutions.common.orders.update"}]
 
     sln_settings = get_solution_settings(service_user)
     if message:
@@ -405,10 +403,10 @@ def send_message_for_order(service_user, order_key, order_status, message):
                 'if_email': sim_parent.sender.email
             }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
-
+            service_info = get_service_info(service_user, order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                            u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
         else:
             sln_main_branding = get_solution_main_branding(service_user)
             branding = sln_main_branding.branding_key if sln_main_branding else None
@@ -435,10 +433,10 @@ def send_message_for_order(service_user, order_key, order_status, message):
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
 
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
-
+        service_info = get_service_info(service_user, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                     True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)
 

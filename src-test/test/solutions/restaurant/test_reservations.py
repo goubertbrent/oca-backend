@@ -79,9 +79,6 @@ class Test(oca_unittest.TestCase):
                             menu_item_color=None, address=u"lochristi", phone_number=None,
                             currency=u"EUR", main_language=DEFAULT_LANGUAGE, solution=SOLUTION_FLEX)
 
-        solutionSettings.holidays = []
-        solutionSettings.holiday_out_of_office_message = u'holiday-out-of-office'
-
         settings = RestaurantSettings(key=RestaurantSettings.create_key(service_user))
         settings.language = DEFAULT_LANGUAGE
 

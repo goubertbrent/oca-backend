@@ -5,7 +5,6 @@
 <p id="no_opening_hours" style="display:none;">
     {% translate language "common" "no-opening-hours" %}
 </p>
-<p id="holiday-message" style="display:none;"></p>
 <div id="address" style="display: none; margin-top: 20px;">
     {% translate language "common" "address" %}:<br/>
     <a href="#" id="map" style="display: none;">
@@ -24,14 +23,14 @@ $(function () {
         function htmlize(value) {
             return value.replace(/\n/g, "<br>");
         }
-        
+
         if (rogerthat.service.data.settings.opening_hours) {
             $("#opening_hours_details").html(htmlize(rogerthat.service.data.settings.opening_hours));
             $("#opening_hours").show();
         } else {
             $("#no_opening_hours").show();
         }
-        
+
         if (rogerthat.service.data.settings.address) {
             $("#address_details").html(htmlize(rogerthat.service.data.settings.address));
             if (rogerthat.service.data.settings.address_url) {
@@ -41,21 +40,6 @@ $(function () {
             $("#address").show();
         } else {
             $("#no_address").show();
-        }
-        
-        function isInHoliday () {
-            var holidayDates = rogerthat.service.data.settings.holidays.dates;
-            var currentDate = new Date().getTime() / 1000;
-            for (var i = 0; i < holidayDates.length; i++) {
-                if (holidayDates[i].from < currentDate && currentDate < holidayDates[i].to) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        if (isInHoliday()) {
-            var message = htmlize(rogerthat.service.data.settings.holidays.out_of_office_message);
-            $('#holiday-message').show().html(message);
         }
     });
 });

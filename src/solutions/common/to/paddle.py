@@ -83,14 +83,14 @@ class PaddleNode(TO):
     telephone = unicode_property('telephone')
     title = unicode_property('title')
     twitter = unicode_property('twitter')
-    vat_number = unicode_property('PaddleRegularOpeningHoursvat_number')
+    vat_number = unicode_property('vat_number')
     website = unicode_property('website')
 
 
 class PaddlePeriod(TO):
-    start = unicode_property('start')
-    end = unicode_property('end')
-    description = unicode_property('description')
+    start = unicode_property('start')  # 14:00
+    end = unicode_property('end')  # 17:00
+    description = unicode_property('description')  # "Enkel telefonisch"
 
 
 class PaddleRegularOpeningHours(TO):

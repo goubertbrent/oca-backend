@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db
+
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.profile import create_user_profile, update_password_hash
 from rogerthat.bizz.user import delete_account
@@ -92,7 +93,6 @@ def migrate(executor_user, from_user, to_user, service_email, customer_id=None):
         to_put.add(si)
         sln_settings = get_solution_settings(users.User(service_email))
         sln_settings.login = to_user
-        sln_settings.qualified_identifier = to_user.email()
         to_put.add(sln_settings)
 
         if customer_id is not None:

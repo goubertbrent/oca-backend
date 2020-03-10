@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { SafeResourceUrl } from '@angular/platform-browser';
+import { SharedService } from '../../../shared/shared.service';
 import { BaseMedia, MediaType, NewsActionButton, NewsItemType } from '../../interfaces';
 
 @Component({
@@ -23,14 +24,14 @@ export class NewsItemPreviewItemComponent implements OnChanges {
   MediaType = MediaType;
   youtubeUrl: SafeResourceUrl | null = null;
 
-  constructor(private sanitizer: DomSanitizer) {
+  constructor(private sharedService: SharedService) {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.media && changes.media.currentValue) {
       this.youtubeUrl = null;
       if (this.media && this.media.type === MediaType.YOUTUBE_VIDEO) {
-        this.youtubeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${this.media.content}`);
+        this.sharedService.ensureYoutubeLoaded();
       }
     }
   }

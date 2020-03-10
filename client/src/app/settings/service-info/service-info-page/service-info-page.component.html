@@ -1,0 +1,192 @@
+<div class="sticky-toolbar">
+  <mat-toolbar>
+    <h2 class="page-title">{{ 'oca.settings-general' | translate }}</h2>
+  </mat-toolbar>
+  <mat-progress-bar *ngIf="loading$ | async as loading" mode="indeterminate"></mat-progress-bar>
+</div>
+<form #form="ngForm" *ngIf="serviceInfo" class="form-content-container">
+  <ng-container *ngIf="brandingSettings$ | async as brandingSettings">
+    <div class="branding-setting">
+      <h3>{{ 'oca.Logo' | translate }}</h3>
+      <div class="avatar">
+        <div *ngIf="brandingSettings.avatar_url" class="avatar-edit-layer"></div>
+        <img [class.grayscale]="!brandingSettings.avatar_url" [src]="brandingSettings.avatar_url || DEFAULT_AVATAR_URL"
+             alt="Avatar"/>
+        <button (click)="updateAvatar()" class="centered-edit-button" color="primary" mat-mini-fab type="button">
+          <mat-icon>photo_camera</mat-icon>
+        </button>
+      </div>
+    </div>
+    <div class="branding-setting">
+      <h3>{{ 'oca.cover_photo' | translate }}</h3>
+      <div class="logo">
+        <div *ngIf="brandingSettings.avatar_url" class="logo-edit-layer"></div>
+        <img [class.grayscale]="!brandingSettings.avatar_url" [src]="brandingSettings.logo_url || DEFAULT_LOGO_URL"
+             alt="Logo"/>
+        <button (click)="updateLogo()" class="centered-edit-button" color="primary" mat-mini-fab type="button">
+          <mat-icon>photo_camera</mat-icon>
+        </button>
+      </div>
+    </div>
+  </ng-container>
+  <mat-form-field class="field">
+    <mat-label>{{ 'oca.reservation-name' | translate }}</mat-label>
+    <input (ngModelChange)="autoSave()"
+           [(ngModel)]="serviceInfo.name"
+           [disabled]="syncedValues.name != null"
+           autocomplete="off"
+           matInput
+           maxlength="50"
+           minlength="2"
+           name="name"
+           required
+           type="text">
+    <button *ngIf="syncedValues.name"
+            [matTooltip]="'oca.value_synced_via_paddle_cannot_edit' | translate"
+            mat-icon-button
+            matSuffix>
+      <mat-icon [matTooltip]>info</mat-icon>
+    </button>
+    <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <div class="dual-fields">
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.place_type' | translate }}</mat-label>
+      <mat-select (ngModelChange)="mainPlaceTypeChanged($event)"
+                  [(ngModel)]="serviceInfo.main_place_type"
+                  name="main_place_type"
+                  required>
+        <mat-option *ngFor="let placeType of placeTypes$ | async"
+                    [value]="placeType.value">{{ placeType.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.other_place_types' | translate }}</mat-label>
+      <mat-select (ngModelChange)="autoSave()"
+                  [(ngModel)]="serviceInfo.place_types"
+                  multiple
+                  name="place_types"
+                  required>
+        <mat-option *ngFor="let placeType of placeTypes$ | async"
+                    [disabled]="serviceInfo.main_place_type === placeType.value"
+                    [value]="placeType.value">{{ placeType.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <mat-form-field class="field wide-field">
+    <mat-label>{{ 'oca.description' | translate }}</mat-label>
+    <textarea (ngModelChange)="autoSave()"
+              [(ngModel)]="serviceInfo.description"
+              [disabled]="syncedValues.description != null"
+              cdkTextareaAutosize
+              matInput
+              name="description"></textarea>
+    <button *ngIf="syncedValues.description"
+            [matTooltip]="'oca.value_synced_via_paddle_cannot_edit' | translate"
+            mat-icon-button
+            matSuffix>
+      <mat-icon [matTooltip]>info</mat-icon>
+    </button>
+    <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+  </mat-form-field>
+  <div class="dual-fields">
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.timezone' | translate }}</mat-label>
+      <select (ngModelChange)="save()" [(ngModel)]="serviceInfo.timezone" matNativeControl name="timezone" required>
+        <option *ngFor="let timezone of timezones" [value]="timezone">{{ timezone }}</option>
+      </select>
+    </mat-form-field>
+    <mat-form-field class="field">
+      <mat-label>{{ 'oca.Currency' | translate }}</mat-label>
+      <mat-select (ngModelChange)="save()" [(ngModel)]="serviceInfo.currency" name="currency" required>
+        <mat-option *ngFor="let currency of currencies" [value]="currency">{{ currency }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <mat-form-field class="field wide-field">
+    <mat-label>{{ 'oca.search_keywords' | translate }}</mat-label>
+    <mat-chip-list #keywordChipList>
+      <mat-chip (removed)="removeKeyword(keyword)" *ngFor="let keyword of serviceInfo.keywords">
+        {{ keyword }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+      <input (matChipInputTokenEnd)="addKeyword($event)"
+             [matChipInputAddOnBlur]="true"
+             [matChipInputFor]="keywordChipList" class="keywords-input">
+      <mat-hint>{{ 'oca.search-keywords-hint' | translate }}</mat-hint>
+    </mat-chip-list>
+  </mat-form-field>
+  <h3>{{ 'oca.media' | translate }}</h3>
+  <p>{{ 'oca.service_media_info' | translate }}</p>
+  <oca-service-media-editor (mediaChanged)="setCoverMedia($event)"
+                            [mediaItems]="serviceInfo.cover_media"
+                            [placeholderUrl]="DEFAULT_AVATAR_URL"></oca-service-media-editor>
+  <mat-accordion class="info-accordion" hideToggle>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'oca.Phone number' | translate }}</mat-panel-title>
+        <mat-panel-description class="info-panel-description">
+          <oca-synced-values-preview [values]="serviceInfo.phone_numbers"></oca-synced-values-preview>
+          <mat-icon>phone</mat-icon>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <oca-service-value-editor (valueChanged)="setValues($event, 'phone_numbers')"
+                                [valueLabel]="'oca.Phone number' | translate"
+                                [values]="serviceInfo.phone_numbers"
+                                inputType="tel"></oca-service-value-editor>
+    </mat-expansion-panel>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'oca.Email' | translate }}</mat-panel-title>
+        <mat-panel-description class="info-panel-description">
+          <oca-synced-values-preview [values]="serviceInfo.email_addresses"></oca-synced-values-preview>
+          <mat-icon>email</mat-icon>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <oca-service-value-editor (valueChanged)="setValues($event, 'email_addresses')"
+                                [valueLabel]="'oca.Email' | translate"
+                                [values]="serviceInfo.email_addresses"
+                                inputType="email"></oca-service-value-editor>
+    </mat-expansion-panel>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'oca.Website' | translate }}</mat-panel-title>
+        <mat-panel-description class="info-panel-description">
+          <oca-synced-values-preview [values]="serviceInfo.websites"></oca-synced-values-preview>
+          <mat-icon>website</mat-icon>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <p>{{ 'oca.service_website_info' | translate }}</p>
+      <oca-service-value-editor (valueChanged)="setValues($event, 'websites')"
+                                [valueLabel]="'oca.Website' | translate"
+                                [values]="serviceInfo.websites"
+                                inputType="url"></oca-service-value-editor>
+    </mat-expansion-panel>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'oca.address' | translate }}</mat-panel-title>
+        <mat-panel-description class="info-panel-description">
+          <oca-synced-values-preview [values]="serviceInfo.addresses"></oca-synced-values-preview>
+          <mat-icon>place</mat-icon>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <oca-service-addresses-editor (valueChanged)="setValues($event, 'addresses')"
+                                    [values]="serviceInfo.addresses"></oca-service-addresses-editor>
+    </mat-expansion-panel>
+  </mat-accordion>
+  <mat-slide-toggle (change)="setVisibility($event)"
+                    [checked]="serviceInfo?.visible"
+                    [disabled]="form?.invalid || (loading$ | async)"
+                    [matTooltipDisabled]="form?.valid"
+                    [matTooltip]="'oca.required' | translate"
+                    name="service_visible">
+    {{ 'oca.service-visible' | translate }}
+  </mat-slide-toggle>
+  <div class="save-button">
+    <button (click)="save()" [disabled]="loading$ | async" color="primary" mat-raised-button type="button">
+      {{ 'oca.Save' | translate }}
+    </button>
+    <p *ngIf="form.invalid && submitted" class="mat-error">{{ 'oca.required' | translate }}</p>
+  </div>
+  <oca-opening-hours-settings-page></oca-opening-hours-settings-page>
+</form>

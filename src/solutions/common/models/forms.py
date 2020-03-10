@@ -152,7 +152,7 @@ class FormSubmission(NdbModel):
 class UploadedFile(NdbModel):
     reference = ndb.KeyProperty()
     content_type = ndb.StringProperty(indexed=False)
-    cloudstorage_path = ndb.StringProperty(indexed=False)
+    cloudstorage_path = ndb.StringProperty()
     created_on = ndb.DateTimeProperty(auto_now_add=True)
     size = ndb.IntegerProperty(indexed=False)
 
@@ -176,6 +176,12 @@ class UploadedFile(NdbModel):
     @classmethod
     def list_by_user(cls, service_user):
         return cls.query(ancestor=parent_ndb_key(service_user, SOLUTION_COMMON))
+
+    @classmethod
+    def list_by_user_and_path(cls, service_user, path):
+        return cls.list_by_user(service_user) \
+            .filter(cls.cloudstorage_path > path) \
+            .filter(cls.cloudstorage_path < path + u'\ufffd')  # 'starts with' query
 
 
 class FormStatisticsShard(NdbModel):

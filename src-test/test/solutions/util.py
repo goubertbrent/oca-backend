@@ -59,3 +59,13 @@ def setup_payment_providers():
     )
     create_payment_provider(obj)
     return obj
+
+
+def setup_embedded_apps():
+    create_embedded_application(CreateEmbeddedApplicationTO(name=u'oca',
+                                                            file=u'base64,R0lGODlhAQABAAAAACw=',
+                                                            tags=[],
+                                                            url_regexes=[],
+                                                            title=u'OCA embedded app',
+                                                            description=u'embedded app description',
+                                                            types=[]))

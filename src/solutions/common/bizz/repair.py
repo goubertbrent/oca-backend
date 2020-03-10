@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, deferred
+
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.dal import parent_key_unsafe
@@ -35,6 +36,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _get_value
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
     get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionInboxMessage
@@ -77,18 +79,19 @@ def _repair_order_received(service_user, message_flow_run_id, member, steps, end
     msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-repair-order-received',
                            remarks=remarks)
 
-    message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_REPAIR, None, False, user_details, steps[1].received_timestamp, msg, True, [picture_url] if picture_url else [])
+    message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_REPAIR, None,
+                                            False, user_details, steps[1].received_timestamp, msg, True,
+                                            [picture_url] if picture_url else [])
     o.solution_inbox_message_key = message.solution_inbox_message_key
     o.put()
     message.category_key = unicode(o.key())
     message.put()
 
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.repair_orders.update"})
-    sm_data.append({u"type": u"solutions.common.messaging.update",
-                 u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+    service_info = get_service_info(service_user, service_identity)
+    sm_data = [
+        {u"type": u"solutions.common.repair_orders.update"},
+        {u"type": u"solutions.common.messaging.update",
+         "message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict()}]
 
     send_message(service_user, sm_data, service_identity=service_identity)
 
@@ -135,8 +138,7 @@ def delete_repair_order(service_user, order_key, message):
         return m
     repair_order = db.run_in_transaction(txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.repair_orders.update"})
+    sm_data = [{u"type": u"solutions.common.repair_orders.update"}]
 
     sln_settings = get_solution_settings(service_user)
     if message:
@@ -146,9 +148,10 @@ def delete_repair_order(service_user, order_key, message):
                         'if_name': sim_parent.sender.name,
                         'if_email':sim_parent.sender.email
                     }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, repair_order.service_identity)
+            service_info = get_service_info(service_user, repair_order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
         else:
             branding = get_solution_main_branding(service_user).branding_key
             member = MemberTO()
@@ -173,9 +176,10 @@ def delete_repair_order(service_user, order_key, message):
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, repair_order.service_identity)
 
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, repair_order.service_identity)
+        service_info = get_service_info(service_user, repair_order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                     True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=repair_order.service_identity)
 
@@ -194,9 +198,9 @@ def send_message_for_repair_order(service_user, order_key, order_status, message
         return m
     order = db.run_in_transaction(txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.repair_orders.update"})
+    sm_data = [{u"type": u"solutions.common.repair_orders.update"}]
 
+    should_update_dashboard = False
     sln_settings = get_solution_settings(service_user)
     if message:
         if order.solution_inbox_message_key:
@@ -206,10 +210,7 @@ def send_message_for_repair_order(service_user, order_key, order_status, message
                         'if_email':sim_parent.sender.email
                     }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
-
-            sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+            should_update_dashboard = True
 
         else:
             sln_main_branding = get_solution_main_branding(service_user)
@@ -236,10 +237,11 @@ def send_message_for_repair_order(service_user, order_key, order_status, message
             sim_parent.read = True
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
-
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
-
+        should_update_dashboard = True
+    if should_update_dashboard:
+        service_info = get_service_info(service_user, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                     True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)

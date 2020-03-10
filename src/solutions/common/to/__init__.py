@@ -50,7 +50,7 @@ class SolutionInboxForwarder(SolutionUserKeyLabelTO):
     type = unicode_property('51')
 
 
-class SolutionInboxMessageTO(object):
+class SolutionInboxMessageTO(TO):
     key = unicode_property('1')
     category = unicode_property('2')  # only filled in on parent message
     timestamp = long_property('3')
@@ -65,7 +65,6 @@ class SolutionInboxMessageTO(object):
     sent_by_service = bool_property('10')
     sender_name = unicode_property('11')
     sender_avatar_url = unicode_property('12')
-    sender_language = unicode_property('13')
     sender_email = unicode_property('14')
 
     icon = unicode_property('15')
@@ -77,7 +76,7 @@ class SolutionInboxMessageTO(object):
     chat_topic = unicode_property('20')
 
     @staticmethod
-    def fromModel(message, sln_settings, sln_i_settings, show_last=False):
+    def fromModel(message, sln_settings, service_info, show_last=False):
         to = SolutionInboxMessageTO()
         to.key = unicode(message.solution_inbox_message_key)
         to.category = unicode(message.category) if message.category else None
@@ -112,13 +111,11 @@ class SolutionInboxMessageTO(object):
         if message.sender:
             to.sender_name = message.sender.name
             to.sender_avatar_url = message.sender.avatar_url
-            to.sender_language = message.sender.language
             to.sender_email = message.sender.email
         else:
-            to.sender_name = sln_i_settings.name
+            to.sender_name = service_info.name
             to.sender_avatar_url = None
-            to.sender_language = sln_settings.main_language
-            to.sender_email = sln_i_settings.qualified_identifier
+            to.sender_email = service_info.main_email_address
 
         to.icon = message.icon
         to.icon_color = message.icon_color
@@ -138,12 +135,12 @@ class SolutionInboxesTO(object):
     messages = typed_property('4', SolutionInboxMessageTO, True)
 
     @staticmethod
-    def fromModel(name, cursor, messages, has_more, sln_settings, sln_i_settings, show_last=False):
+    def fromModel(name, cursor, messages, has_more, sln_settings, service_info, show_last=False):
         to = SolutionInboxesTO()
         to.name = name
         to.cursor = cursor
         to.has_more = has_more
-        to.messages = [SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, show_last) for message in
+        to.messages = [SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, show_last) for message in
                        messages]
         return to
 
@@ -156,7 +153,6 @@ class LatLonTO(TO):
 class SolutionSettingsTO(TO):
     name = unicode_property('name')
     description = unicode_property('description')
-    opening_hours = unicode_property('opening_hours')
     address = unicode_property('address')
     phone_number = unicode_property('phone_number')
     updates_pending = bool_property('updates_pending')
@@ -168,17 +164,12 @@ class SolutionSettingsTO(TO):
     timezone = unicode_property('timezone')
     events_visible = bool_property('events_visible')
     search_keywords = unicode_property('search_keywords')
-    place_types = unicode_list_property('place_types')
     email_address = unicode_property('email_address')
     inbox_email_reminders = bool_property('inbox_email_reminders')
     twitter_username = unicode_property('twitter_username')
-    holidays = long_list_property('holidays')
-    holiday_out_of_office_message = unicode_property('holiday_out_of_office_message')
     iban = unicode_property('iban')
     bic = unicode_property('bic')
     publish_changes_users = unicode_list_property('publish_changes_users', default=[])
-    search_enabled_check = bool_property('search_enabled_check')
-    location = typed_property('location', LatLonTO)
 
     @staticmethod
     def fromModel(sln_settings, sln_i_settings):
@@ -186,32 +177,16 @@ class SolutionSettingsTO(TO):
         assert isinstance(sln_settings, SolutionSettings)
         assert isinstance(sln_i_settings, SolutionIdentitySettings)
         to = SolutionSettingsTO()
-        to.name = sln_i_settings.name
-        to.description = sln_i_settings.description
-        to.opening_hours = sln_i_settings.opening_hours
-        to.address = sln_i_settings.address
-        to.phone_number = sln_i_settings.phone_number
-        to.currency = sln_settings.currency
         to.updates_pending = sln_settings.updates_pending
         to.facebook_page = sln_settings.facebook_page
         to.facebook_name = sln_settings.facebook_name
         to.facebook_action = sln_settings.facebook_action
-        to.search_enabled = sln_settings.search_enabled
-        to.timezone = sln_settings.timezone
         to.events_visible = sln_settings.events_visible
-        to.search_keywords = sln_i_settings.search_keywords
-        to.place_types = sln_i_settings.place_types
-        to.email_address = sln_i_settings.qualified_identifier or sln_settings.service_user.email()
         to.inbox_email_reminders = sln_i_settings.inbox_email_reminders_enabled if sln_i_settings.inbox_email_reminders_enabled else False
         to.twitter_username = sln_settings.twitter_username
-        to.holidays = sln_i_settings.holidays
-        to.holiday_out_of_office_message = sln_i_settings.holiday_out_of_office_message
         to.iban = sln_settings.iban
         to.bic = sln_settings.bic
         to.publish_changes_users = sln_settings.publish_changes_users
-        to.search_enabled_check = True if sln_settings.search_enabled_check is None else sln_settings.search_enabled_check
-        to.location = LatLonTO(lat=sln_i_settings.location.lat,
-                               lon=sln_i_settings.location.lon) if sln_i_settings.location else None
         return to
 
 

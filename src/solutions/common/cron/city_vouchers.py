@@ -18,23 +18,22 @@
 from __future__ import unicode_literals
 
 import base64
-from datetime import date, datetime
-from functools import partial
 import logging
 import time
+from datetime import date, datetime
+from functools import partial
 
 from babel.dates import format_datetime, get_timezone
 from dateutil.relativedelta import relativedelta
+from google.appengine.ext import db, deferred, webapp, ndb
 
-from google.appengine.ext import db, deferred, webapp
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import DAY
-from rogerthat.models import Message
+from rogerthat.models import Message, ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.service.api import system, messaging
 from rogerthat.to.messaging import MemberTO
-from rogerthat.utils import send_mail
-from rogerthat.utils import today
+from rogerthat.utils import send_mail, today
 from shop.models import Customer
 from solution_server_settings import get_solution_server_settings
 from solutions import SOLUTION_COMMON, translate as common_translate
@@ -43,7 +42,7 @@ from solutions.common.dal import get_solution_settings, get_solution_main_brandi
 from solutions.common.models import SolutionSettings
 from solutions.common.models.city_vouchers import SolutionCityVoucherTransaction, \
     SolutionCityVoucher, SolutionCityVoucherExport, SolutionCityVoucherExportMerchant
-
+from rogerthat.models.settings import ServiceInfo
 
 try:
     from cStringIO import StringIO
@@ -106,9 +105,8 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
     qry.filter("created <", first_day_of_current_month)
 
     transactions = []
-    merchant_transactions = dict()
-    merchants = dict()
-    unique_vouchers = dict()
+    merchant_transactions = {}
+    unique_vouchers = {}
     for t in qry:
         t.dt = format_timestamp(t.created, sln_settings)
         t.voucher = t.parent()
@@ -119,8 +117,10 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
         merchant_transactions[t.service_user]["transactions"].append(t.key())
         unique_vouchers[t.voucher.key()] = t.voucher
 
-    for merchant_service_user in merchant_transactions.keys():
-        merchants[merchant_service_user] = get_solution_settings(merchant_service_user)
+    sln_settings_keys = [SolutionSettings.create_key(service_user) for service_user in merchant_transactions.keys()]
+    merchants = {settings.service_user: settings for settings in db.get(sln_settings_keys)}
+    info_keys = [ServiceInfo.create_key(user, ServiceIdentity.DEFAULT) for user in merchant_transactions.keys()]
+    merchants_info = {info.service_user: info for info in ndb.get_multi(info_keys)}  # type: dict[users.User, ServiceInfo]
 
     qry = SolutionCityVoucher.all().ancestor(ancestor_key)
     qry.filter("activated =", True)
@@ -130,8 +130,7 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
     for v in qry:
         v.dt = format_timestamp(v.created, sln_settings)
         if v.expired:
-            if v.expiration_date >= first_day_of_last_month and \
-               v.expiration_date < first_day_of_current_month:
+            if first_day_of_last_month <= v.expiration_date < first_day_of_current_month:
                 expired_vouchers.append(v)
         else:
             vouchers.append(v)
@@ -167,11 +166,12 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
     sheet_merchants.write(row, 4, translate("Total value to be paid"))
     for merchant_service_user in merchants.keys():
         merchant = merchants[merchant_service_user]
+        merchant_info = merchants_info[merchant_service_user]
         row += 1
-        sheet_merchants.write(row, 0, merchant.name)
-        sheet_merchants.write(row, 1, merchant.address)
-        sheet_merchants.write(row, 2, merchant.iban or u"")
-        sheet_merchants.write(row, 3, merchant.bic or u"")
+        sheet_merchants.write(row, 0, merchant_info.name)
+        sheet_merchants.write(row, 1, merchant_info.main_address or '')
+        sheet_merchants.write(row, 2, merchant.iban or '')
+        sheet_merchants.write(row, 3, merchant.bic or '')
         sheet_merchants.write(row, 4, round(merchant_transactions[merchant_service_user]["value"] / 100.0, 2))
 
     row += 2

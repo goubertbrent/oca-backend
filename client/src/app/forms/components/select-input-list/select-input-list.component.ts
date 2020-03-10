@@ -17,7 +17,7 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { withLatestFrom } from 'rxjs/operators';
-import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
+import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { NextAction, UINextAction, Value } from '../../interfaces/forms';
 
 @Component({
@@ -158,9 +158,9 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
         title: this._translate.instant('oca.insert_image'),
       },
     };
-    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFile) => {
+    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result) {
-        this.values[ index ] = { ...value, image_url: result.url };
+        this.values[ index ] = { ...value, image_url: result.getUrl() };
         this.onChange(this.values);
       }
     });

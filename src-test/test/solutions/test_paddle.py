@@ -20,7 +20,10 @@ from __future__ import unicode_literals
 from datetime import datetime
 
 import oca_unittest
-from solutions.common.bizz.paddle import _opening_hours_to_str
+from rogerthat.models import OpeningHours
+from rogerthat.rpc import users
+from solutions.common.bizz.opening_hours import opening_hours_to_text
+from solutions.common.bizz.paddle import _update_opening_hours_from_paddle
 from solutions.common.to.paddle import PaddleOrganizationUnitDetails
 
 
@@ -32,90 +35,89 @@ class PaddleTest(oca_unittest.TestCase):
         # @formatter:on
 
         expected = u"""maandag
-08:30 - 12:00
-14:00 - 18:30
+08:30 — 12:00
+14:00 — 18:30
 
 dinsdag
-08:30 - 12:00
-14:00 - 16:00 Enkel telefonisch
+08:30 — 12:00
+14:00 — 16:00 Enkel telefonisch
 
 woensdag
-08:30 - 12:00
-14:00 - 16:30
+08:30 — 12:00
+14:00 — 16:30
 
 donderdag
-08:30 - 12:00
-14:00 - 16:00 Enkel telefonisch
+08:30 — 12:00
+14:00 — 16:00 Enkel telefonisch
 
 vrijdag
-08:30 - 12:00
-14:00 - 16:00 Enkel telefonisch
-
-Sluitingsdagen
-25-12-2019 Kerstmis
-26-12-2019 2e Kerstdag
-01-01-2020 Nieuwjaar
-13-04-2020 Paasmaandag
-01-05-2020 Dag van de Arbeid
-21-05-2020 - 22-05-2020 O.L.H. Hemelvaart + brugdag
-01-06-2020 Pinkstermaandag
-21-07-2020 Nationale feestdag
-15-08-2020 O.L.V. Hemelvaart
-01-11-2020 Allerheiligen
-11-11-2020 Wapenstilstand
-25-12-2020 Kerstdag
-01-01-2021 Nieuwjaar
+08:30 — 12:00
+14:00 — 16:00 Enkel telefonisch
 
 Afwijkende openingstijden
 
-Oudejaar: 31-12-2019
+25/12/19 Kerstmis — Gesloten
+26/12/19 2e Kerstdag — Gesloten
+31/12/19 Oudejaar
 dinsdag
-08:30 - 12:00 Enkel in de voormiddag open
-14:00 - 16:00 Uitzonderlijk gesloten
-
-Zomervakantie - afwijkende openingsuren op maandag: 01-07-2020 - 30-08-2020
+08:30 — 12:00 Enkel in de voormiddag open
+14:00 — 16:00 Uitzonderlijk gesloten
+1/01/20 Nieuwjaar — Gesloten
+13/04/20 Paasmaandag — Gesloten
+1/05/20 Dag van de Arbeid — Gesloten
+21/05/20 — 22/05/20 O.L.H. Hemelvaart + brugdag — Gesloten
+1/06/20 Pinkstermaandag — Gesloten
+1/07/20 — 30/08/20 Zomervakantie - afwijkende openingsuren op maandag
 maandag
-08:30 - 12:00
-14:00 - 16:30
+08:30 — 12:00
+14:00 — 16:30
 
 dinsdag
-08:30 - 12:00
-14:00 - 16:00 Enkel telefonisch
+08:30 — 12:00
+14:00 — 16:00 Enkel telefonisch
 
 woensdag
-08:30 - 12:00
-14:00 - 16:30
+08:30 — 12:00
+14:00 — 16:30
 
 donderdag
-08:30 - 12:00
-14:00 - 16:00 Enkel telefonisch
+08:30 — 12:00
+14:00 — 16:00 Enkel telefonisch
 
 vrijdag
-08:30 - 12:00
-14:00 - 16:00 Enkel telefonisch
-
-Uitzonderlijk  gesloten in de namiddag: 25-09-2020
+08:30 — 12:00
+14:00 — 16:00 Enkel telefonisch
+21/07/20 Nationale feestdag — Gesloten
+15/08/20 O.L.V. Hemelvaart — Gesloten
+25/09/20 Uitzonderlijk  gesloten in de namiddag
 vrijdag
-08:30 - 12:00 Enkel in de voormiddag open
-14:00 - 16:00 Uitzonderlijk gesloten
-
-Kerstavond: 24-12-2020
+08:30 — 12:00 Enkel in de voormiddag open
+14:00 — 16:00 Uitzonderlijk gesloten
+1/11/20 Allerheiligen — Gesloten
+11/11/20 Wapenstilstand — Gesloten
+24/12/20 Kerstavond
 maandag
-08:00 - 12:00 Enkel in de voormiddag open
-14:00 - 18:30 Uitzonderlijk gesloten
+08:00 — 12:00 Enkel in de voormiddag open
+14:00 — 18:30 Uitzonderlijk gesloten
 
 donderdag
-08:30 - 12:00
-14:00 - 16:00 Uitzonderlijk gesloten
-
-Oudejaar: 31-12-2020
+08:30 — 12:00
+14:00 — 16:00 Uitzonderlijk gesloten
+25/12/20 Kerstdag — Gesloten
+31/12/20 Oudejaar
 maandag
-08:30 - 12:00 Enkel in de voormiddag open
-14:00 - 18:30 Uitzonderlijk gesloten
+08:30 — 12:00 Enkel in de voormiddag open
+14:00 — 18:30 Uitzonderlijk gesloten
 
 donderdag
-08:00 - 12:00
-14:00 - 16:00 Uitzonderlijk gesloten"""
+08:00 — 12:00
+14:00 — 16:00 Uitzonderlijk gesloten
+1/01/21 Nieuwjaar — Gesloten"""
         data = PaddleOrganizationUnitDetails.from_dict(paddle_data)
-        result = _opening_hours_to_str('nl', data.opening_hours, datetime(2019, 12, 25))
+        opening_hours = OpeningHours(key=OpeningHours.create_key(users.User('test@example.com'), '1'),
+                                     type=OpeningHours.TYPE_TEXTUAL)
+        changed, hours = _update_opening_hours_from_paddle(opening_hours, data)
+        result = opening_hours_to_text(hours, 'nl_BE', datetime(2019, 12, 25))
+        self.assertEqual(OpeningHours.TYPE_STRUCTURED, hours.type)
         self.assertEqual(expected, result)
+        self.assertEqual(True, changed)

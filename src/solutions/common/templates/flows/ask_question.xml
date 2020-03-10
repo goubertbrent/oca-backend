@@ -2,29 +2,9 @@
         xmlns="https://rogerth.at/api/1/MessageFlow.xsd"
         name="Ask question"
         language="{{ language }}"
-        startReference="flowcode_check_holiday">
+        startReference="message_question">
     <end id="base64:eyJsYW5nIjogImVuIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B5TVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNVRkR1ZzSUdWbGJpQjJjbUZoWnd3IiwgImlkIjogImVuZF8xIn0="
          waitForFollowUpMessage="false"/>
-        <end
-            id="end_quick"
-            waitForFollowUpMessage="false" />
-    <message id="message_holiday"
-             alertIntervalType="NONE"
-             alertType="SILENT"
-             brandingKey="{{ branding_key }}"
-             allowDismiss="false"
-             vibrate="false"
-             autoLock="true">
-        <answer action=""
-                caption="{% translate language, 'common', 'continue_anyway' %}"
-                id="button_holiday_continue"
-                reference="message_question"/>
-        <answer action=""
-                caption="{% translate language, 'common', 'Cancel' %}"
-                id="button_holiday_cancel"
-                reference="end_quick"/>
-        <content>{{ settings.holiday_out_of_office_message|e }}</content>
-    </message>
     <formMessage
             id="message_question"
             brandingKey="{{ branding_key }}"
@@ -68,36 +48,4 @@
     <resultsFlush
         id="base64:eyJsYW5nIjogImVuIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B5TVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNVRkR1ZzSUdWbGJpQjJjbUZoWnd3IiwgImlkIjogImZsdXNoXzEifQ=="
         reference="base64:eyJsYW5nIjogImVuIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2o4TEVncHRZeTEwY21GamEyVnlJZ3B5TVVCbWIyOHVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlnNVRkR1ZzSUdWbGJpQjJjbUZoWnd3IiwgImlkIjogImVuZF8xIn0=" />
-    <flowCode id="flowcode_check_holiday"
-              exceptionReference="message_question">
-        <outlet reference="message_holiday"
-                name="message_holiday"
-                value="message_holiday"/>
-        <outlet reference="message_question"
-                name="message_holiday_check_continue"
-                value="message_holiday_check_continue"/>
-        <javascriptCode>
-            function run(rogerthat, messageFlowRun) {
-                var nextStepResult = {};
-                if (isInHoliday(rogerthat.service.data.settings.holidays.dates)) {
-                    nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
-                    nextStepResult.outlet = 'message_holiday';
-                }
-                else {
-                    nextStepResult.outlet = 'message_question';
-                }
-                return nextStepResult;
-
-                function isInHoliday(holidayDates) {
-                    var currentDate = new Date().getTime() / 1000;
-                    for (var i = 0; i &lt; holidayDates.length; i++) {
-                        if (holidayDates[i].from &lt;= currentDate &amp;&amp; currentDate &lt; holidayDates[i].to) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-            };
-        </javascriptCode>
-    </flowCode>
 </messageFlowDefinition>

@@ -1,9 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { Action, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
+import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
 import { SharedState } from '../shared.state';
 import { ApiError } from './errors';
 
@@ -12,6 +14,7 @@ export class ErrorService {
 
   constructor(private translate: TranslateService,
               private snackbar: MatSnackBar,
+              private matDialog: MatDialog,
               private store: Store<SharedState>) {
   }
 
@@ -61,5 +64,14 @@ export class ErrorService {
     const message = this.getMessage(error);
     const retry = this.translate.instant('oca.Retry');
     this.snackbar.open(message, retry, config).onAction().subscribe(() => this.store.dispatch(failedAction));
+  }
+
+  showErrorDialog(error: string) {
+    const data: SimpleDialogData = {
+      ok: this.translate.instant('oca.ok'),
+      message: error,
+      title: this.translate.instant('oca.Error'),
+    };
+    return this.matDialog.open(SimpleDialogComponent, { data });
   }
 }

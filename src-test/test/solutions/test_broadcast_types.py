@@ -49,7 +49,6 @@ class BroadcastTestCase(oca_unittest.TestCase):
         print 'create_flex_service start'
         r = create_flex_service(email,
                                 name="test",
-                                address="Antwerpsesteenweg 19\n9080 Lochristi",
                                 phone_number="+32 9 324 25 64",
                                 languages=["en", "nl"],
                                 currency=u"EUR",

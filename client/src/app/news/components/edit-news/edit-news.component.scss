@@ -16,24 +16,6 @@ p {
   margin: 4px 0;
 }
 
-.image-container {
-  margin: 16px 0;
-  position: relative;
-  display: inline-block;
-  max-width: 320px;
-
-  img {
-    max-height: 250px;
-    max-width: 100%;
-  }
-
-  .btn-media-delete {
-    position: absolute;
-    top: -12px;
-    right: -12px;
-  }
-}
-
 .action-button-controls {
   display: flex;
   flex-direction: column;
@@ -90,10 +72,6 @@ p {
   mat-form-field {
     width: 200px;
   }
-}
-
-.use-cover-photo {
-  margin-left: 16px;
 }
 
 .step-nav-buttons {

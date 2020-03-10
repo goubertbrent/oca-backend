@@ -29,19 +29,19 @@ from contextlib import closing
 from functools import partial
 from types import NoneType
 
-from google.appengine.api import search, images, users as gusers
-from google.appengine.ext import deferred, db
-from google.appengine.ext import ndb
-
 import cloudstorage
 import httplib2
 from babel.dates import format_datetime, get_timezone, format_date
 from dateutil.relativedelta import relativedelta
+from google.appengine.api import search, images, users as gusers
+from google.appengine.ext import deferred, db, ndb
+from oauth2client.appengine import OAuth2Decorator
+from oauth2client.client import HttpAccessTokenRefreshError
+from typing import Tuple
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string, chunks
-from oauth2client.appengine import OAuth2Decorator
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -54,6 +54,7 @@ from rogerthat.dal.profile import get_service_or_user_profile, get_user_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import App, ServiceIdentity, ServiceProfile, UserProfile, Message
+from rogerthat.models.settings import SyncedNameValue
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE
 from rogerthat.restapi.user import get_reset_password_url_params
 from rogerthat.rpc import users
@@ -82,7 +83,7 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
     InvalidServiceEmailException, InvalidLanguageException, ModulesNotAllowedException, \
     DuplicateCustomerNameException, \
     NotOperatingInCountryException, ContactHasOrdersException, ContactHasCreditCardException, \
-    NoSupportManagerException, NoPermissionException, ServiceNameTooBigException
+    NoSupportManagerException, NoPermissionException
 from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
@@ -91,13 +92,14 @@ from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, A
     OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions import SOLUTION_COMMON, translate as common_translate, translate
 from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor, DEFAULT_BROADCAST_TYPES
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.service import new_inbox_message, send_signup_update_messages, \
     add_service_consent, remove_service_consent, create_customer_with_service, put_customer_service, \
     get_default_modules
+from solutions.common.bizz.settings import parse_facebook_url, validate_url
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.hints import get_solution_hints
 from solutions.common.handlers import JINJA_ENVIRONMENT
@@ -448,18 +450,13 @@ def create_order(customer_or_id, contact_or_id, items, charge_interval=1, replac
 
 @arguments(service=CustomerServiceTO)
 def validate_service(service):
+    # type: (CustomerServiceTO) -> None
     if not EMAIL_REGEX.match(service.email):
         raise InvalidEmailFormatException(service.email)
     if not service.language:
         raise EmptyValueException('language')
-    if not service.name:
-        raise EmptyValueException('first_name')
-    if len(service.name) > 50:
-        raise ServiceNameTooBigException()
     if not service.organization_type:
         raise EmptyValueException('organization_type')
-    if not service.phone_number:
-        raise EmptyValueException('phone_number')
     service.email = users.User(service.email).email()
 
 
@@ -548,11 +545,28 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
         for m in sln_settings.modules:
             if m in hidden_modules and m not in modules:
                 modules.append(m)
-
-    r = create_flex_service(customer.service_email if redeploy else service.email, service.name, service.address,
-                            service.phone_number, [service.language], service.currency, modules,
+    if not redeploy:
+        # Set the websites only when first creating the service
+        websites = []
+        if customer.facebook_page:
+            fb_url = parse_facebook_url(customer.facebook_page)
+            if fb_url:
+                page = SyncedNameValue()
+                page.value = fb_url
+                page.name = translate(customer.language, SOLUTION_COMMON, 'Facebook page')
+                websites.append(page)
+        if customer.website:
+            url = validate_url(customer.website)
+            if url:
+                site = SyncedNameValue()
+                site.value = url
+                websites.append(site)
+    else:
+        websites = None
+    r = create_flex_service(customer.service_email if redeploy else service.email, customer.name,
+                            service.phone_number, [service.language], u'EUR', modules,
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
-                            search_enabled, qualified_identifier=service.email, broadcast_to_users=broadcast_to_users)
+                            search_enabled, broadcast_to_users=broadcast_to_users, websites=websites)
 
     r.auto_login_url = customer.auto_login_url
 
@@ -2051,19 +2065,13 @@ def post_app_broadcast(service, app_ids, message, tester=None):
     run_in_transaction(trans, xg=True)
 
 
-def create_customer_service_to(name, address1, address2, city, zip_code, email, language, currency, phone_number,
-                               organization_type, app_id, broadcast_types, modules):
-    # type: (str, str, str, str, str, str, str, str, str, int, str, list[str], list[str]) -> CustomerServiceTO
+def create_customer_service_to(name, email, language, phone_number, organization_type, app_id, broadcast_types,
+                               modules):
+    # type: (str, str, str, str, int, str, list[str], list[str]) -> CustomerServiceTO
     service = CustomerServiceTO()
-
     service.name = name
-    service.address = address1
-    if address2:
-        service.address += '\n' + address2
-    service.address += '\n' + zip_code + ' ' + city
     service.email = email and email.lower()
     service.language = language
-    service.currency = currency
     service.phone_number = phone_number
 
     service.organization_type = organization_type
@@ -2081,6 +2089,7 @@ def create_customer_service_to(name, address1, address2, city, zip_code, email, 
 def put_customer_with_service(service, name, address1, address2, zip_code, city, country, language,
                               organization_type, vat, team_id, product_code, customer_id=None,
                               website=None, facebook_page=None, force=False):
+    # type: (CustomerServiceTO, str, str, str, str, str, str, str, str, str, int, str, int, str, str, bool) -> Tuple[Customer, bool, bool]
     def trans1():
         email_has_changed = False
         is_new = False

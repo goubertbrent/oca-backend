@@ -33,7 +33,6 @@ class AssociationsTestCase(oca_unittest.TestCase):
         apps = [a.app_id for a in App.all()]
         r = create_flex_service(email=u'test-communicatie@example.be',
                                 name=u"test",
-                                address=u"Antwerpsesteenweg 19\n9080 Lochristi",
                                 phone_number=u"+32 9 324 25 64",
                                 languages=[u"en", u"nl"],
                                 currency=u"EUR",

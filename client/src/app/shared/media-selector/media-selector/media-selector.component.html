@@ -1,0 +1,54 @@
+<mat-form-field>
+  <mat-label>{{ 'oca.Type' | translate }}</mat-label>
+  <mat-select (ngModelChange)="removeMedia()"
+              [(ngModel)]="selectedMediaType"
+              name="news_media_type">
+    <mat-option *ngFor="let media of selectableMediaTypes" [value]="media.value">
+      {{ media.label | translate }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+<div [ngSwitch]="selectedMediaType">
+  <ng-container *ngSwitchCase="MediaType.IMAGE">
+    <button (click)="showImageDialog()" mat-stroked-button type="button">
+      {{ 'oca.choose_file' | translate }}
+    </button>
+    <button (click)="useCoverPhoto()"
+            *ngIf="logoUrl"
+            class="use-cover-photo"
+            mat-stroked-button
+            type="button">
+      {{ 'oca.use_cover_photo' | translate }}
+    </button>
+    <div>
+      <div *ngIf="media?.content" class="image-container">
+        <img [src]="media.content" alt="News item image">
+        <button (click)="removeMedia()" class="btn-media-delete" mat-mini-fab type="button">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+  </ng-container>
+  <ng-container *ngSwitchCase="MediaType.YOUTUBE_VIDEO">
+    <mat-form-field class="full-width-field">
+      <mat-label>{{ 'oca.youtube_url' | translate }}</mat-label>
+      <input #ytUrlElem
+             #ytUrlModel="ngModel"
+             (input)="setYoutubeUrl(ytUrlElem.value)"
+             [ngModel]="youtubeUrl"
+             [pattern]="YOUTUBE_REGEX"
+             matInput
+             name="youtube_video_url"
+             placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+             required
+             type="url">
+      <mat-hint>{{ 'oca.youtube_url_hint' | translate }}</mat-hint>
+      <mat-error *ngIf="ytUrlModel.errors?.required">
+        {{ 'oca.this_field_is_required' | translate }}
+      </mat-error>
+      <mat-error *ngIf="ytUrlModel.errors?.pattern">
+        {{ 'oca.invalid_youtube_url' | translate }}
+      </mat-error>
+    </mat-form-field>
+  </ng-container>
+</div>

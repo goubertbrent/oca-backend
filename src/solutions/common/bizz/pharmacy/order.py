@@ -19,6 +19,7 @@ import logging
 from types import NoneType
 
 from google.appengine.ext import db, deferred
+
 from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.dal import parent_key_unsafe
@@ -37,6 +38,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _get_value
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
     get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionInboxMessage
@@ -111,12 +113,10 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
     message.category_key = unicode(o.key())
     message.put()
 
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.pharmacy_orders.update"})
-    sm_data.append({u"type": u"solutions.common.messaging.update",
-                    u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+    service_info = get_service_info(service_user, service_identity)
+    sm_data = [{u"type": u"solutions.common.pharmacy_orders.update"},
+               {u"type": u"solutions.common.messaging.update",
+                u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict()}]
     send_message(service_user, sm_data, service_identity=service_identity)
 
     if picture_url:
@@ -151,8 +151,7 @@ def delete_pharmacy_order(service_user, order_key, message):
         return m
     order = db.run_in_transaction(txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.pharmacy_orders.update"})
+    sm_data = [{u"type": u"solutions.common.pharmacy_orders.update"}]
 
     sln_settings = get_solution_settings(service_user)
     if message:
@@ -165,10 +164,10 @@ def delete_pharmacy_order(service_user, order_key, message):
                 'if_email': sim_parent.sender.email
             }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
-
+            service_info = get_service_info(service_user, order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                            u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                                                                         True).to_dict()})
         else:
             branding = get_solution_main_branding(service_user).branding_key
             member = MemberTO()
@@ -192,9 +191,10 @@ def delete_pharmacy_order(service_user, order_key, message):
             sim_parent.trashed = True
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
+        service_info = get_service_info(service_user, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                                                                     True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)
 
@@ -215,8 +215,7 @@ def send_message_for_pharmacy_order(service_user, order_key, order_status, messa
         return m
     order = db.run_in_transaction(txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.pharmacy_orders.update"})
+    sm_data = [{u"type": u"solutions.common.pharmacy_orders.update"}]
 
     sln_settings = get_solution_settings(service_user)
     if message:
@@ -227,9 +226,10 @@ def send_message_for_pharmacy_order(service_user, order_key, order_status, messa
                 'if_name': sim_parent.sender.name,
                 'if_email': sim_parent.sender.email
             }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, order.service_identity)
+            service_info = get_service_info(service_user, order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                            u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                                                                         True).to_dict()})
         else:
             sln_main_branding = get_solution_main_branding(service_user)
             branding = sln_main_branding.branding_key if sln_main_branding else None

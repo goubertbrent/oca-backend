@@ -16,12 +16,12 @@
  * @@license_version:1.5@@
  */
 
-#section_settings_sandwich_bar div.btn-toolbar {
+#section_sandwich div.btn-toolbar {
 	margin-top: 0;
 	margin-bottom: 0;
 }
 
-#section_settings_sandwich_bar .sandwich_table {
+#section_sandwich .sandwich_table {
 	width: auto;
 }
 

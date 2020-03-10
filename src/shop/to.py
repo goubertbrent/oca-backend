@@ -254,12 +254,9 @@ class OrderItemTO(SerializableTO):
 
 
 class CustomerServiceTO(SerializableTO):
-    name = unicode_property('1')
-    email = unicode_property('2')
-    address = unicode_property('3')
-    phone_number = unicode_property('4')
+    email = unicode_property('2', default=None)
+    phone_number = unicode_property('4', default=None)
     language = unicode_property('5')
-    currency = unicode_property('6')
     modules = unicode_list_property('7')
     broadcast_types = unicode_list_property('8')
     apps = unicode_list_property('9')

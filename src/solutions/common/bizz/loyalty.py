@@ -16,28 +16,28 @@
 # @@license_version:1.5@@
 
 import base64
-from datetime import datetime
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import json
 import logging
 import os
 import re
 import time
-from types import NoneType
 import uuid
+from datetime import datetime
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import pytz
 from PIL.Image import Image
 from babel import Locale
 from babel.dates import format_date, format_datetime, get_timezone
-from google.appengine.ext import deferred, db
-
 from babel.numbers import format_currency
+from google.appengine.ext import deferred, db
 from lxml import etree, html
-import pytz
 
+import solutions
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.friends import ACCEPT_AND_CONNECT_ID
@@ -62,15 +62,15 @@ from shop.constants import LOGO_LANGUAGES, STORE_MANAGER
 from shop.dal import get_shop_loyalty_slides, get_customer
 from shop.models import ShopLoyaltySlideNewOrder, Customer, Contact, RegioManagerTeam, Prospect, ShopTask
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import render_common_content, SolutionModule, put_branding
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
     count_unread_solution_inbox_messages, \
     get_solution_settings_or_identity_settings
 from solutions.common.dal.loyalty import get_solution_loyalty_slides, get_solution_loyalty_visits_for_revenue_discount, \
     get_solution_loyalty_visits_for_stamps, get_solution_loyalty_settings_or_identity_settings
-from solutions.common.models import SolutionBrandingSettings, SolutionSettings
+from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.loyalty import SolutionLoyaltySlide, SolutionLoyaltySettings, \
     SolutionLoyaltyVisitRevenueDiscount, SolutionUserLoyaltySettings, SolutionLoyaltyScan, SolutionLoyaltyVisitLottery, \
     SolutionLoyaltyLottery, SolutionLoyaltyLotteryStatistics, SolutionLoyaltyVisitStamps, \
@@ -82,7 +82,6 @@ from solutions.common.models.properties import SolutionUser
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
 from solutions.common.to.loyalty import LoyaltySlideTO, SolutionLoyaltyVisitTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import is_default_service_identity, create_service_identity_user_wo_default
-
 
 try:
     from cStringIO import StringIO
@@ -1486,12 +1485,7 @@ def redeem_lottery_winners(service_user, service_identity, app_user, name, sim_p
         sln_settings = get_solution_settings(service_user)
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
-        msg_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-receive')
-        if sln_i_settings.opening_hours:
-            msg_2 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'opening-hours')
-            msg = u"%s\n\n%s:\n%s" % (msg_1, msg_2, sln_i_settings.opening_hours)
-        else:
-            msg = msg_1
+        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-receive')
 
         sim_parent, _ = add_solution_inbox_message(service_user, sln_loyalty_lottery.solution_inbox_message_key, True,
                                                    None, now_, msg, mark_as_read=True)
@@ -1499,12 +1493,14 @@ def redeem_lottery_winners(service_user, service_identity, app_user, name, sim_p
             'if_name': name,
             'if_email': get_human_user_from_app_user(app_user).email()
         }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled,
-            send_reminder=False)
+                                      send_reminder=False)
 
-        sm_data = []
-        sm_data.append({u"type": u"solutions.common.loyalty.lottery.update"})
-        sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+        service_info = get_service_info(service_user, service_identity)
+        sm_data = [
+            {u"type": u"solutions.common.loyalty.lottery.update"},
+            {u"type": u"solutions.common.messaging.update",
+             u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info, True).to_dict()}
+        ]
 
         send_message(service_user, sm_data, service_identity=service_identity)
 

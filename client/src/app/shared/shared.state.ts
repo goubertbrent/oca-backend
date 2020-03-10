@@ -3,7 +3,7 @@ import { Budget } from './billing/billing';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
 import { App, AppStatistics, AppStatisticsMapping, ServiceIdentityInfo, ServiceMenuDetail } from './interfaces/rogerthat';
 import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable } from './loadable/loadable';
-import { initialStateResult, ResultState } from './util';
+import { CallStateType, initialStateResult, ResultState } from './util';
 
 
 export const initialSharedState: SharedState = {
@@ -13,7 +13,7 @@ export const initialSharedState: SharedState = {
   appStatistics: DEFAULT_LIST_LOADABLE,
   budget: DEFAULT_LOADABLE,
   solutionSettings: DEFAULT_LOADABLE,
-  brandingSettings: DEFAULT_LOADABLE,
+  brandingSettings: initialStateResult,
   globalConfig: initialStateResult,
 };
 
@@ -25,7 +25,7 @@ export interface SharedState {
   appStatistics: Loadable<AppStatistics[]>;
   budget: Loadable<Budget>;
   solutionSettings: Loadable<SolutionSettings>;
-  brandingSettings: Loadable<BrandingSettings>;
+  brandingSettings: ResultState<BrandingSettings>;
   globalConfig: ResultState<GlobalConfig>;
 }
 
@@ -45,6 +45,7 @@ export const getAppStatistics = createSelector(featureSelector, s => {
   return mapping;
 });
 export const getSolutionSettings = createSelector(featureSelector, s => s.solutionSettings);
-export const getBrandingSettings = createSelector(featureSelector, s => s.brandingSettings);
+export const getBrandingSettings = createSelector(featureSelector, s => s.brandingSettings.result);
+export const isBrandingSettingsLoading = createSelector(featureSelector, s => s.brandingSettings.state === CallStateType.LOADING);
 export const getGlobalConfig = createSelector(featureSelector, s => s.globalConfig);
 export const isShopUser = createSelector(getGlobalConfig, s => s.result ? s.result.is_shop_user : false);

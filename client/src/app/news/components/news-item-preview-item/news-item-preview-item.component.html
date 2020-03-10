@@ -21,10 +21,7 @@
       <ng-container [ngSwitch]="media.type">
         <img [src]="media.content" *ngSwitchCase="MediaType.IMAGE">
         <ng-container *ngSwitchCase="MediaType.YOUTUBE_VIDEO">
-          <iframe width="360" height="203"
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                  frameborder="0" allowfullscreen
-                  [src]="youtubeUrl"></iframe>
+          <youtube-player [height]="203" [videoId]="media.content" [width]="360"></youtube-player>
         </ng-container>
       </ng-container>
     </div>

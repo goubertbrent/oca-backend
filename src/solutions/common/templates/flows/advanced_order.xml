@@ -212,7 +212,7 @@
             <javascriptCode>
                 function run(rogerthat, messageFlowRun) {
                     return { outlet: 'message_phone', defaultValue: rogerthat.user.data.phone };
-                };
+                }
             </javascriptCode>
         </flowCode>
 
@@ -286,15 +286,6 @@
                             return '{% translate language, 'common', 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
                         }
                         {% endif %}
-                        var holidayDates = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates;{% else %}{% if holiday_dates %}{{ holiday_dates }};{% else %}[];{% endif %}{% endif %}
-                        function isInHoliday(){
-                            for(var i = 0; i &lt; holidayDates.length; i ++){
-                                if(holidayDates[i].from &lt;= selectedDateTime &amp;&amp; selectedDateTime &lt; holidayDates[i].to){
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
                         function isInWorkingHours(){
                             var selectedDate = new Date(selectedDateTime * 1000);
                             var dayToday = selectedDate.getUTCDay();
@@ -318,15 +309,7 @@
                             }
                         }
                         var selectedDateTime = result.value;
-                        if(isInHoliday()){
-                            var holidayDatesStr = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates_str;{% else %}{{ holiday_dates_str }};{% endif %};
-                            var holidayStr = '';
-                            for(var i = 0; i &lt; holidayDatesStr.length; i ++){
-                                holidayStr += holidayDatesStr[i];
-                            }
-                            return '{% translate language, 'common', 'can_not_order_holiday', '_duplicate_backslashes=True' %}\n' + holidayStr;
-                        }
-                        else if (selectedDateTime &lt; (currentDateTimeSeconds + leapTime + timezoneOffset)){ /* no idea why timezone has to be added here but it works */
+                        if (selectedDateTime &lt; (currentDateTimeSeconds + leapTime + timezoneOffset)){ /* no idea why timezone has to be added here but it works */
                             return '{% translate language, 'common', 'please_order_after', 'leap_time=' + leap_time_str, '_duplicate_backslashes=True' %}';
                         }else if(isInWorkingHours()){
                             return;
@@ -352,7 +335,6 @@
                         rogerthat.user.data.phone = phoneNumber;
                         rogerthat.user.put();
                     }
-                    var holidayDates = rogerthat.service.data.settings.holidays.dates;
                     var orderableTimes = {{ orderable_times }};
                     var leapTime = {{ leap_time }};
 
@@ -390,50 +372,34 @@
 
                     var applyLeapTime = true;
                     var d = new Date();
-                    while (true) {
-                        var dt = d.getTime() / 1000 + (applyLeapTime ? leapTime : 0);
-                        applyLeapTime = false;
-                        var rest = dt % (60 * 15);
-                        dt -= rest;
-                        if (rest != 0) {
-                            dt += 60 * 15;
-                        }
-                        /* Apply timezoneOffset on dt */
-                        dt = dt + timezoneOffset + 60 * d.getTimezoneOffset();
-                        var ept = new Date(dt*1000);
-                        var eptDayOfWeek = ept.getDay();
-                        var eptHour = ept.getHours();
-                        var eptMinute = ept.getMinutes();
-                        var eptSecondsAfterMidnight = eptHour * 3600 + eptMinute * 60;
-                        /* TODO: Check if ept falls in a scheduled holiday */
-                        /* Lookup earliest pickupTime: */
-                        pts = getOrderableTimes(eptDayOfWeek, eptSecondsAfterMidnight);
-                        var pt = pts[0];
-                        if (!(pt.offsetDays == 0 &amp;&amp; eptSecondsAfterMidnight &gt;= pt.time_from &amp;&amp; eptSecondsAfterMidnight &lt; pt.time_until)) {
-                            ept = new Date((dt - (dt % 86400) + pt.offsetDays * 86400 + pt.time_from + 60 * ept.getTimezoneOffset()) * 1000);
-                        }
-                        /* Check holidays */
-                        var inHoliday = false;
-                        var eptTimestamp = ept.getTime() / 1000;
-                        for (var i=0; i&lt;holidayDates.length; i++) {
-                            var holiday = holidayDates[i];
-                            if (holiday.from &lt;= eptTimestamp &amp;&amp; eptTimestamp &lt;= holiday.to) {
-                                inHoliday = true;
-                                d = new Date((holiday.to+86401)*1000);
-                                break;
-                            }
-                        }
-                        if (!inHoliday) {
-                            return {
-                            		outlet: 'message_takeaway_time',
-                            		form: {
-			                          positive_button: nextPossitiveButton
-			                     },
-                            		defaultValue: ept.getTime() / 1000 - 60 * d.getTimezoneOffset()
-                            	};
-                        }
+                    var dt = d.getTime() / 1000 + (applyLeapTime ? leapTime : 0);
+                    applyLeapTime = false;
+                    var rest = dt % (60 * 15);
+                    dt -= rest;
+                    if (rest !== 0) {
+                        dt += 60 * 15;
                     }
-                };
+                    /* Apply timezoneOffset on dt */
+                    dt = dt + timezoneOffset + 60 * d.getTimezoneOffset();
+                    var ept = new Date(dt*1000);
+                    var eptDayOfWeek = ept.getDay();
+                    var eptHour = ept.getHours();
+                    var eptMinute = ept.getMinutes();
+                    var eptSecondsAfterMidnight = eptHour * 3600 + eptMinute * 60;
+                    /* Lookup earliest pickupTime: */
+                    pts = getOrderableTimes(eptDayOfWeek, eptSecondsAfterMidnight);
+                    var pt = pts[0];
+                    if (!(pt.offsetDays == 0 &amp;&amp; eptSecondsAfterMidnight &gt;= pt.time_from &amp;&amp; eptSecondsAfterMidnight &lt; pt.time_until)) {
+                        ept = new Date((dt - (dt % 86400) + pt.offsetDays * 86400 + pt.time_from + 60 * ept.getTimezoneOffset()) * 1000);
+                    }
+                    return {
+                        outlet: 'message_takeaway_time',
+                        form: {
+                          positive_button: nextPossitiveButton
+                        },
+                        defaultValue: ept.getTime() / 1000 - 60 * d.getTimezoneOffset()
+                    };
+                }
             </javascriptCode>
         </flowCode>
 

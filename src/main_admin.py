@@ -37,6 +37,7 @@ from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 from solutions.common.handlers.admin.services import ServiceTools
 
+
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
     ('/admin/cron/rpc/re_index_periodic_events', ReIndexPeriodicEventsHandler),

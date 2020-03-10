@@ -1,0 +1,142 @@
+$field-width: 300px;
+$field-margin: 16px;
+$avatar-size: 150px;
+$logo-width: $avatar-size * 16 / 6;
+$logo-height: $avatar-size;
+$wide-field-width: $field-width * 2 + $field-margin;
+
+.sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.page-title {
+  flex-grow: 1;
+}
+
+.form-content-container {
+  margin: 0 16px;
+}
+
+.field {
+  display: block;
+  width: $field-width;
+}
+
+.dual-fields {
+  display: flex;
+
+  .field:last-of-type {
+    margin-left: $field-margin;
+  }
+}
+
+.wide-field {
+  width: $wide-field-width;
+}
+
+.keywords-input {
+  width: 300px;
+  flex: 1 0 300px;
+}
+
+.branding-setting {
+  display: inline-block;
+  margin-right: 16px;
+  margin-left: 16px;
+
+  &:first-of-type {
+    margin-left: 0;
+  }
+
+  &:last-of-type {
+    margin-right: 0;
+  }
+}
+
+.avatar {
+  margin-bottom: 16px;
+  position: relative;
+  width: $avatar-size;
+  height: $avatar-size;
+  border-radius: 50%;
+  overflow: hidden;
+
+  img {
+    width: $avatar-size;
+    height: $avatar-size;
+  }
+}
+
+.avatar-edit-layer {
+  width: $avatar-size;
+  height: $avatar-size;
+  background-color: rgba(0, 0, 0, .2);
+  position: absolute;
+  z-index: 1;
+}
+
+.logo-edit-layer {
+  width: $logo-width;
+  height: $logo-height;
+  background-color: rgba(0, 0, 0, .2);
+  position: absolute;
+  z-index: 1;
+}
+
+.logo {
+  margin-bottom: 16px;
+  position: relative;
+  width: $logo-width;
+  height: $logo-height;
+  overflow: hidden;
+
+  img {
+    width: $logo-width;
+    height: $logo-height;
+  }
+}
+
+.grayscale {
+  filter: grayscale(1);
+  opacity: .7;
+}
+
+.centered-edit-button {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  line-height: 48px;
+}
+
+.info-accordion {
+  display: block;
+  margin: 16px 0 32px;
+}
+
+.info-panel-description {
+  align-items: center;
+}
+
+.mat-expansion-panel-header-title, .mat-expansion-panel-header-description {
+  flex-basis: 0;
+}
+
+oca-synced-values-preview {
+  display: block;
+  flex: 1;
+}
+
+.save-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,27 +1,16 @@
+import { WeekDay } from '@angular/common';
+
 export interface SolutionSettings {
-  name: string;
-  description: string;
-  opening_hours: string;
-  address: string;
-  phone_number: string | null;
   updates_pending: boolean;
   facebook_page: string | null;
   facebook_name: string | null;
   facebook_action: string | null;
-  currency: string;
-  search_enabled: boolean;
-  timezone: string;
   events_visible: boolean;
-  search_keywords: string;
-  email_address: string;
   inbox_email_reminders: boolean;
   twitter_username: string | null;
-  holidays: number[];
-  holiday_out_of_office_message: string;
   iban: string | null;
   bic: string | null;
   publish_changes_users: string[];
-  search_enabled_check: boolean;
   location: {
     lat: number;
     lon: number;
@@ -39,6 +28,40 @@ export interface BrandingSettings {
   avatar_url: string | null;
 }
 
+export interface AvailablePlaceType {
+  label: string;
+  value: string;
+}
+
 export interface GlobalConfig {
   is_shop_user: boolean;
+}
+
+export interface OpeningHour {
+  day: WeekDay;
+  time: string;
+}
+
+export interface OpeningPeriod {
+  open: OpeningHour;
+  close: OpeningHour;
+  description?: string | null;
+  description_color?: string | null;
+}
+
+export interface OpeningHourException {
+  start_date: string;
+  end_date: string;
+  description: string | null;
+  description_color?: string | null;
+  periods: OpeningPeriod[];
+}
+
+export interface OpeningHours {
+  id: string;
+  type: 'text' | 'structured';
+  text: string | null;
+  title: string | null;
+  periods: OpeningPeriod[];
+  exceptional_opening_hours: OpeningHourException[];
 }

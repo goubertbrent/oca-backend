@@ -3,7 +3,7 @@
     <mat-card-title>{{ incident.details.title }}</mat-card-title>
     <mat-card-subtitle>{{ incident.report_date | date : 'medium' }}</mat-card-subtitle>
     <mat-card-content>
-      <p>{{ 'oca.external_id_x' | translate : {id: incident.external_id} }}</p>
+      <p *ngIf="incident.external_id">{{ 'oca.external_id_x' | translate : {id: incident.external_id} }}</p>
       <div [innerHTML]="incident.details.description | markdown : {breaks: true}"></div>
     </mat-card-content>
   </mat-card>

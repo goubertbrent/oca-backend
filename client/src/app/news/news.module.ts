@@ -15,11 +15,13 @@ import { MatStepperIntl, MatStepperModule } from '@angular/material/stepper';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
+import { YouTubePlayerModule } from '@angular/youtube-player';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { MatStepperIntlImpl } from '../forms/mat-stepper-intl-impl';
 import { DateTimeInputModule } from '../shared/date-time-input/date-time-input.module';
+import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
 import { SharedModule } from '../shared/shared.module';
 import { UploadFileModule } from '../shared/upload-file';
 import { ChooseLocationComponent } from './components/choose-location/choose-location.component';
@@ -77,6 +79,8 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
     MatSnackBarModule,
     DateTimeInputModule,
     MatTooltipModule,
+    MediaSelectorModule,
+    YouTubePlayerModule,
   ],
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },

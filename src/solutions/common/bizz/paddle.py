@@ -20,21 +20,28 @@ import json
 import logging
 from datetime import datetime
 
-from babel.dates import get_day_names
 from google.appengine.api import urlfetch
 from google.appengine.api.apiproxy_stub_map import UserRPC
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, ndb
+from typing import List, Tuple, Dict
 
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpBadRequestException
-from rogerthat.bizz.opening_hours import save_textual_opening_hours
+from mcfw.utils import Enum
+from rogerthat.bizz.maps.services import OPENING_HOURS_ORANGE_COLOR, OPENING_HOURS_RED_COLOR
 from rogerthat.consts import DEBUG
+from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHour, OpeningHourException, ServiceIdentity
+from rogerthat.models.settings import SyncedNameValue, SyncedField, ServiceInfo
 from rogerthat.rpc import users
-from solutions import translate, SOLUTION_COMMON
+from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.models.cityapp import PaddleOrganizationalUnits, PaddleSettings
-from solutions.common.to.paddle import PaddleOrganizationalUnitsTO, PaddleOrganizationUnitDetails, PaddleOpeningHours, \
-    PaddleAddress, PaddleRegularOpeningHours
+from solutions.common.to.paddle import PaddleOrganizationalUnitsTO, PaddleOrganizationUnitDetails, PaddleAddress, \
+    PaddleRegularOpeningHours, PaddlePeriod, PaddleExceptionalOpeningHours
+
+
+class ServiceInfoSyncProvider(Enum):
+    PADDLE = 'paddle'
 
 
 def get_organizational_units(base_url):
@@ -86,71 +93,6 @@ def get_paddle_info(paddle_settings):
     return model
 
 
-def _get_period_text(periods):
-    lines = []
-    for period in periods:
-        if period.end:
-            line = '%s - %s' % (period.start, period.end)
-        else:
-            line = period.start
-        if period.description:
-            line += ' ' + period.description
-        lines.append(line)
-    return '\n'.join(lines)
-
-
-def _get_opening_hours_text(day_names, opening_hours):
-    # type: (str, PaddleRegularOpeningHours) -> str
-    lines = []
-    days = [opening_hours.monday, opening_hours.tuesday, opening_hours.wednesday,
-            opening_hours.thursday, opening_hours.friday, opening_hours.saturday,
-            opening_hours.sunday]
-    for i, periods in enumerate(days):
-        if periods and periods is not MISSING:
-            lines.append(day_names[i])
-            lines.append(_get_period_text(periods))
-            lines.append('')
-    return '\n'.join(lines).strip()
-
-
-def _opening_hours_to_str(language, opening_hours, current_date):
-    # type: (str, PaddleOpeningHours, datetime) -> str
-    day_names = get_day_names(locale=language)
-    lines = []
-    regular = _get_opening_hours_text(day_names, opening_hours.regular)
-    if regular:
-        lines.append(regular)
-
-    if opening_hours.closing_days:
-        closing_days_in_future = []
-        for day in opening_hours.closing_days:
-            start_date = datetime.strptime(day.start, '%d-%m-%Y')
-            if start_date >= current_date:
-                closing_days_in_future.append(day)
-        if closing_days_in_future:
-            lines.append('')
-            lines.append(translate(language, SOLUTION_COMMON, 'closing_days'))
-            lines.append(_get_period_text(closing_days_in_future))
-    if opening_hours.exceptional_opening_hours:
-        lines.append('')
-        lines.append(translate(language, SOLUTION_COMMON, 'deviating_opening_hours'))
-    for exception in opening_hours.exceptional_opening_hours:
-        start_date = datetime.strptime(exception.start, '%d-%m-%Y')
-        if start_date < current_date:
-            continue
-        lines.append('')
-        if exception.end:
-            date_str = '%s - %s' % (exception.start, exception.end)
-        else:
-            date_str = exception.start
-        line = '%s: %s' % (exception.description.strip(), date_str) if exception.description else date_str
-        lines.append(line)
-        hours = _get_opening_hours_text(day_names, exception.opening_hours)
-        if hours:
-            lines.append(hours)
-    return '\n'.join(lines).strip()
-
-
 def _get_address_str(address):
     # type: (PaddleAddress) -> str
     lines = [
@@ -161,35 +103,141 @@ def _get_address_str(address):
 
 
 def populate_info_from_paddle(paddle_settings, paddle_data):
-    # type: (PaddleSettings, PaddleOrganizationalUnits) -> list[SolutionSettings]
-    settings_keys = [SolutionSettings.create_key(users.User(m.service_email))
-                     for m in paddle_settings.mapping if m.service_email]
-    settings_mapping = {s.service_user.email(): s for s in db.get(settings_keys)}  # type: dict[str, SolutionSettings]
-    paddle_mapping = {u.node.nid: u for u in paddle_data.units}  # type: dict[str, PaddleOrganizationUnitDetails]
+    # type: (PaddleSettings, PaddleOrganizationalUnits) -> List[SolutionSettings]
+    keys = [ServiceInfo.create_key(users.User(m.service_email), ServiceIdentity.DEFAULT)
+            for m in paddle_settings.mapping if m.service_email]
+    models = {s.key: s for s in ndb.get_multi(keys)}  # type: dict[str, ndb.Model]
+    paddle_mapping = {u.node.nid: u for u in paddle_data.units}  # type: Dict[str, PaddleOrganizationUnitDetails]
     to_put = []
+    ndb_puts = []
+    if not paddle_settings.synced_fields:
+        # TODO make user editable
+        paddle_settings.synced_fields = ['addresses', 'email_addresses', 'phone_numbers', 'websites']
+        ndb_puts.append(paddle_settings)
     for mapping in paddle_settings.mapping:
         if not mapping.service_email:
             continue
-        sln_settings = settings_mapping[mapping.service_email]
+        provider = ServiceInfoSyncProvider.PADDLE
+        service_user = users.User(mapping.service_email)
+        hours_key = OpeningHours.create_key(service_user, ServiceIdentity.DEFAULT)
+        opening_hours = models.get(hours_key) or OpeningHours(key=hours_key, type=OpeningHours.TYPE_TEXTUAL)
+        service_info = models.get(ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT))  # type: ServiceInfo
+        original_service_info = service_info.to_dict()
+        service_info.synced_fields = [SyncedField(key=field, provider=provider)
+                                      for field in paddle_settings.synced_fields]
         paddle_info = paddle_mapping[mapping.paddle_id]
-        changed = False
-        if paddle_info.node.telephone and sln_settings.phone_number != paddle_info.node.telephone:
-            changed = True
-            sln_settings.phone_number = paddle_info.node.telephone
-        if paddle_info.node.email and paddle_info.node.email != sln_settings.qualified_identifier:
-            changed = True
-            sln_settings.qualified_identifier = paddle_info.node.email
-        if paddle_info.opening_hours:
-            hours = _opening_hours_to_str(sln_settings.main_language, paddle_info.opening_hours, datetime.now())
-            changed = changed or hours != sln_settings.opening_hours
-            sln_settings.opening_hours = hours
-            deferred.defer(save_textual_opening_hours, mapping.service_email, sln_settings.opening_hours)
-        if paddle_info.node.address and paddle_info.node.address.is_valid():
-            new_address = _get_address_str(paddle_info.node.address)
-            changed = changed or sln_settings.address != new_address
-            sln_settings.address = new_address
+        changed, _ = _update_opening_hours_from_paddle(opening_hours, paddle_info)
+        if 'phone_numbers' in paddle_settings.synced_fields:
+            service_info.phone_numbers = _sync_paddle_values(service_info.phone_numbers, paddle_info.node.telephone)
+        if 'email_addresses' in paddle_settings.synced_fields:
+            service_info.email_addresses = _sync_paddle_values(service_info.email_addresses, paddle_info.node.email)
+        if 'websites' in paddle_settings.synced_fields:
+            service_info.websites = _sync_paddle_values(service_info.websites, paddle_info.node.website)
+        if 'name' in paddle_settings.synced_fields:
+            service_info.name = paddle_info.node.title
+        if 'description' in paddle_settings.synced_fields and paddle_info.node.body:
+            service_info.description = paddle_info.node.body
+        changed = changed or original_service_info != service_info.to_dict()
         if changed:
+            sln_settings = get_solution_settings(service_user)
             sln_settings.updates_pending = True
             to_put.append(sln_settings)
+            ndb_puts.append(service_info)
     db.put(to_put)
+    ndb.put_multi(ndb_puts)
     return to_put
+
+
+def _sync_paddle_values(values, paddle_value):
+    # type: (List[SynceNameValue], str) -> List[SyncedNameValue]
+    value_found = False
+    # Take copy so we can remove elements from the original list
+    for val in list(values):
+        if val.provider == ServiceInfoSyncProvider.PADDLE:
+            value_found = True
+            if val.value != paddle_value:
+                if not paddle_value:
+                    values.remove(val)
+                else:
+                    val.value = paddle_value
+    if not value_found and paddle_value:
+        value = SyncedNameValue()
+        value.value = paddle_value
+        value.provider = ServiceInfoSyncProvider.PADDLE
+        values.append(value)
+    return values
+
+
+def _update_opening_hours_from_paddle(opening_hours, paddle_data):
+    # type: (OpeningHours, PaddleOrganizationUnitDetails) -> Tuple[bool, OpeningHours]
+    if opening_hours.type == OpeningHours.TYPE_TEXTUAL:
+        opening_hours.type = OpeningHours.TYPE_STRUCTURED
+    new_periods = _paddle_periods_to_periods(paddle_data.opening_hours.regular, None)
+    closing_days = [_paddle_closing_period_to_exception(closing_day)
+                    for closing_day in paddle_data.opening_hours.closing_days]
+    new_exceptional_opening_hours = [_convert_paddle_exceptional_hour(exception)
+                                     for exception in paddle_data.opening_hours.exceptional_opening_hours]
+    existing_opening_hours = opening_hours.to_dict()
+    opening_hours.periods = new_periods
+    opening_hours.exceptional_opening_hours = closing_days + new_exceptional_opening_hours
+    opening_hours.sort_dates()
+    new_opening_hours = opening_hours.to_dict()
+    # python actually implements deep compare by default
+    changed = existing_opening_hours != new_opening_hours
+    if changed:
+        opening_hours.put()
+    return changed, opening_hours
+
+
+def _paddle_periods_to_periods(hours, color):
+    # type: (PaddleRegularOpeningHours, str) -> List[OpeningPeriod]
+    periods = []
+    days = [hours.sunday, hours.monday, hours.tuesday, hours.wednesday, hours.thursday, hours.friday, hours.saturday]
+
+    for day_number, paddle_periods in enumerate(days):
+        if paddle_periods is MISSING:
+            continue
+        for paddle_period in paddle_periods:
+            period = OpeningPeriod()
+            period.open = OpeningHour()
+            period.open.day = day_number
+            period.open.time = _paddle_time_to_time(paddle_period.start)
+            period.close = OpeningHour()
+            period.close.day = day_number
+            period.close.time = _paddle_time_to_time(paddle_period.end)
+            period.description = paddle_period.description
+            period.description_color = color
+            periods.append(period)
+    return periods
+
+
+def _paddle_time_to_time(paddle_time):
+    return paddle_time.replace(':', '')
+
+
+def _convert_paddle_exceptional_hour(exceptional_hours):
+    # type: (PaddleExceptionalOpeningHours) -> OpeningHourException
+    orange_color = OPENING_HOURS_ORANGE_COLOR
+    exception = OpeningHourException()
+    exception.start_date = _parse_paddle_date(exceptional_hours.start)
+    exception.end_date = _parse_paddle_date(exceptional_hours.end) or exception.start_date
+    exception.description = exceptional_hours.description
+    exception.description_color = orange_color
+    exception.periods = _paddle_periods_to_periods(exceptional_hours.opening_hours, orange_color)
+    return exception
+
+
+def _paddle_closing_period_to_exception(paddle_period):
+    # type: (PaddlePeriod) -> OpeningHourException
+    exception = OpeningHourException()
+    exception.start_date = _parse_paddle_date(paddle_period.start)
+    exception.end_date = _parse_paddle_date(paddle_period.end) or exception.start_date
+    exception.description = paddle_period.description
+    exception.description_color = OPENING_HOURS_RED_COLOR
+    exception.periods = []
+    return exception
+
+
+def _parse_paddle_date(date):
+    # Not actually an iso date, dd--mm-yy
+    return datetime.strptime(date, '%d-%m-%Y').date() if date else None

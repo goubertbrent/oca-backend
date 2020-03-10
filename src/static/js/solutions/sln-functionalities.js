@@ -18,6 +18,25 @@
 $(function() {
     'use strict';
 
+    var FUNCTIONALITY_ROUTES = {
+        agenda: 'agenda',
+        appointment: 'appointments',
+        ask_question: 'inbox',
+        broadcast: 'broadcast',
+        city_vouchers: 'city-vouchers',
+        discussion_groups: 'discussion-groups',
+        group_purchase: 'group-purchase',
+        order: 'order',
+        qr_codes: 'qr-codes',
+        repair: 'repair',
+        restaurant_reservation: 'restaurant-reservation',
+        sandwich_bar: 'sandwich',
+        loyalty: 'loyalty',
+        bulk_invite: 'bulk-invite',
+        menu: 'menu',
+        hidden_city_wide_lottery: 'loyalty',
+    };
+
     var TEMPL_SWITCH_BUTTON = '<div class="btn-group switch-button "> \
         <button class="btn {{if state}}btn-success{{/if}}" action="on" name="${name}">{{if state}}${onLabel}{{else}}&nbsp;{{/if}}</button> \
         <button class="btn {{if !state}}btn-danger{{/if}}" action="off" name="${name}">{{if !state}}${offLabel}{{else}}&nbsp;{{/if}}</button> \
@@ -30,7 +49,6 @@ $(function() {
     function init() {
         ROUTES.functionalities = router;
         loadFunctionalities();
-        $(document).on('click', '.functionality-settings', goToSettings);
         $(document).on('click', '.functionality-publish-first', showPublishFirstMessage);
     }
 
@@ -72,7 +90,7 @@ $(function() {
         clear();
 
         if (activatedModules.length) {
-            renderFunctionalities(activatedModules);
+            renderFunctionalities();
             return;
         }
 
@@ -83,7 +101,7 @@ $(function() {
             success: function(modules) {
                 activatedModules = modules;
                 hideLoadingSpinner();
-                renderFunctionalities(activatedModules);
+                renderFunctionalities();
             },
             error: function() {
                 hideLoadingSpinner();
@@ -92,11 +110,12 @@ $(function() {
         });
     }
 
-    function renderFunctionalities(modules) {
+    function renderFunctionalities() {
         var activeCount = 0, inactiveCount = 0;
         $.each(FUNCTIONALITY_MODULES, function(i, module) {
             var enabled = activatedModules.indexOf(module) !== -1;
             var info = FUNCTIONALITY_INFO[module];
+            info.route = FUNCTIONALITY_ROUTES[module];
             var tile = functionalityTile(info, getCurrentLanguageMedia(info.name), enabled, module === 'broadcast'
                     && enabled, PROVISIONED_MODULES.indexOf(module) !== -1);
 
@@ -120,31 +139,6 @@ $(function() {
     function clear() {
         $('#enabled_functionalities').html('');
         $('#disabled_functionalities').html('');
-    }
-
-    function goToSettings() {
-        var module = $(this).attr('name');
-        var info = FUNCTIONALITY_INFO[module];
-        var settingsLink;
-
-        if (info.settings_section) {
-            settingsLink = $('li[section=section_settings_' + info.settings_section + '] a');
-        } else {
-            settingsLink = $('li[section=section_settings_' + module + '] a');
-        }
-
-        if (settingsLink.length) {
-            // got to settings page first
-            $('li[menu=settings] a').click();
-            ROUTES.settings(['settings', module]);
-            settingsLink.click();
-        } else {
-            if (typeof ROUTES[module] === 'function') {
-                ROUTES[module]();
-            }
-            $('li[menu=' + module + '] a').click();
-        }
-        window.scrollTo(0, 0);
     }
 
     function setModuleState(moduleName, enabled) {

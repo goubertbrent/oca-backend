@@ -5,7 +5,7 @@ import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR, NgForm } fro
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
-import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
+import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { FormComponentType } from '../../interfaces/enums';
 import { FormComponent, FormSection, UINextAction } from '../../interfaces/forms';
 import { FormValidatorType } from '../../interfaces/validators';
@@ -148,9 +148,9 @@ export class EditFormSectionComponent implements ControlValueAccessor {
         cropOptions: { aspectRatio: 16 / 6 },
       },
     };
-    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFile) => {
+    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result) {
-        this.section = { ...this.section, branding: { logo_url: result.url, avatar_url: null } };
+        this.section = { ...this.section, branding: { logo_url: result.getUrl(), avatar_url: null } };
         this._changeDetectorRef.markForCheck();
       }
     });

@@ -3,17 +3,11 @@ import { Injectable, NgModule } from '@angular/core';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, Router, RouterModule, Routes } from '@angular/router';
+import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
-import {
-  MissingTranslationHandler,
-  MissingTranslationHandlerParams,
-  TranslateLoader,
-  TranslateModule,
-  TranslateService,
-} from '@ngx-translate/core';
+import { MissingTranslationHandler, MissingTranslationHandlerParams, TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
@@ -37,12 +31,13 @@ export class MissingTranslationWarnHandler implements MissingTranslationHandler 
 }
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'forms' },
+  { path: '', pathMatch: 'full', redirectTo: 'settings' },
   { path: 'forms', loadChildren: () => import('./forms/oca-forms.module').then(m => m.OcaFormsModule) },
   { path: 'participation', loadChildren: () => import('./participation/participation.module').then(m => m.ParticipationModule) },
   { path: 'news', loadChildren: () => import('./news/news.module').then(m => m.NewsModule) },
   { path: 'reports', loadChildren: () => import('./reports/reports.module').then(m => m.ReportsModule) },
   { path: 'admin', loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule) },
+  { path: 'settings', loadChildren: () => import('./settings/settings.module').then(m => m.SettingsModule) },
 ];
 
 @NgModule({
@@ -67,7 +62,7 @@ export const routes: Routes = [
       loader: {
         provide: TranslateLoader,
         useFactory: HttpLoaderFactory,
-        deps: [ HttpClient ],
+        deps: [HttpClient],
       },
       missingTranslationHandler: {
         provide: MissingTranslationHandler,
@@ -81,25 +76,7 @@ export const routes: Routes = [
     CUSTOM_LOCALE_PROVIDER,
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' } },
   ],
-  bootstrap: [ AppComponent ],
+  bootstrap: [AppComponent],
 })
 export class AppModule {
-  constructor(private translate: TranslateService, private router: Router, private route: ActivatedRoute) {
-    window.onmessage = (e: MessageEvent) => {
-      if (e.data && e.data.type === 'oca.set_language') {
-        translate.use(e.data.language);
-      }
-      if (e.data && e.data.type === 'oca.load_page') {
-        // When on a subpage of the desired page, don't do anything to keep state
-        if (e.data.paths.length === 1) {
-          if (route.snapshot.firstChild && route.snapshot.firstChild.routeConfig
-            && route.snapshot.firstChild.routeConfig.path !== e.data.paths[ 0 ]) {
-            router.navigate(e.data.paths);
-          }
-        }
-      }
-    };
-    translate.use('nl');
-    translate.setDefaultLang('en');
-  }
 }

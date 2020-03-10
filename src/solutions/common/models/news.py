@@ -127,7 +127,7 @@ class Locality(NdbModel):
 class CityAppLocations(NdbModel):
     country_code = ndb.StringProperty()
     official_id = ndb.IntegerProperty()  # NIS code for belgium
-    localities = ndb.LocalStructuredProperty(Locality, repeated=True)
+    localities = ndb.LocalStructuredProperty(Locality, repeated=True)  # type: List[Locality]
 
     @property
     def app_id(self):

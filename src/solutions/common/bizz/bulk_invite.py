@@ -20,7 +20,8 @@ import time
 from types import NoneType
 
 from google.appengine.ext import deferred, db
-from mcfw.rpc import returns, arguments, serialize_complex_value
+
+from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job.app_broadcast import APP_BROADCAST_TAG
 from rogerthat.rpc import users
 from rogerthat.service.api import system
@@ -36,7 +37,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SERVICE_AUTOCONNECT_INVITE_TAG
 from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
+from solutions.common.bizz.settings import get_service_info
+from solutions.common.dal import get_solution_settings
 from solutions.common.models import RestaurantInvite, SolutionSettings, SolutionInboxMessage
 from solutions.common.to import SolutionInboxMessageTO
 
@@ -155,7 +157,7 @@ def bulk_invite_result(service_user, service_identity, tag, email, result, user_
             'if_email': user_details[0].email
         }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled, send_reminder=False)
 
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+                     message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict())

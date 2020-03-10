@@ -22,16 +22,6 @@
                  autoLock="true">
             <content>{{ orderable_sandwich_days_message|e }}</content>
         </message>
-        <message id="message_holiday"
-                 alertIntervalType="NONE"
-                 alertType="SILENT"
-                 brandingKey="{{ branding_key }}"
-                 allowDismiss="true"
-                 dismissReference="end_quick"
-                 vibrate="false"
-                 autoLock="true">
-            <content>{{ settings.holiday_out_of_office_message|e }}</content>
-        </message>
         <formMessage id="message_type"
                      alertIntervalType="NONE"
                      alertType="SILENT"
@@ -57,12 +47,10 @@
                 </widget>
                 <javascriptValidation>
                     function run(result, rogerthat){
-                        'use strict';
                         var type = result.value;
                         if(!type){
                             return "{% translate language, 'common', 'please_select_a_sandwich_type' %}"
                         }
-
                     }
                 </javascriptValidation>
             </form>
@@ -93,12 +81,10 @@
                 </widget>
                 <javascriptValidation>
                     function run(result, rogerthat){
-                        'use strict';
                         var topping = result.value;
                         if(!topping){
                             return "{% translate language, 'common', 'please_select_a_topping' %}"
                         }
-
                     }
                 </javascriptValidation>
             </form>
@@ -168,7 +154,6 @@
                             return '{% translate language, 'common', 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
                         }
                         {% endif %}
-                        var holidayDates = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates;{% else %}{% if holiday_dates %}{{ holiday_dates }};{% else %}[];{% endif %}{% endif %}
                         var timezoneOffsets = {{ timezone_offsets }};
                         var currentDateTimeSeconds = new Date().getTime() / 1000;
                         var timezoneOffset = 0;
@@ -180,32 +165,15 @@
                             }
                         }
                         var selectedDateTime = result.value;
-                        if(isInHoliday()){
-                            var holidayDatesStr = {% if multiple_locations %}rogerthat.service.data.settings.holidays.dates_str{% else %}{{ holiday_dates_str }}{% endif %};
-                            var holidayStr = '';
-                            for(var i = 0; i &lt; holidayDatesStr.length; i ++){
-                                holidayStr += holidayDatesStr[i];
-                            }
-                            return '{% translate language, 'common', 'can_not_order_holiday', '_duplicate_backslashes=True' %}\n' + holidayStr;
-                        }else if (canOrderAtTime()) {
+                        if (canOrderAtTime()) {
                             return;
                         }
                         else{
                             return '{{ possible_times_message }}';
                         }
 
-                        function isInHoliday() {
-                            for (var i = 0; i &lt; holidayDates.length; i ++) {
-                                if (holidayDates[i].from &lt;= selectedDateTime &amp;&amp; selectedDateTime &lt; holidayDates[i].to) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
-
                         function canOrderAtTime() {
                             var selectedDate = new Date(selectedDateTime * 1000);
-                            var dayToday = selectedDate.getUTCDay();
                             var sAfterMidnight = selectedDateTime % 86400;
                             var sandwichSettings = rogerthat.service.data.sandwich_settings;
                             var canOrder = (sandwichSettings.time_from + sandwichSettings.leap_time) &lt; sAfterMidnight
@@ -242,9 +210,6 @@
                 reference="end_done"/>
         <flowCode id="flowcode_check_status"
                   exceptionReference="flowcode_check_type">
-            <outlet reference="message_holiday"
-                    name="message_holiday"
-                    value="message_holiday"/>
             <outlet reference="flowcode_check_type"
                     name="flowcode_check_type"
                     value="flowcode_check_type"/>
@@ -253,11 +218,10 @@
                     value="message_cannot_order_now"/>
             <javascriptCode>
                 function run(rogerthat, messageFlowRun) {
-                    var flowParams = messageFlowRun.flow_params;
                     var timezoneOffsets = rogerthat.service.data.settings.timezoneOffsets;
                     var currentDateTimeSeconds = new Date().getTime() / 1000;
                     var timezoneOffset = 0;
-                    for (var i=0; i &lt; timezoneOffsets.length; i ++) {
+                    for (var i = 0; i &lt; timezoneOffsets.length; i++) {
                         var zone = timezoneOffsets[i];
                         if (zone[0] &lt; currentDateTimeSeconds &amp;&amp; currentDateTimeSeconds &lt;= zone[1]) {
                             timezoneOffset = zone[2];
@@ -266,27 +230,12 @@
                     }
 
                     var nextStepResult = {};
-                    if (isInHoliday(rogerthat.service.data.settings.holidays.dates)) {
-                        nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
-                        nextStepResult.outlet = 'message_holiday';
-                    }
-                    else if (!canOrderSandwich(rogerthat.service.data.sandwich_settings, timezoneOffset)) {
+                    if (canOrderSandwich(rogerthat.service.data.sandwich_settings, timezoneOffset)) {
+                        nextStepResult.outlet = 'flowcode_check_type';
+                    } else {
                         nextStepResult.outlet = 'message_cannot_order_now';
                     }
-                    else {
-                        nextStepResult.outlet = 'flowcode_check_type';
-                    }
                     return nextStepResult;
-
-                    function isInHoliday(holidayDates) {
-                        var currentDate = new Date().getTime() / 1000;
-                        for (var i = 0; i &lt; holidayDates.length; i++) {
-                            if (holidayDates[i].from &lt;= currentDate &amp;&amp; currentDate &lt; holidayDates[i].to) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
 
                     function canOrderSandwich(settings, timezoneOffset) {
                         var canOrder = false;
@@ -300,7 +249,7 @@
                         }
                         return canOrder;
                     }
-                };
+                }
             </javascriptCode>
         </flowCode>
         <flowCode
@@ -320,7 +269,7 @@
                         return {outlet: 'message_no_internet'};
                     }
                     return {outlet: 'results_flush'};
-                };
+                }
             </javascriptCode>
         </flowCode>
 
@@ -439,7 +388,5 @@
                     id="button_ok"
                     reference="end_cancel"/>
         </message>
-
-
     </definition>
 </messageFlowDefinitionSet>

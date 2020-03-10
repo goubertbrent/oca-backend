@@ -87,6 +87,7 @@ from solutions.common.bizz.reservation import reservation_part1, my_reservations
     my_reservations_detail_updated
 from solutions.common.bizz.sandwich import order_sandwich_received, \
     sandwich_order_from_broadcast_pressed
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
 from solutions.common.integrations.jcc import jcc_appointments
@@ -419,12 +420,10 @@ def _question_asked(service_user, message_flow_run_id, member, steps, end_id, en
             'if_email': user_details[0].email
         }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
         sln_settings = get_solution_settings(service_user)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(
-                         SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True),
-                         SolutionInboxMessageTO, False))
+                     message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict())
 
 
 @returns()
@@ -522,12 +521,11 @@ def reply_on_inbox_forwarding(service_user, status, form_result, answer_id, memb
             sim_parent, _ = add_solution_inbox_message(service_user, m.solution_inbox_message_key, True, user_details,
                                                        now_, msg)
             sln_settings = get_solution_settings(service_user)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+            service_info = get_service_info(service_user, service_identity)
             send_message(service_user, u"solutions.common.messaging.update",
                          service_identity=service_identity,
-                         message=serialize_complex_value(
-                             SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True),
-                             SolutionInboxMessageTO, False))
+                         message=SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                  True).to_dict())
     return None
 
 
@@ -539,12 +537,10 @@ def send_reply(service_user, sim_key, message):
                                                mark_as_read=True)
 
     sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sim_parent.service_identity)
+    service_info = get_service_info(service_user, sim_parent.service_identity)
     send_message(service_user, u"solutions.common.messaging.update",
                  service_identity=sim_parent.service_identity,
-                 message=serialize_complex_value(
-                     SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True),
-                     SolutionInboxMessageTO, False))
+                 message=SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info, True).to_dict())
 
     send_inbox_forwarders_message(service_user, sim_parent.service_identity, None, message, {
         'if_name': sim_parent.sender.name,

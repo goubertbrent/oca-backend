@@ -7,10 +7,12 @@
         {{if enabled}}
         <div class="span1">
             {{if showConfig}}
-            <a href="#" name="${info.name}" class="functionality-settings pull-right" role="button">
+            {{if info.route}}
+                <a href="#/settings/${info.route}" name="${info.name}" class="functionality-settings pull-right" role="button">
                 <div data-placement="top" data-original-title="${t.Settings}">
                     <span class="functionality-settings-icon"><i class="fa fa-cog"></i></span>
                 </div>
+            {{/if}}
             {{else}}
             <a href="#" name="${info.name}" class="functionality-publish-first pull-right" role="button">
                 <div data-placement="top" data-original-title="${t['unpersisted-changes']}">

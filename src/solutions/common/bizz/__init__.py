@@ -16,22 +16,21 @@
 # @@license_version:1.5@@
 from __future__ import unicode_literals
 
-import importlib
+from collections import defaultdict
+from datetime import datetime
 import logging
 import os
 import time
-from collections import defaultdict
-from datetime import datetime
 from types import NoneType
 
-from google.appengine.api import urlfetch
-from google.appengine.ext import db, deferred
-from google.appengine.ext.webapp import template
-
-import pytz
-import solutions
 from PIL.Image import Image
 from babel.dates import format_date, format_time, format_datetime, get_timezone
+from google.appengine.api import urlfetch
+from google.appengine.ext import db, deferred, ndb
+from google.appengine.ext.webapp import template
+import pytz
+from typing import List
+
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
@@ -48,7 +47,10 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_default_service_identity
 from rogerthat.exceptions.branding import BrandingValidationException
-from rogerthat.models import App, ServiceRole, Branding
+from rogerthat.models import App, ServiceRole, Branding, OpeningHours, ServiceIdentity
+from rogerthat.models.maps import MapServiceMediaItem
+from rogerthat.models.news import MediaType
+from rogerthat.models.settings import SyncedNameValue, ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
@@ -61,22 +63,26 @@ from rogerthat.to.branding import BrandingTO
 from rogerthat.to.friends import ServiceMenuDetailTO, ServiceMenuItemLinkTO
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
+from rogerthat.to.news import BaseMediaTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_queue
+from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
+from rogerthat.utils.transactions import on_trans_committed
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
+import solutions
 from solutions.common import SOLUTION_COMMON
-from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR
+from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
 from solutions.common.models import SolutionSettings, SolutionMainBranding, \
-    SolutionBrandingSettings, FileBlob, SolutionNewsPublisher, SolutionModuleAppText
+    SolutionBrandingSettings, FileBlob, SolutionNewsPublisher, SolutionModuleAppText, RestaurantMenu
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
+
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
@@ -350,34 +356,29 @@ def update_reserved_menu_item_labels(sln_settings):
 
 @returns(ProvisionResponseTO)
 @arguments(solution=unicode, email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
-           address=unicode, phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
+           phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
            organization_type=int, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, qualified_identifier=unicode, broadcast_to_users=[users.User])
-def create_or_update_solution_service(solution, email, name, branding_url, menu_item_color, address, phone_number,
+           owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue])
+def create_or_update_solution_service(solution, email, name, branding_url, menu_item_color, phone_number,
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
                                       modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                                      search_enabled=False, qualified_identifier=None, broadcast_to_users=None):
+                                      search_enabled=False, broadcast_to_users=None, websites=None):
     if not redeploy:
         password, sln_settings = \
-            create_solution_service(email, name, branding_url, menu_item_color, address, phone_number,
+            create_solution_service(email, name, branding_url, menu_item_color, phone_number,
                                     solution, languages, currency, organization_type=organization_type, modules=modules,
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
-                                    search_enabled=search_enabled)
+                                    search_enabled=search_enabled, websites=websites)
         service_user = sln_settings.service_user
-        # update_reserved_menu_item_labels(sln_settings)
     else:
         service_user = users.User(email)
-        _, sln_settings = update_solution_service(
-            service_user, branding_url, menu_item_color, solution, languages, currency,
-            modules=modules, broadcast_types=broadcast_types, apps=apps,
-            organization_type=organization_type, name=name, address=address,
-            phone_number=phone_number, qualified_identifier=qualified_identifier)
+        _, sln_settings = update_solution_service(service_user, branding_url, menu_item_color, solution, languages,
+                                                  modules, broadcast_types, apps, organization_type)
         password = None
-        # if language_updated:
-        #    update_reserved_menu_item_labels(sln_settings)
 
+    # Slightly delay this as create_solution_service needs to run a task first to save the ServiceInfo
     deferred.defer(common_provision, service_user, broadcast_to_users=broadcast_to_users,
-                   _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
+                   _transactional=db.is_in_transaction(), _queue=FAST_QUEUE, _countdown=2)
 
     resp = ProvisionResponseTO()
     resp.login = email
@@ -388,11 +389,9 @@ def create_or_update_solution_service(solution, email, name, branding_url, menu_
 
 @returns(tuple)
 @arguments(service_user=users.User, branding_url=unicode, menu_item_color=unicode, solution=unicode,
-           languages=[unicode], currency=unicode, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           organization_type=int, name=unicode, address=unicode, phone_number=unicode, qualified_identifier=unicode)
-def update_solution_service(service_user, branding_url, menu_item_color, solution, languages, currency, modules=None,
-                            broadcast_types=None, apps=None, organization_type=None, name=None, address=None,
-                            phone_number=None, qualified_identifier=None):
+           languages=[unicode], modules=[unicode], broadcast_types=[unicode], apps=[unicode], organization_type=int)
+def update_solution_service(service_user, branding_url, menu_item_color, solution, languages, modules=None,
+                            broadcast_types=None, apps=None, organization_type=None):
     if branding_url:
         resp = urlfetch.fetch(branding_url, deadline=60)
         if resp.status_code != 200:
@@ -449,10 +448,6 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
             solution_settings.menu_item_color = menu_item_color
             solution_settings_changed = True
 
-        if currency:
-            solution_settings.currency = currency
-            solution_settings_changed = True
-
         if modules is not None:
             solution_settings.modules = modules
             solution_settings_changed = True
@@ -476,18 +471,6 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
             branding_settings = _get_default_branding_settings(service_user)
             branding_settings.put()
 
-        if solution_settings.name != name and name is not None:
-            solution_settings.name = name
-            solution_settings_changed = True
-        if solution_settings.address != address and address is not None:
-            solution_settings.address = address
-            solution_settings_changed = True
-        if solution_settings.phone_number != phone_number and phone_number is not None:
-            solution_settings.phone_number = phone_number
-            solution_settings_changed = True
-        if solution_settings.qualified_identifier != qualified_identifier and qualified_identifier is not None:
-            solution_settings.qualified_identifier = qualified_identifier
-            solution_settings_changed = True
         service_profile.put()
         if solution_settings_changed:
             solution_settings.put()
@@ -501,15 +484,15 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 
 
 @returns(tuple)
-@arguments(email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode, address=unicode,
+@arguments(email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool)
-def create_solution_service(email, name, branding_url=None, menu_item_color=None, address=None, phone_number=None,
-                            solution=SOLUTION_FLEX, languages=None, currency=u"EUR", category_id=None, organization_type=1,
+           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue])
+def create_solution_service(email, name, branding_url=None, menu_item_color=None, phone_number=None,
+                            solution=SOLUTION_FLEX, languages=None, currency=u"EUR", category_id=None,
+                            organization_type=1,
                             fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                            search_enabled=False):
-
+                            search_enabled=False, websites=None):
     password = unicode(generate_random_key()[:8])
     if languages is None:
         languages = [DEFAULT_LANGUAGE]
@@ -536,33 +519,39 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
                    supported_app_ids=apps, owner_user_email=owner_user_email)
     new_service_user = users.User(email)
 
-    to_be_put = list()
+    to_be_put = []
 
     settings = get_solution_settings(new_service_user)
     if not settings:
         settings = SolutionSettings(key=SolutionSettings.create_key(new_service_user),
-                                    name=name,
                                     menu_item_color=menu_item_color,
-                                    address=address,
-                                    phone_number=phone_number,
-                                    currency=currency,
                                     main_language=languages[0],
                                     solution=solution,
                                     search_enabled=search_enabled,
-                                    modules=modules or list(),
-                                    broadcast_types=broadcast_types or list())
+                                    modules=modules or [],
+                                    broadcast_types=broadcast_types or [])
+        service_info = ServiceInfo(key=ServiceInfo.create_key(new_service_user, ServiceIdentity.DEFAULT))
+        service_info.visible = True
+        service_info.name = name
+        service_info.currency = currency
+        service_info.timezone = settings.timezone
+        service_info.cover_media = get_default_cover_media(organization_type)
+        if phone_number:
+            service_info.phone_numbers = [SyncedNameValue.from_value(phone_number)]
         if owner_user_email:
-            settings.qualified_identifier = owner_user_email
+            service_info.email_addresses = [SyncedNameValue.from_value(owner_user_email)]
             if settings.uses_inbox():
                 settings.inbox_email_reminders_enabled = True
-                settings.inbox_mail_forwarders.append(settings.qualified_identifier)
+                settings.inbox_mail_forwarders.append(owner_user_email)
+        if websites:
+            service_info.websites = websites
 
         settings.login = users.User(owner_user_email) if owner_user_email else None
-        settings.holidays = []
-        settings.holiday_out_of_office_message = common_translate(settings.main_language, SOLUTION_COMMON,
-                                                                  'holiday-out-of-office')
-
         to_be_put.append(settings)
+        if db.is_in_transaction():
+            on_trans_committed(ndb.put_multi, [service_info])
+        else:
+            service_info.put()
 
     main_branding = SolutionMainBranding(key=SolutionMainBranding.create_key(new_service_user))
     to_be_put.append(main_branding)
@@ -575,10 +564,32 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
 
     put_and_invalidate_cache(*to_be_put)
 
-    if solution == SOLUTION_FLEX:
-        deferred.defer(service_auto_connect, new_service_user, _transactional=db.is_in_transaction())
+    deferred.defer(_after_service_created, new_service_user, _transactional=db.is_in_transaction(),
+                   _queue=FAST_QUEUE)
 
     return password, settings
+
+
+def _after_service_created(service_user):
+    service_auto_connect(service_user)
+
+
+def get_default_cover_media(organization_type):
+    # type: (int) -> List[MapServiceMediaItem]
+    base_url = 'https://storage.googleapis.com/%s/image-library/logo/%s.jpg'
+    mapping = {
+        OrganizationType.CITY: 'community-service',
+        OrganizationType.PROFIT: 'merchant',
+        OrganizationType.UNSPECIFIED: 'merchant',
+        OrganizationType.NON_PROFIT: 'association',
+        OrganizationType.EMERGENCY: 'care',
+    }
+    url = base_url % (OCA_FILES_BUCKET, mapping[organization_type])
+    media_item = MapServiceMediaItem()
+    media_item.item = BaseMediaTO()
+    media_item.item.type = MediaType.IMAGE
+    media_item.item.content = url
+    return [media_item]
 
 
 def _get_default_branding_settings(service_user):
@@ -621,9 +632,52 @@ def broadcast_updates_pending(sln_settings):
                          updatesPending=sln_settings.updates_pending)
 
 
+def validate_before_provision(service_user, sln_settings):
+    # type: (users.User, SolutionSettings) -> List[str]
+    from solutions.common.bizz.menu import menu_is_visible
+    branding_settings = SolutionBrandingSettings.get_by_user(service_user)
+    lang = sln_settings.main_language
+    errors = []
+    if not branding_settings.avatar_url:
+        errors.append(common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_avatar'))
+    if not branding_settings.logo_url:
+        errors.append(common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_logo'))
+    if menu_is_visible(sln_settings):
+        menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
+        if not menu or menu.is_default:
+            errors.append(
+                common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_menu'))
+    identities = [ServiceIdentity.DEFAULT]
+    keys = []
+    if sln_settings.identities:
+        identities.extend(sln_settings.identities)
+    for identity in identities:
+        keys.append(OpeningHours.create_key(service_user, identity))
+        keys.append(ServiceInfo.create_key(service_user, identity))
+    models = {model.key: model for model in ndb.get_multi(keys) if model}
+    for identity in identities:
+        hours = models.get(OpeningHours.create_key(service_user, identity))  # type: OpeningHours
+        if not hours or hours.type != OpeningHours.TYPE_STRUCTURED:
+            errors.append(common_translate(lang, SOLUTION_COMMON, 'need_opening_hours_before_publish'))
+        service_info = models.get(ServiceInfo.create_key(service_user, identity))  # type: ServiceInfo
+        if not service_info or not service_info.place_types or not service_info.main_place_type:
+            errors.append(common_translate(lang, SOLUTION_COMMON, 'need_place_type_before_publish'))
+        if not service_info or not service_info.addresses:
+            errors.append(common_translate(lang, SOLUTION_COMMON, 'configure_your_address'))
+
+    if errors:
+        msg = common_translate(lang, SOLUTION_COMMON, 'default_settings_warning') + ':'
+        lines = [msg] + errors
+        return lines
+    else:
+        return []
+
+
 @returns(NoneType)
-@arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User], friends=[BaseMemberTO])
-def common_provision(service_user, sln_settings=None, broadcast_to_users=None, friends=None):
+@arguments(service_user=users.User, sln_settings=SolutionSettings, broadcast_to_users=[users.User],
+           friends=[BaseMemberTO], run_checks=bool)
+def common_provision(service_user, sln_settings=None, broadcast_to_users=None, friends=None, run_checks=False):
+    from solutions.flex.bizz import provision
 
     try:
         start = time.time()
@@ -638,7 +692,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             else:
                 sln_settings = get_solution_settings(service_user)
 
-            if DEBUG or friends or get_current_queue() or is_demo_app(service_user):
+            if DEBUG or friends or not run_checks or is_demo_app(service_user):
                 pass  # no check needed
             else:
                 now_ = now()
@@ -652,8 +706,11 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                                                              time_str=time_str))
                 last_publish = now_
 
-            bizz = importlib.import_module("solutions.%s.bizz" % sln_settings.solution)
-            needs_reload, sln_settings = bizz.provision(service_user, friends)
+            if run_checks:
+                errors = validate_before_provision(service_user, sln_settings)
+                if errors:
+                    raise BusinessException('\n • '.join(errors))
+            needs_reload, sln_settings = provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
         except Exception as e:

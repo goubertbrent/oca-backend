@@ -15,17 +15,17 @@
 #
 # @@license_version:1.5@@
 
-from datetime import date, datetime
-from dateutil.relativedelta import relativedelta
 import json
 import logging
-import pytz
 import random
 import time
+from datetime import date, datetime
 
+import pytz
 from babel.dates import format_datetime
-
+from dateutil.relativedelta import relativedelta
 from google.appengine.ext import webapp, deferred, db
+
 from mcfw.properties import azzert
 from mcfw.rpc import serialize_complex_value, returns, arguments
 from rogerthat.bizz.job import run_job
@@ -34,6 +34,7 @@ from rogerthat.dal import parent_key_unsafe, put_and_invalidate_cache
 from rogerthat.dal.profile import get_profile_infos
 from rogerthat.models import Message
 from rogerthat.rpc import users
+from rogerthat.rpc.users import set_user
 from rogerthat.service.api import messaging, system
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.to.service import UserDetailsTO
@@ -48,17 +49,18 @@ from solutions.common.bizz.inbox import create_solution_inbox_message, add_solut
 from solutions.common.bizz.loyalty import update_user_data_admins, create_loyalty_statistics_for_service, \
     send_email_to_user_for_loyalty_update
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
-from solutions.common.dal import get_solution_settings_or_identity_settings, get_solution_settings
+from solutions.common.bizz.settings import get_service_info
+from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_service_user_for_city
 from solutions.common.models import SolutionInboxMessage, SolutionSettings
-from solutions.common.models.loyalty import SolutionLoyaltyLottery, SolutionLoyaltySettings, SolutionLoyaltyVisitLottery, \
+from solutions.common.models.loyalty import SolutionLoyaltyLottery, SolutionLoyaltySettings, \
+    SolutionLoyaltyVisitLottery, \
     SolutionLoyaltyLotteryStatistics, SolutionCityWideLottery, SolutionCityWideLotteryStatistics, \
     SolutionCityWideLotteryVisit
 from solutions.common.models.properties import SolutionUser
 from solutions.common.to import SolutionInboxMessageTO
 from solutions.common.to.loyalty import ExtendedUserDetailsTO
 from solutions.common.utils import create_service_identity_user_wo_default
-from rogerthat.rpc.users import set_user
 
 
 class LootLotteryCronHandler(webapp.RequestHandler):
@@ -206,7 +208,7 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
 
     message_flags = Message.FLAG_ALLOW_DISMISS
 
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    service_info = get_service_info(service_user, service_identity)
     def trans():
         sm_data = []
 
@@ -225,7 +227,8 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
 
             deferred.defer(send_email_to_user_for_loyalty_update, service_user, service_identity, sln_loyalty_lottery.winner, msg_sorry, False)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
 
         logging.debug("loyalty lottery loot: new winner %s", winner)
 
@@ -250,7 +253,8 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
 
         deferred.defer(send_email_to_user_for_loyalty_update, service_user, service_identity, sln_loyalty_lottery.winner, msg_ok, False, sim_parent.solution_inbox_message_key)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                     True).to_dict()})
         sm_data.append({u"type": u"solutions.common.loyalty.lottery.update"})
         send_message(service_user, sm_data, service_identity=service_identity)
 

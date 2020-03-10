@@ -1,0 +1,48 @@
+<mat-list (cdkDropListDropped)="itemMoved($event)" cdkDropList class="value-list">
+  <ng-container *ngFor="let value of values; index as index">
+    <mat-list-item *ngIf="index !== editingIndex; else editTemplate" cdkDrag class="value-item">
+      <h4 mat-line>{{ value.value }}</h4>
+      <p *ngIf="value.name" mat-line>{{ value.name }}</p>
+      <button *ngIf="value.provider != null" [matTooltip]="syncedMessage" mat-icon-button>
+        <mat-icon>info</mat-icon>
+      </button>
+      <button (click)="editValue(value)" *ngIf="!value.provider" mat-icon-button type="button">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button (click)="removeValue(value)" *ngIf="!value.provider" mat-icon-button type="button">
+        <mat-icon>delete</mat-icon>
+      </button>
+      <p *cdkDragPreview>{{ value.value }}</p>
+    </mat-list-item>
+  </ng-container>
+</mat-list>
+<ng-template *ngIf="editingIndex === NEW_ITEM_INDEX" [ngTemplateOutlet]="editTemplate"></ng-template>
+<div *ngIf="!editingValue && maxCount > values.length">
+  <button (click)="addValue()" mat-button type="button">{{ 'oca.Add new' | translate }}</button>
+</div>
+
+<ng-template #editTemplate>
+  <div class="edit-fields">
+    <mat-form-field class="value-field">
+      <mat-label>{{ valueLabel }}</mat-label>
+      <input #inputFieldModel="ngModel"
+             [(ngModel)]="editingValue.value"
+             [ngModelOptions]="{standalone: true}"
+             [type]="inputType"
+             matInput
+             required>
+      <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+    </mat-form-field>
+    <mat-form-field class="name-field">
+      <mat-label>{{ 'oca.reservation-name' | translate }}</mat-label>
+      <input [(ngModel)]="editingValue.name"
+             [ngModelOptions]="{standalone: true}"
+             matInput
+             maxlength="50"
+             type="text">
+    </mat-form-field>
+    <button (click)="saveValue()" mat-icon-button type="button">
+      <mat-icon>save</mat-icon>
+    </button>
+  </div>
+</ng-template>

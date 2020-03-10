@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 <mat-dialog-content>
-  <mat-tab-group [selectedIndex]="selectedTabIndex">
+  <mat-tab-group disablePagination>
     <mat-tab [label]="'oca.upload_file' | translate">
       <button (click)="fileElement.click()" class="choose-button"
               mat-raised-button>{{ 'oca.choose_file' | translate }}</button>
@@ -12,7 +12,7 @@
       <oca-image-cropper *ngIf="selectedImageUrl" [cropperOptions]="data.cropOptions"
                          [imageUrl]="selectedImageUrl"></oca-image-cropper>
       <div *ngIf="selectedFile">
-        <b>{{ selectedFile.name }}</b>
+        <span class="selected-file">{{ selectedFile.name }}</span>
         <button (click)="removeFile()" color="warn" mat-icon-button type="button">
           <mat-icon>close</mat-icon>
         </button>
@@ -25,10 +25,23 @@
     </mat-tab>
     <mat-tab [label]="'oca.previously_upload_images' | translate">
       <div *ngFor="let image of images$ | async" class="uploaded-image">
-        <div class="image-container" matRipple>
-          <img (click)="filePicked(image)" [src]="image.url">
+        <div class="image-container">
+          <div matRipple>
+            <img (click)="filePicked(image)" [src]="image.url">
+          </div>
         </div>
       </div>
+    </mat-tab>
+    <mat-tab *ngIf="showGallery" [label]="'oca.standard_images' | translate">
+      <ng-template matTabContent>
+        <div *ngFor="let image of galleryImages$ | async" class="uploaded-image">
+          <div class="image-container">
+            <div matRipple>
+              <img (click)="filePicked(image)" [src]="image.url">
+            </div>
+          </div>
+        </div>
+      </ng-template>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>

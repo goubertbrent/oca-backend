@@ -37,7 +37,7 @@ export interface Incident {
   visible: boolean;
   integration: string;
   source: string;
-  external_id: string;
+  external_id: string | null;
   status: IncidentStatus;
   details: IncidentDetails;
 }

@@ -1,0 +1,79 @@
+.media-list {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+}
+
+.media-list.cdk-drop-list-dragging .media-item:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+$image-height: 144px;
+
+.media-item {
+  box-sizing: border-box;
+  cursor: move;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  margin: 16px;
+  position: relative;
+
+  .media-image {
+    height: $image-height;
+  }
+
+  .btn-media-delete {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+  }
+
+  .youtube-play-btn {
+    position: absolute;
+    height: 32px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    top: 0;
+    bottom: 0;
+  }
+}
+
+.add-media-item {
+  .media-image {
+    filter: grayscale(1);
+    opacity: .7;
+  }
+
+  .add-button {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    z-index: 2;
+    color: white;
+  }
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+  0 8px 10px 1px rgba(0, 0, 0, 0.14),
+  0 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.hide-selector {
+  display: none;
+}

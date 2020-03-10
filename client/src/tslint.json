@@ -1,29 +1,31 @@
 {
-    "extends": "../tslint.json",
-    "rules": {
-      "semicolon": [
-        true,
-        "always",
-        "ignore-bound-class-methods"
-      ],
-        "directive-selector": [
-            true,
-            "attribute",
-            "oca",
-            "camelCase"
-        ],
-        "component-selector": [
-            true,
-            "element",
-            "oca",
-            "kebab-case"
-        ],
-      "variable-name": [
-        false
-      ],
-      "import-blacklist": [
-        true,
-        "@angular/material"
-      ]
-    }
+  "extends": "../tslint.json",
+  "rules": {
+    "semicolon": [
+      true,
+      "always",
+      "ignore-bound-class-methods"
+    ],
+    "directive-selector": [
+      true,
+      "attribute",
+      "oca",
+      "camelCase"
+    ],
+    "component-selector": [
+      true,
+      "element",
+      "oca",
+      "kebab-case"
+    ],
+    "variable-name": [
+      false
+    ],
+    "import-blacklist": [
+      true,
+      "rxjs/Rx",
+      "@angular/material",
+      "@angular/material/typings/**"
+    ]
+  }
 }

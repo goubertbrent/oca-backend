@@ -184,7 +184,7 @@ $(function() {
                     container.append(html);
                 } else if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY){
                     return;
-                    
+
                 } else {
                     console.log("Unknown loyalty type");
                     return;
@@ -284,47 +284,47 @@ $(function() {
                         loadCustomerPoints(null);
                     }
                     currentLoyaltyType = data.loyalty_type;
-                    $("#section_settings_loyalty #loyalty-type").val(data.loyalty_type);
-                    $("#section_settings_loyalty .loyalty-type-1").hide();
-                    $("#section_settings_loyalty .loyalty-type-2").hide();
-                    $("#section_settings_loyalty .loyalty-type-3").hide();
-                    $("#section_settings_loyalty #loyalty-website").val(data.loyalty_website ? data.loyalty_website : "");
-                    $("#section_settings_loyalty #loyalty-website").attr("correctUrl", data.loyalty_website ? data.loyalty_website : "");
+                    $("#section_loyalty #loyalty-type").val(data.loyalty_type);
+                    $("#section_loyalty .loyalty-type-1").hide();
+                    $("#section_loyalty .loyalty-type-2").hide();
+                    $("#section_loyalty .loyalty-type-3").hide();
+                    $("#section_loyalty #loyalty-website").val(data.loyalty_website ? data.loyalty_website : "");
+                    $("#section_loyalty #loyalty-website").attr("correctUrl", data.loyalty_website ? data.loyalty_website : "");
 
 
                     if (data.loyalty_type == LOYALTY_TYPE_REVENUE_DISCOUNT) {
-                        $("#section_settings_loyalty #revenue-discount-visits").val(data.loyalty_settings.x_visits);
-                        $("#section_settings_loyalty #revenue-discount-discount").val(data.loyalty_settings.x_discount);
-                        $("#section_settings_loyalty .loyalty-type-1").show();
+                        $("#section_loyalty #revenue-discount-visits").val(data.loyalty_settings.x_visits);
+                        $("#section_loyalty #revenue-discount-discount").val(data.loyalty_settings.x_discount);
+                        $("#section_loyalty .loyalty-type-1").show();
                         if (loadLoyaltyScansCount > 0) {
                             $(".sln-loyalty-scans").show();
                         }
                     }  else if (data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
                         $('#topmenu').find('li[menu="loyalty"]').hide();
-                            
+
                     } else if (data.loyalty_type == LOYALTY_TYPE_LOTTERY || data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
-                        $("#section_settings_loyalty .loyalty-type-2").show();
+                        $("#section_loyalty .loyalty-type-2").show();
                         $(".sln-loyalty-scans").hide();
-                        
+
                     } else if (data.loyalty_type == LOYALTY_TYPE_STAMPS) {
-                        $("#section_settings_loyalty #stamps-count").val(data.loyalty_settings.x_stamps);
-                        $("#section_settings_loyalty #stamps-type").val(data.loyalty_settings.stamps_type);
-                        $("#section_settings_loyalty #stamps-winnings").val(data.loyalty_settings.stamps_winnings);
-                        $("#section_settings_loyalty #stamps-auto-redeem").prop('checked', data.loyalty_settings.stamps_auto_redeem);
-                        $("#section_settings_loyalty .loyalty-type-3").show();
+                        $("#section_loyalty #stamps-count").val(data.loyalty_settings.x_stamps);
+                        $("#section_loyalty #stamps-type").val(data.loyalty_settings.stamps_type);
+                        $("#section_loyalty #stamps-winnings").val(data.loyalty_settings.stamps_winnings);
+                        $("#section_loyalty #stamps-auto-redeem").prop('checked', data.loyalty_settings.stamps_auto_redeem);
+                        $("#section_loyalty .loyalty-type-3").show();
                         if (loadLoyaltyScansCount > 0) {
                             $(".sln-loyalty-scans").show();
                         }
                     } else if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY) {
                         $('#topmenu').find('li[menu="loyalty"]').hide();
-                            
+
                     } else {
                         console.log("ERROR: Unknown loyalty type");
                         $(".sln-loyalty-scans").hide();
                     }
 
-                    $("#section_settings_loyalty .loyalty-admin-qr a").attr("href", data.image_uri + "?download=true");
-                    $("#section_settings_loyalty .loyalty-admin-qr img").attr("src", data.image_uri);
+                    $("#section_loyalty .loyalty-admin-qr a").attr("href", data.image_uri + "?download=true");
+                    $("#section_loyalty .loyalty-admin-qr img").attr("src", data.image_uri);
 
                     var loyaltyAdmins = $("#loyalty-admins tbody");
                     var html = $.tmpl(templates.loyalty_tablets, {
@@ -419,16 +419,16 @@ $(function() {
     };
 
     var putLoyaltySettings = function() {
-        var loyaltyType = parseInt($("#section_settings_loyalty #loyalty-type").val());
+        var loyaltyType = parseInt($("#section_loyalty #loyalty-type").val());
         var loyaltySettings = {};
         loyaltySettings["loyalty_type"] = loyaltyType;
         var errorlist = [];
-        var loyalty_website = $("#section_settings_loyalty #loyalty-website").attr("correctUrl");
-        $("#section_settings_loyalty #loyalty-website").val(loyalty_website);
+        var loyalty_website = $("#section_loyalty #loyalty-website").attr("correctUrl");
+        $("#section_loyalty #loyalty-website").val(loyalty_website);
 
         if (loyaltyType == LOYALTY_TYPE_REVENUE_DISCOUNT) {
-            var x_visits = $("#section_settings_loyalty #revenue-discount-visits").val();
-            var x_discount = $("#section_settings_loyalty #revenue-discount-discount").val();
+            var x_visits = $("#section_loyalty #revenue-discount-visits").val();
+            var x_discount = $("#section_loyalty #revenue-discount-discount").val();
 
             var x_visits_f = parseInt(x_visits);
             var x_discount_f = parseInt(x_discount);
@@ -461,11 +461,11 @@ $(function() {
             }
             loyaltySettings["x_visits"] = x_visits_f;
             loyaltySettings["x_discount"] = x_discount_f;
-            
+
         } else if (loyaltyType == LOYALTY_TYPE_LOTTERY || loyaltyType == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
         } else if (loyaltyType == LOYALTY_TYPE_STAMPS) {
-            var x_stamps = $("#section_settings_loyalty #stamps-count").val();
-            var stamps_type = parseInt($("#section_settings_loyalty #stamps-type").val());
+            var x_stamps = $("#section_loyalty #stamps-count").val();
+            var stamps_type = parseInt($("#section_loyalty #stamps-type").val());
             var x_stamps_f = parseInt(x_stamps);
 
             if (isNaN(x_stamps_f)) {
@@ -485,10 +485,10 @@ $(function() {
 
             loyaltySettings["x_stamps"] = x_stamps_f;
             loyaltySettings["stamps_type"] = stamps_type;
-            loyaltySettings["stamps_winnings"] = $("#section_settings_loyalty #stamps-winnings").val();
-            loyaltySettings["stamps_auto_redeem"] = $("#section_settings_loyalty #stamps-auto-redeem").prop('checked');
-            
-        } else if (loyaltyType != LOYALTY_TYPE_SLIDES_ONLY) { 
+            loyaltySettings["stamps_winnings"] = $("#section_loyalty #stamps-winnings").val();
+            loyaltySettings["stamps_auto_redeem"] = $("#section_loyalty #stamps-auto-redeem").prop('checked');
+
+        } else if (loyaltyType != LOYALTY_TYPE_SLIDES_ONLY) {
             sln.alert(CommonTranslations.ERROR_OCCURED_UNKNOWN, null, CommonTranslations.ERROR);
             return;
         }
@@ -583,31 +583,31 @@ $(function() {
                     }
 
                     currentLoyaltyType = data.loyalty_type;
-                    $("#section_settings_loyalty #loyalty-type").val(data.loyalty_type);
-                    $("#section_settings_loyalty .loyalty-type-1").hide();
-                    $("#section_settings_loyalty .loyalty-type-2").hide();
-                    $("#section_settings_loyalty .loyalty-type-3").hide();
+                    $("#section_loyalty #loyalty-type").val(data.loyalty_type);
+                    $("#section_loyalty .loyalty-type-1").hide();
+                    $("#section_loyalty .loyalty-type-2").hide();
+                    $("#section_loyalty .loyalty-type-3").hide();
                     $('.sln-loyalty-badge').text('');
                     if (data.loyalty_type == LOYALTY_TYPE_REVENUE_DISCOUNT) {
-                        $("#section_settings_loyalty #revenue-discount-visits").val(data.loyalty_settings.x_visits);
-                        $("#section_settings_loyalty #revenue-discount-discount").val(data.loyalty_settings.x_discount);
-                        $("#section_settings_loyalty .loyalty-type-1").show();
+                        $("#section_loyalty #revenue-discount-visits").val(data.loyalty_settings.x_visits);
+                        $("#section_loyalty #revenue-discount-discount").val(data.loyalty_settings.x_discount);
+                        $("#section_loyalty .loyalty-type-1").show();
                         loadLoyaltyScans();
-                        
+
                     } else if (data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY && HAS_LOYALTY) {
                     } else if (data.loyalty_type == LOYALTY_TYPE_LOTTERY || data.loyalty_type == LOYALTY_TYPE_CITY_WIDE_LOTTERY) {
-                        $("#section_settings_loyalty .loyalty-type-2").show();
+                        $("#section_loyalty .loyalty-type-2").show();
                         $(".sln-loyalty-scans").hide();
                         loadLotteryInfo();
-                        
+
                     } else if (data.loyalty_type == LOYALTY_TYPE_STAMPS) {
-                        $("#section_settings_loyalty #stamps-count").val(data.loyalty_settings.x_stamps);
-                        $("#section_settings_loyalty #stamps-type").val(data.loyalty_settings.stamps_type);
-                        $("#section_settings_loyalty #stamps-winnings").val(data.loyalty_settings.stamps_winnings);
-                        $("#section_settings_loyalty #stamps-auto-redeem").prop('checked', data.loyalty_settings.stamps_auto_redeem);
-                        $("#section_settings_loyalty .loyalty-type-3").show();
+                        $("#section_loyalty #stamps-count").val(data.loyalty_settings.x_stamps);
+                        $("#section_loyalty #stamps-type").val(data.loyalty_settings.stamps_type);
+                        $("#section_loyalty #stamps-winnings").val(data.loyalty_settings.stamps_winnings);
+                        $("#section_loyalty #stamps-auto-redeem").prop('checked', data.loyalty_settings.stamps_auto_redeem);
+                        $("#section_loyalty .loyalty-type-3").show();
                         loadLoyaltyScans();
-                        
+
                     } else if (data.loyalty_type == LOYALTY_TYPE_SLIDES_ONLY) {
                     } else {
                         console.log("ERROR: Unknown loyalty type");
@@ -675,7 +675,7 @@ $(function() {
                     if (!data.success) {
                         return sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                     }
-                    $('#section_settings_loyalty tr[slide_id="' + slideId + '"]').fadeOut('slow', function() {
+                    $('#section_loyalty tr[slide_id="' + slideId + '"]').fadeOut('slow', function() {
                         $(this).remove();
                     });
                 },

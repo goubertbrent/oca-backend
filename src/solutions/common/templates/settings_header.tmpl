@@ -1,20 +1,3 @@
-<style>
-    .sln-set-logo #logo_div {
-        overflow: hidden;
-        width: {{ SLN_LOGO_WIDTH }}px;
-        height: {{ SLN_LOGO_HEIGHT }}px;
-        margin-bottom: 10px;
-        cursor: pointer;
-        border: solid lightgray 1px;
-    }
-</style>
-<script language="javascript">
-<!--
-var SOLUTION = "{{ sln_settings.solution }}";
-var SLN_LOGO_WIDTH = {{ SLN_LOGO_WIDTH }};
-var SLN_LOGO_HEIGHT = {{ SLN_LOGO_HEIGHT }};
--->
-</script>
 {% if not loyalty %}
 <script src="/static/js/solutions/sln-settings.js"></script>
 {% endif %}

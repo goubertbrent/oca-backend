@@ -55,7 +55,7 @@ div.navbar a.brand {
 
 /* </editor-fold>*/
 
-#sln-updates-pending-warning, #sln-required-warning {
+#sln-updates-pending-warning {
     width: 940px;
 }
 
@@ -509,22 +509,6 @@ select.disabled {
 
 .mobile_preview #canvas {
     height: 100%;
-}
-
-/* Settings page*/
-#avatar_div .settings_avatar {
-    max-width: none;
-    width: 150px;
-    height: 150px;
-}
-
-#avatar_div {
-    border-radius: 50%;
-    overflow: hidden;
-    width: 150px;
-    height: 150px;
-    margin-bottom: 10px;
-    cursor: pointer;
 }
 
 .typeahead_wrapper { display: block; height: 30px; }

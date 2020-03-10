@@ -481,22 +481,21 @@ $(function () {
     };
 
     var renderCalendarSettings = function () {
-        var menuHtmlElement = $("#section_settings_agenda_calendars tbody");
+        var menuHtmlElement = $("#section_agenda_calendars tbody");
         menuHtmlElement.empty();
 
         var html = $.tmpl(templates.events_settings, {
-            solution: SOLUTION,
             calendars: calendarsArray,
             user_email: service_user_email,
             CommonTranslations: CommonTranslations
         });
 
         menuHtmlElement.append(html);
-        $('#section_settings_agenda_calendars tbody button[action="editCalendar"]').click(editCalendar);
-        $('#section_settings_agenda_calendars tbody button[action="adminCalendar"]').click(function () {
+        $('#section_agenda_calendars tbody button[action="editCalendar"]').click(editCalendar);
+        $('#section_agenda_calendars tbody button[action="adminCalendar"]').click(function () {
             renderCalendarSettingsDetail(parseInt($(this).attr("calendar_id")));
         });
-        $('#section_settings_agenda_calendars tbody button[action="deleteCalendar"]').click(deleteCalendar);
+        $('#section_agenda_calendars tbody button[action="deleteCalendar"]').click(deleteCalendar);
 
         if (currentSettingsCalendarId) {
             loadGoogleCalendarStatus();
@@ -627,7 +626,7 @@ $(function () {
     };
 
     var channelUpdates = function (data) {
-        if (data.type === 'solutions.common.settings.timezoneChanged' || data.type === 'solutions.common.calendar.update') {
+        if (data.type === 'solutions.common.calendar.update') {
             loadCalendars();
         } else if (data.type === 'solutions.common.calendar.google.callback') {
             if (currentSettingsCalendarId === data.calendar_id) {
@@ -654,7 +653,7 @@ $(function () {
         $("#events section#" + currentCalendarId).show();
     };
 
-    $("#section_settings_agenda .add-calendar").click(addCalendar);
+    $("#section_agenda .add-calendar").click(addCalendar);
 
     function handleAuthClick() {
         sln.call({

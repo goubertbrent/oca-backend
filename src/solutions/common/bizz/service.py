@@ -30,16 +30,17 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.models import Product, RegioManagerTeam, CustomerSignup
+from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer
+from shop.to import CustomerServiceTO
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
 from solutions.common.bizz.campaignmonitor import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
-from solutions.common.to import SolutionInboxMessageTO
-
+from solutions.common.to import SolutionInboxMessageTO, ProvisionResponseTO
 
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
@@ -128,7 +129,7 @@ def create_customer_with_service(city_customer, customer, service, name, address
 
 
 def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False):
-    # type: (customer, CustomerServiceTO, bool, bool, bool, bool) -> ProvisionResponseTO
+    # type: (Customer, CustomerServiceTO, bool, bool, bool, bool) -> ProvisionResponseTO
     """Put the service, if rollback is set, it will remove the customer in case of failure."""
     from shop.bizz import put_service
     customer_key = customer.key()
@@ -189,11 +190,10 @@ def new_inbox_message(sln_settings, message, parent_chat_key=None, service_ident
 
 def send_inbox_message_update(sln_settings, message, service_identity=None):
     service_user = sln_settings.service_user
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
-    data = serialize_complex_value(message_to, SolutionInboxMessageTO, False)
+    service_info = get_service_info(service_user, service_identity)
     channel.send_message(service_user, u'solutions.common.messaging.update',
-                         message=data, service_identity=service_identity)
+                         message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict(),
+                         service_identity=service_identity)
 
 
 def _send_signup_status_inbox_reply(sln_settings, parent_chat_key, approved, reason):

@@ -7,6 +7,10 @@ mat-dialog-content {
   display: none;
 }
 
+.selected-file {
+  font-weight: bold;
+}
+
 .choose-button {
   margin: 16px;
 }
@@ -32,4 +36,5 @@ $img-dimension: 180px;
   justify-content: center;
   align-items: center;
   cursor: pointer;
+  position: absolute;
 }

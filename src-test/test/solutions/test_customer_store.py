@@ -85,17 +85,13 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
 
     def _create_service(self, customer):
         service = CustomerServiceTO()
-        service.address = u'antwerpsesteenweg 19 lochristi'
         service.apps = [App.APP_ID_ROGERTHAT, u'be-loc']
         service.broadcast_types = [u'broadcast']
-        service.currency = u'euro'
         service.email = u'test@example.com'
         service.language = u'en'
         mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
-        service.name = customer.name
         service.organization_type = OrganizationType.PROFIT
-        service.phone_number = u'00248498498494'
         service.app_infos = []
         service.current_user_app_infos = []
         service.managed_organization_types = []
@@ -107,17 +103,13 @@ class CustomerStoreTestCase(oca_unittest.TestCase):
         _, customer = self._create_customer_and_subscription_order([u'MSUP', u'KSUP', u'ILOS'])
 
         service = CustomerServiceTO()
-        service.address = u'antwerpsesteenweg 19 lochristi'
         service.apps = [App.APP_ID_ROGERTHAT, u'be-loc']
         service.broadcast_types = [u'broadcast']
-        service.currency = u'euro'
         service.email = u'test@example.com'
         service.language = u'en'
         mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
-        service.name = customer.name
         service.organization_type = OrganizationType.PROFIT
-        service.phone_number = u'00248498498494'
         service.app_infos = []
         service.current_user_app_infos = []
         service.managed_organization_types = []

@@ -1,7 +1,7 @@
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from './loadable/loadable';
 import { SharedActions, SharedActionTypes } from './shared.actions';
 import { initialSharedState, SharedState } from './shared.state';
-import { stateLoading, stateSuccess } from './util';
+import { stateError, stateLoading, stateSuccess } from './util';
 
 export function sharedReducer(state: SharedState = initialSharedState, action: SharedActions): SharedState {
   switch (action.type) {
@@ -42,11 +42,20 @@ export function sharedReducer(state: SharedState = initialSharedState, action: S
     case SharedActionTypes.GET_SOLUTION_SETTINGS_FAILED:
       return { ...state, solutionSettings: onLoadableError(action.error, initialSharedState.solutionSettings.data) };
     case SharedActionTypes.GET_BRANDING_SETTINGS:
-      return { ...state, brandingSettings: onLoadableLoad(initialSharedState.brandingSettings.data) };
+      return { ...state, brandingSettings: stateLoading(initialSharedState.brandingSettings.result) };
     case SharedActionTypes.GET_BRANDING_SETTINGS_COMPLETE:
-      return { ...state, brandingSettings: onLoadableSuccess(action.payload) };
+      return { ...state, brandingSettings: stateSuccess(action.payload) };
     case SharedActionTypes.GET_BRANDING_SETTINGS_FAILED:
-      return { ...state, brandingSettings: onLoadableError(action.error, initialSharedState.brandingSettings.data) };
+      return { ...state, brandingSettings: stateError(action.error, state.brandingSettings.result) };
+    case SharedActionTypes.UPDATE_AVATAR:
+    case SharedActionTypes.UPDATE_LOGO:
+      return { ...state, brandingSettings: stateLoading(state.brandingSettings.result) };
+    case SharedActionTypes.UPDATE_AVATAR_COMPLETE:
+    case SharedActionTypes.UPDATE_LOGO_COMPLETE:
+      return { ...state, brandingSettings: stateSuccess(action.payload) };
+    case SharedActionTypes.UPDATE_AVATAR_FAILED:
+    case SharedActionTypes.UPDATE_LOGO_FAILED:
+      return { ...state, brandingSettings: stateError(action.error, state.brandingSettings.result) };
     case SharedActionTypes.GET_GLOBAL_CONFIG:
       return { ...state, globalConfig: stateLoading(initialSharedState.globalConfig.result) };
     case SharedActionTypes.GET_GLOBAL_CONFIG_COMPLETE:

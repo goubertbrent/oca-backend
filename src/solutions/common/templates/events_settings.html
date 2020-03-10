@@ -12,11 +12,9 @@
 				<button calendar_id="${calendar.id}" action="editCalendar" class="btn">
 					<i class="icon-pencil"></i>
 				</button>
-				{{if solution == "flex"}}
 				<button calendar_id="${calendar.id}" action="adminCalendar" class="btn">
                     <i class="icon-cog"></i>
                 </button>
-                {{/if}}
                 {{if calendar.can_delete }}
 				<button calendar_id="${calendar.id}" action="deleteCalendar" class="btn">
 					<i class="icon-trash"></i>

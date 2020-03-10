@@ -21,6 +21,7 @@ import re
 from collections import defaultdict
 from types import NoneType
 
+import cloudstorage
 from babel.numbers import format_currency
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
@@ -32,7 +33,7 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.gcs import get_serving_url
-from rogerthat.bizz.maps.services.place_types import PlaceType, TRANSLATION_KEYS
+from rogerthat.bizz.maps.services.place_types import PlaceType, PLACE_DETAILS, get_place_label
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
@@ -52,13 +53,13 @@ from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.to.friends import FriendListResultTO, ServiceMenuDetailTO
-from rogerthat.to.messaging import AttachmentTO, BaseMemberTO, KeyValueTO
+from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.to.system import ServiceIdentityInfoTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
-from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, get_app_id_from_app_user, \
-    get_app_user_tuple
+from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
+    get_app_id_from_app_user, get_app_user_tuple
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
@@ -80,16 +81,16 @@ from solutions.common.bizz.group_purchase import save_group_purchase, delete_gro
 from solutions.common.bizz.images import upload_file, list_files
 from solutions.common.bizz.inbox import send_statistics_export_email, send_inbox_info_messages_to_services
 from solutions.common.bizz.loyalty import update_user_data_admins
-from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url, menu_is_visible
+from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
 from solutions.common.bizz.news import is_regional_news_enabled
 from solutions.common.bizz.paddle import get_paddle_info, populate_info_from_paddle
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
-from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls
+from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls, get_service_info
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
-from solutions.common.consts import TRANSLATION_MAPPING
+from solutions.common.consts import TRANSLATION_MAPPING, OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_calendars, get_solution_inbox_messages, \
     get_solution_identity_settings, get_solution_settings_or_identity_settings, \
@@ -99,7 +100,7 @@ from solutions.common.dal.repair import get_solution_repair_orders, get_solution
 from solutions.common.integrations.jcc.jcc_appointments import get_jcc_settings, save_jcc_settings
 from solutions.common.integrations.qmatic.qmatic import get_qmatic_settings, save_qmatic_settings
 from solutions.common.localizer import translations
-from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, RestaurantMenu, \
+from solutions.common.models import SolutionBrandingSettings, SolutionSettings, SolutionInboxMessage, \
     SolutionRssScraperSettings
 from solutions.common.models.agenda import SolutionCalendar
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe, SolutionAppointmentSettings
@@ -251,7 +252,7 @@ def inbox_load_all():
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    service_info = get_service_info(service_user, service_identity)
 
     unread_cursor, unread_messages, unread_has_more = get_solution_inbox_messages(service_user,
                                                                                   service_identity,
@@ -275,7 +276,7 @@ def inbox_load_all():
                (SolutionInboxMessage.INBOX_NAME_READ, read_cursor, read_messages, read_has_more),
                (SolutionInboxMessage.INBOX_NAME_TRASH, trash_cursor, trash_messages, trash_has_more)]
 
-    return [SolutionInboxesTO.fromModel(name, cursor, messages, has_more, sln_settings, sln_i_settings, True) for
+    return [SolutionInboxesTO.fromModel(name, cursor, messages, has_more, sln_settings, service_info, True) for
             name, cursor, messages, has_more in inboxes]
 
 
@@ -287,9 +288,9 @@ def inbox_load_more(name, count, cursor):
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    service_info = get_service_info(service_user, service_identity)
     cursor_, messages, has_more = get_solution_inbox_messages(service_user, service_identity, count, name, cursor)
-    return SolutionInboxesTO.fromModel(name, cursor_, messages, has_more, sln_settings, sln_i_settings, True)
+    return SolutionInboxesTO.fromModel(name, cursor_, messages, has_more, sln_settings, service_info, True)
 
 
 @rest("/common/inbox/load/detail", "get", read_only_access=True)
@@ -303,8 +304,8 @@ def inbox_load_detail(key):
     sim = SolutionInboxMessage.get(key)
     messages = [sim]
     messages.extend(sim.get_child_messages())
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    return [SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, False) for message in messages]
+    service_info = get_service_info(service_user, service_identity)
+    return [SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, False) for message in messages]
 
 
 @rest("/common/inbox/message/update/reply", "post")
@@ -366,12 +367,11 @@ def _after_inbox_message_updated(inbox_message):
         service_user = users.get_current_user()
         service_identity = users.get_current_session().service_identity
         sln_settings = get_solution_settings(service_user)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+        service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(
-                         SolutionInboxMessageTO.fromModel(inbox_message, sln_settings, sln_i_settings, True),
-                         SolutionInboxMessageTO, False))
+                     message=SolutionInboxMessageTO.fromModel(inbox_message, sln_settings, service_info,
+                                                              True).to_dict())
         deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException as e:
@@ -386,7 +386,7 @@ def inbox_message_update_trashed(key, trashed):
     session_ = users.get_current_session()
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    service_info = get_service_info(service_user, service_identity)
     try:
         sim = SolutionInboxMessage.get(key)
         if trashed and sim.trashed:
@@ -395,9 +395,7 @@ def inbox_message_update_trashed(key, trashed):
         sim.put()
         send_message(service_user, u"solutions.common.messaging.update",
                      service_identity=service_identity,
-                     message=serialize_complex_value(
-                         SolutionInboxMessageTO.fromModel(sim, sln_settings, sln_i_settings, True),
-                         SolutionInboxMessageTO, False))
+                     message=SolutionInboxMessageTO.fromModel(sim, sln_settings, service_info, True).to_dict())
         if not sim.deleted:
             deferred.defer(update_user_data_admins, service_user, service_identity)
         return RETURNSTATUS_TO_SUCCESS
@@ -599,19 +597,33 @@ def settings_load():
     return to
 
 
-@rest('/common/settings/place_types', 'get', read_only_access=True, silent_result=True)
-@returns([KeyValueTO])
+@rest('/common/available-place-types', 'get', read_only_access=True, silent_result=True)
+@returns([dict])
 @arguments()
 def rest_get_place_types():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-
-    l = []
+    customer = get_customer(service_user)
+    result_list = []
     for place_type in PlaceType.all():
-        for key in TRANSLATION_KEYS.get(place_type, []):
-            l.append(KeyValueTO(key=place_type, value=localize(sln_settings.main_language, key)))
-            break
-    return sorted(l, key=lambda x: x.value)
+        place_details = PLACE_DETAILS[place_type]
+        if not place_details.visible:
+            continue
+        if place_details.replaced_by:
+            continue
+        if not is_place_visible_for_customer(place_details, customer):
+            continue
+        result_list.append({'value': place_type,
+                            'label': get_place_label(place_details, sln_settings.main_language)})
+    return sorted(result_list, key=lambda x: x['label'].lower())
+
+
+def is_place_visible_for_customer(place_details, customer):
+    if not place_details.organization_types:
+        return True
+    if customer and customer.organization_type in place_details.organization_types:
+        return True
+    return False
 
 
 def _get_city_services(app_id):
@@ -619,7 +631,7 @@ def _get_city_services(app_id):
     return [SimpleServiceTO(name=c.name, service_email=c.service_email) for c in customers if c.service_email]
 
 
-@rest('/common/settings/paddle', 'get', type=REST_TYPE_TO)
+@rest('/common/settings/paddle', 'get', type=REST_TYPE_TO, silent_result=True)
 @returns(PaddleSettingsServicesTO)
 @arguments()
 def rest_get_paddle_settings():
@@ -632,7 +644,7 @@ def rest_get_paddle_settings():
                                     services=_get_city_services(si.defaultAppId))
 
 
-@rest('/common/settings/paddle', 'put', type=REST_TYPE_TO)
+@rest('/common/settings/paddle', 'put', type=REST_TYPE_TO, silent_result=True)
 @returns(PaddleSettingsServicesTO)
 @arguments(data=PaddleSettingsTO)
 def rest_save_paddle_settings(data):
@@ -669,40 +681,13 @@ def rest_save_paddle_settings(data):
                                     services=_get_city_services(si.defaultAppId))
 
 
-@rest("/common/settings/defaults/all", "get")
-@returns([unicode])
-@arguments()
-def get_all_defaults():
-    """Get all settings that are set to the default. (e.g. menu, logo...etc)"""
-    service_user = users.get_current_user()
-    sln_settings, branding_settings = db.get([SolutionSettings.create_key(service_user),
-                                              SolutionBrandingSettings.create_key(service_user)])
-    defaults = []
-
-    if SolutionModule.BROADCAST in sln_settings.modules and not sln_settings.broadcast_types:
-        defaults.append(u'broadcast_types')
-
-    if not branding_settings.logo_url:
-        defaults.append(u'Logo')
-
-    if not branding_settings.avatar_url:
-        defaults.append(u'Avatar')
-
-    if menu_is_visible(sln_settings):
-        menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
-        if not menu or menu.is_default:
-            defaults.append(u'menu')
-
-    return defaults
-
-
 @rest("/common/settings/publish_changes", "post")
 @returns(ReturnStatusTO)
 @arguments(friends=[BaseMemberTO])
 def settings_publish_changes(friends=None):
     service_user = users.get_current_user()
     try:
-        common_provision(service_user, friends=friends)
+        common_provision(service_user, friends=friends, run_checks=True)
         return RETURNSTATUS_TO_SUCCESS
     except InvalidValueException as e:
         reason = e.fields.get('reason')
@@ -728,18 +713,19 @@ def settings_save_publish_changes_users(user_keys):
     sln_settings.put()
 
 
-@rest('/common/settings/logo', 'post')
+@rest('/common/settings/logo', 'put')
 @returns(BrandingSettingsTO)
-@arguments(image=unicode)
-def rest_update_logo(image):
-    return BrandingSettingsTO.from_model(set_logo(users.get_current_user(), image))
+@arguments(data=BrandingSettingsTO)
+def rest_update_logo(data):
+    service_identity = users.get_current_session().service_identity
+    return BrandingSettingsTO.from_model(set_logo(users.get_current_user(), data.logo_url, service_identity))
 
 
-@rest('/common/settings/avatar', 'post')
+@rest('/common/settings/avatar', 'put', type=REST_TYPE_TO)
 @returns(BrandingSettingsTO)
-@arguments(image=unicode)
-def rest_update_avatar(image):
-    return BrandingSettingsTO.from_model(set_avatar(users.get_current_user(), image))
+@arguments(data=BrandingSettingsTO)
+def rest_update_avatar(data):
+    return BrandingSettingsTO.from_model(set_avatar(users.get_current_user(), data.avatar_url))
 
 
 @rest("/common/settings/consent", "post")
@@ -1947,7 +1933,7 @@ def api_get_app_names():
     return [{'name': key, 'id': value} for key, value in get_country_apps(customer.country).iteritems()]
 
 
-@rest('/common/files/<prefix:[^/]+>', 'post')
+@rest('/common/files/<prefix:.*>', 'post')
 @returns(UploadedImageTO)
 @arguments(prefix=unicode)
 def rest_upload_file(prefix):
@@ -1966,6 +1952,8 @@ def rest_upload_file(prefix):
                 raise FormNotFoundException(form_id)
             prefix = 'forms/%d' % form_id
             reference = form_key
+        elif reference_type == 'branding_settings':
+            reference = ndb.Key.from_old_key(SolutionBrandingSettings.create_key(service_user))
 
     result = upload_file(users.get_current_user(), uploaded_file, prefix, reference)
     return UploadedImageTO.from_dict(result.to_dict(extra_properties=['url']))
@@ -1973,12 +1961,35 @@ def rest_upload_file(prefix):
 
 @rest('/common/files', 'get', read_only_access=True, silent_result=True)
 @returns([GcsFileTO])
-@arguments()
-def rest_list_uploaded_files():
+@arguments(prefix=unicode)
+def rest_list_uploaded_files(prefix=None):
     # Only returns images for now
     return [GcsFileTO(url=get_serving_url(i.cloudstorage_path), content_type=i.content_type, size=i.size or -1)
-            for i in list_files(users.get_current_user()) if
+            for i in list_files(users.get_current_user(), prefix) if
             i.content_type in (AttachmentTO.CONTENT_TYPE_IMG_JPG, AttachmentTO.CONTENT_TYPE_IMG_PNG)]
+
+
+@rest('/common/image-gallery/<prefix:[^/]+>', 'get', read_only_access=True, silent_result=True)
+@returns([GcsFileTO])
+@arguments(prefix=unicode)
+def rest_list_gallery_images(prefix):
+    path = '/%s/image-library/%s' % (OCA_FILES_BUCKET, prefix)
+    if DEBUG:
+        return [
+            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/merchant.jpg' % prefix,
+                      content_type='image/jpeg',
+                      size=-1),
+            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/community-service.jpg' % prefix,
+                      content_type='image/jpeg',
+                      size=-1),
+            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/association.jpg' % prefix,
+                      content_type='image/jpeg',
+                      size=-1),
+            GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/care.jpg' % prefix,
+                      content_type='image/jpeg',
+                      size=-1),
+        ]
+    return [GcsFileTO(url=f.filename, content_type=f.content_type, size=f.size) for f in cloudstorage.listbucket(path)]
 
 
 @rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,

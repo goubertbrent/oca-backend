@@ -3,6 +3,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatRippleModule } from '@angular/material/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -23,6 +24,7 @@ import { UploadFileDialogComponent } from './upload-file-dialog/upload-file-dial
     MatButtonModule,
     MatDialogModule,
     MatProgressBarModule,
+    MatRippleModule,
   ],
   entryComponents: [ UploadFileDialogComponent ],
   exports: [ UploadFileDialogComponent, ImageCropperComponent ],

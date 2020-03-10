@@ -118,12 +118,8 @@ var validateRequiredFieldsInCurrentTab = function() {
 };
 
 var submitMetadata = function() {
-    newService.name = $("#create_service_form #service_name").val().trim();
     newService.email = $("#create_service_form #service_email").val().trim();
-    newService.address = $("#create_service_form #service_address").val().trim();
-    newService.phone_number = $("#create_service_form #service_phone_number").val().trim();
     newService.language = $("#create_service_form #service_language").val();
-    newService.currency = $("#create_service_form #service_currency").val();
     newService.organization_type = parseInt($('#create_service_form #service_organization_type').val());
 
     showNextTab();
@@ -449,10 +445,10 @@ var customerSelected = function(customer) {
 
                 var createServiceForm = $('#create_service_form');
                 // set values
-                $.each([ 'name', 'email', 'address', 'phone_number', 'language', 'currency', 'organization_type' ],
-                        function(i, attr) {
-                            $('#service_' + attr, createServiceForm).val(service[attr]);
-                        });
+                $.each(['email', 'language', 'organization_type'],
+                    function (i, attr) {
+                        $('#service_' + attr, createServiceForm).val(service[attr]);
+                    });
                 // set checkBoxes
                 $.each([ 'modules', 'broadcast_types', 'apps', 'managed_organization_types'], function(i, attr) {
                     $('#form_' + attr + ' input[type="checkbox"]', createServiceForm).each(function() {
@@ -497,7 +493,6 @@ var customerSelected = function(customer) {
             }
         });
     } else {
-        $('#tab-service').find('#service_currency').val('EUR');
         ShopRequests.getContacts(customer.id).then(contacts => prefillServiceData(customer, contacts[0]));
 
         sln.call({
@@ -538,10 +533,6 @@ function prefillServiceData(customer, contact) {
     showServiceError(null);
     if (customer) {
         $('#service_organization_type').val(customer.organization_type);
-        $('#service_name').val(customer.name);
-        $('#service_address').val($.tmpl(TMPL_ADDRESS, {
-            customer: customer
-        }).text());
         $('#service_language').val(customer.language);
     }
 

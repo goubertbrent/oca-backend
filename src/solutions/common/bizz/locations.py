@@ -15,16 +15,15 @@
 #
 # @@license_version:1.5@@
 
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.opening_hours import save_textual_opening_hours
 from rogerthat.consts import FAST_QUEUE
+from rogerthat.models import OpeningHours, ServiceIdentity
+from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.utils.transactions import on_trans_committed
-from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import common_provision
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionIdentitySettings
@@ -43,36 +42,54 @@ def create_new_location(service_user, name, broadcast_to_users=None):
     def trans():
         sln_i_settings_key = SolutionIdentitySettings.create_key(service_user, service_identity)
         sln_i_settings = SolutionIdentitySettings(key=sln_i_settings_key)
-        sln_i_settings.name = name
-        sln_i_settings.phone_number = sln_settings.phone_number
-        sln_i_settings.qualified_identifier = sln_settings.qualified_identifier
-        sln_i_settings.description = sln_settings.description
-        sln_i_settings.opening_hours = sln_settings.opening_hours
-        sln_i_settings.address = sln_settings.address
-        sln_i_settings.location = sln_settings.location
-        sln_i_settings.search_keywords = sln_settings.search_keywords
         sln_i_settings.inbox_forwarders = []
         sln_i_settings.inbox_connector_qrcode = None
         sln_i_settings.inbox_mail_forwarders = []
         sln_i_settings.inbox_email_reminders_enabled = False
-        sln_i_settings.holidays = []
-        sln_i_settings.holiday_out_of_office_message = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'holiday-out-of-office')
         sln_i_settings.put()
 
         if not sln_settings.identities:
             sln_settings.identities = []
         sln_settings.identities.append(service_identity)
         sln_settings.put()
+        _copy_service_info(service_user, service_identity, name)
         on_trans_committed(_create_service_identity, service_user, sln_i_settings, broadcast_to_users)
-        on_trans_committed(save_textual_opening_hours, sln_i_settings.service_identity_user.email(), sln_i_settings.opening_hours)
 
     xg_on = db.create_transaction_options(xg=True)
     db.run_in_transaction_options(xg_on, trans)
 
+
+def _copy_service_info(service_user, new_identity, name):
+    hours = OpeningHours.create_key(service_user, ServiceIdentity.DEFAULT).get()  # type: OpeningHours
+    if not hours:
+        return
+    new_hours = OpeningHours(key=OpeningHours.create_key(service_user, new_identity))
+    new_hours.exceptional_opening_hours = hours.exceptional_opening_hours
+    new_hours.periods = hours.periods
+    new_hours.text = hours.text
+    new_hours.type = hours.type
+    new_hours.title = hours.title
+
+    service_info = ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT).get()  # type: ServiceInfo
+    info = ServiceInfo(key=ServiceInfo.create_key(service_user, new_identity))
+    info.addresses = service_info.addresses
+    info.cover_media = service_info.cover_media
+    info.description = service_info.description
+    info.email_addresses = service_info.email_addresses
+    info.keywords = service_info.keywords
+    info.name = name
+    info.phone_numbers = service_info.phone_numbers
+    info.place_types = service_info.place_types
+    info.synced_fields = service_info.synced_fields
+    info.timezone = service_info.timezone
+    info.visible = service_info.visible
+    info.websites = service_info.websites
+    ndb.put_multi([new_hours, info])
+
+
 @returns()
 @arguments(service_user=users.User, sln_i_settings=SolutionIdentitySettings, broadcast_to_users=[users.User])
 def _create_service_identity(service_user, sln_i_settings, broadcast_to_users=None):
-
     users.set_user(service_user)
     try:
         si_details = system.get_identity()

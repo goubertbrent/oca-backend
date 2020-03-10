@@ -1,0 +1,25 @@
+.full-width-field {
+  width: 100%;
+}
+
+.use-cover-photo {
+  margin-left: 16px;
+}
+
+.image-container {
+  margin: 16px 0;
+  position: relative;
+  display: inline-block;
+  max-width: 320px;
+
+  img {
+    max-height: 250px;
+    max-width: 100%;
+  }
+
+  .btn-media-delete {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+  }
+}

@@ -14,12 +14,14 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { TranslateService } from '@ngx-translate/core';
 import { EASYMDE_OPTIONS } from '../../../../environments/config';
+import { DEFAULT_AVATAR_URL } from '../../../consts';
 import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { UploadedFile, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
+import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS, OPEN_OPTIONS } from '../../consts';
 import {
+  BaseMedia,
   CreateNews,
   Gender,
   MediaType,
@@ -50,7 +52,7 @@ export class EditNewsComponent implements OnChanges {
   @Input() options: Loadable<NewsOptions>;
   @Input() actionButtons: Loadable<Readonly<UINewsActionButton>[]>;
   @Input() remainingBudget: string;
-  @Input() brandingSettings: Loadable<BrandingSettings>;
+  @Input() brandingSettings: BrandingSettings | null;
   @Output() save = new EventEmitter<CreateNews>();
   @Output() regionalNewsToggled = new EventEmitter<boolean>();
   hasLocal = false;
@@ -65,16 +67,15 @@ export class EditNewsComponent implements OnChanges {
   };
   actionButton: UINewsActionButton | null = null;
   EASYMDE_OPTIONS = EASYMDE_OPTIONS;
+  DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
   NewsActionButtonType = NewsActionButtonType;
   GENDERS = GENDER_OPTIONS;
   NEWS_MEDIA_TYPE_OPTIONS: { label: string; value: MediaType | null }[] = [];
   openOptions = OPEN_OPTIONS;
   MediaType = MediaType;
   URL_PATTERN = '(https?:\\/\\/)?([\\w\\-])+\\.{1}([a-zA-Z]{2,63})([\\/\\w-]*)*\\/?\\??([^#\\n\\r]*)?#?([^\\n\\r]*)';
-  YOUTUBE_REGEX = new RegExp('^.*(youtu.be\\/|v\\/|embed\\/|watch\\?|youtube.com\\/user\\/[^#]*#([^\\/]*?\\/)*)\\??v?=?([^#\\&\\?]*).*');
   hasGroupVisible = false;
   showGroupInfoDetails = false;
-  youtubeUrl: string | null;
   selectedMediaType: MediaType | null = MediaType.IMAGE;
 
   constructor(private _matDialog: MatDialog,
@@ -99,9 +100,6 @@ export class EditNewsComponent implements OnChanges {
     if (changes.newsItem && changes.newsItem.currentValue) {
       this.groupTypeChanged();
       this.selectedMediaType = this.newsItem.media && this.newsItem.media.type;
-      if (this.newsItem.media && this.newsItem.media.type === MediaType.YOUTUBE_VIDEO) {
-        this.setYoutubeUrl(`https://youtu.be/${this.newsItem.media.content}`);
-      }
     }
     if (changes.serviceInfo && this.serviceInfo) {
       this.defaultAppId = this.serviceInfo.default_app;
@@ -119,30 +117,6 @@ export class EditNewsComponent implements OnChanges {
     if (changes.options && this.options && this.options.data) {
       const mediaTypes = this.options.data.media_types;
       this.NEWS_MEDIA_TYPE_OPTIONS = NEWS_MEDIA_TYPE_OPTIONS.filter(o => o.value === null || mediaTypes.includes(o.value));
-    }
-  }
-
-  showImageDialog() {
-    const config: MatDialogConfig<UploadFileDialogConfig> = {
-      data: {
-        uploadPrefix: 'news',
-        title: this._translate.instant('oca.image'),
-      },
-    };
-    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFile) => {
-      if (result) {
-        this.newsItem = {
-          ...this.newsItem,
-          media: { type: MediaType.IMAGE, content: result.url },
-        };
-        this._changeDetectorRef.markForCheck();
-      }
-    });
-  }
-
-  useCoverPhoto() {
-    if (this.brandingSettings.data && this.brandingSettings.data.logo_url) {
-      this.newsItem = { ...this.newsItem, media: { type: MediaType.IMAGE, content: this.brandingSettings.data.logo_url } };
     }
   }
 
@@ -324,9 +298,9 @@ export class EditNewsComponent implements OnChanges {
         accept: 'image/png,image/jpeg,application/pdf,video/mp4',
       },
     };
-    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFile) => {
+    this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {
       if (result && this.actionButton) {
-        this.actionButton = { ...this.actionButton, button: { ...this.actionButton.button, action: result.url } };
+        this.actionButton = { ...this.actionButton, button: { ...this.actionButton.button, action: result.getUrl() } };
         this._changeDetectorRef.markForCheck();
       }
     });
@@ -353,21 +327,6 @@ export class EditNewsComponent implements OnChanges {
         this._changeDetectorRef.markForCheck();
       }
     });
-  }
-
-  removeMedia() {
-    this.newsItem = { ...this.newsItem, media: null };
-    this.setYoutubeUrl(null);
-  }
-
-  setYoutubeUrl(url: string | null) {
-    if (url) {
-      const id = this.getYoutubeVideoId(url);
-      if (id) {
-        this.newsItem = { ...this.newsItem, media: { type: MediaType.YOUTUBE_VIDEO, content: id } };
-      }
-    }
-    this.youtubeUrl = url;
   }
 
   groupTypeChanged() {
@@ -408,13 +367,8 @@ export class EditNewsComponent implements OnChanges {
     this.setActionButton(this.newsItem.action_button);
   }
 
-  private getYoutubeVideoId(url: string) {
-    const result = this.YOUTUBE_REGEX.exec(url);
-    if (result) {
-      return result[ 3 ];
-    } else {
-      return null;
-    }
+  setMedia(media: BaseMedia | null) {
+    this.newsItem = { ...this.newsItem, media };
   }
 
   private isRegional() {

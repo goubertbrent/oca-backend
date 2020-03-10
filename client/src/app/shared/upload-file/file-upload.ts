@@ -1,8 +1,11 @@
-export interface UploadedFile {
-  id: number;
+export interface GcsFile {
   content_type: string;
   size: number;
   url: string;
+}
+
+export interface UploadedFile extends GcsFile {
+  id: number;
 }
 
 export interface UploadFormFileReference {
@@ -10,12 +13,16 @@ export interface UploadFormFileReference {
   id: number;
 }
 
+export interface UploadFormFileBrandingSettings {
+  type: 'branding_settings';
+}
+
 export interface UploadEventFileReference {
   type: 'event';
   id: number;
 }
 
-export type UploadFileReference = UploadFormFileReference | UploadEventFileReference;
+export type UploadFileReference = UploadFormFileReference | UploadEventFileReference | UploadFormFileBrandingSettings;
 
 export interface UploadFileDialogConfig {
   reference?: UploadFileReference;
@@ -25,4 +32,11 @@ export interface UploadFileDialogConfig {
   // https://github.com/fengyuanchen/cropperjs/blob/master/README.md#options
   cropOptions?: Cropper.Options;
   croppedCanvasOptions?: Cropper.GetCroppedCanvasOptions;
+  /**
+   * When set, the list of images you're able to choose will be limited to files with this path prefix
+   */
+  listPrefix?: string;
+  gallery?: {
+    prefix: 'logo' | 'avatar';
+  };
 }

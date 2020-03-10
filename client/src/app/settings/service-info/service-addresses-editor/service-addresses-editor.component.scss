@@ -1,0 +1,24 @@
+.address-map {
+  width: 580px;
+  height: 250px;
+}
+
+.place-field, .address-field {
+  width: 528px;
+}
+
+.address-fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-fields {
+  margin: 0 16px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.save-button {
+  margin: 8px;
+}

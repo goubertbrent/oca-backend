@@ -29,9 +29,9 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 import jinja2
 from babel import dates
-from babel.dates import format_date, format_timedelta, get_next_timezone_transition, format_time, get_timezone
+from babel.dates import format_timedelta, get_next_timezone_transition, format_time
 from babel.numbers import format_currency
-from google.appengine.ext import db, deferred
+from google.appengine.ext import db, deferred, ndb
 from typing import List
 
 import solutions
@@ -39,11 +39,14 @@ from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
 from rogerthat.bizz.features import Features
-from rogerthat.consts import DAY, DEBUG
-from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_ndb_key
-from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App
+from rogerthat.consts import DEBUG
+from rogerthat.dal import parent_ndb_key
+from rogerthat.consts import DAY
+from rogerthat.dal import parent_key, put_and_invalidate_cache
+from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, OpeningHours, ServiceIdentity
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.models.utils import ndb_allocate_id
+from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.service.api import system, qr
 from rogerthat.service.api.news import list_groups
@@ -68,6 +71,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS
+from solutions.common.bizz.opening_hours import opening_hours_to_text
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
 from solutions.common.bizz.reservation import put_default_restaurant_settings
@@ -354,45 +358,41 @@ def populate_identity(sln_settings, main_branding_key):
         sln_settings (SolutionSettings)
         main_branding_key (unicode)
     """
-    search_config_locations = list()
-    if sln_settings.location:
-        location_to = ProfileLocationTO()
-        location_to.address = sln_settings.address
-        location_to.lat = long(sln_settings.location.lat * 1000000)
-        location_to.lon = long(sln_settings.location.lon * 1000000)
-        search_config_locations.append(location_to)
+    service_user = sln_settings.service_user
 
     content_branding_hash = None
     if SolutionModule.LOYALTY in sln_settings.modules or \
         SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules:
-        solution_loyalty_settings = get_and_store_content_branding(
-            sln_settings.service_user, sln_settings.main_language)
+        solution_loyalty_settings = get_and_store_content_branding(service_user, sln_settings.main_language)
         content_branding_hash = solution_loyalty_settings.branding_key
 
-    branding_settings = SolutionBrandingSettings.get_by_user(sln_settings.service_user)
+    branding_settings = SolutionBrandingSettings.get_by_user(service_user)
 
     logging.info('Updating identities')  # idempotent
-    identities = [None]
+    identities = [ServiceIdentity.DEFAULT]
     if sln_settings.identities:
         identities.extend(sln_settings.identities)
+    keys = []
+    for identity in identities:
+        keys.append(OpeningHours.create_key(service_user, identity))
+        keys.append(ServiceInfo.create_key(service_user, identity))
+    models = {model.key: model for model in ndb.get_multi(keys) if model}
     for service_identity in identities:
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        search_config_locations = list()
-        if sln_i_settings.location:
-            location_to = ProfileLocationTO()
-            location_to.address = sln_i_settings.address
-            location_to.lat = long(sln_i_settings.location.lat * 1000000)
-            location_to.lon = long(sln_i_settings.location.lon * 1000000)
-            search_config_locations.append(location_to)
+        opening_hours = models.get(OpeningHours.create_key(service_user, service_identity))
+        service_info = models.get(ServiceInfo.create_key(service_user, service_identity))  # type: ServiceInfo
+        search_config_locations = [ProfileLocationTO(address=address.value,
+                                                     lat=long(address.coordinates.lat * 1000000),
+                                                     lon=long(address.coordinates.lon * 1000000))
+                                   for address in service_info.addresses]
 
         logging.info('Updating identity %s', service_identity)  # idempotent
         identity = system.get_identity(service_identity)
-        if not service_identity:
+        if service_identity == ServiceIdentity.DEFAULT:
             default_app_name = identity.app_names[0]
             if SolutionModule.CITY_APP in sln_settings.modules:
                 invalidate_service_user_for_city(identity.app_ids[0])
-        identity.name = sln_i_settings.name
-        identity.description = sln_i_settings.description
+        identity.name = service_info.name
+        identity.description = service_info.description
         identity.description_use_default = False
         # making sure we don't overwrite a custom description_branding
         if identity.description_branding and identity.description_branding != identity.menu_branding:
@@ -401,23 +401,22 @@ def populate_identity(sln_settings, main_branding_key):
         else:
             identity.description_branding = main_branding_key
         identity.menu_branding = main_branding_key
-        identity.phone_number = sln_i_settings.phone_number
+        identity.phone_number = service_info.main_phone_number
         identity.phone_number_use_default = False
         identity.recommend_enabled = branding_settings.recommend_enabled if branding_settings else False
-        identity.search_config.enabled = sln_settings.search_enabled
-        identity.search_config.keywords = sln_i_settings.search_keywords
+        identity.search_config.enabled = service_info.visible
+        identity.search_config.keywords = ' '.join(service_info.keywords)
         identity.search_config.locations = search_config_locations
-        identity.qualified_identifier = sln_i_settings.qualified_identifier
+        identity.qualified_identifier = service_info.main_email_address
         identity.content_branding_hash = content_branding_hash
-        identity.place_types_user_default = False
-        identity.place_types = sln_i_settings.place_types
         system.put_identity(identity)
 
         default_app_id = identity.app_ids[0]
-        app_data = create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id)
+        app_data = create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id,
+                                   opening_hours)
         system.put_service_data(json.dumps(app_data).decode('utf8'), service_identity)
 
-        handle_auto_connected_service(sln_settings.service_user, sln_settings.search_enabled)
+        handle_auto_connected_service(service_user, sln_settings.search_enabled)
 
 
 def handle_auto_connected_service(service_user, visible):
@@ -448,7 +447,8 @@ def handle_auto_connected_service(service_user, visible):
         delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
 
 
-def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_name, default_app_id):
+def create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id, opening_hours):
+    # type: (SolutionSettings, str, ServiceInfo, str, str, OpeningHours) -> dict
     start = datetime.now()
     timezone_offsets = []
     for _ in xrange(20):
@@ -464,54 +464,36 @@ def create_app_data(sln_settings, service_identity, sln_i_settings, default_app_
                                  int(t.from_offset)])
         start = t.activates
 
-    holiday_dates = []
-    holiday_dates_str = []
-    cur_date = now()
-    lang = sln_settings.main_language
-    tz = sln_settings.tz_info
-    for d1, d2 in sln_i_settings.holiday_tuples:
-        # don't include holidays in the past
-        if cur_date < d2:
-            holiday_dates.append({'from': d1, 'to': d2})
-            from_date = format_date(datetime.fromtimestamp(d1, tz=tz), 'medium', lang)
-            until_date = format_date(datetime.fromtimestamp(d2, tz=tz), 'medium', lang)
-            holiday_dates_str.append(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'date_until_date',
-                                                      from_date=from_date,
-                                                      until_date=until_date))
+    locale = sln_settings.locale
 
     address_url = None
-    if sln_i_settings.address and sln_i_settings.location:
-        address = sln_i_settings.address.replace("\r", " ").replace("\n", " ").replace("\t", " ")
-        if isinstance(address, unicode):
-            address = address.encode('utf-8')
-        params = urllib.urlencode({'q': address, 't': u'd'})
-        address_url = u"https://maps.google.com/maps?%s" % params
-    if not sln_i_settings.holiday_out_of_office_message:
-        sln_i_settings.holiday_out_of_office_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                                        'holiday-out-of-office')
-    payment_provider_settings = get_providers_settings(sln_settings.service_user, service_identity)
+    address_str = None
+    if service_info.addresses:
+        address = service_info.addresses[0]
+        address_str = address.value
+        params = {'q': address_str, 't': u'd'}
+        # This url should get replaced by apple maps on iOS
+        address_url = u'https://maps.google.com/maps?%s' % urllib.urlencode(params, doseq=True)
+    # payment_provider_settings = get_providers_settings(sln_settings.service_user, service_identity)
+    opening_hours_text = opening_hours_to_text(opening_hours, locale, datetime.now())
     app_data = {
         'settings': {
             'app_name': default_app_name,
             'service_identity': service_identity or u"+default+",
-            'name': sln_i_settings.name,
-            'address': sln_i_settings.address or None,
+            'name': service_info.name,
+            'address': address_str,
             'address_url': address_url,
-            'opening_hours': sln_i_settings.opening_hours or None,
+            'opening_hours': opening_hours_text,
             'timezone': sln_settings.timezone,
             'timezoneOffset': timezone_offset(sln_settings.timezone),
             'timezoneOffsets': timezone_offsets,
-            'holidays': {
-                'dates': holiday_dates,
-                'dates_str': holiday_dates_str,
-                'out_of_office_message': xml_escape(sln_i_settings.holiday_out_of_office_message)
-            },
             'modules': sln_settings.modules,
+            # TODO: cleanup
             'payment': {
-                'enabled': sln_i_settings.payment_enabled,
-                'optional': sln_i_settings.payment_optional in (None, True),
-                'test_mode': sln_i_settings.payment_test_mode or False,
-                'providers': [provider.to_dict() for provider in payment_provider_settings if provider.is_enabled],
+                'enabled': False,
+                'optional': True,
+                'test_mode': True,
+                'providers': [],
             }
         }
     }
@@ -1256,8 +1238,6 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
 
     menu = MenuTO.fromMenuObject(RestaurantMenu.get(RestaurantMenu.create_key(sln_settings.service_user,
                                                                               sln_settings.solution)))
-    holiday_dates_str = []
-    holiday_dates = []
     orderable_times = []
     orderable_times_str = StringIO()
     leap_time = sln_order_settings.leap_time * sln_order_settings.leap_time_type
@@ -1290,23 +1270,6 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
     multiple_locations = True
     if not sln_settings.identities:
         multiple_locations = False
-        cur_date = now()
-        for d1, d2 in sln_settings.holiday_tuples:
-            if d2 > cur_date:
-                holiday_dates.append({
-                    'from': d1,
-                    'to': d2
-                })
-                holiday_dates_str.append(
-                    common_translate(lang, SOLUTION_COMMON, 'date_until_date') % {
-                        'from_date': format_date(datetime.fromtimestamp(d1, tz=get_timezone(sln_settings.timezone)),
-                                                 format='medium',
-                                                 locale=lang),
-                        'until_date': format_date(datetime.fromtimestamp(d2, tz=get_timezone(sln_settings.timezone)),
-                                                  format='medium',
-                                                  locale=lang)
-                    }
-                )
 
     leap_time_str = format_timedelta(timedelta(seconds=leap_time), locale=lang)
     for t in SolutionOrderWeekdayTimeframe.list(sln_settings.service_user, sln_settings.solution):
@@ -1392,8 +1355,6 @@ def _put_advanced_order_flow(sln_settings, sln_order_settings, main_branding, la
         settings=sln_settings,
         menu=menu,
         multiple_locations=multiple_locations,
-        holiday_dates_str=xml_escape(json.dumps(holiday_dates_str)),
-        holiday_dates=xml_escape(json.dumps(holiday_dates)),
         orderable_times=xml_escape(json.dumps(
             [{'time_from': o.time_from, 'time_until': o.time_until, 'day': (o.day + 8) % 7} for o in orderable_times])),
         orderable_times_str=orderable_times_str.getvalue().decode('utf-8'),
@@ -1709,8 +1670,6 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
                                                        days=days, from_=from_, till=till)
     possible_times_message = common_translate(lang, SOLUTION_COMMON, u'order-sandwich-cannot-order-at-time', days=days,
                                               from_=from_, till=till)
-    holiday_dates_str = []
-    holiday_dates = []
 
     leap_time_str = format_timedelta(timedelta(seconds=leap_time), locale=lang)
 
@@ -1728,19 +1687,6 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
     multiple_locations = True
     if not sln_settings.identities:
         multiple_locations = False
-        cur_date = now()
-        for d1, d2 in sln_settings.holiday_tuples:
-            if d2 > cur_date:
-                holiday_dates.append({
-                    'from': d1,
-                    'to': d2
-                })
-                holiday_dates_str.append(
-                    common_translate(lang, SOLUTION_COMMON, 'date_until_date') % {
-                        'from_date': format_date(datetime.fromtimestamp(d1), format='medium', locale=lang),
-                        'until_date': format_date(datetime.fromtimestamp(d2), format='medium', locale=lang)
-                    }
-                )
     start = datetime.now()
     timezone_offsets = []
     for _ in xrange(20):
@@ -1764,8 +1710,6 @@ def put_sandwich_bar(sln_settings, current_coords, main_branding, default_lang, 
         'settings': sln_settings,
         'orderable_sandwich_days_message': orderable_sandwich_days_message,
         'multiple_locations': multiple_locations,
-        'holiday_dates_str': xml_escape(json.dumps(holiday_dates_str)),
-        'holiday_dates': xml_escape(json.dumps(holiday_dates)),
         'possible_times_message': possible_times_message,
         'leap_time_message': leap_time_message,
         'leap_time_str': leap_time_str,

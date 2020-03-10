@@ -21,15 +21,14 @@ import os
 
 import jinja2
 import webapp2
+from babel import dates, Locale
 from jinja2 import StrictUndefined, Undefined
 
-from babel import dates, Locale
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.session import set_service_identity
 from rogerthat.consts import DEBUG, APPSCALE
-from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
@@ -50,10 +49,8 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.functionalities import get_functionalities
-from solutions.common.bizz.settings import SLN_LOGO_WIDTH, SLN_LOGO_HEIGHT
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
-    UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES, \
-    get_currency_name
+    UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
     get_solution_settings_or_identity_settings
 from solutions.common.dal.city_vouchers import get_city_vouchers_settings
@@ -75,8 +72,6 @@ DEFAULT_JS_TEMPLATES = [
     'inbox_messages',
     'inbox_detail_messages',
     'inbox_send_message_to_services',
-    'holiday_addholiday',
-    'holiday_holiday',
     'qanda_question_table',
     'qanda_question_modules',
     'qanda_question_detail',
@@ -89,11 +84,8 @@ DEFAULT_JS_TEMPLATES = [
     'settings/app_user_admins',
     'settings/app_user_add_roles',
     'settings/try_publish_changes',
-    'settings/upload_image',
     'functionalities/functionality',
     'budget_balance_warning',
-    'place_type_settings',
-    'place_type_select_modal'
 ]
 
 MODULES_JS_TEMPLATE_MAPPING = {
@@ -277,8 +269,8 @@ class FlexHomeHandler(webapp2.RequestHandler):
         session_ = users.get_current_session()
         all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key)
                             for key in translations[SOLUTION_COMMON]['en']}
-        for key in COMMON_JS_KEYS:
-            all_translations[key] = all_translations[COMMON_JS_KEYS[key]]
+        for other_key, key in COMMON_JS_KEYS.iteritems():
+            all_translations[other_key] = all_translations[key]
         if sln_settings.identities:
             if not session_.service_identity:
                 jinja_template = JINJA_ENVIRONMENT.get_template('locations.html')
@@ -287,7 +279,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                           'appscale': APPSCALE,
                           'templates': self._get_location_templates(sln_settings),
                           'service_name': sln_settings.name,
-                          'service_display_email': sln_settings.qualified_identifier or service_user.email().encode("utf-8"),
                           'service_user_email': service_user.email().encode("utf-8"),
                           'currency': sln_settings.currency,  # TBD: use currencies?
                           'translations': json.dumps(all_translations)
@@ -325,21 +316,13 @@ class FlexHomeHandler(webapp2.RequestHandler):
             else:
                 city_app_id = customer.app_id
                 active_app_ids = customer.sorted_app_ids
-            if city_app_id:
-                default_app = get_app_by_id(city_app_id)
-                is_demo_app = default_app.demo
-            else:
-                is_demo_app = False
         else:
             city_app_id = None
-            is_demo_app = False
             logging.info('Getting app ids from service identity since no customer exists for user %s', service_user)
             service_identity_user = create_service_identity_user(service_user, service_identity)
             active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
         locale = Locale.parse(sln_settings.main_language)
-        currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
-        locale = Locale.parse('en_GB')
         currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
@@ -403,7 +386,6 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'appscale': APPSCALE,
                   'templates': self._get_templates(sln_settings),
                   'service_name': sln_i_settings.name,
-                  'service_display_email': sln_i_settings.qualified_identifier or service_user.email().encode("utf-8"),
                   'service_user_email': service_user.email().encode("utf-8"),
                   'service_identity': service_identity,
                   'has_multiple_locations': True if sln_settings.identities else False,
@@ -417,15 +399,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'customer': customer,
                   'loyalty': True if loyalty_version else False,
                   'city_app_id': city_app_id,
-                  'is_demo_app': is_demo_app,
                   'functionality_modules': functionality_modules,
                   'functionality_info': functionality_info,
                   'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
-                  'currencies': currencies.items(),
                   'currency': sln_settings.currency,  # TBD: use currencies?
                   'is_layout_user': session_.layout_only if session_ else False,
-                  'SLN_LOGO_WIDTH': SLN_LOGO_WIDTH,
-                  'SLN_LOGO_HEIGHT': SLN_LOGO_HEIGHT,
                   'UNITS': json.dumps(UNITS),
                   'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
                   'CONSTS': consts,

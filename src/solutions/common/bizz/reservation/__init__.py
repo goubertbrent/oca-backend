@@ -46,11 +46,11 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _get_value
-from solutions.common.bizz.holiday import is_in_holiday
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.reservation.job import handle_shift_updates
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, \
-    get_solution_settings_or_identity_settings, get_solution_identity_settings
+    get_solution_settings_or_identity_settings
 from solutions.common.dal.reservations import get_restaurant_profile, get_planned_reservations_by_user, \
     get_restaurant_settings, get_restaurant_reservation, get_reservations, get_upcoming_planned_reservations_by_table, \
     clear_table_id_in_reservations
@@ -61,7 +61,7 @@ from solutions.common.models.reservation.properties import Shift, Shifts
 from solutions.common.to import TimestampTO, SolutionInboxMessageTO
 from solutions.common.to.reservation import RestaurantReservationStatisticsTO, RestaurantReservationStatisticTO, \
     RestaurantShiftTO, TableTO
-from solutions.common.utils import create_service_identity_user_wo_default, is_default_service_identity
+from solutions.common.utils import create_service_identity_user_wo_default
 
 STATUS_AVAILABLE = u'available'
 STATUS_RESTAURANT_CLOSED = u'restaurant-closed'
@@ -70,7 +70,6 @@ STATUS_PAST_RESERVATION = u'past-reservation'
 STATUS_SHORT_NOTICE = u'short-notice'
 STATUS_TOO_MANY_PEOPLE = u'too-many-people'
 STATUS_NO_TABLES = u'no-tables'
-STATUS_IN_HOLIDAY = u'in-holiday'
 
 
 class ShiftOverlapException(BusinessException):
@@ -251,15 +250,18 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
                 'date': _format_date_service_user(service_user, reservation.date),
                 'time': _format_time_service_user(service_user, reservation.date)
             }
-            message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION, unicode(reservation.key()), False, user_details, now_, msg, True)
+            message = create_solution_inbox_message(service_user, service_identity,
+                                                    SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
+                                                    unicode(reservation.key()), False, user_details, now_, msg, True)
         sln_settings = get_solution_settings(service_user)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity, message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+        service_info = get_service_info(service_user, service_identity)
+        send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
+                     message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict())
 
         app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,
-            'if_email':user_details[0].email
+            'if_email': user_details[0].email
         }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
 
         return result
@@ -356,25 +358,30 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
             message_parent, message = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False, user_details, now_, msg)
         else:
             msg = _translate_service_user(service_user, 'update-reservation-comment') % {
-                 'user_name': user_details[0].name,
-                 'user_email': user_details[0].email,
-                 'people': reservation.people,
-                 'weekday': _format_weekday_service_user(service_user, reservation.date),
-                 'date': _format_date_service_user(service_user, reservation.date),
-                 'time': _format_time_service_user(service_user, reservation.date),
-                 'comment': comment_new
+                'user_name': user_details[0].name,
+                'user_email': user_details[0].email,
+                'people': reservation.people,
+                'weekday': _format_weekday_service_user(service_user, reservation.date),
+                'date': _format_date_service_user(service_user, reservation.date),
+                'time': _format_time_service_user(service_user, reservation.date),
+                'comment': comment_new
             }
-            message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION, unicode(reservation.key()), False, user_details, now_, msg, True)
+            message = create_solution_inbox_message(service_user, service_identity,
+                                                    SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
+                                                    unicode(reservation.key()), False, user_details, now_, msg, True)
         sln_settings = get_solution_settings(service_user)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity, message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message_parent if message_parent else message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+        service_info = get_service_info(service_user, service_identity)
+        send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
+                     message=SolutionInboxMessageTO.fromModel(message_parent if message_parent else message,
+                                                              sln_settings, service_info, True).to_dict())
 
         app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,
-            'if_email':user_details[0].email
-        }, message_key=message_parent.solution_inbox_message_key if message_parent else message.solution_inbox_message_key, \
-           reply_enabled=message_parent.reply_enabled if message_parent else message.reply_enabled)
+            'if_email': user_details[0].email
+        },
+                                      message_key=message_parent.solution_inbox_message_key if message_parent else message.solution_inbox_message_key, \
+                                      reply_enabled=message_parent.reply_enabled if message_parent else message.reply_enabled)
     else:
         result.value = _fail_message(service_user, service_identity, user_details, status)
     return result
@@ -420,16 +427,19 @@ def my_reservations_edit_people_updated(service_user, status, form_result, answe
                 'weekday': _format_weekday_service_user(service_user, reservation.date),
                 'date': _format_date_service_user(service_user, reservation.date),
                 'time': _format_time_service_user(service_user, reservation.date)
-             }
-            message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION, unicode(reservation.key()), False, user_details, now_, msg, True)
+            }
+            message = create_solution_inbox_message(service_user, service_identity,
+                                                    SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
+                                                    unicode(reservation.key()), False, user_details, now_, msg, True)
         sln_settings = get_solution_settings(service_user)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity, message=serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+        service_info = get_service_info(service_user, service_identity)
+        send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
+                     message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict())
 
         app_user = user_details[0].toAppUser()
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,
-            'if_email':user_details[0].email,
+            'if_email': user_details[0].email,
         }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
     else:
         result.value = _fail_message(service_user, service_identity, user_details, status)
@@ -544,43 +554,35 @@ def _fail_message(service_user, service_identity, user_details, status, date=0):
     from solutions.common.bizz.messaging import MESSAGE_TAG_RESERVE_FAIL
     result = MessageCallbackResultTypeTO()
     result.tag = MESSAGE_TAG_RESERVE_FAIL
-    if status == STATUS_IN_HOLIDAY:
-        if is_default_service_identity(service_identity):
-            sln_i_settings = get_solution_settings(service_user)
-        else:
-            sln_i_settings = get_solution_identity_settings(service_user, service_identity)
-        result.message = sln_i_settings.holiday_out_of_office_message
+    result.message = _translate_service_user(service_user, status)
+    if status in (STATUS_NO_TABLES, STATUS_SHORT_NOTICE, STATUS_TOO_MANY_PEOPLE):
+        call = AnswerTO()
+        call.id = u'call'
+        call.type = u'button'
+        call.caption = _translate_service_user(service_user, u'call-restaurant-btn')
+        call.action = u'tel://%s' % system.get_identity(service_identity).phone_number
+        call.ui_flags = 0
+        result.answers = [call]
+        result.step_id = u'message_%s' % status  # for flow_stats
+    elif status == STATUS_KITCHEN_CLOSED and date:
+        date = datetime.utcfromtimestamp(date)
+        shifts = _get_shifts_on_date(service_user, service_identity, date)
+        extra_line = _translate_service_user(service_user, u'kitchen-closed-extra-line') % {
+            'week_day': _format_weekday_service_user(service_user, date)}
+        for shift in shifts:
+            start_hour = shift.start / 3600
+            start_minutes = (shift.start % 3600) / 60
+            end_hour = shift.end / 3600
+            end_minutes = (shift.end % 3600) / 60
+            extra_line += "\n %s:%02d ==> %s:%02d" % (start_hour, start_minutes, end_hour, end_minutes)
+        result.message = result.message % {'reservation_time': " (%s:%02d)" % (date.hour, date.minute)}
+        result.message = "\n%s\n\n%s" % (result.message, extra_line)
         result.answers = []
-        result.step_id = u'message_in_holiday'  # for flow_stats
+        result.step_id = u'message_kitchen_closed'  # for flow_stats
     else:
-        result.message = _translate_service_user(service_user, status)
-        if status in (STATUS_NO_TABLES, STATUS_SHORT_NOTICE, STATUS_TOO_MANY_PEOPLE):
-            call = AnswerTO()
-            call.id = u'call'
-            call.type = u'button'
-            call.caption = _translate_service_user(service_user, u'call-restaurant-btn')
-            call.action = u'tel://%s' % system.get_identity(service_identity).phone_number
-            call.ui_flags = 0
-            result.answers = [call]
-            result.step_id = u'message_%s' % status  # for flow_stats
-        elif status == STATUS_KITCHEN_CLOSED and date:
-            date = datetime.utcfromtimestamp(date)
-            shifts = _get_shifts_on_date(service_user, service_identity, date)
-            extra_line = _translate_service_user(service_user, u'kitchen-closed-extra-line') % { 'week_day': _format_weekday_service_user(service_user, date)}
-            for shift in shifts:
-                start_hour = shift.start / 3600
-                start_minutes = (shift.start % 3600) / 60
-                end_hour = shift.end / 3600
-                end_minutes = (shift.end % 3600) / 60
-                extra_line += "\n %s:%02d ==> %s:%02d" % (start_hour, start_minutes, end_hour, end_minutes)
-            result.message = result.message % {'reservation_time': " (%s:%02d)" % (date.hour, date.minute)}
-            result.message = "\n%s\n\n%s" % (result.message, extra_line)
-            result.answers = []
-            result.step_id = u'message_kitchen_closed'  # for flow_stats
-        else:
-            result.message = result.message % {'reservation_time': ''}
-            result.answers = []
-            result.step_id = u'message_reservation_not_possible'  # for flow_stats
+        result.message = result.message % {'reservation_time': ''}
+        result.answers = []
+        result.step_id = u'message_reservation_not_possible'  # for flow_stats
     result.branding = get_solution_main_branding(service_user).branding_key
     result.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
     result.alert_flags = 0
@@ -606,9 +608,6 @@ def availability_and_shift(service_user, service_identity, user_details, epoch, 
     (c) The corresponding shift (datetime) if there is a table available"""
 
     logging.info('Checking date %d for %d people' % (epoch, people))
-
-    if is_in_holiday(service_user, service_identity, epoch):
-        return (STATUS_IN_HOLIDAY, None)
 
     now_ = now_in_resto_timezone(service_user)
     date = datetime.utcfromtimestamp(epoch)
@@ -704,21 +703,21 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
         app_user = user_details[0].toAppUser()
 
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
-                'if_name': user_details[0].name,
-                'if_email':user_details[0].email,
-            }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
-
+            'if_name': user_details[0].name,
+            'if_email': user_details[0].email,
+        }, message_key=message.solution_inbox_message_key, reply_enabled=message.reply_enabled)
 
     start_time = TimestampTO.fromDatetime(shift_start)
-    sm_data = []
-    sm_data.append({u"type": u"solutions.restaurant.reservations.update",
-                 u"shift": serialize_complex_value(start_time, TimestampTO, False)})
+    sm_data = [{u"type": u"solutions.restaurant.reservations.update",
+                u"shift": serialize_complex_value(start_time, TimestampTO, False)}]
 
     if message:
         sln_settings = get_solution_settings(service_user)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-        sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+        service_info = get_service_info(service_user, service_identity)
+        sm_data.append({
+            u"type": u"solutions.common.messaging.update",
+            u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict()
+        })
 
     send_message(service_user, sm_data, service_identity=service_identity)
     return STATUS_AVAILABLE
@@ -789,16 +788,19 @@ def _send_cancellation_message(reservation_key):
         message = message % {'date': date, 'resto': resto}
         if reservation.solution_inbox_message_key:
             sln_settings = get_solution_settings(reservation_service_user)
-            sim_parent, _ = add_solution_inbox_message(reservation_service_user, reservation.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True)
+            sim_parent, _ = add_solution_inbox_message(reservation_service_user, reservation.solution_inbox_message_key,
+                                                       True, None, now(), message, mark_as_unread=False,
+                                                       mark_as_read=True)
             send_inbox_forwarders_message(reservation_service_user, sim_parent.service_identity, None, message, {
-                        'if_name': sim_parent.sender.name,
-                        'if_email':sim_parent.sender.email
-                    }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
+                'if_name': sim_parent.sender.name,
+                'if_email': sim_parent.sender.email
+            }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, reservation.service_identity)
+            service_info = get_service_info(sln_settings.service_user, reservation.service_identity)
             send_message(reservation_service_user, "solutions.common.messaging.update",
                          service_identity=reservation.service_identity,
-                         message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+                         message=SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                  True).to_dict())
         else:
             branding = get_solution_main_branding(reservation_service_user)
             users.set_user(reservation_service_user)
@@ -1033,16 +1035,19 @@ def reply_reservation(service_user, email, app_id, message, reservation_key=None
 
     reservation = db.run_in_transaction(db.get, reservation_key) if reservation_key else None
     if reservation and reservation.solution_inbox_message_key:
-            sln_settings = get_solution_settings(service_user)
-            sim_parent, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True)
-            send_inbox_forwarders_message(service_user, sim_parent.service_identity, None, message, {
-                        'if_name': sim_parent.sender.name,
-                        'if_email':sim_parent.sender.email
-                    }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, reservation.service_identity)
-            send_message(service_user, u"solutions.common.messaging.update",
-                         service_identity=reservation.service_identity,
-                         message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+        sln_settings = get_solution_settings(service_user)
+        sim_parent, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, True, None,
+                                                   now(), message, mark_as_unread=False, mark_as_read=True)
+        send_inbox_forwarders_message(service_user, sim_parent.service_identity, None, message, {
+            'if_name': sim_parent.sender.name,
+            'if_email': sim_parent.sender.email
+        }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
+        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, reservation.service_identity)
+        service_info = get_service_info(service_user, reservation.service_identity)
+        send_message(service_user, u"solutions.common.messaging.update",
+                     service_identity=reservation.service_identity,
+                     message=SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings,
+                                                              True).to_dict())
     else:
         m = MemberTO()
         m.member = email

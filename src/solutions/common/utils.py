@@ -15,10 +15,12 @@
 #
 # @@license_version:1.5@@
 from html2text import HTML2Text
+from typing import Any, Dict
 
 from mcfw.rpc import returns, arguments
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
+from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user
 
 
@@ -65,3 +67,9 @@ def html_to_markdown(html_content, base_url=None):
     converter = HTML2Text(baseurl=base_url, bodywidth=0)
     converter.ignore_images = True
     return converter.handle(html_content)
+
+
+def send_client_action(service_user, action):
+    # type: (users.User, Dict[str, Any]) -> None
+    """This can be useful for when the server asynchronyously changes data that the client might be using"""
+    send_message(service_user, 'client-action', action=action)

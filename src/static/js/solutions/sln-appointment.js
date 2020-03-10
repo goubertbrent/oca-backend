@@ -29,7 +29,7 @@ $(function() {
             loadAppointmentTimeframes();
         }
     };
-    var settingsSection = $('#section_settings_appointment');
+    var settingsSection = $('#section_appointments');
 
     var loadAppointmentSettings = function() {
         sln.call({
@@ -40,7 +40,7 @@ $(function() {
             }
         });
     };
-    
+
     var putAppointmentSettings = function() {
         sln.call({
             url : "/common/appointment/settings/put",
@@ -57,13 +57,13 @@ $(function() {
             }
         });
     };
-    
+
     var initAppointmentTimeframeModal = function(day, time_from, time_until) {
         settingsSection.find('#dates').val(day);
         settingsSection.find('#timepickerEnabledFrom').timepicker('setTime', sln.intToTime(time_from));
         settingsSection.find('#timepickerEnabledUntil').timepicker('setTime', sln.intToTime(time_until));
     };
-    
+
     var loadAppointmentTimeframes = function() {
         sln.call({
             url : "/common/appointment/settings/timeframe/load",
@@ -131,7 +131,7 @@ $(function() {
             }
         });
     };
-    
+
     $("#create_appointment_timeframe").click(function() {
         $("#save_appointment_timeframe").attr("timeframe_id", null);
         $("#appointmentTimeframeModalLabel").text(CommonTranslations.TIMEFRAME_CREATE);
@@ -184,7 +184,7 @@ $(function() {
         minuteStep : 5,
         disableFocus : true
     });
-    
+
     sln.registerMsgCallback(channelUpdates);
     sln.configureDelayedInput($("#appointment_settings_text1"), putAppointmentSettings);
 });

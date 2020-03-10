@@ -18,6 +18,7 @@
 import base64
 import random
 
+from test import set_current_user
 import webapp2
 
 import main_authenticated
@@ -37,8 +38,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models.order import SolutionOrderWeekdayTimeframe, SolutionOrderSettings
 from solutions.flex.bizz import create_flex_service
 from solutions.flex.handlers import FlexHomeHandler
-from test import set_current_user
-from test.solutions.util import setup_payment_providers
+from test.solutions.util import setup_payment_providers, setup_embedded_apps
 
 
 class FlexTestCase(oca_unittest.TestCase):
@@ -46,6 +46,7 @@ class FlexTestCase(oca_unittest.TestCase):
     def setUp(self, datastore_hr_probability=0):
         super(FlexTestCase, self).setUp(datastore_hr_probability)
         setup_payment_providers()
+        setup_embedded_apps()
 
     def test_static_flex_service(self):
         self._test_static_flex_service()
@@ -60,7 +61,6 @@ class FlexTestCase(oca_unittest.TestCase):
         email = u'test1.flex.foo.com'
         r = create_flex_service(email,
                                 name="test",
-                                address="Antwerpsesteenweg 19\n9080 Lochristi",
                                 phone_number="+32 9 324 25 64",
                                 languages=["en", "nl"],
                                 currency=u"EUR",
@@ -115,7 +115,6 @@ class FlexTestCase(oca_unittest.TestCase):
         email = u'test2.flex@foo.com'
         r = create_flex_service(email,
                                 name="test",
-                                address="Antwerpsesteenweg 19\n9080 Lochristi",
                                 phone_number="+32 9 324 25 64",
                                 languages=[language],
                                 currency=u"EUR",

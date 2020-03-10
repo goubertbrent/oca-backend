@@ -44,7 +44,7 @@ $(function () {
         }
     };
 
-    var settingsSection = $('#section_settings_order');
+    var settingsSection = $('#section_order');
     settingsSection.find('input[type=radio]').change(putOrderSettings);
     settingsSection.find('input[type=checkbox]').change(putOrderSettings);
 
@@ -114,7 +114,7 @@ $(function () {
             var paused = (typeof pausedUntil === 'string' || pausedUntil === null) ? pausedUntil : orderSettings.pause_settings.paused_until;
             var data = {
                 text_1: $("#order_settings_text1").val(),
-                order_type: parseInt($('#section_settings_order').find('input[name=setting_advanced_order_fields]:checked').val()),
+                order_type: parseInt($('#section_order').find('input[name=setting_advanced_order_fields]:checked').val()),
                 leap_time: leapTime,
                 leap_time_type: leapTimeType,
                 order_ready_message: $('#order_ready_default_message').val().trim() || orderSettings.order_ready_message,
@@ -298,7 +298,7 @@ $(function () {
             CommonTranslations.REPLY_TO_MORE_INFO.replace("%(username)s", order.sender_name),
             defaultMessage);
     };
-    
+
     function capitalize(s) {
         return s.charAt(0).toUpperCase() + s.substr(1);
     }
@@ -541,7 +541,7 @@ $(function () {
             paymentProviders: paymentProviders,
             settings: paymentProviders,
         });
-        $('#section_settings_mobile_payments').html(html);
+        $('#section_mobile-payments').html(html);
 
         $('.downloaded-hint').click(function () {
             var self = $(this);

@@ -19,7 +19,7 @@ $oca-app-theme: mat-light-theme($oca-app-primary, $oca-app-accent);
 html, body {
   font-family: Roboto, sans-serif;
   width: 100%;
-  height: 100%;
+  height: auto;
   margin: 0;
 }
 

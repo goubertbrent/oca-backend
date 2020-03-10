@@ -24,8 +24,7 @@ from babel import dates
 from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import deferred, db
 
-from mcfw.properties import azzert
-from mcfw.properties import object_factory
+from mcfw.properties import azzert, object_factory
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.dal import parent_key_unsafe
 from rogerthat.models import Message
@@ -44,6 +43,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_first_fmr_step_result_value, SolutionModule
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.exceptions.sandwich import InvalidSandwichSettingsException
@@ -164,10 +164,10 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
         message.category_key = unicode(order.key())
         message.put()
 
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-
+        service_info = get_service_info(service_user, service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                                                                     True).to_dict()})
         app_user = create_app_user_by_email(user_details[0].email, user_details[0].app_id)
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
                     'if_name': user_details[0].name,
@@ -190,8 +190,7 @@ def reply_sandwich_order(service_user, service_identity, sandwich_id, message=un
     sandwich_order.status = SandwichOrder.STATUS_REPLIED
     sandwich_order.put()
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.sandwich.orders.update"})
+    sm_data = [{u"type": u"solutions.common.sandwich.orders.update"}]
 
     if sandwich_order.solution_inbox_message_key:
         sim_parent, _ = add_solution_inbox_message(service_user, sandwich_order.solution_inbox_message_key, True, None, now(), message, mark_as_unread=False, mark_as_read=True)
@@ -199,9 +198,10 @@ def reply_sandwich_order(service_user, service_identity, sandwich_id, message=un
                     'if_name': sim_parent.sender.name,
                     'if_email':sim_parent.sender.email
                 }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sandwich_order.service_identity)
+        service_info = get_service_info(service_user, service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                                                                     True).to_dict()})
     else:
         sln_main_branding = get_solution_main_branding(service_user)
         branding = sln_main_branding.branding_key if sln_main_branding else None
@@ -240,8 +240,7 @@ def ready_sandwich_order(service_user, service_identity, sandwich_id, message):
     xg_on = db.create_transaction_options(xg=True)
     sandwich_order = db.run_in_transaction_options(xg_on, txn)
 
-    sm_data = []
-    sm_data.append({u"type": u"solutions.common.sandwich.orders.update"})
+    sm_data = [{u"type": u"solutions.common.sandwich.orders.update"}]
 
     if message:
         if sandwich_order.solution_inbox_message_key:
@@ -250,9 +249,10 @@ def ready_sandwich_order(service_user, service_identity, sandwich_id, message):
                         'if_name': sim_parent.sender.name,
                         'if_email':sim_parent.sender.email
                     }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sandwich_order.service_identity)
+            service_info = get_service_info(service_user, service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
         else:
             branding = get_solution_main_branding(service_user).branding_key
             member = MemberTO()
@@ -276,9 +276,10 @@ def ready_sandwich_order(service_user, service_identity, sandwich_id, message):
             sim_parent.read = True
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, sandwich_order.service_identity)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sandwich_order.service_identity)
+        service_info = get_service_info(service_user, service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                                                                     True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=sandwich_order.service_identity)
 
@@ -308,9 +309,10 @@ def delete_sandwich_order(service_user, service_identity, sandwich_id, message):
                         'if_name': sim_parent.sender.name,
                         'if_email':sim_parent.sender.email
                     }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sandwich_order.service_identity)
+            service_info = get_service_info(service_user, sandwich_order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                         u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
 
         else:
             branding = get_solution_main_branding(service_user).branding_key
@@ -335,9 +337,10 @@ def delete_sandwich_order(service_user, service_identity, sandwich_id, message):
             sim_parent.trashed = True
             sim_parent.put()
             deferred.defer(update_user_data_admins, service_user, sandwich_order.service_identity)
-        sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, sandwich_order.service_identity)
-        sm_data.append({u"type": u"solutions.common.messaging.update",
-                     u"message": serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False)})
+            service_info = get_service_info(service_user, sandwich_order.service_identity)
+            sm_data.append({u"type": u"solutions.common.messaging.update",
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
+                                                                         True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=sandwich_order.service_identity)
 

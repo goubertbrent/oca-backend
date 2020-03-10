@@ -82,6 +82,7 @@ class PaddleMapping(NdbModel):
 class PaddleSettings(NdbModel):
     base_url = ndb.StringProperty()
     mapping = ndb.StructuredProperty(PaddleMapping, indexed=False, repeated=True)  # type: list[PaddleMapping]
+    synced_fields = ndb.TextProperty(repeated=True)
 
     @property
     def service_user(self):

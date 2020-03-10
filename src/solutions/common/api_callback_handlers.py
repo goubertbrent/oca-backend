@@ -22,7 +22,7 @@ from types import NoneType
 from google.appengine.ext import db
 
 from mcfw.properties import object_factory
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from mcfw.rpc import returns, arguments
 from rogerthat.bizz.friends import ACCEPT_ID
 from rogerthat.bizz.messaging import parse_to_human_readable_tag
 from rogerthat.models.properties.forms import FormResult
@@ -52,6 +52,7 @@ from solutions.common.bizz.messaging import API_METHOD_MAPPING, POKE_TAG_INBOX_F
 from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
 from solutions.common.bizz.reservation import my_reservations_edit_comment_updated, my_reservations_edit_people_updated, \
     reservation_part2
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.to import SolutionInboxMessageTO
@@ -245,10 +246,10 @@ def common_new_chat_message(parent_message_key, message_key, sender, message, an
                 sim_parent, _ = add_solution_inbox_message(
                     service_user, message_key, sent_by_service, [sender], timestamp, message, picture_attachments, video_attachments)
 
-            sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+            service_info = get_service_info(service_user, service_identity)
             send_message(service_user, u"solutions.common.messaging.update",
                          service_identity=service_identity,
-                         message=serialize_complex_value(SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, sln_i_settings, True), SolutionInboxMessageTO, False))
+                         message=SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info, True).to_dict())
 
             member_sender_user = create_app_user_by_email(sim_parent.sender.email, sim_parent.sender.app_id)
             sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)

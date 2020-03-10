@@ -26,7 +26,13 @@ export const enum SharedActionTypes {
   GET_BRANDING_SETTINGS = '[shared] Get branding settings',
   GET_BRANDING_SETTINGS_COMPLETE = '[shared] Get branding settings complete',
   GET_BRANDING_SETTINGS_FAILED = '[shared] Get branding settings failed',
-  GET_GLOBAL_CONFIG= '[shared] Get global config',
+  UPDATE_AVATAR = '[shared] Update avatar',
+  UPDATE_AVATAR_COMPLETE = '[shared] Update avatar complete',
+  UPDATE_AVATAR_FAILED = '[shared] Update avatar failed',
+  UPDATE_LOGO = '[shared] Update logo',
+  UPDATE_LOGO_COMPLETE = '[shared] Update logo complete',
+  UPDATE_LOGO_FAILED = '[shared] Update logo failed',
+  GET_GLOBAL_CONFIG = '[shared] Get global config',
   GET_GLOBAL_CONFIG_COMPLETE = '[shared] Get global config complete',
 }
 
@@ -152,7 +158,49 @@ export class GetBrandingSettingsCompleteAction implements Action {
 export class GetBrandingSettingFailedAction implements Action {
   readonly type = SharedActionTypes.GET_BRANDING_SETTINGS_FAILED;
 
-  constructor(public error: ApiError) {
+  constructor(public error: string) {
+  }
+}
+
+export class UpdateAvatarAction implements Action {
+  readonly type = SharedActionTypes.UPDATE_AVATAR;
+
+  constructor(public payload: { avatar_url: string }) {
+  }
+}
+
+export class UpdateAvatarCompleteAction implements Action {
+  readonly type = SharedActionTypes.UPDATE_AVATAR_COMPLETE;
+
+  constructor(public payload: BrandingSettings) {
+  }
+}
+
+export class UpdateAvatarFailedAction implements Action {
+  readonly type = SharedActionTypes.UPDATE_AVATAR_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
+export class UpdateLogoAction implements Action {
+  readonly type = SharedActionTypes.UPDATE_LOGO;
+
+  constructor(public payload: { logo_url: string }) {
+  }
+}
+
+export class UpdateLogoCompleteAction implements Action {
+  readonly type = SharedActionTypes.UPDATE_LOGO_COMPLETE;
+
+  constructor(public payload: BrandingSettings) {
+  }
+}
+
+export class UpdateLogoFailedAction implements Action {
+  readonly type = SharedActionTypes.UPDATE_LOGO_FAILED;
+
+  constructor(public error: string) {
   }
 }
 
@@ -189,5 +237,11 @@ export type SharedActions =
   | GetBrandingSettingsAction
   | GetBrandingSettingsCompleteAction
   | GetBrandingSettingFailedAction
+  | UpdateAvatarAction
+  | UpdateAvatarCompleteAction
+  | UpdateAvatarFailedAction
+  | UpdateLogoAction
+  | UpdateLogoCompleteAction
+  | UpdateLogoFailedAction
   | GetGlobalConfigAction
   | GetGlobalConfigCompleteAction;

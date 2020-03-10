@@ -11,6 +11,7 @@ export class NewsItemPreviewComponent {
   NewsItemType = NewsItemType;
   @Input() newsItem: CreateNews;
   @Input() name: string;
+  @Input() avatarUrl: string;
 
   private _date = new Date();
 

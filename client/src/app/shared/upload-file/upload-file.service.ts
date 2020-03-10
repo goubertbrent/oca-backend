@@ -1,7 +1,7 @@
-import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { UploadedFile, UploadFileReference } from './file-upload';
+import { GcsFile, UploadedFile, UploadFileReference } from './file-upload';
 
 @Injectable({ providedIn: 'root' })
 export class UploadFileService {
@@ -9,8 +9,12 @@ export class UploadFileService {
   constructor(private http: HttpClient) {
   }
 
-  getFiles() {
-    return this.http.get<UploadedFile[]>(`/common/files`);
+  getFiles(prefix?: string) {
+    let params = new HttpParams();
+    if (prefix) {
+      params = params.set('prefix', prefix);
+    }
+    return this.http.get<GcsFile[]>(`/common/files`, { params });
   }
 
   uploadImage(image: Blob, prefix: string, reference?: UploadFileReference): Observable<HttpEvent<UploadedFile>> {
@@ -18,9 +22,14 @@ export class UploadFileService {
     data.append('file', image);
     if (reference) {
       data.append('reference_type', reference.type);
-      data.append('reference', reference.id.toString());
+      if ('id' in reference) {
+        data.append('reference', reference.id.toString());
+      }
     }
     return this.http.request(new HttpRequest('POST', `/common/files/${prefix}`, data, { reportProgress: true }));
   }
 
+  getGalleryFiles(prefix: 'logo' | 'avatar') {
+    return this.http.get<GcsFile[]>(`/common/image-gallery/${prefix}`);
+  }
 }

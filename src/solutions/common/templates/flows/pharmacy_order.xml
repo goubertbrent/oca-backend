@@ -1,29 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
 	<definition name="pharmacy_order" language="{{ language }}"
-                startReference="flowcode_check_holiday">
-        <end id="end_end" waitForFollowUpMessage="false"/>
-        <end
-            id="end_quick"
-            waitForFollowUpMessage="false" />
-        <message id="message_holiday"
-                 alertIntervalType="NONE"
-                 alertType="SILENT"
-                 brandingKey="{{ branding_key }}"
-                 allowDismiss="false"
-                 vibrate="false"
-                 autoLock="true">
-            <content>{{ settings.holiday_out_of_office_message|e }}</content>
-            <answer action=""
-                    caption="{% translate language, 'common', 'continue_anyway' %}"
-                    id="button_holiday_continue"
-                    reference="message_has_prescription"/>
-            <answer action=""
-                    caption="{% translate language, 'common', 'Cancel' %}"
-                    id="button_holiday_cancel"
-                    reference="end_quick"/>
-        </message>
-        <message id="message_thnx" 
+                startReference="message_has_prescription">
+        <end id="end_end"/>
+        <message id="message_thnx"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
@@ -52,14 +32,14 @@
             autoLock="true"
             negativeReference="message_describe_box">
             <content>{% translate language, 'common', 'order-flow-picture' %}</content>
-            <form 
-                positiveButtonConfirmation="" 
-                negativeButtonCaption="{% translate language, 'common', 'skip' %}" 
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}" 
+            <form
+                positiveButtonConfirmation=""
+                negativeButtonCaption="{% translate language, 'common', 'skip' %}"
+                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
             </form>
-        </formMessage> 
+        </formMessage>
         <formMessage id="message_photo_upload_prescription"
             alertIntervalType="NONE"
             alertType="SILENT"
@@ -69,7 +49,7 @@
             autoLock="true"
             negativeReference="end_end">
             <content>{% translate language, 'common', 'order-flow-prescription-picture' %}</content>
-            <form 
+            <form
                 positiveButtonConfirmation=""
                 negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
                 positiveButtonCaption="{% translate language, 'common', 'Next' %}"
@@ -86,7 +66,7 @@
             autoLock="true"
             negativeReference="flush_flush">
             <content>{% translate language, 'common', 'order-flow-comments' %}</content>
-            <form 
+            <form
                 positiveButtonConfirmation=""
                 negativeButtonCaption="{% translate language, 'common', 'skip' %}"
                 positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
@@ -98,7 +78,7 @@
                     placeholder="{% translate language, 'common', '(optional)' %}"/>
             </form>
         </formMessage>
-        <formMessage id="message_describe_box" 
+        <formMessage id="message_describe_box"
             alertIntervalType="NONE"
             alertType="SILENT"
             brandingKey="{{ branding_key }}"
@@ -107,7 +87,7 @@
             autoLock="true"
             negativeReference="end_end">
             <content>{% translate language, 'common', 'order-flow-describe' %}</content>
-            <form 
+            <form
                 positiveButtonConfirmation=""
                 negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
                 positiveButtonCaption="{% translate language, 'common', 'Next' %}"
@@ -120,37 +100,5 @@
         </formMessage>
         <resultsFlush id="flush_flush"
             reference="message_thnx"/>
-        <flowCode id="flowcode_check_holiday"
-                  exceptionReference="message_has_prescription">
-            <outlet reference="message_holiday"
-                    name="message_holiday"
-                    value="message_holiday"/>
-            <outlet reference="message_has_prescription"
-                    name="message_holiday_check_continue"
-                    value="message_holiday_check_continue"/>
-            <javascriptCode>
-                function run(rogerthat, messageFlowRun) {
-                    var nextStepResult = {};
-                    if (isInHoliday(rogerthat.service.data.settings.holidays.dates)) {
-                        nextStepResult.message = rogerthat.service.data.settings.holidays.out_of_office_message;
-                        nextStepResult.outlet = 'message_holiday';
-                    }
-                    else {
-                        nextStepResult.outlet = 'message_has_prescription';
-                    }
-                    return nextStepResult;
-
-                    function isInHoliday(holidayDates) {
-                        var currentDate = new Date().getTime() / 1000;
-                        for (var i = 0; i &lt; holidayDates.length; i++) {
-                            if (holidayDates[i].from &lt;= currentDate &amp;&amp; currentDate &lt; holidayDates[i].to) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-                };
-            </javascriptCode>
-        </flowCode>
     </definition>
 </messageFlowDefinitionSet>

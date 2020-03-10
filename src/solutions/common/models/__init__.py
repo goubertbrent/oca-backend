@@ -18,10 +18,9 @@
 import json
 import logging
 
-from google.appengine.api import urlfetch
-
 from babel import Locale
 from babel.dates import get_timezone
+from google.appengine.api import urlfetch
 from google.appengine.ext import db, ndb
 
 from mcfw.cache import invalidate_cache, CachedModelMixIn
@@ -246,14 +245,13 @@ class SetupGooglePlaceId(NdbModel):
 
 
 class SolutionIdentitySettings(db.Expando):
-    name = db.StringProperty(indexed=False)
-    phone_number = db.StringProperty(indexed=False)
-    qualified_identifier = db.StringProperty(indexed=False)
-    description = db.TextProperty()
-    opening_hours = db.TextProperty()
-    address = db.TextProperty()
-    location = db.GeoPtProperty(indexed=False)
-    search_keywords = db.TextProperty()
+    name = db.StringProperty(indexed=False)  # TODO: remove after migration 006
+    phone_number = db.StringProperty(indexed=False)  # TODO: remove after migration 006
+    qualified_identifier = db.StringProperty(indexed=False)  # TODO: remove after migration 006
+    description = db.TextProperty()  # TODO: remove after migration 006
+    address = db.TextProperty()  # TODO: remove after migration 006
+    location = db.GeoPtProperty(indexed=False)  # TODO: remove after migration 006
+    search_keywords = db.TextProperty()  # TODO: remove after migration 006
 
     # Inbox
     inbox_forwarders = db.StringListProperty(indexed=False)
@@ -264,16 +262,9 @@ class SolutionIdentitySettings(db.Expando):
     # Broadcast create news
     broadcast_create_news_qrcode = db.StringProperty(indexed=False)
 
-    # List of epochs defining the start, end of holidays (start1, end1, start2, end2, ...)
-    holidays = db.ListProperty(int)
-    holiday_out_of_office_message = db.TextProperty()
-
     payment_enabled = db.BooleanProperty(default=False)
     payment_optional = db.BooleanProperty(default=True)
     payment_test_mode = db.BooleanProperty(default=DEBUG)
-
-    google_place_id = db.StringProperty(indexed=True, default=None)
-    place_types = db.StringListProperty(indexed=False)
 
     @staticmethod
     def create_key(service_user, service_identity):
@@ -301,20 +292,6 @@ class SolutionIdentitySettings(db.Expando):
         else:
             raise ValueError("Unexpected inbox forwarder type %s" % forwarder_type)
 
-    @property
-    def holiday_tuples(self):
-        i = 0
-        while i < len(self.holidays):
-            yield (self.holidays[i], self.holidays[i + 1])
-            i += 2
-
-    def is_in_holiday_for_date(self, date):
-        for holiday in self.holiday_tuples:
-            logging.debug("checking if in holiday %s" % str(holiday))
-            if holiday[0] <= date < holiday[1]:
-                return True
-        return False
-
 
 class SolutionSettings(SolutionIdentitySettings):
     INBOX_FORWARDER_TYPE_EMAIL = u'email'
@@ -331,9 +308,10 @@ class SolutionSettings(SolutionIdentitySettings):
 
     menu_item_color = db.StringProperty(indexed=False)
 
+    # TODO: remove and use ServiceInfo instead
     currency = db.StringProperty(indexed=False)  # 3 letter symbol, e.g. EUR
     solution = db.StringProperty(indexed=False)
-    timezone = db.StringProperty(indexed=False, default=u"Europe/Brussels")
+    timezone = db.StringProperty(indexed=False, default=u"Europe/Brussels")  # TODO: remove
     main_language = db.StringProperty(indexed=False)
 
     last_publish = db.IntegerProperty()
@@ -344,7 +322,7 @@ class SolutionSettings(SolutionIdentitySettings):
     modules_to_put = db.StringListProperty(default=[])
     modules_to_remove = db.StringListProperty(default=[])
     activated_modules = ActivatedModulesProperty()
-    
+
     # Events
     events_visible = db.BooleanProperty(indexed=False, default=True)
     default_calendar = db.IntegerProperty(indexed=False)
@@ -381,6 +359,14 @@ class SolutionSettings(SolutionIdentitySettings):
     @property
     def service_identity(self):
         azzert(False, u"service_identity should not be called on SolutionSettings")
+
+    @property
+    def locale(self):
+        if self.main_language == 'en':
+            return 'en_GB'
+        elif self.main_language == 'nl':
+            return 'nl_BE'
+        return self.main_language
 
     def uses_inbox(self):
         from solutions.common.bizz import SolutionModule

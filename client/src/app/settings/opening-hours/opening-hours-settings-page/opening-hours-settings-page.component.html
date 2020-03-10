@@ -1,0 +1,5 @@
+<oca-opening-hours (hoursChanged)="autoSave($event)"
+                   (saved)="onOpeningHoursSaved($event)"
+                   *ngIf="openingHours$ | async as hours"
+                   [isLoading]="isLoading$ | async"
+                   [openingHours]="hours"></oca-opening-hours>

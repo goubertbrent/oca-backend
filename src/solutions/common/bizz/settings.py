@@ -16,38 +16,42 @@
 # @@license_version:1.5@@
 
 import base64
-from cStringIO import StringIO
-import cgi
 import logging
-from types import NoneType
-from xml.dom import minidom
+from urlparse import urlparse, ParseResult
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
+from typing import Tuple, Optional
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.opening_hours import save_textual_opening_hours
 from rogerthat.bizz.service import _validate_service_identity
+from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
+from rogerthat.models import ServiceIdentity
+from rogerthat.models.maps import MapServiceMediaItem
+from rogerthat.models.news import MediaType
+from rogerthat.models.settings import SyncedNameValue, ServiceAddress, SyncedField, ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.service.api.system import put_avatar
+from rogerthat.to.news import BaseMediaTO
 from rogerthat.to.service import ServiceIdentityDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.channel import send_message
+from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
-from solutions.common.bizz import _get_location, broadcast_updates_pending
-from solutions.common.bizz.images import upload_file
+from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.cron.news.rss import parse_rss_items
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionSettings, \
-    SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding
-from solutions.common.to import SolutionSettingsTO
-from solutions.common.utils import is_default_service_identity
-
+    SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
+    SolutionIdentitySettings
+from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
+from solutions.common.to.settings import ServiceInfoTO
+from solutions.common.utils import is_default_service_identity, send_client_action
 
 SLN_LOGO_WIDTH = 640
 SLN_LOGO_HEIGHT = 240
@@ -67,38 +71,9 @@ def validate_sln_settings(sln_settings):
 @returns(tuple)
 @arguments(service_user=users.User, service_identity=unicode, data=SolutionSettingsTO)
 def save_settings(service_user, service_identity, data):
-    # type: (users.User, unicode, SolutionSettingsTO) -> tuple[SolutionSettings, SolutionIdentitySettings]
+    # type: (users.User, unicode, SolutionSettingsTO) -> Tuple[SolutionSettings, SolutionIdentitySettings]
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    sln_i_settings.name = data.name
-    sln_i_settings.description = data.description
-    sln_i_settings.opening_hours = data.opening_hours
-    deferred.defer(save_textual_opening_hours, service_user.email() if is_default_service_identity(service_identity) else sln_i_settings.service_identity_user.email(), sln_settings.opening_hours)
-    sln_i_settings.phone_number = data.phone_number
-
-    if data.email_address and data.email_address != service_user.email():
-        sln_i_settings.qualified_identifier = data.email_address
-    else:
-        sln_i_settings.qualified_identifier = None
-
-    if data.currency is not None:
-        sln_settings.currency = data.currency
-    sln_settings.search_enabled = data.search_enabled
-    sln_settings.search_enabled_check = data.search_enabled_check
-
-    sln_i_settings.search_keywords = data.search_keywords
-    if data.address and (sln_i_settings.address != data.address or not sln_i_settings.location):
-        sln_i_settings.address = data.address
-        try:
-            lat, lon = _get_location(data.address)
-            sln_i_settings.location = db.GeoPt(lat, lon)
-        except:
-            logging.warning('Failed to resolve address: %s' % sln_i_settings.address, exc_info=1)
-            sln_i_settings.location = None
-    if data.timezone is not None:
-        if sln_settings.timezone != data.timezone:
-            send_message(service_user, u"solutions.common.settings.timezoneChanged")
-        sln_settings.timezone = data.timezone
 
     if data.events_visible is not None:
         sln_settings.events_visible = data.events_visible
@@ -110,9 +85,6 @@ def save_settings(service_user, service_identity, data):
         sln_settings.iban = data.iban
     if data.bic is not MISSING:
         sln_settings.bic = data.bic
-        
-    if data.place_types is not MISSING:
-        sln_i_settings.place_types = data.place_types
 
     sln_settings.updates_pending = True
     validate_sln_settings(sln_settings)
@@ -125,52 +97,73 @@ def save_settings(service_user, service_identity, data):
 
 
 @returns(SolutionBrandingSettings)
-@arguments(service_user=users.User, image=unicode)
-def set_avatar(service_user, image):
-    _meta, img_b64 = image.split(',')
-    jpg_bytes = base64.b64decode(img_b64)
-    content_type = _meta.lstrip('data:').split(';')[0]
-    file_ = cgi.FieldStorage(StringIO(jpg_bytes), {'content-type': content_type})
-    branding_settings_key = SolutionBrandingSettings.create_key(service_user)
-    reference = ndb.Key.from_old_key(branding_settings_key)  # @UndefinedVariable
-    uploaded_file = upload_file(service_user, file_, 'branding/avatar', reference)
+@arguments(service_user=users.User, image_url=unicode)
+def set_avatar(service_user, image_url):
+    result = urlfetch.fetch(image_url)  # type: urlfetch._URLFetchResult
+    jpg_bytes = result.content
 
     def trans():
-        branding_settings, sln_settings = db.get((branding_settings_key,
-                                                  SolutionSettings.create_key(service_user)))
+        keys = SolutionBrandingSettings.create_key(service_user), SolutionSettings.create_key(service_user)
+        branding_settings, sln_settings = db.get(keys)  # type: SolutionBrandingSettings, SolutionSettings
+
+        if branding_settings.avatar_url == image_url:
+            return sln_settings, branding_settings
+
         sln_settings.updates_pending = True
-        branding_settings.avatar_url = uploaded_file.url
+        branding_settings.avatar_url = image_url
         branding_settings.modification_time = now()
 
         put_and_invalidate_cache(sln_settings, branding_settings)
-        put_avatar(img_b64)
+        put_avatar(base64.b64encode(jpg_bytes))
 
         return sln_settings, branding_settings
 
     sln_settings, branding_settings = run_in_transaction(trans, xg=True)
-    send_message(sln_settings.service_user, 'solutions.common.settings.avatar.updated')
+    send_message(sln_settings.service_user, 'solutions.common.settings.avatar.updated', avatar_url=image_url)
     broadcast_updates_pending(sln_settings)
     return branding_settings
 
 
 @returns(SolutionBrandingSettings)
-@arguments(service_user=users.User, image=unicode)
-def set_logo(service_user, image):
-    _meta, img_b64 = image.split(',')
-    jpg_bytes = base64.b64decode(img_b64)
-    content_type = _meta.lstrip('data:').split(';')[0]
-    file_ = cgi.FieldStorage(StringIO(jpg_bytes), {'content-type': content_type})
-    branding_settings_key = SolutionBrandingSettings.create_key(service_user)
-    reference = ndb.Key.from_old_key(branding_settings_key)  # @UndefinedVariable
-    uploaded_file = upload_file(service_user, file_, 'branding/logo', reference)
-
-    branding_settings = db.get(branding_settings_key)  # type: SolutionBrandingSettings
-    branding_settings.logo_url = uploaded_file.url
+@arguments(service_user=users.User, image_url=unicode, service_identity=unicode)
+def set_logo(service_user, image_url, service_identity):
+    branding_settings = db.get(SolutionBrandingSettings.create_key(service_user))  # type: SolutionBrandingSettings
+    if image_url == branding_settings.logo_url:
+        return branding_settings
+    branding_settings.logo_url = image_url
     branding_settings.modification_time = now()
     branding_settings.put()
 
-    deferred.defer(_regenerate_branding_with_logo, service_user)
+    tasks = [
+        create_task(save_logo_to_media, service_user, service_identity, branding_settings.logo_url),
+        create_task(_regenerate_branding_with_logo, service_user),
+    ]
+    schedule_tasks(tasks, FAST_QUEUE)
     return branding_settings
+
+
+def save_logo_to_media(service_user, service_identity, logo_url):
+    service_info, changed = _save_logo_to_media(service_user, service_identity, logo_url)
+    if changed:
+        send_client_action(service_user, {'type': '[settings] Update service info complete',
+                                          'payload': ServiceInfoTO.from_model(service_info).to_dict()})
+
+
+@ndb.transactional()
+def _save_logo_to_media(service_user, service_identity, logo_url):
+    # type: (users.User, str, str) -> Tuple[ServiceInfo, bool]
+    service_info = get_service_info(service_user, service_identity)
+    for media in service_info.cover_media:
+        if media.item.content == logo_url:
+            # Already present in cover media list, don't do anything
+            return service_info, False
+    media_item = MapServiceMediaItem()
+    media_item.item = BaseMediaTO()
+    media_item.item.type = MediaType.IMAGE
+    media_item.item.content = logo_url
+    service_info.cover_media.insert(0, media_item)
+    service_info.put()
+    return service_info, True
 
 
 def _regenerate_branding_with_logo(service_user):
@@ -194,6 +187,7 @@ def _regenerate_branding_with_logo(service_user):
 
     common_settings = run_in_transaction(trans, xg=True)
     broadcast_updates_pending(common_settings)
+    send_message(service_user, 'solutions.common.settings.logo.updated', logo_url=branding_settings.logo_url)
 
 
 def _validate_rss_urls(urls):
@@ -263,3 +257,101 @@ def save_rss_urls(service_user, service_identity, data):
     rss_settings.rss_links = [rss_link for rss_link in reversed(rss_links)]
     rss_settings.put()
     return rss_settings
+
+
+def get_service_info(service_user, service_identity):
+    # type: (users.User, str) -> ServiceInfo
+    if not service_identity:
+        service_identity = ServiceIdentity.DEFAULT
+    return ServiceInfo.create_key(service_user, service_identity).get()
+
+
+def update_service_info(service_user, service_identity, data):
+    # type: (users.User, str, ServiceInfoTO) -> ServiceInfo
+    service_info = get_service_info(service_user, service_identity)
+    service_info_dict = service_info.to_dict()
+    service_info.addresses = [ServiceAddress.from_to(a) for a in data.addresses]
+    service_info.cover_media = [MapServiceMediaItem.from_to(m) for m in data.cover_media]
+    service_info.currency = data.currency
+    service_info.description = data.description
+    service_info.email_addresses = [SyncedNameValue.from_to(v) for v in data.email_addresses]
+    service_info.keywords = data.keywords
+    service_info.name = data.name
+    service_info.phone_numbers = [SyncedNameValue.from_to(v) for v in data.phone_numbers]
+    service_info.main_place_type = data.main_place_type
+    service_info.place_types = data.place_types
+    service_info.synced_fields = [SyncedField.from_to(v) for v in data.synced_fields]
+    service_info.timezone = data.timezone
+    service_info.visible = data.visible
+    service_info.websites = [SyncedNameValue.from_to(v) for v in data.websites]
+    if service_info_dict != service_info.to_dict():
+        service_info.put()
+        sln_settings = get_solution_settings(service_user)
+        sln_settings.updates_pending = True
+        # Temporarily copying these properties until we have cleaned up all usages of them
+        # TODO: remove properties from SolutionSettings
+        sln_settings.timezone = service_info.timezone
+        sln_settings.phone_number = service_info.main_phone_number
+        sln_settings.address = service_info.main_address
+        sln_settings.currency = service_info.currency
+        sln_settings.name = service_info.name
+        sln_settings.put()
+        deferred.defer(broadcast_updates_pending, sln_settings)
+    return service_info
+
+
+def validate_url(url, check_existence=True):
+    url = url.strip() \
+        .lower() \
+        .replace('W.W.W.,', 'www.') \
+        .replace('www,', 'www.')
+    if not url:
+        return None
+    if url.startswith('www.'):
+        # We can't assume https here
+        url = 'http://%s' % url
+    if not url.startswith('http'):
+        url = 'http://%s' % url
+    if '.' not in url:
+        return None
+    if check_existence:
+        return resolve_url(url)
+    return url
+
+
+def resolve_url(url):
+    try:
+        result = urlfetch.fetch(url, urlfetch.HEAD, follow_redirects=False,
+                                deadline=5)  # type: urlfetch._URLFetchResult
+        if result.status_code == 200:
+            return url
+        elif result.status_code in (301, 302):
+            return result.headers['location']
+    except Exception as e:
+        logging.debug('Error while checking url %s: %s', url, e.message, exc_info=True)
+    return None
+
+
+def parse_facebook_url(url):
+    # type: (str) -> Optional[str]
+    page = url.strip() \
+        .replace('m.facebook', 'facebook') \
+        .replace('fb.com', 'facebook.com') \
+        .replace('nl-nl.', '') \
+        .replace('http:', 'https:')
+    if page.startswith('@'):
+        page = 'https://www.facebook.com/%s' % page.strip('@')
+    elif not page.lower().startswith('https'):
+        page = 'https://%s' % page
+    parsed = validate_url(page, check_existence=False)
+    if not parsed:
+        return None
+    result = urlparse(page)  # type: ParseResult
+    netloc = result.netloc.lower()
+    if not netloc.startswith('business') and not netloc.startswith('www.'):
+        netloc = 'www.%s' % netloc
+    if netloc in ('business.facebook.com', 'www.facebook.com'):
+        page_url = 'https://{netloc}{path}'.format(netloc=netloc, path=result.path)
+        if 'id=' in result.query or 'q=' in result.query:
+            return page_url + '?%s' % result.query
+        return page_url

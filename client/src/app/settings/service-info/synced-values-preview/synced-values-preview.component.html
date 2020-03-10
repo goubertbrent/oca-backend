@@ -1,0 +1,4 @@
+<ng-container *ngFor="let value of values; let last = last">
+  {{ value.value }}
+  <ng-container *ngIf="!last">|</ng-container>
+</ng-container>

@@ -49,8 +49,6 @@ $(function() {
     $('#gatherEventsEnabled').click(gatherEventsEnabled);
     $('#gatherEventsDisabled').click(gatherEventsDisabled);
 
-    $("#topmenu li a").click(menuPress);
-
     var saveCityAppSettings = function() {
         var data = JSON.stringify({
             gather_events: gatherEvents,
@@ -86,20 +84,20 @@ $(function() {
         var version = "3";
         var params = {};
 
-        if ($('#section_settings_agenda .sln-uit-events-3-key input').val() === "") {
-            $('#section_settings_agenda .sln-uit-events-3-key input').addClass("error");
+        if ($('#section_agenda .sln-uit-events-3-key input').val() === "") {
+            $('#section_agenda .sln-uit-events-3-key input').addClass("error");
             allOK = false;
         }
-        if ($('#section_settings_agenda .sln-uit-events-3-postal-codes').data('postal_codes') === null) {
-            $('#section_settings_agenda .sln-uit-events-3-postal-codes').addClass("error");
+        if ($('#section_agenda .sln-uit-events-3-postal-codes').data('postal_codes') === null) {
+            $('#section_agenda .sln-uit-events-3-postal-codes').addClass("error");
             allOK = false;
         } else {
-            $('#section_settings_agenda .sln-uit-events-3-postal-codes').removeClass("error");
+            $('#section_agenda .sln-uit-events-3-postal-codes').removeClass("error");
         }
 
         params = {
-            'key': $('#section_settings_agenda .sln-uit-events-3-key input').val(),
-            'postal_codes': $('#section_settings_agenda .sln-uit-events-3-postal-codes').data('postal_codes')
+            'key': $('#section_agenda .sln-uit-events-3-key input').val(),
+            'postal_codes': $('#section_agenda .sln-uit-events-3-postal-codes').data('postal_codes')
         };
 
         if (allOK) {
@@ -143,12 +141,12 @@ $(function() {
             success: function(data) {
                 setUitdatabankStatus(data.enabled);
 
-                $("#section_settings_agenda .sln-uit-events-3").hide();
+                $("#section_agenda .sln-uit-events-3").hide();
 
               	var postal_codes = data.params ? data.params.postal_codes : [];
-                $("#section_settings_agenda .sln-uit-events-3").show();
-                $("#section_settings_agenda .sln-uit-events-3-key input").val(data.params ? data.params.key : "");
-                $("#section_settings_agenda .sln-uit-events-3-postal-codes").data('postal_codes', postal_codes);
+                $("#section_agenda .sln-uit-events-3").show();
+                $("#section_agenda .sln-uit-events-3-key input").val(data.params ? data.params.key : "");
+                $("#section_agenda .sln-uit-events-3-postal-codes").data('postal_codes', postal_codes);
                 renderPostalCodes(postal_codes);
             },
             error: sln.showAjaxError
@@ -205,11 +203,4 @@ $(function() {
 
     loadCityAppSettings();
     loadUitdatabankSettings();
-
-    function menuPress() {
-        $("#topmenu li").removeClass("active");
-        var li = $(this).parent().addClass("active");
-        $("div.page").hide();
-        $("div#" + li.attr("menu")).show();
-    }
 });

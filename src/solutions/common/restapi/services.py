@@ -39,7 +39,7 @@ from shop.dal import get_customer
 from shop.exceptions import DuplicateCustomerNameException, NotOperatingInCountryException, EmptyValueException, \
     InvalidEmailFormatException, NoPermissionException, ServiceNameTooBigException
 from shop.jobs.migrate_user import migrate as migrate_user
-from shop.models import Customer, Contact, LegalDocumentAcceptance, LegalDocumentType
+from shop.models import Customer, Contact, LegalDocumentAcceptance, LegalDocumentType, CustomerSignup
 from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
@@ -171,12 +171,12 @@ def get_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     service_user = users.User(email=service_email)
-    customer = Customer.get_by_service_email(service_email)
+    customer = Customer.get_by_service_email(service_email)  # type: Customer
     if not city_customer.can_edit_service(customer):
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         lang = get_solution_settings(city_service_user).main_language
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
-    contact = Contact.get_one(customer.key())
+    contact = Contact.get_one(customer.key())  # type: Contact
     solution_settings = get_solution_settings(service_user)
     return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
                      customer.user_email, contact.phone_number, solution_settings.main_language,
@@ -213,8 +213,8 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
         if not modules:
             modules = filter_modules(city_customer, get_default_modules(city_customer), broadcast_types)
 
-        service = create_customer_service_to(name, address1, address2, city, zip_code, user_email, language, city_sln_settings.currency,
-                                             telephone, organization_type, city_customer.app_id, broadcast_types, modules)
+        service = create_customer_service_to(name, user_email, language, telephone, organization_type,
+                                             city_customer.app_id, broadcast_types, modules)
         (customer, email_changed, is_new_service) \
             = create_customer_with_service(city_customer, customer, service, name, address1, address2, zip_code, city,
                                            language, organization_type, vat, website, facebook_page, force=force)
@@ -313,7 +313,7 @@ def _update_signup_contact(customer, signup):
 @returns(WarningReturnStatusTO)
 @arguments(signup_key=unicode, modules=[unicode], broadcast_types=[unicode], force=bool)
 def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=None, force=False):
-    signup = db.get(signup_key)
+    signup = db.get(signup_key)  # type: CustomerSignup
     if signup.done:
         return WarningReturnStatusTO.create(success=True)
 
@@ -338,11 +338,9 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
         _fill_signup_data(signup, 'email', 'telephone', 'website', 'facebook_page')
         modules = filter_modules(city_customer, modules, broadcast_types)
 
-        service = create_customer_service_to(
-            signup.company_name, signup.company_address1, None, signup.company_city,
-            signup.company_zip_code, signup.company_email, signup_language, city_sln_settings.currency,
-            signup.company_telephone, signup.company_organization_type, city_customer.app_id,
-            broadcast_types, modules=modules)
+        service = create_customer_service_to(signup.company_name, signup.company_email, signup_language,
+                                             signup.company_telephone, signup.company_organization_type,
+                                             city_customer.app_id, broadcast_types, modules)
 
         customer = create_customer_with_service(
             city_customer, None, service, signup.company_name,

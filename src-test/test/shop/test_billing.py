@@ -106,17 +106,14 @@ class TestCase(oca_unittest.TestCase):
 
     def _create_service(self, customer, apps=None):
         service = CustomerServiceTO()
-        service.address = u'antwerpsesteenweg 19 lochristi'
         service.apps = apps or [App.APP_ID_ROGERTHAT, u'be-loc']
         service.broadcast_types = [u'broadcast']
-        service.currency = u'euro'
         service.email = u'test@example.com'
+        service.phone_number = u'00248498498494'
         service.language = u'en'
         mods = [m for m in SolutionModule.MANDATORY_MODULES]
         service.modules = list(set(mods))
-        service.name = customer.name
         service.organization_type = OrganizationType.PROFIT
-        service.phone_number = u'00248498498494'
         service.app_infos = []
         service.current_user_app_infos = []
         service.managed_organization_types = []
