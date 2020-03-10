@@ -21,7 +21,7 @@ from types import NoneType
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
-from mcfw.properties import azzert
+from mcfw.exceptions import HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.dal.profile import get_service_profile
@@ -94,7 +94,7 @@ def search_services(search_string, organization_type=None):
     si = system.get_identity()
     app_id = si.app_ids[0]
     city_customer = get_customer(city_service_user)
-    azzert(city_sln_settings.can_edit_services(city_customer))
+    _check_is_city(city_sln_settings, city_customer)
 
     customers = []
     # if app id is set, the customer should have a service
@@ -103,6 +103,8 @@ def search_services(search_string, organization_type=None):
         if c.service_email == city_service_user.email() or c.service_disabled_at:
             continue
         if organization_type and c.organization_type != organization_type:
+            continue
+        if app_id != c.default_app_id:
             continue
         customers.append(CustomerTO.fromCustomerModel(c, False, False))
 
@@ -118,7 +120,6 @@ def get_services(organization_type, cursor=None, limit=50):
     # get all the services in this city
     app_id = si.app_ids[0]
     city_customer = get_customer(city_service_user)
-    azzert(organization_type in city_customer.editable_organization_types)
     service_customers_qry = Customer.list_enabled_by_organization_type_in_app(app_id, organization_type)
     service_customers_qry.with_cursor(cursor)
     service_customers = service_customers_qry.fetch(limit)
@@ -134,7 +135,7 @@ def get_services(organization_type, cursor=None, limit=50):
             sln_settings_keys.append(SolutionSettings.create_key(users.User(customer.service_email)))
     sln_settings_list = db.get(sln_settings_keys)
     city_sln_settings = sln_settings_list.pop(0)  # type: SolutionSettings
-    azzert(city_sln_settings.can_edit_services(city_customer))
+    _check_is_city(city_sln_settings, city_customer)
     city_service_email = city_sln_settings.service_user.email()
     for customer in service_customers:
         service_email = customer.service_email
@@ -164,17 +165,25 @@ def get_services(organization_type, cursor=None, limit=50):
     return ServicesTO(sorted(services, key=lambda x: x.name.lower()), generated_on, new_cursor)
 
 
+def _check_is_city(sln_settings, customer):
+    # type: (SolutionSettings, Customer) -> None
+    if not sln_settings.can_edit_services(customer):
+        raise HttpForbiddenException()
+
+
 @rest("/common/services/get", "get", read_only_access=True)
 @returns((ServiceTO, ReturnStatusTO))
 @arguments(service_email=unicode)
 def get_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
+    sln_settings = get_solution_settings(city_service_user)
+    _check_is_city(sln_settings, city_customer)
     service_user = users.User(email=service_email)
-    customer = Customer.get_by_service_email(service_email)  # type: Customer
-    if not city_customer.can_edit_service(customer):
+    customer = get_customer(users.User(service_email)) # type: Customer
+    if not city_customer.can_edit_service():
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
-        lang = get_solution_settings(city_service_user).main_language
+        lang = sln_settings.main_language
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     contact = Contact.get_one(customer.key())  # type: Contact
     solution_settings = get_solution_settings(service_user)
@@ -199,7 +208,7 @@ def rest_put_service(name, address1, address2, zip_code, city, user_email, telep
     lang = city_sln_settings.main_language
     customer = Customer.get_by_id(customer_id) if customer_id else None
     # check if the current user is in fact a city app
-    if customer and not city_customer.can_edit_service(customer):
+    if not city_customer.can_edit_service():
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
         return WarningReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
 
@@ -278,9 +287,13 @@ def rest_delete_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     customer = Customer.get_by_service_email(service_email)
-    if not city_customer.can_edit_service(customer):
-        lang = get_solution_settings(city_service_user).main_language
+    if not city_customer.can_edit_service():
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
+        lang = get_solution_settings(city_service_user).main_language
+        return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
+    if service_email == city_service_user.email():
+        logging.warn(u'Service %s tried to delete its own service', city_service_user)
+        lang = get_solution_settings(city_service_user).main_language
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     cancel_subscription(customer.id, Customer.DISABLED_REASONS[Customer.DISABLED_ASSOCIATION_BY_CITY], True)
     session = users.get_current_session()
@@ -323,7 +336,7 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
     city_language = city_sln_settings.main_language
     signup_language = signup.language or city_sln_settings.main_language
 
-    azzert(city_sln_settings.can_edit_services(city_customer))
+    _check_is_city(city_sln_settings, city_customer)
     if not signup:
         return WarningReturnStatusTO.create(False, translate(city_language, SOLUTION_COMMON, 'signup_not_found'))
 

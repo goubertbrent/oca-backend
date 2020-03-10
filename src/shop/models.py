@@ -530,19 +530,9 @@ class Customer(db.Model):
     def can_only_edit_organization_type(self, organization_type):
         return len(self.editable_organization_types) == 1 and self.editable_organization_types[0] == organization_type
 
-    def can_edit_service(self, service_customer):
-        """Check if a city service can edit another service on dashboard (merchants...etc).
-
-        Args:
-            service_customer (shop.models.Customer)
-
-        Returns:
-            bool
-        """
-        is_city = self.organization_type == OrganizationType.CITY
-        if is_city and service_customer:
-            return service_customer.organization_type in self.editable_organization_types
-        return False
+    def can_edit_service(self):
+        """Check if a city service can edit another service on dashboard (merchants...etc)."""
+        return self.organization_type == OrganizationType.CITY
 
 
 class CustomerSignup(db.Model):

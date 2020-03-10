@@ -41,7 +41,7 @@ class LoginAsServiceHandler(webapp2.RequestHandler):
         current_user = users.get_current_user()
         current_customer = get_customer(current_user)
         sln_settings = get_solution_settings(current_user)
-        if not sln_settings.can_edit_services(current_customer) or not current_customer.can_edit_service(customer):
+        if not sln_settings.can_edit_services(current_customer) or not current_customer.can_edit_service():
             logging.warn('Service or user %s is trying to login to the dashboard of %s',
                          current_user.email(), customer.name)
             self.abort(401)

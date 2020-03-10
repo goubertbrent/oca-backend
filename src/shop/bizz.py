@@ -2488,12 +2488,17 @@ def get_customer_charges(user, paid, limit=50, cursor=None):
 
 
 @returns([tuple])
-@arguments(customer=Customer, language=unicode)
-def get_organization_types(customer, language):
+@arguments(customer=Customer, language=unicode, include_all=bool)
+def get_organization_types(customer, language, include_all=False):
     if not customer:
         return []
+    if include_all:
+        organization_types = [ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT, ServiceProfile.ORGANIZATION_TYPE_PROFIT,
+                              ServiceProfile.ORGANIZATION_TYPE_CITY, ServiceProfile.ORGANIZATION_TYPE_EMERGENCY]
+    else:
+        organization_types = customer.editable_organization_types
     return [(org_type, ServiceProfile.localized_plural_organization_type(org_type, language, customer.app_id))
-            for org_type in customer.editable_organization_types]
+            for org_type in organization_types]
 
 
 def get_service_admins(service_user):

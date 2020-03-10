@@ -27,8 +27,8 @@ OTHER_LANGUAGES = ['nl']
 MEDIA = {
     'nl': {
         SolutionModule.BROADCAST: {
-            'video_id': '5NvAKVnbEqI',
-            'tutorial_video_id': '5NvAKVnbEqI',
+            'video_id': '1WbWOE4hOj4',
+            'tutorial_video_id': '1WbWOE4hOj4',
         },
         SolutionModule.LOYALTY: {
             'video_id': 'WRwNCNtIQG4',

@@ -376,7 +376,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
         news_review_enabled = city_app_profile and city_app_profile.review_news or True
 
-        organization_types = get_organization_types(customer, sln_settings.main_language)
+        organization_types = get_organization_types(customer, sln_settings.main_language, include_all=True)
         params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
                   'country': country,
                   'logo_languages': LOGO_LANGUAGES,
