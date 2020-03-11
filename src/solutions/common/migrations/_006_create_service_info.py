@@ -59,14 +59,14 @@ def _put_files(keys):
 
 
 def migrate_2_solution_settings(dry_run=True):
-    run_job(_get_all_solution_settings, [], _try_create_service_info if dry_run else _create_service_info_parent, [], worker_queue=MIGRATION_QUEUE)
+    run_job(_get_all_solution_settings, [], _try_create_service_info if dry_run else _create_service_info_parent, [dry_run], worker_queue=MIGRATION_QUEUE)
 
 
 def _get_all_solution_settings():
     return SolutionSettings.all(keys_only=True)
 
 
-def _try_create_service_info(sln_settings_key):
+def _try_create_service_info(sln_settings_key, dry_run=False):
     try:
         sln_settings, models = _create_service_info_parent(sln_settings_key, True)
         if sln_settings:
@@ -117,7 +117,7 @@ def _create_service_info(sln_settings_key, dry_run=False):
         
     info.keywords = [k.strip() for k in sln_settings.search_keywords.split(' ') if k.strip()] if sln_settings.search_keywords else []
     info.addresses = []
-    sln_settings.address = sln_settings.address.strip()
+    sln_settings.address = sln_settings.address.strip() if sln_settings.address else u''
     place_search_keywords = [sln_settings.name]
     if sln_settings.location and sln_settings.address:
         # Search very close to the coordinates
