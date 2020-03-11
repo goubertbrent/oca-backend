@@ -1,0 +1,46 @@
+<div *ngIf="periods.length === 0">
+  <p>{{ 'oca.closed' | translate }}</p>
+</div>
+<ng-container *ngIf="!isOpen24Hours">
+  <div *ngFor="let hours of periods; trackBy: trackHours;" class="periods">
+    <oca-time-picker (ngModelChange)="setTime(hours, 'open', $event)"
+                     [disabled]="disabled"
+                     [label]="'oca.opening_time' | translate"
+                     [max]="hours.close.time | hours : 'HH:mm'"
+                     [ngModelOptions]="{standalone: true}"
+                     [ngModel]="hours.open.time | hours : 'HH:mm'"
+                     required></oca-time-picker>
+    <span class="hours-divider">—</span>
+
+    <oca-time-picker (ngModelChange)="setTime(hours, 'close', $event)"
+                     [disabled]="disabled"
+                     [label]="'oca.closing_time' | translate"
+                     [min]="hours.open.time | hours : 'HH:mm'"
+                     [ngModelOptions]="{standalone: true}"
+                     [ngModel]="hours.close.time | hours : 'HH:mm'"
+                     max="23:59"
+                     required></oca-time-picker>
+    <mat-form-field class="period-description">
+      <mat-label>{{ 'oca.description' | translate}}</mat-label>
+      <input (ngModelChange)="setChanged()"
+             [(ngModel)]="hours.description"
+             [disabled]="disabled"
+             matInput
+             ngModelOptions="{standalone: true}">
+    </mat-form-field>
+    <button (click)="deleteHours(hours)"
+            [disabled]="disabled"
+            mat-icon-button
+            type="button">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+</ng-container>
+<mat-slide-toggle (change)="toggleOpen24Hours($event)"
+                  [disabled]="disabled"
+                  [ngModel]="isOpen24Hours">{{ 'oca.open_24_hours' | translate }}</mat-slide-toggle>
+<button (click)="addHours()"
+        *ngIf="!isOpen24Hours"
+        [disabled]="disabled"
+        mat-button
+        type="button">{{ 'oca.add_hours' | translate }}</button>

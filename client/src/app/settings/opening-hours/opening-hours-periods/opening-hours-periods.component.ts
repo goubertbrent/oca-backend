@@ -11,7 +11,6 @@ import {
   SimpleChange,
 } from '@angular/core';
 import { OpeningPeriod } from '../../../shared/interfaces/oca';
-import { formatDateToHours, parseHours } from '../../../shared/time-picker/time-picker.component';
 
 interface PeriodMapping {
   day: WeekDay;
@@ -68,35 +67,12 @@ export class OpeningHoursPeriodsComponent implements OnChanges {
     this.changed.emit(periods);
   }
 
-  addHours(mapping: PeriodMapping) {
-    mapping.periods.push({
-      open: { day: mapping.day, time: '0800' },
-      close: { day: mapping.day, time: '1700' },
-    });
-    this.setChanged();
-  }
-
-  deleteHours(period: PeriodMapping, hours: OpeningPeriod) {
-    period.periods = period.periods.filter(p => p !== hours);
-    this.setChanged();
-  }
-
   doShowHours() {
     this.showPeriods = true;
   }
 
   trackPeriodByDay(index: number, item: PeriodMapping) {
     return item.day;
-  }
-
-  setTime(hours: OpeningPeriod, openOrClose: 'open' | 'close', newValue: string) {
-    const updatedHour = parseHours(newValue);
-    hours[ openOrClose ].time = formatDateToHours(updatedHour, '');
-    this.setChanged();
-  }
-
-  trackHours(index: number, value: OpeningPeriod) {
-    return index;
   }
 
   private setPeriodsVisible() {

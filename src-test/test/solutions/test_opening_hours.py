@@ -100,3 +100,50 @@ Friday
 10:00 — 12:00
 15/08/2020 — 16/08/2020 Assumption of Mary — Closed"""
         self.assertEqual(expected, text)
+
+    def test_always_open(self):
+        hours = OpeningHours(
+            key=OpeningHours.create_key(users.User('test@example.com'), '1'),
+            type=OpeningHours.TYPE_STRUCTURED,
+            periods=[
+                OpeningPeriod(open=OpeningHour(day=0, time=u'0000')),
+                OpeningPeriod(open=OpeningHour(day=1, time=u'0000')),
+                OpeningPeriod(open=OpeningHour(day=2, time=u'0000')),
+                OpeningPeriod(open=OpeningHour(day=3, time=u'0000')),
+                OpeningPeriod(open=OpeningHour(day=4, time=u'0000')),
+                OpeningPeriod(open=OpeningHour(day=5, time=u'0000')),
+                OpeningPeriod(open=OpeningHour(day=6, time=u'0000')),
+            ]
+        )
+        current_date = datetime(2020, 1, 2)
+        text = opening_hours_to_text(hours, 'en_GB', current_date)
+        expected = """Open 24/7"""
+        self.assertEqual(expected, text)
+
+    def test_open_24h(self):
+        hours = OpeningHours(
+            key=OpeningHours.create_key(users.User('test@example.com'), '1'),
+            type=OpeningHours.TYPE_STRUCTURED,
+            periods=[
+                OpeningPeriod(open=OpeningHour(day=1, time='0000')),
+                OpeningPeriod(open=OpeningHour(day=2, time='0800'), close=OpeningHour(day=1, time=u'1700')),
+            ]
+        )
+        current_date = datetime(2020, 1, 2)
+        text = opening_hours_to_text(hours, 'en_GB', current_date)
+        expected = """Monday
+Open 24 hours
+
+Tuesday
+08:00 — 17:00"""
+        self.assertEqual(expected, text)
+
+    def test_always_closed(self):
+        hours = OpeningHours(
+            key=OpeningHours.create_key(users.User('test@example.com'), '1'),
+            type=OpeningHours.TYPE_STRUCTURED,
+        )
+        current_date = datetime(2020, 1, 2)
+        text = opening_hours_to_text(hours, 'en_GB', current_date)
+        expected = """Always closed"""
+        self.assertEqual(expected, text)

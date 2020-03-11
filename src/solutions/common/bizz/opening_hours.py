@@ -22,6 +22,7 @@ from babel.dates import format_date, get_day_names, format_time
 from typing import List
 
 from mcfw.exceptions import HttpBadRequestException
+from rogerthat.bizz.opening_hours import is_always_open, is_always_closed, is_open_24_hours
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
 from rogerthat.rpc import users
 from solutions import translate, SOLUTION_COMMON
@@ -64,6 +65,18 @@ def _get_day_str(day_int):
     return DAY_MAPPING[day_int]
 
 
+def _get_open_hour_text(period, locale):
+    # type: (OpeningPeriod, str) -> str
+    if is_open_24_hours(period):
+        return translate(locale, SOLUTION_COMMON, 'oca.open_24_hours')
+    open_time = format_time(period.open.datetime, 'short', locale=locale)
+    close_time = format_time(period.close.datetime, 'short', locale=locale)
+    line = '%s — %s' % (open_time, close_time)
+    if period.description:
+        line += ' %s' % period.description
+    return line
+
+
 def _get_opening_periods_lines(opening_periods, day_names, locale):
     # type: (List[OpeningPeriod], List[str], str) -> List[str]
     lines = []
@@ -75,12 +88,7 @@ def _get_opening_periods_lines(opening_periods, day_names, locale):
             if lines:
                 lines.append('')
             lines.append(day_name)
-        open_time = format_time(period.open.datetime, 'short', locale=locale)
-        close_time = format_time(period.close.datetime, 'short', locale=locale)
-        line = '%s — %s' % (open_time, close_time)
-        if period.description:
-            line += ' %s' % period.description
-        lines.append(line)
+        lines.append(_get_open_hour_text(period, locale))
         previous_day_name = day_name
     return lines
 
@@ -93,6 +101,10 @@ def opening_hours_to_text(opening_hours, locale, current_datetime):
         return opening_hours.text
     day_names = get_day_names(locale=locale).values()  # Starts on monday
     day_names.insert(0, day_names.pop())  # Starts on sunday
+    if is_always_open(opening_hours.periods):
+        return translate(locale, SOLUTION_COMMON, 'always_open')
+    if is_always_closed(opening_hours.periods):
+        return translate(locale, SOLUTION_COMMON, 'always_closed')
     lines = _get_opening_periods_lines(opening_hours.periods, day_names, locale)
     if opening_hours.exceptional_opening_hours:
         lines.append('')

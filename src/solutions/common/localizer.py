@@ -20,6 +20,9 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'always_open': u'Open 24/7',
+         u'always_closed': u'Always closed',
+         u'oca.open_24_hours': u'Open 24 hours',
          u'oca.could_not_resolve_address': u'Could not resolve the address to coordinates, please enter a valid address or search for a place instead by entering the name of your service.',
          u'oca.standard_images': u'Standard images',
          u'oca.cover_photo': u'Cover photo',
@@ -3822,6 +3825,9 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'always_open': u'Open 24/7',
+         u'always_closed': u'Altijd gesloten',
+         u'oca.open_24_hours': u'Open 24 uren',
          u'oca.could_not_resolve_address': u'Kon het adres niet omzetten naar coördinaten, voer een geldig adres in of zoek naar een plaats door de naam van uw dienst in te geven.',
          u'oca.standard_images': u'Standaard afbeeldingen',
          u'oca.cover_photo': u'Omslagfoto',

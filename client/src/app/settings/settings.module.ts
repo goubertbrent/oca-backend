@@ -35,6 +35,7 @@ import { ServiceSyncedValueEditorComponent } from './service-info/service-synced
 import { SyncedValuesPreviewComponent } from './service-info/synced-values-preview/synced-values-preview.component';
 import { SettingsEffects } from './settings.effects';
 import { settingsReducer } from './settings.reducer';
+import { OpeningHoursPeriodsEditorComponent } from './opening-hours/opening-hours-periods-editor/opening-hours-periods-editor.component';
 
 
 const routes: Routes = [
@@ -54,6 +55,7 @@ const routes: Routes = [
     ServiceSyncedValueEditorComponent,
     ServiceAddressesEditorComponent,
     SyncedValuesPreviewComponent,
+    OpeningHoursPeriodsEditorComponent,
   ],
   imports: [
     CommonModule,

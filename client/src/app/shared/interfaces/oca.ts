@@ -44,7 +44,7 @@ export interface OpeningHour {
 
 export interface OpeningPeriod {
   open: OpeningHour;
-  close: OpeningHour;
+  close: OpeningHour | null;
   description?: string | null;
   description_color?: string | null;
 }

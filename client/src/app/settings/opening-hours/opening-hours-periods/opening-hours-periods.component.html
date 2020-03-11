@@ -3,46 +3,24 @@
     <mat-expansion-panel-header>
       <mat-panel-title>{{ period.name }}</mat-panel-title>
       <mat-panel-description class="hours-description">
-        <ng-container *ngIf="period.periods.length ===0">{{ 'oca.closed' | translate }}</ng-container>
-        <ng-container *ngFor="let hours of period.periods; let last = last">
-          {{ hours.open.time | hours }} - {{ hours.close.time | hours }}
-          <ng-container *ngIf="!last">,</ng-container>
+        <ng-container *ngIf="period.periods.length === 0">{{ 'oca.closed' | translate }}</ng-container>
+        <ng-container *ngIf="period.periods.length === 1 && !period.periods[0].close; else normalHours">
+          {{ 'oca.open_24_hours' | translate }}
         </ng-container>
+        <ng-template #normalHours>
+          <ng-container *ngFor="let hours of period.periods; let last = last">
+            {{ hours.open.time | hours }} - {{ hours.close.time | hours }}
+            <ng-container *ngIf="!last">,</ng-container>
+          </ng-container>
+        </ng-template>
       </mat-panel-description>
     </mat-expansion-panel-header>
     <!-- Avoids rendering the periods when the panel is not open-->
     <ng-template matExpansionPanelContent>
-      <div *ngIf="period.periods.length === 0">
-        <p>{{ 'oca.closed' | translate }}</p>
-      </div>
-      <div *ngFor="let hours of period.periods; trackBy: trackHours;" class="periods">
-        <oca-time-picker (ngModelChange)="setTime(hours, 'open', $event)"
-                         [label]="'oca.opening_time' | translate"
-                         [max]="hours.close.time | hours : 'HH:mm'"
-                         [ngModel]="hours.open.time | hours : 'HH:mm'"
-                         [ngModelOptions]="{standalone: true}"
-                         required></oca-time-picker>
-        <span class="hours-divider">—</span>
-
-        <oca-time-picker (ngModelChange)="setTime(hours, 'close', $event)"
-                         [label]="'oca.closing_time' | translate"
-                         [min]="hours.open.time | hours : 'HH:mm'"
-                         [ngModel]="hours.close.time | hours : 'HH:mm'"
-                         [ngModelOptions]="{standalone: true}"
-                         max="23:59"
-                         required></oca-time-picker>
-        <mat-form-field class="period-description">
-          <mat-label>{{ 'oca.description' | translate}}</mat-label>
-          <input (ngModelChange)="setChanged()"
-                 [(ngModel)]="hours.description"
-                 matInput
-                 ngModelOptions="{standalone: true}">
-        </mat-form-field>
-        <button (click)="deleteHours(period, hours)" mat-icon-button type="button">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </div>
-      <button (click)="addHours(period)" mat-button type="button">{{ 'oca.add_hours' | translate }}</button>
+      <oca-opening-hours-periods-editor (ngModelChange)="setChanged()"
+                                        [(ngModel)]="period.periods"
+                                        [day]="period.day"
+                                        [ngModelOptions]="{standalone: true}"></oca-opening-hours-periods-editor>
     </ng-template>
   </mat-expansion-panel>
 </mat-accordion>
