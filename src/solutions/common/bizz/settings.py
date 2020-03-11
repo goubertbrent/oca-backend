@@ -333,25 +333,29 @@ def resolve_url(url):
 
 
 def parse_facebook_url(url):
-    # type: (str) -> Optional[str]
-    page = url.strip() \
-        .replace('m.facebook', 'facebook') \
-        .replace('fb.com', 'facebook.com') \
-        .replace('nl-nl.', '') \
-        .replace('http:', 'https:')
-    if page.startswith('@'):
-        page = 'https://www.facebook.com/%s' % page.strip('@')
-    elif not page.lower().startswith('https'):
-        page = 'https://%s' % page
-    parsed = validate_url(page, check_existence=False)
-    if not parsed:
-        return None
-    result = urlparse(page)  # type: ParseResult
-    netloc = result.netloc.lower()
-    if not netloc.startswith('business') and not netloc.startswith('www.'):
-        netloc = 'www.%s' % netloc
-    if netloc in ('business.facebook.com', 'www.facebook.com'):
-        page_url = 'https://{netloc}{path}'.format(netloc=netloc, path=result.path)
-        if 'id=' in result.query or 'q=' in result.query:
-            return page_url + '?%s' % result.query
-        return page_url
+    try:
+        # type: (str) -> Optional[str]
+        page = url.strip() \
+            .replace('m.facebook', 'facebook') \
+            .replace('fb.com', 'facebook.com') \
+            .replace('nl-nl.', '') \
+            .replace('http:', 'https:')
+        if page.startswith('@'):
+            page = 'https://www.facebook.com/%s' % page.strip('@')
+        elif not page.lower().startswith('https'):
+            page = 'https://%s' % page
+        parsed = validate_url(page, check_existence=False)
+        if not parsed:
+            return None
+        result = urlparse(page)  # type: ParseResult
+        netloc = result.netloc.lower()
+        if not netloc.startswith('business') and not netloc.startswith('www.'):
+            netloc = 'www.%s' % netloc
+        if netloc in ('business.facebook.com', 'www.facebook.com'):
+            page_url = 'https://{netloc}{path}'.format(netloc=netloc, path=result.path)
+            if 'id=' in result.query or 'q=' in result.query:
+                return page_url + '?%s' % result.query
+            return page_url
+    except:
+        logging.debug('parse_facebook_url invalid_url: %s', url, exc_info=True)
+    return None
