@@ -200,7 +200,7 @@ def reply_sandwich_order(service_user, service_identity, sandwich_id, message=un
                 }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
         service_info = get_service_info(service_user, service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
                                                                      True).to_dict()})
     else:
         sln_main_branding = get_solution_main_branding(service_user)
@@ -278,7 +278,7 @@ def ready_sandwich_order(service_user, service_identity, sandwich_id, message):
             deferred.defer(update_user_data_admins, service_user, sandwich_order.service_identity)
         service_info = get_service_info(service_user, service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
                                                                      True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=sandwich_order.service_identity)

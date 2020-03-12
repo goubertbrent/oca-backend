@@ -166,7 +166,7 @@ def delete_pharmacy_order(service_user, order_key, message):
 
             service_info = get_service_info(service_user, order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                            u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
                                                                          True).to_dict()})
         else:
             branding = get_solution_main_branding(service_user).branding_key
@@ -193,7 +193,7 @@ def delete_pharmacy_order(service_user, order_key, message):
             deferred.defer(update_user_data_admins, service_user, order.service_identity)
         service_info = get_service_info(service_user, order.service_identity)
         sm_data.append({u"type": u"solutions.common.messaging.update",
-                        u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                        u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
                                                                      True).to_dict()})
 
     send_message(service_user, sm_data, service_identity=order.service_identity)
@@ -228,7 +228,7 @@ def send_message_for_pharmacy_order(service_user, order_key, order_status, messa
             }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
             service_info = get_service_info(service_user, order.service_identity)
             sm_data.append({u"type": u"solutions.common.messaging.update",
-                            u"message": SolutionInboxMessageTO.fromModel(message, sln_settings, service_info,
+                            u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
                                                                          True).to_dict()})
         else:
             sln_main_branding = get_solution_main_branding(service_user)
