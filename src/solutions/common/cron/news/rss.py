@@ -83,7 +83,8 @@ def _worker(rss_settings_key):
                                                                   NewsGroup.TYPE_PROMOTIONS,
                                                                   NewsGroup.TYPE_EVENTS,
                                                                   NewsGroup.TYPE_TRAFFIC,
-                                                                  NewsGroup.TYPE_PRESS,):
+                                                                  NewsGroup.TYPE_PRESS,
+                                                                  NewsGroup.TYPE_PUBLIC_SERVICE_ANNOUNCEMENTS,):
             logging.error("process_rss_links failed for '%s' and url '%s' invalid group_type found '%s'",
                           service_user,
                           rss_link.url,
