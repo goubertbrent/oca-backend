@@ -1973,7 +1973,7 @@ def rest_list_uploaded_files(prefix=None):
 @returns([GcsFileTO])
 @arguments(prefix=unicode)
 def rest_list_gallery_images(prefix):
-    path = '/%s/image-library/%s' % (OCA_FILES_BUCKET, prefix)
+    path = '/%s/image-library/%s/' % (OCA_FILES_BUCKET, prefix)
     if DEBUG:
         return [
             GcsFileTO(url='https://storage.googleapis.com/oca-files/image-library/%s/merchant.jpg' % prefix,
@@ -1989,7 +1989,7 @@ def rest_list_gallery_images(prefix):
                       content_type='image/jpeg',
                       size=-1),
         ]
-    return [GcsFileTO(url=f.filename, content_type=f.content_type, size=f.st_size) for f in cloudstorage.listbucket(path)]
+    return [GcsFileTO(url=get_serving_url(f.filename), content_type=f.content_type, size=f.st_size) for f in cloudstorage.listbucket(path) if f.filename != path]
 
 
 @rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
