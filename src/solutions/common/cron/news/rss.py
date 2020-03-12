@@ -34,7 +34,7 @@ from rogerthat.to import TO
 from rogerthat.to.push import remove_html
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
-from solutions.common.cron.news import html_unescape, transl, \
+from solutions.common.cron.news import html_unescape, \
     create_news_item, update_news_item, news_item_hash, delete_news_item, \
     is_html
 from solutions.common.dal import get_solution_settings
@@ -258,6 +258,13 @@ def parse_rss_items(xml_content, rss_url, service_user=None, service_identity=No
     logging.error(u'Unknown rss flavor %s', root_tag)
     return [], []
 
+def scandown( elements, indent ):
+    for el in elements:
+        logging.debug("   " * indent + "nodeName: %s" % el.nodeName )
+        logging.debug("   " * indent + "nodeValue: %s" % el.nodeValue )
+        logging.debug("   " * indent + "childNodes: ")
+        logging.debug(el.childNodes)
+        scandown(el.childNodes, indent + 1)
 
 def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
     items = []
@@ -271,15 +278,25 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
             url = item.getElementsByTagName("link")[0].firstChild.nodeValue.strip()
             guid_elements = item.getElementsByTagName('guid')
             if guid_elements:
-                guid = guid_elements[0].firstChild.nodeValue
+                guid = guid_elements[0].firstChild.nodeValue.strip()
             else:
                 guid = None
             description_tags = item.getElementsByTagName("description")
-            if not description_tags or not description_tags[0].firstChild:
+            if not description_tags:
                 logging.debug('url: %s', url)
-                logging.info('description not found or empty for %s', item.childNodes)
+                logging.info('description not found for %s', item.childNodes)
                 continue
-            description_html = description_tags[0].firstChild.nodeValue
+#             scandown(description_tags, 0)
+            description_html = None
+            for description_child in description_tags[0].childNodes:
+                v = description_child.nodeValue.strip()
+                if v:
+                    description_html = v
+                    break
+            if not description_html:
+                logging.debug('url: %s', url)
+                logging.info('description empty for %s', item.childNodes)
+                continue
             if not is_html(description_html):
                 description_html = u'<br/>'.join(description_html.splitlines())
             message = html_to_markdown(description_html, base_url)
