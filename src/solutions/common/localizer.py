@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'public_service_announcements': u'Public service announcements',
          u'always_open': u'Open 24/7',
          u'always_closed': u'Always closed',
          u'oca.open_24_hours': u'Open 24 hours',
@@ -3825,6 +3826,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'public_service_announcements': u'Meldingen van de overheid',
          u'always_open': u'Open 24/7',
          u'always_closed': u'Altijd gesloten',
          u'oca.open_24_hours': u'Open 24 uren',

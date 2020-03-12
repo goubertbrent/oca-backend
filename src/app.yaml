@@ -77,6 +77,10 @@ handlers:
   script: main_unauthenticated.app
   secure: always
 
+- url: /unauthenticated/rss/.*
+  script: main_unauthenticated.app
+  secure: always
+
 - url: /version
   script: main_unauthenticated.app
   secure: always

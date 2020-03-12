@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from webapp2 import Route
 from webapp2_extras.routes import RedirectRoute
 
 import shop.handlers
@@ -37,6 +38,7 @@ from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
     StripeCancelHandler, StripeWebhookHandler
 from solutions.common.handlers.vcard import VCardHandler
+from solutions.common.restapi.rss import RssCoronavirusDotBeHandler
 from solutions.flex.handlers import FlexHomeHandler
 from version.handler import VersionsHandler
 
@@ -52,6 +54,7 @@ handlers = [
     ('/unauthenticated/osa/launcher/apps', GetOSALaucherAppsHandler),
     ('/unauthenticated/osa/launcher/app/download', GetOSALaucherAppHandler),
     ('/unauthenticated/osa/flanders', FlandersHandler),
+    Route('/unauthenticated/rss/info-coronavirus-be', RssCoronavirusDotBeHandler),
     ('/bob/api/apps/set_ios_app_id', SetIosAppIdHandler),
     ('/shop/invoices/export', ExportInvoicesHandler),
     ('/shop/products/export', ExportProductsHandler),

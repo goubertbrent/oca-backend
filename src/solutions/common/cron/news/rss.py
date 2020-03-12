@@ -15,18 +15,19 @@
 #
 # @@license_version:1.5@@
 
-from datetime import datetime
 import logging
 import rfc822
+from datetime import datetime
 from urlparse import urlparse
-from xml.dom import minidom
 
-from bs4 import BeautifulSoup
 import dateutil.parser
+from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
+from xml.dom import minidom
 
+from mcfw.properties import unicode_property, typed_property
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
 from rogerthat.models.news import NewsGroup
@@ -40,8 +41,6 @@ from solutions.common.cron.news import html_unescape, \
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 from solutions.common.utils import html_to_markdown
-from mcfw.properties import unicode_property, typed_property
-
 
 BROADCAST_TYPE_NEWS = u"News"
 BROADCAST_TYPE_EVENTS = u"Events"
@@ -146,9 +145,12 @@ def _worker(rss_settings_key):
                                                   hash=scraped_item.hash,
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
-
-                if scraped_item.date and scraped_item.date < last_week_datetime:
+                
+                if not dry_run and scraped_item.date and scraped_item.date < last_week_datetime:
                     logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                elif dry_run and len(new_news_item_ids) > 100:
+                    logging.debug('new_dry_run_max_items_reached guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                    new_item.dry_run = True
                 else:
                     new_news_item_ids.append(scraped_item.id)
                     logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
@@ -230,6 +232,7 @@ def get_deleted_rss_items(oldest_dates, scraped_items, service_identity, service
 class ScrapedItem(object):
 
     def __init__(self, title, url, guid, message, date, rss_url, image_url):
+        # type: (str, str, str, str, datetime, str, str) -> ScrapedItem
         self.title = title
         self.url = url
         self.guid = guid
@@ -259,6 +262,7 @@ def parse_rss_items(xml_content, rss_url, service_user=None, service_identity=No
     logging.error(u'Unknown rss flavor %s', root_tag)
     return [], []
 
+
 def scandown( elements, indent ):
     for el in elements:
         logging.debug("   " * indent + "nodeName: %s" % el.nodeName )
@@ -267,11 +271,13 @@ def scandown( elements, indent ):
         logging.debug(el.childNodes)
         scandown(el.childNodes, indent + 1)
 
+
 def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
     items = []
     keys = []
     parsed_url = urlparse(rss_url)
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
+    current_date = datetime.now()
 
     for item in doc.getElementsByTagName('item'):
         try:
@@ -314,6 +320,12 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
                         # this date contains tzinfo and needs to be removed
                         epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
                         date = datetime.utcfromtimestamp(epoch)
+
+                # If the time it not known (00:00) for new items fetched on the same day,
+                # fill in the time with the current time. That way it's at least semi-accurate.
+                if date.year == current_date.year and date.month == current_date.month and date.day == current_date.day:
+                    if date.hour == 0 and date.minute == 0 and date.second == 0:
+                        date = date.replace(hour=current_date.hour, minute=current_date.minute)
             else:
                 date = None
         except:
@@ -424,6 +436,7 @@ class AtomText(TO):
         to.type_ = element.getAttribute('type')
         to.value = remove_html(html_unescape(element.firstChild.nodeValue)).strip()
         return to
+
 
 class AtomLink(TO):
     href = unicode_property('href')

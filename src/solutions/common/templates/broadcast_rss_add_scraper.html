@@ -1,3 +1,4 @@
+
 {% raw %}
 <div class="modal hide fade" tabindex="-1" role="dialog"
 	aria-labelledby="myModalLabel" aria-hidden="true">
@@ -12,11 +13,19 @@
 			<input type="text" id="rss-scraper-url" style="width: 300px;" required>
 		</div>
 		<div class="control-group">
-            <label class="control-label" for="rss-scraper-group_type">${CommonTranslations.BROADCAST_TYPE}</label>
-			<input type="text" id="rss-scraper-group_type" style="width: 300px;" required>
+            <label class="control-label" for="rss-scraper-group_type">${T('news_type')}</label>
+			<select id="rss-scraper-group_type" style="width: 300px;" required>
+                <option value="city">Gemeentelijk/Stedelijk nieuws</option>
+                <option value="promotions">${T('promotions')}</option>
+                <option value="events">${T('Events')}</option>
+                <option value="traffic">${T('Trafic')}</option>
+                <option value="press">${T('Press')}</option>
+                <option value="polls">${T('forms')}</option>
+                <option value="public_service_announcements">${T('public_service_announcements')}</option>
+            </select>
 		</div>
 		<div class="control-group">
-            <label class="control-label" for="rss-scraper-app_ids">${CommonTranslations.APP}</label>
+            <label class="control-label" for="rss-scraper-app_ids">${CommonTranslations.APP} (1 app id per lijn)</label>
 			<textarea rows="3" id="rss-scraper-app_ids" style="width: 300px;"></textarea>
 		</div>
 	</div>

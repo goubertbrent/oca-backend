@@ -1,3 +1,4 @@
 stripe==2.35.1
 zeep==3.4.0
 autopep8
+PyRSS2Gen==1.1
