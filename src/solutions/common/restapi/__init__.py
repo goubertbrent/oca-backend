@@ -1989,7 +1989,7 @@ def rest_list_gallery_images(prefix):
                       content_type='image/jpeg',
                       size=-1),
         ]
-    return [GcsFileTO(url=f.filename, content_type=f.content_type, size=f.size) for f in cloudstorage.listbucket(path)]
+    return [GcsFileTO(url=f.filename, content_type=f.content_type, size=f.st_size) for f in cloudstorage.listbucket(path)]
 
 
 @rest('/common/i18n/<lang:[^/]+>.json', 'get', read_only_access=True, authenticated=False, silent=True,
