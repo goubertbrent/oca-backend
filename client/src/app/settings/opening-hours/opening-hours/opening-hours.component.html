@@ -29,7 +29,7 @@
           <div class="exception-fields">
             <mat-form-field>
               <mat-label>{{ 'oca.start_date' | translate }}</mat-label>
-              <input (dateChange)="updateDate(exception, 'start_date', $event.value)"
+              <input (dateChange)="updateDate(exception, 'start_date', $event.value, index)"
                      [ngModel]="exception.start_date"
                      [matDatepicker]="startPicker"
                      [ngModelOptions]="{standalone: true}"
@@ -39,7 +39,7 @@
             </mat-form-field>
             <mat-form-field class="end-date">
               <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
-              <input (dateChange)="updateDate(exception, 'end_date', $event.value)"
+              <input (dateChange)="updateDate(exception, 'end_date', $event.value, index)"
                      [ngModel]="exception.end_date"
                      [matDatepicker]="endPicker"
                      [min]="exception.start_date"

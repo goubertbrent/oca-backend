@@ -58,10 +58,14 @@ export class OpeningHoursPeriodsComponent implements OnChanges {
     }
   }
 
-  setChanged() {
+  setChanged($event: OpeningPeriod[], day: WeekDay) {
     const periods: OpeningPeriod[] = [];
     for (const mapping of this.periodsPerDay) {
-      periods.push(...mapping.periods);
+      if (day === mapping.day) {
+        periods.push(...$event);
+      } else {
+        periods.push(...mapping.periods);
+      }
     }
     this.setPeriodsVisible();
     this.changed.emit(periods);

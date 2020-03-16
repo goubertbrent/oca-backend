@@ -17,8 +17,8 @@
     </mat-expansion-panel-header>
     <!-- Avoids rendering the periods when the panel is not open-->
     <ng-template matExpansionPanelContent>
-      <oca-opening-hours-periods-editor (ngModelChange)="setChanged()"
-                                        [(ngModel)]="period.periods"
+      <oca-opening-hours-periods-editor (ngModelChange)="setChanged($event, period.day)"
+                                        [ngModel]="period.periods"
                                         [day]="period.day"
                                         [ngModelOptions]="{standalone: true}"></oca-opening-hours-periods-editor>
     </ng-template>
