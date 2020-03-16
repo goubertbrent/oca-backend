@@ -97,8 +97,11 @@ def _create_service_info(sln_settings_key, dry_run=False):
         logging.warn('_create_service_info customer not found')
         return None, []
     service_user = sln_settings.service_user
-    info = ServiceInfo(key=ServiceInfo.create_key(sln_settings.service_user, ServiceIdentity.DEFAULT))
-
+    if isinstance(sln_settings, SolutionSettings):
+        info_key = ServiceInfo.create_key(sln_settings.service_user, ServiceIdentity.DEFAULT)
+    else:
+        info_key = ServiceInfo.create_key(sln_settings.service_user, sln_settings.service_identity)
+    info = ServiceInfo(key=info_key)
     to_put = [info]
 
     info.name = sln_settings.name

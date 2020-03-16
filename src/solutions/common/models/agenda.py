@@ -344,3 +344,20 @@ class SolutionCalendar(NdbModel):
             return None
         credentials = SolutionGoogleCredentials.create_key(self.google_credentials).get()
         return credentials.credentials
+
+
+class EventAnnouncement(NdbModel):
+    image_url = ndb.TextProperty()
+    color_theme = ndb.TextProperty()
+    title = ndb.TextProperty()
+    description = ndb.TextProperty()
+
+
+class EventAnnouncements(NdbModel):
+    title = ndb.TextProperty()
+    title_theme = ndb.TextProperty()
+    items = ndb.LocalStructuredProperty(EventAnnouncement, repeated=True)  # type: List[EventAnnouncement]
+
+    @classmethod
+    def create_key(cls):
+        return ndb.Key(cls, u'EventAnnouncements')

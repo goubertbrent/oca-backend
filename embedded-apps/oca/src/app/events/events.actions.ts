@@ -1,7 +1,10 @@
 import { Action } from '@ngrx/store';
-import { AddToCalendarParams, GetEventsParams, OcaEventList } from './events';
+import { AddToCalendarParams, EventAnnouncementList, GetEventsParams, OcaEventList } from './events';
 
 export const enum EventsActionTypes {
+  GET_ANNOUNCEMENTS = '[events] Get announcements',
+  GET_ANNOUNCEMENTS_SUCCESS = '[events] Get announcements complete',
+  GET_ANNOUNCEMENTS_FAILED = '[events] Get announcements failed',
   GET_EVENTS = '[events] Get events',
   GET_EVENTS_SUCCESS = '[events] Get events complete',
   GET_EVENTS_FAILED = '[events] Get events failed',
@@ -11,6 +14,24 @@ export const enum EventsActionTypes {
   ADD_EVENT_TO_CALENDAR = '[events] Add event to calendar',
   ADD_EVENT_TO_CALENDAR_SUCCESS = '[events] Add event to calendar complete',
   ADD_EVENT_TO_CALENDAR_FAILED = '[events] Add event to calendar failed',
+}
+
+export class GetAnnouncementsAction implements Action {
+  readonly type = EventsActionTypes.GET_ANNOUNCEMENTS;
+}
+
+export class GetAnnouncementsSuccessAction implements Action {
+  readonly type = EventsActionTypes.GET_ANNOUNCEMENTS_SUCCESS;
+
+  constructor(public payload: EventAnnouncementList) {
+  }
+}
+
+export class GetAnnouncementsFailedAction implements Action {
+  readonly type = EventsActionTypes.GET_ANNOUNCEMENTS_FAILED;
+
+  constructor(public error: string) {
+  }
 }
 
 export class GetEventsAction implements Action {
@@ -76,7 +97,10 @@ export class AddEventToCalendarFailedAction implements Action {
   }
 }
 
-export type EventsActions = GetEventsAction
+export type EventsActions = GetAnnouncementsAction
+  | GetAnnouncementsSuccessAction
+  | GetAnnouncementsFailedAction
+  | GetEventsAction
   | GetEventsSuccessAction
   | GetEventsFailedAction
   | GetMoreEventsAction

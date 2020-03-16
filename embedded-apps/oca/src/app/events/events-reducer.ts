@@ -4,6 +4,10 @@ import { EventsState, initialEventsState } from './events.state';
 
 export function eventsReducer(state = initialEventsState, action: EventsActions): EventsState {
   switch (action.type) {
+    case EventsActionTypes.GET_ANNOUNCEMENTS:
+      return { ...state, announcements: stateLoading(initialEventsState.announcements.result) };
+    case EventsActionTypes.GET_ANNOUNCEMENTS_SUCCESS:
+      return { ...state, announcements: stateSuccess(action.payload) };
     case EventsActionTypes.GET_EVENTS:
       return {
         ...state,

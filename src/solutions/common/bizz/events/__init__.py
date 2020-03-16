@@ -61,7 +61,7 @@ from solutions.common.bizz.images import upload_file, remove_files
 from solutions.common.dal import get_solution_settings, get_event_by_id
 from solutions.common.models import SolutionSettings
 from solutions.common.models.agenda import SolutionCalendar, SolutionGoogleCredentials, Event, EventPeriod, \
-    EventCalendarType, EventDate, EventMedia, EventMediaType
+    EventCalendarType, EventDate, EventMedia, EventMediaType, EventAnnouncements
 from solutions.common.models.cityapp import CityAppProfile
 from solutions.common.to import EventItemTO, SolutionGoogleCalendarStatusTO, SolutionGoogleCalendarTO, \
     CreateEventItemTO
@@ -72,6 +72,7 @@ except ImportError:
     from StringIO import StringIO
 
 API_METHOD_SOLUTION_EVENTS_LOAD = "solutions.events.load"
+API_METHOD_SOLUTION_EVENTS_ANNOUNCEMENTS = "solutions.events.announcements"
 API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER = "solutions.events.addtocalender"
 
 
@@ -408,6 +409,22 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
         'has_more': cursor is not None,
         'cursor': cursor,
     }).decode('utf8')
+    return r
+
+
+@returns(SendApiCallCallbackResultTO)
+@arguments(service_user=users.User, email=unicode, method=unicode, params=unicode, tag=unicode,
+           service_identity=unicode,
+           user_details=[UserDetailsTO])
+def get_events_announcements(service_user, email, method, params, tag, service_identity, user_details):
+    r = SendApiCallCallbackResultTO()
+
+    announcements = EventAnnouncements.create_key().get()
+    if not announcements:
+        r.error = u'No announcements'
+        return r
+
+    r.result = json.dumps(announcements.to_dict()).decode('utf-8')
     return r
 
 

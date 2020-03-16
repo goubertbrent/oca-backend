@@ -65,7 +65,8 @@ from solutions.common.bizz.coupons import API_METHOD_SOLUTION_COUPON_REDEEM, sol
 from solutions.common.bizz.customer_signups import deny_signup
 from solutions.common.bizz.discussion_groups import poke_discussion_groups, follow_discussion_groups
 from solutions.common.bizz.events import API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, add_event_to_calender, \
-    API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events
+    API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events,\
+    get_events_announcements, API_METHOD_SOLUTION_EVENTS_ANNOUNCEMENTS
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
     send_styled_inbox_forwarders_email
@@ -917,6 +918,7 @@ MESSAGE_TAG_MAPPING = {
 
 API_METHOD_MAPPING = {
     API_METHOD_SOLUTION_EVENTS_LOAD: solution_load_events,
+    API_METHOD_SOLUTION_EVENTS_ANNOUNCEMENTS: get_events_announcements,
     API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER: add_event_to_calender,
     API_METHOD_GROUP_PURCHASE_PURCHASE: solution_group_purchcase_purchase,
     API_METHOD_SOLUTION_LOYALTY_LOAD: solution_loyalty_load,

@@ -13,10 +13,10 @@ import {
   shouldShowNews,
 } from '../../../rogerthat';
 import { CallStateType } from '../../../shared/call-state';
-import { EventFilterPeriod, EventListItem, GetEventsParams } from '../../events';
-import { GetEventsAction, GetMoreEventsAction } from '../../events.actions';
+import { EventAnnouncementList, EventFilterPeriod, EventListItem, GetEventsParams } from '../../events';
+import { GetAnnouncementsAction, GetEventsAction, GetMoreEventsAction } from '../../events.actions';
 import { EventsService } from '../../events.service';
-import { eventsLoading, EventsState, getEvents, getEventsFilter, hasMoreEvents } from '../../events.state';
+import { eventsLoading, EventsState, getEventAnnouncements, getEvents, getEventsFilter, hasMoreEvents } from '../../events.state';
 
 @Component({
   selector: 'app-events',
@@ -27,6 +27,7 @@ import { eventsLoading, EventsState, getEvents, getEventsFilter, hasMoreEvents }
 export class EventsPage implements OnInit, OnDestroy {
   @ViewChild(IonInfiniteScroll, { static: true }) infiniteScroll: IonInfiniteScroll;
   readonly fakeItems = [1, 2, 3, 4, 5, 6];
+  announcementList$: Observable<EventAnnouncementList | null>;
   newsStreamItems$: Observable<NewsStreamItem[]>;
   shouldShowNews$: Observable<boolean>;
   newsLoading$: Observable<boolean>;
@@ -47,6 +48,9 @@ export class EventsPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.store.dispatch(new GetAnnouncementsAction());
+    this.announcementList$ = this.store.pipe(select(getEventAnnouncements));
+
     const period = this.service ? EventFilterPeriod.RANGE : EventFilterPeriod.NEXT_7;
     const { startDate, endDate } = this.eventsService.getStartEndDate(period);
     this.doSearch({ startDate: startDate.toISOString(), endDate: endDate.toISOString(), period });

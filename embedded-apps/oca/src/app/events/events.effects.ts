@@ -2,19 +2,23 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { Actions, Effect, ofType } from '@ngrx/effects';
-import { Action, Store } from '@ngrx/store';
+import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AppState } from '../reducers';
 import { RogerthatService } from '../rogerthat';
-import { OcaEventList } from './events';
+import { ErrorService } from '../shared/error.service';
+import { EventAnnouncementList, OcaEventList } from './events';
 import {
   AddEventToCalendarAction,
   AddEventToCalendarFailedAction,
   AddEventToCalendarSuccessAction,
   EventsActions,
   EventsActionTypes,
+  GetAnnouncementsAction,
+  GetAnnouncementsFailedAction,
+  GetAnnouncementsSuccessAction,
   GetEventsAction,
   GetEventsFailedAction,
   GetEventsSuccessAction,
@@ -24,18 +28,25 @@ import {
 } from './events.actions';
 
 const ApiCalls = {
+  GET_ANNOUNCEMENTS: 'solutions.events.announcements',
   GET_EVENTS: 'solutions.events.load',
   ADD_TO_CALENDAR: 'solutions.events.addtocalender',
 };
 
 @Injectable()
 export class EventsEffects {
+  @Effect() getAnnouncements$ = this.actions$.pipe(
+    ofType<GetAnnouncementsAction>(EventsActionTypes.GET_ANNOUNCEMENTS),
+    switchMap(() => this.rogerthatService.apiCall<EventAnnouncementList>(ApiCalls.GET_ANNOUNCEMENTS).pipe(
+      map(result => new GetAnnouncementsSuccessAction(result)),
+      catchError(err => of(new GetAnnouncementsFailedAction(err)))),
+    ));
   @Effect() getEvents$ = this.actions$.pipe(
     ofType<GetEventsAction>(EventsActionTypes.GET_EVENTS),
     switchMap(action => this.rogerthatService.apiCall<OcaEventList>(ApiCalls.GET_EVENTS, action.payload).pipe(
       map(result => new GetEventsSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetEventsFailedAction(err));
       })),
     ));
@@ -45,7 +56,7 @@ export class EventsEffects {
     switchMap(action => this.rogerthatService.apiCall<OcaEventList>(ApiCalls.GET_EVENTS, action.payload).pipe(
       map(result => new GetMoreEventsSuccessAction(result)),
       catchError(err => {
-        this.showErrorDialog(action, err);
+        this.errorService.showErrorDialog(action, err);
         return of(new GetMoreEventsFailedAction(err));
       })),
     ));
@@ -63,7 +74,7 @@ export class EventsEffects {
             await dialog.present();
           }),
           catchError(err => {
-            this.showErrorDialog(action, err);
+            this.errorService.showErrorDialog(action, err);
             return of(new AddEventToCalendarFailedAction(err));
           }));
       },
@@ -73,38 +84,8 @@ export class EventsEffects {
               private store: Store<AppState>,
               private alertController: AlertController,
               private translate: TranslateService,
+              private errorService: ErrorService,
               private router: Router,
               private rogerthatService: RogerthatService) {
-  }
-
-  // todo use errorService for this when jcc is merged
-  private async showErrorDialog<T extends Action>(failedAction: T, error: any) {
-    let errorMessage: string;
-    if (typeof error === 'string') {
-      errorMessage = error;
-    } else {
-      errorMessage = this.translate.instant('app.oca.unknown_error');
-    }
-    const top = await this.alertController.getTop();
-    if (top) {
-      await top.dismiss();
-    }
-    const dialog = await this.alertController.create({
-      header: this.translate.instant('app.oca.error'),
-      message: errorMessage,
-      buttons: [
-        {
-          text: this.translate.instant('app.oca.close'),
-          role: 'cancel',
-        },
-        {
-          text: this.translate.instant('app.oca.retry'),
-          handler: () => {
-            this.store.dispatch(failedAction);
-          },
-        },
-      ],
-    });
-    await dialog.present();
   }
 }

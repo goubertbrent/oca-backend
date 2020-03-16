@@ -1,3 +1,16 @@
+export interface EventAnnouncement {
+  image_url?: string;
+  color_theme?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface EventAnnouncementList {
+  items: EventAnnouncement[];
+  title?: string;
+  title_theme?: string;
+}
+
 export enum CalendarType {
   SINGLE = 'single',
   MULTIPLE = 'multiple',
@@ -64,7 +77,6 @@ export interface OcaEvent {
   organizer: string;
   service_user_email: string;
 }
-
 
 export interface OcaEventList {
   cursor: string | null;
