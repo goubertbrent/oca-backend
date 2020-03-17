@@ -154,7 +154,20 @@ def _worker(rss_settings_key):
                 else:
                     new_news_item_ids.append(scraped_item.id)
                     logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                    timestamp = get_epoch_from_datetime(scraped_item.date) if scraped_item.date else None
+                    timestamp = None
+                    if scraped_item.date:
+                        set_date = False
+                        if dry_run:
+                            set_date = True
+                        else:
+                            current_date = datetime.now()
+                            if scraped_item.date.year == current_date.year and scraped_item.date.month == current_date.month and scraped_item.date.day == current_date.day:
+                                set_date = True
+                        if set_date:
+                            timestamp = get_epoch_from_datetime(scraped_item.date)
+                            if timestamp > now():
+                                timestamp = None
+
                     tasks.append(create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
                                              scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
                                              scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name, timestamp=timestamp))
