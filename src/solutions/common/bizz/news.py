@@ -25,6 +25,8 @@ from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 
 from babel.dates import format_datetime, get_timezone
+from typing import List
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
@@ -118,7 +120,7 @@ def get_regional_apps_of_item(news_item, default_app_id):
 
 @ndb.transactional()
 def create_regional_news_item(news_item, regional_apps, service_user, service_identity, paid=False):
-    # type: (NewsItem, list[unicode], users.User, unicode, bool) -> SolutionNewsItem
+    # type: (NewsItem, List[unicode], users.User, unicode, bool) -> SolutionNewsItem
     sln_item_key = SolutionNewsItem.create_key(news_item.id, service_user)
     settings_key = NewsSettings.create_key(service_user, service_identity)
     sln_item, news_settings = ndb.get_multi([sln_item_key, settings_key])  # type: (SolutionNewsItem, NewsSettings)
