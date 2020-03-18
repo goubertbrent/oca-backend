@@ -116,7 +116,8 @@ def _worker(rss_settings_key):
         items, keys = parse_rss_items(response.content, rss_link.url, service_user, service_identity)
         scraped_items.extend(items)
         if items:
-            oldest_dates[rss_link.url] = sorted([s for s in items], key=lambda x: x.date)[0].date
+            soreted_items = sorted([s for s in items if s.date], key=lambda x: x.date)
+            oldest_dates[rss_link.url] = soreted_items[0].date if soreted_items else None
         else:
             oldest_dates[rss_link.url] = None
 
