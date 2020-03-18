@@ -39,8 +39,10 @@
 <mat-slide-toggle (change)="toggleOpen24Hours($event)"
                   [disabled]="disabled"
                   [ngModel]="isOpen24Hours">{{ 'oca.open_24_hours' | translate }}</mat-slide-toggle>
-<button (click)="addHours()"
-        *ngIf="!isOpen24Hours"
-        [disabled]="disabled"
-        mat-button
-        type="button">{{ 'oca.add_hours' | translate }}</button>
+<div class="add-hours-button">
+  <button (click)="addHours()"
+          *ngIf="!isOpen24Hours"
+          [disabled]="disabled"
+          mat-button
+          type="button">{{ 'oca.add_hours' | translate }}</button>
+</div>
