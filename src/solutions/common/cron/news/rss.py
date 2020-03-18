@@ -284,6 +284,39 @@ def scandown( elements, indent ):
         logging.debug(el.childNodes)
         scandown(el.childNodes, indent + 1)
 
+def _get_date(current_date, date_str):
+    logging.debug('date_str: %s', date_str)
+    try:
+        date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
+    except TypeError:
+        logging.debug('rfc822.parsedate_tz failed to resolve the date')
+        date = dateutil.parser.parse(date_str, dayfirst=True)
+        if date.utcoffset() is not None:
+            # this date contains tzinfo and needs to be removed
+            epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
+            date = datetime.utcfromtimestamp(epoch)
+
+        if date > current_date:
+            logging.debug('dayfirst must have switched the dates, continue without')
+            date = dateutil.parser.parse(date_str)
+            if date.utcoffset() is not None:
+                # this date contains tzinfo and needs to be removed
+                epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
+                date = datetime.utcfromtimestamp(epoch)
+
+            if date > current_date:
+                logging.debug('date still bigger ... continue with date None')
+                date = None
+
+    if date:
+        # If the time it not known (00:00) for new items fetched on the same day,
+        # fill in the time with the current time. That way it's at least semi-accurate.
+        if date.year == current_date.year and date.month == current_date.month and date.day == current_date.day:
+            if date.hour == 0 and date.minute == 0 and date.second == 0:
+                date = date.replace(hour=current_date.hour, minute=current_date.minute)
+        logging.debug('date_str.result: %s', date.strftime('%Y-%m-%d_%H:%M:%S'))
+
+    return date
 
 def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
     items = []
@@ -324,21 +357,7 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
             image_url = get_image_url(item, description_html)
             if date_tags:
                 date_str = item.getElementsByTagName('pubDate')[0].firstChild.nodeValue
-                try:
-                    date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
-                except TypeError:
-                    logging.debug('Could not parse date: %s', date_str)
-                    date = dateutil.parser.parse(date_str, dayfirst=True)
-                    if date.utcoffset() is not None:
-                        # this date contains tzinfo and needs to be removed
-                        epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
-                        date = datetime.utcfromtimestamp(epoch)
-
-                # If the time it not known (00:00) for new items fetched on the same day,
-                # fill in the time with the current time. That way it's at least semi-accurate.
-                if date.year == current_date.year and date.month == current_date.month and date.day == current_date.day:
-                    if date.hour == 0 and date.minute == 0 and date.second == 0:
-                        date = date.replace(hour=current_date.hour, minute=current_date.minute)
+                date = _get_date(current_date, date_str)
             else:
                 date = None
         except:
@@ -363,6 +382,8 @@ def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
     keys = []
     parsed_url = urlparse(rss_url)
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
+    current_date = datetime.now()
+
     for element in doc.getElementsByTagName('entry'):
         to = AtomEntry.from_element(element)
         if not to:
@@ -371,16 +392,7 @@ def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
         date = None
         date_str = to.updated or to.published
         if date_str:
-            try:
-                date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
-            except TypeError:
-                logging.debug('Could not parse date: %s', date_str)
-                date = dateutil.parser.parse(date_str, dayfirst=True)
-                if date.utcoffset() is not None:
-                    # this date contains tzinfo and needs to be removed
-                    epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
-                    date = datetime.utcfromtimestamp(epoch)
-
+            date = _get_date(current_date, date_str)
         url = None
         image_url = None
         for link in to.links:
