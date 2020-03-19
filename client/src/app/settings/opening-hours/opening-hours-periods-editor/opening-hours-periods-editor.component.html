@@ -3,22 +3,19 @@
 </div>
 <ng-container *ngIf="!isOpen24Hours">
   <div *ngFor="let hours of periods; trackBy: trackHours;" class="periods">
-    <oca-time-picker (ngModelChange)="setTime(hours, 'open', $event)"
+    <oca-time-picker (ngModelChange)="setOpenTime(hours, $event)"
                      [disabled]="disabled"
                      [label]="'oca.opening_time' | translate"
-                     [max]="hours.close.time | hours : 'HH:mm'"
                      [ngModelOptions]="{standalone: true}"
                      [ngModel]="hours.open.time | hours : 'HH:mm'"
                      required></oca-time-picker>
     <span class="hours-divider">—</span>
 
-    <oca-time-picker (ngModelChange)="setTime(hours, 'close', $event)"
+    <oca-time-picker (ngModelChange)="setCloseTime(hours, $event)"
                      [disabled]="disabled"
                      [label]="'oca.closing_time' | translate"
-                     [min]="hours.open.time | hours : 'HH:mm'"
                      [ngModelOptions]="{standalone: true}"
                      [ngModel]="hours.close.time | hours : 'HH:mm'"
-                     max="23:59"
                      required></oca-time-picker>
     <mat-form-field class="period-description">
       <mat-label>{{ 'oca.description' | translate}}</mat-label>
