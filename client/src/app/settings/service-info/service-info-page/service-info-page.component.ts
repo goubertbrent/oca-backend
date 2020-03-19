@@ -157,7 +157,6 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   updateImage(width: number, height: number, uploadUrl: string, partialConfig: Pick<UploadFileDialogConfig, 'title' | 'uploadPrefix' | 'listPrefix' | 'gallery'>) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
-        accept: 'image/png',
         cropOptions: {
           viewMode: 0,
           dragMode: 'crop',
