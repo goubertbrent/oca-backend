@@ -374,15 +374,8 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
             else:
                 for app_id in app_ids:
                     feed_names[app_id] = NewsFeedNameTO(app_id, tag)
-    customer = get_customer(service_user)
-    if customer and customer.organization_type == OrganizationType.CITY and \
-            not _app_uses_custom_organization_types(customer.language):
-        sticky = True
-        if not sticky_until:
-            # TODO shouldn't this auto-sticky behaviour be removed?
-            sticky_until = now()
-    else:
-        sticky = False
+    sticky = False
+    sticky_until = None
     kwargs = {
         'sticky': sticky,
         'sticky_until': sticky_until,
