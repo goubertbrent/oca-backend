@@ -340,7 +340,6 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     if news_type == NewsItem.TYPE_QR_CODE:
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
         qr_code_caption = MISSING.default(qr_code_caption, title)
-    sticky_until = None
     should_save_coupon = news_type == NewsItem.TYPE_QR_CODE and not news_id
     si = get_service_identity(service_identity_user)
 
