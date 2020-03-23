@@ -337,7 +337,7 @@ def delete_order(service_user, order_key, message):
                 'if_email': sim_parent.sender.email
             }, message_key=sim_parent.solution_inbox_message_key, reply_enabled=sim_parent.reply_enabled)
 
-            service_info = get_service_info(service_user, _identity)
+            service_info = get_service_info(service_user, order.service_identity)
 
             sm_data.append({u"type": u"solutions.common.messaging.update",
                             u"message": SolutionInboxMessageTO.fromModel(sim_parent, sln_settings, service_info,
