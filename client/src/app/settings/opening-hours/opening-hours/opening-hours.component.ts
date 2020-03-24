@@ -1,6 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { OpeningHourException, OpeningHours, OpeningPeriod } from '../../../shared/interfaces/oca';
+import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { TranslateService } from '@ngx-translate/core';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../../../shared/dialog/simple-dialog.component';
+import { OpeningHourException, OpeningHours, OpeningHourType, OpeningPeriod } from '../../../shared/interfaces/oca';
 import { HoursPipe } from '../../pipes/hours.pipe';
 
 @Component({
@@ -16,7 +20,9 @@ export class OpeningHoursComponent {
   @Output() hoursChanged = new EventEmitter<OpeningHours>();
 
   constructor(private hoursPipe: HoursPipe,
-              private datePipe: DatePipe) {
+              private datePipe: DatePipe,
+              private translate: TranslateService,
+              private matDialog: MatDialog) {
   }
 
   updateDate(exception: OpeningHourException, property: 'start_date' | 'end_date', value: Date | null, index: number) {
@@ -60,5 +66,30 @@ export class OpeningHoursComponent {
   private setChanged(openingHours: OpeningHours) {
     this.openingHours = openingHours;
     this.hoursChanged.next(this.openingHours);
+  }
+
+  toggleNotRelevant($event: MatSlideToggleChange) {
+    if ([OpeningHourType.STRUCTURED, OpeningHourType.TEXT].includes(this.openingHours.type)) {
+      if (this.openingHours.periods.length > 0 || this.openingHours.exceptional_opening_hours.length > 0) {
+        const config: MatDialogConfig<SimpleDialogData> = {
+          data: {
+            ok: this.translate.instant('oca.Yes'),
+            cancel: this.translate.instant('oca.No'),
+            message: this.translate.instant('oca.this_will_remove_your_existing_hours'),
+          },
+        };
+        this.matDialog.open(SimpleDialogComponent, config).afterClosed().subscribe((result?: SimpleDialogResult) => {
+          if (result?.submitted) {
+            this.setChanged({ ...this.openingHours, type: OpeningHourType.NOT_RELEVANT, periods: [], exceptional_opening_hours: [] });
+          } else {
+            $event.source.checked = false;
+          }
+        });
+      } else {
+        this.setChanged({ ...this.openingHours, type: OpeningHourType.NOT_RELEVANT, periods: [], exceptional_opening_hours: [] });
+      }
+    } else {
+      this.setChanged({ ...this.openingHours, type: OpeningHourType.STRUCTURED });
+    }
   }
 }

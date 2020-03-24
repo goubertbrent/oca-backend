@@ -182,11 +182,5 @@
                     name="service_visible">
     {{ 'oca.service-visible' | translate }}
   </mat-slide-toggle>
-  <div class="save-button">
-    <button (click)="save()" [disabled]="loading$ | async" color="primary" mat-raised-button type="button">
-      {{ 'oca.Save' | translate }}
-    </button>
-    <p *ngIf="form.invalid && submitted" class="mat-error">{{ 'oca.required' | translate }}</p>
-  </div>
   <oca-opening-hours-settings-page></oca-opening-hours-settings-page>
 </form>

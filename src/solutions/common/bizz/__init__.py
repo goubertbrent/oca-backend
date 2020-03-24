@@ -16,21 +16,22 @@
 # @@license_version:1.5@@
 from __future__ import unicode_literals
 
-from collections import defaultdict
-from datetime import datetime
 import logging
 import os
 import time
+from collections import defaultdict
+from datetime import datetime
 from types import NoneType
 
+import pytz
 from PIL.Image import Image
 from babel.dates import format_date, format_time, format_datetime, get_timezone
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, deferred, ndb
 from google.appengine.ext.webapp import template
-import pytz
 from typing import List
 
+import solutions
 from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.properties import object_factory, unicode_property, long_list_property, bool_property, unicode_list_property, \
@@ -65,13 +66,12 @@ from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.to.news import BaseMediaTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now
+from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_task_name
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import on_trans_committed
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
-import solutions
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
@@ -82,7 +82,6 @@ from solutions.common.models import SolutionSettings, SolutionMainBranding, \
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
-
 
 SERVICE_AUTOCONNECT_INVITE_TAG = u'service_autoconnect_invite_tag'
 
@@ -657,20 +656,26 @@ def validate_before_provision(service_user, sln_settings):
     models = {model.key: model for model in ndb.get_multi(keys) if model}
     for identity in identities:
         hours = models.get(OpeningHours.create_key(service_user, identity))  # type: OpeningHours
-        if not hours or hours.type != OpeningHours.TYPE_STRUCTURED:
+        if not hours or hours.type not in (OpeningHours.TYPE_STRUCTURED, OpeningHours.TYPE_NOT_RELEVANT):
             errors.append(common_translate(lang, SOLUTION_COMMON, 'need_opening_hours_before_publish'))
         service_info = models.get(ServiceInfo.create_key(service_user, identity))  # type: ServiceInfo
         if not service_info or not service_info.place_types or not service_info.main_place_type:
             errors.append(common_translate(lang, SOLUTION_COMMON, 'need_place_type_before_publish'))
         if not service_info or not service_info.addresses:
             errors.append(common_translate(lang, SOLUTION_COMMON, 'configure_your_address'))
+    return errors
 
-    if errors:
-        msg = common_translate(lang, SOLUTION_COMMON, 'default_settings_warning') + ':'
-        lines = [msg] + errors
-        return lines
+
+def auto_publish(service_user):
+    # type: (users.User) -> None
+    logging.debug('Automatically publishing service %s', service_user.email())
+    sln_settings = get_solution_settings(service_user)
+    current_task_name = get_current_task_name()
+    if sln_settings.auto_publish_task_id != current_task_name:
+        logging.debug('Auto publish task id (%s) != current task name (%s), doing nothing.',
+                      sln_settings.auto_publish_task_id, current_task_name)
     else:
-        return []
+        common_provision(service_user, run_checks=False)
 
 
 @returns(NoneType)
@@ -707,9 +712,13 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                 last_publish = now_
 
             if run_checks:
+
                 errors = validate_before_provision(service_user, sln_settings)
                 if errors:
-                    raise BusinessException('\n • '.join(errors))
+                    msg = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                           'default_settings_warning') + ':'
+                    lines = [msg] + errors
+                    raise BusinessException('\n • '.join(lines))
             needs_reload, sln_settings = provision(service_user, friends)
             if must_send_updates_to_flex or needs_reload:
                 channel.send_message(cur_user, 'common.provision.success', needs_reload=needs_reload)
@@ -737,6 +746,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             if last_publish:
                 settings.last_publish = last_publish
             settings.updates_pending = False
+            settings.auto_publish_task_id = None
             settings.put()
             return settings
 
@@ -758,6 +768,20 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             sln_settings = get_solution_settings(service_user)
         raise BusinessException(
             common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
+
+
+def maybe_broadcast_updates_pending(sln_settings_or_service_user):
+    if isinstance(sln_settings_or_service_user, SolutionSettings):
+        sln_settings = sln_settings_or_service_user
+    else:
+        sln_settings = get_solution_settings(sln_settings_or_service_user)
+    if sln_settings.updates_pending:
+        return False
+    else:
+        sln_settings.updates_pending = True
+        sln_settings.put()
+        broadcast_updates_pending(sln_settings)
+        return True
 
 
 @returns()

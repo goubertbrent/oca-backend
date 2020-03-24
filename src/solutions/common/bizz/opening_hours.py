@@ -26,6 +26,7 @@ from rogerthat.bizz.opening_hours import is_always_open, is_always_closed, is_op
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
 from rogerthat.rpc import users
 from solutions import translate, SOLUTION_COMMON
+from solutions.common.bizz import maybe_broadcast_updates_pending
 from solutions.common.to.opening_hours import OpeningHoursTO
 
 DAY_MAPPING = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -45,13 +46,15 @@ def get_opening_hours(service_user, service_identity):
 def put_opening_hours(service_user, service_identity, data):
     # type: (users.User, str, OpeningHoursTO) -> OpeningHours
     opening_hours = get_opening_hours(service_user, service_identity)
-    # As soon as they save it from the dashboard, change to structured
-    opening_hours.type = OpeningHours.TYPE_STRUCTURED
+    opening_hours.type = data.type
+    opening_hours.text = data.text and data.text.strip()
     opening_hours.title = data.title
     opening_hours.periods = [OpeningPeriod.from_to(period) for period in data.periods]
     opening_hours.exceptional_opening_hours = [OpeningHourException.from_to(exception)
                                                for exception in data.exceptional_opening_hours]
     opening_hours.put()
+
+    maybe_broadcast_updates_pending(service_user)
     return opening_hours
 
 

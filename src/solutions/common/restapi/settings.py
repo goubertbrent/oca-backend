@@ -23,7 +23,7 @@ from solutions.common.bizz.settings import get_service_info, update_service_info
 from solutions.common.to.settings import ServiceInfoTO
 
 
-@rest('/common/service-info', 'get', read_only_access=True)
+@rest('/common/service-info', 'get', read_only_access=True, silent=True)
 @returns(ServiceInfoTO)
 @arguments()
 def rest_get_service_info():
@@ -32,7 +32,7 @@ def rest_get_service_info():
     return ServiceInfoTO.from_model(get_service_info(users.get_current_user(), service_identity))
 
 
-@rest('/common/service-info', 'put', type=REST_TYPE_TO)
+@rest('/common/service-info', 'put', type=REST_TYPE_TO, silent=True, silent_result=True)
 @returns(ServiceInfoTO)
 @arguments(data=ServiceInfoTO)
 def rest_save_service_info(data):

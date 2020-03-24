@@ -188,40 +188,42 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                         </li>
     {% endif %}
     {% if SolutionModule.PHARMACY_ORDER in sln_settings.modules %}
-                        <li menu="pharmacy_orders">
-                            <a href="#">
-                              {% translate language, "common", "orders" %}
-                              <span class="badge badge-important sln-pharmacy_orders-badge"></span>
-                            </a>
-                        </li>
+        <li menu="pharmacy_orders">
+            <a href="#">
+                {% translate language, "common", "orders" %}
+                <span class="badge badge-important sln-pharmacy_orders-badge"></span>
+            </a>
+        </li>
     {% endif %}
     {% if not loyalty %}
         {% if SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules %}
-                       <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "oca-loyalty" %}<span
-                               class="badge badge-important sln-loyalty-badge"></span></a></li>
+            <li menu="loyalty"><a href="#/loyalty">{% translate language, "common", "oca-loyalty" %}<span
+              class="badge badge-important sln-loyalty-badge"></span></a></li>
         {% endif %}
     {% endif %}
     {% if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules and not loyalty %}
-                        <li menu="city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
+        <li menu="city_vouchers"><a href="#">{% translate language, "common", "Vouchers" %}</a></li>
     {% endif %}
 {% endif %}
 
-{% if not loyalty %}
-                        <li menu="settings">
-                            <a href="#/settings">{% translate language, "common", "Settings"%}</a>
-                        </li>
-{% endif %}
+                        {% if not loyalty %}
+                            <li menu="settings">
+                                <a href="#/settings">{% translate language, "common", "Settings" %}</a>
+                            </li>
+                        {% endif %}
 
 
-{% if not is_layout_user %}
-    {% if not loyalty %}
-                        <li menu="statistics" class="disabled"><a href="#">{% translate language, "common", "statistics" %}</a></li>
-                        <li menu="qanda"><a href="#">{% translate language, "common", "qanda" %}</a></li>
-    {% endif %}
-    {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
-                        <li menu="services"><a href="#/services">{% translate language, "common", "services" %}</a></li>
-    {% endif %}
-{% endif %}
+                        {% if not is_layout_user %}
+                            {% if not loyalty %}
+                                <li menu="statistics" class="disabled"><a
+                                  href="#">{% translate language, "common", "statistics" %}</a></li>
+                                <li menu="qanda"><a href="#">{% translate language, "common", "qanda" %}</a></li>
+                            {% endif %}
+                            {% if customer and sln_settings.can_edit_services(customer) and not loyalty %}
+                                <li menu="services"><a
+                                  href="#/services">{% translate language, "common", "services" %}</a></li>
+                            {% endif %}
+                        {% endif %}
 
                     </ul>
                     {% if not loyalty %}
@@ -229,36 +231,69 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             <li class="divider-vertical"></li>
                             <li>
                                 <a id="logout_link" href="/flex/logout" class="">
-                                    {% translate language, "common", "Log out" %} <i class="icon-user"></i> {{ service_name }}
+                                    {% translate language, "common", "Log out" %} <i
+                                  class="icon-user"></i> {{ service_name }}
                                 </a>
                             </li>
                         </ul>
                         {% if customer and SolutionModule.BILLING in sln_settings.modules and IS_MOBICAGE_LEGAL_ENTITY and not is_layout_user %}
-                        <div class="pull-right" menu="shoppage"><a class="btn btn-success" href="#/shop" id="shoplink">{% translate language, "common", "shop" %}</a></div>
+                            <div class="pull-right" menu="shoppage"><a class="btn btn-success" href="#/shop"
+                                                                       id="shoplink">{% translate language, "common", "shop" %}</a>
+                            </div>
                         {% endif %}
                         {% if SolutionModule.CITY_APP in sln_settings.modules %}
-                        <a class="pull-right btn btn-default" href="/?sp=1" style="margin-right:10px">{% translate language, "common", "service_panel" %}</a>
+                            <a class="pull-right btn btn-default" href="/?sp=1"
+                               style="margin-right:10px">{% translate language, "common", "service_panel" %}</a>
                         {% endif %}
                     {% endif %}
                 </div>
             </div>
             <div id="content-container">
-            {% if not loyalty %}
-                <div id="sln-updates-pending-warning"></div>
-            {% endif %}
+                {% if not loyalty %}
+                    <div id="sln-updates-pending-warning" style="display: none;">
+                        <div class="alert alert-info autopublish-pending" id="autopublish-pending">
+                            <div>
+                                <span id="publish-message"></span>
+                            </div>
+                            <div class="btn-group autopublish-butttons">
+                                <a class="btn btn-info dropdown-toggle" data-toggle="dropdown" href="#">
+                                    {% translate language, 'common', 'publish_now' %}
+                                    <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a id="try_publish_changes" href="#">
+                                            {% translate language, 'common', 'Try' %}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a id="publish_changes" href="#">
+                                            {% translate language, 'common', 'publish-changes' %}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="alert alert-error autopublish-errors" id="autopublish-errors">
+                            <h4>{% translate language, 'common', 'warning' %}</h4>
+                            <p>{% translate language, 'common', 'service_invisible_warning' %}</p>
+                            <ul id="service-prepublish-errors"></ul>
+                        </div>
+                    </div>
+                {% endif %}
                 <div class="sln-loyalty-scans" style="display: none;">
-                   <table class="sln-loyalty-scans-1 table table-striped table-bordered" style="display: none">
+                    <table class="sln-loyalty-scans-1 table table-striped table-bordered" style="display: none">
                         <caption>{% translate language, "common", "Scanned loyalty cards" %}</caption>
                         <thead>
-                            <tr>
-                                <th>{% translate language, "common", "Scanned on" %}</th>
-                                <th>{% translate language, "common", "reservation-name" %}</th>
-                                <th>{% translate language, "common", "Customer" %}</th>
-                                <th>{% translate language, "common", "Visits" %}</th>
-                                <th>{% translate language, "common", "Spent" %}</th>
-                                <th>{% translate language, "common", "Discount" %}</th>
-                                <th>{% translate language, "common", "Loyalty points" %}</th>
-                            </tr>
+                        <tr>
+                            <th>{% translate language, "common", "Scanned on" %}</th>
+                            <th>{% translate language, "common", "reservation-name" %}</th>
+                            <th>{% translate language, "common", "Customer" %}</th>
+                            <th>{% translate language, "common", "Visits" %}</th>
+                            <th>{% translate language, "common", "Spent" %}</th>
+                            <th>{% translate language, "common", "Discount" %}</th>
+                            <th>{% translate language, "common", "Loyalty points" %}</th>
+                        </tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -266,44 +301,44 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                     <table class="sln-loyalty-scans-3 table table-striped table-bordered" style="display: none">
                         <caption>{% translate language, "common", "Scanned loyalty cards" %}</caption>
                         <thead>
-                            <tr>
-                                <th>{% translate language, "common", "Scanned on" %}</th>
-                                <th>{% translate language, "common", "reservation-name" %}</th>
-                                <th>{% translate language, "common", "Customer" %}</th>
-                                <th>{% translate language, "common", "Visits" %}</th>
-                                <th>{% translate language, "common", "Number of stamps" %}</th>
-                                <th></th>
-                            </tr>
+                        <tr>
+                            <th>{% translate language, "common", "Scanned on" %}</th>
+                            <th>{% translate language, "common", "reservation-name" %}</th>
+                            <th>{% translate language, "common", "Customer" %}</th>
+                            <th>{% translate language, "common", "Visits" %}</th>
+                            <th>{% translate language, "common", "Number of stamps" %}</th>
+                            <th></th>
+                        </tr>
                         </thead>
                         <tbody>
                         </tbody>
                     </table>
                 </div>
 
-{% if not is_layout_user %}
-    {% if functionality_modules %}
-        {% include 'functionalities/functionalities.tmpl' %}
-    {% endif %}
-    {% if sln_settings.uses_inbox() %}
-        {%- include 'inbox.tmpl' %}
-    {% endif %}
-    {% if sln_settings.uses_inbox() and sln_settings.can_edit_services(customer) %}
-        {%- include 'customer_signup.tmpl' %}
-    {% endif %}
-    {% if sln_settings.uses_inbox() and is_city and news_review_enabled %}
-        {%- include 'news_review.tmpl' %}
-    {% endif %}
-    {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
-        {%- include 'restaurant_reservation.tmpl' %}
-    {% endif %}
-{% endif %}
+                {% if not is_layout_user %}
+                    {% if functionality_modules %}
+                        {% include 'functionalities/functionalities.tmpl' %}
+                    {% endif %}
+                    {% if sln_settings.uses_inbox() %}
+                        {%- include 'inbox.tmpl' %}
+                    {% endif %}
+                    {% if sln_settings.uses_inbox() and sln_settings.can_edit_services(customer) %}
+                        {%- include 'customer_signup.tmpl' %}
+                    {% endif %}
+                    {% if sln_settings.uses_inbox() and is_city and news_review_enabled %}
+                        {%- include 'news_review.tmpl' %}
+                    {% endif %}
+                    {% if SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
+                        {%- include 'restaurant_reservation.tmpl' %}
+                    {% endif %}
+                {% endif %}
 
-{% if not loyalty and (SolutionModule.MENU in sln_settings.modules or SolutionModule.ORDER in sln_settings.modules) %}
-    {%- include 'menu.tmpl' %}
-{% endif %}
+                {% if not loyalty and (SolutionModule.MENU in sln_settings.modules or SolutionModule.ORDER in sln_settings.modules) %}
+                    {%- include 'menu.tmpl' %}
+                {% endif %}
 
-{% if not is_layout_user %}
-	{% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
+                {% if not is_layout_user %}
+                    {% if SolutionModule.SANDWICH_BAR in sln_settings.modules %}
 	    {%- include 'sandwiches.tmpl' %}
 	{% endif %}
 	{% if SolutionModule.AGENDA in sln_settings.modules and not loyalty %}

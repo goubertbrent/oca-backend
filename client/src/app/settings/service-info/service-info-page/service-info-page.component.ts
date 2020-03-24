@@ -77,7 +77,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       this.store.pipe(select(isPlaceTypesLoading)),
     ]).pipe(map(results => results.some(r => r)));
     this.placeTypes$ = this.store.pipe(select(getAvailablePlaceTypes));
-    this.autoSave$.pipe(debounceTime(2000), takeUntil(this.destroyed$)).subscribe(() => this.save());
+    this.autoSave$.pipe(debounceTime(5000), takeUntil(this.destroyed$)).subscribe(() => this.save());
   }
 
   ngOnDestroy(): void {

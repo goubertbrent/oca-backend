@@ -19,11 +19,14 @@ import base64
 import logging
 import re
 from collections import defaultdict
+from datetime import datetime
 from types import NoneType
 
 import cloudstorage
 from babel.numbers import format_currency
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
+from google.appengine.api.taskqueue import taskqueue
 from google.appengine.ext import db, deferred, ndb
 
 from mcfw.consts import MISSING, REST_TYPE_TO
@@ -37,7 +40,7 @@ from rogerthat.bizz.maps.services.place_types import PlaceType, PLACE_DETAILS, g
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
-from rogerthat.consts import DEBUG
+from rogerthat.consts import DEBUG, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_profile_key
@@ -57,7 +60,7 @@ from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.to.system import ServiceIdentityInfoTO
-from rogerthat.translations import DEFAULT_LANGUAGE, localize
+from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user, \
     get_app_id_from_app_user, get_app_user_tuple
 from rogerthat.utils.channel import send_message
@@ -72,7 +75,7 @@ from solutions.common.bizz import get_next_free_spots_in_service_menu, common_pr
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
     get_user_defined_roles, validate_enable_or_disable_solution_module, OrganizationType, get_default_app_id, \
-    get_organization_type
+    get_organization_type, validate_before_provision, auto_publish
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
 from solutions.common.bizz.events import update_events_from_google, get_google_authenticate_url, get_google_calendars
@@ -90,7 +93,7 @@ from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update, set_customer_signup_status
 from solutions.common.bizz.settings import save_settings, set_logo, set_avatar, save_rss_urls, get_service_info
 from solutions.common.bizz.static_content import put_static_content as bizz_put_static_content, delete_static_content
-from solutions.common.consts import TRANSLATION_MAPPING, OCA_FILES_BUCKET
+from solutions.common.consts import TRANSLATION_MAPPING, OCA_FILES_BUCKET, AUTO_PUBLISH_MINUTES
 from solutions.common.dal import get_solution_settings, get_static_content_list, get_solution_group_purchase_settings, \
     get_solution_calendars, get_solution_inbox_messages, \
     get_solution_identity_settings, get_solution_settings_or_identity_settings, \
@@ -701,6 +704,44 @@ def settings_publish_changes(friends=None):
         return ReturnStatusTO.create(False, message)
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
+
+
+@rest('/common/settings/auto-publish', 'post')
+@returns(dict)
+@arguments()
+def api_check_auto_publish():
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    error_lines = []
+    countdown_seconds = 60 * AUTO_PUBLISH_MINUTES
+    if sln_settings.updates_pending:
+        if not sln_settings.update_date or not sln_settings.auto_publish_date:
+            should_auto_publish = True
+        else:
+            expected_auto_publish_date = sln_settings.update_date + relativedelta(seconds=countdown_seconds)
+            diff = expected_auto_publish_date - sln_settings.auto_publish_date
+            # Only update the auto publish date when the update date is longer than 1 minute after the auto publish date
+            should_auto_publish = expected_auto_publish_date > sln_settings.auto_publish_date and diff.seconds > 60
+        if should_auto_publish:
+            error_lines = validate_before_provision(service_user, sln_settings)
+            valid = not error_lines
+            if sln_settings.auto_publish_task_id:
+                logging.debug('Canceling scheduled auto publish task')
+                taskqueue.Queue(SCHEDULED_QUEUE).delete_tasks(taskqueue.Task(name=sln_settings.auto_publish_task_id))
+                sln_settings.auto_publish_date = None
+                sln_settings.auto_publish_task_id = None
+            if valid:
+                logging.debug('Scheduling auto publish task')
+                sln_settings.auto_publish_date = datetime.now() + relativedelta(seconds=countdown_seconds)
+                new_task = deferred.defer(auto_publish, service_user, _countdown=countdown_seconds,
+                                          _queue=SCHEDULED_QUEUE)  # type: taskqueue.Task
+                sln_settings.auto_publish_task_id = new_task.name
+            sln_settings.put()
+    return {
+        'valid': not error_lines,
+        'publish_date': sln_settings.auto_publish_date and (sln_settings.auto_publish_date.isoformat() + 'Z'),
+        'errors': error_lines,
+    }
 
 
 @rest("/common/settings/publish_changes/users", "post")

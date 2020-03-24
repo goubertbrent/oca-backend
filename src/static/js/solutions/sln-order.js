@@ -56,6 +56,10 @@ $(function () {
     }
 
     function renderOrderSettings(data) {
+        if (data.order_type === CONSTS.ORDER_TYPE_ADVANCED) {
+            // Once advanced you can't go back to simple since we want to get rid of simple orders
+            $('#order-type-container').hide();
+        }
         var headerMenuElement = $('#topmenu').find('li[menu=menu]');
         if (data.order_type === CONSTS.ORDER_TYPE_ADVANCED) {
             headerMenuElement.removeClass('hide');

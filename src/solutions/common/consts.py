@@ -77,6 +77,7 @@ CURRENCY_NAMES = {
 
 
 OCA_FILES_BUCKET = 'oca-files'
+AUTO_PUBLISH_MINUTES = 15
 
 
 def get_currency_name(locale, currency_symbol):
@@ -208,7 +209,6 @@ TRANSLATION_MAPPING = {
     'please_enter_at_least_x_characters',
     'reached',
     'reservation-name',
-    'required',
     'rogered',
     'schedule',
     'scheduled_for_datetime',

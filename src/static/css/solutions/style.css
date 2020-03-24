@@ -56,19 +56,31 @@ div.navbar a.brand {
 /* </editor-fold>*/
 
 #sln-updates-pending-warning {
-    width: 940px;
+    width: auto;
+    margin: 8px;
 }
 
-.alert {
-    margin-bottom: 8px;
+.autopublish-butttons {
+    margin-left: 16px;
 }
+
+.autopublish-pending, .autopublish-errors {
+    margin: 0;
+}
+
+.autopublish-pending {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 
 h3 {
-	font-size: 23px;
+    font-size: 23px;
 }
 
 button.btn.control {
-	margin: 5px;
+    margin: 5px;
 }
 
 img.avatar {

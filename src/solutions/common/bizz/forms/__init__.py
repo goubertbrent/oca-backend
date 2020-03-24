@@ -153,8 +153,9 @@ def _update_form(model, created_form, settings, can_edit_integrations):
                                         for i in model.integrations))
     integration_configs = {i.provider: i for i in integration_models}
     for integration in model.integrations:
-        conf = integration_configs[integration.provider]
-        get_form_integration(conf).update_configuration(model.id, integration.configuration, service_profile)
+        if integration.enabled:
+            conf = integration_configs[integration.provider]
+            get_form_integration(conf).update_configuration(model.id, integration.configuration, service_profile)
 
 
 def _get_form_avatar_url(service_user):

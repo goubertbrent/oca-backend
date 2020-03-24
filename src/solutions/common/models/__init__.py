@@ -316,6 +316,9 @@ class SolutionSettings(SolutionIdentitySettings):
 
     last_publish = db.IntegerProperty()
     updates_pending = db.BooleanProperty(indexed=False, default=False)
+    update_date = db.DateTimeProperty(auto_now=True)
+    auto_publish_date = db.DateTimeProperty()
+    auto_publish_task_id = db.StringProperty()
     publish_changes_users = db.StringListProperty(indexed=False)
     provisioned_modules = db.StringListProperty()
     modules = db.StringListProperty()

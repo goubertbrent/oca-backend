@@ -57,9 +57,15 @@ export interface OpeningHourException {
   periods: OpeningPeriod[];
 }
 
+export const enum OpeningHourType {
+  TEXT = 'text',
+  STRUCTURED = 'structured',
+  NOT_RELEVANT = 'not_relevant',
+}
+
 export interface OpeningHours {
   id: string;
-  type: 'text' | 'structured';
+  type: OpeningHourType;
   text: string | null;
   title: string | null;
   periods: OpeningPeriod[];

@@ -22,16 +22,6 @@ $(function () {
     var inboxEmailRemindersEnabled = true;
     var isPublishing = false;
 
-    var TMPL_UPDATES_PENDING = '<div class="alert">'
-        + '    <button id="publish_changes" type="button" class="btn btn-warning pull-right">'
-        + CommonTranslations.PUBLISH_CHANGES //
-        + '    </button>' //
-        + '    <button id="try_publish_changes" type="button" class="btn btn-warning pull-right" style="margin-right: 5px;">'
-        + CommonTranslations.TRY //
-        + '    </button>' //
-        + '    <h4>' + CommonTranslations.WARNING + '</h4>' + CommonTranslations["unpersisted-changes"]
-        + '</div>';
-
     var TMPL_USER_ROW = '<tr user_key=${user_key}>'
         + '<td style="width: 75%;"">${email}</td>'
         + '<td><button class="btn btn-danger pull-right" action="delete_user"><i class="fa fa-trash"></i></button></td>'
@@ -78,6 +68,14 @@ $(function () {
         ROUTES.settings = router;
         modules.settings = {publishChanges: publishChanges};
         LocalCache.settings = {};
+        window.addEventListener('beforeunload', function (event) {
+            if (isNotVisible()) {
+                event.preventDefault();
+                // You can't set a custom message (anymore) so this is the best we can do for now
+                event.returnValue = '';
+                return '';
+            }
+        });
     }
 
     function router(urlHash) {
@@ -234,13 +232,36 @@ $(function () {
     };
 
     var toggleUpdatesPending = function (updatesPending) {
+        var warningContainer = $('#sln-updates-pending-warning');
+        var autoPublishPending = $('#autopublish-pending');
+        var autoPublishError = $('#autopublish-errors');
         if (updatesPending) {
-            $("#sln-updates-pending-warning").fadeIn('slow');
+            Requests.checkAutoPublish().then(function (result) {
+                autoPublishPending.toggle(result.valid);
+                autoPublishError.toggle(!result.valid);
+                var listItems = [];
+                for (var i = 0; i < result.errors.length; i++) {
+                    listItems.push('<li>' + result.errors[i] + '</li>');
+                }
+                $('#service-prepublish-errors').html(listItems.join('\n'));
+                var msg = T('unpersisted-changes');
+                if (result.publish_date) {
+                    var date = sln.formatDate(new Date(result.publish_date).getTime() / 1000);
+                    msg = T('changes_will_be_published_on_date', {date: date});
+                }
+                $('#publish-message').text(msg);
+                warningContainer.fadeIn('slow', resizeDashboard);
+                resizeDashboard();
+            });
         } else {
-            $("#sln-updates-pending-warning").fadeOut('fast');
+            $('#service-prepublish-errors').empty();
+            warningContainer.fadeOut('fast', resizeDashboard);
         }
-        resizeDashboard();  // Defined in sln-new-dashboard.js
     };
+
+    function isNotVisible() {
+        return $('#sln-updates-pending-warning').css('display') === 'block' && $('#service-prepublish-errors').children().length > 0;
+    }
 
     var loadSettings = function () {
         Requests.getSettings({cached: false}).then(function (data) {
@@ -263,11 +284,11 @@ $(function () {
     };
 
     var channelUpdates = function (data) {
-        if (data.type == 'solutions.common.settings.updates_pending') {
+        if (data.type === 'solutions.common.settings.updates_pending') {
             toggleUpdatesPending(data.updatesPending);
-        } else if (data.type == 'solutions.common.inbox.new.forwarder.via.scan') {
+        } else if (data.type === 'solutions.common.inbox.new.forwarder.via.scan') {
             inboxLoadForwarders();
-        } else if (data.type == 'solutions.common.locations.update') {
+        } else if (data.type === 'solutions.common.locations.update') {
             if (!isLoyaltyTablet) {
                 if (service_identity != data.si) {
                     window.location.reload();
@@ -501,7 +522,6 @@ $(function () {
         });
     });
 
-    $("#sln-updates-pending-warning").html(TMPL_UPDATES_PENDING).hide();
     $("#sln-updates-pending-warning #publish_changes").click(publishChanges);
     $("#sln-updates-pending-warning #try_publish_changes").click(tryPublishChanges);
 

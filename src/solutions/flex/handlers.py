@@ -49,6 +49,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.functionalities import get_functionalities
+from solutions.common.bizz.settings import get_service_info
 from solutions.common.consts import UNITS, UNIT_SYMBOLS, UNIT_PIECE, UNIT_LITER, UNIT_KG, UNIT_GRAM, UNIT_HOUR, \
     UNIT_MINUTE, ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, UNIT_PLATTER, UNIT_SESSION, UNIT_PERSON, UNIT_DAY, CURRENCIES
 from solutions.common.dal import get_solution_settings, get_restaurant_menu, get_solution_email_settings, \
@@ -212,11 +213,11 @@ MODULES_JS_TEMPLATE_MAPPING = {
 
 class FlexHomeHandler(webapp2.RequestHandler):
 
-    def _get_location_templates(self, sln_settings):
-        tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
+    def _get_location_templates(self, service_user, language):
+        tmpl_params = {'language': language,
                        'debug': DEBUG,
                        'appscale': APPSCALE,
-                       'service_user_email': sln_settings.service_user}
+                       'service_user_email': service_user}
         templates = {}
         templates_to_get = {'location'}
         for tmpl in templates_to_get:
@@ -224,17 +225,19 @@ class FlexHomeHandler(webapp2.RequestHandler):
         templates = json.dumps(templates)
         return templates
 
-    def _get_templates(self, sln_settings):
-        tmpl_params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
-                       'debug': DEBUG,
-                       'appscale': APPSCALE,
-                       'currency': sln_settings.currency,  # TBD: use currencies?
-                       'service_user_email': sln_settings.service_user}
+    def _get_templates(self, lang, currency, modules):
+        # type: (str, str, list[str]) -> str
+        tmpl_params = {
+            'language': lang or DEFAULT_LANGUAGE,
+            'debug': DEBUG,
+            'appscale': APPSCALE,
+            'currency': currency,
+        }
         templates = {}
         templates_to_get = set()
         for tmpl in DEFAULT_JS_TEMPLATES:
             templates_to_get.add(tmpl)
-        for module in sln_settings.modules:
+        for module in modules:
             for tmpl in MODULES_JS_TEMPLATE_MAPPING.get(module, []):
                 templates_to_get.add(tmpl)
         for tmpl in templates_to_get:
@@ -245,17 +248,17 @@ class FlexHomeHandler(webapp2.RequestHandler):
     def _get_qr_codes(self, sln_settings, service_identity):
         return SolutionQR.list_by_user(sln_settings.service_user, service_identity, sln_settings.solution)
 
-    def _get_days(self, sln_settings):
-        return [(k, v.capitalize()) for k, v in dates.get_day_names('wide', locale=sln_settings.main_language or DEFAULT_LANGUAGE).items()]
+    def _get_days(self, language):
+        return [(k, v.capitalize()) for k, v in dates.get_day_names('wide', locale=language).items()]
 
-    def _get_months(self, sln_settings, width):
-        return [v.capitalize() for _, v in dates.get_month_names(width, locale=sln_settings.main_language or DEFAULT_LANGUAGE).items()]
+    def _get_months(self, language, width):
+        return [v.capitalize() for _, v in dates.get_month_names(width, locale=language).items()]
 
-    def _get_day_str(self, sln_settings, day):
-        return dates.get_day_names('wide', locale=sln_settings.main_language or DEFAULT_LANGUAGE)[day].capitalize()
+    def _get_day_str(self, language, day):
+        return dates.get_day_names('wide', locale=language)[day].capitalize()
 
-    def _get_week_days(self, sln_settings):
-        return [self._get_day_str(sln_settings, day) for day in [6, 0, 1, 2, 3, 4, 5]]
+    def _get_week_days(self, language):
+        return [self._get_day_str(language, day) for day in [6, 0, 1, 2, 3, 4, 5]]
 
     def get(self):
         service_user = users.get_current_user()
@@ -267,22 +270,26 @@ class FlexHomeHandler(webapp2.RequestHandler):
             self.redirect("/ourcityapp")
             return
         session_ = users.get_current_session()
-        all_translations = {key: translate(sln_settings.main_language, SOLUTION_COMMON, key)
+        lang = sln_settings.main_language or DEFAULT_LANGUAGE
+        all_translations = {key: translate(lang, SOLUTION_COMMON, key)
                             for key in translations[SOLUTION_COMMON]['en']}
         for other_key, key in COMMON_JS_KEYS.iteritems():
             all_translations[other_key] = all_translations[key]
+        service_identity = session_.service_identity if session_.service_identity else ServiceIdentity.DEFAULT
+        service_info = get_service_info(service_user, service_identity)
         if sln_settings.identities:
             if not session_.service_identity:
                 jinja_template = JINJA_ENVIRONMENT.get_template('locations.html')
-                params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
-                          'debug': DEBUG,
-                          'appscale': APPSCALE,
-                          'templates': self._get_location_templates(sln_settings),
-                          'service_name': sln_settings.name,
-                          'service_user_email': service_user.email().encode("utf-8"),
-                          'currency': sln_settings.currency,  # TBD: use currencies?
-                          'translations': json.dumps(all_translations)
-                          }
+                params = {
+                    'language': lang,
+                    'debug': DEBUG,
+                    'appscale': APPSCALE,
+                    'templates': self._get_location_templates(service_user, lang),
+                    'service_name': service_info.name,
+                    'service_user_email': service_user.email().encode("utf-8"),
+                    'currency': service_info.currency,
+                    'translations': json.dumps(all_translations)
+                }
                 channel.append_firebase_params(params)
                 self.response.out.write(jinja_template.render(params))
                 return
@@ -296,16 +303,15 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 self.redirect('/terms')
                 return
 
-        service_identity = session_.service_identity if session_.service_identity else ServiceIdentity.DEFAULT
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
         customer = get_customer(service_user)
         jinja_template = JINJA_ENVIRONMENT.get_template('index.html')
 
-        days = self._get_days(sln_settings)
+        days = self._get_days(lang)
         day_flags = [(pow(2, day_num), day_name) for day_num, day_name in days]
-        months = self._get_months(sln_settings, 'wide')
-        months_short = self._get_months(sln_settings, 'abbreviated')
-        week_days = self._get_week_days(sln_settings)
+        months = self._get_months(lang, 'wide')
+        months_short = self._get_months(lang, 'abbreviated')
+        week_days = self._get_week_days(lang)
         loyalty_version = self.request.get("loyalty")
         if customer:
             if service_identity != ServiceIdentity.DEFAULT:
@@ -322,7 +328,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             service_identity_user = create_service_identity_user(service_user, service_identity)
             active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
-        locale = Locale.parse(sln_settings.main_language)
+        locale = Locale.parse(lang)
         currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
         consts = {
             'UNIT_PIECE': UNIT_PIECE,
@@ -362,7 +368,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
         functionality_modules = functionality_info = None
         if city_app_id and is_signup_enabled(city_app_id):
             functionality_modules, functionality_info = map(json.dumps, get_functionalities(country,
-                                                                                            sln_settings.main_language,
+                                                                                            lang,
                                                                                             sln_settings.modules,
                                                                                             sln_settings.activated_modules,
                                                                                             active_app_ids))
@@ -376,15 +382,16 @@ class FlexHomeHandler(webapp2.RequestHandler):
         city_app_profile = city_service_user and get_cityapp_profile(city_service_user)
         news_review_enabled = city_app_profile and city_app_profile.review_news or True
 
-        organization_types = get_organization_types(customer, sln_settings.main_language, include_all=True)
-        params = {'language': sln_settings.main_language or DEFAULT_LANGUAGE,
+        organization_types = get_organization_types(customer, lang, include_all=True)
+        currency = service_info.currency
+        params = {'language': lang,
                   'country': country,
                   'logo_languages': LOGO_LANGUAGES,
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
                   'debug': DEBUG,
                   'appscale': APPSCALE,
-                  'templates': self._get_templates(sln_settings),
+                  'templates': self._get_templates(lang, currency, sln_settings.modules),
                   'service_name': sln_i_settings.name,
                   'service_user_email': service_user.email().encode("utf-8"),
                   'service_identity': service_identity,
@@ -401,8 +408,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'city_app_id': city_app_id,
                   'functionality_modules': functionality_modules,
                   'functionality_info': functionality_info,
-                  'email_settings': json.dumps(serialize_complex_value(SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user), SolutionEmailSettingsTO, False)),
-                  'currency': sln_settings.currency,  # TBD: use currencies?
+                  'email_settings': json.dumps(serialize_complex_value(
+                      SolutionEmailSettingsTO.fromModel(get_solution_email_settings(), service_user),
+                      SolutionEmailSettingsTO, False)),
+                  'currency': currency,
                   'is_layout_user': session_.layout_only if session_ else False,
                   'UNITS': json.dumps(UNITS),
                   'UNIT_SYMBOLS': json.dumps(UNIT_SYMBOLS),
@@ -425,7 +434,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:
-            params['bulk_invite_message'] = translate(sln_settings.main_language, SOLUTION_COMMON,
+            params['bulk_invite_message'] = translate(lang, SOLUTION_COMMON,
                                                       "settings-bulk-invite-message",
                                                       app_name=system.get_identity().app_names[0])
 

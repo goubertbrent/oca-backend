@@ -13,40 +13,30 @@
         }
     </style>
 
-    <h3>{% translate language, 'common', 'confirming_incoming_orders' %}</h3>
-    <div id="confirmation_container">
-        <label for="automatic_confirmation" class="radio">
-            <input type="radio" name="auto_or_manual_confirmation" id="automatic_confirmation"
-                   value="automatic">
-            {% translate language, 'common', 'automatic' %}
+    <div id="order-type-container">
+        <h3>{% translate language, 'common', 'order_type' %}</h3>
+
+        <p>{% translate language, 'common', 'order_type_explanation_1' %}</p>
+        <ol>
+            <li>{% translate language, 'common', 'simple' %}
+                <p>{% translate language, 'common', 'order_type_explanation_2' %}</p>
+            </li>
+            <li>{% translate language, 'common', 'advanced' %}
+                <p>{% translate language, 'common', 'order_type_explanation_3' %}</p>
+            </li>
+        </ol>
+
+        <label for="setting_advanced_order_simple" class="radio">
+            <input type="radio" name="setting_advanced_order_fields" id="setting_advanced_order_simple"
+                   value="{{ CONSTS.ORDER_TYPE_SIMPLE }}">
+            {% translate language, 'common', 'simple_orders' %}
         </label>
-        <label for="manual_confirmation" class="radio">
-            <input type="radio" name="auto_or_manual_confirmation" id="manual_confirmation"
-                   value="manual">
-            {% translate language, 'common', 'manual' %}
+        <label for="setting_advanced_order_advanced" class="radio">
+            <input type="radio" name="setting_advanced_order_fields" id="setting_advanced_order_advanced"
+                   value="{{ CONSTS['ORDER_TYPE_ADVANCED'] }}">
+            {% translate language, 'common', 'advanced_orders' %}
         </label>
     </div>
-
-    <h3>{% translate language, 'common', 'order_type' %}</h3>
-
-    <p>{% translate language, 'common', 'order_type_explanation_1' %}</p>
-    <ol>
-        <li>{% translate language, 'common', 'simple' %}
-            <p>{% translate language, 'common', 'order_type_explanation_2' %}</p></li>
-        <li>{% translate language, 'common', 'advanced' %}
-            <p>{% translate language, 'common', 'order_type_explanation_3' %}</p></li>
-    </ol>
-
-    <label for="setting_advanced_order_simple" class="radio">
-        <input type="radio" name="setting_advanced_order_fields" id="setting_advanced_order_simple"
-               value="{{ CONSTS.ORDER_TYPE_SIMPLE }}">
-        {% translate language, 'common', 'simple_orders' %}
-    </label>
-    <label for="setting_advanced_order_advanced" class="radio">
-        <input type="radio" name="setting_advanced_order_fields" id="setting_advanced_order_advanced"
-               value="{{ CONSTS['ORDER_TYPE_ADVANCED']}}">
-        {% translate language, 'common', 'advanced_orders' %}
-    </label>
 
     <div id="intro_text_container">
         <h3>{% translate language, 'common', 'intro-screen-order' %}</h3>
@@ -56,7 +46,8 @@
     </div>
 
     <div id="order_timeframes_container" class="order_timeframes_container hide">
-        <p class="margin-top">
+        <p class="margin-top">{% translate language, 'common', 'order_type_explanation_3' %}</p>
+        <p>
             <a href="/flex/#/menu">{% translate language, 'common', 'add_menu_items' %}</a>
         </p>
 
@@ -64,7 +55,7 @@
 
         <p>{% translate language, 'common', 'leap_time_info' %}</p>
 
-    <input id="order_leaptime" type="number" min="1" step="1"/>
+        <input id="order_leaptime" type="number" min="1" step="1"/>
         <select id="order_leaptime_type">
             <option value="60">{% translate language, 'common', 'minutes' %}</option>
             <option value="3600">{% translate language, 'common', 'hours' %}</option>
@@ -88,6 +79,19 @@
             <tbody>
             </tbody>
         </table>
+    </div>
+    <h3>{% translate language, 'common', 'confirming_incoming_orders' %}</h3>
+    <div id="confirmation_container">
+        <label for="automatic_confirmation" class="radio">
+            <input type="radio" name="auto_or_manual_confirmation" id="automatic_confirmation"
+                   value="automatic">
+            {% translate language, 'common', 'automatic' %}
+        </label>
+        <label for="manual_confirmation" class="radio">
+            <input type="radio" name="auto_or_manual_confirmation" id="manual_confirmation"
+                   value="manual">
+            {% translate language, 'common', 'manual' %}
+        </label>
     </div>
     <h3>{% translate language, 'common', 'order_is_ready_default_message' %}</h3>
     <div id="order_ready_message_container">

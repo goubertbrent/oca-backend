@@ -9,10 +9,10 @@
   </button>
 </div>
 <mat-progress-bar *ngIf="isLoading" mode="indeterminate"></mat-progress-bar>
-<mat-tab-group>
+<mat-tab-group *ngIf="openingHours.type === 'text' || openingHours.type === 'structured'">
   <mat-tab [label]="'oca.opening-hours' | translate">
     <ng-container *ngIf="openingHours.type === 'text'">
-      <h4>Oude openingsuren</h4>
+      <h4>Textuele openingsuren</h4>
       <pre>{{ openingHours.text }}</pre>
     </ng-container>
     <div class="tab-margin">
@@ -68,3 +68,13 @@
     </ng-template>
   </mat-tab>
 </mat-tab-group>
+<mat-slide-toggle (change)="toggleNotRelevant($event)"
+                  [checked]="openingHours.type === 'not_relevant'">
+  {{ 'oca.opening_hours_not_relevant' | translate }}
+</mat-slide-toggle>
+<mat-form-field *ngIf="openingHours.type === 'not_relevant'" class="not-relevant-hours">
+  <mat-label>{{ 'oca.description' | translate }}</mat-label>
+  <input (ngModelChange)="setChanged(openingHours)" [(ngModel)]="openingHours.text" matInput maxlength="500"
+         name="openinghours_text" type="text">
+  <mat-hint>{{ 'oca.for_example_only_appointments' | translate }}</mat-hint>
+</mat-form-field>
