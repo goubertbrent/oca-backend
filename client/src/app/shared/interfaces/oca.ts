@@ -58,7 +58,7 @@ export interface OpeningHourException {
 }
 
 export const enum OpeningHourType {
-  TEXT = 'text',
+  TEXTUAL = 'textual',
   STRUCTURED = 'structured',
   NOT_RELEVANT = 'not_relevant',
 }

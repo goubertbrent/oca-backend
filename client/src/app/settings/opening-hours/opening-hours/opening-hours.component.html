@@ -9,9 +9,9 @@
   </button>
 </div>
 <mat-progress-bar *ngIf="isLoading" mode="indeterminate"></mat-progress-bar>
-<mat-tab-group *ngIf="openingHours.type === 'text' || openingHours.type === 'structured'">
+<mat-tab-group *ngIf="openingHours.type === 'textual' || openingHours.type === 'structured'">
   <mat-tab [label]="'oca.opening-hours' | translate">
-    <ng-container *ngIf="openingHours.type === 'text'">
+    <ng-container *ngIf="openingHours.type === 'textual'">
       <h4>Textuele openingsuren</h4>
       <pre>{{ openingHours.text }}</pre>
     </ng-container>

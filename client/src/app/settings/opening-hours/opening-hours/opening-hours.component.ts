@@ -69,7 +69,7 @@ export class OpeningHoursComponent {
   }
 
   toggleNotRelevant($event: MatSlideToggleChange) {
-    if ([OpeningHourType.STRUCTURED, OpeningHourType.TEXT].includes(this.openingHours.type)) {
+    if ([OpeningHourType.STRUCTURED, OpeningHourType.TEXTUAL].includes(this.openingHours.type)) {
       if (this.openingHours.periods.length > 0 || this.openingHours.exceptional_opening_hours.length > 0) {
         const config: MatDialogConfig<SimpleDialogData> = {
           data: {
