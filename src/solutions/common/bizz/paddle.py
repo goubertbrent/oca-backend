@@ -170,8 +170,7 @@ def _sync_paddle_values(values, paddle_value):
 
 def _update_opening_hours_from_paddle(opening_hours, paddle_data):
     # type: (OpeningHours, PaddleOrganizationUnitDetails) -> Tuple[bool, OpeningHours]
-    if opening_hours.type == OpeningHours.TYPE_TEXTUAL:
-        opening_hours.type = OpeningHours.TYPE_STRUCTURED
+    opening_hours.type = OpeningHours.TYPE_STRUCTURED
     new_periods = _paddle_periods_to_periods(paddle_data.opening_hours.regular, None)
     closing_days = [_paddle_closing_period_to_exception(closing_day)
                     for closing_day in paddle_data.opening_hours.closing_days]

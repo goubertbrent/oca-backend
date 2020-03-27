@@ -106,7 +106,7 @@ def opening_hours_to_text(opening_hours, locale, current_datetime):
     # type: (OpeningHours, str, datetime) -> str
     if not opening_hours:
         return None
-    if opening_hours.type == OpeningHours.TYPE_TEXTUAL:
+    if opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT,):
         return opening_hours.text
     day_names = get_day_names(locale=locale).values()  # Starts on monday
     day_names.insert(0, day_names.pop())  # Starts on sunday
