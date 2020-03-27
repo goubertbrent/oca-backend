@@ -158,7 +158,6 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
         cropOptions: {
-          viewMode: 0,
           dragMode: 'crop',
           rotatable: true,
           autoCropArea: 1.0,

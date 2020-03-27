@@ -51,7 +51,7 @@ export class UploadFileDialogComponent implements OnDestroy {
       this.galleryImages$ = this.uploadFileService.getGalleryFiles(data.gallery.prefix);
     }
     this.images$ = this.uploadFileService.getFiles(data.listPrefix);
-    data.accept = data.accept || 'image/png,image/jpeg';
+    data.accept = data.accept || 'image/*';
     data.cropOptions = {
       viewMode: 1,
       autoCropArea: 1,
@@ -143,7 +143,10 @@ export class UploadFileDialogComponent implements OnDestroy {
 
   private getFile(): Promise<Blob | null> {
     if (this.selectedFile && this.selectedFile.type.startsWith('image')) {
-      return this.imageCropper.getCroppedImage('blob', .9, this.data.croppedCanvasOptions).then(result => result.blob);
+      // Always crop to jpeg unless it's a png (for transparent images so they don't lose the transparency)
+      const croppedImageType = this.selectedFile.type === 'image/png' ? 'image/png': 'image/jpeg';
+      return this.imageCropper.getCroppedImage(croppedImageType, 'blob', .9, this.data.croppedCanvasOptions)
+        .then(result => result.blob);
     } else {
       return Promise.resolve(this.selectedFile);
     }

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import Cropper from 'cropperjs';
+import ViewMode = Cropper.ViewMode;
 
 export interface ImageCropperResult {
   imageData: Cropper.ImageData;
@@ -11,8 +12,8 @@ export interface ImageCropperResult {
 @Component({
   selector: 'oca-image-cropper',
   templateUrl: './image-cropper.component.html',
+  styleUrls: ['./image-cropper.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
 })
 export class ImageCropperComponent {
   @ViewChild('image', { static: true }) image: ElementRef<HTMLImageElement>;
@@ -23,6 +24,8 @@ export class ImageCropperComponent {
   @Output() ready = new EventEmitter();
 
   public cropper: Cropper;
+  selectedViewMode: ViewMode;
+  isImageLoaded = false;
 
   constructor() {
   }
@@ -32,15 +35,23 @@ export class ImageCropperComponent {
     if (this.cropper) {
       this.cropper.destroy();
     }
+    this.selectedViewMode = this.cropperOptions.viewMode ?? 1;
+    this.cropper = new Cropper(this.image.nativeElement, this.cropperOptions);
+    this.isImageLoaded = true;
+  }
+
+  setViewMode(viewMode: ViewMode) {
+    this.cropper.destroy();
+    this.cropperOptions = { ...this.cropperOptions, viewMode };
     this.cropper = new Cropper(this.image.nativeElement, this.cropperOptions);
   }
 
-  getCroppedImage(type: 'blob' | 'base64', quality: number, options?: Cropper.GetCroppedCanvasOptions): Promise<ImageCropperResult> {
+  getCroppedImage(imageType: 'image/png' | 'image/jpeg', type: 'blob' | 'base64', quality: number,
+                  options?: Cropper.GetCroppedCanvasOptions): Promise<ImageCropperResult> {
     const imageData = this.cropper.getImageData();
     const cropData = this.cropper.getCropBoxData();
     const canvas = this.cropper.getCroppedCanvas(options);
     const data: ImageCropperResult = { imageData, cropData, blob: null, dataUrl: null };
-    const imageType = 'image/jpeg';
 
     return new Promise(resolve => {
       if (type === 'base64') {

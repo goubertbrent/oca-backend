@@ -295,7 +295,7 @@ export class EditNewsComponent implements OnChanges {
       data: {
         uploadPrefix: 'news',
         title: this._translate.instant('oca.add-attachment'),
-        accept: 'image/png,image/jpeg,application/pdf,video/mp4',
+        accept: 'image/*,application/pdf,video/mp4',
       },
     };
     this._matDialog.open(UploadFileDialogComponent, config).afterClosed().subscribe((result?: UploadedFileResult) => {

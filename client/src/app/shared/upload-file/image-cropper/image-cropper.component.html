@@ -1,3 +1,10 @@
 <div style="max-height: 300px; height: auto; max-width: 100%; overflow: hidden;">
   <img #image (load)="imageLoaded()" [src]="imageUrl" alt="image"/>
 </div>
+<div class="crop-mode">
+  <span>{{ 'oca.crop_mode' | translate }}</span>
+  <mat-button-toggle-group (change)="setViewMode($event.value)" *ngIf="isImageLoaded" [value]="selectedViewMode">
+    <mat-button-toggle [value]="1">{{ 'oca.standard' | translate }}</mat-button-toggle>
+    <mat-button-toggle [value]="0">{{ 'oca.no_restrictions' | translate }}</mat-button-toggle>
+  </mat-button-toggle-group>
+</div>
