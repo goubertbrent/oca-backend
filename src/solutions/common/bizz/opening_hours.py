@@ -26,8 +26,10 @@ from rogerthat.bizz.opening_hours import is_always_open, is_always_closed, is_op
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
 from rogerthat.rpc import users
 from solutions import translate, SOLUTION_COMMON
-from solutions.common.bizz import maybe_broadcast_updates_pending
+from solutions.common.bizz import broadcast_updates_pending
+from solutions.common.dal import get_solution_settings
 from solutions.common.to.opening_hours import OpeningHoursTO
+
 
 DAY_MAPPING = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -54,7 +56,11 @@ def put_opening_hours(service_user, service_identity, data):
                                                for exception in data.exceptional_opening_hours]
     opening_hours.put()
 
-    maybe_broadcast_updates_pending(service_user)
+    sln_settings = get_solution_settings(service_user)
+    if not sln_settings.updates_pending:
+        sln_settings.updates_pending = True
+        sln_settings.put()
+    broadcast_updates_pending(sln_settings)
     return opening_hours
 
 

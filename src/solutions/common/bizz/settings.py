@@ -41,7 +41,7 @@ from rogerthat.utils.channel import send_message
 from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
-from solutions.common.bizz import broadcast_updates_pending, maybe_broadcast_updates_pending
+from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.cron.news.rss import parse_rss_items
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings

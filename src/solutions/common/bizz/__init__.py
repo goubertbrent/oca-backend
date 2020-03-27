@@ -770,20 +770,6 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
 
 
-def maybe_broadcast_updates_pending(sln_settings_or_service_user):
-    if isinstance(sln_settings_or_service_user, SolutionSettings):
-        sln_settings = sln_settings_or_service_user
-    else:
-        sln_settings = get_solution_settings(sln_settings_or_service_user)
-    if sln_settings.updates_pending:
-        return False
-    else:
-        sln_settings.updates_pending = True
-        sln_settings.put()
-        broadcast_updates_pending(sln_settings)
-        return True
-
-
 @returns()
 @arguments(service_user=users.User)
 def service_auto_connect(service_user):

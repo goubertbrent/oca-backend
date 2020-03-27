@@ -94,6 +94,7 @@ TRANSLATION_MAPPING = {
     'Broadcast',
     'Call',
     'Cancel',
+    'Change logo',
     'Close',
     'Confirm',
     'Content',
