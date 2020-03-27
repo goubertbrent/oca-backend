@@ -32,7 +32,7 @@ def rest_get_opening_hours():
     return OpeningHoursTO.from_model(get_opening_hours(service_user, service_identity))
 
 
-@rest('/common/settings/opening-hours', 'put', silent_result=True, silent=True)
+@rest('/common/settings/opening-hours', 'put', silent_result=True)
 @returns(OpeningHoursTO)
 @arguments(data=OpeningHoursTO)
 def rest_put_opening_hours(data):
