@@ -3836,7 +3836,7 @@ translations = \
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
          u'publish_now': u'Nu publiceren',
-         u'service_invisible_warning': u'Uw dienst zal niet zichtbaar zijn in de app totdate u de volgende problemen oplost',
+         u'service_invisible_warning': u'Uw dienst zal niet zichtbaar zijn in de app tot dat u de volgende problemen oplost',
          u'changes_will_be_published_on_date': u'Uw veranderingen zullen gepubliceerd worden op %(date)s',
          u'oca.this_will_remove_your_existing_hours': u'Dit zal uw bestaande openingsuren en speciale openingsuren verwijderen, bent u zeker dat U ze wilt verwijderen?',
          u'oca.opening_hours_not_relevant': u'Openingsuren niet relevant',
