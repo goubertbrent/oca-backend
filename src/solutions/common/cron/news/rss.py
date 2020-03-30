@@ -142,36 +142,38 @@ def _worker(rss_settings_key):
                 new_key = SolutionRssScraperItem.create_key(service_user, service_identity, scraped_item.id)
                 new_item = SolutionRssScraperItem(key=new_key,
                                                   timestamp=now(),
-                                                  dry_run=False,
+                                                  dry_run=dry_run,
                                                   hash=scraped_item.hash,
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
                 
-                if not dry_run and scraped_item.date and scraped_item.date < last_week_datetime:
-                    logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                elif dry_run and len(new_news_item_ids) > 100:
-                    logging.debug('new_dry_run_max_items_reached guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                    new_item.dry_run = True
-                else:
-                    new_news_item_ids.append(scraped_item.id)
-                    logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
-                    timestamp = None
-                    if scraped_item.date:
-                        set_date = False
-                        if dry_run:
-                            set_date = True
-                        else:
-                            current_date = datetime.now()
-                            if scraped_item.date.year == current_date.year and scraped_item.date.month == current_date.month and scraped_item.date.day == current_date.day:
+                if not dry_run:
+                    # todo create a parameter to save items on dry run
+                    if not dry_run and scraped_item.date and scraped_item.date < last_week_datetime:
+                        logging.debug('new_outdated_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                    elif dry_run and len(new_news_item_ids) > 100:
+                        logging.debug('new_dry_run_max_items_reached guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                        # new_item.dry_run = True
+                    else:
+                        new_news_item_ids.append(scraped_item.id)
+                        logging.debug('create_news_item guid:%s url:%s', scraped_item.guid, scraped_item.url)
+                        timestamp = None
+                        if scraped_item.date:
+                            set_date = False
+                            if dry_run:
                                 set_date = True
-                        if set_date:
-                            timestamp = get_epoch_from_datetime(scraped_item.date)
-                            if timestamp > now():
-                                timestamp = None
-
-                    tasks.append(create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
-                                             scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
-                                             scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name, timestamp=timestamp))
+                            else:
+                                current_date = datetime.now()
+                                if scraped_item.date.year == current_date.year and scraped_item.date.month == current_date.month and scraped_item.date.day == current_date.day:
+                                    set_date = True
+                            if set_date:
+                                timestamp = get_epoch_from_datetime(scraped_item.date)
+                                if timestamp > now():
+                                    timestamp = None
+    
+                        tasks.append(create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
+                                                 scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
+                                                 scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name, timestamp=timestamp))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first
