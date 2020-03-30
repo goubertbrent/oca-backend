@@ -35,8 +35,8 @@ MEDIA = {
             'tutorial_video_id': 'WRwNCNtIQG4',
         },
         SolutionModule.ORDER: {
-            'video_id': 'hHOkurV4IIE',
-            'tutorial_video_id': 'hHOkurV4IIE',
+            'video_id': 'N6lCgEpxIS0',
+            'tutorial_video_id': 'N6lCgEpxIS0',
         },
         SolutionModule.RESTAURANT_RESERVATION: {
             'video_id': '7aFdU2wyTkM',
