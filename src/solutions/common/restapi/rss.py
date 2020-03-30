@@ -25,6 +25,7 @@ from webapp2 import RequestHandler
 
 from mcfw.exceptions import HttpException
 from mcfw.rpc import arguments, returns
+from solutions.common.utils import html_to_markdown
 
 
 class RssCoronavirusDotBeHandler(RequestHandler):
@@ -44,23 +45,35 @@ def get_coronavirus_dot_be_rss(url):
     if fetch_result.status_code != 200:
         raise HttpException.from_urlfetchresult(fetch_result)
     soup = BeautifulSoup(fetch_result.content, features='lxml')
-    articles = soup.find_all('div', {'class': 'post-teaser'})  # type: List[Tag]
+    ul = soup.find('ul', {'class': 'blog-list'})
+    articles = ul.find_all('li')  # type: List[Tag]
     items = []
     for article in articles:
-        title = article.find('h3')  # type: Tag
-        link_tag = article.find('a', {'class': 'read-more'})  # type: Tag
-        description = '\n'.join(tag.text.strip() for tag in article.find_all('p'))
-        date_tag = article.find('span', {'class': 'blue'})
-        pub_date = parse_datetime(date_tag.text)
+        link_tag = article.find('a')  # type: Tag
         link = link_tag.attrs['href']
         if link.startswith('/'):
             link = base_url + link
         items.append(PyRSS2Gen.RSSItem(
-            title=title.text.strip(),
             link=link,
-            description=description,
-            pubDate=pub_date,
+            title=link_tag.text
         ))
+        if len(items) >= 5:
+            break
+    rpcs = []
+    for item in items:
+        rpc = urlfetch.create_rpc(10)
+        urlfetch.make_fetch_call(rpc, item.link)
+        rpcs.append(rpc)
+    for item, rpc in zip(items, rpcs):
+        result = rpc.get_result()  # type: urlfetch._URLFetchResult
+        if result.status_code != 200:
+            raise HttpException.from_urlfetchresult(fetch_result)
+        item_soup = BeautifulSoup(result.content, features='lxml')
+        article = item_soup.find('article')
+        item.pubDate = parse_datetime(article.find('time').attrs['datetime'])
+        # Remove the header containing the title and date
+        article.find('header').extract()
+        item.description = html_to_markdown(unicode(article))
     rss = PyRSS2Gen.RSS2(
         title=soup.find('title').text.strip(),
         link=soup.find('meta', {'name': 'description'}).attrs['content'],
