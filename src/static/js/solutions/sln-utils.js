@@ -1010,12 +1010,18 @@ var createLib = function() {
                     sln.logError('Caught exception in success handler of ' + options.url, err);
                 }
             }, options.error = function(XMLHttpRequest, textStatus, errorThrown) {
-                if(options.showProcessing)
+                if (errorThrown === 'Forbidden' && XMLHttpRequest.responseJSON && XMLHttpRequest.responseJSON.error) {
+                    sln.alert(XMLHttpRequest.responseJSON.error, function () {
+                        window.location.reload();
+                    });
+                    return;
+                }
+                if (options.showProcessing)
                     sln.hideProcessing();
-                if(error) {
+                if (error) {
                     try {
                         error(XMLHttpRequest, textStatus, errorThrown);
-                    } catch(err) {
+                    } catch (err) {
                         sln.logError('Caught exception in error handler of ' + options.url, err);
                     }
                 } else {

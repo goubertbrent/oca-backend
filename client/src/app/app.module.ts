@@ -1,4 +1,4 @@
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClient, HttpClientModule } from '@angular/common/http';
 import { Injectable, NgModule } from '@angular/core';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { BrowserModule } from '@angular/platform-browser';
@@ -13,6 +13,7 @@ import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
 import { CUSTOM_LOCALE_PROVIDER } from './locales';
 import { metaReducers, reducers } from './reducers';
+import { MainHttpInterceptor } from './shared/main-http-interceptor';
 import { SharedModule } from './shared/shared.module';
 
 // AoT requires an exported function for factories
@@ -74,7 +75,8 @@ export const routes: Routes = [
   exports: [SharedModule],
   providers: [
     CUSTOM_LOCALE_PROVIDER,
-    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' } },
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' }},
+    { provide: HTTP_INTERCEPTORS, useClass: MainHttpInterceptor, multi: true },
   ],
   bootstrap: [AppComponent],
 })

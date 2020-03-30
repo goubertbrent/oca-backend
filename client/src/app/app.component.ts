@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { MainHttpInterceptor } from './shared/main-http-interceptor';
 
 @Component({
   selector: 'oca-app',
@@ -19,8 +20,9 @@ export class AppComponent {
       if (e.data) {
         ngZone.run(() => {
           switch (e.data.type) {
-            case 'oca.set_language':
+            case 'oca.init':
               translate.use(e.data.language);
+              MainHttpInterceptor.serviceEmail = e.data.serviceEmail;
               break;
             case 'oca.load_page': // When on a subpage of the desired page, don't do anything to keep state
               if (e.data.paths.length === 1) {

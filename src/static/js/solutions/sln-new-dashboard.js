@@ -39,8 +39,9 @@ function newDashboardRouter(paths) {
                 element.contentWindow.postMessage({'type': 'channel', 'data': data}, origin);
             });
             element.contentWindow.postMessage({
-                'type': 'oca.set_language',
-                'language': LANGUAGE
+                type: 'oca.init',
+                language: LANGUAGE,
+                serviceEmail: service_user_email,
             }, origin);
             resizeDashboard();
         }, {passive: true});

@@ -49,11 +49,11 @@ export class SettingsEffects {
     ofType<GetServiceInfoAction>(SettingsActionTypes.GET_SERVICE_INFO),
     switchMap(action => this.settingsService.getServiceInfo().pipe(
       map(result => new GetServiceInfoCompleteAction(result)),
-      catchError(err => of(new GetServiceInfoFailedAction(err))))),
+      catchError(err => of(new GetServiceInfoFailedAction(err.error.error))))),
   );
 
   @Effect({ dispatch: false }) showErrorDialog = this.actions$.pipe(
-    ofType<GetServiceInfoFailedAction>(SettingsActionTypes.UPDATE_SERVICE_INFO_FAILED),
+    ofType<GetServiceInfoFailedAction>(SettingsActionTypes.GET_SERVICE_INFO_FAILED),
     tap(action => this.errorService.showErrorDialog(action.error)),
   );
 
