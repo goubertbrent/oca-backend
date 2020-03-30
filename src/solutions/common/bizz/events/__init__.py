@@ -384,7 +384,10 @@ def solution_load_events(service_user, email, method, params, tag, service_ident
     r = SendApiCallCallbackResultTO()
     sln_settings = get_solution_settings(service_user)
     data = json.loads(params)
-    if 'startDate' not in data:
+    data_correct = 'startDate' in data
+    if data_correct:
+        data_correct = data['startDate'] < data['endDate']
+    if not data_correct:
         r.result = json.dumps({
             'events': [],
             'has_more': False,
