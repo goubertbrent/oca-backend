@@ -60,7 +60,7 @@ export class OpeningHoursComponent {
   }
 
   updatePeriods(periods: OpeningPeriod[]) {
-    this.setChanged({ ...this.openingHours, periods });
+    this.setChanged({ ...this.openingHours, periods, type: OpeningHourType.STRUCTURED });
   }
 
   private setChanged(openingHours: OpeningHours) {
