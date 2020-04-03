@@ -289,17 +289,14 @@ def scandown( elements, indent ):
         scandown(el.childNodes, indent + 1)
 
 PARSE_OPTION_RFC822 = 'rfc822'
-PARSE_OPTION_DATEUTIL_DAY_FIRST = 'dateutil.day_first'
 PARSE_OPTION_DATEUTIL_DEFAULT = 'dateutil.default'
 
 def _get_date_option(date_str, parse_type):
     try:
         if parse_type == PARSE_OPTION_RFC822:
             return datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
-        elif parse_type == PARSE_OPTION_DATEUTIL_DAY_FIRST:
-            return dateutil.parser.parse(date_str)
         elif parse_type == PARSE_OPTION_DATEUTIL_DEFAULT:
-            return dateutil.parser.parse(date_str, dayfirst=True)
+            return dateutil.parser.parse(date_str)
     except:
         pass #logging.debug('parse_type:%s failed to resolve the date:%s', parse_type, date_str)
 
@@ -315,7 +312,7 @@ def _correct_midnight_times(current_date, date):
 
 def _get_date(current_date, min_date, date_str, dry_run=False, log_dates=False):
     # todo improve we should remember what parse_type where success
-    for parse_type in (PARSE_OPTION_RFC822, PARSE_OPTION_DATEUTIL_DAY_FIRST, PARSE_OPTION_DATEUTIL_DEFAULT,):
+    for parse_type in (PARSE_OPTION_RFC822, PARSE_OPTION_DATEUTIL_DEFAULT,):
         date = _get_date_option(date_str, parse_type)
         if not date:
             continue
@@ -323,16 +320,14 @@ def _get_date(current_date, min_date, date_str, dry_run=False, log_dates=False):
             logging.debug('%s %s -> %s offset:%s', parse_type, date_str, date.strftime('%Y-%m-%d_%H:%M:%S'), date.utcoffset())
         if parse_type in (PARSE_OPTION_RFC822,):
             break
-        if parse_type in (PARSE_OPTION_DATEUTIL_DAY_FIRST, PARSE_OPTION_DATEUTIL_DEFAULT):
+        if parse_type in (PARSE_OPTION_DATEUTIL_DEFAULT,):
             if date.utcoffset() is not None:
                 # this date contains tzinfo and needs to be removed
                 epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) - date.utcoffset().total_seconds()
                 date = datetime.utcfromtimestamp(epoch)
-        if dry_run and date <= current_date:
-            break
-        if min_date <= date <= current_date:
             break
     else:
+        logging.error('could not parse date %s', date_str)
         return None
     
     return _correct_midnight_times(current_date, date)   
