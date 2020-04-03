@@ -15,21 +15,21 @@
 #
 # @@license_version:1.5@@
 
+from datetime import datetime
 import logging
 import rfc822
-from datetime import datetime
 from urlparse import urlparse
+from xml.dom import minidom
 
-import dateutil.parser
 from bs4 import BeautifulSoup
+import dateutil.parser
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.ext import webapp, ndb
-from xml.dom import minidom
 
 from mcfw.properties import unicode_property, typed_property
 from rogerthat.bizz.job import run_job
-from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
+from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE, DEBUG
 from rogerthat.models.news import NewsGroup
 from rogerthat.to import TO
 from rogerthat.to.push import remove_html
@@ -41,6 +41,7 @@ from solutions.common.cron.news import html_unescape, \
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionRssScraperSettings, SolutionRssScraperItem
 from solutions.common.utils import html_to_markdown
+
 
 BROADCAST_TYPE_NEWS = u"News"
 BROADCAST_TYPE_EVENTS = u"Events"
@@ -113,7 +114,7 @@ def _worker(rss_settings_key):
 
         logging.info('Scraping rss for url %s in dry_run %s', rss_link.url, dry_run)
 
-        items, keys = parse_rss_items(response.content, rss_link.url, service_user, service_identity)
+        items, keys = parse_rss_items(response.content, rss_link.url, service_user, service_identity, dry_run=dry_run)
         scraped_items.extend(items)
         if items:
             soreted_items = sorted([s for s in items if s.date], key=lambda x: x.date)
@@ -260,7 +261,7 @@ class ScrapedItem(object):
         self.hash = news_item_hash(title, message, image_url)
 
 
-def parse_rss_items(xml_content, rss_url, service_user=None, service_identity=None):
+def parse_rss_items(xml_content, rss_url, service_user=None, service_identity=None, dry_run=False):
     # type: (str, str, users.User, str) -> ([ScrapedItem], [ndb.Key])
     try:
         doc = minidom.parseString(xml_content)
@@ -271,9 +272,9 @@ def parse_rss_items(xml_content, rss_url, service_user=None, service_identity=No
 
     root_tag = doc.firstChild.tagName
     if root_tag == 'rss':
-        return _flavor_rss_items(doc, rss_url, service_user=service_user, service_identity=service_identity)
+        return _flavor_rss_items(doc, rss_url, service_user=service_user, service_identity=service_identity, dry_run=dry_run)
     elif root_tag == 'feed':
-        return _flavor_atom_items(doc, rss_url, service_user=service_user, service_identity=service_identity)
+        return _flavor_atom_items(doc, rss_url, service_user=service_user, service_identity=service_identity, dry_run=dry_run)
 
     logging.error(u'Unknown rss flavor %s', root_tag)
     return [], []
@@ -287,48 +288,67 @@ def scandown( elements, indent ):
         logging.debug(el.childNodes)
         scandown(el.childNodes, indent + 1)
 
-def _get_date(current_date, date_str):
-    logging.debug('date_str: %s', date_str)
+PARSE_OPTION_RFC822 = 'rfc822'
+PARSE_OPTION_DATEUTIL_DAY_FIRST = 'dateutil.day_first'
+PARSE_OPTION_DATEUTIL_DEFAULT = 'dateutil.default'
+
+def _get_date_option(date_str, parse_type):
     try:
-        date = datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
-    except TypeError:
-        logging.debug('rfc822.parsedate_tz failed to resolve the date')
-        date = dateutil.parser.parse(date_str, dayfirst=True)
-        if date.utcoffset() is not None:
-            # this date contains tzinfo and needs to be removed
-            epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
-            date = datetime.utcfromtimestamp(epoch)
+        if parse_type == PARSE_OPTION_RFC822:
+            return datetime.fromtimestamp(rfc822.mktime_tz(rfc822.parsedate_tz(date_str)))
+        elif parse_type == PARSE_OPTION_DATEUTIL_DAY_FIRST:
+            return dateutil.parser.parse(date_str)
+        elif parse_type == PARSE_OPTION_DATEUTIL_DEFAULT:
+            return dateutil.parser.parse(date_str, dayfirst=True)
+    except:
+        pass #logging.debug('parse_type:%s failed to resolve the date:%s', parse_type, date_str)
 
-        if date > current_date:
-            logging.debug('dayfirst must have switched the dates, continue without')
-            date = dateutil.parser.parse(date_str)
-            if date.utcoffset() is not None:
-                # this date contains tzinfo and needs to be removed
-                epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) + date.utcoffset().total_seconds()
-                date = datetime.utcfromtimestamp(epoch)
 
-            if date > current_date:
-                logging.debug('date still bigger ... continue with date None')
-                date = None
-
-    if date:
-        # If the time it not known (00:00) for new items fetched on the same day,
-        # fill in the time with the current time. That way it's at least semi-accurate.
-        if date.year == current_date.year and date.month == current_date.month and date.day == current_date.day:
-            if date.hour == 0 and date.minute == 0 and date.second == 0:
-                date = date.replace(hour=current_date.hour, minute=current_date.minute)
-        logging.debug('date_str.result: %s', date.strftime('%Y-%m-%d_%H:%M:%S'))
-
+def _correct_midnight_times(current_date, date):
+    # If the time it not known (00:00) for new items fetched on the same day,
+    # fill in the time with the current time. That way it's at least semi-accurate.
+    if date.year == current_date.year and date.month == current_date.month and date.day == current_date.day:
+        if date.hour == 0 and date.minute == 0 and date.second == 0:
+            date = date.replace(hour=current_date.hour, minute=current_date.minute)
     return date
 
-def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
+
+def _get_date(current_date, min_date, date_str, dry_run=False, log_dates=False):
+    # todo improve we should remember what parse_type where success
+    for parse_type in (PARSE_OPTION_RFC822, PARSE_OPTION_DATEUTIL_DAY_FIRST, PARSE_OPTION_DATEUTIL_DEFAULT,):
+        date = _get_date_option(date_str, parse_type)
+        if not date:
+            continue
+        if log_dates:
+            logging.debug('%s %s -> %s offset:%s', parse_type, date_str, date.strftime('%Y-%m-%d_%H:%M:%S'), date.utcoffset())
+        if parse_type in (PARSE_OPTION_RFC822,):
+            break
+        if parse_type in (PARSE_OPTION_DATEUTIL_DAY_FIRST, PARSE_OPTION_DATEUTIL_DEFAULT):
+            if date.utcoffset() is not None:
+                # this date contains tzinfo and needs to be removed
+                epoch = get_epoch_from_datetime(date.replace(tzinfo=None)) - date.utcoffset().total_seconds()
+                date = datetime.utcfromtimestamp(epoch)
+        if dry_run and date <= current_date:
+            break
+        if min_date <= date <= current_date:
+            break
+    else:
+        return None
+    
+    return _correct_midnight_times(current_date, date)   
+    
+
+
+def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None, dry_run=False):
     items = []
     keys = []
     parsed_url = urlparse(rss_url)
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
     current_date = datetime.now()
-
-    for item in doc.getElementsByTagName('item'):
+    min_date = datetime.now() - relativedelta(days=20)
+    
+    for i, item in enumerate(doc.getElementsByTagName('item')):
+        log_dates = i < 5
         try:
             title = remove_html(html_unescape(item.getElementsByTagName("title")[0].firstChild.nodeValue)).strip()
             url = item.getElementsByTagName("link")[0].firstChild.nodeValue.strip()
@@ -359,8 +379,10 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
             date_tags = item.getElementsByTagName('pubDate')
             image_url = get_image_url(item, description_html)
             if date_tags:
+                if log_dates:
+                    logging.debug('url: %s', url)
                 date_str = item.getElementsByTagName('pubDate')[0].firstChild.nodeValue
-                date = _get_date(current_date, date_str)
+                date = _get_date(current_date, min_date, date_str, dry_run=dry_run, log_dates=log_dates)
             else:
                 date = None
         except:
@@ -380,30 +402,20 @@ def _flavor_rss_items(doc, rss_url, service_user=None, service_identity=None):
     return items, keys
 
 
-def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
+def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None, dry_run=False):
     items = []
     keys = []
     parsed_url = urlparse(rss_url)
     base_url = '%s://%s' % (parsed_url.scheme, parsed_url.netloc)
     current_date = datetime.now()
+    min_date = datetime.now() - relativedelta(days=20)
 
-    for element in doc.getElementsByTagName('entry'):
+    for i, element in enumerate(doc.getElementsByTagName('entry')):
+        log_dates = i < 5
         to = AtomEntry.from_element(element)
         if not to:
             continue
-
-        date = None
-        date_str = to.updated or to.published
-        if date_str:
-            date = _get_date(current_date, date_str)
-        url = None
-        image_url = None
-        for link in to.links:
-            if link.rel == 'alternate':
-                url = link.href
-            elif link.rel == 'enclosure' and link.type_.startswith('image/'):
-                image_url = link.href
-
+        
         description = None
         if to.summary:
             description = to.summary.value
@@ -415,10 +427,22 @@ def _flavor_atom_items(doc, rss_url, service_user=None, service_identity=None):
                 if not is_html(description_html):
                     description_html = u'<br/>'.join(description_html.splitlines())
                 description = html_to_markdown(description_html, base_url)
-
         if not description:
             continue
-
+        
+        url = None
+        image_url = None
+        for link in to.links:
+            if link.rel == 'alternate':
+                url = link.href
+            elif link.rel == 'enclosure' and link.type_.startswith('image/'):
+                image_url = link.href
+        date = None
+        date_str = to.updated or to.published
+        if date_str:
+            if log_dates:
+                logging.debug('url: %s', url or to.id_)
+            date = _get_date(current_date, min_date, date_str, dry_run=dry_run, log_dates=log_dates)
         if service_user:
             if url:
                 # Always add url key for backwards compatibility - in the past only url was used as key

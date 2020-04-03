@@ -196,8 +196,8 @@ def is_html(text):
         parser = TestIsHTMLParser()
         parser.feed(text)
         return_value = True if parser.elements.intersection(elements) else False
-        if DEBUG:
-            logging.debug('is_html:%s elements: %s', return_value, parser.elements)
+#         if DEBUG:
+#             logging.debug('is_html:%s elements: %s', return_value, parser.elements)
         return return_value
     except:
         logging.exception('Failed to determine if text was html')
