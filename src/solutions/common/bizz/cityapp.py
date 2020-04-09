@@ -91,7 +91,7 @@ def get_uitdatabank_events(settings, page, pagelength, changed_since=None):
     if settings.version == UitdatabankSettings.VERSION_3:
         return _get_uitdatabank_events_v3(settings, page, pagelength, changed_since)
 
-    return False, "Incorrect API version"
+    return False, 0, "Incorrect API version"
 
 
 @returns(tuple)
@@ -101,7 +101,7 @@ def _get_uitdatabank_events_v3(settings, page, pagelength, changed_since=None):
     postal_codes = settings.params.get('postal_codes') or []
 
     if not key or not postal_codes:
-        return False, "Not all fields are provided"
+        return False, 0, "Not all fields are provided"
 
     q_array = []
     for postal_code in postal_codes:
@@ -134,9 +134,9 @@ def _get_uitdatabank_events_v3(settings, page, pagelength, changed_since=None):
     if r['totalItems'] == 0:
         if changed_since:
             return True, []
-        return False, "0 upcoming events. Make sure your postal codes are correct."
+        return False, 0, "0 upcoming events. Make sure your postal codes are correct."
 
     if r['totalItems'] > 10000:
         logging.error('Result has more then 10.000 items')
 
-    return True, [member['@id'] for member in r['member']]
+    return True, r['totalItems'], [member['@id'] for member in r['member']]

@@ -64,7 +64,7 @@ def _process_cityapp_uitdatabank_events(uitdatabank_settings_key, page):
         pagelength = 50
         uitdatabank_settings = uitdatabank_settings_key.get()
         logging.info("process_cityapp_uitdatabank_events for %s page %s", uitdatabank_settings.service_user, page)
-        success, result = get_uitdatabank_events(uitdatabank_settings, page, pagelength,
+        success, _, result = get_uitdatabank_events(uitdatabank_settings, page, pagelength,
                                                  uitdatabank_settings.cron_sync_time or None)
         if not success:
             if page == 1:
@@ -224,9 +224,9 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
         ))
 
     location = detail_result.get('location')
-    if location:
+    if location and lang in detail_result['location']['name']:
         address = detail_result['location'].get('address')
-        place_name = detail_result['location']['name']['nl']
+        place_name = detail_result['location']['name'][lang]
         if address:
             if lang in address:
                 address = address[lang]
@@ -236,7 +236,7 @@ def _populate_uit_events_v3(sln_settings, external_url, detail_result, uitdataba
             city = filtered_join(', ', (postal_code, city_name))
             event_place = filtered_join(', ', (place_name, street, city))
         else:
-            event_place = detail_result['location']['name']['nl']
+            event_place = detail_result['location']['name'][lang]
     start_date = None
     end_date = None
     dates = []

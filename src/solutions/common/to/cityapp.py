@@ -15,7 +15,9 @@
 #
 # @@license_version:1.5@@
 
-from mcfw.properties import unicode_property, bool_property, typed_property
+from mcfw.properties import unicode_property, bool_property, typed_property,\
+    long_property
+from rogerthat.to import TO
 
 
 class CityAppProfileTO(object):
@@ -40,3 +42,17 @@ class UitdatabankSettingsTO(object):
         to.version = model.version
         to.params = model.params
         return to
+
+
+class UitdatabankCheckTO(TO):
+    enabled = bool_property('enabled', default=True)
+    errormsg = unicode_property('errormsg', default=None)
+    count = long_property('count', default=0)
+
+    @classmethod
+    def create(cls, enabled=True, errormsg=None, count=0):
+        r = cls()
+        r.enabled = enabled
+        r.errormsg = unicode(errormsg) if errormsg else None
+        r.count = count
+        return r

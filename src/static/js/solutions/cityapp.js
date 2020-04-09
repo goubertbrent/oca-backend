@@ -17,7 +17,6 @@
  */
 $(function() {
     'use strict';
-    var uitdatabankStatusEnabled = true;
     var gatherEvents = true;
 
     var TMPL_SET_GATHER_EVENTS = '<div class="btn-group">' +
@@ -115,23 +114,30 @@ $(function() {
                     if (!data.success) {
                         sln.alert(data.errormsg, null, CommonTranslations.ERROR);
                     } else {
-                        sln.call({
-                            url: "/common/cityapp/uitdatabank/check",
-                            type: "GET",
-                            success: function(data) {
-                                if (data.success) {
-                                    setUitdatabankStatus(true);
-                                } else {
-                                    setUitdatabankStatus(false, data.errormsg);
-                                }
-                            },
-                            error: sln.showAjaxError
-                        });
+                    	checkUitdatabankSettings();
                     }
                 },
                 error: sln.showAjaxError
             });
         }
+    };
+    
+    var checkUitdatabankSettings = function() {
+    	sln.call({
+            url: "/common/cityapp/uitdatabank/check",
+            type: "GET",
+            success: function(data) {
+                $('#uitdatabankStatus').toggleClass('alert-danger', !data.enabled).toggleClass('alert-success', data.enabled);
+                var text = CommonTranslations.STATUS_ENABLED;
+                if (data.enabled) {
+                    text = CommonTranslations.STATUS_ENABLED + " (" + data.count + " events found)";
+                } else {
+                	text = CommonTranslations.STATUS_DISABLED + (data.errormsg === undefined ? "" : (": " + data.errormsg));
+                }
+                $('#uitdatabankStatusText').text(text);
+            },
+            error: sln.showAjaxError
+        });
     };
 
     var loadUitdatabankSettings = function() {
@@ -139,7 +145,7 @@ $(function() {
             url: "/common/cityapp/uitdatabank/settings",
             type: "GET",
             success: function(data) {
-                setUitdatabankStatus(data.enabled);
+            	checkUitdatabankSettings();
 
                 $("#section_agenda .sln-uit-events-3").hide();
 
@@ -151,16 +157,6 @@ $(function() {
             },
             error: sln.showAjaxError
         });
-    };
-
-    var setUitdatabankStatus = function(enabled, reason) {
-        uitdatabankStatusEnabled = enabled;
-        $('#uitdatabankStatus').toggleClass('alert-danger', !enabled).toggleClass('alert-success', enabled);
-        var text = CommonTranslations.STATUS_ENABLED;
-        if (!enabled) {
-            text = CommonTranslations.STATUS_DISABLED + (reason === undefined ? "" : (": " + reason));
-        }
-        $('#uitdatabankStatusText').text(text);
     };
 
     var deletePostalCode = function() {

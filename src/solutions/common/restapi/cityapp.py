@@ -31,7 +31,8 @@ from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, \
     get_uitdatabank_settings
-from solutions.common.to.cityapp import CityAppProfileTO, UitdatabankSettingsTO
+from solutions.common.to.cityapp import CityAppProfileTO, UitdatabankSettingsTO, \
+    UitdatabankCheckTO
 
 
 @rest("/common/cityapp/settings/load", "get", read_only_access=True)
@@ -100,7 +101,7 @@ def save_uitdatabank_settings(version, params):
 
 
 @rest("/common/cityapp/uitdatabank/check", "get", read_only_access=True)
-@returns(ReturnStatusTO)
+@returns(UitdatabankCheckTO)
 @arguments()
 def uitdatabank_check_cityapp_settings():
     service_user = users.get_current_user()
@@ -108,7 +109,7 @@ def uitdatabank_check_cityapp_settings():
     settings = get_uitdatabank_settings(service_user)
     sln_settings = get_solution_settings(service_user)
     try:
-        success, result = get_uitdatabank_events(settings, 1, 50)
+        success, count, result = get_uitdatabank_events(settings, 1, 50)
         if not success:
             try:
                 result = translate(sln_settings.main_language, SOLUTION_COMMON, result)
@@ -122,8 +123,8 @@ def uitdatabank_check_cityapp_settings():
         if not settings.enabled:
             settings.enabled = True
             settings.put()
-        return RETURNSTATUS_TO_SUCCESS
+        return UitdatabankCheckTO.create(True, count=count)
     if settings.enabled:
         settings.enabled = False
         settings.put()
-    return ReturnStatusTO.create(False, result)
+    return UitdatabankCheckTO.create(False, result)
