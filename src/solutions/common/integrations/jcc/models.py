@@ -71,6 +71,8 @@ class JccApiMethod(Enum):
 class JCCSettings(NdbModel):
     url = ndb.StringProperty()
     enabled = ndb.BooleanProperty(default=False)
+    username = ndb.TextProperty()
+    password = ndb.TextProperty()
 
     @property
     def service_user(self):

@@ -1232,8 +1232,12 @@ $(function () {
 
     function renderJccSettings(settings) {
         var url = $('#jcc_url');
+        var username = $('#jcc_username');
+        var password = $('#jcc_password');
         var saveButton = $('#btn_save_jcc_settings');
         url.val(settings.url);
+        username.val(settings.username);
+        password.val(settings.password);
         saveButton.prop('disabled', false);
         saveButton.click(function () {
             if (saveButton.prop('disabled')) {
@@ -1242,6 +1246,8 @@ $(function () {
             saveButton.prop('disabled', true);
             var data = {
                 url: url.val(),
+                username: username.val(),
+                password: password.val(),
             };
             Requests.saveJccSettings(data, {showError: false})
                 .then(function () {

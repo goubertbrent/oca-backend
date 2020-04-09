@@ -24,6 +24,9 @@ from google.appengine.ext import deferred, ndb
 from babel.dates import format_time, format_date
 from functools32 import lru_cache
 from icalendar import Calendar, Event, vCalAddress, vText
+from requests import Session
+from requests.auth import HTTPBasicAuth
+
 from mcfw.cache import cached
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.rpc import returns, arguments
@@ -39,7 +42,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.jcc.models import JCCSettings, JccApiMethod, JCCUserAppointments, JCCAppointment
 from solutions.common.integrations.qmatic.qmatic import set_updates_pending
 from typing import List, Dict
-from zeep import Client
+from zeep import Client, Transport
 from zeep.helpers import serialize_object
 from zeep.xsd import CompoundValue
 
@@ -49,10 +52,15 @@ logging.getLogger('zeep.xsd.schema').setLevel(logging.INFO)
 
 
 @lru_cache()
-def get_jcc_client(url):
-    client = Client(url)
-    client.transport.operation_timeout = 30
-    return client
+def get_jcc_client(url, username, password):
+    session = Session()
+    if username and password:
+        session.auth = HTTPBasicAuth(username, password)
+        transport = Transport(session=session)
+    else:
+        transport = Transport()
+    transport.operation_timeout = 30
+    return Client(url, transport=transport)
 
 
 def get_jcc_settings(service_user):
@@ -64,13 +72,15 @@ def get_jcc_settings(service_user):
     return settings
 
 
-def save_jcc_settings(service_user, url):
-    # type: (users.User, str) -> JCCSettings
+def save_jcc_settings(service_user, url, username=None, password=None):
+    # type: (users.User, str, str, str) -> JCCSettings
     settings = get_jcc_settings(service_user)
     settings.url = url
+    settings.username = username
+    settings.password = password
     if url:
         try:
-            client = get_jcc_client(settings.url)
+            client = get_jcc_client(settings.url, settings.username, settings.password)
             client.service.getGovAvailableProducts()
             enabled = True
         except Exception as e:
@@ -88,24 +98,25 @@ def save_jcc_settings(service_user, url):
     return settings
 
 
-@cached(0, lifetime=DAY)
+@cached(1, lifetime=DAY)
 @returns(dict)
-@arguments(url=unicode, product_id=unicode)
-def get_product_details(url, product_id):
-    return serialize_object(get_jcc_client(url).service.getGovProductDetails(productID=product_id))
+@arguments(url=unicode, username=unicode, password=unicode, product_id=unicode)
+def get_product_details(url, username, password, product_id):
+    return serialize_object(get_jcc_client(url, username, password).service.getGovProductDetails(productID=product_id))
 
 
-@cached(0, lifetime=DAY)
+@cached(1, lifetime=DAY)
 @returns(dict)
-@arguments(url=unicode, location_id=unicode)
-def get_location(url, location_id):
-    return serialize_object(get_jcc_client(url).service.getGovLocationDetails(locationID=location_id))
+@arguments(url=unicode, username=unicode, password=unicode, location_id=unicode)
+def get_location(url, username, password, location_id):
+    return serialize_object(get_jcc_client(url, username, password).service
+                            .getGovLocationDetails(locationID=location_id))
 
 
 def get_appointments_for_user(settings, app_user):
     # type: (JCCSettings, users.User) -> dict
     user_appointments = JCCUserAppointments.create_key(settings.service_user, app_user).get()
-    client = get_jcc_client(settings.url)
+    client = get_jcc_client(settings.url, settings.username, settings.password)
     appointments = []
     all_product_ids = set()
     all_location_ids = set()
@@ -121,7 +132,8 @@ def get_appointments_for_user(settings, app_user):
                 all_location_ids.add(appointment_details.locationID)
     # TODO: In case this is too slow, store these in datastore models so we can get everything in 1 call
     product_details = {product_id: get_product_details(settings.url, product_id) for product_id in all_product_ids}
-    locations = {location_id: get_location(settings.url, location_id) for location_id in all_location_ids}
+    locations = {location_id: get_location(settings.url, settings.username, settings.password, location_id)
+                 for location_id in all_location_ids}
     return {
         'appointments': appointments,
         'products': product_details,
@@ -139,19 +151,20 @@ def add_appointment_to_calendar(settings, app_user, appointment_id):
             break
     else:
         return {'message': translate(sln_settings.main_language, SOLUTION_COMMON, 'appointment_not_found')}
-    client = get_jcc_client(settings.url)
+    client = get_jcc_client(settings.url, settings.username, settings.password)
     appointment_details = client.service.getGovAppointmentExtendedDetails(appID=appointment_id)
-    location = get_location(settings.url, appointment_details.locationID)
+    location = get_location(settings.url, settings.username, settings.password, appointment_details.locationID)
     all_product_ids_list = appointment_details.productID.split(',')
     all_product_ids = set(all_product_ids_list)
-    products = {product_id: get_product_details(settings.url, product_id) for product_id in all_product_ids}
+    products = {product_id: get_product_details(settings.url, settings.username, settings.password, product_id)
+                for product_id in all_product_ids}
     create_ical_for_appointment(app_user, appointment_details, location, products, all_product_ids_list[0], sln_settings.main_language)
     msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'an_email_has_been_sent_with_appointment_event')
     return {'message': msg}
 
 
 def create_ical_for_appointment(app_user, appointment, location, products, first_product_id, lang):
-    # type: (users.User, CompoundValue, CompoundValue, Dict[str, CompoundValue], str) -> None
+    # type: (users.User, CompoundValue, CompoundValue, Dict[str, CompoundValue], str, str) -> None
     cal = Calendar()
     cal.add('prodid', '-//Our City App//calendar//')
     cal.add('version', '2.0')
@@ -213,7 +226,7 @@ def create_ical_for_appointment(app_user, appointment, location, products, first
 def _after_appointment_booked(settings_key, app_user, appointment_id):
     # type: (ndb.Key, users.User, str) -> None
     settings = settings_key.get()  # type: JCCSettings
-    client = get_jcc_client(settings.url)
+    client = get_jcc_client(settings.url, settings.username, settings.password)
     appointment = client.service.getGovAppointmentDetails(appID=appointment_id)
     key = JCCUserAppointments.create_key(settings.service_user, app_user)
     user_appointments = key.get() or JCCUserAppointments(key=key)
@@ -301,7 +314,7 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
     response = SendApiCallCallbackResultTO()
     try:
         settings = get_jcc_settings(service_user)
-        client = get_jcc_client(settings.url)
+        client = get_jcc_client(settings.url, settings.username, settings.password)
         json_data = json.loads(params) if params else {}
         app_user = user_details[0].toAppUser()
         if method not in JccApiMethod.all():

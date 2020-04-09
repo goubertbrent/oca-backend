@@ -1521,7 +1521,7 @@ def rest_get_jcc_settings():
 @returns(dict)
 @arguments(data=dict)
 def rest_save_jcc_settings(data):
-    return save_jcc_settings(users.get_current_user(), data['url']).to_dict()
+    return save_jcc_settings(users.get_current_user(), **data).to_dict()
 
 
 @rest("/common/repair/settings/load", "get", read_only_access=True)
