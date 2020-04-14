@@ -35,7 +35,7 @@ export class ErrorService {
         {
           text: this.translate.instant('app.oca.retry'),
           handler: () => {
-            this.store.dispatch(failedAction);
+            this.store.dispatch(failedAction as Action);
           },
         },
       ],

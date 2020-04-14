@@ -4,6 +4,8 @@
       <ion-label position="floating">{{ 'app.oca.location' | translate }}</ion-label>
       <ion-select (ngModelChange)="setLocation($event)"
                   [ngModel]="selectedLocation"
+                  [cancelText]="'app.oca.cancel' | translate"
+                  [okText]="'app.oca.ok' | translate"
                   interface="popover"
                   name="location"
                   required>
@@ -16,6 +18,8 @@
       <ion-label position="floating">{{ 'app.oca.date' | translate }}</ion-label>
       <ion-select (ngModelChange)="setDate($event)"
                   [ngModel]="selectedDate"
+                  [cancelText]="'app.oca.cancel' | translate"
+                  [okText]="'app.oca.ok' | translate"
                   name="date"
                   required>
         <ion-select-option *ngFor="let date of availableDays" [value]="date">
@@ -26,6 +30,8 @@
     <ion-item *ngIf="selectedDate">
       <ion-label position="floating">{{ 'app.oca.time' | translate }}</ion-label>
       <ion-select (ngModelChange)="setTime($event)"
+                  [cancelText]="'app.oca.cancel' | translate"
+                  [okText]="'app.oca.ok' | translate"
                   [ngModel]="selectedTime"
                   name="time"
                   required>

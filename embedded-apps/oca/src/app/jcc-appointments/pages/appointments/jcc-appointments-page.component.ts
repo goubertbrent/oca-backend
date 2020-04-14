@@ -5,7 +5,7 @@ import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subscription } from 'rxjs';
 import { AppState } from '../../../reducers';
-import { AppointmentExtendedDetails, AppointmentListItem, SelectedProduct } from '../../appointments';
+import { AppointmentDetailsTypeWithID, AppointmentListItem, SelectedProduct } from '../../appointments';
 import { AddToCalendarAction, CancelAppointmentAction, GetAppointmentsAction } from '../../jcc-appointments-actions';
 import { getAppointments, hasNoAppointments, isLoadingAppointments } from '../../jcc-appointments.state';
 
@@ -49,7 +49,7 @@ export class JccAppointmentsPage implements OnInit, OnDestroy {
     this.subscription.unsubscribe();
   }
 
-  async cancelAppointment(appointment: Required<AppointmentExtendedDetails>) {
+  async cancelAppointment(appointment: AppointmentDetailsTypeWithID) {
     const alert = await this.alertController.create({
       header: this.translate.instant('app.oca.confirm'),
       message: this.translate.instant('app.oca.confirm_delete_appointment', { date: this.datePipe.transform(appointment.appStartTime) }),
@@ -60,14 +60,14 @@ export class JccAppointmentsPage implements OnInit, OnDestroy {
         },
         {
           text: this.translate.instant('app.oca.yes'),
-          handler: () => this.store.dispatch(new CancelAppointmentAction({ appID: appointment.appointmentID })),
+          handler: () => this.store.dispatch(new CancelAppointmentAction({ appID: appointment.id })),
         },
       ],
     });
     await alert.present();
   }
 
-  addToCalendar(appointment: Required<AppointmentExtendedDetails>) {
-    this.store.dispatch(new AddToCalendarAction({ appointmentID: appointment.appointmentID }));
+  addToCalendar(appointment: AppointmentDetailsTypeWithID) {
+    this.store.dispatch(new AddToCalendarAction({ appointmentID: appointment.id }));
   }
 }

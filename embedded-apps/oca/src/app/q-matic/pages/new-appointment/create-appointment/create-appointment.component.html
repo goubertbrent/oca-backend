@@ -2,7 +2,12 @@
   <ion-list>
     <ion-item>
       <ion-label>{{ 'app.oca.service' | translate }}</ion-label>
-      <ion-select (ionChange)="onServiceSelected($event.detail.value)" name="service" ngModel required>
+      <ion-select (ionChange)="onServiceSelected($event.detail.value)"
+                  [cancelText]="'app.oca.cancel' | translate"
+                  [okText]="'app.oca.ok' | translate"
+                  name="service"
+                  ngModel
+                  required>
         <ion-select-option *ngFor="let service of services" [value]="service.publicId">
           {{ service.name }}
         </ion-select-option>
@@ -11,7 +16,12 @@
 
     <ion-item *ngIf="showLocation">
       <ion-label>{{ 'app.oca.location' | translate }}</ion-label>
-      <ion-select (ionChange)="branchSelected.emit($event.detail.value)" name="branch" ngModel required>
+      <ion-select (ionChange)="branchSelected.emit($event.detail.value)"
+                  [cancelText]="'app.oca.cancel' | translate"
+                  [okText]="'app.oca.ok' | translate"
+                  name="branch"
+                  ngModel
+                  required>
         <ion-select-option *ngFor="let branch of branches" [value]="branch.publicId">
           {{ branch.name }}
         </ion-select-option>
@@ -20,7 +30,12 @@
 
     <ion-item *ngIf="showDates">
       <ion-label>{{ 'app.oca.date' | translate }}</ion-label>
-      <ion-select (ionChange)="dateSelected.emit($event.detail.value)" name="date" ngModel required>
+      <ion-select (ionChange)="dateSelected.emit($event.detail.value)"
+                  [cancelText]="'app.oca.cancel' | translate"
+                  [okText]="'app.oca.ok' | translate"
+                  name="date"
+                  ngModel
+                  required>
         <ion-select-option *ngFor="let date of dates" [value]="date.value">
           {{ date.date | date }}
         </ion-select-option>
@@ -30,7 +45,12 @@
     <ng-container *ngIf="showTimes">
       <ion-item>
         <ion-label>{{ 'app.oca.time' | translate }}</ion-label>
-        <ion-select (ionChange)="timeSelected.emit($event.detail.value)" name="time" ngModel required>
+        <ion-select (ionChange)="timeSelected.emit($event.detail.value)"
+                    [cancelText]="'app.oca.cancel' | translate"
+                    [okText]="'app.oca.ok' | translate"
+                    name="time"
+                    ngModel
+                    required>
           <ion-select-option *ngFor="let time of times" [value]="time">{{ time }}</ion-select-option>
         </ion-select>
       </ion-item>

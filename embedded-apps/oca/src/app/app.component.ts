@@ -64,7 +64,7 @@ export class AppComponent {
   }
 
   private shouldExitApp(): boolean {
-    const whitelist = ['/q-matic/appointments', 'jcc-appointments/appointments', '/events'];
+    const whitelist = ['/q-matic/appointments', '/jcc-appointments/appointments', '/events'];
     return whitelist.includes(this.router.url);
   }
 

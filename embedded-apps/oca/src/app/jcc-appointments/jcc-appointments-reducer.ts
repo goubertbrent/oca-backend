@@ -17,7 +17,7 @@ export function jccAppointmentsReducer(state = initialJccAppointmentsState, acti
           ...state.appointments,
           result: {
             ...state.appointments.result,
-            appointments: state.appointments.result.appointments.filter(a => a.appointmentID !== action.payload.appointmentID),
+            appointments: state.appointments.result.appointments.filter(a => a.id !== action.payload.appointmentID),
           },
         } : state.appointments,
       };
@@ -27,6 +27,10 @@ export function jccAppointmentsReducer(state = initialJccAppointmentsState, acti
         products: stateLoading(initialJccAppointmentsState.products.result),
         selectedProducts: initialJccAppointmentsState.selectedProducts,
         selectableProducts: initialJccAppointmentsState.selectableProducts,
+        availableDays: initialJccAppointmentsState.availableDays,
+        availableTimes: initialJccAppointmentsState.availableTimes,
+        requiredFields: initialJccAppointmentsState.requiredFields,
+        locations: initialJccAppointmentsState.locations,
       };
     case JccAppointmentsActionTypes.GET_PRODUCTS_SUCCESS:
       return {

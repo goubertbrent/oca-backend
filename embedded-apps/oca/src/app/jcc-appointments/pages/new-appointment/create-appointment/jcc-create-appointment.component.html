@@ -1,27 +1,31 @@
 <p class="ion-padding">{{ 'app.oca.appointment_reason_question' | translate }}</p>
 <ion-list>
   <ng-container *ngFor="let product of selectedProducts; trackBy: trackSelectedProduct">
-    <ion-item lines="none">
-      <ion-label>{{ product.productDetails.description }}</ion-label>
-      <ion-icon (click)="infoClicked.emit(product.productDetails)"
-                *ngIf="product.productDetails?.requisites"
-                name="information-circle-outline" slot="end"></ion-icon>
-      <ion-icon (click)="deleteProduct.emit({productId: product.id})" color="danger"
-                name="close-circle-outline"
-                slot="end"></ion-icon>
-    </ion-item>
-    <ion-item>
-      <ion-label>{{ 'app.oca.amount' | translate }}</ion-label>
-      <ion-select (ionChange)="amountChanged(product.id, $event.detail.value)"
-                  [value]="productCounts[product.id]"
-                  interface="popover">
-        <ion-select-option
-          *ngFor="let amount of selectableProductCounts[product.id]; trackBy: trackByValue"
-          [value]="amount">
-          {{ amount }}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
+    <ng-container *ngIf="product.productDetails as details">
+      <ion-item lines="none">
+        <ion-label>{{ details.description }}</ion-label>
+        <ion-icon (click)="infoClicked.emit(details)"
+                  *ngIf="details.requisites"
+                  name="information-circle-outline" slot="end"></ion-icon>
+        <ion-icon (click)="deleteProduct.emit({productId: product.id})" color="danger"
+                  name="close-circle-outline"
+                  slot="end"></ion-icon>
+      </ion-item>
+      <ion-item>
+        <ion-label>{{ 'app.oca.amount' | translate }}</ion-label>
+        <ion-select (ionChange)="amountChanged(product.id, $event.detail.value)"
+                    [cancelText]="'app.oca.cancel' | translate"
+                    [okText]="'app.oca.ok' | translate"
+                    [value]="productCounts[product.id]"
+                    interface="popover">
+          <ion-select-option
+            *ngFor="let amount of selectableProductCounts[product.id]; trackBy: trackByValue"
+            [value]="amount">
+            {{ amount }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ng-container>
   </ng-container>
 </ion-list>
 <ion-list>
@@ -31,14 +35,11 @@
       (onChange)="onProductSelected($event)"
       [canSearch]="true"
       [items]="products"
+      [clearButtonText]="'app.oca.cancel' | translate"
+      [closeButtonText]="'app.oca.close' | translate"
+      [placeholder]="'app.oca.search' | translate"
+      [searchFailText]="'app.oca.no_activities_found' | translate"
       itemTextField="productDesc"
-      itemValueField="productId">
-      <ng-template ionicSelectablePlaceholderTemplate>
-        {{ 'app.oca.search' | translate }}
-      </ng-template>
-      <ng-template ionicSelectableSearchFailTemplate>
-        <p class="ion-padding">{{ 'app.oca.no_activities_found' | translate }}</p>
-      </ng-template>
-    </ionic-selectable>
+      itemValueField="productId"></ionic-selectable>
   </ion-item>
 </ion-list>

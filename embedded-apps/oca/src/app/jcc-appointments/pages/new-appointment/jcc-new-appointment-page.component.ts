@@ -112,14 +112,15 @@ export class JccNewAppointmentPage implements OnInit, OnDestroy {
     this.availableDays$ = this.store.pipe(select(getAvailableDays));
     this.availableTimes$ = this.store.pipe(select(getAvailableTimes));
     this.requiredFields$ = this.store.pipe(select(getRequiredFields));
-    this.requiredFields$.pipe(takeUntil(this.destroyed$), map(fields => {
+    this.requiredFields$.pipe(takeUntil(this.destroyed$)).subscribe(fields => {
+      this.useExtendedDetails = false;
       for (const field of fields) {
         if (!APPOINTMENT_DETAILS_FIELDS.includes(field)) {
-          return true;
+          this.useExtendedDetails = true;
+          break;
         }
       }
-      return false;
-    })).subscribe(result => this.useExtendedDetails = result);
+    });
     this.store.dispatch(new GetProductsAction());
 
     this.selectedProductIds$ = this.store.pipe(select(getSelectedProductsIds), takeUntil(this.destroyed$));

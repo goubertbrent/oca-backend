@@ -61,6 +61,10 @@ export interface AppointmentDetailsType {
   clientLanguage?: string;
 }
 
+export interface AppointmentDetailsTypeWithID extends Required<AppointmentDetailsType> {
+  id: string;
+}
+
 export const APPOINTMENT_DETAILS_FIELDS = [
   'productID',
   'clientID',
@@ -180,7 +184,7 @@ export type AvailableTimes = string[];  // Format: 2019-11-27T08:30:00
 
 /** internal types */
 export interface AppointmentsList {
-  appointments: Required<AppointmentExtendedDetails>[];
+  appointments: AppointmentDetailsTypeWithID[];
   products: {
     [ key: string ]: ProductDetails;
   };
@@ -190,14 +194,14 @@ export interface AppointmentsList {
 }
 
 export interface AppointmentListItem {
-  appointment: Required<AppointmentExtendedDetails>;
+  appointment: AppointmentDetailsTypeWithID;
   location: LocationDetails;
   products: SelectedProduct[];
 }
 
 export interface SelectedProduct {
   id: string;
-  productDetails: ProductDetails;
+  productDetails?: ProductDetails;
   amount: number;
 }
 

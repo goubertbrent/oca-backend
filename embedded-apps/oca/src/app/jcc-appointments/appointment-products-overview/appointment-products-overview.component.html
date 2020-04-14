@@ -1,7 +1,7 @@
 <ion-list>
   <ion-list-header>{{ 'app.oca.activities' | translate }}</ion-list-header>
   <ion-item *ngFor="let selectedProduct of selectedProducts" class="summary-item">
-    <ion-label>{{ selectedProduct.productDetails.description }} ({{selectedProduct.amount}})</ion-label>
+    <ion-label>{{ selectedProduct.productDetails?.description }} ({{selectedProduct.amount}})</ion-label>
     <ion-icon (click)="showProductRequisites(selectedProduct.productDetails)"
               *ngIf="selectedProduct.productDetails?.requisites"
               name="information-circle-outline" slot="end"></ion-icon>

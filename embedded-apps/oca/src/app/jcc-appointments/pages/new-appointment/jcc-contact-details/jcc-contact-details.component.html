@@ -9,6 +9,8 @@
       <ng-container [ngSwitch]="field.DataType">
         <ng-container *ngSwitchCase="'select'">
           <ion-select (ionChange)="setField(field.Name, $event.detail.value)"
+                      [cancelText]="'app.oca.cancel' | translate"
+                      [okText]="'app.oca.ok' | translate"
                       [name]="field.Name"
                       [ngModel]="$any(contactDetails)[field.Name]">
             <ion-select-option *ngFor="let option of field.Choices" [value]="option.value">

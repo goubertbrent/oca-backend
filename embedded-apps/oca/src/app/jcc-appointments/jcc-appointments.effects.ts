@@ -280,6 +280,7 @@ export class JccAppointmentsEffects {
         return of(new AddToCalendarCompleteAction(err));
       })),
     ));
+
   @Effect() afterCreateAppointment$ = this.actions$.pipe(
     ofType<CreateAppointmentCompleteAction>(JccAppointmentsActionTypes.CREATE_APPOINTMENT_SUCCESS),
     map(() => new GetAppointmentsAction()),
