@@ -143,9 +143,7 @@ export class UploadFileDialogComponent implements OnDestroy {
 
   private getFile(): Promise<Blob | null> {
     if (this.selectedFile && this.selectedFile.type.startsWith('image')) {
-      // Always crop to jpeg unless it's a png (for transparent images so they don't lose the transparency)
-      const croppedImageType = this.selectedFile.type === 'image/png' ? 'image/png': 'image/jpeg';
-      return this.imageCropper.getCroppedImage(croppedImageType, 'blob', .9, this.data.croppedCanvasOptions)
+      return this.imageCropper.getCroppedImage('image/jpeg', 'blob', .9, this.data.croppedCanvasOptions)
         .then(result => result.blob);
     } else {
       return Promise.resolve(this.selectedFile);
