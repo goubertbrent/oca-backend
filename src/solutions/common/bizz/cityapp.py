@@ -128,12 +128,12 @@ def _get_uitdatabank_events_v3(settings, page, pagelength, changed_since=None):
     if result.status_code != 200:
         logging.info("_get_uitdatabank_events_v3 failed with status_code %s and content:\n%s" %
                      (result.status_code, result.content))
-        return False, "Make sure your credentials are correct."
+        return False, 0, "Make sure your credentials are correct."
     r = json.loads(result.content)
 
     if r['totalItems'] == 0:
         if changed_since:
-            return True, []
+            return True, 0, []
         return False, 0, "0 upcoming events. Make sure your postal codes are correct."
 
     if r['totalItems'] > 10000:
