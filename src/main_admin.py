@@ -34,6 +34,8 @@ from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.paddle import SyncPaddleInfoHandler
 from solutions.common.cron.sandwich import SandwichAutoBroadcastCronHandler
 from solutions.common.cron.statistics import DailyStatisticsHandler
+from solutions.common.handlers.admin.gmb import gmbOauthDecorator, \
+    GoogleMyBusinessHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 from solutions.common.handlers.admin.services import ServiceTools
 
@@ -63,6 +65,8 @@ handlers = [
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),
     ('/admin/explorer', ExplorerHandler),
+    ('/admin/gmb', GoogleMyBusinessHandler),
+    (gmbOauthDecorator.callback_path, gmbOauthDecorator.callback_handler())  # /admin/gmb/oauth2callback
 ]
 
 handlers.extend(rest_functions(admin.explorer.api))
