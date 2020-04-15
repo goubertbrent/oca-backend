@@ -6,7 +6,7 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { catchError, distinctUntilChanged, filter, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
+import { catchError, filter, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
 import { AppState } from '../reducers';
 import { RogerthatService } from '../rogerthat/rogerthat.service';
 import { ErrorService } from '../shared/error.service';
@@ -237,7 +237,6 @@ export class JccAppointmentsEffects {
 
   @Effect() getRequiredFields$ = this.actions$.pipe(
     ofType<GetRequiredFieldsAction>(JccAppointmentsActionTypes.GET_REQUIRED_FIELDS),
-    distinctUntilChanged((previous, current) => previous.payload.productID === current.payload.productID),
     switchMap(action => this.rogerthatService.apiCall<GetRequiredClientFieldsResponse>(ApiCalls.GetRequiredClientFields, action.payload).pipe(
       map(result => new GetRequiredFieldsCompleteAction(result)),
       catchError(err => {

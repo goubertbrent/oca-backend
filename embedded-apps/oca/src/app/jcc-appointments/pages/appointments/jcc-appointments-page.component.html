@@ -13,9 +13,12 @@
   <div *ngIf="isLoading$ | async" class="spinner-container">
     <ion-spinner></ion-spinner>
   </div>
-  <p *ngIf="showNoResults$ | async" class="ion-padding">
-    {{ 'app.oca.no_upcoming_appointments_yet' | translate }}
-  </p>
+  <div *ngIf="showNoResults$ | async" class="ion-padding no-results">
+    <p>{{ 'app.oca.no_upcoming_appointments_yet' | translate }}</p>
+    <ion-button routerLink="/jcc-appointments/new-appointment">
+      {{ 'app.oca.create_appointment' | translate }}
+    </ion-button>
+  </div>
   <ion-card *ngFor="let item of appointments$ | async">
     <ion-card-header>
       <ion-card-title>{{ item.appointment.appStartTime | date : 'EEEE d MMMM y, h:mm a' }}</ion-card-title>

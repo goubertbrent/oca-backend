@@ -6,7 +6,7 @@ import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, Subject } from 'rxjs';
-import { first, map, takeUntil, tap } from 'rxjs/operators';
+import { first, takeUntil, tap } from 'rxjs/operators';
 import { AppState } from '../../../reducers';
 import {
   APPOINTMENT_DETAILS_FIELDS,
@@ -126,6 +126,9 @@ export class JccNewAppointmentPage implements OnInit, OnDestroy {
     this.selectedProductIds$ = this.store.pipe(select(getSelectedProductsIds), takeUntil(this.destroyed$));
     this.selectedProductIds$.subscribe(productIds => {
       this.appointment = { ...this.appointment, productID: productIds.join(',') };
+      if (productIds.length) {
+        this.store.dispatch(new GetRequiredFieldsAction({ productID: productIds.join(',') }));
+      }
     });
 
     // Show annoying popup when details of an item are fetched for the first time
@@ -223,7 +226,6 @@ export class JccNewAppointmentPage implements OnInit, OnDestroy {
           message: this.translate.instant('app.oca.please_select_activity'),
         });
       } else {
-        this.store.dispatch(new GetRequiredFieldsAction({ productID: productIds.join(',') }));
         this.setCurrentStep(Step.LOCATION_DATE);
       }
     });

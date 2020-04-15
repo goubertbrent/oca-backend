@@ -246,7 +246,6 @@ def _handle_book_appointment(settings, app_user, arguments, result):
 
 def _after_required_fields(settings, app_user, arguments, required_fields):
     # type: (JCCSettings, users.User, dict, List[str]) -> CompoundValue
-    logging.warning('required fields: %s', required_fields)
     field_set = {'clientDateOfBirth', 'clientLastName'}
     # Convert required fields to the real fields (AnyTel -> clientTel etc)
     for field in required_fields:
@@ -258,7 +257,6 @@ def _after_required_fields(settings, app_user, arguments, required_fields):
             # Not sure what the rest is since this isn't documented what the possible values are
             real_field = 'client%s' % field
         field_set.add(real_field)
-    logging.warning('real fields: %s', field_set)
     non_extended_fields = [
         'productID',
         'clientID',

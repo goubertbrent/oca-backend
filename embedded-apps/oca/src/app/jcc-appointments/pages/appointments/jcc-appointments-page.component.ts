@@ -12,18 +12,7 @@ import { getAppointments, hasNoAppointments, isLoadingAppointments } from '../..
 @Component({
   templateUrl: 'jcc-appointments-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [`.summary-item {
-
-  ion-label {
-    font-size: 14px;
-    font-weight: bold;
-  }
-
-  ion-note {
-    font-size: 14px;
-  }
-
-  }`],
+  styleUrls: ['jcc-appointments-page.component.scss'],
 })
 export class JccAppointmentsPage implements OnInit, OnDestroy {
   isLoading$: Observable<boolean>;
