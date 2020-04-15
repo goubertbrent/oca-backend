@@ -12,7 +12,7 @@ export function fixProductDetails(product: ProductDetails): ProductDetails {
   // is actually a string
   const maxCountForEvent = parseInt(product.maxCountForEvent as unknown as string, 10);
   // decode from base64 to html
-  const body = atob(typeof product.requisites === 'string' ? product.requisites : product.requisites[ 0 ]);
+  const body = b64DecodeUnicode(typeof product.requisites === 'string' ? product.requisites : product.requisites[ 0 ]);
   // Extract content from <body> tag
   const dom = new DOMParser().parseFromString(body, 'text/html');
   const bodyNode = dom.getElementsByTagName('body').item(0);
@@ -26,4 +26,8 @@ export function fixProductsDetailsMapping(products: { [ key: string ]: ProductDe
     fixed[ key ] = fixProductDetails(products[ key ]);
   }
   return fixed;
+}
+
+function b64DecodeUnicode(str: string) {
+  return decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
 }
