@@ -214,6 +214,7 @@ TRANSLATION_MAPPING = {
     'schedule',
     'scheduled_for_datetime',
     'send_email',
+    'search-dot-dot-dot',
     'search-keywords-hint',
     'service-visible',
     'settings-general',

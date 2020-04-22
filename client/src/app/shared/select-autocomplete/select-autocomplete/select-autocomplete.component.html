@@ -1,0 +1,29 @@
+<mat-form-field class="select-autocomplete-field">
+  <mat-label>{{ label }}</mat-label>
+  <mat-select (opened)="filterFormControl.reset()"
+              (selectionChange)="onSelectionChange($event)"
+              [formControl]="formControl"
+              [multiple]="multiple"
+              [placeholder]="placeholder"
+              [required]="required">
+    <div class="search-box">
+      <input [formControl]="filterFormControl"
+             [placeholder]="searchPlaceholder"
+             class="search-input"
+             type="text">
+      <button (click)="filterFormControl.reset()"
+              *ngIf="filterFormControl.value"
+              class="search-button"
+              mat-icon-button
+              type="button">
+        <mat-icon>clear</mat-icon>
+      </button>
+    </div>
+    <mat-option *ngFor="let option of filteredOptions$ | async; trackBy: trackByFn"
+                [disabled]="option.disabled"
+                [value]="option.value">
+      {{ option.label }}
+    </mat-option>
+    <mat-error>{{ errorMsg }}</mat-error>
+  </mat-select>
+</mat-form-field>

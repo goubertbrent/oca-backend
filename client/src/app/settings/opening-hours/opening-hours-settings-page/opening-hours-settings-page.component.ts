@@ -26,7 +26,7 @@ export class OpeningHoursSettingsPageComponent implements OnInit, OnDestroy {
     this.store.dispatch(new GetOpeningHoursAction());
     this.openingHours$ = this.store.pipe(select(getOpeningHours), map(hours => hours && deepCopy(hours)));
     this.isLoading$ = this.store.pipe(select(openingHoursLoading));
-    this.autoSave$.pipe(debounceTime(5000)).subscribe(settings => this.onOpeningHoursSaved(settings));
+    this.autoSave$.pipe(debounceTime(7500)).subscribe(settings => this.onOpeningHoursSaved(settings));
   }
 
   ngOnDestroy(): void {

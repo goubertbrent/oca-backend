@@ -2,7 +2,7 @@ import { WeekDay } from '@angular/common';
 import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { OpeningPeriod } from '../../../shared/interfaces/oca';
+import { OpeningHour, OpeningPeriod } from '../../../shared/interfaces/oca';
 import { formatDateToHours, parseHours } from '../../../shared/time-picker/time-picker.component';
 import { OPEN_24_HOURS_TIME } from '../../service-info/constants';
 
@@ -17,6 +17,10 @@ function isOpen24Hours(periods: OpeningPeriod[]): boolean {
 
 function getNextDay(time: WeekDay): WeekDay {
   return time < WeekDay.Saturday ? time + 1 : WeekDay.Sunday;
+}
+
+function hourToStr(hour: OpeningHour | null) {
+  return hour ? `${hour.day}${hour.time}` : '';
 }
 
 @Component({
@@ -62,7 +66,7 @@ export class OpeningHoursPeriodsEditorComponent implements ControlValueAccessor 
   }
 
   trackHours(index: number, value: OpeningPeriod) {
-    return index;
+    return `${index}-${hourToStr(value.open)}-${hourToStr(value.close)}`;
   }
 
   setOpenTime(hours: OpeningPeriod, newValue: string) {

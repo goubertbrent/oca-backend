@@ -34,6 +34,12 @@ export function settingsReducer(state: SettingsState = initialSettingsState, act
       return { ...state, availablePlaceTypes: stateSuccess(action.payload) };
     case SettingsActionTypes.GET_AVAILABLE_PLACE_TYPES_FAILED:
       return { ...state, availablePlaceTypes: stateError(action.error, state.availablePlaceTypes.result) };
+    case SettingsActionTypes.GET_COUNTRIES:
+      return { ...state, countries: stateLoading(initialSettingsState.countries.result) };
+    case SettingsActionTypes.GET_COUNTRIES_COMPLETE:
+      return { ...state, countries: stateSuccess(action.payload) };
+    case SettingsActionTypes.GET_COUNTRIES_FAILED:
+      return { ...state, countries: stateError(action.error, state.countries.result) };
   }
   return state;
 }

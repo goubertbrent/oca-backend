@@ -1,13 +1,14 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { AvailablePlaceType, OpeningHours } from '../shared/interfaces/oca';
 import { CallStateType, initialStateResult, ResultState } from '../shared/util';
-import { ServiceInfo } from './service-info/service-info';
+import { Country, ServiceInfo } from './service-info/service-info';
 
 
 export const initialSettingsState: SettingsState = {
   openingHours: initialStateResult,
   serviceInfo: initialStateResult,
   availablePlaceTypes: initialStateResult,
+  countries: initialStateResult,
 };
 
 
@@ -15,6 +16,7 @@ export interface SettingsState {
   openingHours: ResultState<OpeningHours>;
   serviceInfo: ResultState<ServiceInfo>;
   availablePlaceTypes: ResultState<AvailablePlaceType[]>;
+  countries: ResultState<Country[]>;
 }
 
 const featureSelector = createFeatureSelector<SettingsState>('settings');
@@ -26,3 +28,5 @@ export const getServiceInfo = createSelector(featureSelector, s => s.serviceInfo
 export const isServiceInfoLoading = createSelector(featureSelector, s => s.serviceInfo.state === CallStateType.LOADING);
 export const getAvailablePlaceTypes = createSelector(featureSelector, s => s.availablePlaceTypes.result ?? []);
 export const isPlaceTypesLoading = createSelector(featureSelector, s => s.availablePlaceTypes.state === CallStateType.LOADING);
+export const areCountriesLoading = createSelector(featureSelector, s => s.countries.state === CallStateType.LOADING);
+export const getCountries = createSelector(featureSelector, s => s.countries.result ?? []);

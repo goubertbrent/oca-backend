@@ -1,22 +1,29 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { NgForm } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
-import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { combineLatest, Observable, Subject } from 'rxjs';
-import { debounceTime, map, takeUntil } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, map, take, takeUntil } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 import { DEFAULT_AVATAR_URL, DEFAULT_LOGO_URL } from '../../../consts';
-import { AvailablePlaceType, BrandingSettings } from '../../../shared/interfaces/oca';
+import { AvailableOtherPlaceType, AvailablePlaceType, BrandingSettings } from '../../../shared/interfaces/oca';
 import { GetBrandingSettingsAction, UpdateAvatarAction, UpdateLogoAction } from '../../../shared/shared.actions';
 import { getBrandingSettings, isBrandingSettingsLoading } from '../../../shared/shared.state';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { deepCopy, filterNull } from '../../../shared/util';
-import { GetAvailablePlaceTypesAction, GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
-import { getAvailablePlaceTypes, getServiceInfo, isPlaceTypesLoading, isServiceInfoLoading, SettingsState } from '../../settings.state';
+import { filterNull } from '../../../shared/util';
+import { GetAvailablePlaceTypesAction, GetCountriesAction, GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
+import {
+  getAvailablePlaceTypes,
+  getCountries,
+  getServiceInfo,
+  isPlaceTypesLoading,
+  isServiceInfoLoading,
+  SettingsState,
+} from '../../settings.state';
 import { CURRENCIES, TIMEZONES } from '../constants';
-import { MapServiceMediaItem, ServiceInfo, ServiceInfoSyncProvider, SyncedFields, SyncedNameValue } from '../service-info';
+import { Country, ServiceInfo, ServiceInfoSyncProvider, SyncedFields } from '../service-info';
 
 const DEFAULT_SYNCED_VALUES: { [T in SyncedFields]: null } = {
   name: null,
@@ -34,7 +41,6 @@ const DEFAULT_SYNCED_VALUES: { [T in SyncedFields]: null } = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServiceInfoPageComponent implements OnInit, OnDestroy {
-  @ViewChild('form') form: NgForm;
   loading$: Observable<boolean>;
   brandingSettings$: Observable<BrandingSettings>;
   timezones = TIMEZONES;
@@ -42,33 +48,53 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   DEFAULT_AVATAR_URL = DEFAULT_AVATAR_URL;
   DEFAULT_LOGO_URL = DEFAULT_LOGO_URL;
   placeTypes$: Observable<AvailablePlaceType[]>;
-  serviceInfo: ServiceInfo | null = null;
+  otherPlaceTypes$ = new Subject<AvailableOtherPlaceType[]>();
+  countries$: Observable<Country[]>;
   syncedValues: { [T in SyncedFields]: ServiceInfoSyncProvider | null } = DEFAULT_SYNCED_VALUES;
   submitted = false;
+  formGroup: FormGroup;
 
   private destroyed$ = new Subject();
-  private autoSave$ = new Subject();
 
   constructor(private store: Store<SettingsState>,
               private translate: TranslateService,
               private matDialog: MatDialog,
-              private changeDetectorRef: ChangeDetectorRef) {
+              private fb: FormBuilder) {
+    this.formGroup = fb.group({
+      cover_media: fb.control([]),
+      websites: fb.control([]),
+      name: fb.control('', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]),
+      timezone: fb.control('', Validators.required),
+      phone_numbers: fb.control([]),
+      email_addresses: fb.control([]),
+      description: fb.control(''),
+      currency: fb.control('', Validators.required),
+      addresses: fb.control([], Validators.required),
+      keywords: fb.control([]),
+      main_place_type: fb.control(null, Validators.required),
+      place_types: fb.control([], Validators.required),
+      synced_fields: fb.control([]),
+      visible: fb.control(true),
+    });
+
   }
 
   ngOnInit() {
     this.store.dispatch(new GetServiceInfoAction());
     this.store.dispatch(new GetBrandingSettingsAction());
     this.store.dispatch(new GetAvailablePlaceTypesAction());
+    this.placeTypes$ = this.store.pipe(select(getAvailablePlaceTypes));
+    this.placeTypes$.pipe(takeUntil(this.destroyed$)).subscribe(() => this.setOtherPlaceTypes());
     this.store.pipe(select(getServiceInfo), takeUntil(this.destroyed$)).subscribe(serviceInfo => {
-      this.serviceInfo = serviceInfo ? deepCopy(serviceInfo) : serviceInfo;
       if (serviceInfo) {
+        this.formGroup.setValue(serviceInfo, { emitEvent: false });
         const newSyncedValues: { [T in SyncedFields]: ServiceInfoSyncProvider | null } = { ...DEFAULT_SYNCED_VALUES };
         for (const field of serviceInfo.synced_fields) {
           newSyncedValues[ field.key ] = field.provider;
         }
         this.syncedValues = newSyncedValues;
+        this.setOtherPlaceTypes();
       }
-      this.changeDetectorRef.markForCheck();
     });
     this.brandingSettings$ = this.store.pipe(select(getBrandingSettings), filterNull());
     this.loading$ = combineLatest([
@@ -76,54 +102,50 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       this.store.pipe(select(isBrandingSettingsLoading)),
       this.store.pipe(select(isPlaceTypesLoading)),
     ]).pipe(map(results => results.some(r => r)));
-    this.placeTypes$ = this.store.pipe(select(getAvailablePlaceTypes));
-    this.autoSave$.pipe(debounceTime(5000), takeUntil(this.destroyed$)).subscribe(() => this.save());
+    this.loading$.pipe(distinctUntilChanged(), takeUntil(this.destroyed$)).subscribe(loading => {
+      if (loading) {
+        this.formGroup.disable({ emitEvent: false });
+      } else {
+        this.formGroup.enable({ emitEvent: false });
+      }
+    });
+    this.countries$ = this.store.pipe(select(getCountries));
+
+    this.formGroup.controls.main_place_type.valueChanges.pipe(
+      takeUntil(this.destroyed$),
+    ).subscribe(mainPlaceType => this.mainPlaceTypeChanged(mainPlaceType));
+    this.formGroup.valueChanges.pipe(
+      debounceTime(environment.production ? 7500 : 2000),
+      takeUntil(this.destroyed$),
+    ).subscribe(() => this.save());
   }
 
   ngOnDestroy(): void {
     this.destroyed$.next();
     this.destroyed$.complete();
-    this.autoSave$.unsubscribe();
-  }
-
-  setCoverMedia($event: MapServiceMediaItem[]) {
-    this.serviceInfo = { ...this.serviceInfo as ServiceInfo, cover_media: $event };
-    this.save();
-  }
-
-  setValues($event: SyncedNameValue[], property: 'websites' | 'phone_numbers' | 'email_addresses' | 'addresses') {
-    this.serviceInfo = { ...this.serviceInfo as ServiceInfo, [ property ]: $event };
-    this.save();
-  }
-
-  autoSave() {
-    this.autoSave$.next();
   }
 
   save() {
-    if (this.form.valid) {
+    if (this.formGroup.valid) {
       this.submitted = false;
-      this.store.dispatch(new UpdateServiceInfoAction(this.serviceInfo as ServiceInfo));
+      this.store.dispatch(new UpdateServiceInfoAction(this.formGroup.value as ServiceInfo));
     } else {
       this.submitted = true;
-      this.markFieldsAsDirty();
+      this.formGroup.markAllAsTouched();
     }
   }
 
   removeKeyword(keyword: string) {
-    const serviceInfo = this.serviceInfo as ServiceInfo;
-    this.serviceInfo = { ...serviceInfo, keywords: serviceInfo.keywords.filter(k => k !== keyword) };
-    this.autoSave();
+    this.formGroup.patchValue({ keywords: this.formGroup.value.keywords.filter((k: string) => k !== keyword) });
   }
 
   addKeyword($event: MatChipInputEvent) {
     const value = $event.value.trim();
-    const serviceInfo = this.serviceInfo as ServiceInfo;
-    if (value && !serviceInfo.keywords.includes(value)) {
-      this.serviceInfo = { ...serviceInfo, keywords: [...serviceInfo.keywords, value] };
+    const currentKeywords = this.formGroup.value.keywords;
+    if (value && !currentKeywords.includes(value)) {
+      this.formGroup.patchValue({ keywords: [currentKeywords, value] });
     }
     $event.input.value = '';
-    this.autoSave();
   }
 
   updateAvatar() {
@@ -176,27 +198,26 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     return this.matDialog.open(UploadFileDialogComponent, config);
   }
 
-  setVisibility($event: MatSlideToggleChange) {
-    this.serviceInfo = { ...this.serviceInfo as ServiceInfo, visible: $event.checked };
-    this.save();
-  }
-
   mainPlaceTypeChanged(mainPlaceType: string) {
-    const info = this.serviceInfo as ServiceInfo;
-    const placeTypes = info.place_types;
-    if (!info.place_types.includes(mainPlaceType)) {
-      this.serviceInfo = { ...info, main_place_type: mainPlaceType, place_types: [mainPlaceType, ...placeTypes] };
+    const placeTypes = this.formGroup.value.place_types as string[];
+    if (!placeTypes.includes(mainPlaceType)) {
+      this.formGroup.patchValue({ place_types: [mainPlaceType, ...placeTypes] });
     }
-    this.autoSave();
+    this.setOtherPlaceTypes();
   }
 
-  private markFieldsAsDirty() {
-    for (const control of Object.values(this.form.controls)) {
-      if (!control.valid) {
-        control.markAsTouched();
-        control.markAsDirty();
-        control.updateValueAndValidity();
+  requestCountries() {
+    this.countries$.pipe(take(1)).subscribe(countries => {
+      if (!countries.length) {
+        this.store.dispatch(new GetCountriesAction());
       }
-    }
+    });
+  }
+
+  private setOtherPlaceTypes() {
+    this.placeTypes$.pipe(take(1), takeUntil(this.destroyed$)).subscribe(types => {
+      const mainType = this.formGroup.value.main_place_type;
+      this.otherPlaceTypes$.next(types.map(p => ({ ...p, disabled: mainType === p.value })));
+    });
   }
 }

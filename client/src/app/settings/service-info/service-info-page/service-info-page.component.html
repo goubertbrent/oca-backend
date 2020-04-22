@@ -1,10 +1,13 @@
 <div class="sticky-toolbar">
   <mat-toolbar>
     <h2 class="page-title">{{ 'oca.settings-general' | translate }}</h2>
+    <button (click)="save()" [disabled]="loading$ | async" mat-stroked-button type="button">
+      {{ 'oca.Save' | translate }}
+    </button>
   </mat-toolbar>
   <mat-progress-bar *ngIf="loading$ | async as loading" mode="indeterminate"></mat-progress-bar>
 </div>
-<form #form="ngForm" *ngIf="serviceInfo" class="form-content-container">
+<form [formGroup]="formGroup" class="form-content-container">
   <ng-container *ngIf="brandingSettings$ | async as brandingSettings">
     <div class="branding-setting">
       <h3>{{ 'oca.Logo' | translate }}</h3>
@@ -20,8 +23,8 @@
     <div class="branding-setting">
       <h3>{{ 'oca.cover_photo' | translate }}</h3>
       <div class="logo">
-        <div *ngIf="brandingSettings.avatar_url" class="logo-edit-layer"></div>
-        <img [class.grayscale]="!brandingSettings.avatar_url" [src]="brandingSettings.logo_url || DEFAULT_LOGO_URL"
+        <div *ngIf="brandingSettings.logo_url" class="logo-edit-layer"></div>
+        <img [class.grayscale]="!brandingSettings.logo_url" [src]="brandingSettings.logo_url || DEFAULT_LOGO_URL"
              alt="Logo"/>
         <button (click)="updateLogo()" class="centered-edit-button" color="primary" mat-mini-fab type="button">
           <mat-icon>photo_camera</mat-icon>
@@ -31,14 +34,11 @@
   </ng-container>
   <mat-form-field class="field">
     <mat-label>{{ 'oca.reservation-name' | translate }}</mat-label>
-    <input (ngModelChange)="autoSave()"
-           [(ngModel)]="serviceInfo.name"
-           [disabled]="syncedValues.name != null"
-           autocomplete="off"
+    <input autocomplete="off"
+           formControlName="name"
            matInput
            maxlength="50"
            minlength="2"
-           name="name"
            required
            type="text">
     <button *ngIf="syncedValues.name"
@@ -50,37 +50,26 @@
     <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
   </mat-form-field>
   <div class="dual-fields">
-    <mat-form-field class="field">
-      <mat-label>{{ 'oca.place_type' | translate }}</mat-label>
-      <mat-select (ngModelChange)="mainPlaceTypeChanged($event)"
-                  [(ngModel)]="serviceInfo.main_place_type"
-                  name="main_place_type"
-                  required>
-        <mat-option *ngFor="let placeType of placeTypes$ | async"
-                    [value]="placeType.value">{{ placeType.label }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field class="field">
-      <mat-label>{{ 'oca.other_place_types' | translate }}</mat-label>
-      <mat-select (ngModelChange)="autoSave()"
-                  [(ngModel)]="serviceInfo.place_types"
-                  multiple
-                  name="place_types"
-                  required>
-        <mat-option *ngFor="let placeType of placeTypes$ | async"
-                    [disabled]="serviceInfo.main_place_type === placeType.value"
-                    [value]="placeType.value">{{ placeType.label }}</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <oca-select-autocomplete [label]="'oca.place_type' | translate"
+                             [multiple]="false"
+                             [options]="placeTypes$ | async"
+                             [required]="true"
+                             [searchPlaceholder]="'oca.search-dot-dot-dot' | translate"
+                             class="field"
+                             formControlName="main_place_type"></oca-select-autocomplete>
+    <oca-select-autocomplete [label]="'oca.other_place_types' | translate"
+                             [multiple]="true"
+                             [options]="otherPlaceTypes$ | async"
+                             [required]="true"
+                             [searchPlaceholder]="'oca.search-dot-dot-dot' | translate"
+                             class="field"
+                             formControlName="place_types"></oca-select-autocomplete>
   </div>
   <mat-form-field class="field wide-field">
     <mat-label>{{ 'oca.description' | translate }}</mat-label>
-    <textarea (ngModelChange)="autoSave()"
-              [(ngModel)]="serviceInfo.description"
-              [disabled]="syncedValues.description != null"
-              cdkTextareaAutosize
-              matInput
-              name="description"></textarea>
+    <textarea cdkTextareaAutosize
+              formControlName="description"
+              matInput></textarea>
     <button *ngIf="syncedValues.description"
             [matTooltip]="'oca.value_synced_via_paddle_cannot_edit' | translate"
             mat-icon-button
@@ -92,13 +81,13 @@
   <div class="dual-fields">
     <mat-form-field class="field">
       <mat-label>{{ 'oca.timezone' | translate }}</mat-label>
-      <select (ngModelChange)="save()" [(ngModel)]="serviceInfo.timezone" matNativeControl name="timezone" required>
+      <select formControlName="timezone" matNativeControl required>
         <option *ngFor="let timezone of timezones" [value]="timezone">{{ timezone }}</option>
       </select>
     </mat-form-field>
     <mat-form-field class="field">
       <mat-label>{{ 'oca.Currency' | translate }}</mat-label>
-      <mat-select (ngModelChange)="save()" [(ngModel)]="serviceInfo.currency" name="currency" required>
+      <mat-select formControlName="currency" required>
         <mat-option *ngFor="let currency of currencies" [value]="currency">{{ currency }}</mat-option>
       </mat-select>
     </mat-form-field>
@@ -106,7 +95,7 @@
   <mat-form-field class="field wide-field">
     <mat-label>{{ 'oca.search_keywords' | translate }}</mat-label>
     <mat-chip-list #keywordChipList>
-      <mat-chip (removed)="removeKeyword(keyword)" *ngFor="let keyword of serviceInfo.keywords">
+      <mat-chip (removed)="removeKeyword(keyword)" *ngFor="let keyword of formGroup.value.keywords">
         {{ keyword }}
         <mat-icon matChipRemove>cancel</mat-icon>
       </mat-chip>
@@ -118,68 +107,70 @@
   </mat-form-field>
   <h3>{{ 'oca.media' | translate }}</h3>
   <p>{{ 'oca.service_media_info' | translate }}</p>
-  <oca-service-media-editor (mediaChanged)="setCoverMedia($event)"
-                            [mediaItems]="serviceInfo.cover_media"
-                            [placeholderUrl]="DEFAULT_AVATAR_URL"></oca-service-media-editor>
+  <oca-service-media-editor [placeholderUrl]="DEFAULT_AVATAR_URL"
+                            formControlName="cover_media"></oca-service-media-editor>
   <mat-accordion class="info-accordion" hideToggle>
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.Phone number' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="serviceInfo.phone_numbers"></oca-synced-values-preview>
+          <oca-synced-values-preview [values]="formGroup.value.phone_numbers"
+                                     class="synced-values-preview"></oca-synced-values-preview>
           <mat-icon>phone</mat-icon>
         </mat-panel-description>
       </mat-expansion-panel-header>
-      <oca-service-value-editor (valueChanged)="setValues($event, 'phone_numbers')"
-                                [valueLabel]="'oca.Phone number' | translate"
-                                [values]="serviceInfo.phone_numbers"
+      <oca-service-value-editor [valueLabel]="'oca.Phone number' | translate"
+                                formControlName="phone_numbers"
                                 inputType="tel"></oca-service-value-editor>
     </mat-expansion-panel>
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.Email' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="serviceInfo.email_addresses"></oca-synced-values-preview>
+          <oca-synced-values-preview [values]="formGroup.value.email_addresses"
+                                     class="synced-values-preview"></oca-synced-values-preview>
           <mat-icon>email</mat-icon>
         </mat-panel-description>
       </mat-expansion-panel-header>
-      <oca-service-value-editor (valueChanged)="setValues($event, 'email_addresses')"
-                                [valueLabel]="'oca.Email' | translate"
-                                [values]="serviceInfo.email_addresses"
+      <oca-service-value-editor [valueLabel]="'oca.Email' | translate"
+                                formControlName="email_addresses"
                                 inputType="email"></oca-service-value-editor>
     </mat-expansion-panel>
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.Website' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="serviceInfo.websites"></oca-synced-values-preview>
+          <oca-synced-values-preview [values]="formGroup.value.websites"
+                                     class="synced-values-preview"></oca-synced-values-preview>
           <mat-icon>website</mat-icon>
         </mat-panel-description>
       </mat-expansion-panel-header>
       <p>{{ 'oca.service_website_info' | translate }}</p>
-      <oca-service-value-editor (valueChanged)="setValues($event, 'websites')"
-                                [valueLabel]="'oca.Website' | translate"
-                                [values]="serviceInfo.websites"
+      <oca-service-value-editor [valueLabel]="'oca.Website' | translate"
+                                formControlName="websites"
                                 inputType="url"></oca-service-value-editor>
     </mat-expansion-panel>
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title>{{ 'oca.address' | translate }}</mat-panel-title>
         <mat-panel-description class="info-panel-description">
-          <oca-synced-values-preview [values]="serviceInfo.addresses"></oca-synced-values-preview>
+          <div class="synced-values-preview">
+            <ng-container *ngFor="let value of formGroup.value.addresses; let last = last">
+              {{ value.street }} {{ value.street_number }}, {{ value.locality }}
+              <ng-container *ngIf="!last">|</ng-container>
+            </ng-container>
+          </div>
           <mat-icon>place</mat-icon>
         </mat-panel-description>
       </mat-expansion-panel-header>
-      <oca-service-addresses-editor (valueChanged)="setValues($event, 'addresses')"
-                                    [values]="serviceInfo.addresses"></oca-service-addresses-editor>
+      <oca-service-addresses-editor (requestCountries)="requestCountries()"
+                                    [countries]="countries$ | async"
+                                    formControlName="addresses"></oca-service-addresses-editor>
     </mat-expansion-panel>
   </mat-accordion>
-  <mat-slide-toggle (change)="setVisibility($event)"
-                    [checked]="serviceInfo?.visible"
-                    [disabled]="form?.invalid || (loading$ | async)"
-                    [matTooltipDisabled]="form?.valid"
+  <mat-slide-toggle [matTooltipDisabled]="formGroup.valid"
                     [matTooltip]="'oca.required' | translate"
-                    name="service_visible">
+                    formControlName="visible">
     {{ 'oca.service-visible' | translate }}
   </mat-slide-toggle>
   <oca-opening-hours-settings-page></oca-opening-hours-settings-page>

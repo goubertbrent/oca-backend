@@ -380,7 +380,7 @@ def populate_identity(sln_settings, main_branding_key):
     for service_identity in identities:
         opening_hours = models.get(OpeningHours.create_key(service_user, service_identity))
         service_info = models.get(ServiceInfo.create_key(service_user, service_identity))  # type: ServiceInfo
-        search_config_locations = [ProfileLocationTO(address=address.value,
+        search_config_locations = [ProfileLocationTO(address=address.get_address_line(sln_settings.locale),
                                                      lat=long(address.coordinates.lat * 1000000),
                                                      lon=long(address.coordinates.lon * 1000000))
                                    for address in service_info.addresses]
@@ -470,7 +470,7 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
     address_str = None
     if service_info.addresses:
         address = service_info.addresses[0]
-        address_str = address.value
+        address_str = address.get_address_line(locale)
         params = {'q': address_str, 't': u'd'}
         # This url should get replaced by apple maps on iOS
         address_url = u'https://maps.google.com/maps?%s' % urllib.urlencode(params, doseq=True)

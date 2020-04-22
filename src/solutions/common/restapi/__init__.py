@@ -23,6 +23,7 @@ from datetime import datetime
 from types import NoneType
 
 import cloudstorage
+from babel import Locale
 from babel.numbers import format_currency
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
@@ -596,8 +597,7 @@ def settings_load():
     service_identity = session_.service_identity
     sln_settings = get_solution_settings(service_user)
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
-    to = SolutionSettingsTO.fromModel(sln_settings, sln_i_settings)
-    return to
+    return SolutionSettingsTO.fromModel(sln_settings, sln_i_settings)
 
 
 @rest('/common/available-place-types', 'get', read_only_access=True, silent_result=True)
@@ -619,6 +619,17 @@ def rest_get_place_types():
         result_list.append({'value': place_type,
                             'label': get_place_label(place_details, sln_settings.main_language)})
     return sorted(result_list, key=lambda x: x['label'].lower())
+
+
+@rest('/common/countries', 'get', read_only_access=True, silent_result=True)
+@returns(dict)
+@arguments()
+def rest_get_countries():
+    service_user = users.get_current_user()
+    sln_settings = get_solution_settings(service_user)
+    locale = Locale(sln_settings.locale)
+    return {'countries': sorted([[code, name] for code, name in locale.territories.iteritems()],
+                                key=lambda x: x[1].lower())}
 
 
 def is_place_visible_for_customer(place_details, customer):

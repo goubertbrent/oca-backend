@@ -169,7 +169,7 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
         merchant_info = merchants_info[merchant_service_user]
         row += 1
         sheet_merchants.write(row, 0, merchant_info.name)
-        sheet_merchants.write(row, 1, merchant_info.main_address or '')
+        sheet_merchants.write(row, 1, merchant_info.main_address(sln_settings.locale) or '')
         sheet_merchants.write(row, 2, merchant.iban or '')
         sheet_merchants.write(row, 3, merchant.bic or '')
         sheet_merchants.write(row, 4, round(merchant_transactions[merchant_service_user]["value"] / 100.0, 2))

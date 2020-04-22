@@ -1,0 +1,30 @@
+.select-autocomplete-field {
+  width: 100%;
+}
+
+.search-box {
+  position: sticky;
+  top: 8px;
+  z-index: 1000;
+  overflow: hidden;
+  margin: 8px;
+  border-radius: 2px;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.16),
+  0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+}
+
+.search-button {
+  width: 36px;
+  height: 36px;
+  line-height: 33px;
+}
+
+.search-input {
+  padding-left: .75rem;
+  height: 36px;
+  flex: 1;
+  border: none;
+  outline: none;
+}

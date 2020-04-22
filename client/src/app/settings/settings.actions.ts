@@ -1,6 +1,6 @@
 import { Action } from '@ngrx/store';
 import { AvailablePlaceType, OpeningHours } from '../shared/interfaces/oca';
-import { ServiceInfo } from './service-info/service-info';
+import { Country, ServiceInfo } from './service-info/service-info';
 
 export const enum SettingsActionTypes {
   GET_OPENING_HOURS = '[settings] Get opening hours',
@@ -18,6 +18,9 @@ export const enum SettingsActionTypes {
   GET_AVAILABLE_PLACE_TYPES = '[settings] Get available place types',
   GET_AVAILABLE_PLACE_TYPES_COMPLETE = '[settings] Get available place types complete',
   GET_AVAILABLE_PLACE_TYPES_FAILED = '[settings] Get available place types failed',
+  GET_COUNTRIES = '[settings] Get countries',
+  GET_COUNTRIES_COMPLETE = '[settings] Get countries complete',
+  GET_COUNTRIES_FAILED = '[settings] Get countries failed',
 }
 
 export class GetOpeningHoursAction implements Action {
@@ -116,6 +119,24 @@ export class GetAvailablePlaceTypesFailedAction implements Action {
   }
 }
 
+export class GetCountriesAction implements Action {
+  readonly type = SettingsActionTypes.GET_COUNTRIES;
+}
+
+export class GetCountriesCompleteAction implements Action {
+  readonly type = SettingsActionTypes.GET_COUNTRIES_COMPLETE;
+
+  constructor(public payload: Country[]) {
+  }
+}
+
+export class GetCountriesFailedAction implements Action {
+  readonly type = SettingsActionTypes.GET_COUNTRIES_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
 export type SettingsActions =
   GetOpeningHoursAction
   | GetOpeningHoursCompleteAction
@@ -131,4 +152,7 @@ export type SettingsActions =
   | UpdateServiceInfoFailedAction
   | GetAvailablePlaceTypesAction
   | GetAvailablePlaceTypesCompleteAction
-  | GetAvailablePlaceTypesFailedAction;
+  | GetAvailablePlaceTypesFailedAction
+  | GetCountriesAction
+  | GetCountriesCompleteAction
+  | GetCountriesFailedAction;

@@ -9,16 +9,25 @@ export const enum ServiceInfoSyncProvider {
   PADDLE = 'paddle',
 }
 
+export interface SyncedName {
+  provider?: ServiceInfoSyncProvider | null;
+  name: string | null;
+}
 
-export interface SyncedNameValue {
+export interface SyncedNameValue extends SyncedName {
   provider?: ServiceInfoSyncProvider | null;
   name: string | null;
   value: string;
 }
 
-export interface ServiceAddress extends SyncedNameValue {
+export interface ServiceAddress extends SyncedName {
   coordinates: { lat: number; lon: number } | null;
   google_maps_place_id?: string | null;
+  country: string;  // BE
+  locality: string;  // Nazareth
+  postal_code: string;  // 9810
+  street: string; // Steenweg Deinze
+  street_number: string; // 154
 }
 
 export type SyncedFields = 'name' | 'description' | 'phone_numbers' | 'email_addresses' | 'addresses' | 'websites';
@@ -43,4 +52,9 @@ export interface ServiceInfo {
   place_types: string[];
   synced_fields: SyncedField[];
   visible: boolean;
+}
+
+export interface Country {
+  name: string;
+  code: string;
 }

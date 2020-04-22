@@ -292,7 +292,7 @@ def update_service_info(service_user, service_identity, data):
         # TODO: remove properties from SolutionSettings
         sln_settings.timezone = service_info.timezone
         sln_settings.phone_number = service_info.main_phone_number
-        sln_settings.address = service_info.main_address
+        sln_settings.address = service_info.main_address(sln_settings.locale)
         sln_settings.currency = service_info.currency
         sln_settings.name = service_info.name
         sln_settings.put()

@@ -1,34 +1,31 @@
-<mat-list (cdkDropListDropped)="itemMoved($event)" cdkDropList class="value-list">
+<mat-list class="value-list">
   <ng-container *ngFor="let value of values; index as index">
-    <mat-list-item *ngIf="index !== editingIndex; else editTemplate" cdkDrag class="value-item">
-      <h4 mat-line>{{ value.value }}</h4>
+    <mat-list-item *ngIf="index !== editingIndex; else editTemplate" class="value-item">
+      <h4 mat-line>{{ value.street }} {{ value.street_number }} {{ value.locality }}</h4>
       <p *ngIf="value.name" mat-line>{{ value.name }}</p>
       <button #btn (click)="editValue(value)" [disabled]="value.provider != null"
               [matTooltipDisabled]="!btn.disabled" [matTooltip]="syncedMessage" mat-icon-button type="button">
         <mat-icon>edit</mat-icon>
       </button>
-      <button #btn (click)="removeValue(value)" [disabled]="value.provider  != null"
+      <button #btn (click)="removeValue(value)" [disabled]="value.provider != null"
               [matTooltipDisabled]="!btn.disabled" [matTooltip]="syncedMessage" mat-icon-button type="button">
         <mat-icon>delete</mat-icon>
       </button>
-      <p *cdkDragPreview>{{ value.value }}</p>
     </mat-list-item>
   </ng-container>
 </mat-list>
 <ng-template *ngIf="editingIndex === NEW_ITEM_INDEX" [ngTemplateOutlet]="editTemplate"></ng-template>
-<div *ngIf="!editingValue && maxCount > values.length">
+<div *ngIf="editingIndex === null && maxCount > values.length">
   <button (click)="addValue()" mat-stroked-button type="button">{{ 'oca.Add new' | translate }}</button>
 </div>
 
 <ng-template #editTemplate>
   <div class="edit-fields">
-    <div class="address-fields">
-      <mat-form-field class="place-field">
+    <form [formGroup]="formGroup" class="address-fields">
+      <mat-form-field class="full-field">
         <mat-label>{{ 'oca.place_name_on_gmaps' | translate }}</mat-label>
-        <input (ngModelChange)="nameChanged($event)"
-               [matAutocomplete]="autocomplete"
-               [ngModelOptions]="{standalone: true}"
-               [ngModel]="editingValue.name"
+        <input [matAutocomplete]="autocomplete"
+               formControlName="name"
                matInput
                type="text">
         <mat-autocomplete #autocomplete="matAutocomplete"
@@ -40,19 +37,50 @@
           </mat-option>
         </mat-autocomplete>
       </mat-form-field>
-      <mat-form-field class="address-field">
-        <mat-label>{{ 'oca.address' | translate }}</mat-label>
-        <input #inputFieldModel="ngModel"
-               (ngModelChange)="addressValueChanged($event)"
-               [(ngModel)]="editingValue.value"
-               [disabled]="editingValue.google_maps_place_id != null"
-               [ngModelOptions]="{standalone: true}"
-               matInput
-               maxlength="200"
-               required>
+      <div class="dual-fields">
+        <mat-form-field>
+          <mat-label>{{ 'oca.street' | translate }}</mat-label>
+          <input formControlName="street"
+                 matInput
+                 maxlength="200"
+                 required>
+          <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>{{ 'oca.house_number' | translate }}</mat-label>
+          <input formControlName="street_number"
+                 matInput
+                 maxlength="10"
+                 required>
+          <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+        </mat-form-field>
+      </div>
+      <div class="dual-fields">
+        <mat-form-field>
+          <mat-label>{{ 'oca.postal_code' | translate }}</mat-label>
+          <input formControlName="postal_code"
+                 matInput
+                 maxlength="10"
+                 required>
+          <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>{{ 'oca.place' | translate }}</mat-label>
+          <input formControlName="locality"
+                 matInput
+                 maxlength="200"
+                 required>
+          <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+        </mat-form-field>
+      </div>
+      <mat-form-field class="full-field">
+        <mat-label>{{ 'oca.country' | translate }}</mat-label>
+        <mat-select formControlName="country" required>
+          <mat-option *ngFor="let country of countries" [value]="country.code">{{ country.name }}</mat-option>
+        </mat-select>
         <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
       </mat-form-field>
-    </div>
+    </form>
     <button (click)="saveAddress()"
             class="save-button"
             mat-icon-button
@@ -60,17 +88,19 @@
       <mat-icon>save</mat-icon>
     </button>
   </div>
-  <agm-map (mapReady)="onMapReady($event)"
+  <agm-map #agmMap (mapReady)="onMapReady($event)"
            [fitBoundsPadding]="{top: 50, left: 50, bottom: 50, right: 50}"
            [fitBounds]="mapBounds"
-           [latitude]="editingValue.coordinates?.lat || 50.4997341"
-           [longitude]="editingValue.coordinates?.lon || 3.9057722"
+           [zoom]="mapZoom"
+           [latitude]="mapLatitude"
+           [longitude]="mapLongitude"
            class="address-map">
     <agm-marker (markerClick)="mapsResultSelected(result)"
                 *ngFor="let result of googleMapsResults$ | async"
                 [latitude]="result.geometry.location.lat()"
                 [longitude]="result.geometry.location.lng()"></agm-marker>
-    <agm-marker *ngIf="editingValue.coordinates"
-                [latitude]="editingValue.coordinates.lat" [longitude]="editingValue.coordinates.lon"></agm-marker>
+    <agm-marker *ngIf="formGroup.controls.coordinates.value as coords"
+                [latitude]="coords.lat"
+                [longitude]="coords.lon"></agm-marker>
   </agm-map>
 </ng-template>

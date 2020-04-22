@@ -95,6 +95,9 @@ export class MediaSelectorComponent implements OnChanges, ControlValueAccessor {
     this.onTouched = fn;
   }
 
+  setDisabledState(isDisabled: boolean) {
+  }
+
   writeValue(value: any): void {
     if (value !== this.media) {
       this.media = value;

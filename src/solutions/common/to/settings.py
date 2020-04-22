@@ -24,15 +24,23 @@ from rogerthat.to.news import BaseMediaTO
 from solutions.common.to import LatLonTO
 
 
-class SyncedNameValueTO(TO):
+class SyncedNameTO(TO):
     name = unicode_property('name', default=None)
-    value = unicode_property('value')
     provider = unicode_property('provider', default=None)
 
 
-class ServiceAddressTO(SyncedNameValueTO):
+class SyncedNameValueTO(SyncedNameTO):
+    value = unicode_property('value')
+
+
+class ServiceAddressTO(SyncedNameTO):
     coordinates = typed_property('coordinates', LatLonTO)
     google_maps_place_id = unicode_property('google_maps_place_id')
+    country = unicode_property('country')
+    locality = unicode_property('locality')
+    postal_code = unicode_property('postal_code')
+    street = unicode_property('street')
+    street_number = unicode_property('street_number')
 
 
 class MapServiceMediaItemTO(TO):

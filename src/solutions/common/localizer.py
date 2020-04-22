@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+                  u'oca.place': u'Place',
          u'publish_now': u'Publish now',
          u'service_invisible_warning': u'Your service will not be visible in the app until you resolve the following issues',
          u'changes_will_be_published_on_date': u'Your changes will be published on %(date)s',
@@ -46,7 +47,7 @@ translations = \
          u'oca.place_name_on_gmaps': u'Place name (on Google Maps)',
          u'oca.timezone': u'Timezone',
          u'oca.search_keywords': u'Search keywords',
-         u'oca.value_synced_via_paddle_cannot_edit': u'This value is being synced via Paddle and cannot be modified here.',
+         u'oca.value_synced_via_paddle_cannot_edit': u'This value is being synced via Paddle and should not be modified here.',
          u'oca.add_media': u'Add media',
          u'oca.service_website_info': u'Add one or more websites, these will be shown on your service\'s detail page inside the app.',
          u'oca.service_media_info': u'These photos will be shown on your service\'s detail page inside the app.',
@@ -3861,7 +3862,7 @@ translations = \
          u'oca.place_name_on_gmaps': u'Plaats naam (op Google Maps)',
          u'oca.timezone': u'Tijdzone',
          u'oca.search_keywords': u'Trefwoorden',
-         u'oca.value_synced_via_paddle_cannot_edit': u'Deze waarde wordt gesynchroniseerd met Paddle en kan hierdoor niet aangepast worden.',
+         u'oca.value_synced_via_paddle_cannot_edit': u'Deze waarde wordt gesynchroniseerd met Paddle en wordt hierdoor best niet aangepast.',
               u'oca.add_media': u'Media toevoegen',
          u'oca.service_website_info': u'Voeg een of meer websites toe, deze worden getoond op de detailpagina van uw service in de app.',
          u'oca.service_media_info': u'Deze fotos worden getoond op de detailpagina van uw service in de app.',

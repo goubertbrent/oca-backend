@@ -33,6 +33,12 @@ export interface AvailablePlaceType {
   value: string;
 }
 
+export interface AvailableOtherPlaceType {
+  label: string;
+  value: string;
+  disabled: boolean;
+}
+
 export interface GlobalConfig {
   is_shop_user: boolean;
 }

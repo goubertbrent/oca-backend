@@ -21,9 +21,11 @@ import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
+import { SelectAutocompleteModule } from '../shared/select-autocomplete/select-autocomplete.module';
 import { SharedModule } from '../shared/shared.module';
 import { TimePickerModule } from '../shared/time-picker/time-picker.module';
 import { UploadFileModule } from '../shared/upload-file';
+import { OpeningHoursPeriodsEditorComponent } from './opening-hours/opening-hours-periods-editor/opening-hours-periods-editor.component';
 import { OpeningHoursPeriodsComponent } from './opening-hours/opening-hours-periods/opening-hours-periods.component';
 import { OpeningHoursSettingsPageComponent } from './opening-hours/opening-hours-settings-page/opening-hours-settings-page.component';
 import { OpeningHoursComponent } from './opening-hours/opening-hours/opening-hours.component';
@@ -35,7 +37,6 @@ import { ServiceSyncedValueEditorComponent } from './service-info/service-synced
 import { SyncedValuesPreviewComponent } from './service-info/synced-values-preview/synced-values-preview.component';
 import { SettingsEffects } from './settings.effects';
 import { settingsReducer } from './settings.reducer';
-import { OpeningHoursPeriodsEditorComponent } from './opening-hours/opening-hours-periods-editor/opening-hours-periods-editor.component';
 
 
 const routes: Routes = [
@@ -83,6 +84,7 @@ const routes: Routes = [
     SharedModule,
     MatSlideToggleModule,
     TimePickerModule,
+    SelectAutocompleteModule,
   ],
   providers: [
     HoursPipe,

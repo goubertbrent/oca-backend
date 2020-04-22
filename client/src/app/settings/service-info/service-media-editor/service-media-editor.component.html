@@ -1,10 +1,12 @@
 <div (cdkDropListDropped)="itemDropped($event)"
      cdkDropList
      cdkDropListOrientation="horizontal"
+     [cdkDropListDisabled]="disabled"
      class="media-list">
   <div *ngIf="placeholderUrl" class="media-item add-media-item">
     <img [src]="placeholderUrl" alt="Placeholder" class="media-image">
-    <button (click)="mediaSelector.showImageDialog()" class="add-button" color="primary" mat-mini-fab type="button">
+    <button (click)="mediaSelector.showImageDialog()" [disabled]="disabled" class="add-button" color="primary" mat-mini-fab
+            type="button">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -22,17 +24,18 @@
         <img [src]="mediaItem.item.content" alt="Image" class="media-image">
       </ng-container>
     </ng-container>
-    <button (click)="removeMedia(mediaItem)" class="btn-media-delete" mat-mini-fab type="button">
+    <button (click)="removeMedia(mediaItem)" [disabled]="disabled" class="btn-media-delete" mat-mini-fab type="button">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 </div>
-<button (click)="mediaSelector.showImageDialog()" mat-stroked-button type="button">
+<button (click)="mediaSelector.showImageDialog()" [disabled]="disabled" mat-stroked-button type="button">
   {{ 'oca.add_media' | translate }}
 </button>
 <oca-media-selector (ngModelChange)="addMediaItem($event)"
                     [allowedMediaTypes]="allowedMediaTypes"
                     [ngModelOptions]="{standalone: true}"
+                    [disabled]="disabled"
                     #mediaSelector
                     class="hide-selector"
                     [ngModel]="newMedia"></oca-media-selector>

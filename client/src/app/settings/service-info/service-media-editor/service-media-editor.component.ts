@@ -1,5 +1,6 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input, ViewChild } from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BaseMedia, MediaType } from '../../../news/interfaces';
 import { MediaSelectorComponent } from '../../../shared/media-selector/media-selector/media-selector.component';
 import { MapServiceMediaItem } from '../service-info';
@@ -8,13 +9,18 @@ import { MapServiceMediaItem } from '../service-info';
   selector: 'oca-service-media-editor',
   templateUrl: './service-media-editor.component.html',
   styleUrls: ['./service-media-editor.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush, providers: [{
+    provide: NG_VALUE_ACCESSOR,
+    useExisting: forwardRef(() => ServiceMediaEditorComponent),
+    multi: true,
+  }],
 })
-export class ServiceMediaEditorComponent {
+export class ServiceMediaEditorComponent implements ControlValueAccessor {
   @ViewChild('mediaSelector') mediaSelector: MediaSelectorComponent;
-  @Input() mediaItems: MapServiceMediaItem[];
   @Input() placeholderUrl?: string;
-  @Output() mediaChanged = new EventEmitter<MapServiceMediaItem[]>();
+  mediaItems: MapServiceMediaItem[];
+
+  disabled = false;
   MediaType = MediaType;
   newMedia: BaseMedia | null = null;
   allowedMediaTypes = [MediaType.IMAGE];
@@ -24,18 +30,44 @@ export class ServiceMediaEditorComponent {
 
   addMediaItem(media: BaseMedia | null) {
     if (media) {
-      this.mediaChanged.emit([...this.mediaItems, { role_ids: [], item: media }]);
+      this.mediaItems = [...this.mediaItems, { role_ids: [], item: media }];
+      this.onChange(this.mediaItems);
       this.newMedia = null;
-      this.changeDetectorRef.markForCheck();
     }
   }
 
   removeMedia(mediaItem: MapServiceMediaItem) {
-    this.mediaChanged.emit(this.mediaItems.filter(m => m !== mediaItem));
+    this.mediaItems = this.mediaItems.filter(m => m !== mediaItem);
+    this.onChange(this.mediaItems);
   }
 
   itemDropped(event: CdkDragDrop<MapServiceMediaItem, any>) {
     moveItemInArray(this.mediaItems, event.previousIndex, event.currentIndex);
-    this.mediaChanged.emit(this.mediaItems);
+    this.onChange(this.mediaItems);
   }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled = isDisabled;
+    this.changeDetectorRef.markForCheck();
+  }
+
+  writeValue(values?: MapServiceMediaItem[]): void {
+    if (values) {
+      this.mediaItems = values;
+      this.changeDetectorRef.markForCheck();
+    }
+  }
+
+  private onChange = (_: any) => {
+  };
+  private onTouched = () => {
+  };
 }
