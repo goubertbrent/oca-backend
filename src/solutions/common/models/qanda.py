@@ -45,12 +45,6 @@ class Question(db.Model):
     def full_date_str(self):
         return time.strftime('%d %b %Y %H:%M:%S', time.gmtime(self.timestamp))
 
-    def all_thread_count(self):
-        return 1 + QuestionReply.all(keys_only=True).ancestor(self).count(None)
-
-    def thread_count(self):
-        return (1 if self.visible else 0) + QuestionReply.all(keys_only=True).ancestor(self).filter('visible =', True).count(None)
-
     def all_replies(self):
         return QuestionReply.all().ancestor(self).order('timestamp')
 

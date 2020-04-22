@@ -480,6 +480,10 @@ class OpenInvoicesHandler(BizzManagerHandler):
 class QuestionsHandler(BizzManagerHandler):
 
     def get(self):
+        cursor = self.request.get('cursor')
+        team_id = self.request.get('team')
+        team_id = long(team_id) if team_id else None
+
         current_user = gusers.get_current_user()
         manager = RegioManager.get(RegioManager.create_key(current_user.email()))
         admin = is_admin(current_user)
@@ -487,8 +491,6 @@ class QuestionsHandler(BizzManagerHandler):
             if not (manager and manager.admin):
                 return self.abort(403)
 
-        team_id = self.request.get('team')
-        team_id = long(team_id) if team_id else None
         questions_qry = Question.all().order('-timestamp')
         if not admin:
             # show only the team questions to the manager
@@ -500,15 +502,19 @@ class QuestionsHandler(BizzManagerHandler):
 
         questions = []
         teams = {team.id: team for team in RegioManagerTeam.all()}
-        for question in questions_qry:  # type: Question
+        if cursor:
+            questions_qry.with_cursor(cursor)
+        for question in questions_qry.fetch(20):  # type: Question
             question.team = teams[question.team_id]
             questions.append(question)
+        next_cursor = questions_qry.cursor()
         path = os.path.join(os.path.dirname(__file__), 'html', 'questions.html')
         show_team_switcher = admin or manager.team.is_mobicage
         context = get_shop_context(questions=questions,
                                    show_team_switcher=show_team_switcher,
                                    teams=teams,
-                                   selected_team=team_id,
+                                   selected_team=team_id or '',
+                                   cursor=next_cursor or '',
                                    js_templates=render_js_templates(['teams_select_modal']))
         self.response.out.write(template.render(path, context))
 

@@ -18,7 +18,6 @@
             <th>Date</th>
             <th>Author</th>
             <th>Title</th>
-            <th>Thread count</th>
             {% if admin %}<th>Team</th>{% endif %}
             <th>Actions</th>
         </tr>
@@ -29,7 +28,6 @@
             <td>{{ question.full_date_str }}</td>
             <td>{{ question.author.email }}</td>
             <td>{{ question.title }}</td>
-            <td>{{ question.thread_count }}/{{ question.all_thread_count }} visible</td>
             {% if admin %}
                 <td>{{ question.team.name }}</td>{% endif %}
             <td>
@@ -44,8 +42,16 @@
     {% endfor %}
     </tbody>
 </table>
+    <div class="pagination">
+        <ul>
+            <li><a href="/internal/shop/questions?team={{ selected_team }}">First page</a></li>
+            {% if cursor %}
+                <li><a href="/internal/shop/questions?cursor={{ cursor }}&team={{ selected_team }}">Next page</a></li>
+            {% endif %}
+        </ul>
+    </div>
 {% endblock %}
 
 {% block custom_javascript %}
-<script src="/static/js/shop/questions.js"></script>
+    <script src="/static/js/shop/questions.js"></script>
 {% endblock %}
