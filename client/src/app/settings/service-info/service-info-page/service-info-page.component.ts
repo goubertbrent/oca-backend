@@ -70,7 +70,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       email_addresses: fb.control([]),
       description: fb.control(''),
       currency: fb.control('', Validators.required),
-      addresses: fb.control([], Validators.required),
+      addresses: fb.control([]),
       keywords: fb.control([]),
       main_place_type: fb.control(null, Validators.required),
       place_types: fb.control([], Validators.required),
