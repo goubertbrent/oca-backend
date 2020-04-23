@@ -16,6 +16,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ReplaySubject, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, skip, take, takeUntil } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
+import { markAllControlsAsDirty } from '../../../shared/util';
 import { Country, ServiceAddress } from '../service-info';
 
 
@@ -118,7 +119,7 @@ export class ServiceAddressesEditorComponent implements ControlValueAccessor, On
 
   saveAddress() {
     if (this.formGroup.invalid) {
-      this.formGroup.markAllAsTouched();
+      markAllControlsAsDirty(this.formGroup);
       return;
     }
     if (!this.formGroup.controls.coordinates.value?.lat) {

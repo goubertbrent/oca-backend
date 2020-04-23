@@ -24,6 +24,10 @@
                 [value]="option.value">
       {{ option.label }}
     </mat-option>
-    <mat-error>{{ errorMsg }}</mat-error>
   </mat-select>
+  <mat-error>
+    <ng-container *ngIf="formControl.hasError('required')">
+      {{ 'oca.this_field_is_required' | translate }}
+    </ng-container>
+  </mat-error>
 </mat-form-field>

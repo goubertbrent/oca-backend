@@ -5,6 +5,7 @@
       {{ 'oca.Save' | translate }}
     </button>
   </mat-toolbar>
+  <mat-toolbar *ngIf="saveErrorMessage$ | async as msg" class="header-error" color="warn">{{ msg}}</mat-toolbar>
   <mat-progress-bar *ngIf="loading$ | async as loading" mode="indeterminate"></mat-progress-bar>
 </div>
 <form [formGroup]="formGroup" class="form-content-container">

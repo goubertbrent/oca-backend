@@ -15,6 +15,10 @@ $wide-field-width: $field-width * 2 + $field-margin;
   flex-grow: 1;
 }
 
+.header-error {
+  font-size: 18px;
+}
+
 .form-content-container {
   margin: 0 16px;
 }

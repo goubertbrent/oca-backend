@@ -12,7 +12,7 @@ import { AvailableOtherPlaceType, AvailablePlaceType, BrandingSettings } from '.
 import { GetBrandingSettingsAction, UpdateAvatarAction, UpdateLogoAction } from '../../../shared/shared.actions';
 import { getBrandingSettings, isBrandingSettingsLoading } from '../../../shared/shared.state';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { filterNull } from '../../../shared/util';
+import { filterNull, markAllControlsAsDirty } from '../../../shared/util';
 import { GetAvailablePlaceTypesAction, GetCountriesAction, GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
 import {
   getAvailablePlaceTypes,
@@ -53,6 +53,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   syncedValues: { [T in SyncedFields]: ServiceInfoSyncProvider | null } = DEFAULT_SYNCED_VALUES;
   submitted = false;
   formGroup: FormGroup;
+  saveErrorMessage$ = new Subject<string>();
 
   private destroyed$ = new Subject();
 
@@ -107,6 +108,9 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
         this.formGroup.disable({ emitEvent: false });
       } else {
         this.formGroup.enable({ emitEvent: false });
+        if (this.formGroup.invalid) {
+          this.showErrors();
+        }
       }
     });
     this.countries$ = this.store.pipe(select(getCountries));
@@ -129,10 +133,19 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     if (this.formGroup.valid) {
       this.submitted = false;
       this.store.dispatch(new UpdateServiceInfoAction(this.formGroup.value as ServiceInfo));
+      this.saveErrorMessage$.next('');
     } else {
       this.submitted = true;
-      this.formGroup.markAllAsTouched();
+      this.showErrors();
     }
+  }
+
+  mainPlaceTypeChanged(mainPlaceType: string) {
+    const placeTypes = this.formGroup.value.place_types as string[];
+    if (!placeTypes.includes(mainPlaceType)) {
+      this.formGroup.patchValue({ place_types: [mainPlaceType, ...placeTypes] });
+    }
+    this.setOtherPlaceTypes();
   }
 
   removeKeyword(keyword: string) {
@@ -198,12 +211,9 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     return this.matDialog.open(UploadFileDialogComponent, config);
   }
 
-  mainPlaceTypeChanged(mainPlaceType: string) {
-    const placeTypes = this.formGroup.value.place_types as string[];
-    if (!placeTypes.includes(mainPlaceType)) {
-      this.formGroup.patchValue({ place_types: [mainPlaceType, ...placeTypes] });
-    }
-    this.setOtherPlaceTypes();
+  private showErrors() {
+    markAllControlsAsDirty(this.formGroup);
+    this.saveErrorMessage$.next(this.translate.instant('oca.please_fill_in_required_fields'));
   }
 
   requestCountries() {

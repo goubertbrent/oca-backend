@@ -15,7 +15,7 @@ export interface SelectAutocompleteOption {
   selector: 'oca-select-autocomplete',
   templateUrl: './select-autocomplete.component.html',
   styleUrls: ['./select-autocomplete.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.Default,
   providers: [{
     provide: NG_VALUE_ACCESSOR,
     useExisting: forwardRef(() => SelectAutocompleteComponent),
@@ -27,6 +27,15 @@ export interface SelectAutocompleteOption {
  * Entering text in the textfield will will filter the options.
  */
 export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlValueAccessor {
+
+  constructor(private changeDetectorRef: ChangeDetectorRef) {
+  }
+
+  @Input() set options(value: SelectAutocompleteOption[]) {
+    this._options = value;
+    this.setOptions();
+  }
+
   @Input() label: string;
   @Input() searchPlaceholder: string;
   @Input() placeholder: string;
@@ -41,14 +50,10 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   filterFormControl = new FormControl();
   private destroyed$ = new Subject();
 
-  constructor(private changeDetectorRef: ChangeDetectorRef) {
-  }
-
   private _options: SelectAutocompleteOption[] = [];
 
-  @Input() set options(value: SelectAutocompleteOption[]) {
-    this._options = value;
-    this.setOptions();
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
   }
 
   ngOnInit() {
@@ -73,10 +78,6 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: any): void {
-    this.onTouched = fn;
-  }
-
   setDisabledState(isDisabled: boolean): void {
     this.disabled = isDisabled;
     if (isDisabled) {
@@ -89,6 +90,8 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
 
   writeValue(value: SelectValueType): void {
     this.formControl.setValue(value);
+    this.formControl.markAsDirty();
+    this.formControl.markAsTouched();
     this.changeDetectorRef.markForCheck();
   }
 
