@@ -282,6 +282,9 @@ export class JccAppointmentsEffects {
 
   @Effect() afterCreateAppointment$ = this.actions$.pipe(
     ofType<CreateAppointmentCompleteAction>(JccAppointmentsActionTypes.CREATE_APPOINTMENT_SUCCESS),
+    tap(() => {
+      this.showDialog(this.translate.instant('app.oca.your_appointment_was_booked'));
+    }),
     map(() => new GetAppointmentsAction()),
   );
 

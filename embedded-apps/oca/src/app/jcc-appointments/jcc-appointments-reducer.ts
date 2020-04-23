@@ -86,6 +86,13 @@ export function jccAppointmentsReducer(state = initialJccAppointmentsState, acti
       return { ...state, requiredFields: stateSuccess(action.payload) };
     case JccAppointmentsActionTypes.GET_REQUIRED_FIELDS_FAILED:
       return { ...state, requiredFields: stateError(action.error, state.requiredFields.result) };
+    case JccAppointmentsActionTypes.CREATE_APPOINTMENT:
+    case JccAppointmentsActionTypes.CREATE_EXTENDED_APPOINTMENT:
+      return { ...state, newAppointment: stateLoading(initialJccAppointmentsState.newAppointment.result) };
+    case JccAppointmentsActionTypes.CREATE_APPOINTMENT_SUCCESS:
+      return { ...state, newAppointment: stateSuccess(action.payload) };
+    case JccAppointmentsActionTypes.CREATE_APPOINTMENT_FAILED:
+      return { ...state, newAppointment: stateError(action.error, state.newAppointment.result) };
   }
   return state;
 }

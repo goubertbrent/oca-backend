@@ -80,13 +80,14 @@
       </mat-expansion-panel-header>
       <app-jcc-appointment-details [appointment]="appointment" [location]="selectedLocation"
                                    [selectedProducts]="selectedProducts$ | async"></app-jcc-appointment-details>
-      <mat-action-row>
-        <ion-button (click)="setCurrentStep(Step.CONTACT_INFO)" type="button">
+      <mat-action-row style="align-items: center;">
+        <ion-button (click)="setCurrentStep(Step.CONTACT_INFO)" type="button" [disabled]="appointmentLoading$ | async">
           {{ 'app.oca.previous' | translate }}
         </ion-button>
-        <ion-button (click)="confirmAppointment()" type="button">
+        <ion-button (click)="confirmAppointment()" type="button" [disabled]="appointmentLoading$ | async">
           {{ 'app.oca.confirm_appointment' | translate }}
         </ion-button>
+        <ion-spinner *ngIf="appointmentLoading$ | async" style="margin: 8px;"></ion-spinner>
       </mat-action-row>
     </mat-expansion-panel>
   </mat-accordion>

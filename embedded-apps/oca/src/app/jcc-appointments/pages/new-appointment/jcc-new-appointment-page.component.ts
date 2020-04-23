@@ -43,7 +43,7 @@ import {
   getSelectableProducts,
   getSelectedProducts,
   getSelectedProductsIds,
-  getSelectedProductsList,
+  getSelectedProductsList, isCreatingAppointment,
   isProductsLoading,
 } from '../../jcc-appointments.state';
 import { JccContactDetailsComponent } from './jcc-contact-details/jcc-contact-details.component';
@@ -82,7 +82,8 @@ export class JccNewAppointmentPage implements OnInit, OnDestroy {
   locations$: Observable<Locations>;
   availableDays$: Observable<string[]>;
   availableTimes$: Observable<string[]>;
-  requiredFields$: Observable<string[]>;
+  requiredFields$: Observable<(keyof AppointmentExtendedDetails)[]>;
+  appointmentLoading$: Observable<boolean>;
   Step = Step;
   useExtendedDetails = false;
   selectedLocation: JccLocation | null = null;
@@ -112,6 +113,7 @@ export class JccNewAppointmentPage implements OnInit, OnDestroy {
     this.availableDays$ = this.store.pipe(select(getAvailableDays));
     this.availableTimes$ = this.store.pipe(select(getAvailableTimes));
     this.requiredFields$ = this.store.pipe(select(getRequiredFields));
+    this.appointmentLoading$ = this.store.pipe(select(isCreatingAppointment));
     this.requiredFields$.pipe(takeUntil(this.destroyed$)).subscribe(fields => {
       this.useExtendedDetails = false;
       for (const field of fields) {

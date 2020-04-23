@@ -6,6 +6,8 @@ import {
   AppointmentsList,
   AvailableDays,
   AvailableTimes,
+  BookGovAppointmentExtendedDetailsResponse,
+  BookGovAppointmentResponse,
   Locations,
   Product,
   ProductDetails,
@@ -25,6 +27,7 @@ export interface JccAppointmentsState {
   availableDays: ResultState<AvailableDays>;
   availableTimes: ResultState<AvailableTimes>;
   requiredFields: ResultState<(keyof AppointmentExtendedDetails)[]>;
+  newAppointment: ResultState<BookGovAppointmentResponse | BookGovAppointmentExtendedDetailsResponse>
 }
 
 const getJccState = createFeatureSelector<JccAppointmentsState>(JCC_APPOINTMENTS_FEATURE);
@@ -39,6 +42,7 @@ export const initialJccAppointmentsState: JccAppointmentsState = {
   availableDays: initialStateResult,
   availableTimes: initialStateResult,
   requiredFields: initialStateResult,
+  newAppointment: initialStateResult,
 };
 
 export const getAppointments = createSelector(getJccState, s => {
@@ -111,3 +115,4 @@ export const getLocations = createSelector(getJccState, s => resultOrEmptyArray(
 export const getAvailableDays = createSelector(getJccState, s => resultOrEmptyArray(s.availableDays));
 export const getAvailableTimes = createSelector(getJccState, s => resultOrEmptyArray(s.availableTimes));
 export const getRequiredFields = createSelector(getJccState, s => resultOrEmptyArray(s.requiredFields));
+export const isCreatingAppointment = createSelector(getJccState, s => s.newAppointment.state === CallStateType.LOADING);

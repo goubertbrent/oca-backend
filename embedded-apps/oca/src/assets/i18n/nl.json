@@ -92,9 +92,10 @@
       "update_app_to_use_feat": "U moet de app updaten om deze functie te kunnen gebruiken.",
       "update_required": "Update vereist",
       "via_app": "Via de {{ appName }} app",
-      "what_do_you_need": "Wat heeft U nodig?",
+      "what_do_you_need": "Wat heeft u nodig?",
       "when": "Wanneer",
       "yes": "Ja",
+      "your_appointment_was_booked": "Uw afspraak is geboekt.",
       "zip_code": "Postcode"
     }
   }
