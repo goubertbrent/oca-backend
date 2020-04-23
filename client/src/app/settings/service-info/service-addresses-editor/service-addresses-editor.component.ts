@@ -67,7 +67,7 @@ export class ServiceAddressesEditorComponent implements ControlValueAccessor, On
         lon: fb.control(0),
       }),
       google_maps_place_id: fb.control(null),
-      country: fb.control('', [Validators.required]),
+      country: fb.control('BE', [Validators.required]),
       locality: fb.control('', [Validators.required]),
       postal_code: fb.control('', [Validators.required]),
       street: fb.control('', [Validators.required]),
