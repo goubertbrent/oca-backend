@@ -74,7 +74,3 @@ def _update_service_info_addresses(service_info_key, dry_run=False):
                          [a.to_dict() for a in service_info.addresses])
         else:
             service_info.put()
-            sln_settings = get_solution_settings(service_info.service_user)
-            sln_settings.updates_pending = True
-            sln_settings.put()
-            deferred.defer(common_provision, service_info.service_user, _queue=MIGRATION_QUEUE)
