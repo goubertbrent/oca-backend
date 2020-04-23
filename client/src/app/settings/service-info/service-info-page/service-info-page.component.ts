@@ -156,7 +156,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     const value = $event.value.trim();
     const currentKeywords = this.formGroup.value.keywords;
     if (value && !currentKeywords.includes(value)) {
-      this.formGroup.patchValue({ keywords: [currentKeywords, value] });
+      this.formGroup.patchValue({ keywords: [...currentKeywords, value] });
     }
     $event.input.value = '';
   }
