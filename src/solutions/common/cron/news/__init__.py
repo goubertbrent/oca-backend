@@ -16,6 +16,7 @@
 # @@license_version:1.5@@
 
 from HTMLParser import HTMLParser
+import datetime
 import hashlib
 import logging
 from types import NoneType
@@ -24,6 +25,7 @@ import urlparse
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import ndb
 from html5lib.sanitizer import HTMLSanitizerMixin
+import pytz
 
 from mcfw.rpc import arguments, returns
 from rogerthat.consts import DEBUG
@@ -82,8 +84,17 @@ def create_news_item(sln_settings, group_type, message, title, permalink, notify
 
         title = limit_string(title, NewsItem.MAX_TITLE_LENGTH)
         flags = NewsItem.DEFAULT_FLAGS
+
+        if notify: # check if between 23u00 and 07:00
+            timezone = pytz.timezone('Europe/Brussels')
+            now_in_timezone = datetime.datetime.now(timezone)
+            if now_in_timezone.hour >= 23:
+                notify = False
+            elif now_in_timezone.hour < 7:
+                notify = False
         if not notify:
             flags = flags | NewsItem.FLAG_SILENT
+
         news_item = news.publish(sticky=False,
                                  sticky_until=0,
                                  title=title,
