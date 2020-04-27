@@ -221,8 +221,8 @@ $(function () {
                     customer: gatherFromInputs('contact'),
                     recaptcha_token: recaptchaToken,
                     email_consents: {
-                        email_marketing: $('#email_consents_email_marketing').prop('checked'),
-                        newsletter: $('#email_consents_newsletter').prop('checked'),
+                        email_marketing: true,
+                        newsletter: true,
                     }
                 };
                 args.customer.language = language;

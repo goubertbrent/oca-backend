@@ -97,7 +97,8 @@
                         <div id="tab2" style="display: none;">
                             <div class="control-group">
                                 <div class="controls">
-                                    <h4>{% translate language, "common", "enterprise" %}/{% translate language, "common", "association" %}</h4>
+                                    <h4>{% translate language, 'common', 'signup_info_enterprise_association' %}</h4>
+                                    <p>{% translate language, 'common', 'signup_info_user_contact' %}</p>
                                 </div>
                             </div>
                             <div id="enterprise">
@@ -160,7 +161,8 @@
                         <div id="tab3" style="display: none;">
                             <div class="control-group">
                                 <div class="controls">
-                                    <h4>{% translate language, "common", "contact" %}</h4>
+                                    <h4>{% translate language, "common", "signup_info_contact" %}</h4>
+                                    <p>{% translate language, "common", "signup_info_contact_2" %}</p>
                                 </div>
                             </div>
                             <div id="contact">
@@ -209,14 +211,6 @@
                             </div>
                             <hr>
                             <div class="control-group" id="email_consents">
-                                <label class="checkbox" for="email_consents_newsletter">
-                                    <input type="checkbox" name="newsletter" id="email_consents_newsletter">
-                                    {% translate language, 'common', 'email_consent_newsletter' %}
-                                </label>
-                                <label class="checkbox" for="email_consents_email_marketing">
-                                    <input type="checkbox" name="email_marketing" id="email_consents_email_marketing">
-                                    {% translate language, 'common', 'email_consent_marketing' %}
-                                </label>
                                 <label class="checkbox" for="agree-to-toc">
                                     <input type="checkbox" id="agree-to-toc" name="agree-to-toc" required>
                                     {% translate language, 'common', 'i_agree_to_toc' %}
