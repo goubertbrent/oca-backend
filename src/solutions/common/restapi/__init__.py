@@ -16,15 +16,15 @@
 # @@license_version:1.5@@
 
 import base64
-import logging
-import re
 from collections import defaultdict
 from datetime import datetime
+import logging
+import re
 from types import NoneType
 
-import cloudstorage
 from babel import Locale
 from babel.numbers import format_currency
+import cloudstorage
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.api.taskqueue import taskqueue
@@ -37,7 +37,7 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.gcs import get_serving_url
-from rogerthat.bizz.maps.services.place_types import PlaceType, PLACE_DETAILS, get_place_label
+from rogerthat.bizz.maps.services.places import get_place_types
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
@@ -606,18 +606,11 @@ def settings_load():
 def rest_get_place_types():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
-    customer = get_customer(service_user)
     result_list = []
-    for place_type in PlaceType.all():
-        place_details = PLACE_DETAILS[place_type]
-        if not place_details.visible:
-            continue
-        if place_details.replaced_by:
-            continue
-        if not is_place_visible_for_customer(place_details, customer):
-            continue
+    place_types = get_place_types(sln_settings.main_language)
+    for place_type in place_types.keys():
         result_list.append({'value': place_type,
-                            'label': get_place_label(place_details, sln_settings.main_language)})
+                            'label': place_types[place_type]})
     return sorted(result_list, key=lambda x: x['label'].lower())
 
 
