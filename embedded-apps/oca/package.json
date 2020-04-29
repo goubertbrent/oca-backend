@@ -35,7 +35,7 @@
     "core-js": "^3.6.5",
     "ionic-selectable": "^4.7.1",
     "marked": "^0.8.2",
-    "rogerthat-plugin": "git+https://github.com/our-city-app/cordova-mobicage-plugin.git#8322801a26ff3dabb1a6940992c782b2123a6975",
+    "rogerthat-plugin": "git+https://github.com/our-city-app/cordova-mobicage-plugin.git#31bafadd8400f9cac6bfbab346920e5e0e212d3a",
     "rxjs": "~6.5.5",
     "tslib": "^1.11.1",
     "zone.js": "~0.10.3"

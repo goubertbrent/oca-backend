@@ -1,12 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Store } from '@ngrx/store';
-import {
-  CameraType,
-  GetNewsStreamItemsRequestTO,
-  GetNewsStreamItemsResponseTO,
-  RogerthatCallbacks,
-  RogerthatContext,
-} from 'rogerthat-plugin';
+import { CameraType, GetNewsStreamItemsRequestTO, GetNewsStreamItemsResponseTO, RogerthatContext } from 'rogerthat-plugin';
 import { from, Observable, of, Subject, throwError } from 'rxjs';
 import { filter, map, mergeMap, take } from 'rxjs/operators';
 import { AppVersion } from './rogerthat';
@@ -25,7 +19,7 @@ export class RogerthatService {
   initialize() {
     this.store.dispatch(new SetUserDataAction(rogerthat.user.data));
     this.store.dispatch(new SetServiceDataAction(rogerthat.service.data));
-    const cb = rogerthat.callbacks as RogerthatCallbacks;
+    const cb = rogerthat.callbacks;
     // Callbacks aren't using promises so these need to run in the ngZone
     cb.qrCodeScanned(result => this.ngZone.run(() => this.store.dispatch(new ScanQrCodeUpdateAction(result))));
     cb.userDataUpdated(() => this.ngZone.run(() => this.store.dispatch(new SetUserDataAction(rogerthat.user.data))));
@@ -68,7 +62,7 @@ export class RogerthatService {
     } else {
       data = '';
     }
-    rogerthat.api.call(method, data, tag);
+    rogerthat.api.call(method, data, tag, true);
     return this.apiCallResult$.pipe(
       filter(r => r.method === method && r.tag === tag),
       mergeMap(result => result.error ? throwError(result.error) : of(result.result as T)),
