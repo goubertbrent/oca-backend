@@ -89,6 +89,7 @@ function debounce(func, wait, immediate) {
     ROUTES.participation = newDashboardRouter;
     ROUTES.news = newDashboardRouter;
     ROUTES.reports = newDashboardRouter;
+    ROUTES.jobs = newDashboardRouter;
     ROUTES.vouchers = newDashboardRouter;
     var topMenu = $('#topmenu');
     window.addEventListener('message', function (e) {

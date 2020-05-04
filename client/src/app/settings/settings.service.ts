@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { AvailablePlaceType, OpeningHours } from '../shared/interfaces/oca';
+import { OpeningHours, PlaceType } from '../shared/interfaces/oca';
 import { Country, ServiceInfo } from './service-info/service-info';
 
 @Injectable({ providedIn: 'root' })
@@ -27,7 +27,7 @@ export class SettingsService {
   }
 
   getAvailablePlaceTypes() {
-    return this.http.get<AvailablePlaceType[]>('/common/available-place-types');
+    return this.http.get<{ results: PlaceType[] }>('/common/available-place-types');
   }
 
   getCountries(): Observable<Country[]> {

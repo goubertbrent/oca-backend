@@ -65,7 +65,7 @@ export interface AppStatisticsMapping {
 }
 
 export const enum NewsGroupType {
-  LOCATION = 'location',
+  PROMOTIONS = 'promotions',
   CITY = 'city',
   EVENTS = 'events',
   TRAFFIC = 'traffic',

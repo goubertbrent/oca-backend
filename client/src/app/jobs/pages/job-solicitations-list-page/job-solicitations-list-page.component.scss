@@ -1,0 +1,41 @@
+.nothing-to-see-here {
+  margin: 16px;
+}
+
+.split-layout {
+  display: flex;
+  flex: 1;
+  max-height: 100%;
+}
+
+.solicitation-list {
+  width: 400px;
+}
+
+.child-page {
+  flex-grow: 1;
+}
+
+:host {
+  display: flex;
+  flex: 1;
+}
+
+.solicitation-unread .mat-line {
+  font-weight: bold;
+}
+
+.job-chat-item {
+  display: flex !important;
+  justify-content: space-between !important;
+
+  .job-chat-name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .job-chat-time {
+    font-size: 11px;
+    display: inline-block;
+  }
+}

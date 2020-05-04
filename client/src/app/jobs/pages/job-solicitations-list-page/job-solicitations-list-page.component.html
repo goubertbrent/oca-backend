@@ -1,0 +1,34 @@
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
+
+<div *ngIf="hasNoSolicitations$ | async; else splitLayout" class="nothing-to-see-here">
+  <p>{{ 'oca.no_solicitations_yet' | translate }}</p>
+</div>
+
+<ng-template #splitLayout>
+  <div class="split-layout">
+    <mat-nav-list class="solicitation-list">
+      <a #rla="routerLinkActive"
+         *ngFor="let solicitation of solicitations$ | async"
+         [class.solicitation-active]="rla.isActive"
+         [class.solicitation-unread]="solicitation.status === unread"
+         [routerLink]="solicitation.id"
+         mat-list-item
+         role="listitem"
+         routerLinkActive>
+        <img *ngIf="solicitation.user_info.avatar_url as avatarUrl"
+             [alt]="solicitation.user_info.name"
+             [src]="avatarUrl"
+             matListAvatar/>
+        <h3 class="job-chat-item" matLine>
+          <span class="job-chat-name">{{ solicitation.user_info.name }}</span>
+          <time class="job-chat-time" matLine>{{ solicitation.last_message.create_date | dynamicDate }}</time>
+        </h3>
+        <p matLine>{{ solicitation.last_message.message }}</p>
+      </a>
+    </mat-nav-list>
+    <mat-divider [vertical]="true"></mat-divider>
+    <div class="child-page">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</ng-template>

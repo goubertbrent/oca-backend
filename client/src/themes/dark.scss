@@ -1,0 +1,10 @@
+@import './app-theme';
+
+$oca-app-primary: mat-palette($mat-cyan);
+$oca-app-accent: mat-palette($mat-deep-purple, A200, A100, A400);
+
+$theme: mat-dark-theme($oca-app-primary, $oca-app-accent);
+
+// Include the default theme styles.
+@include angular-material-theme($theme);
+@include material-dashboard-app-theme($theme);

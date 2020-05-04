@@ -158,7 +158,7 @@ class SolutionModule(Enum):
         FORMS: 'forms',
         PARTICIPATION: 'participation',
         REPORTS: 'oca.reports',
-        JCC_APPOINTMENTS: 'oca.jcc_appointments',
+        JCC_APPOINTMENTS: 'jcc-appointments',
         CIRKLO_VOUCHERS: 'oca.cirklo_light',
     }
 

@@ -1,0 +1,24 @@
+<h2 matDialogTitle>{{ 'oca.publish_job' | translate }}</h2>
+<form #form="ngForm">
+  <mat-dialog-content>
+    <mat-radio-group [(ngModel)]="selectedValue" class="moment-radio-group" name="publishMoment" required>
+      <mat-radio-button class="moment-option" value="now">{{ 'oca.publish_now' | translate }}</mat-radio-button>
+      <mat-radio-button class="moment-option" value="scheduled">{{ 'oca.publish_later' | translate }}</mat-radio-button>
+    </mat-radio-group>
+    <mat-form-field *ngIf="selectedValue === 'scheduled'" class="date-field">
+      <mat-label>{{ 'oca.Date' | translate }}</mat-label>
+      <input [(ngModel)]="date" [matDatepicker]="datePicker" [min]="minDate" matInput name="date" readonly required>
+      <mat-datepicker-toggle [for]="datePicker" matSuffix></mat-datepicker-toggle>
+      <mat-datepicker #datePicker [opened]="datePickerOpened"></mat-datepicker>
+      <mat-hint>{{ 'oca.job_start_date_hint' | translate }}</mat-hint>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button mat-dialog-close type="button">
+      {{ 'oca.Cancel' | translate }}
+    </button>
+    <button (click)="submit(form)" color="primary" mat-button type="button">
+      {{ (selectedValue === 'scheduled' ? 'oca.Save' : 'oca.publish_job') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

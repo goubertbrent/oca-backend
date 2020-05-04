@@ -114,10 +114,6 @@ import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-se
     MatProgressBarModule,
     MatExpansionModule,
   ],
-  entryComponents: [
-    ArrangeSectionsDialogComponent,
-    EditNextActionDialogComponent,
-  ],
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },
   ],

@@ -1,0 +1,22 @@
+@import '~@angular/material/theming';
+
+@mixin job-chat-message-theme($theme) {
+  $primary: map-get($theme, primary);
+  $background: map-get($theme, background);
+  $foreground: map-get($theme, foreground);
+
+  .job-chat-message-text {
+    @include _mat-toolbar-color($primary);
+  }
+
+  .job-chat-message-sender {
+    color: mat-color($foreground, secondary-text);
+  }
+
+  .not-reply {
+    .job-chat-message-text {
+      background: mat-color($background, app-bar);
+      color: mat-color($foreground, text);
+    }
+  }
+}

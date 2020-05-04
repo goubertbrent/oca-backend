@@ -1,4 +1,5 @@
 import { Action } from '@ngrx/store';
+import { ErrorAction } from '../../shared/errors/errors';
 import { CreateScriptPayload, RunResult, RunScript, Script } from './scripts';
 
 export const enum ScriptsActionTypes {
@@ -33,10 +34,10 @@ export class GetScriptsCompleteAction implements Action {
   }
 }
 
-export class GetScriptsFailedAction implements Action {
+export class GetScriptsFailedAction implements ErrorAction {
   readonly type = ScriptsActionTypes.GET_SCRIPTS_FAILED;
 
-  constructor(public payload: string) {
+  constructor(public error: string) {
   }
 }
 
@@ -54,10 +55,10 @@ export class GetScriptCompleteAction implements Action {
   }
 }
 
-export class GetScriptFailedAction implements Action {
+export class GetScriptFailedAction implements ErrorAction {
   readonly type = ScriptsActionTypes.GET_SCRIPT_FAILED;
 
-  constructor(public payload: string) {
+  constructor(public error: string) {
   }
 }
 
@@ -75,10 +76,10 @@ export class CreateScriptCompleteAction implements Action {
   }
 }
 
-export class CreateScriptFailedAction implements Action {
+export class CreateScriptFailedAction implements ErrorAction {
   readonly type = ScriptsActionTypes.CREATE_SCRIPT_FAILED;
 
-  constructor(public payload: string) {
+  constructor(public error: string) {
   }
 }
 
@@ -96,10 +97,10 @@ export class UpdateScriptCompleteAction implements Action {
   }
 }
 
-export class UpdateScriptFailedAction implements Action {
+export class UpdateScriptFailedAction implements ErrorAction {
   readonly type = ScriptsActionTypes.UPDATE_SCRIPT_FAILED;
 
-  constructor(public payload: string) {
+  constructor(public error: string) {
   }
 }
 
@@ -117,10 +118,10 @@ export class DeleteScriptCompleteAction implements Action {
   }
 }
 
-export class DeleteScriptFailedAction implements Action {
+export class DeleteScriptFailedAction implements ErrorAction {
   readonly type = ScriptsActionTypes.DELETE_SCRIPT_FAILED;
 
-  constructor(public payload: string) {
+  constructor(public error: string) {
   }
 }
 
@@ -138,10 +139,10 @@ export class RunScriptCompleteAction implements Action {
   }
 }
 
-export class RunScriptFailedAction implements Action {
+export class RunScriptFailedAction implements ErrorAction {
   readonly type = ScriptsActionTypes.RUN_SCRIPT_FAILED;
 
-  constructor(public payload: string) {
+  constructor(public error: string) {
   }
 }
 

@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { AvailablePlaceType, OpeningHours } from '../shared/interfaces/oca';
+import { OpeningHours, PlaceType } from '../shared/interfaces/oca';
 import { Country, ServiceInfo } from './service-info/service-info';
 
 export const enum SettingsActionTypes {
@@ -108,7 +108,7 @@ export class GetAvailablePlaceTypesAction implements Action {
 export class GetAvailablePlaceTypesCompleteAction implements Action {
   readonly type = SettingsActionTypes.GET_AVAILABLE_PLACE_TYPES_COMPLETE;
 
-  constructor(public payload: AvailablePlaceType[]) {
+  constructor(public payload: PlaceType[]) {
   }
 }
 

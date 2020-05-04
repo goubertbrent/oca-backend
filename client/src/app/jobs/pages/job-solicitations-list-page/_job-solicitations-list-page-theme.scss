@@ -1,0 +1,14 @@
+@import '~@angular/material/theming';
+
+@mixin job-solicitations-list-page-theme($theme) {
+  $primary: map-get($theme, primary);
+  $is-dark-theme: map-get($theme, is-dark);
+  $background-opacity: if($is-dark-theme, 0.25, 0.08);
+
+  .solicitation-list {
+    .solicitation-active {
+      color: mat-color($primary, if($is-dark-theme, 200, default));
+      background: rgba(0, 0, 0, $background-opacity);
+    }
+  }
+}

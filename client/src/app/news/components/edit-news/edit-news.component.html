@@ -61,12 +61,14 @@
             <mat-card-content>
               <mat-form-field>
                 <mat-label>{{ 'oca.action_button' | translate }}</mat-label>
-                <mat-select (selectionChange)="actionButtonSelected($event);"
+                <mat-select (selectionChange)="actionButtonSelected();"
                             [(ngModel)]="actionButton"
                             [compareWith]="compareActionButtons"
                             name="button_id">
+                  <mat-select-trigger>{{ actionButton?.label }}</mat-select-trigger>
                   <mat-option [value]="null">{{ 'oca.none' | translate }}</mat-option>
-                  <mat-option *ngFor="let button of actionButtons.data" [value]="button">
+                  <mat-option *ngFor="let button of options.data?.action_buttons" [value]="button">
+                    <mat-icon>{{ button.icon }}</mat-icon>
                     {{ button.label }}
                   </mat-option>
                 </mat-select>
@@ -127,14 +129,6 @@
                       </button>
                     </div>
                   </ng-container>
-                  <mat-form-field *ngSwitchCase="NewsActionButtonType.OPEN">
-                    <mat-label>{{ 'oca.function' | translate }}</mat-label>
-                    <mat-select (ngModelChange)="setOpenAction($event)" [(ngModel)]="actionButton.params.action"
-                                name="params_action">
-                      <mat-option *ngFor="let option of openOptions"
-                                  [value]="option.value">{{ option.label | translate }}</mat-option>
-                    </mat-select>
-                  </mat-form-field>
                 </ng-container>
               </div>
             </mat-card-content>

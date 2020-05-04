@@ -24,13 +24,11 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import UNIT_SYMBOLS
 from solutions.common.localizer import translations as common_translations
 from solutions.flex import SOLUTION_FLEX
-from solutions.flex.localizer import translations as flex_translations
 
 SOLUTIONS = [SOLUTION_FLEX]
 
 translations = {
     SOLUTION_COMMON: common_translations,
-    SOLUTION_FLEX: flex_translations
 }
 
 webapp.template.register_template_library('solutions.templates.filter')
@@ -45,10 +43,10 @@ def translate(language, lib, key, suppress_warning=False, _duplicate_backslashes
         raise ValueError("Unknown translation library '%s' requested" % lib)
     library = translations[lib]
     language = language.replace('-', '_')
-    if not language in library:
+    if language not in library:
         if '_' in language:
             language = language.split('_')[0]
-            if not language in library:
+            if language not in library:
                 language = DEFAULT_LANGUAGE
         else:
             language = DEFAULT_LANGUAGE
@@ -80,6 +78,7 @@ def translate_unit_symbol(language, unit):
     except ValueError:
         return UNIT_SYMBOLS[unit]
 
+
 COMMON_JS_KEYS = {
     'ABUSE': 'Abuse',
     'ADD': 'reservation-add',
@@ -98,7 +97,6 @@ COMMON_JS_KEYS = {
     'BACKGROUND_COLOR_IS_REQUIRED': 'Background color is required',
     'BOOKING_THRESHOLD': 'Booking Threshold',
     'BRAND': 'Brand',
-    'BROADCAST_TYPE': 'Broadcast type',
     'BROWSER_NOT_FULLY_SUPPORTED': 'browser-not-fully-supported',
     'BROWSER_NOT_SUPPORT_ORDER_SIGNING': 'browser-not-support-order-signing',
     'BROWSER_SWITCH_TO_CHROME': 'browser-switch-to-chrome',

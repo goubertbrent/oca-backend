@@ -38,6 +38,7 @@ export class CreateNewsPageComponent implements OnInit {
       filter(i => i.data !== null),
       take(1),
     ) as Observable<NonNullLoadable<ServiceIdentityInfo>>;
+    // TODO use root ngrx store instead of localStorage
     const itemFromStorage: Partial<CreateNews> | null = JSON.parse(localStorage.getItem('news.item') || '{}');
     combineLatest([serviceInfo$, newsOptions$]).pipe(take(1)).subscribe(([serviceInfo, newsOptions]) => {
       if (newsOptions.data.groups.length === 0) {
@@ -57,7 +58,6 @@ export class CreateNewsPageComponent implements OnInit {
       let item: CreateNews = {
         app_ids: [data.default_app],
         scheduled_at: null,
-        tags: [],
         media: null,
         role_ids: [],
         message: '',

@@ -2,12 +2,9 @@ import { Action } from '@ngrx/store';
 import { Budget } from './billing/billing';
 import { ApiError } from './errors/errors';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { App, AppStatistics, ServiceIdentityInfo, ServiceMenuDetail } from './interfaces/rogerthat';
+import { App, AppStatistics, ServiceIdentityInfo } from './interfaces/rogerthat';
 
 export const enum SharedActionTypes {
-  GET_MENU = '[shared] Get menu',
-  GET_MENU_COMPLETE = '[shared] Get menu complete',
-  GET_MENU_FAILED = '[shared] Get menu failed',
   GET_INFO = '[shared] Get info',
   GET_INFO_COMPLETE = '[shared] Get info complete',
   GET_INFO_FAILED = '[shared] Get info failed',
@@ -34,24 +31,6 @@ export const enum SharedActionTypes {
   UPDATE_LOGO_FAILED = '[shared] Update logo failed',
   GET_GLOBAL_CONFIG = '[shared] Get global config',
   GET_GLOBAL_CONFIG_COMPLETE = '[shared] Get global config complete',
-}
-
-export class GetMenuAction implements Action {
-  readonly type = SharedActionTypes.GET_MENU;
-}
-
-export class GetMenuCompleteAction implements Action {
-  readonly type = SharedActionTypes.GET_MENU_COMPLETE;
-
-  constructor(public payload: ServiceMenuDetail) {
-  }
-}
-
-export class GetMenuFailedAction implements Action {
-  readonly type = SharedActionTypes.GET_MENU_FAILED;
-
-  constructor(public error: ApiError) {
-  }
 }
 
 export class GetInfoAction implements Action {
@@ -216,9 +195,6 @@ export class GetGlobalConfigCompleteAction implements Action {
 }
 
 export type SharedActions =
-  GetMenuAction
-  | GetMenuCompleteAction
-  | GetMenuFailedAction
   | GetInfoAction
   | GetInfoCompleteAction
   | GetInfoFailedAction

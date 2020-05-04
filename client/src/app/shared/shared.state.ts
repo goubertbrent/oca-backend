@@ -1,13 +1,12 @@
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { Budget } from './billing/billing';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { App, AppStatistics, AppStatisticsMapping, ServiceIdentityInfo, ServiceMenuDetail } from './interfaces/rogerthat';
+import { App, AppStatistics, AppStatisticsMapping, ServiceIdentityInfo } from './interfaces/rogerthat';
 import { DEFAULT_LIST_LOADABLE, DEFAULT_LOADABLE, Loadable } from './loadable/loadable';
 import { CallStateType, initialStateResult, ResultState } from './util';
 
 
 export const initialSharedState: SharedState = {
-  serviceMenu: DEFAULT_LOADABLE,
   serviceIdentityInfo: DEFAULT_LOADABLE,
   apps: DEFAULT_LIST_LOADABLE,
   appStatistics: DEFAULT_LIST_LOADABLE,
@@ -19,7 +18,6 @@ export const initialSharedState: SharedState = {
 
 
 export interface SharedState {
-  serviceMenu: Loadable<ServiceMenuDetail>;
   serviceIdentityInfo: Loadable<ServiceIdentityInfo>;
   apps: Loadable<App[]>;
   appStatistics: Loadable<AppStatistics[]>;
@@ -31,7 +29,6 @@ export interface SharedState {
 
 const featureSelector = createFeatureSelector<SharedState>('shared');
 
-export const getServiceMenu = createSelector(featureSelector, s => s.serviceMenu);
 export const getServiceIdentityInfo = createSelector(featureSelector, s => s.serviceIdentityInfo);
 export const getApps = createSelector(featureSelector, s => s.apps);
 export const getBudget = createSelector(featureSelector, s => s.budget);

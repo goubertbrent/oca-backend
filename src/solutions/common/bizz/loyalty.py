@@ -1538,9 +1538,10 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
     mime = MIMEMultipart('alternative')
     mimeRoot.attach(mime)
 
-    part_1_css = "line-height: 130%; color: #614e4e; border: 4px solid #6db59c; margin-top: -5px; padding: 1em; background-color: #9adbc4; font-size: 16px; font-family: Arial; border-radius: 0 0 15px 15px; -webkit-border-radius: 0 0 15px 15px; -moz-border-radius: 0 0 15px 15px;"
-    button_css = "display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px; -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 16px; background: #6db59c; padding: 10px 20px 10px 20px; text-decoration: none;"
-
+    part_1_css = "line-height: 130%; margin-top: -5px; padding: 1em; font-size: 16px; font-family: Arial;"
+    button_css = 'display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px;' \
+                 ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 14px;' \
+                 ' background: #3abb9e; padding: 8px 16px 8px 16px; text-decoration: none;'
     if_email_footer_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-1',
                                          service_name=sln_settings.name,
                                          app_name=app.name)
@@ -1613,7 +1614,7 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
     mime.attach(MIMEText(body.encode('utf-8'), 'plain', 'utf-8'))
     mime.attach(MIMEText(body_html.encode('utf-8'), 'html', 'utf-8'))
 
-    with open(os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'osa-footer-be.png'), 'r') as f:
+    with open(os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'emails', 'oca-email-header.png'), 'r') as f:
         img_data = f.read()
 
     img = MIMEImage(img_data, 'png')

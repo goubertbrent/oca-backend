@@ -1,0 +1,29 @@
+@import '~@angular/material/theming';
+@import '../app/jobs/components/job-chat-message/job-chat-message-theme';
+@import '../app/jobs/pages/job-solicitations-list-page/job-solicitations-list-page-theme';
+
+// Styles for the app that are based on the current theme.
+@mixin material-dashboard-app-theme($theme) {
+  $primary: map-get($theme, primary);
+  $accent: map-get($theme, accent);
+  $warn: map-get($theme, warn);
+  $background: map-get($theme, background);
+  $foreground: map-get($theme, foreground);
+
+  .dashboard-app-background {
+    background: mat-color($background, background);
+  }
+
+  .error-message {
+    color: mat-color($warn, text);
+  }
+
+  @include job-chat-message-theme($theme);
+  @include job-solicitations-list-page-theme($theme);
+}
+
+// Default (light) theme
+$oca-app-primary: mat-palette($mat-cyan);
+$oca-app-accent: mat-palette($mat-deep-purple, A200, A100, A400);
+
+$theme: mat-light-theme($oca-app-primary, $oca-app-accent);

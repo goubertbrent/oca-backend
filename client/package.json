@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "postinstall": "python fix-agm-maps.py",
-    "start": "ng serve --configuration hmr --host 0.0.0.0",
+    "start": "ng serve --configuration hmr",
     "build": "ng build --prod --base-href=/static/client",
     "test": "ng test",
     "lint": "ng lint",
@@ -27,6 +27,7 @@
     "@covalent/text-editor": "^3.0.1",
     "@ngrx/effects": "^9.1.0",
     "@ngrx/entity": "^9.1.0",
+    "@ngrx/router-store": "^9.1.0",
     "@ngrx/schematics": "^9.1.0",
     "@ngrx/store": "^9.1.0",
     "@ngrx/store-devtools": "^9.1.0",

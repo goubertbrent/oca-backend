@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Budget } from './billing/billing';
 import { BrandingSettings, GlobalConfig, SolutionSettings } from './interfaces/oca';
-import { App, AppStatistics, ServiceIdentityInfo, ServiceMenuDetail } from './interfaces/rogerthat';
+import { App, AppStatistics, ServiceIdentityInfo } from './interfaces/rogerthat';
 
 @Injectable({ providedIn: 'root' })
 export class SharedService {
@@ -13,10 +13,6 @@ export class SharedService {
 
   getSolutionSettings() {
     return this.http.get<SolutionSettings>('/common/settings');
-  }
-
-  getMenu() {
-    return this.http.get<ServiceMenuDetail>('/common/get_menu');
   }
 
   getServiceIdentityInfo() {

@@ -3,7 +3,6 @@
     <oca-edit-news (regionalNewsToggled)="onRegionalNewsToggled($event)"
                    (save)="onSave($event)"
                    *ngIf="newsItem.data"
-                   [actionButtons]="actionButtons$ | async"
                    [appStatistics]="appStatistics$ | async"
                    [apps]="(apps$ | async).data"
                    [brandingSettings]="brandingSettings$ | async"

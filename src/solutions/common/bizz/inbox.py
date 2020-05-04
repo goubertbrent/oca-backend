@@ -116,8 +116,8 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
     mimeRoot.attach(mime)
 
     button_css = 'display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px;' \
-                 ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 16px;' \
-                 ' background: #6db59c; padding: 10px 20px 10px 20px; text-decoration: none;'
+                 ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 14px;' \
+                 ' background: #3abb9e; padding: 8px 16px 8px 16px; text-decoration: none;'
     if m.category in (SolutionInboxMessage.CATEGORY_OCA_INFO, SolutionInboxMessage.CATEGORY_CITY_MESSAGE):
         if_email_body_1 = u'%s %s' % (
             transl('there_is_a_new_message_in_your_inbox', name=m.sender.name),
@@ -129,7 +129,7 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
         if_email_body_2 = transl('if-email-body-2')
         dashboard_trans = transl('dashboard')
         service_email = sln_settings.login.email() if sln_settings.login else service_user.email()
-        btn = u'<a href="https://rogerth.at?email=%(service_email)s" style="%(button_css)s">%(dashboard)s</a' % {
+        btn = u'<a href="https://rogerth.at?email=%(service_email)s" style="%(button_css)s">%(dashboard)s</a>' % {
             'service_email': service_email,
             'button_css': button_css,
             'dashboard': dashboard_trans
@@ -175,7 +175,7 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
     mime.attach(MIMEText(body.encode('utf-8'), 'plain', 'utf-8'))
     mime.attach(MIMEText(body_html.encode('utf-8'), 'html', 'utf-8'))
 
-    with open(os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'osa-footer-be.png'), 'r') as f:
+    with open(os.path.join(os.path.dirname(solutions.__file__), 'common', 'templates', 'emails', 'oca-email-header.png'), 'r') as f:
         img_data = f.read()
 
     img = MIMEImage(img_data, 'png')

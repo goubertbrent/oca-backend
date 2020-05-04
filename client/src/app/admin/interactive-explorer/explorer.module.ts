@@ -27,14 +27,6 @@ import { scriptsReducer } from './scripts.reducer';
 import { ScriptsService } from './scripts.service';
 import * as translations from './translations.json';
 
-const COMPONENTS = [
-  ScriptComponent,
-  ScriptPageComponent,
-  ScriptsPageComponent,
-];
-
-const entryComponents = [RunResultDialogComponent];
-
 const monacoConfig: NgxMonacoEditorConfig = {
   baseUrl: environment.production ? '/static/client/assets' : '/assets',
   defaultOptions: {
@@ -85,8 +77,10 @@ const routes: Routes = [
   ],
   exports: [],
   declarations: [
-    COMPONENTS,
-    entryComponents,
+    ScriptComponent,
+    ScriptPageComponent,
+    ScriptsPageComponent,
+    RunResultDialogComponent,
   ],
   providers: [
     ScriptsService,
@@ -97,9 +91,6 @@ const routes: Routes = [
         appearance: 'standard',
       },
     },
-  ],
-  entryComponents: [
-    entryComponents,
   ],
 })
 export class ExplorerModule {

@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from __future__ import unicode_literals
 
 import base64
 from collections import defaultdict
@@ -47,6 +48,7 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_profile_key
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
+from rogerthat.models.jobs import JobOffer
 from rogerthat.models.news import NewsGroup, MediaType
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
@@ -56,8 +58,9 @@ from rogerthat.service.api.news import list_groups
 from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
-from rogerthat.to.friends import FriendListResultTO, ServiceMenuDetailTO
+from rogerthat.to.friends import FriendListResultTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
+from rogerthat.to.news import NewsActionButtonTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.to.system import ServiceIdentityInfoTO
@@ -75,7 +78,7 @@ from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
-    get_user_defined_roles, validate_enable_or_disable_solution_module, OrganizationType, get_default_app_id, \
+    validate_enable_or_disable_solution_module, OrganizationType, get_default_app_id, \
     get_organization_type, validate_before_provision, auto_publish
 from solutions.common.bizz.branding_settings import save_branding_settings
 from solutions.common.bizz.cityapp import get_country_apps
@@ -126,7 +129,9 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
     AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO, CreateEventItemTO
-from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO
+from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO, NewsActionButtonWebsite, \
+    NewsActionButtonAttachment, NewsActionButtonEmail, NewsActionButtonPhone, NewsActionButtonOpen, \
+    NewsActionButtonMenuItem
 from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.paddle import PaddleSettingsTO, PaddleSettingsServicesTO, SimpleServiceTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
@@ -479,6 +484,7 @@ def rest_get_news_options():
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
     info = system.get_info(service_identity)
     sln_settings = get_solution_settings(service_user)
+    lang = sln_settings.main_language
     news_settings_key = NewsSettings.create_key(service_user, service_identity)
     keys = [news_settings_key, ShopApp.create_key(info.default_app)]
     news_settings, shop_app = ndb.get_multi(keys)  # type: NewsSettings, ShopApp
@@ -492,7 +498,9 @@ def rest_get_news_options():
     if session_.shop or default_app.demo and NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
         tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
 
-    news_groups = list_groups(sln_settings.main_language)
+    news_groups = list_groups(lang)
+    jobs_rpc = JobOffer.list_by_service(service_user.email()).fetch_async()
+
     regional_enabled_types = (NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PROMOTIONS)
     regional_news_enabled = any(g.group_type in regional_enabled_types for g in news_groups) or DEBUG
     map_url = None
@@ -504,9 +512,63 @@ def rest_get_news_options():
     media_types = [MediaType.IMAGE]
     if default_app.demo or shop_app.paid_features_enabled:
         media_types.append(MediaType.VIDEO_YOUTUBE)
+    action_buttons = [
+        NewsActionButtonWebsite(label=common_translate(lang, SOLUTION_COMMON, 'Website'),
+                                icon='http',
+                                button=NewsActionButtonTO('url',
+                                                          common_translate(lang, SOLUTION_COMMON, 'open_website'),
+                                                          '')),
+        NewsActionButtonAttachment(label=common_translate(lang, SOLUTION_COMMON, 'Attachment'),
+                                   icon='attachment',
+                                   button=NewsActionButtonTO('attachment',
+                                                             common_translate(lang, SOLUTION_COMMON, 'Attachment'),
+                                                             '')),
+        NewsActionButtonEmail(label=common_translate(lang, SOLUTION_COMMON, 'email_address'),
+                              icon='alternate_email',
+                              email='',
+                              button=NewsActionButtonTO('email',
+                                                        common_translate(lang, SOLUTION_COMMON, 'send_email'),
+                                                        '')),
+        NewsActionButtonPhone(label=common_translate(lang, SOLUTION_COMMON, 'Phone number'),
+                              icon='call',
+                              phone='',
+                              button=NewsActionButtonTO('email',
+                                                        common_translate(lang, SOLUTION_COMMON, 'Call'),
+                                                        '')),
+    ]
+    menu = system.get_menu()
+    action_buttons.extend([NewsActionButtonMenuItem(label=item.label,
+                                                    icon='link',
+                                                    button=NewsActionButtonTO(item.tag, item.label[0:15],
+                                                                              'smi://' + item.tag))
+                           for item in menu.items if not item.roles])
+
+    open_actions = [
+        ('scan', common_translate(lang, SOLUTION_COMMON, 'Scan')),
+        ('profile', common_translate(lang, SOLUTION_COMMON, 'profile')),
+        ('settings', common_translate(lang, SOLUTION_COMMON, 'Settings')),
+        ('messages', common_translate(lang, SOLUTION_COMMON, 'news_items')),
+    ]
+
+    for action, label in open_actions:
+        action_buttons.append(NewsActionButtonOpen(label=label,
+                                                   icon='settings',
+                                                   button=NewsActionButtonTO('open', label[:15],
+                                                                             'open://{"action":"%s"}' % action)))
+    for job_offer in jobs_rpc.get_result():  # type: JobOffer
+        if not job_offer.visible:
+            continue
+        action_buttons.append(NewsActionButtonOpen(
+            label=job_offer.info.function.title,
+            icon='work',
+            button=NewsActionButtonTO('job', common_translate(lang, SOLUTION_COMMON, 'oca.apply_for_job'),
+                                      'open://{"action_type":"job","action":"%s"}' % job_offer.id)
+        ))
+
     return NewsOptionsTO(tags=tags, regional=regional, groups=news_groups, media_types=media_types,
                          # location_filter_enabled=shop_app.paid_features_enabled)
-                         location_filter_enabled=default_app.demo or DEBUG)
+                         location_filter_enabled=default_app.demo or DEBUG,
+                         action_buttons=action_buttons)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)
@@ -601,17 +663,17 @@ def settings_load():
 
 
 @rest('/common/available-place-types', 'get', read_only_access=True, silent_result=True)
-@returns([dict])
+@returns(dict)
 @arguments()
 def rest_get_place_types():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     result_list = []
     place_types = get_place_types(sln_settings.main_language)
-    for place_type in place_types.keys():
-        result_list.append({'value': place_type,
-                            'label': place_types[place_type]})
-    return sorted(result_list, key=lambda x: x['label'].lower())
+    for place_type, label in place_types.iteritems():
+        result_list.append([place_type, label])
+    return {'results': sorted(([place_type, label] for place_type, label in place_types.iteritems()),
+                              key=lambda x: x[1].lower())}
 
 
 @rest('/common/countries', 'get', read_only_access=True, silent_result=True)
@@ -1872,23 +1934,6 @@ def menu_item_qr_url(category_index, item_index):
 @arguments(image_id=(int, long))
 def remove_file_blob(image_id):
     delete_file_blob(users.get_current_user(), image_id)
-
-
-@rest('/common/get_menu', 'get', read_only_access=True)
-@returns(ServiceMenuDetailTO)
-@arguments()
-def rest_get_menu():
-    service_menu = system.get_menu()
-    user_role_ids = [role.id for role in get_user_defined_roles()]
-
-    def has_user_defined_roles_only(item):
-        return all([role_id in user_role_ids for role_id in item.roles])
-
-    def include_item(item):
-        return has_user_defined_roles_only(item)
-
-    service_menu.items = filter(include_item, service_menu.items)
-    return service_menu
 
 
 @rest('/common/get_info', 'get', read_only_access=True)

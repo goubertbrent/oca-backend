@@ -1,0 +1,11 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button routerLink="..">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <span>{{ 'oca.create_job_offer' | translate }}</span>
+</mat-toolbar>
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
+<oca-job-editor (submitted)="onSubmit($event)"
+                [disabled]="loading$ | async"
+                [isExistingJob]="false"
+                [value]="jobOffer"></oca-job-editor>

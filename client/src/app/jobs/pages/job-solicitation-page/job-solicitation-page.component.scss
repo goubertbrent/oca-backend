@@ -1,0 +1,28 @@
+.messages-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+
+.new-message-box {
+  display: flex;
+  align-items: center;
+}
+
+.chat-disabled-box {
+  display: flex;
+  justify-content: center;
+  font-style: italic;
+}
+
+.new-message-field {
+  flex-grow: 1;
+  margin: 0 16px;
+}
+
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: calc(100vh - 113px);
+}

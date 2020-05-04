@@ -1,0 +1,24 @@
+<h2 matDialogTitle>{{ 'oca.set_inactive' | translate }}</h2>
+<form #form="ngForm">
+  <p>{{ 'oca.where_did_you_find_your_job_match' | translate }}</p>
+  <mat-dialog-content>
+    <mat-radio-group [(ngModel)]="jobMatch.source" class="match-radio-group" name="match" required>
+      <mat-radio-button *ngFor="let option of sources" [value]="option.type" class="match-option">
+        {{ option.label | translate }}
+      </mat-radio-button>
+    </mat-radio-group>
+    <mat-form-field *ngIf="jobMatch.source === SOURCE_EXTERN">
+      <mat-label>{{ 'oca.platform_name' | translate }}</mat-label>
+      <input [(ngModel)]="jobMatch.platform" matInput name="platform" required>
+      <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button mat-dialog-close type="button">
+      {{ 'oca.Cancel' | translate }}
+    </button>
+    <button (click)="submit(form)" color="primary" mat-button type="button">
+      {{ 'oca.set_inactive' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

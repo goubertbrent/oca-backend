@@ -1,4 +1,5 @@
 import { Action } from '@ngrx/store';
+import { ErrorAction } from '../shared/errors/errors';
 import { ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
 
 export enum VouchersActionTypes {
@@ -27,10 +28,10 @@ export class GetServicesSuccessAction implements Action {
   }
 }
 
-export class GetServicesFailedAction implements Action {
+export class GetServicesFailedAction implements ErrorAction {
   readonly type = VouchersActionTypes.GET_SERVICES_FAILED;
 
-  constructor(public payload: { error: string }) {
+  constructor(public error: string) {
   }
 }
 
@@ -48,10 +49,10 @@ export class SaveVoucherSettingsSuccessAction implements Action {
   }
 }
 
-export class SaveVoucherSettingsFailedAction implements Action {
+export class SaveVoucherSettingsFailedAction implements ErrorAction {
   readonly type = VouchersActionTypes.SAVE_VOUCHER_FAILED;
 
-  constructor(public payload: { error: string }) {
+  constructor(public error: string) {
   }
 }
 
@@ -66,10 +67,10 @@ export class ExportVoucherServicesSuccessAction implements Action {
   }
 }
 
-export class ExportVoucherServicesFailedAction implements Action {
+export class ExportVoucherServicesFailedAction implements ErrorAction {
   readonly type = VouchersActionTypes.EXPORT_VOUCHER_SERVICES_FAILED;
 
-  constructor(public payload: { error: string }) {
+  constructor(public error: string) {
   }
 }
 

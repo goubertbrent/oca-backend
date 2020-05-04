@@ -1,0 +1,53 @@
+$field-margin: 16px;
+
+:host {
+  display: block;
+  margin-top: 16px;
+}
+
+.job-form {
+  width: 700px;
+}
+
+.dual-fields {
+  display: flex;
+  margin: 0 16px;
+
+  .mat-form-field {
+    flex: 1;
+  }
+
+  .mat-form-field:last-of-type {
+    margin-left: $field-margin;
+  }
+}
+
+.field {
+  margin: 0 16px;
+  display: flex;
+  flex-direction: column;
+
+  .mat-form-field {
+    flex: 1;
+  }
+}
+
+.publish-info {
+  margin: 16px;
+}
+
+.action-buttons {
+  margin: 16px 16px 32px;
+
+  button {
+    margin: 0 16px;
+  }
+
+  button:first-of-type {
+    margin-left: 0;
+  }
+}
+
+.fields-description {
+  margin: 0 16px 16px;
+}

@@ -102,12 +102,6 @@ export interface NewsActionButtonMenuItem extends BaseNewsButton {
 
 export interface NewsActionButtonOpen extends BaseNewsButton {
   type: NewsActionButtonType.OPEN;
-  params: {
-    action: string;
-    action_type?: string;
-    title?: string;
-    service?: string;
-  };
 }
 
 export type UINewsActionButton =
@@ -205,7 +199,6 @@ export interface CreateNews<T = Date> {
   scheduled_at: T | null;
   target_audience: NewsTargetAudience | null;
   role_ids: number[];
-  tags: string[];
   media: BaseMedia | null;
   group_type: NewsGroupType;
   locations: NewsLocation | null;
@@ -236,6 +229,7 @@ export interface NewsOptions {
   groups: ServiceNewsGroup[];
   media_types: MediaType[];
   location_filter_enabled: boolean;
+  action_buttons: UINewsActionButton[];
 }
 
 

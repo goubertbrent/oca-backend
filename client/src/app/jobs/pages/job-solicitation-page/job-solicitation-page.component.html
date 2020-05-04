@@ -1,0 +1,37 @@
+<mat-list *ngIf="solicitation$ | async as solicitation">
+  <mat-list-item>
+    <img *ngIf="solicitation.user_info.avatar_url as avatarUrl"
+         [alt]="solicitation.user_info.name"
+         [src]="avatarUrl"
+         matListAvatar/>
+    <h4 matLine>{{ solicitation.user_info.name }}</h4>
+    <p *ngIf="solicitation.user_info.email as email" matLine>{{ email }}</p>
+  </mat-list-item>
+</mat-list>
+<mat-divider></mat-divider>
+<mat-progress-bar *ngIf="messagesLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<div #scrollContainer (scroll)="onScroll()" *ngIf="(solicitation$ | async) as solicitation" class="messages-list">
+  <oca-job-chat-message *ngFor="let message of solicitationMessages$ | async; trackBy: trackMessages"
+                        [date]="message.createDate"
+                        [message]="message.message"
+                        [reply]="message.reply"
+                        [sender]="message.reply ? null : solicitation.user_info.name"></oca-job-chat-message>
+</div>
+<form (ngSubmit)="sendNewMessage()" *ngIf="canSendMessage$ | async; else cannotSend" class="new-message-box">
+  <mat-form-field appearance="standard" class="new-message-field">
+      <textarea [(ngModel)]="newMessage"
+                [disabled]="sendButton.disabled"
+                [placeholder]="'oca.send_new_message' | translate"
+                matInput
+                matTextareaAutosize
+                name="newMessage"></textarea>
+  </mat-form-field>
+  <button #sendButton [disabled]="isSendingMessage$ | async" mat-icon-button>
+    <mat-icon>send</mat-icon>
+  </button>
+</form>
+<ng-template #cannotSend>
+  <div class="chat-disabled-box">
+    <p>{{ 'oca.cannot_reply_user_has_left_the_chat' | translate }}</p>
+  </div>
+</ng-template>

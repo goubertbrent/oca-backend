@@ -7,6 +7,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
+import { MarkdownModule } from '../shared/markdown/markdown.module';
 import { SharedModule } from '../shared/shared.module';
 import { EditIncidentComponent } from './components/edit-incident/edit-incident.component';
 import { IncidentListComponent } from './components/incident-list/incident-list.component';
@@ -42,6 +43,7 @@ const routes: Routes = [
     ScrollingModule,
     MatSnackBarModule,
     MatSlideToggleModule,
+    MarkdownModule,
   ],
   exports: [],
   declarations: [

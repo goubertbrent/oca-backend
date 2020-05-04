@@ -12,18 +12,10 @@ import {
   GetBrandingSettingsAction,
   GetBudgetAction,
   GetInfoAction,
-  GetMenuAction,
 } from '../../../shared/shared.actions';
-import {
-  getApps,
-  getAppStatistics,
-  getBrandingSettings,
-  getBudget,
-  getServiceIdentityInfo,
-  getServiceMenu,
-} from '../../../shared/shared.state';
+import { getApps, getAppStatistics, getBrandingSettings, getBudget, getServiceIdentityInfo } from '../../../shared/shared.state';
 import { BUDGET_RATE } from '../../consts';
-import { CreateNews, NewsOptions, NewsSettingsTag, NewsStats, UINewsActionButton } from '../../interfaces';
+import { CreateNews, NewsOptions, NewsSettingsTag, NewsStats } from '../../interfaces';
 import { CreateNewsItemAction, UpdateNewsItemAction } from '../../news.actions';
 import { NewsService } from '../../news.service';
 import { getEditingNewsItem, getNewsItemStats, getNewsOptions, NewsState } from '../../news.state';
@@ -38,7 +30,6 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
   newsItem$: Observable<Loadable<CreateNews>>;
   newsStats$: Observable<Loadable<NewsStats>>;
   options$: Observable<Loadable<NewsOptions>>;
-  actionButtons$: Observable<Loadable<UINewsActionButton[]>>;
   serviceInfo$: Observable<Loadable<ServiceIdentityInfo>>;
   apps$: Observable<Loadable<App[]>>;
   appStatistics$: Observable<AppStatisticsMapping>;
@@ -72,11 +63,6 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
         }
         return this.translate.instant('oca.x_views', { views });
       }));
-    this.actionButtons$ = this.store.pipe(
-      select(getServiceMenu),
-      map((menu) => this.newsService.getActionButtons(menu)));
-
-    this.store.dispatch(new GetMenuAction());
     this.store.dispatch(new GetInfoAction());
     this.store.dispatch(new GetBrandingSettingsAction());
     this.newsItem$.pipe(withLatestFrom(this.serviceInfo$), takeUntil(this.destroyed$)).subscribe(([ item, info ]) => {

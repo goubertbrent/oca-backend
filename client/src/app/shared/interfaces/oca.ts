@@ -28,14 +28,14 @@ export interface BrandingSettings {
   avatar_url: string | null;
 }
 
+export type PlaceType = [string, string];  // value, label
+
 export interface AvailablePlaceType {
   label: string;
   value: string;
 }
 
-export interface AvailableOtherPlaceType {
-  label: string;
-  value: string;
+export interface AvailableOtherPlaceType extends AvailablePlaceType {
   disabled: boolean;
 }
 

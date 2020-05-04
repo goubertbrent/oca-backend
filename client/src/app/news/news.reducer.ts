@@ -100,7 +100,6 @@ function convertNewsItem(newsItem: NewsItem): CreateNews {
     qr_code_caption: newsItem.qr_code_caption,
     role_ids: newsItem.role_ids,
     scheduled_at: newsItem.scheduled_at ? new Date(newsItem.scheduled_at * 1000) : null,
-    tags: newsItem.tags,
     target_audience: newsItem.target_audience,
     title: newsItem.title,
     type: newsItem.type,

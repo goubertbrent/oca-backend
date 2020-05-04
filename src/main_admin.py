@@ -29,6 +29,7 @@ from solutions.common.cron.events.events import CleanupSolutionEvents, SolutionS
     ReIndexPeriodicEventsHandler
 from solutions.common.cron.events.uitdatabank import CityAppSolutionEventsUitdatabank
 from solutions.common.cron.forms import FinishFormsCron
+from solutions.common.cron.jobs import JobsNotificationsHandler
 from solutions.common.cron.loyalty import LootLotteryCronHandler, SolutionLoyaltyExportHandler
 from solutions.common.cron.news.rss import SolutionRssScraper
 from solutions.common.cron.paddle import SyncPaddleInfoHandler
@@ -59,6 +60,7 @@ handlers = [
     ('/admin/cron/shop/clean_unverified_signup_requests', CleanupUnverifiedSignupRequests),
     ('/admin/cron/daily_statistics', DailyStatisticsHandler),
     ('/admin/cron/finish_forms', FinishFormsCron),
+    ('/admin/cron/jobs-notifications', JobsNotificationsHandler),
     ('/admin/cron/paddle', SyncPaddleInfoHandler),
     ('/admin/services', ServiceTools),
     ('/admin/osa/launcher/apps', OSAAppsPage),

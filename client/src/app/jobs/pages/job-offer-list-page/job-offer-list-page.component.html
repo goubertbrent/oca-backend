@@ -1,0 +1,50 @@
+<mat-toolbar color="primary">
+  <span class="flex-grow">{{ 'oca.jobs' | translate }}</span>
+  <span class="icons-row">
+    <a mat-icon-button routerLink="settings">
+      <mat-icon>notifications</mat-icon>
+    </a>
+  </span>
+</mat-toolbar>
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
+<div class="jobs-list">
+  <div *ngFor="let jobList of jobLists$ | async">
+    <h3>{{ jobList.title | translate }} <span *ngIf="jobList.items.length">({{ jobList.items.length }})</span></h3>
+    <mat-card *ngIf="jobList.card as card" class="job-card">
+      <mat-card-content>
+        {{ card.description | translate }}
+      </mat-card-content>
+      <mat-card-actions *ngIf="card.actionButton" align="end">
+        <a [routerLink]="card.actionButton.route" color="accent"
+           mat-raised-button>{{ card.actionButton.label | translate }}</a>
+      </mat-card-actions>
+    </mat-card>
+    <mat-card *ngFor="let item of jobList.items" class="job-card">
+      <mat-card-header>
+        <mat-card-title class="card-title"><span>{{ item.offer.function.title }}</span>
+          <a *ngIf="item.statistics.unread_solicitations.length as notificationCount"
+             [routerLink]="[item.offer.id, 'solicitations', item.statistics.unread_solicitations[0]]"
+             mat-icon-button>
+            <mat-icon [matBadge]="notificationCount" matBadgeColor="accent">notifications</mat-icon>
+          </a>
+        </mat-card-title>
+        <mat-card-subtitle>{{ item.offer.employer.name }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p *ngIf="item.statistics.publish_date as publishDate">
+          {{ 'oca.published_on_date' | translate : {date: publishDate | date} }}
+        </p>
+        <div [innerHTML]="item.offer.function.description | truncate : 90 | markdown : {breaks: true}"></div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <a [routerLink]="[item.offer.id]" color="accent" mat-stroked-button>{{ 'oca.Edit' | translate }}</a>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>
+
+<div class="fab-bottom-right">
+  <a mat-fab routerLink="create">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>

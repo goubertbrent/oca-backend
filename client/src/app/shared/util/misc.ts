@@ -18,3 +18,11 @@ export function markAllControlsAsDirty(formGroup: FormGroup | FormArray) {
     }
   }
 }
+
+export function parseNumber(number: string | null | undefined): number | null {
+  if (!number) {
+    return null;
+  }
+  const result = parseInt(number, 10);
+  return isNaN(result) ? null : result;
+}

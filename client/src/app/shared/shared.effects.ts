@@ -3,6 +3,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { of, timer } from 'rxjs';
 import { catchError, first, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
+import { RootState } from '../reducers';
 import { ErrorService } from './errors/error.service';
 import { transformErrorResponse } from './errors/errors';
 import {
@@ -23,9 +24,6 @@ import {
   GetInfoAction,
   GetInfoCompleteAction,
   GetInfoFailedAction,
-  GetMenuAction,
-  GetMenuCompleteAction,
-  GetMenuFailedAction,
   GetSolutionSettingsAction,
   GetSolutionSettingsCompleteAction,
   GetSolutionSettingsFailedAction,
@@ -33,10 +31,13 @@ import {
   SharedActionTypes,
   UpdateAvatarAction,
   UpdateAvatarCompleteAction,
-  UpdateAvatarFailedAction, UpdateLogoAction, UpdateLogoCompleteAction, UpdateLogoFailedAction,
+  UpdateAvatarFailedAction,
+  UpdateLogoAction,
+  UpdateLogoCompleteAction,
+  UpdateLogoFailedAction,
 } from './shared.actions';
 import { SharedService } from './shared.service';
-import { getApps, getAppStatistics, getServiceIdentityInfo, getServiceMenu, SharedState } from './shared.state';
+import { getApps, getAppStatistics, getServiceIdentityInfo } from './shared.state';
 
 @Injectable({ providedIn: 'root' })
 export class SharedEffects {
@@ -49,20 +50,7 @@ export class SharedEffects {
       retryWhen(attempts => attempts.pipe(mergeMap(() => timer(2000)))),
     ))));
 
-   getMenu$ = createEffect(() => this.actions$.pipe(
-    ofType<GetMenuAction>(SharedActionTypes.GET_MENU),
-    switchMap(() => this.store.pipe(select(getServiceMenu), first())),
-    switchMap(menu => {
-      if (menu.success && menu.data) {
-        return of(new GetMenuCompleteAction(menu.data));
-      }
-      return this.sharedService.getMenu().pipe(
-        map(forms => new GetMenuCompleteAction(forms)),
-        catchError(err => of(new GetMenuFailedAction(transformErrorResponse(err)))));
-    }),
-  ));
-
-   getInfo$ = createEffect(() => this.actions$.pipe(
+  getInfo$ = createEffect( () => this.actions$.pipe(
     ofType<GetInfoAction>(SharedActionTypes.GET_INFO),
     switchMap(() => this.store.pipe(select(getServiceIdentityInfo), first())),
     switchMap(info => {
@@ -141,7 +129,7 @@ export class SharedEffects {
   ));
 
   constructor(private actions$: Actions<SharedActions>,
-              private store: Store<SharedState>,
+              private store: Store<RootState>,
               private errorService: ErrorService,
               private sharedService: SharedService) {
   }

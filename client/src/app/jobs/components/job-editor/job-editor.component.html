@@ -1,0 +1,113 @@
+<form (ngSubmit)="submit()" [formGroup]="formGroup" class="job-form">
+  <ng-container [ngTemplateOutlet]="buttonsTemplate"></ng-container>
+  <div class="dual-fields">
+    <mat-form-field>
+      <mat-label>{{ 'oca.job_domain' | translate }}</mat-label>
+      <mat-select formControlName="job_domains" multiple required>
+        <mat-option *ngFor="let jobDomain of JOB_DOMAINS" [value]="jobDomain.type">
+          {{ jobDomain.label | translate }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field formGroupName="contract">
+      <mat-label>{{ 'oca.contract_type' | translate }}</mat-label>
+      <mat-select formControlName="type" required>
+        <mat-option *ngFor="let contractType of CONTRACT_TYPES" [value]="contractType.type">
+          {{ contractType.label | translate }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div class="field">
+    <mat-form-field formGroupName="employer">
+      <mat-label>{{ 'oca.employer_name' | translate }}</mat-label>
+      <input formControlName="name" matInput required>
+    </mat-form-field>
+  </div>
+  <h4 class="fields-description">{{ 'oca.location' | translate }}</h4>
+  <div class="dual-fields" formGroupName="location">
+    <mat-form-field>
+      <mat-label>{{ 'oca.street_name' | translate }}</mat-label>
+      <input formControlName="street" matInput required>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'oca.street_number' | translate }}</mat-label>
+      <input formControlName="street_number" matInput required>
+    </mat-form-field>
+  </div>
+  <div class="dual-fields" formGroupName="location">
+    <mat-form-field>
+      <mat-label>{{ 'oca.postal_code' | translate }}</mat-label>
+      <input formControlName="postal_code" matInput required>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'oca.city' | translate }}</mat-label>
+      <input formControlName="city" matInput required>
+    </mat-form-field>
+  </div>
+  <h4 class="fields-description">{{ 'oca.contact_information' | translate }}</h4>
+  <div class="dual-fields" formGroupName="contact_information">
+    <mat-form-field>
+      <mat-label>{{ 'oca.Email' | translate }}</mat-label>
+      <input email formControlName="email" matInput required type="email">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'oca.Phone number' | translate }}</mat-label>
+      <input formControlName="phone_number" matInput required type="tel">
+    </mat-form-field>
+  </div>
+  <div class="field">
+    <mat-form-field formGroupName="function">
+      <mat-label>{{ 'oca.job_title' | translate }}</mat-label>
+      <input #title formControlName="title" matInput maxlength="100" required>
+      <mat-hint align="end">{{ title.value.length }} / 100</mat-hint>
+    </mat-form-field>
+  </div>
+  <h4 class="fields-description">{{ 'oca.function_description' | translate }}</h4>
+  <div class="field" formGroupName="function">
+    <td-text-editor [options]="EASYMDE_OPTIONS"
+                    formControlName="description" required></td-text-editor>
+    <p
+      *ngIf="formGroup.controls.function.controls.description.touched && formGroup.controls.function.controls.description.invalid"
+      class="error-message">
+      {{ 'oca.this_field_is_required' | translate }}
+    </p>
+  </div>
+  <div class="field">
+    <h4>{{ 'oca.job_profile' | translate }}</h4>
+    <td-text-editor [options]="EASYMDE_OPTIONS" formControlName="profile"></td-text-editor>
+    <p *ngIf="formGroup.controls.profile.touched && formGroup.controls.profile.invalid" class="error-message">
+      {{ 'oca.this_field_is_required' | translate }}
+    </p>
+  </div>
+  <div class="field">
+    <h4>{{ 'oca.job_description' | translate }}</h4>
+    <td-text-editor [options]="EASYMDE_OPTIONS" formControlName="details" required></td-text-editor>
+    <p *ngIf="formGroup.controls.details.touched && formGroup.controls.details.invalid" class="error-message">
+      {{ 'oca.this_field_is_required' | translate }}
+    </p>
+  </div>
+  <ng-container [ngTemplateOutlet]="buttonsTemplate"></ng-container>
+  <ng-template #buttonsTemplate>
+    <p *ngIf="canPublish && formGroup.controls.start_date.value as startDate" class="publish-info">
+      {{ 'oca.your_job_will_be_published' | translate : {date: startDate | date : 'mediumDate'} }}
+    </p>
+    <div class="action-buttons">
+      <button [disabled]="disabled" mat-raised-button>{{ 'oca.Save' | translate }}</button>
+      <button (click)="createNewsItem.emit()" *ngIf="canUnPublish" mat-raised-button type="button">
+        {{ 'oca.create_news_item' | translate }}
+      </button>
+      <button (click)="publish()" *ngIf="canPublish" [disabled]="disabled" color="primary" mat-raised-button
+              type="button">
+        {{ (formGroup.controls.start_date.value ? 'oca.change_publish_date' : 'oca.publish') | translate }}
+      </button>
+      <button (click)="unPublish()" *ngIf="canUnPublish" [disabled]="disabled" color="warn" mat-raised-button
+              type="button">
+        {{ 'oca.set_inactive' | translate }}
+      </button>
+      <button (click)="remove()" *ngIf="canRemove" [disabled]="disabled" color="warn" mat-raised-button type="button">
+        {{ 'oca.Remove' | translate }}
+      </button>
+    </div>
+  </ng-template>
+</form>

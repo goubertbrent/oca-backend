@@ -634,16 +634,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
 
             # get the login url that matches the /customers/signin path
             # from settings customSigninPaths for now
-            login_url = settings.baseUrl
-            for url, path in chunks(settings.customSigninPaths, 2):
-                if path.startswith('/customers/signin'):
-                    login_url = 'https://%s%s/%s' % (url, path, customer.default_app_id)
-                    # TODO properly determine which custom signin path to use
-                    if 'threefold' in customer.default_app_id:
-                        continue
-                    else:
-                        break
-            parsed_login_url = urlparse.urlparse(login_url)
+            parsed_login_url = urlparse.urlparse(settings.get_signin_url(customer.default_app_id))
             action = shop_translate(customer.language, 'password_reset')
             reset_password_link = password = None
             if not user_exists:

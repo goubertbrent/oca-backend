@@ -1,0 +1,24 @@
+.page-title {
+  text-align: center;
+  width: 100%;
+}
+
+.jobs-list {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+}
+
+.job-card {
+  width: 300px;
+  margin: 16px 0;
+}
+
+.card-title {
+  display: flex;
+  width: 284px;
+
+  span {
+    flex-grow: 1;
+  }
+}

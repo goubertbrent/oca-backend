@@ -31,6 +31,7 @@ from rogerthat.consts import DEBUG
 from rogerthat.dal import parent_key, parent_key_unsafe, parent_ndb_key
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.common import NdbModel
+from rogerthat.models.news import NewsGroup
 from rogerthat.rpc import users
 from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import now

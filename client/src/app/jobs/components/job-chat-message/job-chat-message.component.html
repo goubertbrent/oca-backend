@@ -1,0 +1,11 @@
+<div [@new-animation]="animationState"
+     [class.not-reply]="!reply"
+     [class.reply]="reply"
+     class="message-container">
+  <div class="message">
+    <span class="job-chat-message-sender">
+      <ng-container *ngIf="sender">{{ sender }} - </ng-container>
+      <time>{{ date  | dynamicDate : true }}</time></span>
+    <p class="job-chat-message-text">{{ message }}</p>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-import { initialStateResult, patchItem, ResultState, stateError, stateLoading, stateSuccess, updateItem } from '../shared/util';
+import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess, updateItem } from '../shared/util';
 import { ExportVoucherServices, VouchersServiceList } from './vouchers';
 import { VouchersActions, VouchersActionTypes } from './vouchers.actions';
 
@@ -24,7 +24,7 @@ export function vouchersReducer(state = initialState, action: VouchersActions): 
         services: stateSuccess({ ...action.payload, results: [...(state.services.result?.results ?? []), ...action.payload.results] }),
       };
     case VouchersActionTypes.GET_SERVICES_FAILED:
-      return { ...state, services: stateError(action.payload.error, state.services.result) };
+      return { ...state, services: stateError(action.error, state.services.result) };
     case VouchersActionTypes.SAVE_VOUCHER_PROVIDER:
       break;
     case VouchersActionTypes.SAVE_VOUCHER_SETTINGS_SUCCESS:
@@ -36,13 +36,13 @@ export function vouchersReducer(state = initialState, action: VouchersActions): 
         }),
       };
     case VouchersActionTypes.SAVE_VOUCHER_FAILED:
-      return { ...state, services: stateError(action.payload.error, state.services.result) };
+      return { ...state, services: stateError(action.error, state.services.result) };
     case VouchersActionTypes.EXPORT_VOUCHER_SERVICES:
       return { ...state, export: stateLoading(initialState.export.result) };
     case VouchersActionTypes.EXPORT_VOUCHER_SERVICES_SUCCESS:
       return { ...state, export: stateSuccess(action.payload) };
     case VouchersActionTypes.EXPORT_VOUCHER_SERVICES_FAILED:
-      return { ...state, export: stateError(action.payload.error, state.export.result) };
+      return { ...state, export: stateError(action.error, state.export.result) };
   }
   return state;
 }

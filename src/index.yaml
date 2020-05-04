@@ -795,3 +795,10 @@ indexes:
   ancestor: yes
   properties:
   - name: cloudstorage_path
+
+- kind: JobSolicitation
+  ancestor: yes
+  properties:
+  - name: status
+  - name: update_date
+    direction: desc

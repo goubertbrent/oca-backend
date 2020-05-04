@@ -27,17 +27,29 @@
     var LOGIN_ACCOUNT_DEACTIVATED = 5;
     var LOGIN_FAILED_SERVICE_DISABLED = 6;
 
-    $('form').submit(function(event){
-      event.preventDefault();
+    $('form').submit(function (event) {
+        event.preventDefault();
     });
 
     init();
 
+    function getQueryVariable(name) {
+        var query = window.location.search.substring(1);
+        var vars = query.split('&');
+        for (var i = 0; i < vars.length; i++) {
+            var pair = vars[i].split('=');
+            if (decodeURIComponent(pair[0]) === name) {
+                return decodeURIComponent(pair[1]);
+            }
+        }
+    }
+
     function init() {
         $('#signin_button').click(signin);
-        $('input').keydown(function(event) {
+        $('input').keydown(function (event) {
             $('#errors').hide();
         });
+        $('#email').val(getQueryVariable('email'));
     }
 
     function showError(message) {

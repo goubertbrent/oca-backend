@@ -28,7 +28,6 @@ import { UploadFileDialogComponent } from './upload-file-dialog/upload-file-dial
     MatRippleModule,
     MatButtonToggleModule,
   ],
-  entryComponents: [ UploadFileDialogComponent ],
   exports: [ UploadFileDialogComponent, ImageCropperComponent ],
 })
 export class UploadFileModule {

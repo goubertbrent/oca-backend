@@ -1,0 +1,40 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button routerLink="..">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.Settings' | translate }}</h1>
+</mat-toolbar>
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
+<form (ngSubmit)="save()" [formGroup]="formGroup" class="jobs-settings-form">
+  <h3>{{ 'oca.notifications' | translate }}</h3>
+  <mat-selection-list formControlName="notifications" multiple>
+    <mat-list-option *ngFor="let notificationType of notificationTypes" [value]="notificationType.value">
+      <h3 matLine>{{ notificationType.label | translate }}</h3>
+      <p matLine>{{ notificationType.description | translate }}</p>
+    </mat-list-option>
+  </mat-selection-list>
+  <mat-form-field class="jobs-settings-emails">
+    <mat-label>{{ 'oca.emails' | translate }}</mat-label>
+    <mat-chip-list #chipList
+                   [errorStateMatcher]="emailErrorMatcher"
+                   formControlName="emails">
+      <mat-chip (removed)="removeEmail(email)" *ngFor="let email of formGroup.controls.emails.value" removable>
+        {{ email }}
+        <mat-icon matChipRemove>cancel</mat-icon>
+      </mat-chip>
+      <input #emailInput="ngModel"
+             (matChipInputTokenEnd)="addEmail($event)"
+             [matChipInputFor]="chipList"
+             [ngModelOptions]="{standalone: true}"
+             email
+             matChipInputAddOnBlur
+             ngModel
+             type="email">
+    </mat-chip-list>
+    <mat-hint>{{ 'oca.notifications_will_be_sent_to_emails' | translate }}</mat-hint>
+    <mat-error>{{ 'oca.enter_valid_email' | translate }}</mat-error>
+  </mat-form-field>
+  <div class="jobs-settings-save-button">
+    <button [disabled]="loading$ | async" mat-raised-button>{{ 'oca.Save' | translate }}</button>
+  </div>
+</form>

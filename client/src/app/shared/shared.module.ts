@@ -22,7 +22,6 @@ import { GoogleChartsModule } from 'angular-google-charts';
 import { environment } from '../../environments/environment';
 import { SimpleDialogComponent } from './dialog/simple-dialog.component';
 import { LoadableComponent } from './loadable/loadable.component';
-import { MarkdownPipe } from './pipes/markdown.pipe';
 import { SharedEffects } from './shared.effects';
 import { sharedReducer } from './shared.reducer';
 import { UserAutoCompleteDialogComponent } from './users/components/user-auto-complete-dialog/user-auto-complete-dialog.component';
@@ -35,7 +34,6 @@ import { MaxValidator, MinValidator } from './validators/validators';
     LoadableComponent,
     UserAutocompleteComponent,
     UserAutoCompleteDialogComponent,
-    MarkdownPipe,
     MinValidator,
     MaxValidator,
   ],
@@ -60,15 +58,11 @@ import { MaxValidator, MinValidator } from './validators/validators';
     MatIconModule,
     MatInputModule,
     MatListModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
   ],
-  entryComponents:
-    [
-      SimpleDialogComponent,
-      UserAutoCompleteDialogComponent,
-    ],
   exports: [
     GoogleChartsModule,
     AgmCoreModule,
@@ -93,7 +87,6 @@ import { MaxValidator, MinValidator } from './validators/validators';
     LoadableComponent,
     UserAutocompleteComponent,
     UserAutoCompleteDialogComponent,
-    MarkdownPipe,
     MinValidator,
     MaxValidator,
   ],

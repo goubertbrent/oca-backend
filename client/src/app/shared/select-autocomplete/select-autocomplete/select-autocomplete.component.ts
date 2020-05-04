@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, Input, OnDestroy, OnInit } from '@angular/core';
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { MatOption } from '@angular/material/core';
 import { MatSelectChange } from '@angular/material/select';
 import { Subject } from 'rxjs';
+import { FormControlTyped } from '../../util/forms';
 
 type SelectValueType = string | number;
 
@@ -10,6 +12,8 @@ export interface SelectAutocompleteOption {
   value: SelectValueType;
   disabled?: boolean;
 }
+
+const sortOptions = (first: SelectAutocompleteOption, second: SelectAutocompleteOption): number => first.label.localeCompare(second.label);
 
 @Component({
   selector: 'oca-select-autocomplete',
@@ -31,11 +35,6 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   constructor(private changeDetectorRef: ChangeDetectorRef) {
   }
 
-  @Input() set options(value: SelectAutocompleteOption[]) {
-    this._options = value;
-    this.setOptions();
-  }
-
   @Input() label: string;
   @Input() searchPlaceholder: string;
   @Input() placeholder: string;
@@ -44,10 +43,18 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   @Input() errorMsg: string;
   @Input() selectedOptions: SelectValueType | SelectValueType[];
   @Input() multiple = true;
+  @Input() maxOptions = 20;
+
+  formControl: FormControlTyped<null | SelectValueType | SelectValueType[]> = new FormControl();
 
   filteredOptions$ = new Subject<SelectAutocompleteOption[]>();
-  formControl = new FormControl();
-  filterFormControl = new FormControl();
+  filterFormControl: FormControlTyped<string> = new FormControl();
+
+  @Input() set options(value: SelectAutocompleteOption[] | null) {
+    this._options = value ?? [];
+    this.setOptions();
+  }
+
   private destroyed$ = new Subject();
 
   private _options: SelectAutocompleteOption[] = [];
@@ -68,6 +75,10 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   onSelectionChange(val: MatSelectChange) {
     this.formControl.setValue(val.value);
     this.onChange(val.value);
+  }
+
+  selectClosed() {
+    this.filterFormControl.reset();
   }
 
   trackByFn(index: number, item: SelectAutocompleteOption) {
@@ -101,9 +112,34 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   private onTouched = () => {
   };
 
+  /**
+   * The options are already sorted in setOptions, but we need to overwrite the comparator to avoid mat-select sorting it by value
+   */
+  sortOptionsComparator(first: MatOption, second: MatOption, options: MatOption[]): number {
+    return 0;
+  }
+
   private setOptions() {
     const lowerValue = this.filterFormControl.value?.toLowerCase().trim();
-    const options = lowerValue ? this._options.filter(item => item.label.toLowerCase().includes(lowerValue)) : this._options;
-    this.filteredOptions$.next(options);
+    const filtered: SelectAutocompleteOption[] = [];
+    const value = this.formControl.value;
+    let selectedValues: SelectValueType[] = [];
+    if (Array.isArray(value)) {
+      selectedValues = value;
+    } else {
+      if (value != null) {
+        selectedValues = [value];
+      }
+    }
+    const selected: SelectAutocompleteOption[] = [];
+    for (const option of this._options) {
+      // must always include selected options, otherwise the value could be incorrect
+      if (selectedValues.includes(option.value)) {
+        selected.push(option);
+      } else if (filtered.length < this.maxOptions && option.label.toLowerCase().includes(lowerValue)) {
+        filtered.push(option);
+      }
+    }
+    this.filteredOptions$.next(filtered.sort(sortOptions).concat(selected.sort(sortOptions)));
   }
 }

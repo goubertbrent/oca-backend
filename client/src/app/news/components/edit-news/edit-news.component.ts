@@ -19,7 +19,7 @@ import { BrandingSettings } from '../../../shared/interfaces/oca';
 import { App, AppStatisticsMapping, NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
-import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS, OPEN_OPTIONS } from '../../consts';
+import { GENDER_OPTIONS, NEWS_MEDIA_TYPE_OPTIONS } from '../../consts';
 import {
   BaseMedia,
   CreateNews,
@@ -45,12 +45,11 @@ import {
 })
 export class EditNewsComponent implements OnChanges {
   @Input() published: boolean;
-  @Input() status: Loadable<any>;
+  @Input() status: Loadable;
   @Input() apps: App[];
   @Input() appStatistics: AppStatisticsMapping;
   @Input() serviceInfo: ServiceIdentityInfo | null;
   @Input() options: Loadable<NewsOptions>;
-  @Input() actionButtons: Loadable<Readonly<UINewsActionButton>[]>;
   @Input() remainingBudget: string;
   @Input() brandingSettings: BrandingSettings | null;
   @Output() save = new EventEmitter<CreateNews>();
@@ -71,7 +70,6 @@ export class EditNewsComponent implements OnChanges {
   NewsActionButtonType = NewsActionButtonType;
   GENDERS = GENDER_OPTIONS;
   NEWS_MEDIA_TYPE_OPTIONS: { label: string; value: MediaType | null }[] = [];
-  openOptions = OPEN_OPTIONS;
   MediaType = MediaType;
   URL_PATTERN = '(https?:\\/\\/)?([\\w\\-])+\\.{1}([a-zA-Z]{2,63})([\\/\\w-]*)*\\/?\\??([^#\\n\\r]*)?#?([^\\n\\r]*)';
   hasGroupVisible = false;
@@ -94,12 +92,12 @@ export class EditNewsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.actionButtons.data && this.newsItem && this.newsItem.action_button) {
+    if (this.options.data && this.newsItem?.action_button) {
       this.setActionButton(this.newsItem.action_button);
     }
-    if (changes.newsItem && changes.newsItem.currentValue) {
+    if (changes.newsItem?.currentValue) {
       this.groupTypeChanged();
-      this.selectedMediaType = this.newsItem.media && this.newsItem.media.type;
+      this.selectedMediaType = this.newsItem.media?.type ?? null;
     }
     if (changes.serviceInfo && this.serviceInfo) {
       this.defaultAppId = this.serviceInfo.default_app;
@@ -114,20 +112,14 @@ export class EditNewsComponent implements OnChanges {
         this.appMapping[ app.id ] = app;
       }
     }
-    if (changes.options && this.options && this.options.data) {
+    if (changes.options && this.options?.data) {
       const mediaTypes = this.options.data.media_types;
       this.NEWS_MEDIA_TYPE_OPTIONS = NEWS_MEDIA_TYPE_OPTIONS.filter(o => o.value === null || mediaTypes.includes(o.value));
     }
   }
 
-  actionButtonSelected(event: MatSelectChange) {
-    if (this.actionButtons.data) {
-      this.newsItem = { ...this.newsItem, action_button: this.actionButton ? this.actionButton.button : null };
-      if (this.actionButton && this.actionButton.type === NewsActionButtonType.OPEN) {
-        // Ensure correct label
-        this.setOpenAction(this.actionButton.params.action);
-      }
-    }
+  actionButtonSelected() {
+    this.newsItem = { ...this.newsItem, action_button: this.actionButton?.button ?? null };
   }
 
   compareActionButtons(toCompare: UINewsActionButton, selectedValue: UINewsActionButton | null) {
@@ -142,12 +134,20 @@ export class EditNewsComponent implements OnChanges {
       this.actionButton = null;
       return;
     }
-    if (this.actionButtons.data) {
-      this.actionButton = this.actionButtons.data.find(b => b.button.id === button.id) || null;
-      if (!this.actionButton) {
+    if (this.options.data) {
+      const actionButton = this.options.data.action_buttons.find(b => {
+        switch (b.type) {
+          case NewsActionButtonType.MENU_ITEM:
+          case NewsActionButtonType.OPEN:
+            return b.button.action === button.action;
+          default:
+            return b.button.id === button.id;
+        }
+      });
+      if (!actionButton) {
         return;
       }
-      this.actionButton = { ...this.actionButton, button: { ...this.actionButton.button, caption: button.caption, action: button.action } };
+      this.actionButton = { ...actionButton, button };
       switch (this.actionButton.type) {
         case NewsActionButtonType.PHONE:
           this.actionButton.phone = button.action.split('tel://')[ 1 ] || button.action;
@@ -158,15 +158,6 @@ export class EditNewsComponent implements OnChanges {
         case NewsActionButtonType.MENU_ITEM:
           // After publishing an item, the tag is hashed. Ensure it isn't hashed twice by resetting it here.
           this.actionButton.button.action = `smi://${button.id}`;
-          break;
-        case NewsActionButtonType.OPEN:
-          const split = button.action.split('open://')[ 1 ];
-          try {
-            this.actionButton.params = JSON.parse(split);
-          } catch (e) {
-            console.error(`Could not parse action button params: ${split}`);
-            this.actionButton.params = { action: 'scan' };
-          }
           break;
       }
     }
@@ -198,16 +189,6 @@ export class EditNewsComponent implements OnChanges {
       this.newsItem = { ...this.newsItem, action_button: null };
     }
     this.setActionButton(this.newsItem.action_button);
-  }
-
-  setOpenAction(action: string) {
-    if (this.actionButton && this.actionButton.type === NewsActionButtonType.OPEN) {
-      const item = OPEN_OPTIONS.find(o => o.value === action);
-      if (item) {
-        this.actionButton.button.caption = this._translate.instant(item.label);
-      }
-      this.updateButton(JSON.stringify({ ...this.actionButton.params, action }));
-    }
   }
 
   toggleScheduledAt() {

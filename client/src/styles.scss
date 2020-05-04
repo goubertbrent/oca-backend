@@ -1,6 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 @import '~cropperjs/dist/cropper.css';
 @import '~@angular/material/theming';
+@import './themes/app-theme';
 // Plus imports for other components in your app.
 
 // Include the common styles for Angular Material. We include this here so that you only
@@ -8,13 +9,9 @@
 // **Be sure that you only ever include this mixin once!**
 @include mat-core();
 
-// Define the default theme (same as the example above).
-$oca-app-primary: mat-palette($mat-cyan);
-$oca-app-accent: mat-palette($mat-deep-purple, A200, A100, A400);
-$oca-app-theme: mat-light-theme($oca-app-primary, $oca-app-accent);
-
-// Include the default theme styles.
-@include angular-material-theme($oca-app-theme);
+// Default theme
+@include angular-material-theme($theme);
+@include material-dashboard-app-theme($theme);
 
 html, body {
   font-family: Roboto, sans-serif;
@@ -23,7 +20,10 @@ html, body {
   margin: 0;
 }
 
-.full-height {
+oca-app {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   height: 100%;
 }
 
@@ -35,7 +35,6 @@ html, body {
 }
 
 .flex-grow {
-  display: flex;
   flex-grow: 1;
 }
 
@@ -71,6 +70,7 @@ fieldset {
   min-height: 26px;
 }
 
+/* <editor-fold desc="@angular/components changes">*/
 .mat-stepper-vertical {
   // By default this is white, reset to whatever the background of the parent component is.
   background-color: inherit;
@@ -80,6 +80,12 @@ fieldset {
   // By default it's set to 280px which may not be enough
   max-width: none !important;
 }
+
+.mat-card-header-text {
+  margin: 0 !important;
+}
+
+/* </editor-fold> */
 
 /* <editor-fold defaultstate="collapsed" desc="Mapael">*/
 .mapTooltip {

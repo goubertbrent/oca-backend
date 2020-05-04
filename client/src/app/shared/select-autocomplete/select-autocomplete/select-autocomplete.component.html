@@ -2,9 +2,11 @@
   <mat-label>{{ label }}</mat-label>
   <mat-select (opened)="filterFormControl.reset()"
               (selectionChange)="onSelectionChange($event)"
+              (closed)="selectClosed()"
               [formControl]="formControl"
               [multiple]="multiple"
               [placeholder]="placeholder"
+              [sortComparator]="sortOptionsComparator"
               [required]="required">
     <div class="search-box">
       <input [formControl]="filterFormControl"

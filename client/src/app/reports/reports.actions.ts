@@ -1,4 +1,5 @@
 import { Action } from '@ngrx/store';
+import { ErrorAction } from '../shared/errors/errors';
 import { MapConfig } from './maps';
 import { Incident, IncidentList, IncidentStatus } from './pages/reports';
 
@@ -34,7 +35,7 @@ export class GetIncidentsCompleteAction implements Action {
   }
 }
 
-export class GetIncidentsFailedAction implements Action {
+export class GetIncidentsFailedAction implements ErrorAction {
   readonly type = ReportsActionTypes.GET_INCIDENTS_FAILED;
 
   constructor(public error: string) {
@@ -55,7 +56,7 @@ export class GetIncidentCompleteAction implements Action {
   }
 }
 
-export class GetIncidentFailedAction implements Action {
+export class GetIncidentFailedAction implements ErrorAction {
   readonly type = ReportsActionTypes.GET_INCIDENT_FAILED;
 
   constructor(public error: string) {
@@ -76,7 +77,7 @@ export class UpdateIncidentCompleteAction implements Action {
   }
 }
 
-export class UpdateIncidentFailedAction implements Action {
+export class UpdateIncidentFailedAction implements ErrorAction {
   readonly type = ReportsActionTypes.UPDATE_INCIDENT_FAILED;
 
   constructor(public error: string) {
@@ -94,7 +95,7 @@ export class GetMapConfigCompleteAction implements Action {
   }
 }
 
-export class GetMapConfigFailedAction implements Action {
+export class GetMapConfigFailedAction implements ErrorAction {
   readonly type = ReportsActionTypes.GET_MAP_CONFIG_FAILED;
 
   constructor(public error: string) {
@@ -115,7 +116,7 @@ export class SaveMapConfigCompleteAction implements Action {
   }
 }
 
-export class SaveMapConfigFailedAction implements Action {
+export class SaveMapConfigFailedAction implements ErrorAction {
   readonly type = ReportsActionTypes.SAVE_MAP_CONFIG_FAILED;
 
   constructor(public error: string) {

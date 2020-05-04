@@ -1,20 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ServiceMenuDetail } from '../shared/interfaces/rogerthat';
-import { Loadable, NonNullLoadable, onLoadableSuccess } from '../shared/loadable/loadable';
-import { OPEN_OPTIONS } from './consts';
-import {
-  CityAppLocations,
-  CreateNews,
-  NewsActionButtonMenuItem,
-  NewsActionButtonType,
-  NewsItem,
-  NewsItemList,
-  NewsOptions,
-  NewsStats,
-  UINewsActionButton,
-} from './interfaces';
+import { CityAppLocations, CreateNews, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class NewsService {
@@ -56,55 +43,6 @@ export class NewsService {
     return this._http.get<CityAppLocations>(`/common/locations/${appId}`);
   }
 
-  getActionButtons(menu: Loadable<ServiceMenuDetail>): NonNullLoadable<Readonly<UINewsActionButton>[]> {
-    if (menu.data) {
-      const defaultOpenOption = OPEN_OPTIONS[ 0 ];
-      const result: UINewsActionButton[] = [
-        {
-          type: NewsActionButtonType.WEBSITE,
-          label: this._translate.instant('oca.Website'),
-          button: { action: '', caption: this._translate.instant('oca.open_website'), id: 'url' },
-        },
-        {
-          type: NewsActionButtonType.ATTACHMENT,
-          label: this._translate.instant('oca.Attachment'),
-          button: { action: '', caption: this._translate.instant('oca.Attachment'), id: 'attachment' },
-        },
-        {
-          type: NewsActionButtonType.EMAIL,
-          label: this._translate.instant('oca.email_address'),
-          email: '',
-          button: { action: '', caption: this._translate.instant('oca.send_email'), id: 'email' },
-        },
-        {
-          type: NewsActionButtonType.PHONE,
-          label: this._translate.instant('oca.Phone number'),
-          phone: '',
-          button: { action: '', caption: this._translate.instant('oca.Call'), id: 'phone' },
-        },
-        {
-          type: NewsActionButtonType.OPEN,
-          label: this._translate.instant('oca.open_app_function'),
-          params: { action: defaultOpenOption.value },
-          button: {
-            action: `open://{"action": "${defaultOpenOption.value}"}`,
-            caption: this._translate.instant(defaultOpenOption.label),
-            id: 'open',
-          },
-        },
-        // use 'as' to ignore bug in typescript: Type 'NewsActionButtonType' is not assignable to type 'NewsActionButtonType.MENU_ITEM'.
-        ...menu.data.items.map(item => ({
-          type: NewsActionButtonType.MENU_ITEM,
-          label: item.label,
-          button: { action: `smi://${item.tag}`, caption: item.label.slice(0, 15), id: item.tag },
-        } as NewsActionButtonMenuItem)),
-      ];
-      return onLoadableSuccess(result);
-    } else {
-      return { ...menu, data: [] };
-    }
-  }
-
   copyNewsItem(newsItem: NewsItem): CreateNews {
     return {
       app_ids: newsItem.app_ids,
@@ -118,7 +56,6 @@ export class NewsService {
       media: newsItem.media,
       message: newsItem.message,
       role_ids: newsItem.role_ids,
-      tags: newsItem.tags,
       target_audience: newsItem.target_audience,
       title: newsItem.title,
       type: newsItem.type,

@@ -63,7 +63,8 @@ from solutions.common.bizz.city_vouchers import solution_voucher_resolve, soluti
 from solutions.common.bizz.coupons import API_METHOD_SOLUTION_COUPON_REDEEM, solution_coupon_redeem, \
     solution_coupon_resolve, API_METHOD_SOLUTION_COUPON_RESOLVE
 from solutions.common.bizz.customer_signups import deny_signup
-from solutions.common.bizz.discussion_groups import poke_discussion_groups, follow_discussion_groups
+from solutions.common.bizz.discussion_groups import poke_discussion_groups, follow_discussion_groups, \
+    discussion_group_deleted
 from solutions.common.bizz.events import API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, add_event_to_calender, \
     API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events,\
     get_events_announcements, API_METHOD_SOLUTION_EVENTS_ANNOUNCEMENTS
@@ -95,6 +96,7 @@ from solutions.common.integrations.cirklo import cirklo
 from solutions.common.integrations.jcc import jcc_appointments
 from solutions.common.integrations.jcc.models import JccApiMethod
 from solutions.common.integrations.qmatic import qmatic
+from solutions.common.jobs.solicitations import chat_send_job_solicitation_message, chat_disable_solicitation
 from solutions.common.migrations.trash_calendar.bizz import POKE_TAG_TRASH_CALENDAR_TRANSFER_ADDRESS, \
     trash_transfer_address_pressed
 from solutions.common.models import SolutionMessage, SolutionScheduledBroadcast, SolutionInboxMessage, \
@@ -145,6 +147,8 @@ MESSAGE_TAG_MY_RESERVATIONS_DETAIL = u'my-reservations-detail'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT = u'my-reservations-edit-comment'
 MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE = u'my-reservations-edit-people'
 MESSAGE_TAG_DENY_SIGNUP = u'deny-signup'
+
+MESSAGE_TAG_CHAT_JOB_SOLICITATION = u"__sln__.chat_job_solicitation"
 
 
 def _get_step_with_id(steps, step_id):
@@ -963,9 +967,12 @@ FLOW_STATISTICS_MAPPING = {
 }
 
 CHAT_DELETED_MAPPING = {
-    POKE_TAG_CHAT_ASK_QUESTION: chat_question_deleted
+    POKE_TAG_CHAT_ASK_QUESTION: chat_question_deleted,
+    POKE_TAG_DISCUSSION_GROUPS: discussion_group_deleted,
+    MESSAGE_TAG_CHAT_JOB_SOLICITATION: chat_disable_solicitation,
 }
 
 CHAT_NEW_MESSAGE_MAPPING = {
-    POKE_TAG_CHAT_ASK_QUESTION: chat_question_new_message
+    POKE_TAG_CHAT_ASK_QUESTION: chat_question_new_message,
+    MESSAGE_TAG_CHAT_JOB_SOLICITATION: chat_send_job_solicitation_message,
 }

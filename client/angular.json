@@ -34,7 +34,12 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              {
+                "inject": false,
+                "input": "src/themes/dark.scss",
+                "bundleName": "dark"
+              }
             ],
             "es5BrowserSupport": true
           },

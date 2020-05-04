@@ -7,7 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
 import { SharedState } from '../shared.state';
-import { ApiError } from './errors';
+import { ApiError, ErrorAction } from './errors';
 
 @Injectable({ providedIn: 'root' })
 export class ErrorService {
@@ -47,16 +47,16 @@ export class ErrorService {
     return this.translate.instant('oca.error-occured-unknown-try-again');
   }
 
-  toAction(action: any, error: any): Observable<Action> {
+  toAction(action: new(error: string) => ErrorAction, error: any): Observable<ErrorAction> {
     const message = this.getMessage(error);
-    return of(new (action as any)(message));
+    return of(new action(message));
   }
 
   /**
    * Shows a snackbar with a 'retry' button to retry the failed action
    */
-  handleError(originalAction: Action, failAction: any, error: any, duration?: number): Observable<Action> {
-    this.showRetrySnackbar(originalAction, error, { duration });
+  handleError<T>(originalAction: Action, failAction: new(error: string) => ErrorAction, error: any, duration?: number): Observable<Action> {
+    this.showRetrySnackbar(originalAction, error, { duration: duration ?? 10000 });
     return this.toAction(failAction, error);
   }
 

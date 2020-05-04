@@ -9,7 +9,10 @@ import { ErrorService } from '../shared/errors/error.service';
 import {
   GetAvailablePlaceTypesAction,
   GetAvailablePlaceTypesCompleteAction,
-  GetAvailablePlaceTypesFailedAction, GetCountriesAction, GetCountriesCompleteAction, GetCountriesFailedAction,
+  GetAvailablePlaceTypesFailedAction,
+  GetCountriesAction,
+  GetCountriesCompleteAction,
+  GetCountriesFailedAction,
   GetOpeningHoursAction,
   GetOpeningHoursCompleteAction,
   GetOpeningHoursFailedAction,
@@ -67,7 +70,7 @@ export class SettingsEffects {
    getAvailablePlaceTypes$ = createEffect(() => this.actions$.pipe(
     ofType<GetAvailablePlaceTypesAction>(SettingsActionTypes.GET_AVAILABLE_PLACE_TYPES),
     switchMap(action => this.settingsService.getAvailablePlaceTypes().pipe(
-      map(result => new GetAvailablePlaceTypesCompleteAction(result)),
+      map(result => new GetAvailablePlaceTypesCompleteAction(result.results)),
       catchError(err => this.errorService.handleError(action, GetAvailablePlaceTypesFailedAction, err)))),
   ));
 

@@ -4,14 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { combineLatest, Observable, Subject, Subscription } from 'rxjs';
-import { filter, first, map, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
+import { Observable, Subject, Subscription } from 'rxjs';
+import { first, map, take, takeUntil, tap, withLatestFrom } from 'rxjs/operators';
 import { CreateNews } from '../../../news/interfaces';
 import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/simple-dialog.component';
-import { NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
+import { NewsGroupType } from '../../../shared/interfaces/rogerthat';
 import { Loadable } from '../../../shared/loadable/loadable';
-import { GetInfoAction } from '../../../shared/shared.actions';
-import { getServiceIdentityInfo } from '../../../shared/shared.state';
 import {
   UserAutoCompleteDialogComponent,
   UserDialogData,
@@ -174,47 +172,27 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   }
 
   createNews() {
-    this.store.dispatch(new GetInfoAction());
-    combineLatest([
-      this.form$.pipe(
-        take(1),
-        takeUntil(this._destroyed),
-      ),
-      this.store.pipe(
-        select(getServiceIdentityInfo),
-        filter(i => i.data !== null),
-        takeUntil(this._destroyed),
-      ),
-    ]).subscribe(([form, info]) => {
+    this.form$.pipe(take(1), takeUntil(this._destroyed)).subscribe(form => {
       if (!form.data) {
         return;
       }
       const message = form.data.form.sections[ 0 ].description || form.data.form.sections[ 0 ].components[ 0 ].description || '';
       const buttonValue = JSON.stringify({ '__rt__.tag': '__sln__.forms', id: form.data.form.id });
-      const data: CreateNews = {
-        app_ids: [(info.data as ServiceIdentityInfo).default_app],
+      const data: Partial<CreateNews> = {
         action_button: {
           action: `smi://${buttonValue}`,
           caption: form.data.form.title.substring(0, 15),
           flow_params: '{}',
           id: buttonValue,
         },
-        media: null,
         message,
-        qr_code_caption: null,
-        role_ids: [],
-        scheduled_at: null,
-        tags: [ 'news' ],
-        target_audience: null,
         title: form.data.form.title,
         type: 1,
         group_type: form.data.settings.visible_until ? NewsGroupType.POLLS : NewsGroupType.CITY,
-        id: null,
-        locations: null,
         group_visible_until: form.data.settings.visible_until ? new Date(form.data.settings.visible_until) : null,
       };
       localStorage.setItem('news.item', JSON.stringify(data));
-      this.router.navigate([ 'news', 'create' ]);
+      this.router.navigate(['news', 'create']);
       window.top.postMessage({ type: 'oca.set_navigation', path: 'news' }, '*');
     });
   }

@@ -198,11 +198,10 @@ def common_friend_register_result(service_identity, user_details, origin):
 @returns()
 @arguments(parent_message_key=unicode, member=UserDetailsTO, timestamp=int, service_identity=unicode, tag=unicode)
 def common_chat_deleted(parent_message_key, member, timestamp, service_identity, tag):
-    if tag in CHAT_DELETED_MAPPING:
-        handler = CHAT_DELETED_MAPPING[tag]
+    real_tag = _get_human_readable_tag(tag)
+    if real_tag in CHAT_DELETED_MAPPING:
+        handler = CHAT_DELETED_MAPPING[real_tag]
         handler(users.get_current_user(), parent_message_key, member, timestamp, service_identity, tag)
-    elif _get_human_readable_tag(tag) == POKE_TAG_DISCUSSION_GROUPS:
-        discussion_group_deleted(users.get_current_user(), parent_message_key, member, timestamp, service_identity, tag)
     else:
         raise NotImplementedError()
 
@@ -212,8 +211,9 @@ def common_chat_deleted(parent_message_key, member, timestamp, service_identity,
            timestamp=int, tag=unicode, service_identity=unicode, attachments=[AttachmentTO])
 def common_new_chat_message(parent_message_key, message_key, sender, message, answers, timestamp, tag, service_identity,
                             attachments):
-    if tag in CHAT_NEW_MESSAGE_MAPPING:
-        handler = CHAT_NEW_MESSAGE_MAPPING[tag]
+    parsed_tag = _get_human_readable_tag(tag)
+    if parsed_tag in CHAT_NEW_MESSAGE_MAPPING:
+        handler = CHAT_NEW_MESSAGE_MAPPING[parsed_tag]
         handler(users.get_current_user(), parent_message_key, message_key, sender,
                 message, answers, timestamp, tag, service_identity, attachments)
     elif tag and tag.startswith(POKE_TAG_INBOX_FORWARDING_REPLY):

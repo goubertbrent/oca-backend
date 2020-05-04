@@ -15,6 +15,7 @@
 #
 # @@license_version:1.5@@
 
+import solutions.common.jobs.api
 import solutions.common.restapi.billing
 import solutions.common.restapi.city_vouchers
 import solutions.common.restapi.cityapp
@@ -74,30 +75,34 @@ handlers = [
     ('/common/restaurant/menu/export', ExportMenuHandler),
     ('/terms', TermsAndConditionsHandler),
 ]
-
-handlers.extend(rest_functions(solutions.common.restapi))
-handlers.extend(rest_functions(solutions.common.restapi.services))
-handlers.extend(rest_functions(solutions.common.restapi.billing))
-handlers.extend(rest_functions(solutions.common.restapi.cityapp))
-handlers.extend(rest_functions(solutions.common.restapi.city_vouchers))
-handlers.extend(rest_functions(solutions.common.restapi.discussion_groups))
-handlers.extend(rest_functions(solutions.common.restapi.forms))
-handlers.extend(rest_functions(solutions.common.restapi.hints))
-handlers.extend(rest_functions(solutions.common.restapi.locations))
-handlers.extend(rest_functions(solutions.common.restapi.loyalty))
-handlers.extend(rest_functions(solutions.common.restapi.maps))
-handlers.extend(rest_functions(solutions.common.restapi.news))
-handlers.extend(rest_functions(solutions.common.restapi.opening_hours))
-handlers.extend(rest_functions(solutions.common.restapi.order))
-handlers.extend(rest_functions(solutions.common.restapi.participation))
-handlers.extend(rest_functions(solutions.common.restapi.payments))
-handlers.extend(rest_functions(solutions.common.restapi.pharmacy.order))
-handlers.extend(rest_functions(solutions.common.restapi.reservation))
-handlers.extend(rest_functions(solutions.common.restapi.qanda))
-handlers.extend(rest_functions(solutions.common.restapi.reports))
-handlers.extend(rest_functions(solutions.common.restapi.store))
-handlers.extend(rest_functions(solutions.common.restapi.settings))
-handlers.extend(rest_functions(solutions.common.restapi.statistics))
-handlers.extend(rest_functions(vouchers_api))
+modules = [
+    solutions.common.jobs.api,
+    solutions.common.restapi,
+    solutions.common.restapi.services,
+    solutions.common.restapi.billing,
+    solutions.common.restapi.cityapp,
+    solutions.common.restapi.city_vouchers,
+    solutions.common.restapi.discussion_groups,
+    solutions.common.restapi.forms,
+    solutions.common.restapi.hints,
+    solutions.common.restapi.locations,
+    solutions.common.restapi.loyalty,
+    solutions.common.restapi.maps,
+    solutions.common.restapi.news,
+    solutions.common.restapi.opening_hours,
+    solutions.common.restapi.order,
+    solutions.common.restapi.participation,
+    solutions.common.restapi.payments,
+    solutions.common.restapi.pharmacy.order,
+    solutions.common.restapi.reservation,
+    solutions.common.restapi.qanda,
+    solutions.common.restapi.reports,
+    solutions.common.restapi.store,
+    solutions.common.restapi.settings,
+    solutions.common.restapi.statistics,
+    vouchers_api,
+]
+for mod in modules:
+    handlers.extend(rest_functions(mod))
 
 app = AuthenticatedRogerthatWSGIApplication(handlers, name="main_authenticated")

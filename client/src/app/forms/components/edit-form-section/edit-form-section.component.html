@@ -56,7 +56,7 @@
   </div>
   <div class="component-container" cdkDropList (cdkDropListDropped)="dropped($event)">
     <div *ngFor="let component of section.components; let i = index; trackBy: trackByIndex"
-         class="component mat-app-background mat-elevation-z8" cdkDrag>
+         class="component dashboard-app-background mat-elevation-z8" cdkDrag>
       <div class="drag-handle" cdkDragHandle>
         <mat-icon [matTooltip]="'oca.drag_to_change_order' | translate">drag_handle</mat-icon>
       </div>

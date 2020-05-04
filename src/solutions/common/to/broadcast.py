@@ -15,10 +15,12 @@
 #
 # @@license_version:1.5@@
 
-from mcfw.properties import unicode_property, typed_property, bool_property, long_property, unicode_list_property
+from mcfw.properties import unicode_property, typed_property, bool_property, long_property, unicode_list_property, \
+    object_factory
+from mcfw.utils import Enum
 from rogerthat.to import TO
 from rogerthat.to.messaging import AttachmentTO
-from rogerthat.to.news import ServiceNewsGroupTO
+from rogerthat.to.news import ServiceNewsGroupTO, NewsActionButtonTO
 from solutions.common.to import TimestampTO, UrlTO
 
 
@@ -55,9 +57,68 @@ class RegionalNewsSettingsTO(TO):
     map_url = unicode_property('map_url')
 
 
+class BaseNewsButtonTO(TO):
+    label = unicode_property('label')
+    button = typed_property('button', NewsActionButtonTO)
+    icon = unicode_property('icon')
+
+
+class NewsActionButtonType(Enum):
+    WEBSITE = 0
+    PHONE = 1
+    EMAIL = 2
+    ATTACHMENT = 3
+    MENU_ITEM = 4
+    OPEN = 5
+
+
+class NewsActionButtonWebsite(BaseNewsButtonTO):
+    type = long_property('type', default=NewsActionButtonType.WEBSITE)
+
+
+class NewsActionButtonPhone(BaseNewsButtonTO):
+    type = long_property('type', default=NewsActionButtonType.PHONE)
+    phone = unicode_property('phone', default='')
+
+
+class NewsActionButtonEmail(BaseNewsButtonTO):
+    type = long_property('type', default=NewsActionButtonType.EMAIL)
+    email = unicode_property('email', default='')
+
+
+class NewsActionButtonAttachment(BaseNewsButtonTO):
+    type = long_property('type', default=NewsActionButtonType.ATTACHMENT)
+
+
+class NewsActionButtonMenuItem(BaseNewsButtonTO):
+    type = long_property('type', default=NewsActionButtonType.MENU_ITEM)
+
+
+class NewsActionButtonOpen(BaseNewsButtonTO):
+    type = long_property('type', default=NewsActionButtonType.OPEN)
+
+
+NEWS_ACTION_BUTTONS = {
+    NewsActionButtonType.WEBSITE: NewsActionButtonWebsite,
+    NewsActionButtonType.PHONE: NewsActionButtonPhone,
+    NewsActionButtonType.EMAIL: NewsActionButtonEmail,
+    NewsActionButtonType.ATTACHMENT: NewsActionButtonAttachment,
+    NewsActionButtonType.MENU_ITEM: NewsActionButtonMenuItem,
+    NewsActionButtonType.OPEN: NewsActionButtonOpen,
+}
+
+
+class NewsActionButtonFactory(object_factory):
+    type = long_property('type')
+
+    def __init__(self):
+        super(NewsActionButtonFactory, self).__init__('type', NEWS_ACTION_BUTTONS, NewsActionButtonType)
+
+
 class NewsOptionsTO(TO):
     tags = unicode_list_property('tags')
     regional = typed_property('regional', RegionalNewsSettingsTO)
     groups = typed_property('groups', ServiceNewsGroupTO, True)
     media_types = unicode_list_property('media_types')
     location_filter_enabled = bool_property('location_filter_enabled')
+    action_buttons = typed_property('action_buttons', NewsActionButtonFactory(), True)

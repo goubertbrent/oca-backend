@@ -5,6 +5,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
+import { StoreRouterConnectingModule } from '@ngrx/router-store';
 import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { MissingTranslationHandler, MissingTranslationHandlerParams, TranslateLoader, TranslateModule } from '@ngx-translate/core';
@@ -15,6 +16,7 @@ import { CUSTOM_LOCALE_PROVIDER } from './locales';
 import { metaReducers, reducers } from './reducers';
 import { MainHttpInterceptor } from './shared/main-http-interceptor';
 import { SharedModule } from './shared/shared.module';
+import { storeRouterConfig } from './shared/util/store-router';
 
 // AoT requires an exported function for factories
 export function HttpLoaderFactory(http: HttpClient) {
@@ -39,6 +41,7 @@ export const routes: Routes = [
   { path: 'reports', loadChildren: () => import('./reports/reports.module').then(m => m.ReportsModule) },
   { path: 'admin', loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule) },
   { path: 'settings', loadChildren: () => import('./settings/settings.module').then(m => m.SettingsModule) },
+  { path: 'jobs', loadChildren: () => import('./jobs/jobs.module').then(m => m.JobsModule) },
   { path: 'vouchers', loadChildren: () => import('./vouchers/vouchers.module').then(m => m.VouchersModule) },
 ];
 
@@ -50,7 +53,8 @@ export const routes: Routes = [
     HttpClientModule,
     RouterModule.forRoot(routes, { useHash: environment.production }),
     StoreModule.forRoot(reducers, {
-      metaReducers, runtimeChecks: {
+      metaReducers,
+      runtimeChecks: {
         // TODO: enable in dev mode
         strictActionImmutability: false,
         strictActionSerializability: false,
@@ -58,6 +62,7 @@ export const routes: Routes = [
         strictStateSerializability: false,
       },
     }),
+    StoreRouterConnectingModule.forRoot(storeRouterConfig),
     StoreDevtoolsModule.instrument({ maxAge: 25, logOnly: environment.production }),
     EffectsModule.forRoot([]),
     TranslateModule.forRoot({

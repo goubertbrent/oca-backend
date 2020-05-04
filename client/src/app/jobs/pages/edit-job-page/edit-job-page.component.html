@@ -1,0 +1,7 @@
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
+<oca-job-editor (submitted)="onSubmit($event)"
+                (createNewsItem)="createNews()"
+                *ngIf="editJobOffer$ | async as jobOffer"
+                [disabled]="loading$ | async"
+                [isExistingJob]="true"
+                [value]="jobOffer"></oca-job-editor>
