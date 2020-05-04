@@ -35,24 +35,24 @@ export function stateError<ErrType, ResultType>(error: ErrType, result: ResultTy
 }
 
 export interface ResultStateInitial {
-  result: null;
-  state: CallStateType.INITIAL;
+  readonly result: null;
+  readonly state: CallStateType.INITIAL;
 }
 
 export interface ResultStateLoading<ResultType> {
-  result: ResultType | null;
-  state: CallStateType.LOADING;
+  readonly result: ResultType | null;
+  readonly state: CallStateType.LOADING;
 }
 
 export interface ResultStateSuccess<ResultType> {
-  result: ResultType;
-  state: CallStateType.SUCCESS;
+  readonly result: ResultType;
+  readonly state: CallStateType.SUCCESS;
 }
 
 export interface ResultStateError<ResultType, ErrorType> {
-  result: ResultType | null;
-  state: CallStateType.ERROR;
-  error: ErrorType;
+  readonly result: ResultType | null;
+  readonly state: CallStateType.ERROR;
+  readonly error: ErrorType;
 }
 
 export type ResultState<ResultType, ErrorType = string> =

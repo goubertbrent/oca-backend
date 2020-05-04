@@ -1888,6 +1888,7 @@ MODULES_GET_APP_DATA_FUNCS = {
     SolutionModule.SANDWICH_BAR: get_app_data_sandwich_bar
 }
 
+
 MODULES_PUT_FUNCS = {
     SolutionModule.AGENDA: put_agenda,
     SolutionModule.APPOINTMENT: put_appointment,
@@ -1916,7 +1917,9 @@ MODULES_PUT_FUNCS = {
     SolutionModule.Q_MATIC: put_q_matic_module,
     SolutionModule.REPORTS: _dummy_put,
     SolutionModule.JCC_APPOINTMENTS: put_jcc_appointments_module,
+    SolutionModule.CIRKLO_VOUCHERS: _dummy_put,
 }
+
 
 MODULES_DELETE_FUNCS = {
     SolutionModule.AGENDA: _default_delete,
@@ -1946,4 +1949,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.Q_MATIC: _default_delete,
     SolutionModule.REPORTS: _default_delete,
     SolutionModule.JCC_APPOINTMENTS: _default_delete,
+    SolutionModule.CIRKLO_VOUCHERS: _default_delete,
 }

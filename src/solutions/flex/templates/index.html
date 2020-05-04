@@ -140,6 +140,11 @@ var DAYS_STR = { {% for day_num, day_name in days %}
     {% if SolutionModule.JOBS in sln_settings.modules %}
                         <li menu="jobs"><a href="#/jobs">{% translate language, "common", "jobs" %} </a></li>
     {% endif %}
+    {%- if SolutionModule.CIRKLO_VOUCHERS in sln_settings.modules -%}
+                            <li menu="vouchers">
+                                <a href="#/vouchers">{% translate language, 'common', 'oca.cirklo_light' %}</a>
+                            </li>
+    {%- endif -%}
 {% endif %}
 
 {% if SolutionModule.FORMS in sln_settings.modules and not loyalty %}

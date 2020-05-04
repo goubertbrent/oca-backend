@@ -177,6 +177,7 @@ DEFAULT_COORDS = {
             'priority': 5,
         }
     },
+    SolutionModule.CIRKLO_VOUCHERS: None
 }
 
 

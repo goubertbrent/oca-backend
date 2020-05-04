@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { of, timer } from 'rxjs';
 import { catchError, first, map, mergeMap, retryWhen, switchMap, take } from 'rxjs/operators';
@@ -41,15 +41,15 @@ import { getApps, getAppStatistics, getServiceIdentityInfo, getServiceMenu, Shar
 @Injectable({ providedIn: 'root' })
 export class SharedEffects {
 
-  @Effect() getGlobalConfig$ = this.actions$.pipe(
+   getGlobalConfig$ = createEffect(() => this.actions$.pipe(
     ofType<GetGlobalConfigAction>(SharedActionTypes.GET_GLOBAL_CONFIG),
     take(1),
     switchMap(() => this.sharedService.getGlobalConstants().pipe(
       map(data => new GetGlobalConfigCompleteAction(data)),
       retryWhen(attempts => attempts.pipe(mergeMap(() => timer(2000)))),
-    )));
+    ))));
 
-  @Effect() getMenu$ = this.actions$.pipe(
+   getMenu$ = createEffect(() => this.actions$.pipe(
     ofType<GetMenuAction>(SharedActionTypes.GET_MENU),
     switchMap(() => this.store.pipe(select(getServiceMenu), first())),
     switchMap(menu => {
@@ -60,9 +60,9 @@ export class SharedEffects {
         map(forms => new GetMenuCompleteAction(forms)),
         catchError(err => of(new GetMenuFailedAction(transformErrorResponse(err)))));
     }),
-  );
+  ));
 
-  @Effect() getInfo$ = this.actions$.pipe(
+   getInfo$ = createEffect(() => this.actions$.pipe(
     ofType<GetInfoAction>(SharedActionTypes.GET_INFO),
     switchMap(() => this.store.pipe(select(getServiceIdentityInfo), first())),
     switchMap(info => {
@@ -73,9 +73,9 @@ export class SharedEffects {
         map(data => new GetInfoCompleteAction(data)),
         catchError(err => of(new GetInfoFailedAction(transformErrorResponse(err)))));
     }),
-  );
+  ));
 
-  @Effect() getApps$ = this.actions$.pipe(
+   getApps$ = createEffect(() => this.actions$.pipe(
     ofType<GetAppsAction>(SharedActionTypes.GET_APPS),
     switchMap(() => this.store.pipe(select(getApps), first())),
     switchMap(apps => {
@@ -86,9 +86,9 @@ export class SharedEffects {
         map(data => new GetAppsCompleteAction(data)),
         catchError(err => of(new GetAppsFailedAction(transformErrorResponse(err)))));
     }),
-  );
+  ));
 
-  @Effect() getAppStatistics$ = this.actions$.pipe(
+   getAppStatistics$ = createEffect(() => this.actions$.pipe(
     ofType<GetAppStatisticsAction>(SharedActionTypes.GET_APP_STATISTICS),
     switchMap(() => this.store.pipe(select(getAppStatistics), first())),
     switchMap(apps => {
@@ -99,46 +99,46 @@ export class SharedEffects {
         map(data => new GetAppStatisticsCompleteAction(data)),
         catchError(err => of(new GetAppStatisticsFailedAction(transformErrorResponse(err)))));
     }),
-  );
+  ));
 
-  @Effect() getBudget$ = this.actions$.pipe(
+   getBudget$ = createEffect(() => this.actions$.pipe(
     ofType<GetBudgetAction>(SharedActionTypes.GET_BUDGET),
     switchMap(() => this.sharedService.getBudget().pipe(
       map(data => new GetBudgetCompleteAction(data)),
       catchError(err => of(new GetBudgetFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() getSolutionSettings$ = this.actions$.pipe(
+   getSolutionSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetSolutionSettingsAction>(SharedActionTypes.GET_SOLUTION_SETTINGS),
     switchMap(() => this.sharedService.getSolutionSettings().pipe(
       map(data => new GetSolutionSettingsCompleteAction(data)),
       catchError(err => of(new GetSolutionSettingsFailedAction(transformErrorResponse(err))))),
     ),
-  );
+  ));
 
-  @Effect() getBrandingSettings$ = this.actions$.pipe(
+   getBrandingSettings$ = createEffect(() => this.actions$.pipe(
     ofType<GetBrandingSettingsAction>(SharedActionTypes.GET_BRANDING_SETTINGS),
     switchMap(action => this.sharedService.getBrandingSettings().pipe(
       map(data => new GetBrandingSettingsCompleteAction(data)),
       catchError(err => this.errorService.handleError(action, GetBrandingSettingFailedAction, err))),
     ),
-  );
+  ));
 
-  @Effect() updateAvatar$ = this.actions$.pipe(
+   updateAvatar$ = createEffect(() => this.actions$.pipe(
     ofType<UpdateAvatarAction>(SharedActionTypes.UPDATE_AVATAR),
     switchMap(action => this.sharedService.updateAvatar(action.payload.avatar_url).pipe(
       map(data => new UpdateAvatarCompleteAction(data)),
       catchError(err => this.errorService.handleError(action, UpdateAvatarFailedAction, err))),
     ),
-  );
+  ));
 
-  @Effect() updateLogo$ = this.actions$.pipe(
+   updateLogo$ = createEffect(() => this.actions$.pipe(
     ofType<UpdateLogoAction>(SharedActionTypes.UPDATE_LOGO),
     switchMap(action => this.sharedService.updateLogo(action.payload.logo_url).pipe(
       map(data => new UpdateLogoCompleteAction(data)),
       catchError(err => this.errorService.handleError(action, UpdateLogoFailedAction, err))),
     ),
-  );
+  ));
 
   constructor(private actions$: Actions<SharedActions>,
               private store: Store<SharedState>,

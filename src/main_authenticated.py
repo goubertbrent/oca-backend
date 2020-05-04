@@ -37,6 +37,7 @@ import solutions.common.restapi.services
 import solutions.common.restapi.settings
 import solutions.common.restapi.statistics
 import solutions.common.restapi.store
+import solutions.common.integrations.cirklo.api as vouchers_api
 from mcfw.restapi import rest_functions
 from rogerthat.wsgi import AuthenticatedRogerthatWSGIApplication
 from solutions.common.handlers import ImageViewerHandler, SolutionMainBrandingHandler, InvoicePdfHandler, \
@@ -65,7 +66,7 @@ handlers = [
     ('/common/loyalty/slide/overlay', LoyaltySlideOverlayHandler),
     ('/common/statistics/flows/export', FlowStatisticsExportHandler),
     ('/common/loyalty/export', ExportLoyaltyHandler),
-    ('/common/vouchers/export', ExportVoucherHandler),
+    ('/common/city-vouchers/export', ExportVoucherHandler),
     ('/common/events/google/oauth2callback', EventsGoogleOauth2callbackHandler),
     ('/common/discussion_groups/(\d+)/pdf', DiscussionGroupsPdfHandler),
     ('/common/city/vouchers/qr/download/(\d+)', CityVouchersDownloadHandler),
@@ -97,5 +98,6 @@ handlers.extend(rest_functions(solutions.common.restapi.reports))
 handlers.extend(rest_functions(solutions.common.restapi.store))
 handlers.extend(rest_functions(solutions.common.restapi.settings))
 handlers.extend(rest_functions(solutions.common.restapi.statistics))
+handlers.extend(rest_functions(vouchers_api))
 
 app = AuthenticatedRogerthatWSGIApplication(handlers, name="main_authenticated")

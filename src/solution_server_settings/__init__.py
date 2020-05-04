@@ -135,6 +135,10 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                            doc='Participation server secret, used to create new cities',
                                            order=1804)
 
+    cirklo_server_url = add_meta(db.TextProperty(),
+                                 doc='Cirklo server url',
+                                 order=1900)
+
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
         get_solution_server_settings.invalidate_cache()

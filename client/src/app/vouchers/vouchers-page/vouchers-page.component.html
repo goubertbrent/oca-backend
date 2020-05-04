@@ -1,0 +1,33 @@
+<mat-toolbar>
+  <h1 class="flex-grow">{{ 'oca.cirklo_light' | translate }}</h1>
+  <button (click)="export()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.export' | translate">
+    <mat-icon>get_app</mat-icon>
+  </button>
+</mat-toolbar>
+<p class="vouchers-info">{{ 'oca.cirklo_light_info_page' | translate }}</p>
+<mat-tab-group (selectedIndexChange)="tabChanged($event)">
+  <mat-tab *ngFor="let organizationType of organizationTypes" [label]="organizationType.label | translate">
+  </mat-tab>
+</mat-tab-group>
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
+<table [dataSource]="dataSource" class="vouchers-table" mat-table>
+  <ng-container matColumnDef="name">
+    <th *matHeaderCellDef mat-header-cell>{{ 'oca.reservation-name' | translate }}</th>
+    <td *matCellDef="let row" mat-cell>{{ row.name }}</td>
+  </ng-container>
+  <ng-container matColumnDef="enabled">
+    <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enabled' | translate }}</th>
+    <td *matCellDef="let row" mat-cell>
+      <mat-slide-toggle (change)="toggleProvider($event, row, cirklo)"
+                        [checked]="row.providers.includes(cirklo)"></mat-slide-toggle>
+    </td>
+  </ng-container>
+  <tr *matHeaderRowDef="displayedColumns" mat-header-row></tr>
+  <tr *matRowDef="let row; columns: displayedColumns" mat-row></tr>
+</table>
+<mat-paginator (page)="pageChanged($event)"
+               [disabled]="loading$ | async"
+               [length]="(voucherList$ | async).total"
+               [pageIndex]="pageIndex"
+               [pageSizeOptions]="[50, 100, 200, 500]"
+               [pageSize]="pageSize"></mat-paginator>

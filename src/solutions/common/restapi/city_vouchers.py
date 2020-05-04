@@ -83,7 +83,7 @@ def load_city_voucher_export(app_id, cursor=None):
     return SolutionCityVoucherExportListTO.fromModel(cursor_, d, has_more)
 
 
-@rest("/common/vouchers/export/list", "get", read_only_access=True)
+@rest("/common/city-vouchers/export/list", "get", read_only_access=True)
 @returns(SolutionLoyaltyExportListTO)
 @arguments(cursor=unicode)
 def load_loyalty_export_list(cursor=None):

@@ -1443,7 +1443,7 @@ function loadVoucherExportList() {
     if (!voucherExports.length) {
         $('#voucher-export-list').html(TMPL_LOADING_SPINNER);
         sln.call({
-            url: '/common/vouchers/export/list',
+            url: '/common/city-vouchers/export/list',
             success: function (data) {
                 voucherExports = data.list;
                 voucherExportsCursor = data.cursor;
@@ -1472,7 +1472,7 @@ function renderVoucherExportList(hasMore) {
 
 function loadMoreVoucherExports() {
     sln.call({
-        url: '/common/vouchers/export/list',
+        url: '/common/city-vouchers/export/list',
         data: {
             cursor: voucherExportsCursor
         },

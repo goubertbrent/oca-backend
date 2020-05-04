@@ -405,6 +405,14 @@ class Customer(db.Model):
             self.app_ids.insert(0, default_app_id)
         return self.app_ids
 
+    @property
+    def locale(self):
+        if self.language == 'en':
+            return 'en_GB'
+        elif self.language == 'nl':
+            return 'nl_BE'
+        return self.language
+
     @classmethod
     def list_by_name(cls, name, limit=20):
         return cls.all().filter('name =', name).fetch(limit)
@@ -450,16 +458,11 @@ class Customer(db.Model):
             return db.get({order_key.parent() for order_key in order_keys})
 
     @classmethod
-    def list_enabled_by_app(cls, app_id):
-        return cls.all().filter('default_app_id', app_id) \
-            .filter('service_disabled_at', 0) \
-            .filter('organization_type >', 0)
-
-    @classmethod
     def list_enabled_by_organization_type_in_app(cls, app_id, organization_type):
         return cls.all().filter('default_app_id', app_id) \
             .filter('service_disabled_at', 0) \
-            .filter('organization_type', organization_type).order('name')
+            .filter('organization_type', organization_type)\
+            .order('name')
 
     @property
     def disabled_reason_str(self):

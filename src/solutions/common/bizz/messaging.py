@@ -91,6 +91,7 @@ from solutions.common.bizz.sandwich import order_sandwich_received, \
 from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
+from solutions.common.integrations.cirklo import cirklo
 from solutions.common.integrations.jcc import jcc_appointments
 from solutions.common.integrations.jcc.models import JccApiMethod
 from solutions.common.integrations.qmatic import qmatic
@@ -946,6 +947,9 @@ API_METHOD_MAPPING = {
 }
 for method in JccApiMethod.all():
     API_METHOD_MAPPING[method] = jcc_appointments.handle_method
+
+for method in cirklo.CirkloApiMethod.all():
+    API_METHOD_MAPPING[method] = cirklo.handle_method
 
 
 FLOW_STATISTICS_MAPPING = {

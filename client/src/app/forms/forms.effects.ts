@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { Actions, Effect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -69,28 +69,28 @@ import { OcaForm } from './interfaces/forms';
 
 @Injectable({ providedIn: 'root' })
 export class FormsEffects {
-  @Effect() getForms$ = this.actions$.pipe(
+   getForms$ = createEffect(() => this.actions$.pipe(
     ofType<GetFormsAction>(FormsActionTypes.GET_FORMS),
     switchMap(() => this.formsService.getForms().pipe(
       map(forms => new GetFormsCompleteAction(forms)),
       catchError(err => of(new GetFormsFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() getForm$ = this.actions$.pipe(
+   getForm$ = createEffect(() => this.actions$.pipe(
     ofType<GetFormAction>(FormsActionTypes.GET_FORM),
     switchMap(action => this.formsService.getForm(action.id).pipe(
       map(form => new GetFormCompleteAction(form)),
       catchError(err => of(new GetFormFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() getFormStatistics$ = this.actions$.pipe(
+   getFormStatistics$ = createEffect(() => this.actions$.pipe(
     ofType<GetFormStatisticsAction>(FormsActionTypes.GET_FORM_STATISTICS),
     switchMap(action => this.formsService.getFormStatistics(action.id).pipe(
       map(form => new GetFormStatisticsCompleteAction(form)),
       catchError(err => of(new GetFormStatisticsFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() saveForm$ = this.actions$.pipe(
+   saveForm$ = createEffect(() => this.actions$.pipe(
     ofType<SaveFormAction>(FormsActionTypes.SAVE_FORM),
     tap(action => action.payload.silent ? null : this.snackbar.open(this.translate.instant('oca.saving_form'),
       undefined, { duration: 5000 })),
@@ -99,9 +99,9 @@ export class FormsEffects {
         this.translate.instant('oca.ok'), { duration: 3000 })),
       map(form => new SaveFormCompleteAction(form)),
       catchError(err => of(new SaveFormFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() testForm$ = this.actions$.pipe(
+   testForm$ = createEffect(() => this.actions$.pipe(
     ofType<TestFormAction>(FormsActionTypes.TEST_FORM),
     tap(action => {
       const params = { user: action.testers.join(',') };
@@ -111,9 +111,9 @@ export class FormsEffects {
       tap(() => this.snackbar.open(this.translate.instant('oca.form_sent'), this.translate.instant('oca.ok'), { duration: 5000 })),
       map(() => new TestFormCompleteAction()),
       catchError(err => of(new TestFormFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() createForm$ = this.actions$.pipe(
+   createForm$ = createEffect(() => this.actions$.pipe(
     ofType<CreateFormAction>(FormsActionTypes.CREATE_FORM),
     tap(() => this.snackbar.open(this.translate.instant('oca.creating_form'), undefined, { duration: 3000 })),
     switchMap(() => this.formsService.createForm().pipe(
@@ -123,9 +123,9 @@ export class FormsEffects {
         this.snackbar.open(this.translate.instant('oca.form_created'), this.translate.instant('oca.ok'), { duration: 3000 });
       }),
       catchError(err => of(new CreateFormFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect({ dispatch: false }) afterFailure$ = this.actions$.pipe(
+   afterFailure$ = createEffect(() => this.actions$.pipe(
     ofType<CreateFormFailedAction | SaveFormFailedAction | DownloadResponsesFailedAction>(FormsActionTypes.CREATE_FORM_FAILED,
       FormsActionTypes.SAVE_FORM_FAILED, FormsActionTypes.TEST_FORM_FAILED, FormsActionTypes.DOWNLOAD_RESPONSES_FAILED),
     tap(action => {
@@ -137,25 +137,25 @@ export class FormsEffects {
         } as SimpleDialogData,
       });
     }),
-  );
+  ), { dispatch: false });
 
-  @Effect() deleteForm$ = this.actions$.pipe(
+   deleteForm$ = createEffect(() => this.actions$.pipe(
     ofType<DeleteFormAction>(FormsActionTypes.DELETE_FORM),
     tap(() => this.snackbar.open(this.translate.instant('oca.deleting_form'), undefined, { duration: 5000 })),
     switchMap(action => this.formsService.deleteForm(action.form.id).pipe(
       tap(() => this.snackbar.open(this.translate.instant('oca.form_deleted'), this.translate.instant('oca.ok'), { duration: 3000 })),
       map(() => new DeleteFormCompleteAction(action.form)),
       catchError(err => of(new DeleteFormFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() getTombolaWinners$ = this.actions$.pipe(
+   getTombolaWinners$ = createEffect(() => this.actions$.pipe(
     ofType<GetTombolaWinnersAction>(FormsActionTypes.GET_TOMBOLA_WINNERS),
     switchMap(action => this.formsService.getTombolaWinners(action.formId).pipe(
       map(data => new GetTombolaWinnersCompleteAction(data)),
       catchError(err => of(new GetTombolaWinnersFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() showDeleteAllResponsesDialog$ = this.actions$.pipe(
+   showDeleteAllResponsesDialog$ = createEffect(() => this.actions$.pipe(
     ofType<ShowDeleteAllResponsesAction>(FormsActionTypes.SHOW_DELETE_ALL_RESPONSES),
     switchMap(action => this.matDialog.open(SimpleDialogComponent, {
         data: {
@@ -167,16 +167,16 @@ export class FormsEffects {
       }).afterClosed().pipe(
       map(result => result.submitted ? new DeleteAllResponsesAction(action.formId) : new ShowDeleteAllResponsesCanceledAction())),
     ),
-  );
+  ));
 
-  @Effect() deleteAllResponses$ = this.actions$.pipe(
+   deleteAllResponses$ = createEffect(() => this.actions$.pipe(
     ofType<DeleteAllResponsesAction>(FormsActionTypes.DELETE_ALL_RESPONSES),
     switchMap(action => this.formsService.deleteAllResponses(action.formId).pipe(
       map(data => new DeleteAllResponsesCompleteAction()),
       catchError(err => of(new DeleteAllResponsesFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() deleteResponse$ = this.actions$.pipe(
+   deleteResponse$ = createEffect(() => this.actions$.pipe(
     ofType<DeleteResponseAction>(FormsActionTypes.DELETE_RESPONSE),
     switchMap(action => this.matDialog.open(SimpleDialogComponent, {
       data: {
@@ -195,25 +195,25 @@ export class FormsEffects {
           return of(new DeleteResponseCanceledAction(action.payload));
         }
       }),
-    )));
+    ))));
 
-  @Effect() copyForm$ = this.actions$.pipe(
+   copyForm$ = createEffect(() => this.actions$.pipe(
     ofType<CopyFormAction>(FormsActionTypes.COPY_FORM),
     switchMap(() => this.store.pipe(select(getForm), first())),
     switchMap(form => this.formsService.copyForm(form.data as OcaForm).pipe(
       map(data => new CopyFormCompleteAction(data)),
       tap(() => this.snackbar.open(this.translate.instant('oca.form_copied'), this.translate.instant('oca.ok'), { duration: 3000 })),
       catchError(err => of(new CopyFormFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() getResponses$ = this.actions$.pipe(
+   getResponses$ = createEffect(() => this.actions$.pipe(
     ofType<GetResponsesAction>(FormsActionTypes.GET_RESPONSES),
     switchMap(action => this.formsService.getResponses(action.payload).pipe(
       map(data => new GetResponsesCompleteAction(data)),
       catchError(err => of(new GetResponsesFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() getNextResponse$ = this.actions$.pipe(
+   getNextResponse$ = createEffect(() => this.actions$.pipe(
     ofType<GetNextResponseAction>(FormsActionTypes.GET_NEXT_RESPONSE),
     switchMap(action => this.store.pipe(select(getResponsesData), first(), map(data => ({ data, action })))),
     switchMap(thing => {
@@ -224,31 +224,31 @@ export class FormsEffects {
         return of(new GetResponsesAction({ formId: action.payload.formId, page_size: 5, cursor: data.cursor as string }, false));
       }
     }),
-  );
+  ));
 
-  @Effect() getIntegrations$ = this.actions$.pipe(
+   getIntegrations$ = createEffect(() => this.actions$.pipe(
     startWith(new GetIntegrationsAction()),
     ofType<GetIntegrationsAction>(FormsActionTypes.GET_INTEGRATIONS),
     switchMap(() => this.formsService.getIntegrations().pipe(
       map(data => new GetIntegrationsCompleteAction(data)),
       catchError(err => of(new GetIntegrationsFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() updateIntegration$ = this.actions$.pipe(
+   updateIntegration$ = createEffect(() => this.actions$.pipe(
     ofType<UpdateIntegrationAction>(FormsActionTypes.UPDATE_INTEGRATION),
     switchMap(action => this.formsService.updateIntegration(action.payload).pipe(
       map(data => new UpdateIntegrationCompleteAction(data)),
       catchError(err => of(new UpdateIntegrationFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
-  @Effect() downloadResponses$ = this.actions$.pipe(
+   downloadResponses$ = createEffect(() => this.actions$.pipe(
     ofType(FormsActionTypes.DOWNLOAD_RESPONSES),
     tap(() => this.snackbar.open(this.translate.instant('oca.downloading_responses_pls_wait'), undefined, { duration: 10000 })),
     switchMap(action => this.formsService.downloadResponses(action.payload.id).pipe(
       map(data => new DownloadResponsesCompleteAction(data)),
       tap(a => window.open(a.payload.url, '_blank')),
       catchError(err => of(new DownloadResponsesFailedAction(transformErrorResponse(err)))))),
-  );
+  ));
 
   constructor(private actions$: Actions<FormsActions>,
               private store: Store<FormsState>,
