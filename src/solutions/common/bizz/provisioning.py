@@ -142,6 +142,7 @@ POKE_TAGS = {
     SolutionModule.Q_MATIC: POKE_TAG_Q_MATIC,
     SolutionModule.REPORTS: None,
     SolutionModule.JCC_APPOINTMENTS: POKE_TAG_JCC_APPOINTMENTS,
+    SolutionModule.CIRKLO_VOUCHERS: None,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
