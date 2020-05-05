@@ -131,7 +131,7 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
 
   private setOptions() {
     const lowerValue = this.filterFormControl.value?.toLowerCase().trim() ?? '';
-    const filtered = [];
+    const filtered: SelectAutocompleteOptionInternal[] = [];
     const value = this.formControl.value;
     let selectedValues: SelectValueType[] = [];
     if (Array.isArray(value)) {
@@ -142,12 +142,16 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
       }
     }
     const selected = [];
-    for (const option of this._options) {
-      // must always include selected options, otherwise the value could be incorrect
-      if (selectedValues.includes(option.value)) {
-        selected.push(option);
-      } else if (lowerValue && option.sortLabel.includes(lowerValue)) {
-        filtered.push(option);
+    if (!lowerValue && selectedValues.length === 0) {
+      filtered.push(...this._options.slice(0, this.maxDisplayedOptions));
+    } else {
+      for (const option of this._options) {
+        // must always include selected options, otherwise the value could be incorrect
+        if (selectedValues.includes(option.value)) {
+          selected.push(option);
+        } else if (lowerValue && option.sortLabel.includes(lowerValue)) {
+          filtered.push(option);
+        }
       }
     }
     const ls = filtered
