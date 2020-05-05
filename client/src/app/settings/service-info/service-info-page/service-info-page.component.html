@@ -50,8 +50,9 @@
     </button>
     <mat-error>{{ 'oca.this_field_is_required' | translate }}</mat-error>
   </mat-form-field>
-  <div class="dual-fields">
+  <div class="dual-fields place-types">
     <oca-select-autocomplete [label]="'oca.place_type' | translate"
+                             [hint]="'oca.select_most_specific_place_type' | translate"
                              [multiple]="false"
                              [options]="placeTypes$ | async"
                              [required]="true"
@@ -62,6 +63,7 @@
                              [multiple]="true"
                              [options]="otherPlaceTypes$ | async"
                              [required]="true"
+                             [max]="10"
                              [searchPlaceholder]="'oca.search-dot-dot-dot' | translate"
                              class="field"
                              formControlName="place_types"></oca-select-autocomplete>

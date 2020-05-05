@@ -3,6 +3,7 @@ import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/f
 import { MatOption } from '@angular/material/core';
 import { MatSelectChange } from '@angular/material/select';
 import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { FormControlTyped } from '../../util/forms';
 
 type SelectValueType = string | number;
@@ -13,7 +14,13 @@ export interface SelectAutocompleteOption {
   disabled?: boolean;
 }
 
-const sortOptions = (first: SelectAutocompleteOption, second: SelectAutocompleteOption): number => first.label.localeCompare(second.label);
+interface SelectAutocompleteOptionInternal extends SelectAutocompleteOption {
+  sortLabel: string;
+}
+
+function sortOptions(first: SelectAutocompleteOptionInternal, second: SelectAutocompleteOptionInternal): number {
+  return first.sortLabel.localeCompare(second.sortLabel);
+}
 
 @Component({
   selector: 'oca-select-autocomplete',
@@ -31,40 +38,41 @@ const sortOptions = (first: SelectAutocompleteOption, second: SelectAutocomplete
  * Entering text in the textfield will will filter the options.
  */
 export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlValueAccessor {
-
   constructor(private changeDetectorRef: ChangeDetectorRef) {
   }
 
   @Input() label: string;
   @Input() searchPlaceholder: string;
   @Input() placeholder: string;
+  @Input() hint: string;
+  /** Maximum amount of options that can be selected */
+  @Input() max = 50;
   @Input() disabled = false;
   @Input() required = false;
   @Input() errorMsg: string;
   @Input() selectedOptions: SelectValueType | SelectValueType[];
   @Input() multiple = true;
-  @Input() maxOptions = 20;
+  @Input() maxDisplayedOptions = 50;
 
   formControl: FormControlTyped<null | SelectValueType | SelectValueType[]> = new FormControl();
 
-  filteredOptions$ = new Subject<SelectAutocompleteOption[]>();
+  filteredOptions$ = new Subject<SelectAutocompleteOptionInternal[]>();
   filterFormControl: FormControlTyped<string> = new FormControl();
-
-  @Input() set options(value: SelectAutocompleteOption[] | null) {
-    this._options = value ?? [];
-    this.setOptions();
-  }
-
   private destroyed$ = new Subject();
 
-  private _options: SelectAutocompleteOption[] = [];
+  private _options: SelectAutocompleteOptionInternal[] = [];
+
+  @Input() set options(value: SelectAutocompleteOption[] | null) {
+    this._options = (value ?? []).map((o => ({ ...o, sortLabel: o.label.toLowerCase() })));
+    this.setOptions();
+  }
 
   registerOnTouched(fn: any): void {
     this.onTouched = fn;
   }
 
   ngOnInit() {
-    this.filterFormControl.valueChanges.subscribe(() => this.setOptions());
+    this.filterFormControl.valueChanges.pipe(debounceTime(200)).subscribe(() => this.setOptions());
   }
 
   ngOnDestroy() {
@@ -74,7 +82,9 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
 
   onSelectionChange(val: MatSelectChange) {
     this.formControl.setValue(val.value);
-    this.onChange(val.value);
+    if (this.formControl.valid) {
+      this.onChange(val.value);
+    }
   }
 
   selectClosed() {
@@ -120,8 +130,8 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
   }
 
   private setOptions() {
-    const lowerValue = this.filterFormControl.value?.toLowerCase().trim();
-    const filtered: SelectAutocompleteOption[] = [];
+    const lowerValue = this.filterFormControl.value?.toLowerCase().trim() ?? '';
+    const filtered = [];
     const value = this.formControl.value;
     let selectedValues: SelectValueType[] = [];
     if (Array.isArray(value)) {
@@ -131,15 +141,32 @@ export class SelectAutocompleteComponent implements OnInit, OnDestroy, ControlVa
         selectedValues = [value];
       }
     }
-    const selected: SelectAutocompleteOption[] = [];
+    const selected = [];
     for (const option of this._options) {
       // must always include selected options, otherwise the value could be incorrect
       if (selectedValues.includes(option.value)) {
         selected.push(option);
-      } else if (filtered.length < this.maxOptions && option.label.toLowerCase().includes(lowerValue)) {
+      } else if (lowerValue && option.sortLabel.includes(lowerValue)) {
         filtered.push(option);
       }
     }
-    this.filteredOptions$.next(filtered.sort(sortOptions).concat(selected.sort(sortOptions)));
+    const ls = filtered
+      .sort((first, second) => {
+        let cmp = sortOptions(first, second);
+        if (first.sortLabel.startsWith(lowerValue)) {
+          const lenDiff = first.sortLabel.length - second.sortLabel.length;
+          if (lenDiff > 1) {
+            cmp = 1;
+          } else if (lenDiff < 0) {
+            cmp = -1;
+          } else {
+            cmp = 0;
+          }
+        }
+        return cmp;
+      });
+    this.filteredOptions$.next(ls
+      .slice(0, this.maxDisplayedOptions)
+      .concat(selected.sort(sortOptions)));
   }
 }

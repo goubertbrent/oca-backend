@@ -36,6 +36,10 @@ $wide-field-width: $field-width * 2 + $field-margin;
   }
 }
 
+.place-types{
+  margin-bottom: 8px;
+}
+
 .wide-field {
   width: $wide-field-width;
 }

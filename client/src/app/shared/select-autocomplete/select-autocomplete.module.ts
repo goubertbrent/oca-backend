@@ -9,10 +9,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslateModule } from '@ngx-translate/core';
+import { MaxSelectDirective } from './max-select.directive';
 import { SelectAutocompleteComponent } from './select-autocomplete/select-autocomplete.component';
 
 @NgModule({
-  declarations: [SelectAutocompleteComponent],
+  declarations: [SelectAutocompleteComponent, MaxSelectDirective],
   imports: [
     CommonModule,
     MatFormFieldModule,
@@ -25,7 +26,7 @@ import { SelectAutocompleteComponent } from './select-autocomplete/select-autoco
     MatIconModule,
     TranslateModule,
   ],
-  exports: [SelectAutocompleteComponent],
+  exports: [SelectAutocompleteComponent, MaxSelectDirective],
 })
 export class SelectAutocompleteModule {
 }

@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.you_may_only_select_x_options': u'Please select {{ max }} or less options',
+         u'oca.select_most_specific_place_type': u'Select the most specific place type',
          u'oca.first_page': u'First page',
          u'oca.last_page': u'Last page',
          u'oca.items_per_page': u'Items per page',
@@ -3951,6 +3953,8 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.select_most_specific_place_type': u'Selecteer het meest specifieke plaatstype',
+         u'oca.you_may_only_select_x_options': u'Gelieve maximum {{ max }} opties te selecteren',
          u'oca.first_page': u'Eerst pagina',
          u'oca.last_page': u'Laatste pagina',
          u'oca.items_per_page': u'Per pagina',

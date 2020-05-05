@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { select, Store } from '@ngrx/store';
@@ -13,6 +13,7 @@ import { GetBrandingSettingsAction, UpdateAvatarAction, UpdateLogoAction } from 
 import { getBrandingSettings, isBrandingSettingsLoading } from '../../../shared/shared.state';
 import { UploadedFileResult, UploadFileDialogComponent, UploadFileDialogConfig } from '../../../shared/upload-file';
 import { filterNull, markAllControlsAsDirty } from '../../../shared/util';
+import { FormControlTyped, FormGroupTyped } from '../../../shared/util/forms';
 import { GetAvailablePlaceTypesAction, GetCountriesAction, GetServiceInfoAction, UpdateServiceInfoAction } from '../../settings.actions';
 import {
   getAvailablePlaceTypes,
@@ -23,7 +24,7 @@ import {
   SettingsState,
 } from '../../settings.state';
 import { CURRENCIES, TIMEZONES } from '../constants';
-import { Country, ServiceInfo, ServiceInfoSyncProvider, SyncedFields } from '../service-info';
+import { Country, ServiceInfo, ServiceInfoSyncProvider, SyncedFields, SyncedNameValue } from '../service-info';
 
 const DEFAULT_SYNCED_VALUES: { [T in SyncedFields]: null } = {
   name: null,
@@ -52,7 +53,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   countries$: Observable<Country[]>;
   syncedValues: { [T in SyncedFields]: ServiceInfoSyncProvider | null } = DEFAULT_SYNCED_VALUES;
   submitted = false;
-  formGroup: FormGroup;
+  formGroup: FormGroupTyped<ServiceInfo>;
   saveErrorMessage$ = new Subject<string>();
 
   private destroyed$ = new Subject();
@@ -63,7 +64,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
               private fb: FormBuilder) {
     this.formGroup = fb.group({
       cover_media: fb.control([]),
-      websites: fb.control([]),
+      websites: fb.control([]) as FormControlTyped<SyncedNameValue[]>,
       name: fb.control('', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]),
       timezone: fb.control('', Validators.required),
       phone_numbers: fb.control([]),
@@ -76,7 +77,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       place_types: fb.control([], Validators.required),
       synced_fields: fb.control([]),
       visible: fb.control(true),
-    });
+    }) as FormGroupTyped<ServiceInfo>;
 
   }
 
@@ -140,9 +141,9 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  mainPlaceTypeChanged(mainPlaceType: string) {
+  mainPlaceTypeChanged(mainPlaceType: string | null) {
     const placeTypes = this.formGroup.value.place_types as string[];
-    if (!placeTypes.includes(mainPlaceType)) {
+    if (mainPlaceType && !placeTypes.includes(mainPlaceType)) {
       this.formGroup.patchValue({ place_types: [mainPlaceType, ...placeTypes] });
     }
     this.setOtherPlaceTypes();
@@ -229,5 +230,9 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       const mainType = this.formGroup.value.main_place_type;
       this.otherPlaceTypes$.next(types.map(p => ({ ...p, disabled: mainType === p.value })));
     });
+  }
+
+  getError() {
+    console.log(this.formGroup.controls.place_types);
   }
 }
