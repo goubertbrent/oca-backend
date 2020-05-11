@@ -1,0 +1,23 @@
+<messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
+    <definition name="Welcome message"
+                language="{{ language }}"
+                startReference="message_welcome">
+        <end id="end_end"
+             waitForFollowUpMessage="false"/>
+        <message id="message_welcome"
+                 alertIntervalType="NONE"
+                 alertType="SILENT"
+                 {% if branding_key %}
+                 brandingKey="{{ branding_key }}"
+                 {% endif %}
+                 allowDismiss="false"
+                 vibrate="false"
+                 autoLock="false">
+            <content>{{ welcome_message }}</content>
+            <answer action="{{ signup_url }}"
+                    caption="{% translate language, 'signup' %}"
+                    id="btn_signup"
+                    reference="end_end"/>
+        </message>
+    </definition>
+</messageFlowDefinitionSet>

@@ -1,4 +1,466 @@
 indexes:
+- kind: _AE_Pipeline_Record
+  properties:
+  - name: is_root_pipeline
+  - name: start_time
+    direction: desc
+
+- kind: _AE_Pipeline_Record
+  properties:
+  - name: class_path
+  - name: is_root_pipeline
+  - name: start_time
+    direction: desc
+
+- kind: APIKey
+  properties:
+  - name: user
+  - name: mfr
+
+- kind: Branding
+  properties:
+  - name: user
+  - name: description
+
+- kind: ChatMembers
+  ancestor: yes
+  properties:
+  - name: class
+  - name: __key__
+    direction: desc
+
+- kind: DSPicklePart
+  ancestor: yes
+  properties:
+  - name: version
+  - name: number
+
+- kind: Friend
+  properties:
+  - name: user
+  - name: friend
+
+- kind: FriendServiceIdentityConnectionArchive
+  properties:
+  - name: deleted
+  - name: service_identity_email
+
+- kind: FriendServiceIdentityConnection
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: service_identity_email
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+  - name: friend_name
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+  - name: friend_name
+  - name: app_id
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: broadcast_type
+  - name: service_identity_email
+  - name: disabled_broadcast_types
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: broadcast_type
+  - name: service_identity_email
+  - name: birthdate
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: disabled_broadcast_types
+  - name: service_identity_email
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+  - name: birthdate
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+  - name: birthdate
+  - name: enabled_broadcast_types
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+  - name: birthdate
+  - name: enabled_broadcast_types
+  - name: gender
+
+- kind: FriendServiceIdentityConnection
+  properties:
+  - name: deleted
+  - name: service_identity_email
+  - name: enabled_broadcast_types
+  - name: friend_name
+
+- kind: Installation
+  properties:
+  - name: app_id
+  - name: timestamp
+    direction: desc
+
+- kind: InstallationLog
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: InstallationLog
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
+- kind: Location
+  properties:
+  - name: mobile
+  - name: fromTimestamp
+
+- kind: Location
+  properties:
+  - name: mobile
+  - name: fromTimestamp
+    direction: desc
+
+- kind: Location
+  properties:
+  - name: user
+  - name: fromTimestamp
+
+- kind: Message
+  properties:
+  - name: member_status_index
+  - name: creationTimestamp
+    direction: desc
+
+- kind: Message
+  properties:
+  - name: member_status_index
+  - name: sender_type
+  - name: creationTimestamp
+    direction: desc
+
+- kind: Message
+  properties:
+  - name: member_status_index
+  - name: sender_type
+  - name: timestamp
+    direction: desc
+
+- kind: Message
+  properties:
+  - name: member_status_index
+  - name: timestamp
+    direction: desc
+
+- kind: MessageFlowDesign
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: multilanguage
+    direction: desc
+  - name: name
+
+- kind: MessageFlowDesign
+  ancestor: yes
+  properties:
+  - name: multilanguage
+    direction: desc
+  - name: name
+
+- kind: MessageFlowDesign
+  ancestor: yes
+  properties:
+  - name: name
+
+- kind: Mobile
+  properties:
+  - name: registrationComplete
+  - name: timestamp
+
+- kind: Mobile
+  properties:
+  - name: status
+  - name: timestamp
+
+- kind: Mobile
+  properties:
+  - name: user
+  - name: status
+
+- kind: Profile
+  properties:
+  - name: class
+  - name: service_roles
+
+- kind: Registration
+  properties:
+  - name: installation
+  - name: timestamp
+
+- kind: Registration
+  properties:
+  - name: installation
+  - name: timestamp
+    direction: desc
+
+- kind: RpcCAPICall
+  ancestor: yes
+  properties:
+  - name: method
+  - name: priority
+    direction: desc
+  - name: timestamp
+
+- kind: RpcCAPICall
+  ancestor: yes
+  properties:
+  - name: priority
+    direction: desc
+  - name: timestamp
+
+- kind: RpcCAPICall
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+- kind: ServiceInteractionDef
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: service_identity
+  - name: timestamp
+    direction: desc
+
+- kind: ServiceInteractionDef
+  ancestor: yes
+  properties:
+  - name: deleted
+  - name: timestamp
+    direction: desc
+
+- kind: ServiceInteractionDef
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
+- kind: ServiceLocationTracker
+  ancestor: yes
+  properties:
+  - name: enabled
+  - name: service_identity_user
+  - name: until
+
+- kind: ServiceLog
+  properties:
+  - name: user
+  - name: timestamp
+    direction: desc
+
+- kind: ServiceRole
+  ancestor: yes
+  properties:
+  - name: name
+
+- kind: TransferChunk
+  ancestor: yes
+  properties:
+  - name: number
+
+- kind: ServiceMenuDef
+  ancestor: yes
+  properties:
+  - name: action
+
+- kind: BroadcastStatistic
+  ancestor: yes
+  properties:
+  - name: timestamp
+
+# ======================================================== NEWS ========================================================
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: sender
+  - name: published_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: tags
+  - name: sender
+  - name: published_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: sender
+  - name: update_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: tags
+  - name: sender
+  - name: update_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: app_ids
+  - name: published
+  - name: update_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: tags
+  - name: app_ids
+  - name: published
+  - name: update_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: app_ids
+  - name: sender
+  - name: sticky
+  - name: timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: app_ids
+  - name: sender
+  - name: sticky
+  - name: order_timestamp
+    direction: desc
+
+- kind: NewsItem
+  properties:
+  - name: sticky
+  - name: sticky_until
+
+- kind: NewsItem
+  properties:
+  - name: deleted
+  - name: published
+  - name: timestamp
+
+- kind: NewsItem
+  properties:
+  - name: app_ids
+  - name: deleted
+  - name: published
+  - name: sender
+  - name: published_timestamp
+    direction: desc
+
+- kind: NewsItemMatch
+  ancestor: yes
+  properties:
+  - name: group_ids
+  - name: visible
+  - name: publish_time
+    direction: desc
+
+- kind: NewsItemMatch
+  ancestor: yes
+  properties:
+  - name: group_ids
+  - name: visible
+  - name: sort_time
+    direction: desc
+
+- kind: NewsItemMatch
+  ancestor: yes
+  properties:
+  - name: actions
+  - name: visible
+  - name: update_time
+    direction: desc
+
+- kind: NewsItemMatch
+  ancestor: yes
+  properties:
+  - name: group_ids
+  - name: sender
+  - name: visible
+  - name: sort_time
+    direction: desc
+
+# ======================================================== PAYMENT ========================================================
+
+- kind: PayconiqTransaction
+  properties:
+  - name: test_mode
+  - name: status
+  - name: timestamp
+
+# ======================================================== JOBS ========================================================
+
+- kind: JobMatch
+  ancestor: yes
+  properties:
+  - name: status
+  - name: score
+    direction: desc
+
+- kind: JobMatch
+  ancestor: yes
+  properties:
+  - name: status
+  - name: update_date
+    direction: desc
+
+# ======================================================== FORMS =======================================================
+- kind: FormSubmission
+  properties:
+  - name: form_id
+  - name: submitted_date
+    direction: desc
+
+# ======================================================== MAPS =======================================================
+- kind: MapSavedItem
+  ancestor: yes
+  properties:
+  - name: created
+    direction: desc
+
+# ======================================================== OPENING_HOURS =======================================================
+- kind: OpeningHourException
+  ancestor: yes
+  properties:
+  - name: end_date
+
 - kind: Charge
   properties:
   - name: manager

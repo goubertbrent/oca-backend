@@ -1,0 +1,17 @@
+@@ DELIMITER @@
+cordova-mobicage-plugin/www/types.ts@% for to in object_factories %@
+export type @@ to.name @@ = @% for value, cls in to.clazz.subtype_mapping.iteritems() %@
+  @% if not loop.first %@| @% endif %@@@ cls.__name__ @@@% endfor %@;
+@% endfor %@
+@% for enum in enums %@
+export enum @@ enum.name @@ {@% for key, value in enum.values.iteritems() %@
+  @@ key @@ = @@ value | literal_value("'") @@,@% endfor %@
+}
+@% endfor %@
+@% for to in tos %@
+export interface @@ to.name @@ {@% for field in to.fields %@
+  @@field.name@@: @@ field | ts_map_type @@;@% endfor %@@%if to.super_class%@@% for field in to.super_class.fields %@
+  @% if field.name == to.super_class.clazz.subtype_attr_name %@readonly @@field.name@@: @@ to | subtype_enum_value @@@% else %@@@field.name@@: @@ field | ts_map_type @@;@% endif %@@% endfor %@@% endif %@
+}
+@% endfor %@
+@@ DELIMITER @@

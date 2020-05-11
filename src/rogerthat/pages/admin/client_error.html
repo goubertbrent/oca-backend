@@ -1,0 +1,175 @@
+<html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" value="notranslate" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<!-- Bootstrap -->
+<link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+
+<script src="/static/js/jquery-1.10.0.min.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<style type="text/css">
+body {
+	padding: 10px;
+}
+
+A:link {
+	text-decoration: none
+}
+
+A:visited {
+	text-decoration: none
+}
+
+A:active {
+	text-decoration: none
+}
+
+A:hover {
+	text-decoration: underline;
+	color: red;
+}
+
+.production {
+    font-size: 14px;
+	color: black;
+    padding: 5px;
+}
+
+
+.android.production {
+	background: #ee0;
+}
+
+.ios.production {
+	background: #0ee;
+}
+
+.other.production {
+	background: #6e6;
+}
+
+td.error-info {
+	width: 250px;
+    padding: 0;
+}
+
+pre {
+    margin-bottom: 0;
+}
+
+#detailsPopup {
+    width: 90%;
+    height: 90%;
+    padding: 0;
+    margin: 0;
+    top: 5%;
+    left: 5%;
+}
+
+#detailsPopup .modal-body {
+    max-height: 70vh;
+	font-family: monospace;
+	font-size: smaller;
+}
+
+#detailsPopup .modal-body p {
+    margin: 0;
+}
+</style>
+</head>
+
+<body>
+    <script src="/static/js/jquery-1.6.1.min.js" type="text/javascript"></script>
+    <h2>Client Errors</h2>
+    <div>
+        <span class="android production">Android</span>
+        <span class="ios production">iOS</span>
+        <span class="other production">Web</span>
+    </div>
+    {% if cursor %}
+    <div class="pagination pagination-centered">
+        <ul>
+            <li>
+                <a href="/mobiadmin/client_errors">First</a>
+            </li>
+            <li>
+                <a href="/mobiadmin/client_errors?cursor={{ cursor }}">Next</a>
+            </li>
+        </ul>
+    </div>
+    {% endif %}
+    <table cellpadding="0" class="table table-bordered table-striped table-hover" style="margin-top: 10px;">
+        <thead>
+            <tr>
+                <td>
+                    <b>Info</b>
+                </td>
+                <td>
+                    <b>Error</b>
+                </td>
+            </tr>
+        </thead>
+        <tbody>
+            {% for error in errors %}
+            <tr>
+                <td class="error-info">
+                    <div class="{{ error.platform_string }} production">
+                        <p>{{ error.formatted_time|safe }}</p>
+                        <p>Count: <b>{{ error.count }}</b></p>
+                    </div>
+                </td>
+                <td class="error-details">
+                    <a data-toggle="modal" href="#detailsPopup" error_key="{{ error.id }}" target="_top">
+                        <pre style="font-size: 11px; max-height: 250px; overflow-y: scroll;">{{ error.short_error }}</pre>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if cursor %}
+    <div class="pagination pagination-centered">
+        <ul>
+            <li>
+                <a href="/mobiadmin/client_errors">First</a>
+            </li>
+            <li>
+                <a href="/mobiadmin/client_errors?cursor={{ cursor }}">Next</a>
+            </li>
+        </ul>
+    </div>
+    {% endif %}
+    <div id="detailsPopup" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="detailsPopupLabel"
+        aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h3 id="detailsPopupLabel">Error details</h3>
+        </div>
+        <div class="modal-body">
+            <pre id="detailsContainer"></pre>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
+    </div>
+    <script type="text/javascript">
+    $(function() {
+        $(".error-details a").click(function() {
+            $("#detailsPopup .modal-body");
+            var errorKey = $(this).attr('error_key');
+            $.ajax({
+                url: "/mobiadmin/client_errors/" + errorKey,
+                type : "GET",
+                success : function(data) {
+                    $("#detailsPopup #detailsContainer").text(data);
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>

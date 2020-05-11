@@ -1,0 +1,25 @@
+<html>
+  <body>
+    <p>{{ from_name }} le recomienda conectarse a {{ service_name }} en {{ app_name }}.</p>
+    <p>
+      <ul>
+        <li>
+          Paso 1. Instalar desde tu móvil la aplicación de {{ app_name }}:<br>
+          <a href="{{ BASE_URL }}/install?a={{ app_id }}&email">{{ BASE_URL }}/install?a={{ app_id }}&email</a><br><br>
+        </li>
+        <li>
+          Paso 2. Conectarse a {{ service_name }}.
+          Abrir el siguiente link desde otro dispositivo y escanear con la opción "Escanear" del menú principal de la 
+          App el código QR que aparece en la pantalla:<br>
+          <a href="{{ share_url }}">{{ share_url }}</a>
+        </li>
+      </ul>
+    </p>
+    <p>&nbsp;</p>
+    {% if consts.INCLUDE_ROGERTHAT_DOT_NET %}
+    <p>
+    Para obtener más información acerca de {{ app_name }} y otros productos a base Rogerthat, por favor visite:<br>
+    <a href="http://www.rogerthat.net">http://www.rogerthat.net</a>
+    </p>{% endif %}
+  </body>
+</html>

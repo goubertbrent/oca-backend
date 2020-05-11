@@ -1,0 +1,147 @@
+mobicage-android-client/rogerthat/src/main/java/{{ to.package|common_replace_dots }}/{{ to.name }}.java
+{{ LICENSE|safe  }}
+
+package {{ to.package }};
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import com.mobicage.rpc.IJSONable;
+import com.mobicage.rpc.IncompleteMessageException;
+{% if to | needs_arrays_import %}
+import java.util.ArrayList;
+import java.util.Arrays;
+{%- endif %}{% if to | needs_linked_hashmap_import %}
+import java.util.LinkedHashMap;
+{%- endif %}
+import java.util.Map;
+
+public class {{ to.name }}{% if to.super_class %} extends {{ to.super_class }}{% endif %} implements IJSONable, Parcelable {
+    public static final Parcelable.Creator<{{ to.name }}> CREATOR = new Parcelable.Creator<{{ to.name }}>() {
+        public {{ to.name }} createFromParcel(Parcel in) {
+            return new {{ to.name }}(in);
+        }
+
+        public {{ to.name }}[] newArray(int size) {
+            return new {{ to.name }}[size];
+        }
+    };
+{% for field in to.fields %}{% if field|common_is_object_factory %}{% continue %}{% endif %}
+    public {{ field.type|java_map_type }}{% if field.collection_type %}[]{% endif %} {{field.name}};{% endfor %}
+
+    public {{ to.name }}() {
+    }
+
+    protected {{ to.name }}(Parcel in) {
+        {%- if to.super_class %}
+        super(in);
+        {%- endif -%}
+        {%- for field in to.fields %}
+        {{ field | java_parcel_read }};
+        {%- endfor %}
+    }
+{% if to|java_has_complex_field %}
+    @SuppressWarnings("unchecked"){% endif %}
+    public {{ to.name }}(Map<String, Object> json) throws IncompleteMessageException {% if to.super_class %}{
+        super(json);{% else %}{{ '{' }}{% endif %}{%- for field in to.fields %}{% if field|common_is_object_factory %}{% continue %}{% endif %}
+        if (json.containsKey("{{ field.name }}")) { {%- if field.collection_type %}
+            org.json.simple.JSONArray val_arr = (org.json.simple.JSONArray) json.get("{{ field.name }}");
+            if (val_arr == null) {
+                this.{{ field.name }} = null;
+            } else {
+                this.{{ field.name }} = new {{ field.type|java_map_type }}[val_arr.size()];
+                for (int i = 0; i < val_arr.size(); i++) { {%- if field.type|common_is_simple_type %}{% if field.type == "float" %}
+                    Object val = val_arr.get(i);
+                    if (val instanceof Float) {
+                        this.{{ field.name }}[i] = ((Float) val).floatValue();
+                    } else if (val instanceof Double) {
+                        this.{{ field.name }}[i] = new Float((Double) val).floatValue();
+                    } else {
+                        this.{{ field.name }}[i] = new Float((Long) val).floatValue();
+                    }{% else %}
+                    this.{{ field.name }}[i] = {{ field.type|java_cast("val_arr.get(i)") }};{% endif %}{% else %}
+                    Map<String, Object> item = (Map<String, Object>) val_arr.get(i);
+                    if (item != null) {
+                        {% if field.subtype %}if (item.containsKey("{{ field.subtype.type.subtype_attr_name }}")) {
+                            switch ({{field.subtype.key_type | java_cast('item.get("' + field.subtype.type.subtype_attr_name + '")', True) }}){
+                                {% for key in field.subtype.type.subtype_mapping %}case {{ key | literal_value }}:
+                                    this.{{ field.name }}[i] = new {{ field.subtype.subtype_name(key) }}(item);
+                                    break;
+                                {% endfor %}default:
+                                    this.{{ field.name }}[i] = new {{ field.type }}(item);
+                            }
+                        } else {
+                            throw new IncompleteMessageException("{{ field.type }} object is missing field '{{ field.subtype.type.subtype_attr_name  }}'");
+                        }{% else %}this.{{ field.name }}[i] = new {{ field.type }}(item);{% endif %}
+                    }{% endif %}
+                }
+            }{% else %}
+            {% if field.type|common_is_simple_type %}Object val = json.get("{{ field.name }}");{% if field.type == "float" %}
+            if (val instanceof Float) {
+                this.{{ field.name }} = {{ field.type|java_cast("val") }};
+            } else if (val instanceof Double) {
+                this.{{ field.name }} = new Float((Double) val);
+            } else {
+                this.{{ field.name }} = new Float((Long) val);
+            }{% else %}{% if field.type == "int" or field.type == "long" %}
+            if (val instanceof Integer) {
+                this.{{ field.name }} = ((Integer) val).longValue();
+            } else {
+                this.{{ field.name }} = (Long) val;
+            }{% else %}
+            this.{{ field.name }} = {{ field.type|java_cast("val") }};{% endif %}{% endif %}{% else %}Map<String, Object> val = (Map<String, Object>) json.get("{{ field.name }}");
+            {% if field.subtype %}if (val != null && val.containsKey("{{ field.subtype.type.subtype_attr_name }}")) {
+                switch ({{field.subtype.key_type | java_cast('val.get("' + field.subtype.type.subtype_attr_name + '")', True) }}){
+                    {% for key in field.subtype.type.subtype_mapping %}case {{ key | literal_value }}:
+                        this.{{ field.name }} = new {{ field.subtype.subtype_name(key) }}(val);
+                        break;
+                    {% endfor %}default:
+                        this.{{ field.name }} = new {{ field.type }}(val);
+                }
+            } else {
+                this.{{ field.name }} = null;
+            }{% else %}this.{{ field.name }} = val == null ? null : new {{ field.type }}(val);{% endif %}{% endif %}{% endif %}
+        } else { {%- if field.default != MISSING %}
+            this.{{ field.name }} = {{ field|java_default_value|safe }};{% else %}
+            throw new IncompleteMessageException("{{ to.full_name }} object is missing field '{{ field.name }}'");{% endif %}
+        }{% endfor %}
+    }
+
+    @Override{% if to|java_has_list_field %}
+    @SuppressWarnings("unchecked"){% endif %}
+    public Map<String, Object> toJSONMap() {
+        Map<String, Object> obj = {% if to.super_class %}super.toJSONMap(){% else %}new LinkedHashMap<>(){% endif %};
+
+        {%- for field in to.fields %}
+            {%- if field|common_is_object_factory %}{% continue %}{% endif %}
+            {%- if field.collection_type %}
+        if (this.{{ field.name }} == null) {
+            obj.put("{{ field.name }}", null);
+        } else {
+            org.json.simple.JSONArray arr = new org.json.simple.JSONArray();
+            for (int i = 0; i < this.{{ field.name }}.length; i++) {
+                arr.add(this.{{ field.name }}[i]{% if not field.type|common_is_simple_type %}.toJSONMap(){% endif %});
+            }
+            obj.put("{{ field.name }}", arr);
+        }{% else %}{% if field.type|common_is_simple_type %}
+        obj.put("{{ field.name }}", this.{{ field.name }});{% else %}
+        obj.put("{{ field.name }}", this.{{ field.name }} == null ? null : this.{{ field.name }}.toJSONMap());{% endif %}{% endif %}{% endfor %}
+        return obj;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        {%- if to.super_class %}
+        super.writeToParcel(dest, flags);
+        {%- endif -%}
+        {%- for field in to.fields %}
+        dest.{{ field | java_parcel_write_method }};
+        {%- endfor %}
+    }
+
+}

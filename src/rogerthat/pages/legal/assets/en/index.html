@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Rogerthat Legal Info</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet" >
+    <style type="text/css">
+      body {
+        padding-top: 20px;
+        padding-bottom: 20px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+
+      @media (max-width: 980px) {
+        /* Enable use of floated navbar text */
+        .navbar-text.pull-right {
+          float: none;
+          padding-left: 5px;
+          padding-right: 5px;
+        }
+      }
+    </style>
+    <link href="/static/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+
+    {% if color %}
+    <style type="text/css">
+        a {
+            color: {{ color  }} !important;
+        }
+
+        .nav-list > .active > a,
+        .nav-list > .active > a:hover,
+	    .nav-list > .active > a:focus {
+            color: #ffffff !important;
+            background-color: {{ color  }} !important;
+        }
+    </style>
+    {% endif %}
+  </head>
+
+  <body>
+
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="span3">
+          <div class="well sidebar-nav">
+            <ul class="nav nav-list">
+            	  {% for d in docs %}
+            	  	<li {% if d.id == doc %}class="active"{% endif %}><a href="/legal?doc={{ d.id }}&l={{ language }}{% if color%}&color={{ color|slice:"1:" }}{% endif %}">{{ d.name }}</a></li>
+			  {% endfor %}
+            </ul>
+          </div><!--/.well -->
+          
+          <div class="btn-group">
+             <button class="btn dropdown-toggle" data-toggle="dropdown">{{ language }} <span class="caret"></span></button>
+             <ul class="dropdown-menu">
+             	{% for l in languages %}
+            	  		<li><a href="{{ current_url }}&l={{ l }}{% if color%}&color={{ color|slice:"1:" }}{% endif %}">{{ l }}</a></li>
+			  	{% endfor %}
+             </ul>
+           </div>
+        </div><!--/span-->
+        <div class="span9">
+          {{ content }}
+        </div><!--/span-->
+      </div><!--/row-->
+
+      <hr>
+
+      <footer>
+        <p>&copy; 2011-2018
+	    <a href="http://www.rogerthat.net/company/contact-mobicage/" target="_blank">MOBICAGE NV</a>
+	     - All rights reserved worldwide. -
+	     <a href="/legal?doc=privacy-policy&l={{ language }}">Privacy Policy</a>
+	      -
+	     <a href="/legal?doc=terms-and-conditions&l={{ language }}">Terms and Conditions</a></p>
+      </footer>
+
+    </div><!--/.fluid-container-->
+    
+    <script src="/static/js/jquery-1.10.0.min.js"></script>
+	<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+  </body>
+</html>

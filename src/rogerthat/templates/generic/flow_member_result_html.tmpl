@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title>{{ message_flow_name }}</title>
+</head>
+<body style="font-family: Verdana, sans-serif; margin: 16px;">
+<img src="{{ logo_url }}" style="height: 100px;" alt="logo">
+<h1 style="font-size: 20px;">{{ message_flow_name }}</h1>
+<p style="margin: 16px 0;"><b>{{ user_str }}:</b> {{ name }} (<a href="mailto:{{ member }}">{{ member }}</a>)</p>
+<p style="margin: 16px 0;"><b>{{ date_str }}:</b> {{ date }}</p>
+{% for step in steps %}
+  <p style="margin: 16px 0;">
+    <b>{{ step.message|linebreaksbr }}</b> <br/>
+    {% if step.step_type == "form_step" and step.form_result %}
+      {% if step.form_type == 'photo_upload' %}
+        <a href="{{ step.form_result.result.value }}">
+          <img src="{{ step.form_result.result.value }}" style="width: 400px;">
+        </a>
+        {% else %}
+        {{ step.display_value|linebreaksbr }}
+        {% endif %}
+    {% else %}
+      {{ step.button }}
+    {% endif %}
+  </p>
+{% endfor %}
+</body>
+</html>

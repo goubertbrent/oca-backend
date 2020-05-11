@@ -1,0 +1,13 @@
+<ul class="breadcrumb">
+  <li><a href="/legal">Legal</a> <span class="divider">/</span></li>
+  <li class="active">{{ title }}</li>
+</ul>
+
+<div>
+  <h3>Available versions:</h3>
+  <ul>
+  	{% for version in versions %}
+  	<li><a href="/legal?doc={{ doc }}&version={{ version.id }}&l={{ language }}">{{ version.name }}</a></li>
+	{% endfor %}
+  </ul>
+</div>

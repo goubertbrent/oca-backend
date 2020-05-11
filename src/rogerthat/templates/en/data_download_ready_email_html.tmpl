@@ -1,0 +1,9 @@
+<html><body>Dear{% if name %} {{ name|escape }}{% endif %},<br>
+<br>
+This link will only work for the next 4 days.<br>
+Because it may contain personal information, be sure to keep the link private and only download the archive to your own computer.<br>
+<br>
+<a href="{{ link }}">Download Data</a><br>
+<br>
+- The {{ app.name }} Team<br>
+</body></html>

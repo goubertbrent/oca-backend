@@ -1,0 +1,125 @@
+<div id="servicePanelContainer" class="span-18 last">
+    <script type="text/javascript" src="/static/js/service.js"></script>
+    <div id="serviceStatusContainer">
+        <h3>Service status</h3>
+        <div class="span-17 last">
+            <div id="mobidick"><a id="mobidick_link" class="action-link">Use Mobidick sample service</a></div>
+            <span id="actionPoints">Actions required before your service can be enabled:</span>
+            <ul id="apiActionPoints"/><br>
+            <input id="chkEnabled" type="checkbox"/><label id="chkEnabledLabel" for="chkEnabled">Service enabled</label>
+        </div>
+    </div>
+    <br>&nbsp;<br>
+    <div id="apiKeysContainer">
+        <h3>Service API keys</h3>
+        <div class="span-17 last">
+            Manage your api keys for service requests:<br><br>
+            <span id="noAPIKeys" style="display: none;" class="mcerror">Generate your api key(s)!</span>
+            <ul id="apiKeys" /><br>
+            <button id="generateKey">Generate new API key</button>
+        </div>
+    </div>
+    <br>&nbsp;<br>
+    <div id="callbackRpcDetailsContainer">
+        <h3>Service callback configuration</h3>
+        <div class="span-17 last">
+            <div class="clearfix">
+                Configure how callbacks must be performed:<br><br>
+                <ul id="callBackMethods">
+                    <li>
+                        <input id="mobidickCallBackMethod" type="radio" name="callBackMethods"/>
+                        <label for="mobidickCallBackMethod">Mobidick</label><br>
+                        Use the Mobidick sample service
+                        <br>
+                        <br>
+                    </li>
+                    <li>
+                        <input id="httpCallBackMethod" type="radio" name="callBackMethods"/>
+                        <label for="httpCallBackMethod">HTTP(S)</label><br>
+                        URI to which callbacks will be posted:<br>
+                        <input id="httpCallBackURI" type="text" style="width: 400px" placeholder="https://service.example.com/callbackurl"><span id="httpCallBackURIWarning" class="mcwarning"/><br>
+                    </li>
+                </ul>
+                Service identifier key which is sent with every callback method: <a id="generateSIK" class="action-link">Regenerate</a><br>
+                <span id="httpCallBackSecret" style="font-family: monospace;"/><br>
+
+                <span id="validationError" class="mcerror"/><br>
+                <button id="saveConfiguration">Save configuration</button> <button id="testConfiguration">Test configuration</button>
+            </div>
+            <div id="callbackConfigContainer" style="display: none;">
+                <hr>
+                <div class="clearfix">
+                    <button id="createCallbackConfig">Create new callback configuration</button>
+                </div>
+                <ul id="callbackConfigs" /><br>
+            </div>
+            <hr>
+            Which callbacks do you want to receive ?<br><br>
+            <input id="cbFriendInviteResult" type="checkbox" code="1" /><label for="cbFriendInviteResult">friend.invite_result</label><br>
+            <input id="cbFriendInvited" type="checkbox" code="2" /><label for="cbFriendInvited">friend.invited</label><br>
+            <input id="cbFriendBrokeUp" type="checkbox" code="4" /><label for="cbFriendBrokeUp">friend.broke_up</label><br>
+            <input id="cbFriendUpdate" type="checkbox" code="8192" /><label for="cbFriendUpdate">friend.update</label><br>
+            <input id="cbFriendIsInRoles" type="checkbox" code="2048" /><label for="cbFriendIsInRoles">friend.is_in_roles</label><br>
+            <input id="cbFriendLocationFix" type="checkbox" code="65536" /><label for="cbFriendLocationFix">friend.location_fix</label><br>
+            <input id="cbMessagingUpdateReceived" type="checkbox" code="8" /><label for="cbMessagingUpdateReceived">messaging.update (received)</label><br>
+            <input id="cbMessagingUpdateAcknowledged" type="checkbox" code="128" /><label for="cbMessagingUpdateAcknowledged">messaging.update (acknowledged)</label><br>
+            <input id="cbMessagingFormUpdateAcknowledged" type="checkbox" code="32" /><label for="cbMessagingFormUpdateAcknowledged">messaging.form_update (acknowledged)</label><br>
+            <input id="cbMessagingNewChatMessage" type="checkbox" code="4096" /><label for="cbMessagingNewChatMessage">messaging.new_chat_message</label><br>
+            <input id="cbMessagingChatDeleted" type="checkbox" code=32768 /><label for="cbMessagingChatDeleted">messaging.chat_deleted</label><br>
+            <input id="cbMessagingPoke" type="checkbox" code="16" /><label for="cbMessagingPoke">messaging.poke</label><br>
+            <input id="cbMessagingFlowResult" type="checkbox" code="64" /><label for="cbMessagingFlowResult">messaging.flow_member_result</label><br>
+            <input id="cbSystemApiCall" type="checkbox" code="256" /><label for="cbSystemApiCall">system.api_call</label><br>
+            <input id="cbSystemBrandingsUpdated" type="checkbox" code="524288" /><label for="cbSystemBrandingsUpdated">system.brandings_updated</label><br>
+        </div>
+    </div>
+    <br>&nbsp;<br>
+    <div id="serviceAdministratorsContainer">
+        <h3>Service administrators</h3>
+        <div class="span-17 last">
+            <ul id="serviceAdministrators"></ul>
+            <button id="addAdministrator">Add administrator</button>
+        </div>
+    </div>
+    <br/> <br/>
+    <div id="importExportContainer">
+        <h3>Import / export</h3>
+        <div class="span-17 last">
+            <p>You can export or import the service menu, brandings, message flows and roles for a service here.</p>
+            <button id="exportServiceData" class="ui-button">Export service data</button>
+        </div>
+        <br/>
+        <form id="importForm" method="post" enctype="multipart/form-data" action="/mobi/service/import">
+            <input id="file" type="file" name="file" accept="application/zip" style="float: left; margin-top:12px"/>
+            <button id="upload_button" class="ui-button">Import service data</button>
+        </form>
+    </div>
+    <div id="addAdministratorDialog">
+        Enter administrator Rogerthat account (via name or email address):<br>
+        <input id="email" type="text" style="width: 200px"><span id="email_required" style="display: none;" class="mcerror">required field!</span><br>
+        Select role:
+        <select id="role"></select>
+    </div>
+    <div id="getNameForAPIKeyDialog">
+        Provide a name for the key:
+        <input id="keyName" type="text" style="width: 200px"><span id="name_required" style="display: none;" class="mcerror">required field!</span>
+    </div>
+    <div id="deleteAPIKey">
+        Are you sure you want to delete API key <span id="apiKeyNameLabel"/>. Future calls using this api key will fail.
+    </div>
+    <div id="interactiveLoggingDialog">
+        <textarea id="logWindow" style="width:370px; height:200px; font-family: monospace !important;"></textarea>
+    </div>
+    <div id="addCallbackConfigDialog">
+        Name:<br>
+        <input id="addCallbackConfigDialog_name" type="text" style="width: 350px"><span id="addCallbackConfigDialog_nameRequired" style="display: none;" class="mcerror">required field!</span><br>
+        Regex (Will be matched to the tag of a callback):<br>
+        <input id="addCallbackConfigDialog_regex" type="text" style="width: 350px"><span id="addCallbackConfigDialog_regexRequired" style="display: none;" class="mcerror">required field!</span><br>
+        <br>
+        URI to which callbacks will be posted:<br>
+	    <input id="addCallbackConfigDialog_httpCallBackURI" type="text" style="width: 350px" placeholder="https://service.example.com/callbackurl"><span id="addCallbackConfigDialog_httpCallBackURIRequired" style="display: none;" class="mcerror">required field!</span><br>
+    </div>
+    <div id="deleteCallbackConfigDialog">
+        Are you sure you want to delete callback <span id="callbackConfigNameLabel"/>.
+    </div>
+</div>
+

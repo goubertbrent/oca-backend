@@ -13,10 +13,12 @@ js-test/gen/*
 src-tools/shop/*.xls
 .idea
 bin/
-build/
 src/solution_server_settings/consts.py
 src/migrations/
 node_modules/
 npm-debug.log
 google-app-credentials.json
 .vscode
+# Libraries folder used when deploying, not needed for development as you should setup a virtualenv.
+# Therefore you should mark this folder as "not sources" in your editor
+src/lib

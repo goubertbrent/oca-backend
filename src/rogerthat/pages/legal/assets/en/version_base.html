@@ -1,0 +1,13 @@
+<div>
+  <h1>{{ title }}</h1>
+  {% if current %}
+  <h5>Last modified: {{ date_modified }} (<a href="/legal?doc={{ doc }}&mode=revisions&l={{ language }}" class="legal-all-versions">All versions</a>)</h5>
+  {% else %}
+  	<div class="alert alert-warning">
+  		<p>You are currently viewing an archived version. View the <a href="/legal?doc={{ doc }}&l={{ language }}">current version</a> or <a href="/legal?doc={{ doc }}&mode=revisions&l={{ language }}">all past versions</a>.</p>
+		<p>Last modified: {{ date_modified }}</p>
+	</div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</div>

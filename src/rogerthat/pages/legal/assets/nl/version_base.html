@@ -1,0 +1,13 @@
+<div>
+  <h1>{{ title }}</h1>
+  {% if current %}
+  <h5>Laatst aangepast: {{ date_modified }} (<a href="/legal?doc={{ doc }}&mode=revisions&l={{ language }}" class="legal-all-versions">Alle versies</a>)</h5>
+  {% else %}
+  	<div class="alert alert-warning">
+		<p>Je bekijkt een gearchiveerde versie. Bekijk de <a href="/legal?doc={{ doc }}&l={{ language }}">huidige versie</a> of <a href="/legal?doc={{ doc }}&mode=revisions&l={{ language }}">alle oude versions</a>.</p>
+		<p>Laatst aangepast: {{ date_modified }}</p>
+	</div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</div>
