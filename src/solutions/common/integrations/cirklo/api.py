@@ -120,25 +120,27 @@ def export_voucher_services():
                 continue
             row = {
                 'Login email': customer.user_email,
-                'Name': service_info.name,
+                'Name': service_info.name.encode('utf8') if service_info.name else '',
                 'Phone number': service_info.main_phone_number,
                 'Date created': datetime.utcfromtimestamp(customer.creation_time),
                 'Organization type': org_types[customer.organization_type]
             }
             address = service_info.addresses[0] if service_info.addresses else None
             if address:
-                row['Street'] = address.street
+                row['Street'] = address.street.encode('utf8')
                 row['Street number'] = address.street_number
                 row['Postal code'] = address.postal_code
-                row['Place'] = address.locality
+                row['Place'] = address.locality.encode('utf8')
                 params = {'api': '1', 'query': address.name or address.get_address_line(customer.locale)}
                 if address.google_maps_place_id:
                     params['query_place_id'] = address.google_maps_place_id
                 row['Location url'] = 'https://www.google.com/maps/search/?%s' % urllib.urlencode(params, doseq=True)
+            logging.debug(row)
             rows.append(row)
         if missing:
             logging.error('Some data was missing when exporting services: %s', missing)
-        writer.writerows(sorted(rows, key=lambda row: row['Name']))
+        sorted_rows = sorted(rows, key=lambda row: row['Name'])
+        writer.writerows(sorted_rows)
 
     deferred.defer(cloudstorage.delete, gcs_path, _countdown=DAY, _queue=SCHEDULED_QUEUE)
     return {'url': get_serving_url(gcs_path), 'filename': filename}
