@@ -4,346 +4,346 @@ threadsafe: true
 instance_class: F2
 
 libraries:
-- name: pycrypto
-  version: latest
-- name: lxml
-  version: "3.7.3"
-- name: jinja2
-  version: "2.6"
-- name: ssl
-  version: latest
-- name: PIL
-  version: latest
+  - name: pycrypto
+    version: latest
+  - name: lxml
+    version: "3.7.3"
+  - name: jinja2
+    version: "2.6"
+  - name: ssl
+    version: latest
+  - name: PIL
+    version: latest
 
 inbound_services:
-- warmup
-- mail
-
-automatic_scaling:
-    min_idle_instances: 1
-    max_idle_instances: 2
-    max_concurrent_requests: 20
-    max_pending_latency: 500ms
-    min_pending_latency: 250ms
+  - warmup
+  - mail
 
 skip_files:
-- ^(.*/)?#.*#$
-- ^(.*/)?.*~$
-- ^(.*/)?.*\.py[co]$
-- ^(.*/)?.*/RCS/.*$
-- ^(.*/)?\..*$
-- lib/PIL*
-- lib/lxml*
-- lib/Crypto*
+  - '^(.*/)?#.*#$'
+  - ^(.*/)?.*~$
+  - '^(.*/)?.*\.py[co]$'
+  - ^(.*/)?.*/RCS/.*$
+  - ^(.*/)?\..*$
+  - lib/PIL*
+  - lib/lxml*
+  - lib/Crypto*
+
+automatic_scaling:
+  min_idle_instances: 1
+  max_idle_instances: 2
+  max_concurrent_requests: 20
+  max_pending_latency: 500ms
+  min_pending_latency: 250ms
 
 handlers:
-- url: /_ah/mail/.+
-  script: rogerthat_admin.app
-  login: admin
+  - url: /_ah/mail/.+
+    script: rogerthat_admin.app
+    login: admin
 
-- url: /_ah/queue/deferred
-  script: rogerthat_admin.app
-  login: admin
+  - url: /_ah/queue/deferred
+    script: rogerthat_admin.app
+    login: admin
 
-- url: /_ah/warmup
-  script: rogerthat_admin.app
-  login: admin
+  - url: /_ah/warmup
+    script: rogerthat_admin.app
+    login: admin
 
-- url: /_ah/pipeline(/.*)?
-  script: rogerthat_mapreduce.app
+  - url: /_ah/pipeline(/.*)?
+    script: rogerthat_mapreduce.app
+
+  - url: /mapreduce/pipeline/images
+    static_dir: static/lib/pipeline/ui/images
+
+  - url: /mapreduce(/.*)?
+    script: rogerthat_mapreduce.app
+    login: admin
+
+  - url: /ourcityapp
+    script: main_unauthenticated.app
+    secure: always
+
+  - url: /(common|flex)/
+    script: main_unauthenticated.app
+    secure: always
+
+  - url: /shop/(products|invoices)/export
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /mapreduce/pipeline/images
-  static_dir: static/lib/pipeline/ui/images
-
-- url: /mapreduce(/.*)?
-  script: rogerthat_mapreduce.app
-  login: admin
-
-- url: /crossdomain.xml
-  script: rogerthat_unauthenticated.app
-  secure: always
-
-- url: /login/.dev
-  script: rogerthat_unauthenticated.app
-  secure: always
-  login: admin
-
-- url: /(invite|setpassword|resetpassword)
-  script: rogerthat_unauthenticated.app
-  secure: always
-
-- url: /about
-  script: rogerthat_unauthenticated.app
-  secure: always
-
-- url: /install/?.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /shop/prospects/callback
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /q/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /shop/prospects/discover/callback
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /si/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /shop/oauth2callback
+    script: main_google_authenticated.app
+    secure: always
 
-- url: /(S|M|A)/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /vcards/?.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /(login|message)
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /version
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /json-rpc
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /terms
+    script: main_authenticated.app
+    secure: always
 
-- url: /json-rpc/instant
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /crossdomain.xml
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /auth
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /login/.dev
+    script: rogerthat_unauthenticated.app
+    secure: always
+    login: admin
 
-- url: /upgrade/update_to_rogerth.at
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /(invite|setpassword|resetpassword)
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /legal
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /about
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /login_required
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /install/?.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /terms-and-conditions
-  script: rogerthat_authenticated.app
-  secure: always
+  - url: /(login|message)
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /(login_facebook|login_google|login_linkedin)
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /json-rpc
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /subscribe
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /json-rpc/instant
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /unauthenticated/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /auth
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /branding/.*
-  script: rogerthat_unauthenticated.app
+  - url: /upgrade/update_to_rogerth.at
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /favicon\.ico
-  static_files: static/images/favicon.png
-  upload: static/images/favicon\.png
+  - url: /legal
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /static
-  static_dir: static
+  - url: /login_required
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /cron/.*
-  script: rogerthat_admin.app
-  login: admin
-  secure: always
+  - url: /terms-and-conditions
+    script: rogerthat_authenticated.app
+    secure: always
 
-- url: /mobiadmin/google/.*
-  script: rogerthat_google_authenticated.app
-  login: required
-  secure: always
+  - url: /(login_facebook|login_google|login_linkedin)
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /mobiadmin/.*
-  script: rogerthat_admin.app
-  login: admin
-  secure: always
+  - url: /subscribe
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /mobi/rest/user/(signup|login|reset_password|authenticate_mobile|statistics)
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /favicon\.ico
+    static_files: static/images/favicon.png
+    upload: static/images/favicon\.png
 
-- url: /mobi/rest/user/context/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /static
+    static_dir: static
 
-- url: /mobi/rest/user/unsubscribe/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /mobi/rest/user/(signup|login|reset_password|authenticate_mobile|statistics)
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: (/mobi/rest/srv/load|/mobi/rest/service_map/load|/mobi/rest/news/config)
-  script: rogerthat_unauthenticated.app
+  - url: (/mobi/rest/srv/load|/mobi/rest/service_map/load|/mobi/rest/news/config)
+    script: rogerthat_unauthenticated.app
 
-- url: /mobi/rest/mdp/.*
-  script: rogerthat_unauthenticated.app
+  - url: /unauthenticated/mobi/logging/(exception|web_error)
+    script: rogerthat_unauthenticated.app
 
-- url: /mobi/rest/account/.*
-  script: rogerthat_unauthenticated.app
+  - url: /(invite_facebook|invite_linkedin)
+    script: rogerthat_authenticated.app
+    secure: always
 
-- url: /mobi/rest/asset/.*
-  script: rogerthat_unauthenticated.app
+  - url: /(logout|unsubscribeme)
+    script: rogerthat_authenticated.app
+    secure: always
 
-- url: /unauthenticated/mobi/logging/(exception|web_error)
-  script: rogerthat_unauthenticated.app
+  - url: /(unsubscribe_reminder|unsubscribe_broadcast|unsubscribe_deactivate)
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /mobi/rest/.*
-  script: rogerthat_rest.app
-  secure: always
+  - url: /auto_login
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /mobi/js_embedding/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /api/1/servertime
+    script: rogerthat_unauthenticated.app
 
-- url: /mobi/service/menu/icons/lib/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /api/1.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /mobi/.*
-  script: rogerthat_authenticated.app
-  secure: always
+  - url: /robots.txt
+    script: rogerthat_unauthenticated.app
+
+  - url: /
+    script: rogerthat_unauthenticated.app
+    secure: always
+
+  - url: /service_disabled
+    script: rogerthat_unauthenticated.app
+    secure: always
+
+  - url: /rest/news/stats/read
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /(invite_facebook|invite_linkedin)
-  script: rogerthat_authenticated.app
-  secure: always
+  - url: /restapi.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /connect/.*
-  script: rogerthat_authenticated.app
-  secure: always
+  - url: /images.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /(logout|unsubscribeme)
-  script: rogerthat_authenticated.app
-  secure: always
+  - url: /uploads.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /(unsubscribe_reminder|unsubscribe_broadcast|unsubscribe_deactivate)
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /internal/.*
+    script: main_google_authenticated.app
+    login: required
+    secure: always
 
-- url: /auto_login
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /admin/.*
+    script: main_admin.app
+    login: admin
+    secure: always
 
-- url: /api/1/servertime
-  script: rogerthat_unauthenticated.app
+  - url: /(common|flex)/.*
+    script: main_authenticated.app
+    secure: always
 
-- url: /api/1.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /solutions/common/public/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /robots.txt
-  script: rogerthat_unauthenticated.app
+  - url: /bob/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /customers/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /service_disabled
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /unauthenticated/loyalty/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /rest/news/stats/read
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /unauthenticated/osa/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /restapi.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /unauthenticated/payments/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /images.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /unauthenticated/rss/.*
+    script: main_unauthenticated.app
+    secure: always
 
-- url: /uploads.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /q/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /payments/(callbacks|login|transaction)/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /si/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /firebase/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /(S|M|A)/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /oauth/.*
-  script: rogerthat_unauthenticated.app
-  secure: always
+  - url: /unauthenticated/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /internal/.*
-  script: main_google_authenticated.app
-  login: required
-  secure: always
+  - url: /branding/.*
+    script: rogerthat_unauthenticated.app
 
-- url: /admin/.*
-  script: main_admin.app
-  login: admin
-  secure: always
+  - url: /cron/.*
+    script: rogerthat_admin.app
+    login: admin
+    secure: always
 
-- url: /ourcityapp
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobiadmin/google/.*
+    script: rogerthat_google_authenticated.app
+    login: required
+    secure: always
 
-- url: /(common|flex)/
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobiadmin/.*
+    script: rogerthat_admin.app
+    login: admin
+    secure: always
 
-- url: /(common|flex)/.*
-  script: main_authenticated.app
-  secure: always
+  - url: /mobi/rest/user/context/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /solutions/common/public/.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/rest/user/unsubscribe/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /bob/.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/rest/mdp/.*
+    script: rogerthat_unauthenticated.app
 
-- url: /shop/(products|invoices)/export
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/rest/account/.*
+    script: rogerthat_unauthenticated.app
 
-- url: /shop/prospects/callback
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/rest/asset/.*
+    script: rogerthat_unauthenticated.app
 
-- url: /shop/prospects/discover/callback
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/rest/.*
+    script: rogerthat_rest.app
+    secure: always
 
-- url: /shop/oauth2callback
-  script: main_google_authenticated.app
-  secure: always
+  - url: /mobi/js_embedding/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /customers/.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/service/menu/icons/lib/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /vcards/?.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /mobi/.*
+    script: rogerthat_authenticated.app
+    secure: always
 
-- url: /unauthenticated/loyalty/.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /connect/.*
+    script: rogerthat_authenticated.app
+    secure: always
 
-- url: /unauthenticated/osa/.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /payments/(callbacks|login|transaction)/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /unauthenticated/payments/.*
-  script: main_unauthenticated.app
-  secure: always
+  - url: /firebase/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
 
-- url: /unauthenticated/rss/.*
-  script: main_unauthenticated.app
-  secure: always
-
-- url: /version
-  script: main_unauthenticated.app
-  secure: always
-
-- url: /terms
-  script: main_authenticated.app
-  secure: always
+  - url: /oauth/.*
+    script: rogerthat_unauthenticated.app
+    secure: always
