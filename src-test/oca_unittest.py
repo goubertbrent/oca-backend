@@ -75,7 +75,7 @@ class TestCase(unittest.TestCase):
         self.datastore_hr_policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(
             probability=datastore_hr_probability)
         self.testbed.init_datastore_v3_stub(consistency_policy=self.datastore_hr_policy)
-        self.testbed.init_taskqueue_stub(root_path=os.path.join(os.path.dirname(__file__), '..', 'build'))
+        self.testbed.init_taskqueue_stub(root_path=os.path.join(os.path.dirname(__file__), '..', 'src'))
         self.task_queue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         self.testbed.init_channel_stub()
         self.testbed.init_search_stub()
