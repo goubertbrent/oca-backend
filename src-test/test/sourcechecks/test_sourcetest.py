@@ -52,10 +52,10 @@ class Test(oca_unittest.TestCase):
     def test_python_baseclasses(self):
         if sys.platform == "win32":
             return
-
+ 
         import ast
         testself = self
-
+ 
         class MyVisitor(ast.NodeVisitor):
             def visit_ClassDef(self, node):
                 baseclasses = []
@@ -69,14 +69,14 @@ class Test(oca_unittest.TestCase):
                 testself.assert_(len(baseclasses) > 0, "Could not find baseclasses for node %s\nfile=%s" % (ast.dump(node), self.current_python_file))
                 testself.assert_('CachedModelMixIn' not in baseclasses or baseclasses[0] == 'CachedModelMixIn', 'CachedModelMixIn MUST be first parent class!!\n--> class %s\n    file %s' % (node.name, self.current_python_file))
                 ast.NodeVisitor.generic_visit(self, node)
-
+ 
         m = MyVisitor()
         src_dir = self.get_src_dir()
-        filenames = os.popen("find ""%s"" -name '*.py'" % src_dir).read().splitlines()
+        filenames = os.popen('find "%s" -type d -name lib -prune -type d -name static -prune -o -name "*.py"' % src_dir).read().splitlines()
         self.assert_(len(filenames) > 0, "Error: couldn't find src files.\nIs the dir correct: %s" % src_dir)
-
+ 
         for filename in filenames:
-            if filename.endswith('com/mobicage/bizz/service/mfd/gen.py'):
+            if filename.endswith('rogerthat/bizz/service/mfd/gen.py'):
                 continue
             f = open(filename, 'r')
             body = f.read()
