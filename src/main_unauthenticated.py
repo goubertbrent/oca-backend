@@ -40,7 +40,6 @@ from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandl
 from solutions.common.handlers.vcard import VCardHandler
 from solutions.common.restapi.rss import RssCoronavirusDotBeHandler
 from solutions.flex.handlers import FlexHomeHandler
-from version.handler import VersionsHandler
 
 handlers = [
     ('/flex/', FlexHomeHandler),
@@ -79,8 +78,7 @@ handlers = [
     RedirectRoute('/customers/signup/<app_id:[^/]+>', CustomerSignupHandler, 'signup_app', strict_slash=True),
     RedirectRoute('/ourcityapp', name='ourcityapp', redirect_to_name='signin', strict_slash=True),
     ('/solutions/common/public/attachment/view/(.*)', CloudStorageBlobstoreHandler),
-    ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler),
-    ('/version', VersionsHandler)
+    ('/solutions/common/public/menu/image/(.*)', ViewMenuItemImageHandler)
 ]
 
 handlers.extend(rest_functions(solutions.common.restapi, authentication=NOT_AUTHENTICATED))
