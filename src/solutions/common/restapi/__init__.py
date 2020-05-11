@@ -532,7 +532,7 @@ def rest_get_news_options():
         NewsActionButtonPhone(label=common_translate(lang, SOLUTION_COMMON, 'Phone number'),
                               icon='call',
                               phone='',
-                              button=NewsActionButtonTO('email',
+                              button=NewsActionButtonTO('phone',
                                                         common_translate(lang, SOLUTION_COMMON, 'Call'),
                                                         '')),
     ]
