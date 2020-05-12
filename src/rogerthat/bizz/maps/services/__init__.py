@@ -158,7 +158,6 @@ def get_map_search_suggestions(app_user, request):
     services = _suggest_services(get_tags_app(app_id),
                                  request.coords.lat,
                                  request.coords.lon,
-                                 request.distance,
                                  get_clean_language_code(lang),
                                  request.search.query)
     took_time = time.time() - start_time
@@ -185,13 +184,14 @@ def get_map_items(app_user, request):
         user_profile = get_user_profile(app_user)
         lang = user_profile.language
         start_time = time.time()
-        place_types = _search_place_types(request.search.query, get_clean_language_code(lang))
+        place_type = _search_place_types(request.search.query, get_clean_language_code(lang))
         took_time = time.time() - start_time
+        if place_type:
+            place_type_tags = ['place_type#%s' % place_type]
         logging.info('debugging.services._search_place_types _search {0:.3f}s'.format(took_time))
-        place_type_tags = ['place_type#%s' % place_type for place_type in place_types]
         logging.debug('get_map_items.search: "%s" -> %s', request.search.query, place_type_tags)
     return _get_items(app_user, tags, place_type_tags, center_lat, center_lon, distance, cursor=request.cursor,
-                      search=request.search)
+                      search=None if place_type_tags else request.search)
 
 
 @returns(GetMapItemDetailsResponseTO)
@@ -654,7 +654,7 @@ def _create_index():
     return create_index(_get_elasticsearch_index(), request)
 
 
-def _suggest_services(tags, lat, lon, distance, lang, search):
+def _suggest_services(tags, lat, lon, lang, search):
     qry = {
         'size': 12,
         'from': 0,
@@ -682,6 +682,7 @@ def _suggest_services(tags, lat, lon, distance, lang, search):
             }
         },
         'sort': [
+            { "_score": { "order": "desc" }},
             {
                 '_geo_distance': {
                     'location': {
@@ -691,8 +692,7 @@ def _suggest_services(tags, lat, lon, distance, lang, search):
                     'order': 'asc',
                     'unit': 'm'
                 }
-            },
-            "_score",
+            }
         ]
     }
 
@@ -724,7 +724,7 @@ def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, s
         'size': limit,
         'from': start_offset,
         '_source': {
-            'includes': ['email', 'location'],
+            'includes': ['email', 'name'],
             # 'excludes': []
         },
         'query': {
@@ -803,7 +803,9 @@ def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, s
     result_data = es_request(path, urlfetch.POST, qry)
 
     new_cursor = None
-    if not search:
+    if place_type_tags or search:
+        pass # no cursor
+    else:
         next_offset = start_offset + len(result_data['hits']['hits'])
         if result_data['hits']['total']['relation'] in ('eq', 'gte'):
             if result_data['hits']['total']['value'] > next_offset and next_offset < 10000:
@@ -885,7 +887,7 @@ def _re_index_place_types():
     return execute_bulk_request(_get_elasticsearch_place_type_index(), operations)
 
 
-def _search_place_types(qry, lang):
+def _search_place_types(search_query, lang):
     qry = {
         'size': 3,
         'from': 0,
@@ -897,7 +899,7 @@ def _search_place_types(qry, lang):
                 'must': [
                     {
                         'multi_match': {
-                            'query': qry,
+                            'query': search_query,
                             'fields': ['title*',
                                        'title_%s^2' % lang],
                             'type': 'most_fields',
@@ -918,7 +920,16 @@ def _search_place_types(qry, lang):
 
     path = '/%s/_search' % _get_elasticsearch_place_type_index()
     result_data = es_request(path, urlfetch.POST, qry)
-    return [hit['_id'] for hit in result_data['hits']['hits']]
+
+    if result_data['hits']['hits']:
+        hit = result_data['hits']['hits'][0]
+        for title in hit['_source']['title_en']:
+            if title == search_query:
+                return hit['_id']
+        for title in hit['_source']['title_nl']:
+            if title == search_query:
+                return hit['_id']
+    return None
 
 
 def _suggest_place_types(qry, lang):
