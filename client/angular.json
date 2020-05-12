@@ -19,7 +19,7 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "aot": true,
-            "outputPath": "../build/static/client",
+            "outputPath": "../src/static/client",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",

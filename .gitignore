@@ -22,3 +22,4 @@ google-app-credentials.json
 # Libraries folder used when deploying, not needed for development as you should setup a virtualenv.
 # Therefore you should mark this folder as "not sources" in your editor
 src/lib
+src/static/client
