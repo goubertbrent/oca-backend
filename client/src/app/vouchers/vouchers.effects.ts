@@ -23,7 +23,8 @@ export class VouchersEffects {
 
   loadServices$ = createEffect(() => this.actions$.pipe(
     ofType<GetServicesAction>(VouchersActionTypes.GET_SERVICES),
-    switchMap(action => this.service.getServices(action.payload.organizationType, action.payload.cursor, action.payload.pageSize).pipe(
+    switchMap(action => this.service.getServices(action.payload.organizationType, action.payload.cursor, action.payload.pageSize,
+      action.payload.sort).pipe(
       map(result => new GetServicesSuccessAction(result)),
       catchError(err => this.errorService.handleError(action, GetServicesFailedAction, err)))),
   ));

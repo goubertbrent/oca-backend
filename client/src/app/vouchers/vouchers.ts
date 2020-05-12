@@ -6,6 +6,7 @@ export interface VoucherService {
   name: string;
   service_email: string;
   providers: VoucherProviderId[];
+  creation_time: string;
 }
 
 export interface VouchersServiceList {

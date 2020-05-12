@@ -464,6 +464,13 @@ class Customer(db.Model):
             .filter('organization_type', organization_type)\
             .order('name')
 
+    @classmethod
+    def list_enabled_by_organization_type_in_app_by_creation_time(cls, app_id, organization_type):
+        return cls.all().filter('default_app_id', app_id) \
+            .filter('service_disabled_at', 0) \
+            .filter('organization_type', organization_type)\
+            .order('-creation_time')
+
     @property
     def disabled_reason_str(self):
         if self.disabled_reason_int == 0:

@@ -1226,6 +1226,14 @@ indexes:
   - name: organization_type
   - name: name
 
+- kind: Customer
+  properties:
+  - name: default_app_id
+  - name: organization_type
+  - name: service_disabled_at
+  - name: creation_time
+    direction: desc
+
 - kind: SolutionCityVoucher
   ancestor: yes
   properties:

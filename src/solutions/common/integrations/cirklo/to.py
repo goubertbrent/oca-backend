@@ -14,6 +14,10 @@
 # limitations under the License.
 #
 # @@license_version:1.5@@
+from __future__ import unicode_literals
+
+from datetime import datetime
+
 from mcfw.properties import typed_property, unicode_property, bool_property, long_property, unicode_list_property
 from rogerthat.to import TO
 
@@ -25,12 +29,14 @@ class UpdateVoucherServiceTO(TO):
 class VoucherServiceTO(UpdateVoucherServiceTO):
     name = unicode_property('name')
     service_email = unicode_property('service_email')
+    creation_time = unicode_property('creation_time')
 
     @classmethod
     def from_models(cls, customer, voucher_settings):
         to = cls()
         to.name = customer.name
         to.service_email = customer.service_email
+        to.creation_time = datetime.utcfromtimestamp(customer.creation_time).isoformat() + 'Z'
         to.providers = [] if not voucher_settings else voucher_settings.providers
         return to
 

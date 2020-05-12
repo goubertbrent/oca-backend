@@ -45,13 +45,16 @@ from solutions.common.restapi.services import _check_is_city
 
 @rest('/common/vouchers/services/<organization_type:\d>', 'get', silent_result=True)
 @returns(VoucherListTO)
-@arguments(organization_type=(int, long), cursor=unicode, page_size=(int, long))
-def get_vouchers_services(organization_type, cursor=None, page_size=50):
+@arguments(organization_type=(int, long), sort=unicode, cursor=unicode, page_size=(int, long))
+def get_vouchers_services(organization_type, sort=None, cursor=None, page_size=50):
     city_service_user = users.get_current_user()
     city_sln_settings = get_solution_settings(city_service_user)
     city_customer = get_customer(city_service_user)
     _check_is_city(city_sln_settings, city_customer)
-    service_customers_qry = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id, organization_type)
+    if sort == 'name':
+        service_customers_qry = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id, organization_type)
+    else:
+        service_customers_qry = Customer.list_enabled_by_organization_type_in_app_by_creation_time(city_customer.app_id, organization_type)
     service_customers_qry.with_cursor(cursor)
     customers = [c for c in service_customers_qry.fetch(page_size) if c.service_email]
     keys = [VoucherSettings.create_key(customer.service_user) for customer in customers]

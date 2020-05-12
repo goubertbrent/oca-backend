@@ -10,10 +10,20 @@
   </mat-tab>
 </mat-tab-group>
 <mat-progress-bar *ngIf="loading$ | async" mode="indeterminate"></mat-progress-bar>
-<table [dataSource]="dataSource" class="vouchers-table" mat-table>
+<table (matSortChange)="onSorted()"
+       [dataSource]="dataSource"
+       class="vouchers-table"
+       mat-table matSort
+       matSortActive="creation_time"
+       matSortDirection="desc"
+       matSortDisableClear>
   <ng-container matColumnDef="name">
-    <th *matHeaderCellDef mat-header-cell>{{ 'oca.reservation-name' | translate }}</th>
+    <th *matHeaderCellDef mat-header-cell mat-sort-header>{{ 'oca.reservation-name' | translate }}</th>
     <td *matCellDef="let row" mat-cell>{{ row.name }}</td>
+  </ng-container>
+  <ng-container matColumnDef="creation_time">
+    <th *matHeaderCellDef mat-header-cell mat-sort-header>{{ 'oca.created' | translate }}</th>
+    <td *matCellDef="let row" mat-cell>{{ row.creation_time | date }}</td>
   </ng-container>
   <ng-container matColumnDef="enabled">
     <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enabled' | translate }}</th>

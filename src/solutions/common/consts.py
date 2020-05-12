@@ -165,6 +165,7 @@ TRANSLATION_MAPPING = {
     'country',
     'coupon',
     'create',
+    'created',
     'date_must_be_in_future',
     'delayed_broadcast',
     'delete',

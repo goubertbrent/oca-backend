@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { select, Store } from '@ngrx/store';
 import { Observable, Subject } from 'rxjs';
@@ -17,6 +18,7 @@ import { getVoucherList, getVoucherServices, voucherServicesLoading } from '../v
 })
 export class VouchersPageComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
 
   cirklo = VoucherProviderId.CIRKLO;
   selectedOrganizationType = 1;
@@ -26,7 +28,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     { type: 3, label: 'oca.community_services' },
     { type: 4, label: 'oca.care' },
   ];
-  displayedColumns = ['name', 'enabled'];
+  displayedColumns = ['name', 'creation_time', 'enabled'];
   pageIndex = 0;
   pageSize = 50;
   loading$: Observable<boolean>;
@@ -40,6 +42,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
     this.getServices();
     this.store.pipe(select(getVoucherServices), takeUntil(this.destroyed$)).subscribe(services => {
       this.dataSource.data = services;
@@ -56,7 +59,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   tabChanged(index: number) {
     const selected = this.organizationTypes[ index ];
     this.selectedOrganizationType = selected.type;
-    this.store.dispatch(new GetServicesAction({ organizationType: selected.type, cursor: null, pageSize: this.pageSize }));
+    this.getServices();
   }
 
   toggleProvider($event: MatSlideToggleChange, service: VoucherService, provider: VoucherProviderId) {
@@ -82,6 +85,7 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
             this.store.dispatch(new GetServicesAction({
               organizationType: this.selectedOrganizationType,
               cursor,
+              sort: this.sort.active,
               pageSize: this.pageSize,
             }));
           }
@@ -98,7 +102,21 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
     this.store.dispatch(new ExportVoucherServicesAction());
   }
 
+  onSorted() {
+    this.getServices();
+  }
+
   private getServices() {
-    this.store.dispatch(new GetServicesAction({ organizationType: this.selectedOrganizationType, cursor: null, pageSize: this.pageSize }));
+    if (this.sort.active === 'name') {
+      this.sort.direction = 'asc';
+    } else {
+      this.sort.direction = 'desc';
+    }
+    this.store.dispatch(new GetServicesAction({
+      organizationType: this.selectedOrganizationType,
+      cursor: null,
+      pageSize: this.pageSize,
+      sort: this.sort.active,
+    }));
   }
 }

@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -41,6 +42,7 @@ const routes: Routes = [
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatSortModule,
   ],
   providers: [MAT_PAGINATOR_INTL_PROVIDER],
 })

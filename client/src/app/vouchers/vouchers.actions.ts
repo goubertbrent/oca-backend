@@ -17,7 +17,7 @@ export enum VouchersActionTypes {
 export class GetServicesAction implements Action {
   readonly type = VouchersActionTypes.GET_SERVICES;
 
-  constructor(public payload: { organizationType: number, cursor: string | null, pageSize: number }) {
+  constructor(public payload: { organizationType: number, cursor: string | null, sort: string; pageSize: number }) {
   }
 }
 

@@ -10,8 +10,8 @@ export class VouchersService {
   constructor(private http: HttpClient) {
   }
 
-  getServices(organizationType: number, cursor: string | null, pageSize: number) {
-    let params = new HttpParams({ fromObject: { page_size: pageSize.toString() } });
+  getServices(organizationType: number, cursor: string | null, pageSize: number, sort: string) {
+    let params = new HttpParams({ fromObject: { page_size: pageSize.toString(), sort } });
     if (cursor) {
       params = params.set('cursor', cursor);
     }
