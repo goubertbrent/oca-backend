@@ -129,13 +129,13 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
         if_email_body_2 = transl('if-email-body-2')
         dashboard_trans = transl('dashboard')
         service_email = sln_settings.login.email() if sln_settings.login else service_user.email()
-        btn = u'<a href="https://rogerth.at?email=%(service_email)s" style="%(button_css)s">%(dashboard)s</a>' % {
+        btn = u'<a href="https://dashboard.onzestadapp.be/customers/signin?email=%(service_email)s" style="%(button_css)s">%(dashboard)s</a>' % {
             'service_email': service_email,
             'button_css': button_css,
             'dashboard': dashboard_trans
         }
         if_email_body_3_button = transl('if-email-body-3-button', dashboard_button=btn)
-        if_email_body_3_url = transl('if-email-body-3-url', dashboard_url='https://rogerth.at?email=%s' % service_email)
+        if_email_body_3_url = transl('if-email-body-3-url', dashboard_url='https://dashboard.onzestadapp.be/customers/signin?email=%s' % service_email)
 
     if_email_footer_1 = transl('if-email-footer-1', service_name=sln_settings.name, app_name=app.name)
     if_email_footer_2 = transl('if-email-footer-2')

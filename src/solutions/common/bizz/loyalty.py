@@ -1554,14 +1554,14 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
     if_email_body_1_button = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-configure-email-text',
                                               name=user_detail.name,
                                               email=service_email,
-                                              link="<a href='https://rogerth.at?email=%(service_email)s' style='%(button_css)s'>Dashboard</a>" %
+                                              link="<a href='https://dashboard.onzestadapp.be/customers/signin?email=%(service_email)s' style='%(button_css)s'>Dashboard</a>" %
                                               {'service_email': sln_settings.login.email() if sln_settings.login else service_user.email(),
                                                'button_css': button_css})
 
     if_email_body_1_url = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-configure-email-text',
                                            name=user_detail.name,
                                            email=service_email,
-                                           link="https://rogerth.at?email=%(service_email)s" % {'service_email': service_email})
+                                           link="https://dashboard.onzestadapp.be/customers/signin?email=%(service_email)s" % {'service_email': service_email})
 
     body_html = """<!DOCTYPE html>
 <html>
