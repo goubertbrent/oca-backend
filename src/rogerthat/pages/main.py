@@ -197,9 +197,12 @@ class MainPage(webapp.RequestHandler):
                 page = "pick_account.html"
             else:
                 page = "main.html"
-        else:
+        elif self.request.get("sp", None):
             template_params["bg_image_uri"] = _get_front_page_image_by_ip(os.environ.get('HTTP_X_FORWARDED_FOR', None))
             page = 'main_unauthenticated.html'
+        else:
+            self.redirect('/customers/signin')
+            return
 
         path = os.path.join(os.path.dirname(__file__), page)
         self.response.out.write(template.render(path, template_params))
