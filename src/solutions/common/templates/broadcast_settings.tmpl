@@ -23,10 +23,12 @@
             </div>
         {% endif %}
     </div>
-    <hr/>
-    <label style="display: inline-block; margin-right: 8px;">{% translate language, "common", "RSS imports" %}:</label>
-    <button id="sln-set-broadcast-add-rss" class="btn btn-success btn-mini" style="display: inline-block;">
-        <i class="fa fa-plus"></i>
-    </button>
-    <div id="sln-set-broadcast-rss-urls"></div>
+    {% if is_shop_admin %}
+	    <hr/>
+	    <label style="display: inline-block; margin-right: 8px;">{% translate language, "common", "RSS imports" %}:</label>
+	    <button id="sln-set-broadcast-add-rss" class="btn btn-success btn-mini" style="display: inline-block;">
+	        <i class="fa fa-plus"></i>
+	    </button>
+	    <div id="sln-set-broadcast-rss-urls"></div>
+    {% endif %}
 </section>
