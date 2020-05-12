@@ -20,15 +20,9 @@ import json
 from oauth2client.appengine import OAuth2Decorator
 import webapp2
 
-from version import VERSIONS
 from solution_server_settings.consts import GMB_OAUTH_CLIENT_ID,\
     GMB_OAUTH_CLIENT_SECRET
 
-
-class VersionsHandler(webapp2.RequestHandler):
-    def get(self):
-        self.response.headers['Content-Type'] = 'text/json'
-        self.response.write(json.dumps(VERSIONS))
 
 discoveryServiceUrlV4 = 'https://developers.google.com/my-business/samples/mybusiness_google_rest_v4.json'
 discoveryServiceUrlV4P5 = 'https://developers.google.com/my-business/samples/mybusiness_google_rest_v4p5.json'
