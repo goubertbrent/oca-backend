@@ -3,7 +3,7 @@ GoogleAppEngineMapReduce==1.9.22.0
 GoogleAppEnginePipeline==1.9.22.1
 Pillow==4.0.0
 PyPDF2==1.23
-PyYAML==3.11
+PyYAML==5.1
 babel==1.3
 dnspython==1.11.1
 ecdsa==0.13.3
