@@ -66,7 +66,7 @@ def create_matches_for_job(job_criteria_keys, job_offer_key):
         is_match, distance = does_job_match_criteria(job_offer, criteria)
         if not is_match:
             if match and match.can_delete:
-                to_delete.append(match)
+                to_delete.append(match.key)
         else:
             should_put = False
             if not match:

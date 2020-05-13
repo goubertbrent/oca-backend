@@ -117,7 +117,7 @@ def save_default_branding(branding_type, uploaded_file, default, app_ids, brandi
                     to_put.append(og_default_branding)
                 else:
                     # Branding is not used by any app anymore so it can be deleted
-                    to_delete.append(og_default_branding)
+                    to_delete.append(og_default_branding.key)
     if uploaded_file is not None:
         description = u'%s of %s' % (branding_type, app_ids) if not default else u'Default %s branding' % branding_type
         bytesio = io.BytesIO(uploaded_file.value)
