@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import base64
-from datetime import datetime
 import json
 import logging
 import os
 import re
 import urllib
+from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import deferred
@@ -58,7 +58,6 @@ from rogerthat.utils.app import create_app_user_by_email, \
     get_human_user_from_app_user
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.crypto import encrypt, sha256_hex, decrypt
-
 
 SIGNUP_SUCCESS = 1
 SIGNUP_INVALID_EMAIL = 2
@@ -338,29 +337,32 @@ def user_statistic():
 @returns(UserContextTO)
 @arguments(uid=unicode)
 def get_user_context(uid):
-    uc = UserContext.create_key(uid).get()
-    if not uc and not DEBUG:
-        logging.debug("not found %s" % uid)
+    user_context = UserContext.create_key(uid).get()  # type: UserContext
+    if not user_context and not DEBUG:
+        logging.debug('Context not found: ' + uid)
         raise HttpNotFoundException()
-    elif uc:
-        expiration_time = uc.created + relativedelta(minutes=5)
-        if expiration_time < datetime.now():
-            logging.debug("expired since %s" % expiration_time)
-            raise HttpNotFoundException()
-        app_user = uc.app_user
+    elif user_context:
+        expiration_time = user_context.created + relativedelta(minutes=5)
+        is_expired = expiration_time < datetime.now()
+        if is_expired:
+            logging.debug('Context expired since %s, returning limited information' % expiration_time)
+            return UserContextTO(id=user_context.app_user.email(),
+                                 email=get_human_user_from_app_user(user_context.app_user))
+        app_user = user_context.app_user
     else:
+        # Allow user email instead of context key for DEBUG == True
         app_user = users.User(uid)
 
-    up = get_user_profile(app_user)
-    if not up:
-        logging.debug("profile not found %s" % app_user)
+    user_profile = get_user_profile(app_user)
+    if not user_profile:
+        logging.debug('User profile not found: %s' % app_user)
         raise HttpNotFoundException()
 
-    if up.first_name:
-        first_name = up.first_name
-        last_name = up.last_name
+    if user_profile.first_name:
+        first_name = user_profile.first_name
+        last_name = user_profile.last_name
     else:
-        parts = up.name.split(" ", 1)
+        parts = user_profile.name.split(' ', 1)
         if len(parts) == 1:
             first_name = parts[0]
             last_name = None
@@ -369,19 +371,18 @@ def get_user_context(uid):
             last_name = parts[1]
 
     addresses = []
-    upi = UserProfileInfo.create_key(up.user).get()
-    if upi and upi.addresses:
-        for address in upi.addresses:
+    phone_numbers = []
+    user_profile_info = UserProfileInfo.create_key(user_profile.user).get()
+    if user_profile_info:
+        for address in user_profile_info.addresses:
             if address.type == UserAddressType.HOME:
                 addresses.append(ProfileAddressTO.from_model(address))
                 break
-    
-    phone_numbers = []
-    if upi and upi.phone_numbers:
-        for m in upi.phone_numbers:
+        for m in user_profile_info.phone_numbers:
             phone_numbers.append(ProfilePhoneNumberTO.from_model(m))
 
-    return UserContextTO(email=get_human_user_from_app_user(up.user).email(),
+    return UserContextTO(id=user_profile.user.email(),
+                         email=get_human_user_from_app_user(user_profile.user).email(),
                          first_name=first_name,
                          last_name=last_name,
                          addresses=addresses,

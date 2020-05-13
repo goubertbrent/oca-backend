@@ -29,7 +29,7 @@ class CleanupUserContextHandler(webapp2.RequestHandler):
 
     def get(self):
         today = datetime.now()
-        yesterday = today - relativedelta(days=1)
-        to_delete = UserContext.list_before_date(yesterday).fetch(keys_only=True)
+        one_month_ago = today - relativedelta(months=1)
+        to_delete = UserContext.list_before_date(one_month_ago).fetch(keys_only=True)
         for chunk in chunks(to_delete, 500):
             ndb.delete_multi(chunk)

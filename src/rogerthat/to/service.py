@@ -629,6 +629,7 @@ class UserDetailsTO(TO):
 
 
 class UserContextTO(TO):
+    id = unicode_property('id')
     email = unicode_property('email')
     first_name = unicode_property('first_name')
     last_name = unicode_property('last_name')
