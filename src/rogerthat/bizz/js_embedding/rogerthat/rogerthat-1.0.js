@@ -30,8 +30,10 @@ var PROXIMITY_IMMEDIATE = 1;
 var PROXIMITY_NEAR = 2;
 var PROXIMITY_FAR = 3;
 
-var _dummy = function() {
+var _dummy = function () {
 };
+
+_loadPolyfills();
 
 var rogerthat = {
     _shouldCallReady: false,
@@ -84,21 +86,21 @@ var rogerthat = {
             }
 
             if (parameters) {
-                $.each(parameters, function(param, value) {
+                $.each(parameters, function (param, value) {
                     translation = translation.replace('%(' + param + ')s', value);
                 });
             }
             return translation;
         }
-    }, 
-    features : {
+    },
+    features: {
         base64URI: FEATURE_SUPPORTED,
         backgroundSize: FEATURE_SUPPORTED,
         callback: undefined
     },
-    camera : {
-        FRONT : "front",
-        BACK : "back"
+    camera: {
+        FRONT: "front",
+        BACK: "back"
     },
     security: {},
     message: {},
@@ -320,7 +322,7 @@ var _createRogerthatLib = function() {
                 url : url
             });
         };
-        
+
         rogerthat.util.open = function(params, onSuccess, onError) {
 	        	if (!params) {
 	        		return;
@@ -362,7 +364,7 @@ var _createRogerthatLib = function() {
                 camera_type : cameraType
             });
         };
-        
+
         rogerthat.security.createKeyPair = function(onSuccess, onError, algorithm, name, message, force, seed) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -375,7 +377,7 @@ var _createRogerthatLib = function() {
                 seed: seed
             });
         };
-        
+
         rogerthat.security.hasKeyPair = function(onSuccess, onError, algorithm, name, index) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -386,7 +388,7 @@ var _createRogerthatLib = function() {
                 key_index : index
             });
         };
-        
+
         rogerthat.security.getPublicKey = function(onSuccess, onError, algorithm, name, index) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -397,7 +399,7 @@ var _createRogerthatLib = function() {
                 key_index : index
             });
         };
-        
+
         rogerthat.security.getSeed = function(onSuccess, onError, algorithm, name, message) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -408,7 +410,7 @@ var _createRogerthatLib = function() {
                 message : message
             });
         };
-        
+
         rogerthat.security.listAddresses = function(onSuccess, onError, algorithm, name) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -418,7 +420,7 @@ var _createRogerthatLib = function() {
                 key_name : name
             });
         };
-        
+
         rogerthat.security.getAddress = function(onSuccess, onError, algorithm, name, index, message) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -430,7 +432,7 @@ var _createRogerthatLib = function() {
                 message : message
             });
         };
-        
+
         rogerthat.security.sign = function(onSuccess, onError, algorithm, name, index, message, payload, forcePin, hashPayload) {
         		if (hashPayload === undefined) {
                 hashPayload = true;
@@ -448,7 +450,7 @@ var _createRogerthatLib = function() {
                 hash_payload : hashPayload
             });
         };
-        
+
         rogerthat.security.verify = function(onSuccess, onError, algorithm, name, index, payload, payloadSignature) {
             var id = uniqueId++;
             registerResultHandler(id, onSuccess, onError);
@@ -572,7 +574,37 @@ window.addEventListener('error', function(evt) {
     console.error("Uncaught javascript exception in HTML-app:\n" + error);
 });
 
+function _loadPolyfills() {
+    if (typeof Object.assign !== 'function') {
+        // Must be writable: true, enumerable: false, configurable: true
+        Object.defineProperty(Object, "assign", {
+            value: function assign(target, varArgs) { // .length of function is 2
+                'use strict';
+                if (target === null || target === undefined) {
+                    throw new TypeError('Cannot convert undefined or null to object');
+                }
 
+                var to = Object(target);
+
+                for (var index = 1; index < arguments.length; index++) {
+                    var nextSource = arguments[index];
+
+                    if (nextSource !== null && nextSource !== undefined) {
+                        for (var nextKey in nextSource) {
+                            // Avoid bugs when hasOwnProperty is shadowed
+                            if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                                to[nextKey] = nextSource[nextKey];
+                            }
+                        }
+                    }
+                }
+                return to;
+            },
+            writable: true,
+            configurable: true
+        });
+    }
+}
 /**
  * [js-sha256]{@link https://github.com/emn178/js-sha256}
  *
