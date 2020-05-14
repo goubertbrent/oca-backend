@@ -39,7 +39,36 @@ def get_place_details(place_type, language):
     title = translate(language, place_type)
     if not title:
         return None
-    return PlaceDetails(title=title)
+    if place_type == 'restaurant':
+        fa_icon = 'fa-cutlery'
+        png_icon = 'fa1-cutlery'
+    elif place_type == 'bar':
+        fa_icon = 'fa-glass'
+        png_icon = 'fa1-glass'
+    elif place_type == 'supermarket':
+        fa_icon = 'fa-shopping-basket'
+        png_icon = 'fa1-shopping-basket'
+    elif place_type == 'bakery':
+        fa_icon = 'fa-birthday-cake'
+        png_icon = 'fa1-birthday-cake'
+    elif place_type == 'clothing_store':
+        fa_icon = 'fa-shopping-bag'
+        png_icon = 'fa1-shopping-bag'
+    elif place_type == 'doctor':
+        fa_icon = 'fa-stethoscope'
+        png_icon = 'fa2-stethoscope'
+    elif place_type == 'pharmacy':
+        fa_icon = 'fa-medkit'
+        png_icon = 'fa2-medkit'
+    elif place_type == 'establishment_poi':
+        fa_icon = 'fa-map-marker'
+        png_icon = 'fa5-map-marker'
+    else:
+        fa_icon = PlaceDetails.fa_icon.default
+        png_icon = PlaceDetails.png_icon.default
+    return PlaceDetails(title=title,
+                        fa_icon=fa_icon,
+                        png_icon=png_icon)
 
 
 def get_icon_color(icon_id):
