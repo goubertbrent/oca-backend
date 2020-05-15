@@ -61,6 +61,7 @@ D = { }
 # ###########################################################################################
 
 D["en"] = {
+"""starting_this_week""": u"""Starting this week""",
 """app_jobs_title""": u"""Welcome to JOBS!""",
 """app_jobs_description""": u"""Looking for a new job challenge? From now on you will find all vacancies of local entrepreneurs, starting with those from your direct environment. Simply swipe through our local & regional job offers, supplemented with all vacancies from all over Flanders via the integration with VDAB. Set your preferences & get started. - Good luck!""",
 """at_least_one_job_domain_required""": u"""At least one job domain is required""",
@@ -1974,6 +1975,7 @@ Exactitude: %(accuracy)sm""",
 # ###########################################################################################
 
 D["nl"] = {
+"""starting_this_week""": u"""Startende deze week""",
 """app_jobs_title""": u"""Welkom bij JOBS!""",
 """app_jobs_description""": u"""Op zoek naar een nieuwe job-uitdaging? Voortaan vind je hier alle vacatures van lokale ondernemers, beginnende met die uit jouw rechtsreekse omgeving. Swipe heel eenvoudig door onze lokale & regionale jobaanbiedingen, aangevuld met alle vacatures van over heel Vlaanderen via de integratie met VDAB. Stel je voorkeuren in & ga aan de slag. - Succes!""",
 """at_least_one_job_domain_required""": u"""Er is minimaal één functiedomein vereist""",
