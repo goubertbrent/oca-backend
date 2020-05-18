@@ -10,7 +10,7 @@ export function newsReducer(state: NewsState = initialNewsState, action: NewsAct
     case NewsActionTypes.GET_NEWS_OPTIONS_COMPLETE:
       return { ...state, newsOptions: onLoadableSuccess(action.payload) };
     case NewsActionTypes.GET_NEWS_OPTIONS_FAILED:
-      return { ...state, newsOptions: onLoadableError(action.error, initialNewsState.newsOptions.data) };
+      return { ...state, newsOptions: onLoadableError(action.error, state.newsOptions.data) };
     case NewsActionTypes.GET_NEWS_LIST:
       return { ...state, listStatus: onLoadableLoad(state.listStatus.data) };
     case NewsActionTypes.GET_NEWS_LIST_COMPLETE:

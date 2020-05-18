@@ -16,7 +16,7 @@ import {
 import { getApps, getAppStatistics, getBrandingSettings, getBudget, getServiceIdentityInfo } from '../../../shared/shared.state';
 import { BUDGET_RATE } from '../../consts';
 import { CreateNews, NewsOptions, NewsSettingsTag, NewsStats } from '../../interfaces';
-import { CreateNewsItemAction, UpdateNewsItemAction } from '../../news.actions';
+import { CreateNewsItemAction, GetNewsOptionsAction, UpdateNewsItemAction } from '../../news.actions';
 import { NewsService } from '../../news.service';
 import { getEditingNewsItem, getNewsItemStats, getNewsOptions, NewsState } from '../../news.state';
 
@@ -45,6 +45,8 @@ export class EditNewsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Ensure all possible action buttons are present by always reloading this information
+    this.store.dispatch(new GetNewsOptionsAction());
     this.newsStats$ = this.store.pipe(select(getNewsItemStats));
     this.newsItem$ = this.store.pipe(select(getEditingNewsItem));
     this.options$ = this.store.pipe(select(getNewsOptions));

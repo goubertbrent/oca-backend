@@ -45,7 +45,6 @@ import { getLocations, NewsState } from './news.state';
 @Injectable()
 export class NewsEffects {
    getNewsOptions$ = createEffect(() => this.actions$.pipe(
-    startWith(new GetNewsOptionsAction()),
     ofType<GetNewsOptionsAction>(NewsActionTypes.GET_NEWS_OPTIONS),
     switchMap(() => this.newsService.getNewsOptions().pipe(
       map(data => new GetNewsOptionsCompleteAction(data)),
