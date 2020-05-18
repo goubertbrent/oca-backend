@@ -1,0 +1,80 @@
+{
+  "Arts & Entertainment": {
+    "icon": "fa-question"
+  },
+  "Autos & Vehicles": {
+    "icon": "fa-question"
+  },
+  "Beauty & Fitness": {
+    "icon": "fa-question"
+  },
+  "Books & Literature": {
+    "icon": "fa-question"
+  },
+  "Business & Industrial": {
+    "icon": "fa-question"
+  },
+  "Computers & Electronics": {
+    "icon": "fa-question"
+  },
+  "Finance": {
+    "icon": "fa-question"
+  },
+  "Food & Drink": {
+    "icon": "fa-question"
+  },
+  "Games": {
+    "icon": "fa-question"
+  },
+  "Health": {
+    "icon": "fa-question"
+  },
+  "Hobbies & Leisure": {
+    "icon": "fa-question"
+  },
+  "Home & Garden": {
+    "icon": "fa-question"
+  },
+  "Internet & Telecom": {
+    "icon": "fa-question"
+  },
+  "Jobs & Education": {
+    "icon": "fa-question"
+  },
+  "Law & Government": {
+    "icon": "fa-question"
+  },
+  "News": {
+    "icon": "fa-question"
+  },
+  "Online Communities": {
+    "icon": "fa-question"
+  },
+  "People & Society": {
+    "icon": "fa-question"
+  },
+  "Pets & Animals": {
+    "icon": "fa-question"
+  },
+  "Real Estate": {
+    "icon": "fa-question"
+  },
+  "Reference": {
+    "icon": "fa-question"
+  },
+  "Science": {
+    "icon": "fa-question"
+  },
+  "Shopping": {
+    "icon": "fa-question"
+  },
+  "Sports": {
+    "icon": "fa-question"
+  },
+  "Travel": {
+    "icon": "fa-question"
+  },
+  "World Localities": {
+    "icon": "fa-question"
+  }
+}

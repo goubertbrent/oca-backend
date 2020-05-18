@@ -32,7 +32,7 @@ def get_place_types(language):
 
 
 def get_place_type_keys():
-    return get_dict_for_language('en').keys()
+    return get_place_types('en').keys()
 
 
 def get_place_details(place_type, language):
@@ -79,7 +79,7 @@ def get_icon_color(icon_id):
     icon_color_5 = '#ccc610'  # yellow
     if not icon_id:
         return icon_color_5
- 
+
     if icon_id.startswith('fa1-') or icon_id.startswith('c1-'):
         return icon_color_1
     if icon_id.startswith('fa2-') or icon_id.startswith('c2-'):
