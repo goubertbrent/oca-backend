@@ -148,3 +148,25 @@ Tuesday
         text = opening_hours_to_text(hours, 'en_GB', current_date)
         expected = """Always closed"""
         self.assertEqual(expected, text)
+
+    def test_duplicate_open_24_hours(self):
+        hours = OpeningHours(
+            key=OpeningHours.create_key(users.User('test@example.com'), '1'),
+            type=OpeningHours.TYPE_STRUCTURED,
+            periods=[
+                OpeningPeriod(open=OpeningHour(day=1, time='0000')),
+                OpeningPeriod(open=OpeningHour(day=1, time='0000')),
+                OpeningPeriod(open=OpeningHour(day=1, time='0000')),
+            ]
+        )
+        hours.sanitize_periods()
+        self.assertEqual(1, len(hours.periods))
+
+        hours.periods = [
+            OpeningPeriod(open=OpeningHour(day=1, time='0000')),
+            OpeningPeriod(open=OpeningHour(day=1, time='0000'), close=OpeningHour(day=1, time='0300')),
+            OpeningPeriod(open=OpeningHour(day=1, time='0000')),
+        ]
+        hours.sanitize_periods()
+        self.assertEqual(1, len(hours.periods))
+        self.assertIsNone(hours.periods[0].close)

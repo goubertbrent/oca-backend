@@ -935,7 +935,7 @@ class UserProfileInfoPhoneNumber(NdbModel):
     type = ndb.IntegerProperty(default=UserPhoneNumberType.OTHER, choices=UserPhoneNumberType.all())
     label = ndb.TextProperty(indexed=False)
     number = ndb.StringProperty(indexed=False)
-    
+
     @property
     def uid(self):
         return UserProfileInfoPhoneNumber.create_uid([str(self.type), self.number])
@@ -972,7 +972,7 @@ class UserProfileInfo(NdbModel):
             if a.address_uid == address_uid:
                 return a
         return None
-    
+
     def get_phone_number(self, uid):
         for m in self.phone_numbers:
             if m.uid == uid:
@@ -1554,6 +1554,12 @@ class OpeningPeriod(NdbModel):
     description = ndb.TextProperty()
     description_color = ndb.TextProperty()
 
+    @property
+    def is_open_24_hours(self):
+        # type: () -> bool
+        # If a place is open on a day for 24 hours, close will be None and the time is 0000
+        return not self.close and self.open.time == '0000'
+
     @classmethod
     def from_to(cls, period):
         return cls(close=OpeningHour.from_to(period.close),
@@ -1587,7 +1593,7 @@ class OpeningHourException(NdbModel):
                    description_color=to.description_color,
                    periods=[OpeningPeriod.from_to(period) for period in to.periods])
 
-    
+
 class OpeningHours(NdbModel):
     TYPE_TEXTUAL = u'textual'
     TYPE_STRUCTURED = u'structured'
@@ -1617,7 +1623,22 @@ class OpeningHours(NdbModel):
         for exception in self.exceptional_opening_hours:
             exception.periods = sorted(exception.periods, key=_sort_period)
 
+    def sanitize_periods(self):
+        # Removes duplicate 'open 24 hours' entries and ensures only 1 entry when a day is open 24h
+        open_all_day = {period.open.day for period in self.periods if period.is_open_24_hours}
+        open_all_day_entries = []
+        for period in reversed(self.periods):
+            open_day = period.open.day
+            if period.is_open_24_hours:
+                if open_day in open_all_day_entries:
+                    self.periods.remove(period)
+                else:
+                    open_all_day_entries.append(open_day)
+            elif open_day in open_all_day:
+                self.periods.remove(period)
+
     def _pre_put_hook(self):
+        self.sanitize_periods()
         self.sort_dates()
 
 

@@ -23,7 +23,7 @@ from babel.dates import format_date, get_day_names, format_time
 from typing import List
 
 from mcfw.exceptions import HttpBadRequestException
-from rogerthat.bizz.opening_hours import is_always_open, is_always_closed, is_open_24_hours
+from rogerthat.bizz.opening_hours import is_always_open, is_always_closed
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
 from rogerthat.rpc import users
 from solutions import translate, SOLUTION_COMMON
@@ -77,7 +77,7 @@ def _get_day_str(day_int):
 
 def _get_open_hour_text(period, locale):
     # type: (OpeningPeriod, str) -> str
-    if is_open_24_hours(period):
+    if period.is_open_24_hours:
         return translate(locale, SOLUTION_COMMON, 'oca.open_24_hours')
     open_time = format_time(period.open.datetime, 'short', locale=locale)
     close_time = format_time(period.close.datetime, 'short', locale=locale)
