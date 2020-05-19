@@ -1,80 +1,106 @@
 {
   "Arts & Entertainment": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Autos & Vehicles": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Beauty & Fitness": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Books & Literature": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Business & Industrial": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Computers & Electronics": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Finance": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Food & Drink": {
+    "color": "#FF9E67",
     "icon": "fa-question"
   },
   "Games": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Health": {
+    "color": "#F88181",
     "icon": "fa-question"
   },
   "Hobbies & Leisure": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Home & Garden": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Internet & Telecom": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Jobs & Education": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Law & Government": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "News": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Online Communities": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "People & Society": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Pets & Animals": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Real Estate": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Reference": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Science": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Shopping": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Sports": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "Travel": {
+    "color": "#000000",
     "icon": "fa-question"
   },
   "World Localities": {
+    "color": "#000000",
     "icon": "fa-question"
   }
 }
