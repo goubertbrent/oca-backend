@@ -74,7 +74,7 @@ class CreateAppQRTemplateTO(AppQRTemplateTO):
     file = unicode_property('5')
 
 
-class AppTO(object):
+class AppTO(TO):
     id = unicode_property('0')
     name = unicode_property('1')
     type = long_property('2')
@@ -622,7 +622,7 @@ class NewsGroupTileTO(TO):
     promo_image_url = unicode_property('promo_image_url')
     title = unicode_property('title')
     subtitle = unicode_property('subtitle')
-    
+
     @classmethod
     def from_model(cls, model):
         """
