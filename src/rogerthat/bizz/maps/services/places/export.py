@@ -29,23 +29,6 @@ from rogerthat.bizz.maps.services.places.i18n_utils import _get_translations, DE
 from rogerthat.consts import FILES_BUCKET, DAY, SCHEDULED_QUEUE
 
 
-def _write_dict_sheet(sheet, columns, dictionary):
-    # type: (Worksheet, List[str], List[dict]) -> None
-    row_num = 0
-    for column, label in enumerate(columns):
-        sheet.write(row_num, column, label)
-    row_num = 1
-    for row in dictionary:
-        for column, label in enumerate(columns):
-            sheet.write(row_num, column, row.get(label))
-        row_num += 1
-
-
-def _get_json_file(filename):
-    # type: (str) -> Dict[str, List[str]]
-    return json.load(open(join(dirname(__file__), filename)))
-
-
 def export_place_types():
     file_name = 'place-types-translations-%s.xlsx' % datetime.now().isoformat()
     gcs_path = '/%s/tmp/%s' % (FILES_BUCKET, file_name)
@@ -73,6 +56,8 @@ def export_place_types():
         rows = []
         for category_id in translation_keys:
             vertical = classicication_reverse.get(category_id)
+            if not vertical:
+                vertical = _guess_vertical(category_id)
             rows.append({'key': category_id, 'vertical': vertical})
         _write_dict_sheet(book.add_sheet('classification'), ['key', 'vertical'], rows)
 
@@ -94,4 +79,33 @@ def export_place_types():
     deferred.defer(cloudstorage.delete, gcs_path, _countdown=DAY, _queue=SCHEDULED_QUEUE)
     return get_serving_url(gcs_path)
 
-# TODO: import from google sheet
+
+def _write_dict_sheet(sheet, columns, dictionary):
+    # type: (Worksheet, List[str], List[dict]) -> None
+    row_num = 0
+    for column, label in enumerate(columns):
+        sheet.write(row_num, column, label)
+    row_num = 1
+    for row in dictionary:
+        for column, label in enumerate(columns):
+            sheet.write(row_num, column, row.get(label))
+        row_num += 1
+
+
+def _get_json_file(filename):
+    # type: (str) -> Dict[str, List[str]]
+    return json.load(open(join(dirname(__file__), filename)))
+
+
+def _guess_vertical(category_id):
+    # type: (str) -> str
+    if 'restaurant' in category_id or category_id.startswith('bar_') or category_id.endswith('_cafe'):
+        return 'Food & Drink'
+    if category_id.endswith('_dealer'):
+        if category_id == 'arts_dealer':
+            return 'Arts & Entertainment'
+        elif category_id in ('coin_dealer', 'diamond_dealer', 'gold_dealer', 'iron_ware_dealer', 'junk_dealer',
+                             'livestock_dealer', 'metalware_dealer', 'modular_home_dealer', 'scrap_metal_dealer'):
+            return None
+        else:
+            return 'Autos & Vehicles'
