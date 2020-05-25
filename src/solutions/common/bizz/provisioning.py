@@ -1872,9 +1872,9 @@ def put_jcc_appointments_module(sln_settings, current_coords, main_branding, def
            default_lang=unicode, tag=unicode)
 def put_cirklo_module(sln_settings, current_coords, main_branding, default_lang, tag):
     # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
-    item = SolutionServiceMenuItem(u'fa-money',
+    item = SolutionServiceMenuItem(u'fa-gift',
                                    sln_settings.menu_item_color,
-                                   common_translate(default_lang, SOLUTION_COMMON, 'vouchers'),
+                                   common_translate(default_lang, SOLUTION_COMMON, 'voucher'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.CIRKLO_VOUCHERS),
                                    embedded_app=OCAEmbeddedApps.OCA)
