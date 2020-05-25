@@ -111,6 +111,10 @@ def add_voucher(service_user, app_user, qr_content):
     if voucher_id not in vouchers.voucher_ids:
         vouchers.voucher_ids.append(voucher_id)
         vouchers.put()
+    else:
+        sln_settings = get_solution_settings(service_user)
+        msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'duplicate_cirklo_voucher')
+        raise TranslatedException(msg)
     voucher = AppVoucher.from_cirklo(voucher_id, voucher_details, datetime.utcnow())
     city = CirkloCity.create_key(voucher.cityId).get()  # type: CirkloCity
     branding_settings = db.get(SolutionBrandingSettings.create_key(users.User(city.service_user_email)))
