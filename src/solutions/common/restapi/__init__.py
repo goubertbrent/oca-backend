@@ -836,17 +836,6 @@ def rest_update_avatar(data):
     return BrandingSettingsTO.from_model(set_avatar(users.get_current_user(), data.avatar_url))
 
 
-@rest("/common/settings/consent", "post")
-@returns(ReturnStatusTO)
-@arguments(consent_type=unicode, enabled=bool)
-def save_consent(consent_type, enabled):
-    customer = get_customer(users.get_current_user())
-    context = u'User dashboard'
-    headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
-    update_customer_consents(customer.user_email, {consent_type: enabled}, headers, context)
-    return RETURNSTATUS_TO_SUCCESS
-
-
 @rest("/common/menu/save", "post")
 @returns(ReturnStatusTO)
 @arguments(menu=MenuTO)

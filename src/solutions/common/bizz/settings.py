@@ -24,10 +24,12 @@ from google.appengine.ext import db, deferred, ndb
 from typing import Tuple, Optional
 
 from mcfw.consts import MISSING
+from mcfw.exceptions import HttpNotFoundException
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.service import _validate_service_identity
 from rogerthat.consts import FAST_QUEUE
 from rogerthat.dal import put_and_invalidate_cache
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.maps import MapServiceMediaItem
 from rogerthat.models.news import MediaType
@@ -41,16 +43,17 @@ from rogerthat.utils.channel import send_message
 from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
-from solutions.common.bizz import broadcast_updates_pending
+from solutions import translate, SOLUTION_COMMON
+from solutions.common.bizz import broadcast_updates_pending, SolutionModule
 from solutions.common.cron.news.rss import parse_rss_items
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
     get_solution_settings_or_identity_settings
 from solutions.common.exceptions.settings import InvalidRssLinksException
 from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
-    SolutionIdentitySettings
+    SolutionIdentitySettings, SolutionServiceConsent
 from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
-from solutions.common.to.settings import ServiceInfoTO
+from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO
 from solutions.common.utils import is_default_service_identity, send_client_action
 
 SLN_LOGO_WIDTH = 640
@@ -359,3 +362,30 @@ def parse_facebook_url(url):
     except:
         logging.debug('parse_facebook_url invalid_url: %s', url, exc_info=True)
     return None
+
+
+def get_consents_for_app(app_id, lang, user_consent_types):
+    app = get_app_by_id(app_id)
+    if not app:
+        raise HttpNotFoundException('app_not_found', {'app_id': app_id})
+    city_service_settings = get_solution_settings(users.User(app.main_service))
+    result = [PrivacySettingsTO(
+        type=SolutionServiceConsent.TYPE_CITY_CONTACT,
+        enabled=SolutionServiceConsent.TYPE_CITY_CONTACT in user_consent_types,
+        label=translate(lang, SOLUTION_COMMON, 'consent_city_contact')
+    ), PrivacySettingsTO(
+        type=SolutionServiceConsent.TYPE_NEWSLETTER,
+        enabled=SolutionServiceConsent.TYPE_NEWSLETTER in user_consent_types,
+        label=translate(lang, SOLUTION_COMMON, 'email_consent_newsletter')
+    ), PrivacySettingsTO(
+        type=SolutionServiceConsent.TYPE_EMAIL_MARKETING,
+        enabled=SolutionServiceConsent.TYPE_EMAIL_MARKETING in user_consent_types,
+        label=translate(lang, SOLUTION_COMMON, 'email_consent_marketing')
+    )]
+    if SolutionModule.CIRKLO_VOUCHERS in city_service_settings.modules:
+        result.insert(1, PrivacySettingsTO(
+            type=SolutionServiceConsent.TYPE_CIRKLO_SHARE,
+            enabled=SolutionServiceConsent.TYPE_CIRKLO_SHARE in user_consent_types,
+            label=translate(lang, SOLUTION_COMMON, 'consent_cirklo_share')
+        ))
+    return result

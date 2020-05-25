@@ -1,0 +1,26 @@
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  margin: 8px 0 56px;
+}
+
+.voucher {
+  margin: 8px 16px;
+  outline: none;
+}
+
+.scan-button-container {
+  position: fixed;
+  bottom: 1em;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.scan-button {
+  --border-radius: 36px; // same as height of the button
+}

@@ -13,10 +13,10 @@ import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { MissingTranslationHandler, MissingTranslationHandlerParams, TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { IonicSelectableModule } from 'ionic-selectable';
-import { CUSTOM_LOCALE_PROVIDER } from './locales';
 import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { CUSTOM_LOCALE_PROVIDER } from './locales';
 import { metaReducers, reducers } from './reducers';
 import { RogerthatEffects } from './rogerthat/rogerthat.effect';
 

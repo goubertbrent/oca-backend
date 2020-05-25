@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
@@ -5,9 +6,12 @@ import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AlertController, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
 import { Actions } from '@ngrx/effects';
+import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { map, take } from 'rxjs/operators';
 import { DEFAULT_LOCALE, getLanguage } from './locales';
-import { RogerthatService } from './rogerthat';
+import { getScannedQr, RogerthatService } from './rogerthat';
+import { CallStateType } from './shared/call-state';
 import { setColor } from './shared/color-utils';
 
 
@@ -26,36 +30,37 @@ export class AppComponent {
               private cdRef: ChangeDetectorRef,
               private actions$: Actions,
               private router: Router,
+              private location: Location,
+              private store: Store,
               private alertController: AlertController) {
     this.initializeApp();
   }
 
-  initializeApp() {
+  async initializeApp() {
     this.translate.setDefaultLang(DEFAULT_LOCALE);
-    this.platform.ready().then(() => {
-      this.splashScreen.hide();
-      this.platform.backButton.subscribe(() => {
-        if (this.shouldExitApp()) {
-          this.exit();
-        }
-      });
-      rogerthat.callbacks.ready(() => {
-        this.translate.use(getLanguage(rogerthat.user.language));
-        if (rogerthat.system.colors) {
-          setColor('primary', rogerthat.system.colors.primary);
-          if (rogerthat.system.os === 'ios') {
-            this.statusBar.styleDefault();
-          } else {
-            this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
-          }
-        } else {
+    await this.platform.ready();
+    this.splashScreen.hide();
+    this.platform.backButton.subscribe(async () => {
+      if (await this.shouldExitApp()) {
+        this.exit();
+      }
+    });
+    rogerthat.callbacks.ready(() => {
+      this.translate.use(getLanguage(rogerthat.user.language));
+      if (rogerthat.system.colors) {
+        setColor('primary', rogerthat.system.colors.primary);
+        if (rogerthat.system.os === 'ios') {
           this.statusBar.styleDefault();
+        } else {
+          this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
         }
-        this.rogerthatService.initialize();
-        if (this.isCompatible()) {
-          this.router.navigate(this.getRootPage());
-        }
-      });
+      } else {
+        this.statusBar.styleDefault();
+      }
+      this.rogerthatService.initialize();
+      if (this.isCompatible() && ['', '/'].includes(this.location.path())) {
+        this.router.navigate(this.getRootPage());
+      }
     });
     this.actions$.subscribe(action => {
       const { type, ...rest } = action;
@@ -63,9 +68,23 @@ export class AppComponent {
     });
   }
 
-  private shouldExitApp(): boolean {
-    const whitelist = ['/q-matic/appointments', '/jcc-appointments/appointments', '/events'];
-    return whitelist.includes(this.router.url);
+  private async shouldExitApp(): Promise<boolean> {
+    const whitelist = [
+      '/q-matic/appointments',
+      '/jcc-appointments/appointments',
+      '/events',
+      '/cirklo/vouchers',
+      '/cirklo/merchants',
+      '/cirklo/info',
+    ];
+    const canExit = whitelist.includes(this.router.url);
+    // When scanning a qr code, don't actually quit
+    const isScanning = await this.store.pipe(
+      select(getScannedQr),
+      map(s => s.state === CallStateType.LOADING),
+      take(1),
+    ).toPromise();
+    return canExit && !isScanning;
   }
 
   private getRootPage(): string[] {
@@ -73,11 +92,13 @@ export class AppComponent {
       Q_MATIC: sha256('__sln__.q_matic'),
       EVENTS: sha256('agenda'),
       JCC_APPOINTMENTS: sha256('__sln__.jcc_appointments'),
+      CIRKLO: sha256('__sln__.cirklo'),
     };
     const PAGE_MAPPING = {
       [ TAGS.Q_MATIC ]: ['q-matic'],
       [ TAGS.EVENTS ]: ['events'],
       [ TAGS.JCC_APPOINTMENTS ]: ['jcc-appointments'],
+      [ TAGS.CIRKLO ]: ['cirklo'],
     };
     const tag = rogerthat.menuItem.hashedTag in PAGE_MAPPING ? rogerthat.menuItem.hashedTag : TAGS.EVENTS;
     return PAGE_MAPPING[ tag ];

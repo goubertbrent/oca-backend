@@ -1,5 +1,5 @@
 import { initialStateResult, ResultState, stateError, stateLoading, stateSuccess, updateItem } from '../shared/util';
-import { ExportVoucherServices, VouchersServiceList } from './vouchers';
+import { CirkloSettings, ExportVoucherServices, VouchersServiceList } from './vouchers';
 import { VouchersActions, VouchersActionTypes } from './vouchers.actions';
 
 export const vouchersFeatureKey = 'vouchers';
@@ -7,11 +7,13 @@ export const vouchersFeatureKey = 'vouchers';
 export interface VouchersState {
   services: ResultState<VouchersServiceList>;
   export: ResultState<ExportVoucherServices>;
+  cirkloSettings: ResultState<CirkloSettings>;
 }
 
 export const initialState: VouchersState = {
   services: initialStateResult,
   export: initialStateResult,
+  cirkloSettings: initialStateResult,
 };
 
 export function vouchersReducer(state = initialState, action: VouchersActions): VouchersState {
@@ -43,6 +45,18 @@ export function vouchersReducer(state = initialState, action: VouchersActions): 
       return { ...state, export: stateSuccess(action.payload) };
     case VouchersActionTypes.EXPORT_VOUCHER_SERVICES_FAILED:
       return { ...state, export: stateError(action.error, state.export.result) };
+    case VouchersActionTypes.GET_CIRKLO_SETTINGS:
+      return { ...state, cirkloSettings: stateLoading(initialState.cirkloSettings.result) };
+    case VouchersActionTypes.GET_CIRKLO_SETTINGS_SUCCESS:
+      return { ...state, cirkloSettings: stateSuccess(action.payload) };
+    case VouchersActionTypes.GET_CIRKLO_SETTINGS_FAILED:
+      return { ...state, cirkloSettings: stateError(action.error, state.cirkloSettings.result) };
+    case VouchersActionTypes.SAVE_CIRKLO_SETTINGS:
+      return { ...state, cirkloSettings: stateLoading(action.payload) };
+    case VouchersActionTypes.SAVE_CIRKLO_SETTINGS_SUCCESS:
+      return { ...state, cirkloSettings: stateSuccess(action.payload) };
+    case VouchersActionTypes.SAVE_CIRKLO_SETTINGS_FAILED:
+      return { ...state, cirkloSettings: stateError(action.error, state.cirkloSettings.result) };
   }
   return state;
 }

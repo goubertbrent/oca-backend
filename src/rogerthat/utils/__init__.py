@@ -31,6 +31,7 @@ import uuid
 from copy import deepcopy
 from random import choice
 
+from dateutil.parser import parse as datutil_parse
 from google.appengine.api import users, mail, urlfetch
 from google.appengine.api.datastore import Key
 from google.appengine.ext import db
@@ -39,6 +40,8 @@ from google.appengine.ext.deferred.deferred import PermanentTaskFailure
 
 import python_http_client
 from log_offload.log_offload import LogOffload
+from typing import Optional
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert, get_members
 from rogerthat.consts import OFFICIALLY_SUPPORTED_LANGUAGES, DEBUG, FAST_QUEUE
@@ -877,3 +880,8 @@ def random_string(stringLength):
 def date_to_iso_format(date):
     # type: (datetime.datetime) -> unicode
     return date and u'%sZ' % date.isoformat()
+
+
+def parse_date(date_str):
+    # type: (str) -> Optional[datetime]
+    return date_str and datutil_parse(date_str).replace(tzinfo=None)

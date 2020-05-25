@@ -426,12 +426,10 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'organization_types': organization_types,
                   'organization_types_json': json.dumps(dict(organization_types)),
                   'vouchers_settings': vouchers_settings,
-                  'show_email_checkboxes': customer is not None,
-                  'service_consent': get_customer_consents(customer.user_email) if customer else None,
                   'is_city': is_city,
                   'news_review_enabled': news_review_enabled,
                   'can_edit_paddle': is_city and session_.shop,
-                  'is_shop_admin': session_.shop if session_ else False
+                  'is_shop_admin': session_.shop if session_ else False,
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:

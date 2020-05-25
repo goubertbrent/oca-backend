@@ -60,7 +60,9 @@ from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam,
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
+from solutions.common.bizz.settings import get_consents_for_app
 from solutions.common.models import SolutionServiceConsent
+from solutions.common.to.settings import PrivacySettingsTO
 
 try:
     from cStringIO import StringIO
@@ -556,14 +558,14 @@ class CustomerEmailConsentHandler(PublicPageHandler):
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)
 @returns(ReturnStatusTO)
 @arguments(city_customer_id=(int, long), company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode,
-           email_consents=EmailConsentTO)
+           email_consents=dict)
 def customer_signup(city_customer_id, company, customer, recaptcha_token, email_consents=None):
     try:
         headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
         create_customer_signup(city_customer_id, company, customer, recaptcha_token,
                                domain=get_current_http_host(with_protocol=True), headers=headers, accept_missing=True)
         headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
-        consents = email_consents.to_dict() if email_consents else {}
+        consents = email_consents or {}
         context = u'User signup'
         try_or_defer(update_customer_consents, customer.user_email, consents, headers, context)
         return RETURNSTATUS_TO_SUCCESS
@@ -599,6 +601,16 @@ def get_customer_info(app_id, language=None):
         },
         'organization_types': organization_types
     }
+
+
+@rest('/unauthenticated/osa/signup/privacy-settings/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
+@returns([PrivacySettingsTO])
+@arguments(app_id=unicode, language=unicode)
+def get_privacy_settings(app_id, language=None):
+    if not language:
+        request = GenericRESTRequestHandler.getCurrentRequest()
+        language = get_languages_from_request(request)[0]
+    return get_consents_for_app(app_id, language, [])
 
 
 class QuotationHandler(webapp2.RequestHandler):

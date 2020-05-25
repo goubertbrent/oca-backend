@@ -1,0 +1,15 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.oca.info' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="info-header">
+    <ion-icon class="info-cirklo-icon" src="/assets/icon/cirklo/cirklo_light_white_filled.svg"></ion-icon>
+    <h2 class="info-title">{{ 'app.oca.cirklo_info_title' | translate }}</h2>
+  </div>
+  <div [innerHTML]="'app.oca.cirklo_info_text' | translate | markdown" class="info-description"></div>
+</ion-content>

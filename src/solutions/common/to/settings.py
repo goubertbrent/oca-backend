@@ -89,3 +89,14 @@ class ServiceInfoTO(TO):
         to.visible = m.visible
         to.websites = [SyncedNameValueTO.from_model(value) for value in m.websites]
         return to
+
+
+class PrivacySettingsTO(TO):
+    type = unicode_property('type')
+    label = unicode_property('label')
+    enabled = bool_property('enabled')
+
+
+class UpdatePrivacySettingsTO(TO):
+    type = unicode_property('type')
+    enabled = bool_property('enabled')

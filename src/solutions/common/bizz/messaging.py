@@ -125,6 +125,7 @@ POKE_TAG_PHARMACY_ORDER = u"__sln__.pharmacy_order"
 POKE_TAG_FORMS = u'__sln__.forms'
 POKE_TAG_Q_MATIC = u'__sln__.q_matic'
 POKE_TAG_JCC_APPOINTMENTS = u'__sln__.jcc_appointments'
+POKE_TAG_CIRKLO_VOUCHERS = u'__sln__.cirklo'
 
 POKE_TAG_INBOX_FORWARDING_REPLY = u"inbox_forwarding_reply"
 POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX = u"inbox_forwarding_reply_text_box"

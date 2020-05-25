@@ -77,16 +77,24 @@ $(function () {
         },
         getAppInfo: function (appId, language, options) {
             return this.get('/unauthenticated/osa/signup/app-info/' + appId + '?language=' + language, options);
+        },
+        getPrivacySettings: function (appId) {
+            return this.get('/unauthenticated/osa/signup/privacy-settings/' + appId);
         }
-    }
+    };
     var requests = new RequestsService();
 
     var TMPL_ORG_TYPE = '<div class="radio">'
         + '<label><input type="radio" name="organization_type" value="${value}" {{if checked}}checked{{/if}}>${label}</label>'
         + '</div>';
 
+    var TMPL_PRIVACY_CHECKBOX = '<label class="checkbox" for="privacy_${setting.type}">' +
+        '<input type="checkbox" id="privacy_${setting.type}" name="{setting.type}" ' +
+        '{{if setting.enabled}}checked{{/if}}>${setting.label}</label>';
+
     var formElem = $('#signup_form')[0];
     var tabs = [];
+    var privacySettings = [];
     var currentStep = 0;
     var recaptchaLoader = new RecaptchaLoader({
         container: 'recaptcha_container',
@@ -215,15 +223,17 @@ $(function () {
             var app = getSelectedApp();
             var language = getSelectedLanguage();
             requests.getAppInfo(app.app_id, language).then(function (appInfo) {
+                var consents = {};
+                for (var i = 0; i < privacySettings.length; i++) {
+                    var s = privacySettings[i];
+                    consents[s.type] = $('#privacy_' + s.type).prop('checked');
+                }
                 var args = {
                     city_customer_id: appInfo.customer.id,
                     company: gatherFromInputs('enterprise'),
                     customer: gatherFromInputs('contact'),
                     recaptcha_token: recaptchaToken,
-                    email_consents: {
-                        email_marketing: true,
-                        newsletter: true,
-                    }
+                    email_consents: consents,
                 };
                 args.customer.language = language;
                 args.company.organization_type = parseInt($('input[name=organization_type]:checked').val());
@@ -360,15 +370,29 @@ $(function () {
 
         /* refill some info from the previous one */
         if (currentStep === 2) {
-            var city = getSelectedApp().name;
+            var selectedApp = getSelectedApp();
+            var city = selectedApp.name;
             fillInput('enterprise_city', city);
             fillInput('contact_city', city);
+            getPrivacySettings(selectedApp.app_id);
         }
 
         if (currentStep === 3) {
             copyInput('enterprise_user_email', 'contact_user_email');
             copyInput('enterprise_telephone', 'contact_telephone');
         }
+    }
+
+    function getPrivacySettings(appId) {
+        requests.getPrivacySettings(appId).then(function (settings) {
+            privacySettings = settings;
+            var container = $('#privacy-settings');
+            container.empty();
+            for (var i = 0; i < settings.length; i++) {
+                var setting = settings[i];
+                container.append($.tmpl(TMPL_PRIVACY_CHECKBOX, {setting: setting}));
+            }
+        });
     }
 
     function languageChanged() {

@@ -1,6 +1,6 @@
 import { Action } from '@ngrx/store';
 import { ErrorAction } from '../shared/errors/errors';
-import { ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
+import { CirkloSettings, ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
 
 export enum VouchersActionTypes {
   GET_SERVICES = '[Vouchers] Get services',
@@ -12,6 +12,12 @@ export enum VouchersActionTypes {
   EXPORT_VOUCHER_SERVICES = '[Vouchers] Export voucher services',
   EXPORT_VOUCHER_SERVICES_SUCCESS = '[Vouchers] Export voucher services success',
   EXPORT_VOUCHER_SERVICES_FAILED = '[Vouchers] Export voucher services failed',
+  GET_CIRKLO_SETTINGS = '[Vouchers] Get cirklo settings',
+  GET_CIRKLO_SETTINGS_SUCCESS = '[Vouchers] Get cirklo settings success',
+  GET_CIRKLO_SETTINGS_FAILED = '[Vouchers] Get cirklo settings failed',
+  SAVE_CIRKLO_SETTINGS = '[Vouchers] Save cirklo settings',
+  SAVE_CIRKLO_SETTINGS_SUCCESS = '[Vouchers] Save cirklo settings success',
+  SAVE_CIRKLO_SETTINGS_FAILED = '[Vouchers] Save cirklo settings failed',
 }
 
 export class GetServicesAction implements Action {
@@ -74,6 +80,45 @@ export class ExportVoucherServicesFailedAction implements ErrorAction {
   }
 }
 
+export class GetCirkloSettingsAction implements Action {
+  readonly type = VouchersActionTypes.GET_CIRKLO_SETTINGS;
+}
+
+export class GetCirkloSettingsCompleteAction implements Action {
+  readonly type = VouchersActionTypes.GET_CIRKLO_SETTINGS_SUCCESS;
+
+  constructor(public payload: CirkloSettings) {
+  }
+}
+
+export class GetCirkloSettingsFailedAction implements ErrorAction {
+  readonly type = VouchersActionTypes.GET_CIRKLO_SETTINGS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
+export class SaveCirkloSettingsAction implements Action {
+  readonly type = VouchersActionTypes.SAVE_CIRKLO_SETTINGS;
+
+  constructor(public payload: CirkloSettings) {
+  }
+}
+
+export class SaveCirkloSettingsCompleteAction implements Action {
+  readonly type = VouchersActionTypes.SAVE_CIRKLO_SETTINGS_SUCCESS;
+
+  constructor(public payload: CirkloSettings) {
+  }
+}
+
+export class SaveCirkloSettingsFailedAction implements ErrorAction {
+  readonly type = VouchersActionTypes.SAVE_CIRKLO_SETTINGS_FAILED;
+
+  constructor(public error: string) {
+  }
+}
+
 export type VouchersActions =
   GetServicesAction
   | GetServicesSuccessAction
@@ -83,5 +128,11 @@ export type VouchersActions =
   | SaveVoucherSettingsFailedAction
   | ExportVoucherServicesAction
   | ExportVoucherServicesSuccessAction
-  | ExportVoucherServicesFailedAction;
+  | ExportVoucherServicesFailedAction
+  | GetCirkloSettingsAction
+  | GetCirkloSettingsCompleteAction
+  | GetCirkloSettingsFailedAction
+  | SaveCirkloSettingsAction
+  | SaveCirkloSettingsCompleteAction
+  | SaveCirkloSettingsFailedAction;
 

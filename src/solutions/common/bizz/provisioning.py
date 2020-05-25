@@ -71,7 +71,8 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_CONNECT_INBOX_FORWARDER_VIA_SCAN, POKE_TAG_GROUP_PURCHASE, \
     POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
-    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS
+    POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS, \
+    POKE_TAG_CIRKLO_VOUCHERS
 from solutions.common.bizz.opening_hours import opening_hours_to_text
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
@@ -143,7 +144,7 @@ POKE_TAGS = {
     SolutionModule.Q_MATIC: POKE_TAG_Q_MATIC,
     SolutionModule.REPORTS: None,
     SolutionModule.JCC_APPOINTMENTS: POKE_TAG_JCC_APPOINTMENTS,
-    SolutionModule.CIRKLO_VOUCHERS: None,
+    SolutionModule.CIRKLO_VOUCHERS: POKE_TAG_CIRKLO_VOUCHERS,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -1867,6 +1868,20 @@ def put_jcc_appointments_module(sln_settings, current_coords, main_branding, def
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_cirklo_module(sln_settings, current_coords, main_branding, default_lang, tag):
+    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+    item = SolutionServiceMenuItem(u'fa-money',
+                                   sln_settings.menu_item_color,
+                                   common_translate(default_lang, SOLUTION_COMMON, 'vouchers'),
+                                   tag,
+                                   action=SolutionModule.action_order(SolutionModule.CIRKLO_VOUCHERS),
+                                   embedded_app=OCAEmbeddedApps.OCA)
+    return [item]
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -1919,7 +1934,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.Q_MATIC: put_q_matic_module,
     SolutionModule.REPORTS: _dummy_put,
     SolutionModule.JCC_APPOINTMENTS: put_jcc_appointments_module,
-    SolutionModule.CIRKLO_VOUCHERS: _dummy_put,
+    SolutionModule.CIRKLO_VOUCHERS: put_cirklo_module,
 }
 
 

@@ -464,9 +464,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                                 </li>
                             {% endif %}
                             {% if not is_layout_user %}
-                                <li section="section_email-preferences">
-                                    <a href="#/settings/email-preferences">{% translate language, 'common', 'email_preferences' %}</a>
-                                </li>
+
+                            <li section="section_privacy"><a href="#/settings/privacy">{% translate language, 'common', 'privacy_settings' %}</a>
+                            </li>
                             {% endif %}
                             {% if can_edit_paddle %}
                                 <li section="section_paddle"><a href="#/settings/paddle">Paddle</a></li>
@@ -524,25 +524,6 @@ var DAYS_STR = { {% for day_num, day_name in days %}
 
                         {% if not is_layout_user and SolutionModule.RESTAURANT_RESERVATION in sln_settings.modules %}
                             {%- include 'restaurant_reservation_settings.tmpl' %}
-                        {% endif %}
-                        {% if show_email_checkboxes %}
-                            <section id="section_email-preferences" style="display: none;">
-                                <label>{% translate language, 'common', 'email_consent' %}</label>
-                                <div class="checkbox">
-                                    <label for="newsletter-checkbox">
-                                        <input type="checkbox" name="newsletter" id="newsletter-checkbox"
-                                               {% if 'newsletter' in service_consent.types %}checked{% endif %}>
-                                        {% translate language, 'common', 'email_consent_newsletter' %}
-                                    </label>
-                                </div>
-                                <div class="checkbox">
-                                    <label for="email_marketing-checkbox">
-                                        <input type="checkbox" name="email_marketing" id="email_marketing-checkbox"
-                                               {% if 'email_marketing' in service_consent.types %}checked{% endif %}>
-                                        {% translate language, 'common', 'email_consent_marketing' %}
-                                    </label>
-                                </div>
-                            </section>
                         {% endif %}
                         {% if not is_layout_user and SolutionModule.AGENDA in sln_settings.modules %}
                             {%- include 'events_settings.tmpl' %}

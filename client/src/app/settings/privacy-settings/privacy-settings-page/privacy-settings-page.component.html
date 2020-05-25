@@ -1,0 +1,10 @@
+<!-- Using a table because the labels can be very long -->
+<table>
+  <tr *ngFor="let checkbox of settings">
+    <td>
+      <mat-slide-toggle (change)="settingToggled(checkbox, $event)"
+                        [checked]="checkbox.enabled"></mat-slide-toggle>
+    </td>
+    <td class="toggle-label">{{ checkbox.label }}</td>
+  </tr>
+</table>

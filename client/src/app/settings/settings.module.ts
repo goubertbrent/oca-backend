@@ -30,6 +30,7 @@ import { OpeningHoursPeriodsComponent } from './opening-hours/opening-hours-peri
 import { OpeningHoursSettingsPageComponent } from './opening-hours/opening-hours-settings-page/opening-hours-settings-page.component';
 import { OpeningHoursComponent } from './opening-hours/opening-hours/opening-hours.component';
 import { HoursPipe } from './pipes/hours.pipe';
+import { PrivacySettingsPageComponent } from './privacy-settings/privacy-settings-page/privacy-settings-page.component';
 import { ServiceAddressesEditorComponent } from './service-info/service-addresses-editor/service-addresses-editor.component';
 import { ServiceInfoPageComponent } from './service-info/service-info-page/service-info-page.component';
 import { ServiceMediaEditorComponent } from './service-info/service-media-editor/service-media-editor.component';
@@ -43,6 +44,7 @@ const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'service-info' },
   { path: 'opening-hours', component: OpeningHoursSettingsPageComponent },
   { path: 'service-info', component: ServiceInfoPageComponent },
+  { path: 'privacy', component: PrivacySettingsPageComponent },
 ];
 
 @NgModule({
@@ -57,6 +59,7 @@ const routes: Routes = [
     ServiceAddressesEditorComponent,
     SyncedValuesPreviewComponent,
     OpeningHoursPeriodsEditorComponent,
+    PrivacySettingsPageComponent,
   ],
   imports: [
     CommonModule,

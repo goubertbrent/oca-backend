@@ -67,7 +67,8 @@ from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.to.news import BaseMediaTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_task_name
+from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_task_name, \
+    try_or_defer
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import on_trans_committed
@@ -78,6 +79,7 @@ from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OC
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
+from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId
 from solutions.common.models import SolutionSettings, SolutionMainBranding, \
     SolutionBrandingSettings, FileBlob, SolutionNewsPublisher, SolutionModuleAppText, RestaurantMenu
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
@@ -573,7 +575,20 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
 
 
 def _after_service_created(service_user):
-    service_auto_connect(service_user)
+    try_or_defer(service_auto_connect, service_user)
+    try_or_defer(_execute_consent_actions, service_user)
+
+
+def _execute_consent_actions(service_user):
+    from shop.bizz import get_customer_consents
+    from shop.dal import get_customer
+    customer = get_customer(service_user)
+    consents = get_customer_consents(customer.user_email)
+    # If consent was given, automatically allow cirklo data to be shared instead of requiring city to toggle this
+    if consents.TYPE_CIRKLO_SHARE in consents.types:
+        settings = VoucherSettings(key=VoucherSettings.create_key(service_user))
+        settings.providers = [VoucherProviderId.CIRKLO]
+        settings.put()
 
 
 def get_default_cover_media(organization_type):

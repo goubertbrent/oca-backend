@@ -14,6 +14,10 @@ const routes: Routes = [
     path: 'events',
     loadChildren: () => import('./events/events.module').then(m => m.EventsModule),
   },
+  {
+    path: 'cirklo',
+    loadChildren: () => import('./cirklo/cirklo.module').then(m => m.CirkloModule),
+  },
 ];
 
 @NgModule({

@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  position: relative;
+}
+
+.delete-button {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  z-index: 1;
+}
+
+.voucher-expired {
+  filter: grayscale(100%);
+}
+
+.voucher-card {
+  border: 2px solid var(--ion-color-primary);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.gradient-container {
+  // -1 px to mostly avoid jagged edge
+  background: linear-gradient(to top left, transparent calc(50% - 1px), var(--ion-color-primary) 50%);
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.voucher-logo {
+  width: 120px;
+  height: 120px;
+}
+
+.values {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 0;
+}
+
+.voucher-value {
+  font-size: 56px;
+  margin: 32px 0px 16px;
+}
+
+.voucher-original-value {
+  font-size: 28px;
+  text-decoration: line-through;
+}
+
+.voucher-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+  margin: 8px 16px;
+}

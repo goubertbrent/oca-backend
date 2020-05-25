@@ -163,7 +163,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
   }
 
   updateAvatar() {
-    const dialog = this.updateImage(150, 150, '/common/settings/avatar', {
+    const dialog = this.updateImage(250, 250, '/common/settings/avatar', {
       title: this.translate.instant('oca.Change logo'),
       uploadPrefix: 'branding/avatar',
       listPrefix: 'branding/avatar',

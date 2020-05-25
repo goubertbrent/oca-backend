@@ -17,51 +17,6 @@
 
 <body>
 <app-root></app-root>
-<script>
-    if (window.location.port === '4201') {
-        function nothing() {
-        }
-
-        rogerthat = {
-            context: func => func({context: null}),
-            api: {
-                call: nothing,
-                callbacks: {
-                    resultReceived: nothing,
-                },
-            },
-            callbacks: {
-                ready(callback) {
-                    callback();
-                },
-                serviceDataUpdated: nothing,
-                userDataUpdated: nothing,
-                qrCodeScanned: nothing,
-            },
-            user: {
-                language: 'en',
-                data: {},
-            },
-            system: {
-                appId: 'em-be-osa-demo2',
-                appVersion: '2.1.5555',
-            },
-            service: {
-                data: {},
-            },
-          menuItem: {
-            hashedTag: 'q_matic',
-            label: 'Q-matic',
-          },
-          util: {
-            uuid: () => {
-              return Math.random().toString();
-            },
-          },
-        };
-      sha256 = a => a;
-    }
-</script>
 <script src="cordova.js"></script>
 </body>
 

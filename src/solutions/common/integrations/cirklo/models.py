@@ -56,3 +56,19 @@ class CirkloUserVouchers(NdbModel):
     @classmethod
     def create_key(cls, app_user):
         return ndb.Key(cls, app_user.email(), parent=parent_ndb_key(app_user))
+
+
+class CirkloCity(NdbModel):
+    service_user_email = ndb.StringProperty()
+
+    @property
+    def city_id(self):
+        return self.key.id().decode('utf-8')
+
+    @classmethod
+    def create_key(cls, city_id):
+        return ndb.Key(cls, city_id)
+
+    @classmethod
+    def get_by_service_email(cls, service_email):
+        return cls.query(cls.service_user_email == service_email).get()

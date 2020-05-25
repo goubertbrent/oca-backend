@@ -15,7 +15,7 @@ export class BackButtonComponent implements OnInit {
   ngOnInit() {
     const isIOS = this.platform.is('ios');
     let icon: string;
-    if (isIOS && rogerthat.menuItem && rogerthat.menuItem.hashedTag) {
+    if (isIOS && rogerthat.menuItem?.hashedTag) {
       icon = 'menu';
     } else {
       icon = 'arrow-back';

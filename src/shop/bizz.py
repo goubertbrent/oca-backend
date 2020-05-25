@@ -41,7 +41,7 @@ from typing import Tuple
 
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import normalize_search_string, chunks
+from mcfw.utils import normalize_search_string
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -2357,33 +2357,31 @@ def get_customer_consents(email):
 @returns()
 @arguments(email=unicode, consents=dict, headers=dict, context=unicode)
 def update_customer_consents(email, consents, headers, context):
-    current_consent_settings = get_customer_consents(email)
     campaignmonitor_lists = {webhook.consent_type: webhook.list_id for webhook in CampaignMonitorWebhook.query()}
     for consent, granted in consents.iteritems():
-        list_id = campaignmonitor_lists.get(consent)
-        if not list_id:
-            if DEBUG:
-                logging.error('No webhook configured for consent %s', consent)
-            else:
-                raise Exception('No webhook configured for consent %s', consent)
+        if consent in SolutionServiceConsent.EMAIL_CONSENT_TYPES:
+            list_id = campaignmonitor_lists.get(consent)
+            if not list_id:
+                if DEBUG:
+                    logging.error('No webhook configured for consent %s', consent)
+                else:
+                    raise Exception('No webhook configured for consent %s', consent)
+        else:
+            list_id = None
         data = {
             'context': context,
             'headers': headers,
             'date': datetime.datetime.now().isoformat() + 'Z'
         }
         if granted:
-            if consent not in current_consent_settings.types:
-                current_consent_settings.types.append(consent)
-                add_service_consent(email, consent, data)
-                if list_id:
-                    campaignmonitor.subscribe(list_id, email)
+            # TODO: this is a crap solution that gets and puts the same model multiple times in this for loop
+            add_service_consent(email, consent, data)
+            if list_id:
+                campaignmonitor.subscribe(list_id, email)
         else:
-            if consent in current_consent_settings.types:
-                current_consent_settings.types.remove(consent)
-                remove_service_consent(email, consent, data)
-                if list_id:
-                    campaignmonitor.unsubscribe(list_id, email)
-    current_consent_settings.put()
+            remove_service_consent(email, consent, data)
+            if list_id:
+                campaignmonitor.unsubscribe(list_id, email)
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):

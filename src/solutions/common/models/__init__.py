@@ -727,7 +727,10 @@ class SolutionRssScraperItem(NdbModel):
 class SolutionServiceConsent(NdbModel):
     TYPE_EMAIL_MARKETING = u'email_marketing'
     TYPE_NEWSLETTER = u'newsletter'
-    TYPES = [TYPE_EMAIL_MARKETING, TYPE_NEWSLETTER]
+    TYPE_CITY_CONTACT = u'city_contact'  # Permission for city to have access to private info from services
+    TYPE_CIRKLO_SHARE = u'cirklo_share'  # Permission to share login email to cirklo, so we can invite services to cirklo
+    EMAIL_CONSENT_TYPES = [TYPE_EMAIL_MARKETING, TYPE_NEWSLETTER]
+    TYPES = EMAIL_CONSENT_TYPES + [TYPE_CITY_CONTACT, TYPE_CIRKLO_SHARE]
 
     types = ndb.StringProperty(repeated=True, choices=TYPES)  # type: list[str]
 
