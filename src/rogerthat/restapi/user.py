@@ -347,7 +347,7 @@ def get_user_context(uid):
         if is_expired:
             logging.debug('Context expired since %s, returning limited information' % expiration_time)
             return UserContextTO(id=user_context.app_user.email(),
-                                 email=get_human_user_from_app_user(user_context.app_user))
+                                 email=get_human_user_from_app_user(user_context.app_user).email())
         app_user = user_context.app_user
     else:
         # Allow user email instead of context key for DEBUG == True
