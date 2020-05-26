@@ -28,7 +28,7 @@ from zipfile import ZipFile
 
 from google.appengine.api import images, search
 from google.appengine.ext import db, deferred, ndb
-from typing import Optional
+from typing import Optional, Tuple, List
 
 from mcfw.cache import cached, invalidate_cache
 from mcfw.consts import MISSING
@@ -47,7 +47,7 @@ from rogerthat.bizz.job.update_friends import schedule_update_a_friend_of_servic
     schedule_update_all_friends_of_service_user, create_update_friend_requests, convert_friend, \
     do_update_friend_request
 from rogerthat.bizz.maps.services import cleanup_map_index, add_map_index, \
-    save_map_service
+    save_map_service, SearchTag
 from rogerthat.bizz.maps.services.places import get_place_details
 from rogerthat.bizz.messaging import BrandingNotFoundException, sendMessage, sendForm, ReservedTagException
 from rogerthat.bizz.profile import update_friends, create_user_profile, update_password_hash, _validate_name, \
@@ -118,7 +118,7 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user,
     get_service_identity_tuple, is_valid_service_identifier, remove_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, on_trans_committed, \
     on_trans_rollbacked
-
+from solutions.common.integrations.cirklo.models import VoucherSettings
 
 try:
     from cStringIO import StringIO
@@ -2186,7 +2186,7 @@ def remove_service_identity_from_index(service_identity_user):
 
 
 def get_search_fields(service_user, service_identity_user, sc):
-    from rogerthat.bizz.app import get_app
+    # type: (users.User, users.User, ServiceIdentity) -> Tuple[str, List[str], List[search.Field]]
     service_identity = get_service_identity(service_identity_user)
     service_profile = get_service_profile(service_user)
     service_menu_item_labels = []
@@ -2222,30 +2222,31 @@ def get_search_fields(service_user, service_identity_user, sc):
         fields.append(search.TextField(name=name, value=value))
 
     tags = set()
-    default_app = get_app(service_identity.app_id)
+    default_app = get_app_by_id(service_identity.app_id)
     if default_app.demo:
-        tags.add('environment#demo')
+        tags.add(SearchTag.environment('demo'))
     else:
-        tags.add('environment#production')
+        tags.add(SearchTag.environment('production'))
 
     for app_id in service_identity.appIds:
-        if app_id in (App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY):
-            continue
-        if default_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-            tags.add('group#cityapps_belgium')
-        tags.add('app_id#%s' % app_id)
+        if default_app.country:
+            tags.add(SearchTag.country(default_app.country))
+        tags.add(SearchTag.app(app_id))
 
-    service_info = ServiceInfo.create_key(service_user, service_identity.identifier).get()
+    keys = [ServiceInfo.create_key(service_user, service_identity.identifier), VoucherSettings.create_key(service_user)]
+    service_info, voucher_settings = ndb.get_multi(keys)  # type: ServiceInfo, VoucherSettings
     if not service_info:
         logging.warn('skipping place_types in get_search_fields for service_user:%s identifier:%s', service_user, service_identity.identifier)
         return service_identity.name.lower(), list(tags), fields
 
     for place_type in service_info.place_types:
-        tags.add('place_type#%s' % place_type)
         place_details = get_place_details(place_type, 'en')
         if not place_details:
             continue
-        tags.add('place_type#%s' % place_type)
+        tags.add(SearchTag.place_type(place_type))
+    if voucher_settings:
+        for provider in voucher_settings.providers:
+            tags.add(SearchTag.vouchers(provider))
 
     return service_identity.name.lower(), list(tags), fields
 

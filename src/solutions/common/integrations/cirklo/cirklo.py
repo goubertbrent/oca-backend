@@ -28,18 +28,21 @@ from typing import List, Optional
 from mcfw.cache import cached
 from mcfw.rpc import arguments, returns
 from mcfw.utils import Enum
+from rogerthat.bizz.maps.services import search_services_by_tags, SearchTag, get_tags_app
 from rogerthat.bizz.opening_hours import get_opening_hours_info
 from rogerthat.consts import DEBUG
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import OpeningHours, ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.to import convert_to_unicode, TO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
+from rogerthat.utils.service import get_service_user_from_service_identity_user
 from solution_server_settings import get_solution_server_settings, SolutionServerSettings
 from solutions import translate, SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
-from solutions.common.integrations.cirklo.models import CirkloUserVouchers, VoucherSettings, VoucherProviderId, \
+from solutions.common.integrations.cirklo.models import CirkloUserVouchers, VoucherProviderId, \
     CirkloCity
 from solutions.common.integrations.cirklo.to import AppVoucher, AppVoucherList
 from solutions.common.models import SolutionBrandingSettings
@@ -179,10 +182,12 @@ def get_vouchers(service_user, app_user):
 
 def get_merchants_by_app(app_id, language, cursor, page_size):
     # type: (str, str, Optional[str], int) -> dict
-    start_cursor = cursor and ndb.Cursor.from_websafe_string(cursor)
-    settings_keys, new_cursor, more = VoucherSettings.list_by_provider_and_app(VoucherProviderId.CIRKLO, app_id) \
-        .fetch_page(page_size, keys_only=True, start_cursor=start_cursor)
-    service_users = [users.User(key.id()) for key in settings_keys]
+    app = get_app_by_id(app_id)
+    tags = get_tags_app(app_id, whole_country=False)
+    tags.append(SearchTag.vouchers(VoucherProviderId.CIRKLO))
+    service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size)
+    service_users = [get_service_user_from_service_identity_user(service_user)
+                     for service_user in service_identity_users]
     info_keys = [ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT) for service_user in service_users]
     hours_keys = [OpeningHours.create_key(service_user, ServiceIdentity.DEFAULT) for service_user in service_users]
     models = ndb.get_multi(info_keys + hours_keys)
@@ -211,8 +216,8 @@ def get_merchants_by_app(app_id, language, cursor, page_size):
         })
     return {
         'results': results,
-        'cursor': new_cursor and new_cursor.to_websafe_string().decode('utf-8'),
-        'has_more': more,
+        'cursor': new_cursor,
+        'has_more': new_cursor is not None,
     }
 
 

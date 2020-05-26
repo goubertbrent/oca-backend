@@ -27,8 +27,9 @@ import urllib
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb, db
 from google.appengine.ext.ndb.query import Cursor
-from typing import List
+from typing import List, Optional, Tuple
 
+from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.elasticsearch import delete_index, create_index, es_request, delete_doc, index_doc, \
     execute_bulk_request
@@ -38,7 +39,7 @@ from rogerthat.bizz.maps.shared import get_map_response
 from rogerthat.bizz.opening_hours import get_opening_hours_info
 from rogerthat.dal.profile import get_user_profile, get_service_profile
 from rogerthat.dal.service import get_service_menu_items
-from rogerthat.models import UserProfileInfo, OpeningHours, App, ServiceIdentity, \
+from rogerthat.models import UserProfileInfo, OpeningHours, ServiceIdentity, \
     ServiceTranslation, ServiceRole, UserProfile
 from rogerthat.models.elasticsearch import ElasticsearchSettings
 from rogerthat.models.maps import MapConfig, MapSavedItem, MapService, \
@@ -63,12 +64,36 @@ from rogerthat.utils.service import add_slash_default, remove_slash_default, \
     get_service_identity_tuple, \
     create_service_identity_user
 
-
 SERVICES_TAG = 'services'
 
 OPENING_HOURS_GREEN_COLOR = u'51bd13'
 OPENING_HOURS_RED_COLOR = u'b01717'
 OPENING_HOURS_ORANGE_COLOR = u'e69f12'
+
+
+class SearchTag(object):
+
+    @staticmethod
+    def environment(environment):
+        azzert(environment in ('demo', 'production'))
+        return 'environment#%s' % environment
+
+    @staticmethod
+    def app(app_id):
+        return 'app_id#%s' % app_id
+
+    @staticmethod
+    def country(country_code):
+        azzert(country_code, 'Country code must not be empty')
+        return 'country#%s' % country_code
+
+    @staticmethod
+    def vouchers(provider_id):
+        return 'vouchers#%s' % provider_id
+
+    @staticmethod
+    def place_type(place_type):
+        return 'place_type#%s' % place_type
 
 
 def get_clean_language_code(lang):
@@ -83,21 +108,18 @@ def get_openinghours_color(color):
     return u'#%s' % color
 
 
-def get_tags_app(app_id):
-    from rogerthat.bizz.app import get_app
+def get_tags_app(app_id, whole_country=True):
+    from rogerthat.dal.app import get_app_by_id
     tags = []
-    default_app = get_app(app_id)
-    if default_app.demo:
-        tags.append('environment#demo')
+    app = get_app_by_id(app_id)
+    if app.demo:
+        tags.append(SearchTag.environment('demo'))
     else:
-        tags.append('environment#production')
-
-    if app_id in (App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY):
-        pass
-    elif default_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-        tags.append('group#cityapps_belgium')
+        tags.append(SearchTag.environment('production'))
+    if whole_country and app.country:
+        tags.append(SearchTag.country(app.country))
     else:
-        tags.append('app_id#%s' % app_id)
+        tags.append(SearchTag.app(app_id))
     return tags
 
 
@@ -113,8 +135,9 @@ def get_map(app_user):
     response.functionalities = [MapFunctionality.CURRENT_LOCATION,
                                 MapFunctionality.SEARCH,
                                 MapFunctionality.SAVE]
-    
-    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'clothing_store', 'doctor', 'pharmacy', 'establishment_poi']    
+
+    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'clothing_store', 'doctor', 'pharmacy',
+                          'establishment_poi']
     response.action_chips = []
     for place_type in action_place_types:
         place_details = get_place_details(place_type, language)
@@ -185,7 +208,7 @@ def get_map_items(app_user, request):
         place_type = _search_place_types(request.search.query, get_clean_language_code(lang))
         took_time = time.time() - start_time
         if place_type:
-            place_type_tags = ['place_type#%s' % place_type]
+            place_type_tags = [SearchTag.place_type(place_type)]
         logging.info('debugging.services._search_place_types _search {0:.3f}s'.format(took_time))
         logging.debug('get_map_items.search: "%s" -> %s', request.search.query, place_type_tags)
     return _get_items(app_user, tags, place_type_tags, center_lat, center_lon, distance, cursor=request.cursor,
@@ -344,7 +367,7 @@ def save_map_service(service_identity_user):
                                                title=localize(lang, 'Directions'),
                                                url=geo_url)
             map_service.horizontal_items.append(MapServiceListItem(item=h_map_item))
-        
+
         v_map_item = LinkListSectionItemTO(icon='fa-map-marker',
                                            title=map_service.address,
                                            url=geo_url)
@@ -544,7 +567,7 @@ def _convert_to_item_to(map_service, language, timezone, opening_hours):
 
     if line_1:
         lines.append(MapItemLineTextTO(parts=[MapItemLineTextPartTO(color=None, text=txt) for txt in line_1]))
-        
+
     if map_service.address:
         lines.append(MapItemLineTextTO(parts=[MapItemLineTextPartTO(color=None, text=', '.join(map_service.address.splitlines()))]))
 
@@ -600,7 +623,7 @@ def _get_items(app_user, tags, place_type_tags, lat, lon, distance, limit=100, c
     models = ndb.get_multi(models_to_get)
     all_opening_hours = {model.key: model for model in models if isinstance(model, OpeningHours)}
     service_infos = {model.key: model for model in models if isinstance(model, ServiceInfo)}
-    
+
     for map_service in map_services:
         opening_hours = [all_opening_hours[key] for key in map_service.opening_hours_links]
         service_user, service_identity = get_service_identity_tuple(users.User(map_service.service_identity_email))
@@ -632,7 +655,7 @@ def _create_index():
                     'type': 'keyword'
                 },
                 'name': {
-                    'type': 'text'
+                    'type': 'keyword'
                 },
                 'suggestion': {
                     'type': 'search_as_you_type'
@@ -707,6 +730,42 @@ def _suggest_services(tags, lat, lon, lang, search):
     for hit in result_data['hits']['hits']:
         results.append({'email': hit['_source']['email'], 'name': hit['_source']['name']})
     return results
+
+
+def search_services_by_tags(tags, cursor, limit):
+    # type: (List[str], Optional[str], int) -> Tuple[List[users.User], Optional[str]]
+    # Search services filtered only by tags, sorted by name
+    start_offset = long(cursor) if cursor else 0
+    if (start_offset + limit) > 10000:
+        limit = 10000 - start_offset
+    if limit <= 0:
+        return [], None
+    qry = {
+        'size': limit,
+        'from': start_offset,
+        '_source': {
+            'includes': ['email'],
+        },
+        'query': {
+            'bool': {
+                'filter': [{'term': {'tags': tag}} for tag in tags],
+                'should': []
+            }
+        },
+        'sort': [
+            {'name': {'order': 'asc'}},
+        ]
+    }
+
+    path = '/%s/_search' % _get_elasticsearch_index()
+    result_data = es_request(path, urlfetch.POST, qry)
+    new_cursor = None
+    next_offset = start_offset + len(result_data['hits']['hits'])
+    if result_data['hits']['total']['relation'] in ('eq', 'gte'):
+        if result_data['hits']['total']['value'] > next_offset and next_offset < 10000:
+            new_cursor = '%s' % next_offset
+    results = [users.User(hit['_source']['email']) for hit in result_data['hits']['hits']]
+    return results, new_cursor
 
 
 def _search_services(tags, place_type_tags, lat, lon, distance, cursor, limit, search=None):
@@ -854,7 +913,7 @@ def _index_place_type(place_type):
         return []
     en_translations_suggest = [place_details_en.title]
     en_translations_search = [place_details_en.title]
-    
+
     place_details_nl = get_place_details(place_type, 'nl')
     if not place_details_nl:
         logging.error('Failed to index nl place type %s', place_type)

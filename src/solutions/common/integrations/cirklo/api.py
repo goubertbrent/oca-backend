@@ -32,12 +32,15 @@ from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.service import re_index_map_only
 from rogerthat.consts import FILES_BUCKET, SCHEDULED_QUEUE, DAY
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.users import get_current_session
 from rogerthat.translations import localize
+from rogerthat.utils import try_or_defer
+from rogerthat.utils.service import create_service_identity_user
 from shop.dal import get_customer
 from shop.models import Customer
 from solutions import translate, SOLUTION_COMMON
@@ -94,8 +97,8 @@ def save_voucher_settings(service_email, data):
     settings_key = VoucherSettings.create_key(users.User(service_email))
     settings, service_consent = ndb.get_multi([settings_key, SolutionServiceConsent.create_key(
         customer.user_email)])  # type: VoucherSettings, SolutionServiceConsent
-    if service_consent and VoucherProviderId.CIRKLO in data.providers\
-            and SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
+    if service_consent and VoucherProviderId.CIRKLO in data.providers \
+        and SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
         err = translate(customer.language, SOLUTION_COMMON, 'oca.cirklo_disabled_reason_privacy')
         raise HttpBadRequestException(err)
     if not settings:
@@ -104,6 +107,8 @@ def save_voucher_settings(service_email, data):
     settings.app_id = city_customer.app_id
     settings.providers = data.providers
     settings.put()
+    service_identity_user = create_service_identity_user(customer.service_user)
+    try_or_defer(re_index_map_only, service_identity_user)
     return VoucherServiceTO.from_models(customer, settings, service_consent)
 
 
