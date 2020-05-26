@@ -1,5 +1,6 @@
 import { animate, sequence, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { Platform } from '@ionic/angular';
 import { Actions, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { Observable, Subject } from 'rxjs';
@@ -48,14 +49,20 @@ export class VouchersPageComponent implements OnInit, OnDestroy {
   isLoading$: Observable<boolean>;
   canDelete = false;
   itemAnimationState = ItemAnimationState.DISABLED;
+  scanButtonBottom = '1em';
 
   private destroyed$ = new Subject();
 
   constructor(private store: Store,
+              private platform: Platform,
               private actions$: Actions) {
   }
 
   ngOnInit() {
+    if (this.platform.is('ios')) {
+      // safari is crap and starts counting from the bottom of the screen instead of bottom of the container, so increase the margin
+      this.scanButtonBottom = '72px';
+    }
     this.store.dispatch(new LoadVouchersAction());
     this.voucherList$ = this.store.pipe(select(getVouchersList));
     this.vouchers$ = this.voucherList$.pipe(map(list => {

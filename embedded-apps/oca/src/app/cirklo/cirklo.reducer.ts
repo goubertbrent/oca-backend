@@ -61,7 +61,8 @@ export function cirkloReducer(state: CirkloState = initialState, action: CirkloA
     case CirkloActionTypes.GET_MERCHANTS:
       return { ...state, merchants: stateLoading(state.merchants.result) };
     case CirkloActionTypes.GET_MERCHANTS_SUCCESS:
-      return { ...state,
+      return {
+        ...state,
         merchants: stateSuccess(state.merchants.result ? {
           ...action.payload,
           results: [...state.merchants.result.results, ...action.payload.results],

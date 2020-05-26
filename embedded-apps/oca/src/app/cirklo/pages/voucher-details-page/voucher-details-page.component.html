@@ -15,7 +15,7 @@
   <app-large-voucher *ngIf="voucher$ | async as voucher"
                      [expired]="voucher.expired"
                      [logoUrl]="logoUrl$ | async"
-                     [qrData]="voucher.id"
+                     [qrData]="voucher | voucherQrData"
                      [remainingValue]="voucher.amount"
                      [validDate]="voucher.expirationDate"
                      [value]="voucher.originalAmount"

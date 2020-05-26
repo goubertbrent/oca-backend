@@ -21,7 +21,7 @@
     <app-large-voucher *ngSwitchCase="'singular'"
                        [expired]="vouchers.result.expired"
                        [logoUrl]="vouchers.cities[vouchers.result.cityId].logo_url"
-                       [qrData]="vouchers.result.id"
+                       [qrData]="vouchers.result | voucherQrData"
                        [remainingValue]="vouchers.result.amount"
                        [validDate]="vouchers.result.expirationDate"
                        [value]="vouchers.result.value"
@@ -40,7 +40,7 @@
                          class="voucher"></app-small-voucher>
     </ng-container>
   </div>
-  <div class="scan-button-container">
+  <div [style.bottom]="scanButtonBottom" class="scan-button-container">
     <ion-button (click)="startScanning()" class="scan-button" type="button">
       <ion-icon name="add" slot="start"></ion-icon>
       <ion-label>{{ 'app.oca.scan_voucher' | translate }}</ion-label>

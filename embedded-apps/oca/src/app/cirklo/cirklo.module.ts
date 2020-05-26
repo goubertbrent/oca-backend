@@ -23,6 +23,7 @@ import { VoucherDetailsPageComponent } from './pages/voucher-details-page/vouche
 import { VoucherTransactionsPageComponent } from './pages/voucher-transactions-page/voucher-transactions-page.component';
 import { VouchersPageComponent } from './pages/vouchers-page/vouchers-page.component';
 import { MerchantAddressUrlPipe } from './merchant-address-url.pipe';
+import { VoucherQrDataPipe } from './voucher-qr-data.pipe';
 
 const routes: Routes = [
   {
@@ -53,6 +54,7 @@ const routes: Routes = [
     MerchantDetailsPageComponent,
     InfoPageComponent,
     MerchantAddressUrlPipe,
+    VoucherQrDataPipe,
   ],
   imports: [
     CommonModule,

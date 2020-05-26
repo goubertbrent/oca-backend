@@ -62,10 +62,10 @@ export class AppComponent {
         this.router.navigate(this.getRootPage());
       }
     });
-    this.actions$.subscribe(action => {
-      const { type, ...rest } = action;
-      return console.log(`${type} - ${JSON.stringify(rest)}`);
-    });
+    // this.actions$.subscribe(action => {
+    //   const { type, ...rest } = action;
+    //   return console.log(`${type} - ${JSON.stringify(rest)}`);
+    // });
   }
 
   private async shouldExitApp(): Promise<boolean> {

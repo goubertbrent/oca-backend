@@ -3,6 +3,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { of } from 'rxjs';
 import { delay, switchMap } from 'rxjs/operators';
 import { RogerthatActionTypes, ScanQrCodeAction, ScanQrCodeUpdateAction } from '../rogerthat';
+import { CirkloMerchant } from './cirklo';
 import {
   AddVoucherAction,
   AddVoucherSuccessAction,
@@ -104,71 +105,83 @@ export class CirkloTestEffects {
     }),
   ));
 
+  merchantResults: CirkloMerchant[] = [];
   merchants$ = createEffect(() => this.actions$.pipe(
     ofType(CirkloActionTypes.GET_MERCHANTS),
     delay(randint(50, 500)),
-    switchMap(() => of(new GetMerchantsCompleteAction({
-      more: false,
-      cursor: null,
-      results: [{
-        id: '1',
-        name: 'Onze Stad App',
-        address: {
-          coordinates: {
-            lat: 3,
-            lon: 50,
-          },
-          country: 'BE',
-          locality: 'Nazareth',
-          postal_code: '9810',
-          street: 'Steenweg Deinze',
-          street_number: '154',
+    switchMap(() => {
+        const result = {
+          id: '0',
           name: 'Onze Stad App',
-          place_id: 'ChIJfYV3cq8Nw0cR-zjpxY5jDzs',
-        },
-        opening_hours: {
-          open_now: true,
-          subtitle: null,
-          title: 'Open',
-          weekday_text: [{
-            day: 'maandag',
-            lines: [{ color: null, text: 'Gesloten' }],
+          address: {
+            coordinates: {
+              lat: 3,
+              lon: 50,
+            },
+            country: 'BE',
+            locality: 'Nazareth',
+            postal_code: '9810',
+            street: 'Steenweg Deinze',
+            street_number: '154',
+            name: 'Onze Stad App',
+            place_id: 'ChIJfYV3cq8Nw0cR-zjpxY5jDzs',
           },
-            {
-              day: 'dinsdag',
-              lines: [{ color: null, text: '24u open' }],
-            },
-            {
-              day: 'woensdag',
-              lines: [{ color: null, text: '24u open' }],
-            },
-            {
-              day: 'donderdag',
+          opening_hours: {
+            open_now: true,
+            subtitle: null,
+            title: 'Open',
+            weekday_text: [{
+              day: 'maandag',
               lines: [{ color: null, text: 'Gesloten' }],
             },
-            {
-              day: 'vrijdag',
-              lines: [{ color: null, text: '08:00 - 17:00' }],
-            },
-            {
-              day: 'zaterdag',
-              lines: [
-                { color: null, text: 'Gesloten' },
-              ],
-            },
-            {
-              day: 'zondag',
-              lines: [
-                { color: null, text: '09:00 - 12:00' },
-                { color: '#e69f12', text: 'Uitzonderlijk open voor moederdag' },
-              ],
-            }],
-        },
-        email_addresses: [{ value: 'info@onzestadapp.be', name: null }, { value: 'lucas@onzestadapp.be', name: 'Lucas' }],
-        phone_numbers: [{ name: null, value: '0032471684984' }, { name: 'Telenet', value: '015 66 66 66' }],
-        websites: [{ name: null, value: 'https://onzestadapp.be' }, { name: 'Google', value: 'https://google.com' }],
-      }],
-      })),
+              {
+                day: 'dinsdag',
+                lines: [{ color: null, text: '24u open' }],
+              },
+              {
+                day: 'woensdag',
+                lines: [{ color: null, text: '24u open' }],
+              },
+              {
+                day: 'donderdag',
+                lines: [{ color: null, text: 'Gesloten' }],
+              },
+              {
+                day: 'vrijdag',
+                lines: [{ color: null, text: '08:00 - 17:00' }],
+              },
+              {
+                day: 'zaterdag',
+                lines: [
+                  { color: null, text: 'Gesloten' },
+                ],
+              },
+              {
+                day: 'zondag',
+                lines: [
+                  { color: null, text: '09:00 - 12:00' },
+                  { color: '#e69f12', text: 'Uitzonderlijk open voor moederdag' },
+                ],
+              }],
+          },
+          email_addresses: [{ value: 'info@onzestadapp.be', name: null }, { value: 'lucas@onzestadapp.be', name: 'Lucas' }],
+          phone_numbers: [{ name: null, value: '0032471684984' }, { name: 'Telenet', value: '015 66 66 66' }],
+          websites: [{ name: null, value: 'https://onzestadapp.be' }, { name: 'Google', value: 'https://google.com' }],
+        };
+        const newMerchants = [];
+        const start = this.merchantResults.length;
+        const end = start + 20;
+        for (let i = start; i < end; i++) {
+          newMerchants.push({ ...result, id: i.toString(), name: `${result.name} ${i}` });
+        }
+        this.merchantResults = [...this.merchantResults, ...newMerchants];
+        const more = this.merchantResults.length < 100;
+        return of(new GetMerchantsCompleteAction({
+          more,
+          cursor: more ? 'yes' : null,
+          results: newMerchants,
+        }));
+      },
     )));
 
   constructor(private actions$: Actions) {

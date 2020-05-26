@@ -124,7 +124,8 @@ def add_voucher(service_user, app_user, qr_content):
     return {
         'voucher': voucher.to_dict(),
         'city': {
-            'logo_url': branding_settings.avatar_url
+            'id': voucher.cityId,
+            'logo_url': branding_settings.avatar_url,
         }
     }
 
@@ -216,7 +217,7 @@ def get_merchants_by_app(app_id, language, cursor, page_size):
     return {
         'results': results,
         'cursor': new_cursor,
-        'has_more': new_cursor is not None,
+        'more': new_cursor is not None,
     }
 
 

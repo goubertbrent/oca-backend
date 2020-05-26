@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { IonInfiniteScroll } from '@ionic/angular';
 import { select, Store } from '@ngrx/store';
-import { combineLatest, Observable, Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { take, takeUntil } from 'rxjs/operators';
 import { CirkloMerchant } from '../../cirklo';
 import { GetMerchantsAction } from '../../cirklo.actions';
@@ -16,6 +16,7 @@ import { areMerchantsLoading, getMerchants, getMerchantsCursor, hasMoreMerchants
 export class MerchantsPageComponent implements OnInit, OnDestroy {
   @ViewChild(IonInfiniteScroll, { static: true }) infiniteScroll: IonInfiniteScroll;
   merchants$: Observable<CirkloMerchant[]>;
+  hasMore$: Observable<boolean>;
   loading$: Observable<boolean>;
 
   private destroyed$ = new Subject();
@@ -27,13 +28,12 @@ export class MerchantsPageComponent implements OnInit, OnDestroy {
     this.store.dispatch(new GetMerchantsAction({}));
     this.merchants$ = this.store.pipe(select(getMerchants));
     this.loading$ = this.store.pipe(select(areMerchantsLoading));
-    combineLatest([this.store.pipe(select(hasMoreMerchants)), this.loading$]).pipe(takeUntil(this.destroyed$))
-      .subscribe(([hasMore, loading]) => {
-        if (!loading && !this.infiniteScroll.disabled) {
-          this.infiniteScroll.complete();
-        }
-        this.infiniteScroll.disabled = !hasMore;
-      });
+    this.hasMore$ = this.store.pipe(select(hasMoreMerchants));
+    this.loading$.pipe(takeUntil(this.destroyed$)).subscribe(loading => {
+      if (!loading && !this.infiniteScroll.disabled) {
+        this.infiniteScroll.complete();
+      }
+    });
   }
 
   ngOnDestroy() {

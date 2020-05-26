@@ -21,7 +21,10 @@
       </ion-text>
     </ng-container>
   </ng-template>
-  <qrcode *ngIf="remainingValue; else nothingLeft" [margin]="0" [qrdata]="qrData" [width]="240"
+  <qrcode *ngIf="remainingValue; else nothingLeft"
+          [margin]="0"
+          [qrdata]="qrData"
+          [width]="240"
           [class.qr-filter]="expired"
           class="qr-code"></qrcode>
   <ng-template #nothingLeft>
