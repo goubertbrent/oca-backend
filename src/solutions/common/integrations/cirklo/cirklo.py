@@ -182,7 +182,6 @@ def get_vouchers(service_user, app_user):
 
 def get_merchants_by_app(app_id, language, cursor, page_size):
     # type: (str, str, Optional[str], int) -> dict
-    app = get_app_by_id(app_id)
     tags = get_tags_app(app_id, whole_country=False)
     tags.append(SearchTag.vouchers(VoucherProviderId.CIRKLO))
     service_identity_users, new_cursor = search_services_by_tags(tags, cursor, page_size)

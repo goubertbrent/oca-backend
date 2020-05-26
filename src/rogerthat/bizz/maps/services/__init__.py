@@ -317,7 +317,7 @@ def save_map_service(service_identity_user):
     service_info, opening_hours = ndb.get_multi(keys)  # type: ServiceInfo, OpeningHours
     if not service_info:
         map_service_key.delete()
-        return False
+        return None
 
     if service_identity == ServiceIdentity.DEFAULT:
         email = service_user.email()
@@ -408,7 +408,7 @@ def save_map_service(service_identity_user):
             map_service.vertical_items.append(item)
 
     map_service.put()
-    return True
+    return map_service
 
 
 def _user_has_role(service_identity_user, user_profile, role):

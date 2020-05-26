@@ -2305,7 +2305,8 @@ def re_index(service_identity_user):
                 ])
             loc_index.put(loc_doc)
             docs.append(loc_doc)
-        if save_map_service(service_identity_user):
+        map_service = save_map_service(service_identity_user)
+        if map_service and map_service.geo_location:
             should_cleanup = False
             add_map_index(service_identity_user, locs, name, tags, get_map_txt_from_fields(fields))
     if should_cleanup:
@@ -2329,7 +2330,8 @@ def re_index_map_only(service_identity_user):
     should_cleanup = True
     if locs:
         name, tags, fields = get_search_fields(service_user, service_identity_user, sc)
-        if save_map_service(service_identity_user):
+        map_service = save_map_service(service_identity_user)
+        if map_service and map_service.geo_location:
             should_cleanup = False
             add_map_index(service_identity_user, locs, name, tags, get_map_txt_from_fields(fields))
     if should_cleanup:
