@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import base64
+from datetime import datetime
 import json
 import logging
 import os
 import re
 import urllib
-from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.ext import deferred
@@ -55,9 +55,10 @@ from rogerthat.to.system import ProfileAddressTO, ProfilePhoneNumberTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils import now, is_clean_app_user_email, send_mail, get_server_url
 from rogerthat.utils.app import create_app_user_by_email, \
-    get_human_user_from_app_user
+    get_human_user_from_app_user, sanitize_app_user
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.crypto import encrypt, sha256_hex, decrypt
+
 
 SIGNUP_SUCCESS = 1
 SIGNUP_INVALID_EMAIL = 2
@@ -275,8 +276,11 @@ def unsubscribe_reminder(email, data, reason):
 def unsubscribe_deactivate(email, data, reason):
 
     def parse_data(email, data):
-        app_user_email = create_app_user_by_email(email).email()
-        user = users.User(app_user_email)
+        if ":" in email:
+            user = sanitize_app_user(users.User(email))
+        else:
+            app_user_email = create_app_user_by_email(email).email()
+            user = users.User(app_user_email)
         data = base64.decodestring(data)
         data = decrypt(user, data)
         data = json.loads(data)
