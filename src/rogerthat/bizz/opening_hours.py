@@ -265,41 +265,23 @@ def get_weekday_text_day(periods, lang, day):
                 periods_weekday[weekday]['has_description'] = True
             continue
 
-        other_day = period.open and period.close and period.open.day != period.close.day
-        start = None if other_day and not period.open and period.close else period.open
-        stop = None if other_day and period.open else period.close
         if weekday not in periods_weekday:
             periods_weekday[weekday] = {'lines': [],
                                         'has_description': False}
 
-        periods_weekday[weekday]['lines'].append(MapItemLineTextPartTO(text='%s - %s' % (_format_opening_hour(start, lang),
-                                                                                         _format_opening_hour(stop, lang))))
+        line = MapItemLineTextPartTO(text='%s - %s' % (_format_opening_hour(period.open, lang),
+                                                       _format_opening_hour(period.close, lang)))
+        periods_weekday[weekday]['lines'].append(line)
 
         if period.description:
-            periods_weekday[weekday]['lines'].append(MapItemLineTextPartTO(text=period.description,
-                                                                           color=get_openinghours_color(period.description_color or OPENING_HOURS_ORANGE_COLOR)))
+            line = MapItemLineTextPartTO(text=period.description,
+                                         color=get_openinghours_color(
+                                             period.description_color or OPENING_HOURS_ORANGE_COLOR))
+            periods_weekday[weekday]['lines'].append(line)
             periods_weekday[weekday]['has_description'] = True
 
-        if other_day:
-            diff = period.close.day - period.open.day
-            if diff < 0:
-                diff += 7
-            for x in xrange(diff):
-                diff_weekday = (period.open.day + x + 1) % 7
-                start = None
-                stop = None if period.close.day != diff_weekday else period.close
-
-                if diff_weekday not in periods_weekday:
-                    periods_weekday[diff_weekday] = {'lines': []}
-
-                periods_weekday[diff_weekday]['lines'].append(MapItemLineTextPartTO(text='%s - %s' % (_format_opening_hour(start, lang),
-                                                                                                      _format_opening_hour(stop, lang))))
-                if period.description:
-                    periods_weekday[diff_weekday]['lines'].append(MapItemLineTextPartTO(text=period.description,
-                                                                                        color=get_openinghours_color(period.description_color or OPENING_HOURS_ORANGE_COLOR)))
-                    periods_weekday[diff_weekday]['has_description'] = True
-
     return periods_weekday
+
 
 def get_weekday_periods_day(periods, day):
     weekday = _get_weekday(day)
@@ -315,24 +297,12 @@ def get_weekday_periods_day(periods, day):
             continue
 
         if period.is_open_24_hours:
-            periods_weekday[weekday] = {}
-            periods_weekday[weekday]['periods'] = [period]
+            periods_weekday[weekday] = {'periods': [period]}
             continue
 
-        other_day = period.open and period.close and period.open.day != period.close.day
         if weekday not in periods_weekday:
             periods_weekday[weekday] = {'periods': []}
 
         periods_weekday[weekday]['periods'].append(period)
-
-        if other_day:
-            diff = period.close.day - period.open.day
-            if diff < 0:
-                diff += 7
-            for x in xrange(diff):
-                diff_weekday = (period.open.day + x + 1) % 7
-                if diff_weekday not in periods_weekday:
-                    periods_weekday[diff_weekday] = {'periods': []}
-                periods_weekday[diff_weekday]['periods'].append(period)
 
     return periods_weekday
