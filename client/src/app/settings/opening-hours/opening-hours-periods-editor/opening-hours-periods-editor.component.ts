@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, forwardRef, Input } from '@angular/
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { OpeningHour, OpeningPeriod } from '../../../shared/interfaces/oca';
-import { formatDateToHours, parseHours } from '../../../shared/time-picker/time-picker.component';
 import { OPEN_24_HOURS_TIME } from '../../service-info/constants';
 
 
@@ -21,6 +20,17 @@ function getNextDay(time: WeekDay): WeekDay {
 
 function hourToStr(hour: OpeningHour | null) {
   return hour ? `${hour.day}${hour.time}` : '';
+}
+
+function parseHours(value: string): Date {
+  const hours = new Date();
+  const [hour, minutes] = value.split(':').map(part => parseInt(part, 10));
+  hours.setUTCHours(hour, minutes, 0, 0);
+  return hours;
+}
+
+function formatDateToHours(date: Date, separator = ':'): string {
+  return `${date.getHours().toString().padStart(2, '0')}${separator}${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
 @Component({
@@ -66,23 +76,26 @@ export class OpeningHoursPeriodsEditorComponent implements ControlValueAccessor 
   }
 
   trackHours(index: number, value: OpeningPeriod) {
-    return `${index}-${hourToStr(value.open)}-${hourToStr(value.close)}`;
+    // Prevent components from re-rendering
+    return index;
   }
 
-  setOpenTime(hours: OpeningPeriod, newValue: string) {
-    const updatedHour = parseHours(newValue);
-    hours.open.time = formatDateToHours(updatedHour, '');
-    this.setChanged();
+  setOpenTime(hours: OpeningPeriod, newValue: Date | null) {
+    if (newValue) {
+      hours.open.time = formatDateToHours(newValue, '');
+      this.setChanged();
+    }
   }
 
-  setCloseTime(hours: OpeningPeriod, newValue: string) {
-    const openTime = parseHours(hours.open.time);
-    const closeTime = parseHours(newValue);
-    hours.close = {
-      day: openTime < closeTime ? hours.open.day : getNextDay(hours.open.day),
-      time: formatDateToHours(closeTime, ''),
-    };
-    this.setChanged();
+  setCloseTime(hours: OpeningPeriod, closeTime: Date | null) {
+    if (closeTime) {
+      const openTime = parseHours(hours.open.time);
+      hours.close = {
+        day: openTime < closeTime ? hours.open.day : getNextDay(hours.open.day),
+        time: formatDateToHours(closeTime, ''),
+      };
+      this.setChanged();
+    }
   }
 
   addHours() {

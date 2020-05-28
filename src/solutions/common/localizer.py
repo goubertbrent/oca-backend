@@ -20,6 +20,8 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.hours_cannot_exceed': u'Hours cannot exceed {{ hours }}',
+         u'oca.minutes_cannot_exceed': u'Minutes cannot exceed {{ minutes }}',
          u'consent_cirklo_share': u'I give permission to my city / municipality to share my data with The Studio (administrator of the Cirklo Light platform), and want to receive an invitation to participate in the gift voucher initiative of my city / municipality via Cirklo Light.',
          u'consent_city_contact': u'I authorize my city / municipality to use my data to contact ME for legal requirements and / or emergencies. This so that I can keep up to date with IMPORTANT news from my city / municipality.',
          u'oca.cirklo_disabled_reason_privacy': u'This service first needs to allow permission to this on their dashboard under settings -> privacy',
@@ -3961,6 +3963,8 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.hours_cannot_exceed': u'Uren mag niet groter zijn dan {{ hours }}',
+         u'oca.minutes_cannot_exceed': u'Minuten mogen niet groter zijn dan {{ minutes }}',
          u'voucher': u'Cadeaubon',
          u'vouchers': u'Cadeaubonnen',
          u'not_a_valid_cirklo_qr_code': u'Dit is geen Cirklo Light QR code',

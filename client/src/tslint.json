@@ -6,6 +6,7 @@
       "always",
       "ignore-bound-class-methods"
     ],
+    "radix": false,
     "directive-selector": [
       true,
       "attribute",

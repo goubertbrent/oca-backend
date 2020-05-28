@@ -5,6 +5,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { TranslateModule } from '@ngx-translate/core';
+import { TimeInputModule } from '../time-input/time-input.module';
 import { DateTimeInputComponent } from './date-time-input.component';
 
 
@@ -17,6 +18,7 @@ import { DateTimeInputComponent } from './date-time-input.component';
     MatInputModule,
     MatDatepickerModule,
     TranslateModule,
+    TimeInputModule,
   ],
   exports: [
     DateTimeInputComponent,

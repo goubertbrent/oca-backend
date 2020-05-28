@@ -7,12 +7,16 @@ import { Pipe, PipeTransform } from '@angular/core';
 })
 export class HoursPipe extends DatePipe implements PipeTransform {
 
-  transform(value: string, format?: string): string {
-    const date = new Date();
+  // @ts-ignore
+  transform(value: string, format?: string | 'date'): string | Date {
+    const date = new Date(0);
     const hours = parseInt(value.substr(0, 2), 10);
     const minutes = parseInt(value.substr(2, 2), 10);
     date.setHours(hours);
     date.setMinutes(minutes);
+    if (format === 'date') {
+      return date;
+    }
     return super.transform(date, format || 'shortTime') as string;
   }
 

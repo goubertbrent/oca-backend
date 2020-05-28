@@ -1,0 +1,24 @@
+<div [formGroup]="partsGroup">
+  <input (blur)="_onBlur($event)"
+         (focus)="_onFocus($event)"
+         (input)="_handleInput()"
+         (keydown)="_handleKeydown($event, 'hour')"
+         [required]="required"
+         class="time-input-field"
+         formControlName="hour"
+         inputmode="numeric"
+         matInput
+         placeholder="hh">
+  <span class="time-separator">:</span>
+  <input (blur)="_onBlur($event)"
+         (focus)="_onFocus($event)"
+         (input)="_handleInput()"
+         (keydown)="_handleKeydown($event, 'minute')"
+         [required]="required"
+         class="time-input-field"
+         formControlName="minute"
+         inputmode="numeric"
+         matInput
+         placeholder="mm">
+  <mat-icon *ngIf="error$ | async as err" [matTooltip]="err" class="error-message">error</mat-icon>
+</div>

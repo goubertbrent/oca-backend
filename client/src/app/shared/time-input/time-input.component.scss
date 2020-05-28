@@ -1,0 +1,16 @@
+.time-input-field {
+  width: 30px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.error-message {
+  position: absolute;
+  bottom: 12px;
+  right: 4px;
+  fill: #db4437;
+}
+
+:host {
+  outline: none;
+}

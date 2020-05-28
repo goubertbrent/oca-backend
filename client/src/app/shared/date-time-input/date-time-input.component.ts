@@ -54,38 +54,7 @@ export class DateTimeInputComponent implements ControlValueAccessor {
   writeValue(obj: Date | null): void {
     if (obj !== this.date) {
       this.date = obj;
-      this.setTimeInput();
       this.changeDetectorRef.markForCheck();
-    }
-  }
-
-  onTimeChange() {
-    if (!this.date) {
-      if (this.min) {
-        this.date = new Date(this.min);
-      } else {
-        this.date = new Date();
-      }
-      this.date.setSeconds(0);
-      this.date.setMilliseconds(0);
-    }
-    const timeDate = this.timeInput.nativeElement.valueAsDate as Date | undefined;
-    if (timeDate) {
-      this.date.setHours(timeDate.getUTCHours());
-      this.date.setMinutes(timeDate.getUTCMinutes());
-    }
-    this.onChange(this.date);
-    this.changeDetectorRef.markForCheck();
-  }
-
-  private setTimeInput() {
-    if (this.date) {
-      const d = new Date(0);
-      d.setUTCHours(this.date.getHours());
-      d.setUTCMinutes(this.date.getMinutes());
-      this.timeInput.nativeElement.valueAsDate = d;
-    } else {
-      this.timeInput.nativeElement.value = '';
     }
   }
 
@@ -113,5 +82,21 @@ export class DateTimeInputComponent implements ControlValueAccessor {
     if (!this.disabled) {
       this.datePicker.open();
     }
+  }
+
+  onTimeChanged($event: Date | null) {
+    if (!this.date) {
+      if (this.min) {
+        this.date = new Date(this.min);
+      } else {
+        this.date = new Date();
+      }
+      this.date.setSeconds(0);
+      this.date.setMilliseconds(0);
+    }
+    this.date.setHours($event?.getHours() ?? 0);
+    this.date.setMinutes($event?.getMinutes() ?? 0);
+    this.onChange(this.date);
+    this.changeDetectorRef.markForCheck();
   }
 }

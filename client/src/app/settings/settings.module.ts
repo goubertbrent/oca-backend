@@ -23,7 +23,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
 import { SelectAutocompleteModule } from '../shared/select-autocomplete/select-autocomplete.module';
 import { SharedModule } from '../shared/shared.module';
-import { TimePickerModule } from '../shared/time-picker/time-picker.module';
+import { TimeInputModule } from '../shared/time-input/time-input.module';
 import { UploadFileModule } from '../shared/upload-file';
 import { OpeningHoursPeriodsEditorComponent } from './opening-hours/opening-hours-periods-editor/opening-hours-periods-editor.component';
 import { OpeningHoursPeriodsComponent } from './opening-hours/opening-hours-periods/opening-hours-periods.component';
@@ -86,8 +86,8 @@ const routes: Routes = [
     MatChipsModule,
     SharedModule,
     MatSlideToggleModule,
-    TimePickerModule,
     SelectAutocompleteModule,
+    TimeInputModule,
   ],
   providers: [
     HoursPipe,

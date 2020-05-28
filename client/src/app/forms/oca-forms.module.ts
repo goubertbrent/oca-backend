@@ -28,6 +28,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
+import { TimeInputModule } from '../shared/time-input/time-input.module';
 import { UploadFileModule } from '../shared/upload-file';
 import { ArrangeSectionsDialogComponent } from './components/arange-sections-dialog/arrange-sections-dialog.component';
 import { DateStatisticsListComponent } from './components/date-statistics-list/date-statistics-list.component';
@@ -113,6 +114,7 @@ import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-se
     MatTooltipModule,
     MatProgressBarModule,
     MatExpansionModule,
+    TimeInputModule,
   ],
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },
