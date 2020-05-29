@@ -67,6 +67,9 @@ def update_jobs_settings(service_user, data):
 def send_job_notifications_for_service(jobs_settings_key, min_date, max_date):
     # type: (ndb.Key, datetime, datetime) -> None
     jobs_settings = jobs_settings_key.get()  # type: JobsSettings
+    if not jobs_settings.emails:
+        logging.debug('No emails set, not sending jobs notifications')
+        return
     service_user = users.User(jobs_settings_key.parent().id())
     solicitations = JobSolicitation.list_unseen_by_service(service_user, min_date, max_date) \
         .fetch(None)  # type: List[JobSolicitation]

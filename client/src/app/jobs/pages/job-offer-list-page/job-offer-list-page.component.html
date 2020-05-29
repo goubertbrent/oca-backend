@@ -37,7 +37,13 @@
         <div [innerHTML]="item.offer.function.description | truncate : 90 | markdown : {breaks: true}"></div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <a [routerLink]="[item.offer.id]" color="accent" mat-stroked-button>{{ 'oca.Edit' | translate }}</a>
+        <a [routerLink]="[item.offer.id]" color="accent" mat-stroked-button>
+          {{ 'oca.Edit' | translate }}
+        </a>
+        <a *ngIf="jobList.hasSolicitations" [routerLink]="[item.offer.id, 'solicitations']" color="accent"
+           mat-stroked-button>
+          {{ 'oca.solicitations' | translate }}
+        </a>
       </mat-card-actions>
     </mat-card>
   </div>

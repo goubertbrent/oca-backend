@@ -9,6 +9,7 @@ import { areJobOffersListLoading, getJobOffersList, JobsState } from '../../jobs
 interface JobList {
   title: string;
   items: JobOfferDetails[];
+  hasSolicitations: boolean;
   card?: {
     description: string;
     actionButton?: {
@@ -42,6 +43,7 @@ export class JobOfferListPageComponent implements OnInit {
     this.jobLists$ = this.store.pipe(select(getJobOffersList), map(offers => {
       const lists: JobList[] = [{
         title: 'oca.drafts',
+        hasSolicitations: false,
         items: [],
         card: {
           description: 'oca.create_new_job_info',
@@ -52,16 +54,18 @@ export class JobOfferListPageComponent implements OnInit {
         },
       }, {
         title: 'oca.active',
-        items: [],
-        card:{
-          description: 'oca.active_jobs_info',
-        }
-      }, {
-        title: 'oca.inactive',
+        hasSolicitations: true,
         items: [],
         card: {
-          description: 'oca.inactive_jobs_info'
-        }
+          description: 'oca.active_jobs_info',
+        },
+      }, {
+        title: 'oca.inactive',
+        hasSolicitations: false,
+        items: [],
+        card: {
+          description: 'oca.inactive_jobs_info',
+        },
       }];
       for (const offer of offers) {
         lists[ this.indexes[ offer.offer.status ] ].items.push(offer);

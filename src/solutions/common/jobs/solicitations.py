@@ -22,9 +22,10 @@ from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 from typing import List, Optional
 
+from mcfw.exceptions import HttpBadRequestException
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX
 from rogerthat.models import NdbUserProfile, Message
-from rogerthat.models.jobs import JobOffer, JobMatch, JobOfferSourceType
+from rogerthat.models.jobs import JobOffer, JobOfferSourceType, JobMatch
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
 from rogerthat.to.jobs import CreateJobChatRequestTO
@@ -77,12 +78,23 @@ def get_solicitation_messages(service_user, job_id, solicitation_id):
     return JobSolicitationMessage.list_by_solicitation(service_user, job_id, solicitation_id)
 
 
+@ndb.non_transactional
+def _get_lang(service_user):
+    # this method is needed because you get weird errors when attempting to fetch db models in an ndb transaction
+    return get_solution_settings(service_user).main_language
+
+
 @ndb.transactional()
 def send_solicitation_message(service_user, job_id, solicitation_id, message, from_service):
     # type: (users.User, int, int, str, bool) -> JobSolicitationMessage
     solicitation_key = JobSolicitation.create_key(service_user, job_id, solicitation_id)
     stats_key = JobOfferStatistics.create_key(service_user, job_id)
     solicitation, stats = ndb.get_multi([solicitation_key, stats_key])  # type: JobSolicitation, JobOfferStatistics
+    # Services can no longer reply if user deleted the chat.
+    # The user can 'restart' the conversation though.
+    if solicitation.status == JobSolicitationStatus.DISABLED and from_service:
+        language = _get_lang(service_user)
+        raise HttpBadRequestException(translate(language, SOLUTION_COMMON, 'oca.cannot_reply_user_has_left_the_chat'))
     if solicitation.status == JobSolicitationStatus.INITIALIZING:
         solicitation.status = JobSolicitationStatus.UNREAD
         stats.add_unread(solicitation_key)
@@ -168,11 +180,8 @@ def chat_disable_solicitation(service_user, parent_message_key, member, timestam
     job_match, solicitation = ndb.get_multi(keys)  # type: JobMatch, JobSolicitation
     job_match.chat_key = None
     solicitation.status = JobSolicitationStatus.DISABLED
-    solicitation.chat_key = None
-    solicitation.put()
     ndb.put_multi([job_match, solicitation])
     try_or_defer(_send_solicitation_disabled_to_dashboard, service_user, solicitation)
-    messaging.delete_chat(parent_message_key)
 
 
 def create_job_solicitation(app_user, job_offer, request):

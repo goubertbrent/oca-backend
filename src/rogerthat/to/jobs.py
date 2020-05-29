@@ -276,6 +276,7 @@ class GetJobChatInfoResponseTO(TO):
     info_text = unicode_property('info_text', default=None)
     default_text = unicode_property('default_text', default=None)
     anonymous = typed_property('anonymous', JobChatAnonymousTO, default=None)
+    chat_key = unicode_property('chat_key', default=None)
 
 
 class GetJobChatInfoRequestTO(TO):
