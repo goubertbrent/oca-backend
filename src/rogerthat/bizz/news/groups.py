@@ -427,7 +427,7 @@ def _worker_delete_service_group(nss_key, group_type):
 
 def update_notifications_user_group(group_id, notifications):
     run_job(_qry_update_notifications_user_group, [group_id],
-            _worker_update_notifications_user_group, [notifications], worker_queue=MIGRATION_QUEUE)
+            _worker_update_notifications_user_group, [group_id, notifications], worker_queue=MIGRATION_QUEUE)
 
 
 def _qry_update_notifications_user_group(group_id):
@@ -436,10 +436,13 @@ def _qry_update_notifications_user_group(group_id):
 
 @ndb.transactional()
 @returns()
-@arguments(news_settings_key=ndb.Key, notifications=(int, long))
-def _worker_update_notifications_user_group(news_settings_key, notifications):
-    user_settings = news_settings_key.get()
-    if not user_settings:
+@arguments(news_settings_user_key=ndb.Key, group_id=unicode, notifications=(int, long))
+def _worker_update_notifications_user_group(news_settings_user_key, group_id, notifications):
+    news_settings_user = news_settings_user_key.get()
+    if not news_settings_user:
         return
-    user_settings.notifications = notifications
-    user_settings.put()
+    group_details = news_settings_user.get_group_details(group_id)
+    if not group_details:
+        return
+    group_details.notifications = notifications
+    news_settings_user.put()

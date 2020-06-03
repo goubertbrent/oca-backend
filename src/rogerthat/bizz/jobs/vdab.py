@@ -309,22 +309,11 @@ def _bulk_jobs_scheduler(from_, until_):
 
     logging.debug('_bulk_jobs_scheduler.amount: %s', amount)
     logging.debug('_bulk_jobs_scheduler.tasks: %s', len(tasks))
-    run_tasks = True
-    if amount > 100000:
-        logging.debug('_bulk_jobs_scheduler.amount>100k')
     if amount > 50000:
-        logging.debug('_bulk_jobs_scheduler.amount>50k')
-        run_tasks = False
-    if amount > 10000:
-        logging.debug('_bulk_jobs_scheduler.amount>10k')
-    if amount > 5000:
-        logging.debug('_bulk_jobs_scheduler.amount>5k')
+        logging.warn('_bulk_jobs_scheduler.amount>50k')
 
-    if run_tasks:
-        schedule_tasks(tasks, JOBS_VDAB_QUEUE)
-        _run_bulk_jobs_tasks(results)
-    else:
-        logging.warn('Ignoring tasks') # todo remove when VDAB fixed their end
+    schedule_tasks(tasks, JOBS_VDAB_QUEUE)
+    _run_bulk_jobs_tasks(results)
 
 
 def _update_job(source_id, status, should_create_matches=False):
