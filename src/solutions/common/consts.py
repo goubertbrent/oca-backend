@@ -69,7 +69,7 @@ SECONDS_IN_HOUR = 3600
 SECONDS_IN_DAY = 86400
 SECONDS_IN_WEEK = 604800
 
-CURRENCIES = ['EUR', 'USD', 'GBP', 'RON', 'TFT']
+CURRENCIES = ['EUR', 'USD', 'GBP', 'RON', 'ZAR']
 CURRENCY_NAMES = {
     'RON': u'Leu',
     'TFT': u'ThreeFold Token'
