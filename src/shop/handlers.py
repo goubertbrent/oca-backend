@@ -21,11 +21,11 @@ import json
 import logging
 import os
 
-import webapp2
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
 from google.appengine.ext.webapp import template
+import webapp2
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -61,8 +61,11 @@ from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
 from solutions.common.bizz.settings import get_consents_for_app
+from solutions.common.integrations.cirklo.models import VoucherSettings,\
+    VoucherProviderId
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.to.settings import PrivacySettingsTO
+
 
 try:
     from cStringIO import StringIO
@@ -625,3 +628,52 @@ class QuotationHandler(webapp2.RequestHandler):
         url = Quotation.download_url(Quotation.filename(bucket, customer_id, quotation_id)).encode('ascii')
         logging.info('Redirection to %s', url)
         self.redirect(url)
+
+
+class CustomerCirkloAcceptHandler(PublicPageHandler):
+
+    def dispatch(self):
+        # Don't redirect to dashboard when logged in
+        return super(PublicPageHandler, self).dispatch()
+
+    def get(self):
+        email = self.request.get('email')
+        data = self.request.get('data')
+
+        try:
+            data = validate_customer_url_data(email, data)
+        except InvalidUrlException:
+            return self.return_error('invalid_url')
+
+        customer = db.get(data['s']) # Customer
+        if not customer:
+            return self.abort(404)
+
+        consents = get_customer_consents(email)
+        should_put_consents = False
+        if SolutionServiceConsent.TYPE_CITY_CONTACT not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CITY_CONTACT)
+            should_put_consents = True
+        if SolutionServiceConsent.TYPE_CIRKLO_SHARE not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CIRKLO_SHARE)
+            should_put_consents = True
+            
+        if should_put_consents:
+            consents.put()
+            
+            settings_key = VoucherSettings.create_key(customer.service_user)
+            settings = settings_key.get()
+            if not settings:
+                settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
+            settings.customer_id = customer.id
+            settings.app_id = customer.default_app_id
+            settings.providers = [VoucherProviderId.CIRKLO]
+            settings.put()
+            
+        
+        params = {
+            'name': 'test name',
+        }
+
+        self.response.out.write(self.render('cirklo_accept', **params))
+

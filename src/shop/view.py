@@ -16,34 +16,34 @@
 # @@license_version:1.7@@
 
 import base64
+from cgi import FieldStorage
+from collections import namedtuple
 import csv
+from datetime import date, timedelta
 import datetime
 import json
 import logging
 import os
 import re
-import urllib
-from cgi import FieldStorage
-from collections import namedtuple
-from datetime import date, timedelta
 from types import NoneType
+import urllib
 
-import webapp2
+from PIL.Image import Image  # @UnresolvedImport
+from babel import Locale
+from babel.dates import format_date
 from google.appengine.api import urlfetch, users as gusers
 from google.appengine.ext import db, deferred
 from google.appengine.ext.webapp import template
+from oauth2client.client import HttpAccessTokenRefreshError
+import webapp2
 
-from PIL.Image import Image  # @UnresolvedImport
 from add_1_monkey_patches import DEBUG, APPSCALE
-from babel import Locale
-from babel.dates import format_date
 from mcfw.cache import cached
 from mcfw.consts import MISSING, REST_TYPE_TO
 from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns, serialize_complex_value
-from oauth2client.client import HttpAccessTokenRefreshError
 from rogerthat.bizz import channel
 from rogerthat.bizz.gcs import upload_to_gcs
 from rogerthat.bizz.profile import create_user_profile
@@ -75,7 +75,8 @@ from shop.bizz import search_customer, create_or_update_customer, \
     get_invoices, get_regiomanager_statistics, get_prospect_history, create_contact, create_order, export_customers_csv, \
     put_service, update_contact, put_regio_manager_team, \
     get_regiomanagers_by_app_id, delete_contact, finish_on_site_payment, send_payment_info, manual_payment, \
-    post_app_broadcast, shopOauthDecorator, get_customer_charges, put_shop_app, sign_order, import_customer
+    post_app_broadcast, shopOauthDecorator, get_customer_charges, put_shop_app, sign_order, import_customer, \
+    export_cirklo_customers_csv
 from shop.business.audit import audit_log, dict_str_for_audit_log
 from shop.business.charge import cancel_charge
 from shop.business.expired_subscription import set_expired_subscription_status, delete_expired_subscription
@@ -125,6 +126,7 @@ from solutions.common.to import ProvisionReturnStatusTO
 from solutions.common.to.hints import SolutionHintTO
 from solutions.common.to.loyalty import LoyaltySlideTO, LoyaltySlideNewOrderTO
 from solutions.common.utils import get_extension_for_content_type
+
 
 try:
     from cStringIO import StringIO
@@ -218,6 +220,7 @@ def get_shop_context(**kwargs):
     if 'prospect_comment' not in js_templates:
         js_templates.update(render_js_templates(['prospect_comment', 'prospect_types', 'prospect_task_history']))
     js_templates.update(render_js_templates(['customer_popup'], is_folders=True))
+    js_templates.update(render_js_templates(['app_select_modal']))
     locale = Locale.parse(DEFAULT_LANGUAGE)
     currencies = {currency: get_currency_name(locale, currency) for currency in CURRENCIES}
     ctx = dict(modules=_get_solution_modules(),
@@ -792,6 +795,15 @@ def export_customers():
     google_user = gusers.get_current_user()
     azzert(is_admin(google_user))
     deferred.defer(export_customers_csv, google_user)
+    return RETURNSTATUS_TO_SUCCESS
+
+@rest("/internal/shop/rest/customers/cirklo/export", "get")
+@returns(ReturnStatusTO)
+@arguments(app_id=unicode)
+def export_cirklo_customers(app_id):
+    google_user = gusers.get_current_user()
+    azzert(is_admin(google_user))
+    deferred.defer(export_cirklo_customers_csv, google_user, app_id)
     return RETURNSTATUS_TO_SUCCESS
 
 

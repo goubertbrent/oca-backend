@@ -2028,6 +2028,78 @@ def export_customers_csv(google_user):
             logging.info(gcs_file.read())
 
 
+@returns(db.Query)
+@arguments(app_id=unicode)
+def get_all_customers_for_app(app_id):
+    return Customer.all().filter('default_app_id =', app_id)
+
+
+def export_cirklo_customers_csv(google_user, app_id):
+    result = list()
+
+    contact_data = {}
+    qry = Contact.all()
+    while True:
+        contacts = qry.fetch(300)
+        if not contacts:
+            break
+        for contact in contacts:
+            contact_data[contact.customer_key.id()] = contact
+        qry.with_cursor(qry.cursor())
+
+    qry = get_all_customers_for_app(app_id)
+    while True:
+        customers = qry.fetch(300)
+        if not customers:
+            break
+        logging.debug('Fetched %s customers', len(customers))
+        qry.with_cursor(qry.cursor())
+        for customer in customers:
+            if customer.organization_type in (ServiceProfile.ORGANIZATION_TYPE_CITY,):
+                continue
+            consents = get_customer_consents(customer.user_email)
+            if SolutionServiceConsent.TYPE_CIRKLO_SHARE in consents.types:
+                continue
+            d = OrderedDict()
+            d['Email'] = customer.user_email
+            d['Name'] = customer.name
+            d['creation_time'] = customer.creation_time
+            d['Customer since'] = format_datetime(customer.creation_time, 'yyyy-MM-dd HH:mm:ss',
+                                                  tzinfo=get_timezone('Europe/Brussels'))
+            contact = contact_data.get(customer.id)
+            d['First name'] = contact.first_name if contact else ''
+            d['Last name'] = contact.last_name if contact else ''
+            d['Link'] = get_customer_consent_cirklo_url(customer)
+            result.append(d)
+            for p, v in d.items():
+                if v and isinstance(v, unicode):
+                    d[p] = v.encode('utf-8')
+
+    result.sort(key=lambda d: -d['creation_time'])
+    logging.debug('Creating csv with %s customers', len(result))
+    fieldnames = ['First name', 'Last name', 'Name', 'Email', 'Customer since', 'Link']
+
+    date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
+    gcs_path = '/%s/customers/export-cirklo-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
+    with cloudstorage.open(gcs_path, 'w') as gcs_file:
+        writer = csv.DictWriter(gcs_file, dialect='excel', fieldnames=fieldnames)
+        writer.writeheader()
+        for row in result:
+            del row['creation_time']
+            writer.writerow(row)
+
+    current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
+
+    solution_server_settings = get_solution_server_settings()
+    subject = 'Customers cirklo export %s' % current_date
+    message = u'The exported customer list of %s can be found at %s' % (current_date, get_serving_url(gcs_path))
+
+    send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message)
+    if DEBUG:
+        with cloudstorage.open(gcs_path, 'r') as gcs_file:
+            logging.info(gcs_file.read())
+
+
 @returns([RegioManager])
 @arguments(app_id=unicode)
 def get_regiomanagers_by_app_id(app_id):
@@ -2344,6 +2416,20 @@ def get_customer_email_consent_url(customer):
     url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
     host = get_current_http_host(True) or get_server_settings().baseUrl
     return '{}/customers/email_consent?{}'.format(host, url_params)
+
+
+@returns(unicode)
+@arguments(customer=Customer)
+def get_customer_consent_cirklo_url(customer):
+    if not customer.user_email:
+        return ''
+
+    data = dict(c=customer.user_email, s=unicode(customer.key()))
+    data['d'] = calculate_customer_url_digest(data)
+    data = encrypt(users.User(customer.user_email), json.dumps(data))
+    url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
+    host = get_server_settings().baseUrl
+    return '{}/customers/consent/cirklo?{}'.format(host, url_params)
 
 
 @returns(SolutionServiceConsent)
