@@ -587,6 +587,8 @@ def _execute_consent_actions(service_user):
     # If consent was given, automatically allow cirklo data to be shared instead of requiring city to toggle this
     if consents.TYPE_CIRKLO_SHARE in consents.types:
         settings = VoucherSettings(key=VoucherSettings.create_key(service_user))
+        settings.customer_id = customer.id
+        settings.app_id = customer.default_app_id
         settings.providers = [VoucherProviderId.CIRKLO]
         settings.put()
 
