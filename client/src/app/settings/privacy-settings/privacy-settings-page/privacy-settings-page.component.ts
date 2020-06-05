@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { updateItem } from '../../../shared/util';
-import { PrivacySettings } from '../../service-info/service-info';
+import { PrivacySettings, PrivacySettingsGroup } from '../../service-info/service-info';
 import { SettingsService } from '../../settings.service';
 
 @Component({
@@ -11,7 +11,7 @@ import { SettingsService } from '../../settings.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PrivacySettingsPageComponent implements OnInit {
-  settings: PrivacySettings[] = [];
+  settingsGroups: PrivacySettingsGroup[] = [];
 
   constructor(private service: SettingsService,
               private changeDetectorRef: ChangeDetectorRef) {
@@ -19,14 +19,18 @@ export class PrivacySettingsPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.service.getPrivacySettings().subscribe(result => {
-      this.settings = result;
+      this.settingsGroups = result;
       this.changeDetectorRef.markForCheck();
     });
   }
 
   settingToggled(item: PrivacySettings, $event: MatSlideToggleChange) {
     const setting = { ...item, enabled: $event.checked };
-    this.settings = updateItem(this.settings, setting, 'type');
+    for (const group of this.settingsGroups){
+      if(group.items.includes(item)) {
+        group.items = updateItem(group.items, setting, 'type');
+      }
+    }
     this.service.savePrivacySettings(setting).subscribe();
   }
 }

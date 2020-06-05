@@ -24,6 +24,7 @@ import os
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
+from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
 import webapp2
 
@@ -35,7 +36,9 @@ from mcfw.rpc import serialize_complex_value, arguments, returns
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
+from rogerthat.bizz.session import create_session
 from rogerthat.dal.app import get_app_by_id
+from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile
 from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content, \
@@ -45,18 +48,20 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer
 from rogerthat.utils.app import get_app_id_from_app_user
+from rogerthat.utils.cookie import set_cookie
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, \
-    validate_customer_url_data, get_customer_consents, update_customer_consents
+    update_customer_consents, get_customer_signup, validate_customer_url_data,\
+    get_customer_consents
 from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.dal import get_all_signup_enabled_apps
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
-    Quotation, AppCss
+    Quotation, AppCss, CustomerSignup
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
@@ -64,7 +69,8 @@ from solutions.common.bizz.settings import get_consents_for_app
 from solutions.common.integrations.cirklo.models import VoucherSettings,\
     VoucherProviderId
 from solutions.common.models import SolutionServiceConsent
-from solutions.common.to.settings import PrivacySettingsTO
+from solutions.common.restapi.services import do_create_service
+from solutions.common.to.settings import PrivacySettingsTO, PrivacySettingsGroupTO
 
 
 try:
@@ -452,6 +458,7 @@ class CustomerSignupHandler(PublicPageHandler):
             email = email[:-1]
         data = self.request.get('data')
         if email and data:
+            # TODO: can be removed after june 2020
             try:
                 complete_customer_signup(email, data)
             except ExpiredUrlException:
@@ -490,6 +497,58 @@ class CustomerSignupHandler(PublicPageHandler):
         self.response.write(self.render('signup', **params))
 
 
+class CustomerSignupPasswordHandler(PublicPageHandler):
+
+    def get(self, app_id=''):
+        data = self.request.get('data')
+        email = self.request.get('email').rstrip('.')
+
+        params = {
+            'email': email,
+            'data': data,
+            'language': self.language,
+            'error': None,
+        }
+        self.response.write(self.render('signup_setpassword', **params))
+
+    def post(self, app_id=''):
+        json_data = json.loads(self.request.body)
+        email = json_data.get('email')
+        data = json_data.get('data')
+        password = json_data.get('password', '')
+        password_confirm = json_data.get('password_confirm')
+        error = None
+        try:
+            signup, parsed_data = get_customer_signup(email, data)  # type: CustomerSignup, dict
+        except ExpiredUrlException:
+            error = self.translate('link_expired', action='')
+        except AlreadyUsedUrlException:
+            error = self.translate('link_is_already_used', action='')
+        except InvalidUrlException:
+            error = self.translate('invalid_url')
+        if len(password) < 8:
+            error = self.translate('password_length_error', length=8)
+        elif password != password_confirm:
+            error = self.translate('password_match_error')
+        if not error:
+            tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+            result = do_create_service(signup.city_customer, signup.language, True, signup, password, tos_version=tos_version)
+            if result.success:
+                service_email = result.data['service_email']
+                deferred.defer(complete_customer_signup, email, data, service_email)
+
+                try:
+                    secret, _ = create_session(users.User(email), ignore_expiration=True, cached=False)
+                    server_settings = get_server_settings()
+                    set_cookie(self.response, server_settings.cookieSessionName, secret)
+                except:
+                    logging.error("Failed to create session", exc_info=True)
+        else:
+            result = WarningReturnStatusTO.create(False, error)
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(result.to_dict()))
+
+
 class CustomerResetPasswordHandler(PublicPageHandler):
 
     def get(self, app_id=''):
@@ -523,39 +582,6 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
 
     def post(self, app_id=''):
         super(CustomerSetPasswordHandler, self).post()
-
-
-class CustomerEmailConsentHandler(PublicPageHandler):
-
-    def dispatch(self):
-        # Don't redirect to dashboard when logged in
-        return super(PublicPageHandler, self).dispatch()
-
-    def get(self, app_id=''):
-        email = self.request.get('email')
-        data = self.request.get('data')
-
-        try:
-            data = validate_customer_url_data(email, data)
-        except InvalidUrlException:
-            return self.return_error('invalid_url')
-
-        customer = db.get(data['s'])
-        if not customer:
-            return self.abort(404)
-
-        consents = get_customer_consents(email)
-        return self.response.out.write(
-            self.render('service_email_consent', email=email, name=customer.name, consents=consents))
-
-    def post(self, **kwargs):
-        context = u'User email preferences'
-        update_customer_consents(self.request.get('email'), {
-            SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
-            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(
-                SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
-        }, get_headers_for_consent(self.request), context)
-        self.redirect('/customers/signin')
 
 
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)
@@ -607,7 +633,7 @@ def get_customer_info(app_id, language=None):
 
 
 @rest('/unauthenticated/osa/signup/privacy-settings/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
-@returns([PrivacySettingsTO])
+@returns([PrivacySettingsGroupTO])
 @arguments(app_id=unicode, language=unicode)
 def get_privacy_settings(app_id, language=None):
     if not language:

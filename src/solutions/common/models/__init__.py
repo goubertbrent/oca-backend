@@ -346,6 +346,7 @@ class SolutionSettings(SolutionIdentitySettings):
     loyalty_branding_hash = db.StringProperty(indexed=False)
 
     service_disabled = db.BooleanProperty(default=False)
+    hidden_by_city = db.DateTimeProperty(default=None)
 
     @staticmethod
     def create_key(service_user):

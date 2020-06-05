@@ -49,7 +49,7 @@ export class EditNewsComponent implements OnChanges {
   @Input() apps: App[];
   @Input() appStatistics: AppStatisticsMapping;
   @Input() serviceInfo: ServiceIdentityInfo | null;
-  @Input() options: Loadable<NewsOptions>;
+  @Input() options: NewsOptions | null;
   @Input() remainingBudget: string;
   @Input() brandingSettings: BrandingSettings | null;
   @Output() save = new EventEmitter<CreateNews>();
@@ -92,7 +92,7 @@ export class EditNewsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.options.data && this.newsItem?.action_button) {
+    if (this.options && this.newsItem?.action_button) {
       this.setActionButton(this.newsItem.action_button);
     }
     if (changes.newsItem?.currentValue) {
@@ -112,8 +112,8 @@ export class EditNewsComponent implements OnChanges {
         this.appMapping[ app.id ] = app;
       }
     }
-    if (changes.options && this.options?.data) {
-      const mediaTypes = this.options.data.media_types;
+    if (changes.options && this.options) {
+      const mediaTypes = this.options.media_types;
       this.NEWS_MEDIA_TYPE_OPTIONS = NEWS_MEDIA_TYPE_OPTIONS.filter(o => o.value === null || mediaTypes.includes(o.value));
     }
   }
@@ -134,8 +134,8 @@ export class EditNewsComponent implements OnChanges {
       this.actionButton = null;
       return;
     }
-    if (this.options.data) {
-      const actionButton = this.options.data.action_buttons.find(b => {
+    if (this.options) {
+      const actionButton = this.options.action_buttons.find(b => {
         switch (b.type) {
           case NewsActionButtonType.MENU_ITEM:
           case NewsActionButtonType.OPEN:
@@ -297,7 +297,7 @@ export class EditNewsComponent implements OnChanges {
         apps: this.apps,
         appStatistics: this.appStatistics,
         defaultAppId: this.defaultAppId,
-        mapUrl: (this.options.data as NewsOptions).regional.map_url,
+        mapUrl: (this.options as NewsOptions).regional.map_url,
       },
       panelClass: 'map-panel',
     };
@@ -312,7 +312,7 @@ export class EditNewsComponent implements OnChanges {
 
   groupTypeChanged() {
     this.hasGroupVisible = this.newsItem.group_type === NewsGroupType.POLLS;
-    let visibleDate: Date | null = null;
+    let visibleDate: Date | null;
     if (this.hasGroupVisible) {
       if (this.newsItem.group_visible_until) {
         visibleDate = new Date(this.newsItem.group_visible_until);
@@ -336,7 +336,7 @@ export class EditNewsComponent implements OnChanges {
   }
 
   getGroupName() {
-    const group = (this.options.data as NewsOptions).groups.find(g => g.group_type === this.newsItem.group_type);
+    const group = (this.options as NewsOptions).groups.find(g => g.group_type === this.newsItem.group_type);
     return group ? group.name : '';
   }
 

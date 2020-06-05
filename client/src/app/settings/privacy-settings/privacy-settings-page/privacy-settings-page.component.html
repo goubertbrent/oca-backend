@@ -1,10 +1,13 @@
 <!-- Using a table because the labels can be very long -->
-<table>
-  <tr *ngFor="let checkbox of settings">
-    <td>
-      <mat-slide-toggle (change)="settingToggled(checkbox, $event)"
-                        [checked]="checkbox.enabled"></mat-slide-toggle>
-    </td>
-    <td class="toggle-label">{{ checkbox.label }}</td>
-  </tr>
-</table>
+<ng-container *ngFor="let group of settingsGroups">
+  <div [innerHTML]="group.description | markdown"></div>
+  <table>
+    <tr *ngFor="let item of group.items">
+      <td>
+        <mat-slide-toggle (change)="settingToggled(item, $event)"
+                          [checked]="item.enabled"></mat-slide-toggle>
+      </td>
+      <td class="toggle-label">{{ item.label }}</td>
+    </tr>
+  </table>
+</ng-container>

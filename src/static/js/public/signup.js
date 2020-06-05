@@ -39,11 +39,11 @@ $(function () {
                     success: function (data) {
                         resolve(data);
                     },
-                    error: function () {
+                    error: function (data, textStatus, XMLHttpRequest) {
                         if (options.showError) {
                             sln.showAjaxError();
                         }
-                        reject();
+                        reject({data: data, textStatus: textStatus, XMLHttpRequest: XMLHttpRequest});
                     }
                 });
             });
@@ -80,6 +80,9 @@ $(function () {
         },
         getPrivacySettings: function (appId) {
             return this.get('/unauthenticated/osa/signup/privacy-settings/' + appId);
+        },
+        signup: function (data) {
+            return this.post('/unauthenticated/osa/customer/signup', data, {showError: false});
         }
     };
     var requests = new RequestsService();
@@ -89,7 +92,7 @@ $(function () {
         + '</div>';
 
     var TMPL_PRIVACY_CHECKBOX = '<label class="checkbox" for="privacy_${setting.type}">' +
-        '<input type="checkbox" id="privacy_${setting.type}" name="{setting.type}" ' +
+        '<input type="checkbox" id="privacy_${setting.type}" name="${setting.type}" ' +
         '{{if setting.enabled}}checked{{/if}}>${setting.label}</label>';
 
     var formElem = $('#signup_form')[0];
@@ -125,11 +128,16 @@ $(function () {
             validateVat(vatInput);
         }, null, false, 3000, true);
 
-        for (var i = 0; i <= 4; i++) {
-            tabs.push($('#tab' + i));
-        }
+        setTabs();
         if (typeof SIGNUP_APP_ID !== 'undefined' && SIGNUP_APP_ID) {
             appSelected();
+        }
+    }
+
+    function setTabs() {
+        tabs = [];
+        for (var i = 0; i <= 5; i++) {
+            tabs.push($('#tab' + i));
         }
     }
 
@@ -225,8 +233,11 @@ $(function () {
             requests.getAppInfo(app.app_id, language).then(function (appInfo) {
                 var consents = {};
                 for (var i = 0; i < privacySettings.length; i++) {
-                    var s = privacySettings[i];
-                    consents[s.type] = $('#privacy_' + s.type).prop('checked');
+                    var group = privacySettings[i];
+                    for(var j =0;j<group.items.length;j++){
+                        var s = group.items[j];
+                        consents[s.type] = $('#privacy_' + s.type).prop('checked');
+                    }
                 }
                 var args = {
                     city_customer_id: appInfo.customer.id,
@@ -274,23 +285,20 @@ $(function () {
     window.signupCallback = function (recaptchaToken) {
         sln.showProcessing(CommonTranslations.SUBMITTING_DOT_DOT_DOT);
         getSignupDetails(recaptchaToken).then(function (signupDetails) {
-            sln.call({
-                url: '/unauthenticated/osa/customer/signup',
-                type: 'POST',
-                data: signupDetails,
-                success: function (result) {
-                    sln.hideProcessing();
-                    if (!result.success) {
-                        var message = SignupTranslations[result.errormsg.toUpperCase()] || result.errormsg;
-                        sln.alert(message, null, CommonTranslations.ERROR);
-                    } else {
-                        $('#signup_note').parent().addClass('white-box');
-                        $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
-                        $('#signup_box').hide();
-                        $('#go_back').show();
-                    }
-                },
-                error: sln.showAjaxError
+            requests.signup(signupDetails).then(function () {
+                sln.hideProcessing();
+                $('#signup_note').parent().addClass('white-box');
+                $('#signup_note').html(SignupTranslations.SIGNUP_SUCCCESS);
+                $('#signup_box').hide();
+                $('#go_back').show();
+            }).catch(function (error) {
+                sln.hideProcessing();
+                var err = error.data.responseJSON;
+                var msg = err.error;
+                if(err.data && err.data.url){
+                    msg += '<br>' + `<a href="` + err.data.url + '">' + err.data.label + '</a>';
+                }
+                sln.alert(msg, null, CommonTranslations.ERROR);
             });
         });
 
@@ -384,13 +392,37 @@ $(function () {
     }
 
     function getPrivacySettings(appId) {
-        requests.getPrivacySettings(appId).then(function (settings) {
+        return requests.getPrivacySettings(appId).then(function (settings) {
             privacySettings = settings;
-            var container = $('#privacy-settings');
-            container.empty();
+            var container1 = $('#privacy-settings-1');
+            var container2 = $('#privacy-settings-2');
+            container1.empty();
+            container2.empty();
             for (var i = 0; i < settings.length; i++) {
-                var setting = settings[i];
-                container.append($.tmpl(TMPL_PRIVACY_CHECKBOX, {setting: setting}));
+                var group = settings[i];
+                var container;
+                if(group.page ===1){
+                    container = container1;
+                }else if(group.page===2){
+                    container = container2;
+                }else{
+                    continue;
+                }
+                container.append(group.description);
+                for (var j = 0; j < group.items.length; j++) {
+                    var setting = group.items[j];
+                    container.append($.tmpl(TMPL_PRIVACY_CHECKBOX, {setting: setting}));
+                }
+            }
+            setTabs();
+            var hasCirklo = settings.some(function (group) {
+                return group.items.some(function(item){
+                    return item.type === 'cirklo_share';
+                });
+            });
+            if(!hasCirklo) {
+                // Remove last tab
+                tabs.pop();
             }
         });
     }

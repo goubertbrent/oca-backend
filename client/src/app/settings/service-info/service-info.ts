@@ -64,3 +64,9 @@ export interface PrivacySettings {
   label: string;
   enabled: boolean;
 }
+
+export interface PrivacySettingsGroup {
+  page: number;
+  description: string;
+  items: PrivacySettings[];
+}

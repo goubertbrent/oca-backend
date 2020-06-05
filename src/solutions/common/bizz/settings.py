@@ -53,7 +53,7 @@ from solutions.common.models import SolutionSettings, \
     SolutionBrandingSettings, SolutionRssScraperSettings, SolutionRssLink, SolutionMainBranding, \
     SolutionIdentitySettings, SolutionServiceConsent
 from solutions.common.to import SolutionSettingsTO, SolutionRssSettingsTO
-from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO
+from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, PrivacySettingsGroupTO
 from solutions.common.utils import is_default_service_identity, send_client_action
 
 SLN_LOGO_WIDTH = 640
@@ -288,8 +288,9 @@ def update_service_info(service_user, service_identity, data):
     service_info.visible = data.visible
     service_info.websites = [SyncedNameValue.from_to(v) for v in data.websites]
     if service_info_dict != service_info.to_dict():
-        service_info.put()
         sln_settings = get_solution_settings(service_user)
+        service_info.visible = service_info.visible and sln_settings.hidden_by_city is None
+        service_info.put()
         sln_settings.updates_pending = True
         # Temporarily copying these properties until we have cleaned up all usages of them
         # TODO: remove properties from SolutionSettings
@@ -365,27 +366,53 @@ def parse_facebook_url(url):
 
 
 def get_consents_for_app(app_id, lang, user_consent_types):
+    from markdown import Markdown
+    from solutions.common.markdown_newtab import NewTabExtension
     app = get_app_by_id(app_id)
     if not app:
         raise HttpNotFoundException('app_not_found', {'app_id': app_id})
-    city_service_settings = get_solution_settings(users.User(app.main_service))
-    result = [PrivacySettingsTO(
-        type=SolutionServiceConsent.TYPE_CITY_CONTACT,
-        enabled=SolutionServiceConsent.TYPE_CITY_CONTACT in user_consent_types,
-        label=translate(lang, SOLUTION_COMMON, 'consent_city_contact')
-    ), PrivacySettingsTO(
-        type=SolutionServiceConsent.TYPE_NEWSLETTER,
-        enabled=SolutionServiceConsent.TYPE_NEWSLETTER in user_consent_types,
-        label=translate(lang, SOLUTION_COMMON, 'email_consent_newsletter')
-    ), PrivacySettingsTO(
-        type=SolutionServiceConsent.TYPE_EMAIL_MARKETING,
-        enabled=SolutionServiceConsent.TYPE_EMAIL_MARKETING in user_consent_types,
-        label=translate(lang, SOLUTION_COMMON, 'email_consent_marketing')
-    )]
+    service_user = users.User(app.main_service)
+    city_service_settings = get_solution_settings(service_user)
+    groups = [
+        PrivacySettingsGroupTO(
+            page=1,
+            description='<h4>%s</h4>' % translate(lang, SOLUTION_COMMON, 'consent_share_with_city'),
+            items=[PrivacySettingsTO(
+                type=SolutionServiceConsent.TYPE_CITY_CONTACT,
+                enabled=SolutionServiceConsent.TYPE_CITY_CONTACT in user_consent_types,
+                label=translate(lang, SOLUTION_COMMON, 'consent_city_contact')
+            )]
+        ),
+        PrivacySettingsGroupTO(
+            page=1,
+            description='<h4>%s</h4>' % translate(lang, SOLUTION_COMMON, 'consent_platform_communication'),
+            items=[
+                PrivacySettingsTO(
+                    type=SolutionServiceConsent.TYPE_NEWSLETTER,
+                    enabled=SolutionServiceConsent.TYPE_NEWSLETTER in user_consent_types,
+                    label=translate(lang, SOLUTION_COMMON, 'email_consent_newsletter')
+                ), PrivacySettingsTO(
+                    type=SolutionServiceConsent.TYPE_EMAIL_MARKETING,
+                    enabled=SolutionServiceConsent.TYPE_EMAIL_MARKETING in user_consent_types,
+                    label=translate(lang, SOLUTION_COMMON, 'email_consent_marketing')
+                )
+            ]
+        )
+    ]
+    md = Markdown(output='html', extensions=['nl2br', NewTabExtension()])
     if SolutionModule.CIRKLO_VOUCHERS in city_service_settings.modules:
-        result.insert(1, PrivacySettingsTO(
-            type=SolutionServiceConsent.TYPE_CIRKLO_SHARE,
-            enabled=SolutionServiceConsent.TYPE_CIRKLO_SHARE in user_consent_types,
-            label=translate(lang, SOLUTION_COMMON, 'consent_cirklo_share')
-        ))
-    return result
+        lines = [
+            '#### %s' % translate(lang, SOLUTION_COMMON, 'cirklo_info_title'),
+            translate(lang, SOLUTION_COMMON, 'cirklo_info_text'),
+            '',
+            translate(lang, SOLUTION_COMMON, 'cirklo_participation_text'),
+        ]
+        groups.append(PrivacySettingsGroupTO(
+            page=2,
+            description=md.convert('\n\n'.join(lines)),
+            items=[PrivacySettingsTO(
+                type=SolutionServiceConsent.TYPE_CIRKLO_SHARE,
+                enabled=SolutionServiceConsent.TYPE_CIRKLO_SHARE in user_consent_types,
+                label=translate(lang, SOLUTION_COMMON, 'consent_cirklo_share')
+            )]))
+    return groups

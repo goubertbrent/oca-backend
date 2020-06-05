@@ -1,11 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { Action, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
-import { SimpleDialogComponent, SimpleDialogData } from '../dialog/simple-dialog.component';
+import { SimpleDialogComponent, SimpleDialogData, SimpleDialogResult } from '../dialog/simple-dialog.component';
 import { SharedState } from '../shared.state';
 import { ApiError, ErrorAction } from './errors';
 
@@ -53,25 +53,50 @@ export class ErrorService {
   }
 
   /**
-   * Shows a snackbar with a 'retry' button to retry the failed action
+   * Shows a snackbar or dialog with a 'retry' button to retry the failed action
+   * Defaults to showing a snackbar with a duration of 10 seconds.
    */
-  handleError<T>(originalAction: Action, failAction: new(error: string) => ErrorAction, error: any, duration?: number): Observable<Action> {
-    this.showRetrySnackbar(originalAction, error, { duration: duration ?? 10000 });
+  handleError<T>(originalAction: Action,
+                 failAction: new(error: string) => ErrorAction,
+                 error: any,
+                 options?: { duration?: number; format?: 'dialog' | 'toast', canRetry?: boolean }): Observable<Action> {
+    const format = options?.format ?? 'toast';
+    const retry = options?.canRetry ?? true;
+    const clickAction: { action: Action, text: string } | undefined = retry ? {
+      text: this.translate.instant('oca.Retry'),
+      action: originalAction,
+    } : undefined;
+    const message = this.getMessage(error);
+    if (format === 'toast') {
+      this.showErrorSnackbar(message, clickAction, { duration: options?.duration ?? 10000 });
+    } else {
+      this.showErrorDialog(message, clickAction, retry ? this.translate.instant('Close') : undefined);
+    }
     return this.toAction(failAction, error);
   }
 
-  showRetrySnackbar(failedAction: Action, error: any, config?: MatSnackBarConfig) {
-    const message = this.getMessage(error);
-    const retry = this.translate.instant('oca.Retry');
-    this.snackbar.open(message, retry, config).onAction().subscribe(() => this.store.dispatch(failedAction));
+  showErrorSnackbar(message: string, clickAction?: { action: Action, text: string }, config?: MatSnackBarConfig) {
+    const snackbar = this.snackbar.open(message, clickAction?.text, config);
+    if (clickAction?.action) {
+      snackbar.onAction().subscribe(() => this.store.dispatch(clickAction.action));
+    }
   }
 
-  showErrorDialog(error: string) {
+  showErrorDialog(message: string, clickAction?: { action: Action, text: string }, cancel?: string): MatDialogRef<SimpleDialogComponent> {
     const data: SimpleDialogData = {
-      ok: this.translate.instant('oca.ok'),
-      message: error,
+      ok: clickAction?.text ?? this.translate.instant('oca.Close'),
+      cancel,
+      message,
       title: this.translate.instant('oca.Error'),
     };
-    return this.matDialog.open(SimpleDialogComponent, { data });
+    const dialog = this.matDialog.open(SimpleDialogComponent, { data });
+    if (clickAction?.action) {
+      dialog.afterClosed().subscribe((result?: SimpleDialogResult) => {
+        if (result?.submitted) {
+          this.store.dispatch(clickAction.action);
+        }
+      });
+    }
+    return dialog;
   }
 }

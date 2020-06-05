@@ -34,7 +34,7 @@ from dateutil.relativedelta import relativedelta
 from mcfw.cache import CachedModelMixIn, invalidate_cache
 from mcfw.properties import azzert
 from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
-from mcfw.utils import chunks
+from mcfw.utils import chunks, Enum
 from oauth2client.appengine import CredentialsProperty
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY
@@ -545,12 +545,22 @@ class Customer(db.Model):
         return self.organization_type == OrganizationType.CITY
 
 
+class CustomerSignupStatus(Enum):
+    PENDING = 0
+    APPROVED = 1
+    DENIED = 2
+
+
 class CustomerSignup(db.Model):
     EXPIRE_TIME = DAY * 3
-    DEFAULT_MODULES = [SolutionModule.BROADCAST, SolutionModule.BULK_INVITE,
-                       SolutionModule.QR_CODES, SolutionModule.STATIC_CONTENT,
-                       SolutionModule.WHEN_WHERE, SolutionModule.ASK_QUESTION,
-                       SolutionModule.BILLING]
+    DEFAULT_MODULES = [
+        SolutionModule.BROADCAST,
+        SolutionModule.QR_CODES,
+        SolutionModule.STATIC_CONTENT,
+        SolutionModule.WHEN_WHERE,
+        SolutionModule.ASK_QUESTION,
+        SolutionModule.BILLING
+    ]
 
     company_name = db.StringProperty()
     company_organization_type = db.IntegerProperty()
@@ -573,10 +583,11 @@ class CustomerSignup(db.Model):
     customer_facebook_page = db.StringProperty()
 
     language = db.StringProperty()
-    modules = db.StringListProperty(default=DEFAULT_MODULES)
     timestamp = db.IntegerProperty()
+    service_email = db.StringProperty(default=None)  # Set when created via the new way
     done = db.BooleanProperty(indexed=True, default=False)
     inbox_message_key = db.StringProperty(indexed=True)
+    status = db.IntegerProperty(default=CustomerSignupStatus.PENDING)
 
     @classmethod
     def list_pending_by_customer_email(cls, email):
@@ -600,6 +611,10 @@ class CustomerSignup(db.Model):
     @property
     def id(self):
         return self.key().id()
+
+    @property
+    def can_update(self):
+        return self.status == CustomerSignupStatus.PENDING
 
     @property
     def city_customer(self):

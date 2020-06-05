@@ -254,6 +254,11 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                 </div>
             </div>
             <div id="content-container">
+            {%- if hidden_by_city -%}
+            <div class="alert alert-error service-hidden-error">
+                {%- translate language, 'common', 'your_service_was_hidden_by_your_city' -%}
+            </div>
+            {%- endif -%}
                 {% if not loyalty %}
                     <div id="sln-updates-pending-warning" style="display: none;">
                         <div class="alert alert-info autopublish-pending" id="autopublish-pending">

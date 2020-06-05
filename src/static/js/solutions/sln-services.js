@@ -116,46 +116,58 @@
         $('#service-form-container').show();
 
         var organizationType;
-        if(currentService && currentService.organization_type) {
+        if (currentService && currentService.organization_type) {
             // pre-selected organization type
             organizationType = currentService.organization_type;
         } else {
             organizationType = getSelectedOrganizationType();
         }
 
-        getServiceConfiguration(function (config) {
-            var html = $.tmpl(templates['services/service_form'], {
-                service: currentService,
-                edit: mode === 'edit',
-                organizationType: organizationType,
-                organizationTypes: ORGANIZATION_TYPES,
-                languages: supportedLanguages,
-                t: CommonTranslations
-            });
-            $('#service-form-container').html(html);
+        var html = $.tmpl(templates['services/service_form'], {
+            service: currentService,
+            edit: mode === 'edit',
+            organizationType: organizationType,
+            organizationTypes: ORGANIZATION_TYPES,
+            languages: supportedLanguages,
+            t: CommonTranslations,
+            serviceVisible: currentService.hidden_by_city === null,
+        });
+        $('#service-form-container').html(html);
 
-            $('#service-form').find('input').not('[type=checkbox], [type=select]').first().focus();
+        $('#service-form').find('input').not('[type=checkbox], [type=select]').first().focus();
+        $('#checkbox_service_visible').change(function () {
+            sln.showProcessing();
+            Requests.setServiceVisibility({
+                customer_id: currentService.customer_id,
+                visible: currentService.hidden_by_city !== null
+            }).then(function () {
+                currentService.hidden_by_city = currentService.hidden_by_city ? null : new Date().toISOString();
+                sln.hideProcessing();
+            }).catch(function () {
+                sln.hideProcessing();
+                $('#checkbox_service_visible').prop('checked', currentService.hidden_by_city === null);
+            });
+        });
 
-            var checkNoWebsite = $('#check-no-website'),
-                checkNoFacebookPage = $('#check-no-facebook-page');
+        var checkNoWebsite = $('#check-no-website'),
+            checkNoFacebookPage = $('#check-no-facebook-page');
 
-            checkNoWebsite.change(function() {
-                if(checkNoWebsite.is(':checked')) {
-                    $('#service-website').attr('disabled', true);
-                } else {
-                    $('#service-website').attr('disabled', false);
-                }
-            });
-            checkNoFacebookPage.change(function() {
-                if(checkNoFacebookPage.is(':checked')) {
-                    $('#service-facebook-page').attr('disabled', true);
-                } else {
-                    $('#service-facebook-page').attr('disabled', false);
-                }
-            });
-            $('#service-submit').click(function() {
-                putService(false);
-            });
+        checkNoWebsite.change(function () {
+            if (checkNoWebsite.is(':checked')) {
+                $('#service-website').attr('disabled', true);
+            } else {
+                $('#service-website').attr('disabled', false);
+            }
+        });
+        checkNoFacebookPage.change(function () {
+            if (checkNoFacebookPage.is(':checked')) {
+                $('#service-facebook-page').attr('disabled', true);
+            } else {
+                $('#service-facebook-page').attr('disabled', false);
+            }
+        });
+        $('#service-submit').click(function () {
+            putService(false);
         });
     }
 
@@ -191,21 +203,6 @@
     /*
      Ajax calls
      */
-
-    function getServiceConfiguration(callback) {
-        if (LocalCache.services.config) {
-            callback(LocalCache.services.config);
-        } else {
-            sln.call({
-                url: '/common/services/get_defaults',
-                success: function (data) {
-                    LocalCache.services.config = data;
-                    callback(LocalCache.services.config);
-                }
-            });
-        }
-    }
-
 
     function getService(serviceEmail, callback) {
         getCurrentServicesContainer().html(TMPL_LOADING_SPINNER);

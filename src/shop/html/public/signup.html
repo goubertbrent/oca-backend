@@ -11,9 +11,6 @@
         var SignupTranslations = {
             LOADING_CAPTCHA_CHALLENGE: '{% translate language, "common", "loading_captcha_challenge" %}',
             SIGNUP_SUCCCESS: {{ signup_success }},
-            VAT_INVALID: '{% translate language, "common", "vat_invalid" %}',
-            VAT_UNKNOWN: '{% translate language, "common", "vat_unknown" %}',
-            VAT_INCORRECT_COUNTRY: '{% translate language, "common", "vat_incorrect_country" %}',
             PLEASE_AGREE_TO_TOC: '{% translate language, "common", "please_agree_to_toc" %}'
         };
 
@@ -215,8 +212,12 @@
                                     <input type="checkbox" id="agree-to-toc" name="agree-to-toc" required>
                                     {% translate language, 'common', 'i_agree_to_toc' %}
                                 </label>
-                                <div id="privacy-settings"></div>
+                                <div id="privacy-settings-1"></div>
                             </div>
+                        </div>
+                        <div id="tab5" style="display: none;">
+                            <img alt="Cirklo Light" src="https://storage.googleapis.com/oca-files/misc/cirklo_light_colored.svg" class="cirklo-image">
+                            <div id="privacy-settings-2"></div>
                         </div>
                         <hr />
                         <div id="recaptcha_container" class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="signupCallback" data-size="invisible"></div>

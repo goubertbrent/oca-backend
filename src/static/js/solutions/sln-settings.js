@@ -231,7 +231,7 @@ $(function () {
         }
     };
 
-    var toggleUpdatesPending = function (updatesPending) {
+    function toggleUpdatesPending(updatesPending) {
         var warningContainer = $('#sln-updates-pending-warning');
         var autoPublishPending = $('#autopublish-pending');
         var autoPublishError = $('#autopublish-errors');
@@ -257,7 +257,7 @@ $(function () {
             $('#service-prepublish-errors').empty();
             warningContainer.fadeOut('fast', resizeDashboard);
         }
-    };
+    }
 
     function isNotVisible() {
         return $('#sln-updates-pending-warning').css('display') === 'block' && $('#service-prepublish-errors').children().length > 0;

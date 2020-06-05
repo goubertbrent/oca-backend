@@ -6,6 +6,15 @@
         <legend><a href="#/services" class="btn btn-default"><i class="fa fa-arrow-left"></i> ${T('back')}</a>
             {{if edit}}${T('update_service')}{{else}}${T('create_service')}{{/if}}
         </legend>
+        {{if edit}}
+        <div class="control-group" style="margin-left: 180px;">
+            <label class="checkbox inline">
+                <input type="checkbox" name="service_visible" id="checkbox_service_visible" {{if serviceVisible }}checked{{/if}}>
+                ${T('services_service_visible_in_app')}
+            </label>
+            <p>${T('service_visible_information')}</p>
+        </div>
+        {{/if}}
 
         <div class="control-group">
             <label for="service-name" class="control-label">${T('service_name')}</label>

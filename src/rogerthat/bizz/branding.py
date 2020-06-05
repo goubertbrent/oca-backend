@@ -197,7 +197,7 @@ def _create_new_zip(service_user, branding_type, zip_, html, skip_meta_file=Fals
         if branding_type == Branding.TYPE_NORMAL and file_name == 'branding.html':
             new_zip_.writestr(file_name, html)
         elif branding_type == Branding.TYPE_APP and file_name == 'app.html' or \
-                branding_type == Branding.TYPE_CORDOVA and file_name == 'cordova.html':
+                branding_type == Branding.TYPE_CORDOVA and file_name in ('cordova.html', 'index.html'):
             translation_strings_parser.feed(html)
             new_zip_.writestr("branding.html", html)
         else:
@@ -795,9 +795,12 @@ def _parse_and_validate_branding_zip(zip_):
     elif "cordova.html" in files:
         branding_type = Branding.TYPE_CORDOVA
         html_file = "cordova.html"
+    elif "index.html" in files:
+        branding_type = Branding.TYPE_CORDOVA
+        html_file = "index.html"
     else:
         raise BrandingValidationException(
-            "zip file does not contain a branding.html, app.html or cordova.html file in the root directory.")
+            "zip file does not contain a branding.html, app.html or index.html file in the root directory.")
 
     scripts_allowed = branding_type in (Branding.TYPE_APP, Branding.TYPE_CORDOVA,)
     html, pokes, meta_properties = _parse_and_validate_html(zip_.read(html_file), html_file, scripts_allowed,

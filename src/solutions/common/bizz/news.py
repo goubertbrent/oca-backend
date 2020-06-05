@@ -21,13 +21,13 @@ import json
 import logging
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-
-from babel.dates import format_datetime, get_timezone
 from typing import List
 
 from mcfw.consts import MISSING
+from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
@@ -37,15 +37,14 @@ from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem
+from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
 from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO, \
     NewsItemListResultTO, NewsItemTO
-from rogerthat.utils import now
 from rogerthat.utils.service import get_service_identity_tuple
-from shop.dal import get_customer
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, OrganizationType
@@ -54,7 +53,7 @@ from solutions.common.bizz.service import get_inbox_message_sender_details, new_
     send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
@@ -337,6 +336,8 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
         tag = NEWS_TAG
     service_user, identity = get_service_identity_tuple(service_identity_user)
     sln_settings = get_solution_settings(service_user)
+    service_info = ServiceInfo.create_key(service_user, identity).get()
+    check_can_send_news(sln_settings, service_info)
     if news_type == NewsItem.TYPE_QR_CODE:
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
         qr_code_caption = MISSING.default(qr_code_caption, title)
@@ -473,3 +474,15 @@ def get_news_reviews(service_user):
 def get_locations(app_id):
     # type: (str) -> CityAppLocations
     return CityAppLocations.create_key(app_id).get()
+
+
+def check_can_send_news(sln_settings, service_info):
+    # type: (SolutionSettings, ServiceInfo) -> None
+    if sln_settings.hidden_by_city:
+        reason = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'your_service_was_hidden_by_your_city')
+        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'cannot_send_news', reason='\n' + reason)
+        raise HttpForbiddenException(msg)
+    if not service_info.visible:
+        reason = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'news_service_invisible_reason')
+        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'cannot_send_news', reason='\n' + reason)
+        raise HttpForbiddenException(msg)

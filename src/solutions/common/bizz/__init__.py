@@ -362,17 +362,19 @@ def update_reserved_menu_item_labels(sln_settings):
 @arguments(solution=unicode, email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
            organization_type=int, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue])
+           owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue],
+           password=unicode, tos_version=(int, long, NoneType))
 def create_or_update_solution_service(solution, email, name, branding_url, menu_item_color, phone_number,
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
                                       modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                                      search_enabled=False, broadcast_to_users=None, websites=None):
+                                      search_enabled=False, broadcast_to_users=None, websites=None, password=None,
+                                      tos_version=None):
     if not redeploy:
         password, sln_settings = \
             create_solution_service(email, name, branding_url, menu_item_color, phone_number,
                                     solution, languages, currency, organization_type=organization_type, modules=modules,
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
-                                    search_enabled=search_enabled, websites=websites)
+                                    search_enabled=search_enabled, websites=websites, password=password, tos_version=tos_version)
         service_user = sln_settings.service_user
     else:
         service_user = users.User(email)
@@ -491,13 +493,13 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 @arguments(email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue])
+           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue], password=unicode, tos_version=(int, long, NoneType))
 def create_solution_service(email, name, branding_url=None, menu_item_color=None, phone_number=None,
                             solution=SOLUTION_FLEX, languages=None, currency=u"EUR", category_id=None,
                             organization_type=1,
                             fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                            search_enabled=False, websites=None):
-    password = unicode(generate_random_key()[:8])
+                            search_enabled=False, websites=None, password=None, tos_version=None):
+    password = password or unicode(generate_random_key()[:8])
     if languages is None:
         languages = [DEFAULT_LANGUAGE]
 
@@ -520,7 +522,7 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
 
     # Raises if service already existed
     create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists,
-                   supported_app_ids=apps, owner_user_email=owner_user_email)
+                   supported_app_ids=apps, owner_user_email=owner_user_email, tos_version=tos_version)
     new_service_user = users.User(email)
 
     to_be_put = []

@@ -27,3 +27,18 @@
     max-height: 320px;
     overflow: auto;
 }
+
+#privacy-settings-2 p {
+    margin: 8px 0;
+}
+
+#privacy-settings-2 h4 {
+    text-align: center;
+}
+
+.cirklo-image {
+    width: 120px;
+    height: 120px;
+    margin: 8px auto 0;
+    display: block;
+}

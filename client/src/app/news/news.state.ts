@@ -1,6 +1,7 @@
 import { createEntityAdapter, EntityState } from '@ngrx/entity';
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { DEFAULT_LOADABLE, Loadable } from '../shared/loadable/loadable';
+import { CallStateType, initialStateResult, ResultState } from '../shared/util';
 import { CityAppLocations, CreateNews, NewsApp, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
 
 function selectNewsItemId(item: NewsItem) {
@@ -27,7 +28,7 @@ export const initialNewsState: NewsState = {
   editingNewsItem: DEFAULT_LOADABLE,
   itemStats: DEFAULT_LOADABLE,
   listStatus: DEFAULT_LOADABLE,
-  newsOptions: DEFAULT_LOADABLE,
+  newsOptions: initialStateResult,
   locations: DEFAULT_LOADABLE,
 };
 
@@ -42,7 +43,7 @@ export interface NewsState {
   editingNewsItem: Loadable<CreateNews>;
   itemStats: Loadable<NewsStats>;
   listStatus: Loadable<NewsItemList>;
-  newsOptions: Loadable<NewsOptions>;
+  newsOptions: ResultState<NewsOptions>;
   locations: Loadable<CityAppLocations>;
 }
 
@@ -55,5 +56,6 @@ export const hasMoreNews = createSelector(featureSelector, s => s.items.more);
 export const getNewsCursor = createSelector(featureSelector, s => s.items.cursor);
 export const getNewsItemStats = createSelector(featureSelector, s => s.itemStats);
 export const getEditingNewsItem = createSelector(featureSelector, s => s.editingNewsItem);
-export const getNewsOptions = createSelector(featureSelector, s => s.newsOptions);
+export const getNewsOptions = createSelector(featureSelector, s => s.newsOptions.result);
+export const getNewsOptionsError = createSelector(featureSelector, s => s.newsOptions.state === CallStateType.ERROR ? s.newsOptions.error : null);
 export const getLocations = createSelector(featureSelector, s => s.locations);

@@ -2087,13 +2087,13 @@ class BrandingEditorConfiguration(db.Model):
 class Branding(CachedModelMixIn, db.Model):
     TYPE_NORMAL = 1  # This branding can be used for messages/menu/screenBranding/descriptionBranding
     TYPE_APP = 2  # This branding contains an app.html and can only be used as static branding
-    TYPE_CORDOVA = 3  # This branding contains an cordova.html
+    TYPE_CORDOVA = 3  # This branding contains an cordova.html or index.html
     TYPES = (TYPE_NORMAL, TYPE_APP, TYPE_CORDOVA)
 
     TYPE_MAPPING = {
         TYPE_NORMAL: 'branding.html',
         TYPE_APP: 'app.html',
-        TYPE_CORDOVA: 'cordova.html',
+        TYPE_CORDOVA: 'index.html',
     }
 
     COLOR_SCHEME_LIGHT = u"light"

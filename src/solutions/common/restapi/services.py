@@ -16,6 +16,7 @@
 # @@license_version:1.7@@
 
 import logging
+from datetime import datetime
 from types import NoneType
 
 from google.appengine.ext import db, ndb
@@ -42,47 +43,15 @@ from shop.jobs.migrate_user import migrate as migrate_user
 from shop.models import Customer, Contact, LegalDocumentAcceptance, LegalDocumentType, CustomerSignup
 from shop.to import CustomerTO
 from solutions import translate, SOLUTION_COMMON
-from solutions.common.bizz import OrganizationType, SolutionModule
+from solutions.common.bizz import OrganizationType, common_provision
 from solutions.common.bizz.service import create_customer_with_service, filter_modules, get_allowed_broadcast_types, \
-    get_allowed_modules, put_customer_service, set_customer_signup_status, get_default_modules
+    put_customer_service, set_customer_signup_status, get_default_modules
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionSettings
 from solutions.common.to import ServiceTO
-from solutions.common.to.qanda import ModuleTO
-from solutions.common.to.services import ModuleAndBroadcastTypesTO, ServiceStatisticTO, \
+from solutions.common.to.services import ServiceStatisticTO, \
     ServicesTO, ServiceListTO
 from solutions.flex.bizz import get_services_statistics
-
-
-@rest("/common/services/get_defaults", "get", read_only_access=True)
-@returns(ModuleAndBroadcastTypesTO)
-@arguments()
-def get_modules_and_broadcast_types():
-    city_service_user = users.get_current_user()
-    city_customer = get_customer(city_service_user)
-    lang = get_solution_settings(city_service_user).main_language
-    modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
-               get_allowed_modules(city_customer)]
-    broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in get_allowed_broadcast_types(city_customer)]
-    return ModuleAndBroadcastTypesTO(modules, broadcast_types)
-
-
-@rest('/common/customer/signup/get_defaults', 'get')
-@returns(ModuleAndBroadcastTypesTO)
-@arguments(signup_key=unicode)
-def rest_signup_get_modules_and_broadcast_types(signup_key):
-    modules_and_broadcast_types = get_modules_and_broadcast_types()
-    preselected_modules = []
-
-    signup = db.get(signup_key)
-    if signup:
-        preselected_modules = signup.modules
-
-    if preselected_modules:
-        for module in modules_and_broadcast_types.modules:
-            module.is_default = module.key in preselected_modules
-
-    return modules_and_broadcast_types
 
 
 @rest("/common/services/search", "post")
@@ -177,20 +146,36 @@ def _check_is_city(sln_settings, customer):
 def get_service(service_email):
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
-    sln_settings = get_solution_settings(city_service_user)
-    _check_is_city(sln_settings, city_customer)
+    city_sln_settings = get_solution_settings(city_service_user)
+    _check_is_city(city_sln_settings, city_customer)
     service_user = users.User(email=service_email)
-    customer = get_customer(users.User(service_email)) # type: Customer
+    customer = get_customer(users.User(service_email))  # type: Customer
     if not city_customer.can_edit_service():
         logging.warn(u'Service %s tried to save service information for customer %d', city_service_user, customer.id)
-        lang = sln_settings.main_language
+        lang = city_sln_settings.main_language
         return ReturnStatusTO.create(False, translate(lang, SOLUTION_COMMON, 'no_permission'))
     contact = Contact.get_one(customer.key())  # type: Contact
     solution_settings = get_solution_settings(service_user)
     return ServiceTO(customer.id, customer.name, customer.address1, customer.address2, customer.zip_code, customer.city,
                      customer.user_email, contact.phone_number, solution_settings.main_language,
                      solution_settings.modules, solution_settings.broadcast_types, customer.organization_type,
-                     customer.vat, customer.website, customer.facebook_page)
+                     customer.vat, customer.website, customer.facebook_page, solution_settings.hidden_by_city)
+
+
+@rest('/common/services/set-visibility', 'post')
+@returns()
+@arguments(customer_id=(int, long), visible=bool)
+def rest_set_service_visibility(customer_id, visible):
+    city_service_user = users.get_current_user()
+    city_sln_settings = get_solution_settings(city_service_user)
+    city_customer = get_customer(city_service_user)
+    _check_is_city(city_sln_settings, city_customer)
+    customer = Customer.get_by_id(customer_id)  # type: Customer
+    sln_settings = get_solution_settings(customer.service_user)
+    sln_settings.hidden_by_city = None if visible else datetime.now()
+    sln_settings.updates_pending = True
+    sln_settings.put()
+    common_provision(sln_settings.service_user)
 
 
 @rest("/common/services/put", "post", read_only_access=False)
@@ -324,65 +309,71 @@ def _update_signup_contact(customer, signup):
 
 @rest('/common/signup/services/create', 'post', read_only_access=False)
 @returns(WarningReturnStatusTO)
-@arguments(signup_key=unicode, modules=[unicode], broadcast_types=[unicode], force=bool)
-def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=None, force=False):
+@arguments(signup_key=unicode, force=bool)
+def rest_create_service_from_signup(signup_key, force=False):
     signup = db.get(signup_key)  # type: CustomerSignup
-    if signup.done:
+    if signup.done or not signup.can_update:
         return WarningReturnStatusTO.create(success=True)
 
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     city_sln_settings = get_solution_settings(city_service_user)
     city_language = city_sln_settings.main_language
-    signup_language = signup.language or city_sln_settings.main_language
 
     _check_is_city(city_sln_settings, city_customer)
     if not signup:
         return WarningReturnStatusTO.create(False, translate(city_language, SOLUTION_COMMON, 'signup_not_found'))
+    has_service = signup.service_email is not None
+    if not has_service:
+        result = do_create_service(city_customer, city_language, force, signup, password=None)
+    else:
+        result = WarningReturnStatusTO.create(True)
+    if result.success:
+        set_customer_signup_status(city_customer, signup, approved=True, send_approval_email=not has_service)
+    return result
 
+
+def do_create_service(city_customer, language, force, signup, password, tos_version=None):
     error_msg = warning_msg = None
     try:
-        if not modules:
-            modules = signup.modules
-
-        if not broadcast_types:
-            broadcast_types = []
-
+        modules = CustomerSignup.DEFAULT_MODULES
+        broadcast_types = [translate(signup.language, SOLUTION_COMMON, k) for k in
+                           get_allowed_broadcast_types(city_customer)]
         _fill_signup_data(signup, 'email', 'telephone', 'website', 'facebook_page')
         modules = filter_modules(city_customer, modules, broadcast_types)
 
-        service = create_customer_service_to(signup.company_name, signup.company_email, signup_language,
+        service = create_customer_service_to(signup.company_name, signup.company_email, signup.language,
                                              signup.company_telephone, signup.company_organization_type,
                                              city_customer.app_id, broadcast_types, modules)
 
         customer = create_customer_with_service(
             city_customer, None, service, signup.company_name,
             signup.customer_address1, None, signup.company_zip_code,
-            signup.company_city, signup_language, signup.company_organization_type,
+            signup.company_city, signup.language, signup.company_organization_type,
             signup.company_vat, signup.company_website, signup.company_facebook_page, force=force)[0]
 
         # update the contact, as it should be created by now
         _update_signup_contact(customer, signup)
 
     except EmptyValueException as ex:
-        val_name = translate(city_language, SOLUTION_COMMON, ex.value_name)
-        error_msg = translate(city_language, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+        val_name = translate(language, SOLUTION_COMMON, ex.value_name)
+        error_msg = translate(language, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
     except ServiceNameTooBigException:
-        error_msg = translate(city_language, SOLUTION_COMMON, 'name_cannot_be_bigger_than_n_characters', n=50)
+        error_msg = translate(language, SOLUTION_COMMON, 'name_cannot_be_bigger_than_n_characters', n=50)
     except DuplicateCustomerNameException as ex:
-        warning_msg = translate(city_language, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
+        warning_msg = translate(language, SOLUTION_COMMON, 'duplicate_customer', customer_name=ex.name)
     except NoPermissionException:
-        error_msg = translate(city_language, SOLUTION_COMMON, 'no_permission')
+        error_msg = translate(language, SOLUTION_COMMON, 'no_permission')
     except InvalidEmailFormatException as ex:
-        error_msg = translate(city_language, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
+        error_msg = translate(language, SOLUTION_COMMON, 'invalid_email_format', email=ex.email)
     except NotOperatingInCountryException as ex:
-        error_msg = translate(city_language, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
+        error_msg = translate(language, SOLUTION_COMMON, 'not_operating_in_country', country=ex.country)
     except BusinessException as ex:
         logging.debug('Failed to create service, BusinessException', exc_info=True)
         error_msg = ex.message
     except:
         logging.exception('Failed to create service')
-        error_msg = translate(city_language, SOLUTION_COMMON, 'failed_to_create_service')
+        error_msg = translate(language, SOLUTION_COMMON, 'failed_to_create_service')
     finally:
         if error_msg:
             return WarningReturnStatusTO.create(False, error_msg)
@@ -391,21 +382,20 @@ def rest_create_service_from_signup(signup_key, modules=None, broadcast_types=No
         else:
             try:
                 result = put_customer_service(customer, service, skip_module_check=True, search_enabled=False,
-                                              skip_email_check=True, rollback=True)
-                deferred.defer(copy_accepted_terms_of_use, signup_key, users.User(result.login), _countdown=5)
+                                              skip_email_check=True, rollback=True, password=password, tos_version=tos_version)
+                if not tos_version:
+                    deferred.defer(copy_accepted_terms_of_use, signup.key(), users.User(result.login), _countdown=5)
+                logging.debug('Service created from signup: %s, with modules of %s', signup.key(), modules)
+                return WarningReturnStatusTO.create(success=True, data={'service_email': result.login})
             except EmptyValueException as ex:
-                val_name = translate(city_language, SOLUTION_COMMON, ex.value_name)
-                error_msg = translate(city_language, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
+                val_name = translate(language, SOLUTION_COMMON, ex.value_name)
+                error_msg = translate(language, SOLUTION_COMMON, 'empty_field_error', field_name=val_name)
             except:
-                logging.exception('Could not save service service information')
-                error_msg = translate(city_language, SOLUTION_COMMON, 'failed_to_create_service')
+                logging.exception('Could not save service information')
+                error_msg = translate(language, SOLUTION_COMMON, 'failed_to_create_service')
             finally:
                 if error_msg:
                     return WarningReturnStatusTO.create(False, error_msg)
-                else:
-                    set_customer_signup_status(city_customer, signup, approved=True)
-                    logging.debug('Service created from signup: %s, with modules of %s', signup_key, modules)
-                    return WarningReturnStatusTO.create(success=True)
 
 
 def copy_accepted_terms_of_use(signup_key, service_user):

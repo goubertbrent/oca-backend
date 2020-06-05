@@ -26,7 +26,7 @@ from shop.dal import get_customer
 from solutions.common.bizz.settings import get_service_info, update_service_info, get_consents_for_app
 from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId
 from solutions.common.models import SolutionServiceConsent
-from solutions.common.to.settings import ServiceInfoTO, PrivacySettingsTO, UpdatePrivacySettingsTO
+from solutions.common.to.settings import ServiceInfoTO, UpdatePrivacySettingsTO, PrivacySettingsGroupTO
 
 
 @rest('/common/service-info', 'get', read_only_access=True, silent=True)
@@ -48,7 +48,7 @@ def rest_save_service_info(data):
 
 
 @rest('/common/settings/privacy', 'get', type=REST_TYPE_TO, silent=True, silent_result=True)
-@returns([PrivacySettingsTO])
+@returns([PrivacySettingsGroupTO])
 @arguments()
 def rest_get_privacy_settings():
     customer = get_customer(users.get_current_user())

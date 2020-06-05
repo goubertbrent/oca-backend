@@ -60,6 +60,10 @@ div.navbar a.brand {
     margin: 8px;
 }
 
+.service-hidden-error {
+    margin-bottom: 8px;
+}
+
 .autopublish-butttons {
     margin-left: 16px;
 }

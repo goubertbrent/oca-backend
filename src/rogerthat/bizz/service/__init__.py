@@ -3006,9 +3006,9 @@ def validate_app_admin(service_user, app_ids):
 @returns(tuple)
 @arguments(email=unicode, name=unicode, password=unicode, languages=[unicode], solution=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, supported_app_ids=[unicode],
-           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode)
+           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode, tos_version=(int, long, NoneType))
 def create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists=True,
-                   supported_app_ids=None, callback_configuration=None, owner_user_email=None):
+                   supported_app_ids=None, callback_configuration=None, owner_user_email=None, tos_version=None):
     service_email = email
     new_service_user = users.User(service_email)
 
@@ -3032,6 +3032,8 @@ def create_service(email, name, password, languages, solution, category_id, orga
         service_profile.category_id = category_id
         service_profile.organizationType = organization_type
         service_profile.version = 1
+        if tos_version:
+            service_profile.tos_version = tos_version
 
         service_identity.qualifiedIdentifier = owner_user_email
         service_identity.content_branding_hash = None

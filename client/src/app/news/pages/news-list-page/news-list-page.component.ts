@@ -40,7 +40,7 @@ export class NewsListPageComponent implements OnInit {
         this.store.dispatch(new GetNewsListAction({ cursor: null }));
       }
     });
-    this.newsGroups$ = this.store.pipe(select(getNewsOptions), map(o => o.data ? o.data.groups : []));
+    this.newsGroups$ = this.store.pipe(select(getNewsOptions), map(o => o?.groups ?? []));
   }
 
   onLoadMore() {

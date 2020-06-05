@@ -17,7 +17,7 @@
 
 from typing import List
 
-from mcfw.properties import typed_property, unicode_property, bool_property, unicode_list_property
+from mcfw.properties import typed_property, unicode_property, bool_property, unicode_list_property, long_property
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.to import TO
 from rogerthat.to.news import BaseMediaTO
@@ -95,6 +95,12 @@ class PrivacySettingsTO(TO):
     type = unicode_property('type')
     label = unicode_property('label')
     enabled = bool_property('enabled')
+
+
+class PrivacySettingsGroupTO(TO):
+    page = long_property('page')
+    description = unicode_property('description')
+    items = typed_property('items', PrivacySettingsTO, True)
 
 
 class UpdatePrivacySettingsTO(TO):

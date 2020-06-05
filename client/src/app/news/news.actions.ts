@@ -1,5 +1,5 @@
 import { Action } from '@ngrx/store';
-import { ApiError } from '../shared/errors/errors';
+import { ApiError, ErrorAction } from '../shared/errors/errors';
 import { CityAppLocations, CreateNews, NewsItem, NewsItemList, NewsOptions, NewsStats } from './interfaces';
 
 export enum NewsActionTypes {
@@ -40,10 +40,10 @@ export class GetNewsOptionsCompleteAction implements Action {
   }
 }
 
-export class GetNewsOptionsFailedAction implements Action {
+export class GetNewsOptionsFailedAction implements ErrorAction {
   readonly type = NewsActionTypes.GET_NEWS_OPTIONS_FAILED;
 
-  constructor(public error: ApiError) {
+  constructor(public error: string) {
   }
 }
 

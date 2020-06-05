@@ -16,6 +16,7 @@
 # @@license_version:1.7@@
 
 import logging
+from types import NoneType
 import uuid
 
 from mcfw.rpc import returns, arguments
@@ -39,6 +40,7 @@ from solutions.common.dal import get_solution_settings
 from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
+
 
 # [column, row, page]
 DEFAULT_COORDS = {
@@ -226,10 +228,11 @@ def provision(service_user, friends=None, transactional=True):
 @returns(ProvisionResponseTO)
 @arguments(email=unicode, name=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
            modules=[unicode], broadcast_types=[unicode], apps=[unicode], allow_redeploy=bool, organization_type=int,
-           search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue])
+           search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue], password=unicode,
+           tos_version=(int, long, NoneType))
 def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, apps,
                         allow_redeploy, organization_type=OrganizationType.PROFIT, search_enabled=False,
-                        broadcast_to_users=None, websites=None):
+                        broadcast_to_users=None, websites=None, password=None, tos_version=None):
     from rogerthat.bizz.rtemail import EMAIL_REGEX
 
     redeploy = allow_redeploy and get_solution_settings(users.User(email)) is not None
@@ -245,7 +248,7 @@ def create_flex_service(email, name, phone_number, languages, currency, modules,
                                              phone_number, languages, currency, redeploy, organization_type, modules,
                                              broadcast_types, apps, owner_user_email=owner_user_email,
                                              search_enabled=search_enabled, broadcast_to_users=broadcast_to_users,
-                                             websites=websites)
+                                             websites=websites, password=password, tos_version=tos_version)
 
 
 @returns(AssociationStatistic)

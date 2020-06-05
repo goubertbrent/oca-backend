@@ -37,8 +37,9 @@ from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db, ndb
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
-from typing import Tuple
+from typing import Tuple, Union, List
 
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string
@@ -61,7 +62,8 @@ from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
-from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail
+from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail, \
+    get_server_url
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
@@ -462,18 +464,11 @@ def validate_service(service):
 
 @returns(ProvisionResponseTO)
 @arguments(customer_or_id=(int, long, Customer), service=CustomerServiceTO, skip_module_check=bool,
-           search_enabled=bool, skip_email_check=bool, broadcast_to_users=[users.User])
+           search_enabled=bool, skip_email_check=bool, broadcast_to_users=[users.User], password=unicode,
+           tos_version=(int, long, NoneType))
 def put_service(customer_or_id, service, skip_module_check=False, search_enabled=False, skip_email_check=False,
-                broadcast_to_users=None):
-    """
-    Args:
-        customer_or_id (Customer or int)
-        service (CustomerServiceTO)
-        skip_module_check (bool)
-        search_enabled (bool)
-        skip_email_check (bool)
-        broadcast_to_users (list of users.User)
-    """
+                broadcast_to_users=None, password=None, tos_version=None):
+    # type: (Union[int, long, Customer], CustomerServiceTO, bool,bool, bool, List[users.User], unicode, Union[int, long, NoneType]) -> ProvisionResponseTO
     validate_service(service)
 
     if isinstance(customer_or_id, Customer):
@@ -566,18 +561,19 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     r = create_flex_service(customer.service_email if redeploy else service.email, customer.name,
                             service.phone_number, [service.language], u'EUR', modules,
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
-                            search_enabled, broadcast_to_users=broadcast_to_users, websites=websites)
+                            search_enabled, broadcast_to_users=broadcast_to_users, websites=websites, password=password,
+                            tos_version=tos_version)
 
     r.auto_login_url = customer.auto_login_url
-
+    send_login_information = False if tos_version else True
     deferred.defer(_after_service_saved, customer.key(), service.email, r, redeploy, service.apps,
-                   broadcast_to_users, bool(user_existed), _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
+                   broadcast_to_users, bool(user_existed), send_login_information=send_login_information, _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
     return r
 
 
 @arguments(customer_key=db.Key, user_email=unicode, r=ProvisionResponseTO, is_redeploy=bool, app_ids=[unicode],
-           broadcast_to_users=[users.User], user_exists=bool)
-def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users, user_exists=False):
+           broadcast_to_users=[users.User], user_exists=bool, send_login_information=bool)
+def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users, user_exists=False, send_login_information=True):
     """
     Args:
         customer_key (db.Key)
@@ -628,7 +624,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
         if broadcast_to_users:
             channel.send_message(broadcast_to_users, 'shop.provision.success', customer_id=customer.id)
 
-        if not is_redeploy:
+        if send_login_information and not is_redeploy:
             settings = get_server_settings()
             contact = Contact.get_one(customer_key)
 
@@ -2287,7 +2283,7 @@ def calculate_customer_url_digest(data):
 
 def send_signup_verification_email(city_customer, signup, host=None):
     # type: (Customer, CustomerSignup, str) -> None
-    data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
+    data = {'c': city_customer.service_user.email(), 's': unicode(signup.key()), 't': signup.timestamp}
     user = users.User(signup.customer_email)
     data['d'] = calculate_customer_url_digest(data)
     data = encrypt(user, json.dumps(data))
@@ -2296,7 +2292,7 @@ def send_signup_verification_email(city_customer, signup, host=None):
     lang = city_customer.language
     translate = partial(common_translate, lang, SOLUTION_COMMON)
     base_url = host or get_server_settings().baseUrl
-    link = '{}/customers/signup/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
+    link = '{}/customers/signup-password/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
     subject = city_customer.name + ' - ' + translate('signup')
     params = {
         'language': lang,
@@ -2316,10 +2312,17 @@ def send_signup_verification_email(city_customer, signup, host=None):
            headers=dict)
 def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None, headers=None):
     if not recaptcha_verify(recaptcha_token):
-        raise BusinessException('Cannot verify recaptcha response')
+        raise HttpBadRequestException('Cannot verify recaptcha response')
 
     city_customer = Customer.get_by_id(city_customer_id)
     user_email = company.user_email.strip().lower()
+    profile = get_service_or_user_profile(users.User(user_email))
+    if isinstance(profile, ServiceProfile) or profile and profile.passwordHash:
+        url = '{}/customers/signin/{}?email={}'.format(get_server_url(), city_customer.default_app_id, user_email)
+        message = translate(customer.language, SOLUTION_COMMON, 'signup_already_registered_with_email')
+        goto_login = translate(customer.language, SOLUTION_COMMON, 'go_to_login_page')
+        raise HttpBadRequestException(message, {'url': url, 'label': goto_login})
+
     signup = CustomerSignup(parent=city_customer)
 
     signup.company_name = company.name
@@ -2335,7 +2338,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     try:
         signup.company_vat = company.vat and normalize_vat(city_customer.country, company.vat)
     except BusinessException:
-        raise BusinessException('vat_invalid')
+        msg = translate(customer.language, SOLUTION_COMMON, 'vat_invalid')
+        raise HttpBadRequestException(msg)
 
     signup.customer_name = customer.name
     signup.customer_address1 = customer.address1
@@ -2348,7 +2352,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
         # check if the same information has been used in a pending signup
         if signup.is_same_signup(other_signup):
             message = shop_translate(customer.language, 'signup_same_information_used')
-            raise BusinessException(message)
+            raise HttpBadRequestException(message)
 
     signup.timestamp = now()
     signup.language = customer.language
@@ -2379,43 +2383,32 @@ def validate_customer_url_data(email, data):
 
 
 @returns()
-@arguments(email=unicode, data=str)
-def complete_customer_signup(email, data):
-    data = validate_customer_url_data(email, data)
+@arguments(email=unicode, data=str, service_email=unicode)
+def complete_customer_signup(email, data, service_email=None):
 
     def update_signup():
-        signup = CustomerSignup.get(data['s'])
-        if not signup:
-            raise InvalidUrlException
-
-        timestamp = signup.timestamp
-        if not (timestamp < now() < timestamp + (3 * 24 * 3600)):
-            raise ExpiredUrlException
-
-        if signup.inbox_message_key:
-            raise AlreadyUsedUrlException
-
-        service_user = users.User(data['c'])
+        signup, parsed_data = get_customer_signup(email, data)
+        service_user = users.User(parsed_data['c'])
         signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
+        signup.service_email = service_email
         signup.put()
 
     run_in_xg_transaction(update_signup)
 
 
-@returns(unicode)
-@arguments(customer=Customer)
-def get_customer_email_consent_url(customer):
-    if not customer.user_email:
-        return ''
+def get_customer_signup(email, data):
+    parsed_data = validate_customer_url_data(email, data)
+    signup = CustomerSignup.get(parsed_data['s'])
+    if not signup:
+        raise InvalidUrlException
 
-    from shop.view import get_current_http_host
+    timestamp = signup.timestamp
+    if not (timestamp < now() < timestamp + (3 * 24 * 3600)):
+        raise ExpiredUrlException
 
-    data = dict(c=customer.user_email, s=unicode(customer.key()))
-    data['d'] = calculate_customer_url_digest(data)
-    data = encrypt(users.User(customer.user_email), json.dumps(data))
-    url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
-    host = get_current_http_host(True) or get_server_settings().baseUrl
-    return '{}/customers/email_consent?{}'.format(host, url_params)
+    if signup.inbox_message_key:
+        raise AlreadyUsedUrlException
+    return signup, parsed_data
 
 
 @returns(unicode)

@@ -157,6 +157,9 @@ RequestsService.prototype = {
     },
     checkAutoPublish: function (options) {
         return this.post('/common/settings/auto-publish', options);
+    },
+    setServiceVisibility: function(data, options){
+        return this.post('/common/services/set-visibility', data, options);
     }
 };
 

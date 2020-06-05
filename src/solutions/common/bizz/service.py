@@ -16,6 +16,8 @@
 # @@license_version:1.7@@
 
 import logging
+import time
+from datetime import datetime
 
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
@@ -26,19 +28,21 @@ from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity, ServiceProfile
+from rogerthat.models.settings import ServiceInfo
+from rogerthat.rpc import users
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer
+from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus
 from shop.to import CustomerServiceTO
 from solutions import SOLUTION_COMMON, translate as common_translate
-from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES
+from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, common_provision
 from solutions.common.bizz.campaignmonitor import send_smart_email
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
 from solutions.common.bizz.settings import get_service_info
-from solutions.common.dal import get_solution_settings, get_solution_settings_or_identity_settings
+from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO, ProvisionResponseTO
 
@@ -128,15 +132,16 @@ def create_customer_with_service(city_customer, customer, service, name, address
                                      website, facebook_page, force=force)
 
 
-def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False):
-    # type: (Customer, CustomerServiceTO, bool, bool, bool, bool) -> ProvisionResponseTO
+def put_customer_service(customer, service, search_enabled, skip_module_check, skip_email_check, rollback=False,
+                         password=None, tos_version=None):
+    # type: (Customer, CustomerServiceTO, bool, bool, bool, bool, unicode, long) -> ProvisionResponseTO
     """Put the service, if rollback is set, it will remove the customer in case of failure."""
     from shop.bizz import put_service
     customer_key = customer.key()
 
     def trans():
         return put_service(customer, service, skip_module_check=skip_module_check, search_enabled=search_enabled,
-                           skip_email_check=skip_email_check)
+                           skip_email_check=skip_email_check, password=password, tos_version=tos_version)
 
     try:
         return run_in_xg_transaction(trans)
@@ -221,24 +226,30 @@ def _send_approved_signup_email(signup):
         _schedule_signup_smart_emails(signup.customer_email)
 
 
-def _send_denied_signup_email(city_customer, signup, lang, reason):
-    subject = common_translate(lang, SOLUTION_COMMON,
+def _send_denied_signup_email(city_customer, signup, reason):
+    subject = common_translate(signup.language, SOLUTION_COMMON,
                                u'signup_request_denied_by_city', city=city_customer.name)
-    message = common_translate(lang, SOLUTION_COMMON,
-                               u'signup_request_denial_reason', reason=reason)
+    lines = [
+        common_translate(signup.language, SOLUTION_COMMON, 'dear_name', name=signup.customer_name),
+        common_translate(signup.language, SOLUTION_COMMON, 'signup_request_denial_reason', reason=reason),
+        common_translate(signup.language, SOLUTION_COMMON, 'signup_request_denial_reason_contact')
+    ]
+    message = '\n\n'.join(lines)
 
     app = get_app_by_id(city_customer.default_app_id)
-    from_email = "%s <%s>" % (app.name, app.dashboard_email_address)
+    from_email = '%s <%s>' % (app.name, app.dashboard_email_address)
     send_mail(from_email, signup.customer_email, subject, message)
 
 
-def set_customer_signup_status(city_customer, signup, approved, reason=None):
+def set_customer_signup_status(city_customer, signup, approved, reason=None, send_approval_email=True):
+    # type: (Customer, CustomerSignup, bool, unicode, bool) -> None
     """Set the customer signup to done and move the inbox message to trash"""
 
     def trans():
         to_put = [signup]
         inbox_message = None
-        signup.done = approved
+        signup.done = True
+        signup.status = CustomerSignupStatus.APPROVED if approved else CustomerSignupStatus.DENIED
         if signup.inbox_message_key:
             inbox_message = db.get(signup.inbox_message_key)
             if inbox_message:
@@ -247,6 +258,17 @@ def set_customer_signup_status(city_customer, signup, approved, reason=None):
                 else:
                     inbox_message.read = True
                 to_put.append(inbox_message)
+        if not approved and signup.service_email:
+            service_user = users.User(signup.service_email)
+            sln_settings = get_solution_settings(service_user)
+            sln_settings.hidden_by_city = datetime.now()
+            sln_settings.updates_pending = True
+            info = ServiceInfo.create_key(service_user, ServiceIdentity.DEFAULT).get()  # type: ServiceInfo
+            info.visible = False
+            info.put()
+            # Publish to make the service invisible
+            deferred.defer(common_provision, service_user, run_checks=False, _transactional=True)
+            to_put.append(sln_settings)
 
         db.put(to_put)
         return inbox_message
@@ -257,9 +279,10 @@ def set_customer_signup_status(city_customer, signup, approved, reason=None):
         sln_settings = get_solution_settings(service_user)
 
         if approved:
-            _send_approved_signup_email(signup)
+            if send_approval_email:
+                _send_approved_signup_email(signup)
         else:
-            _send_denied_signup_email(city_customer, signup, sln_settings.main_language, reason)
+            _send_denied_signup_email(city_customer, signup, reason)
 
         status_reply_message = _send_signup_status_inbox_reply(sln_settings, signup.inbox_message_key, approved, reason)
         send_signup_update_messages(sln_settings, message, status_reply_message)
@@ -267,11 +290,11 @@ def set_customer_signup_status(city_customer, signup, approved, reason=None):
 
 def send_message_updates(sln_settings, type_, *messages):
     service_identity = ServiceIdentity.DEFAULT
-    sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
+    service_info = get_service_info(sln_settings.service_user, ServiceIdentity.DEFAULT)
 
     sm_data = [{u'type': type_}]
     for message in messages:
-        message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, sln_i_settings, True)
+        message_to = SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True)
         sm_data.append({
             u'type': u'solutions.common.messaging.update',
             u'message': serialize_complex_value(message_to, SolutionInboxMessageTO, False)
@@ -281,6 +304,8 @@ def send_message_updates(sln_settings, type_, *messages):
 
 
 def send_signup_update_messages(sln_settings, *messages):
+    # Sleep to allow datastore indexes to update
+    time.sleep(2)
     send_message_updates(
         sln_settings, u'solutions.common.customer.signup.update', *messages
     )

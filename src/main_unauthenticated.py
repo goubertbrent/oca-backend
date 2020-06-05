@@ -26,7 +26,7 @@ from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.callbacks import ProspectDiscoverCallbackHandler
 from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, ProspectCallbackHandler, \
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
-    CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerEmailConsentHandler, \
+    CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerSignupPasswordHandler, \
     CustomerCirkloAcceptHandler
 import shop.handlers
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
@@ -69,11 +69,11 @@ handlers = [
     RedirectRoute('/customers/setpassword', CustomerSetPasswordHandler, 'set_password', strict_slash=True),
     RedirectRoute('/customers/setpassword/<app_id:[^/]+>', CustomerSetPasswordHandler, 'set_password_app',
                   strict_slash=True),
+    RedirectRoute('/customers/signup-password', CustomerSignupPasswordHandler, 'signup_set_password', strict_slash=True),
+    RedirectRoute('/customers/signup-password/<app_id:[^/]+>', CustomerSignupPasswordHandler, 'signup_set_password',
+                  strict_slash=True),
     RedirectRoute('/customers/resetpassword', CustomerResetPasswordHandler, 'reset_password', strict_slash=True),
     RedirectRoute('/customers/resetpassword/<app_id:[^/]+>', CustomerResetPasswordHandler, 'reset_password_app',
-                  strict_slash=True),
-    RedirectRoute('/customers/email_consent', CustomerEmailConsentHandler, 'email_consent_app', ),
-    RedirectRoute('/customers/email_consent/<app_id:[^/]+>', CustomerEmailConsentHandler, 'email_consent_app',
                   strict_slash=True),
     RedirectRoute('/customers/signin', CustomerSigninHandler, 'signin', strict_slash=True),
     RedirectRoute('/customers/signin/<app_id:[^/]+>', CustomerSigninHandler, 'signin_app', strict_slash=True),

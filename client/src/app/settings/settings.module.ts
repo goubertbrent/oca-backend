@@ -20,6 +20,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { MarkdownModule } from '../shared/markdown/markdown.module';
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
 import { SelectAutocompleteModule } from '../shared/select-autocomplete/select-autocomplete.module';
 import { SharedModule } from '../shared/shared.module';
@@ -88,6 +89,7 @@ const routes: Routes = [
     MatSlideToggleModule,
     SelectAutocompleteModule,
     TimeInputModule,
+    MarkdownModule,
   ],
   providers: [
     HoursPipe,
