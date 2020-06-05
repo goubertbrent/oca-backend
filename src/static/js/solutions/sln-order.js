@@ -627,7 +627,7 @@ $(function () {
         renderOrderSettings(orderSettings);
         loadOrders(orderSettings);
     });
-    loadPaymentSettings();
+    //loadPaymentSettings();
 
 
     sln.registerInboxActionListener("order", function (chatId) {

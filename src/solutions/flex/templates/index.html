@@ -437,9 +437,9 @@ var DAYS_STR = { {% for day_num, day_name in days %}
                             {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
                                 <li class="" section="section_order"><a href="#/settings/orders">{% translate language, "common", "orders" %}</a></li>
                             {% endif %}
-                            {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
+<!--                             {% if not is_layout_user and SolutionModule.ORDER in sln_settings.modules %}
                                 <li class="" section="section_mobile-payments"><a href="#/settings/mobile-payments">{% translate language, "common", "mobile_payments" %}</a></li>
-                            {% endif %}
+                            {% endif %} -->
                             {% if not is_layout_user and (SolutionModule.LOYALTY in sln_settings.modules or SolutionModule.HIDDEN_CITY_WIDE_LOTTERY in sln_settings.modules) %}
                                 <li section="section_loyalty"><a href="#/settings/loyalty">{% translate language, "common", "oca-loyalty" %}</a></li>
                             {% endif %}
