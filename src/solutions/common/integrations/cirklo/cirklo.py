@@ -119,13 +119,11 @@ def add_voucher(service_user, app_user, qr_content):
         msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'duplicate_cirklo_voucher')
         raise TranslatedException(msg)
     voucher = AppVoucher.from_cirklo(voucher_id, voucher_details, datetime.utcnow())
-    city = CirkloCity.create_key(voucher.cityId).get()  # type: CirkloCity
-    branding_settings = db.get(SolutionBrandingSettings.create_key(users.User(city.service_user_email)))
     return {
         'voucher': voucher.to_dict(),
         'city': {
             'id': voucher.cityId,
-            'logo_url': branding_settings.avatar_url,
+            'logo_url': get_logo_url_for_city_id(voucher.cityId),
         }
     }
 
@@ -141,6 +139,23 @@ def get_user_vouchers_ids(app_user):
     vouchers = CirkloUserVouchers.create_key(app_user).get()  # type: CirkloUserVouchers
     return vouchers.voucher_ids if vouchers else []
 
+
+def get_logo_url_for_city_id(city_id):
+    return get_logo_url_for_city_ids([city_id])[city_id]
+
+
+def get_logo_url_for_city_ids(city_ids):
+    city_keys = [CirkloCity.create_key(city_id) for city_id in city_ids]
+    cities = ndb.get_multi(city_keys)  # type: List[CirkloCity]
+    logos = {}
+    for city_id, city in zip(city_ids, cities):
+        if city:
+            branding_settings = db.get(SolutionBrandingSettings.create_key(users.User(city.service_user_email)))
+            logos[city_id] = branding_settings.avatar_url
+        else:
+            logos[city_id] = 'https://storage.googleapis.com/oca-files/misc/vouchers_default_city.png'
+    return logos
+    
 
 @cached(0)
 @returns(unicode)
@@ -166,18 +181,15 @@ def get_vouchers(service_user, app_user):
     main_city_id = get_city_id_by_service_email(service_user.email())
     if not main_city_id:
         raise Exception('No cityId found for service %s' % service_user.email())
-    city_keys = {CirkloCity.create_key(voucher.cityId) for voucher in vouchers}
-    city_keys.add(CirkloCity.create_key(main_city_id))
-    cities = ndb.get_multi(city_keys)  # type: List[CirkloCity]
-    branding_keys = [SolutionBrandingSettings.create_key(users.User(city.service_user_email)) for city in cities]
-    solution_brandings = db.get(branding_keys)  # type: List[SolutionBrandingSettings]
+    city_ids = {voucher.cityId for voucher in vouchers}
+    city_ids.add(main_city_id)
+    logos = get_logo_url_for_city_ids(list(city_ids))
     voucher_list = AppVoucherList()
     voucher_list.results = vouchers
     voucher_list.main_city_id = main_city_id
     voucher_list.cities = {}
-    for city_key, city, branding in zip(city_keys, cities, solution_brandings):
-        city_id = city.city_id
-        voucher_list.cities[city_id] = {'logo_url': branding.avatar_url}
+    for city_id, logo_url in logos.iteritems():
+        voucher_list.cities[city_id] = {'logo_url': logo_url}
     return voucher_list
 
 
