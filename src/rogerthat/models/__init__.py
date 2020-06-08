@@ -1835,18 +1835,6 @@ class ServiceAdmin(db.Model):
         return users.User(self.parent_key().name())
 
 
-class UserAccount(db.Model):
-    type = db.StringProperty()
-
-    @property
-    def user(self):
-        return users.User(self.parent_key().name())
-
-    @property
-    def account(self):
-        return self.key().name()
-
-
 class MyDigiPassState(db.Model):
     state = db.StringProperty(indexed=False)
     creation_time = db.DateTimeProperty(indexed=False, auto_now_add=True)

@@ -34,7 +34,7 @@ from rogerthat.dal.profile import get_avatar_by_id, get_user_profile, get_all_fa
     get_profile_infos
 from rogerthat.models import AuthorizedUser, Settings, MobileSettings, AvatarArchive, FriendMapArchive, UserData, \
     UserDataArchive, UserProfile, FacebookUserProfile, UserProfileArchive, FacebookUserProfileArchive, \
-    DoNotSendMeMoreInvites, FacebookProfilePointer, ProfilePointer, UserAccount, FacebookProfilePointerArchive, \
+    DoNotSendMeMoreInvites, FacebookProfilePointer, ProfilePointer, FacebookProfilePointerArchive, \
     UserInvitationSecret, FriendMap, Avatar, Profile, UserInteraction, LocationMessage, ActivationLog, \
     UserProfileInfo
 from rogerthat.rpc import users
@@ -155,7 +155,6 @@ def archiveUserDataAfterDisconnect(app_user, friend_map, user_profile, hard_dele
     if pp:
         models_to_delete.append(pp)
 
-    models_to_delete.append(UserAccount(parent=parent_key(app_user), key_name=app_user.email(), type="com.rogerthat"))
     models_to_delete.extend(UserInvitationSecret.all().ancestor(parent_key(app_user)).fetch(None))
     models_to_delete.append(user_profile)
 
