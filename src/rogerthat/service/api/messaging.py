@@ -359,6 +359,7 @@ def _convert_to_member_users(service_identity_user, members):
     return mm
 
 
+# TODO: remove (replaced by messaging.start_local_flow)
 @service_api(function=u"messaging.start_flow")
 @returns(unicode)
 @arguments(message_parent_key=unicode, parent_message_key=unicode, flow=unicode, members=[(unicode, MemberTO)],
@@ -368,6 +369,7 @@ def start_flow(message_parent_key, parent_message_key, flow, members, service_id
     from rogerthat.bizz.service.mfr import start_flow as start_flow_bizz
     from rogerthat.bizz.service import get_and_validate_service_identity_user
     service_identity_user = get_and_validate_service_identity_user(users.get_current_user(), service_identity)
+    logging.error('Executing messaging.start_flow by service %s', service_identity_user.email())
 
     mm = _convert_to_member_users(service_identity_user, members)
     parent_key = message_parent_key if message_parent_key != MISSING else parent_message_key

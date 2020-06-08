@@ -23,7 +23,7 @@ from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.friend_helper import FriendHelper
 from rogerthat.bizz.friends import invite, ORIGIN_USER_INVITE
-from rogerthat.bizz.service import InvalidValueException, get_and_validate_app_id_for_service_identity_user,\
+from rogerthat.bizz.service import InvalidValueException, get_and_validate_app_id_for_service_identity_user, \
     validate_app_id_for_service_identity_user
 from rogerthat.bizz.service.broadcast import ConfirmationNeededException
 from rogerthat.dal import parent_key
@@ -452,24 +452,27 @@ def valid_message_flow_designs():
 @returns(unicode)
 @arguments(message_flow_design_name=unicode, member=unicode, force_language=unicode, app_id=unicode)
 def test_message_flow(message_flow_design_name, member, force_language=None, app_id=None):
-    from rogerthat.bizz.service.mfr import start_flow, MessageFlowNotValidException, NonFriendMembersException
+    from rogerthat.bizz.service.mfr import start_local_flow, MessageFlowNotValidException, NonFriendMembersException
     service_user = users.get_current_user()
     default_service_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)
     app_id = get_and_validate_app_id_for_service_identity_user(default_service_identity_user, app_id, member)
     app_user = create_app_user(users.User(member), app_id)
     try:
-        start_flow(default_service_identity_user, None, unicode(get_service_message_flow_design_key_by_name(service_user, message_flow_design_name)),
-                   [app_user], True, False, force_language=force_language)
-    except MessageFlowNotValidException, e:
+        flow = unicode(get_service_message_flow_design_key_by_name(service_user, message_flow_design_name))
+        start_local_flow(default_service_identity_user, None, None, [app_user], flow=flow, check_friends=True,
+                         force_language=force_language,
+                         push_message='Testing message flow: %s' % message_flow_design_name)
+    except MessageFlowNotValidException as e:
         return "Message flow could not be started!\n%s" % (e.fields['error'] or '')
-    except NonFriendMembersException, e:
+    except NonFriendMembersException:
         try:
             invite(default_service_identity_user, member, "", "", None, None, origin=ORIGIN_USER_INVITE, app_id=app_id)
             return "Message flow could not be started!\n%s is not a user of this service. An invitation has been sent." % member
-        except Exception, e:
+        except Exception as e:
             logging.exception("Invite failed.")
-            return "Message flow could not be started!\n%s is not a user of this service. Rogerthat tried to send an invitation, but this failed with message '%s'!" % (member, unicode(e))
-    except BusinessException, be:
+            return "Message flow could not be started!\n%s is not a user of this service." \
+                   " Rogerthat tried to send an invitation, but this failed with message '%s'!" % (member, unicode(e))
+    except BusinessException as be:
         return "Message flow could not be started!\n%s" % be.message
 
 
@@ -725,6 +728,7 @@ def search_users(term, app_id=None, admin=False):
 @returns(ReturnStatusTO)
 @arguments(broadcast_key=unicode)
 def send_broadcast(broadcast_key):
+    return ReturnStatusTO.create(False, 'This function is no longer supported and will be removed soon')
     from rogerthat.bizz.service.broadcast import send_broadcast as bizz_send_broadcast
     try:
         bizz_send_broadcast(users.get_current_user(), broadcast_key)
@@ -737,6 +741,7 @@ def send_broadcast(broadcast_key):
 @returns(ReturnStatusTO)
 @arguments(broadcast_key=unicode, timestamp=int)
 def schedule_broadcast(broadcast_key, timestamp):
+    return ReturnStatusTO.create(False, 'This function is no longer supported and will be removed soon')
     from rogerthat.bizz.service.broadcast import schedule_broadcast as bizz_schedule_broadcast
     try:
         bizz_schedule_broadcast(users.get_current_user(), broadcast_key, timestamp)
@@ -749,6 +754,7 @@ def schedule_broadcast(broadcast_key, timestamp):
 @returns(TestBroadcastReturnStatusTO)
 @arguments(name=unicode, broadcast_type=unicode, message_flow_id=unicode, tag=unicode)
 def test_broadcast(name, broadcast_type, message_flow_id, tag):
+    return ReturnStatusTO.create(False, 'This function is no longer supported and will be removed soon')
     from rogerthat.bizz.service.broadcast import test_broadcast as bizz_test_broadcast
     serivce_user = users.get_current_user()
     r = TestBroadcastReturnStatusTO()

@@ -28,19 +28,23 @@ from rogerthat.rpc import users
 from rogerthat.to.messaging import AnswerTO, UserMemberTO, AttachmentTO
 
 
+# TODO: remove this entire file and all references
 @arguments(service_user=users.User, flow=unicode, broadcast_type=unicode, tag=unicode)
 def schedule_service_broadcast(service_user, flow, broadcast_type, tag):
     broadcast_guid = unicode(uuid.uuid4())
     run_job(get_all_service_friend_keys_query, [service_user], _service_broadcast, [flow, broadcast_type, tag, broadcast_guid])
     return broadcast_guid
 
-@arguments(connection_key=db.Key, flow=unicode, broadcast_type=unicode, tag=unicode, broadcast_guid=unicode)
-def _service_broadcast(connection_key, flow, broadcast_type, tag, broadcast_guid):
+
+@arguments(connection_key=db.Key, flow=unicode, broadcast_type=unicode, tag=unicode)
+def _service_broadcast(connection_key, flow, broadcast_type, tag):
     connection = db.get(connection_key)
     if is_broadcast_type_enabled(connection.service_identity, connection.friend, broadcast_type):
-        from rogerthat.bizz.service.mfr import start_flow
-        start_flow(connection.service_identity, None, flow, [connection.friend], check_friends=False,
-                   result_callback=True, tag=tag, broadcast_type=broadcast_type, broadcast_guid=broadcast_guid)
+        from rogerthat.bizz.service.mfr import start_local_flow
+        push_message = None
+        start_local_flow(connection.service_identity, None, None, [connection.friend], tag=tag,
+                         push_message=push_message, flow=flow, check_friends=False)
+
 
 @returns(unicode)
 @arguments(service_identity_user=users.User, broadcast_type=unicode, message=unicode, answers=[AnswerTO], flags=int,
