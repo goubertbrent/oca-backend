@@ -22,6 +22,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from influxdb import InfluxDBClient
 from influxdb.resultset import ResultSet
+
 from rogerthat.consts import DEBUG
 from rogerthat.models.news import NewsItemActionStatistics, NewsItemAction
 from rogerthat.models.properties.news import NewsItemStatistics

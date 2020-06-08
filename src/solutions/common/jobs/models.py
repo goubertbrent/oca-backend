@@ -24,7 +24,7 @@ from rogerthat.models import NdbModel
 from rogerthat.models.jobs import JobOfferFunction, JobOfferEmployer, JobOfferLocation, JobOfferContract, \
     JobOfferContactInformation
 from rogerthat.rpc import users
-from solutions import SOLUTION_COMMON
+from solutions.common import SOLUTION_COMMON
 
 
 class ContractType(Enum):

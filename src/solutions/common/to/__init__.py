@@ -34,7 +34,6 @@ from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import get_epoch_from_datetime
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
     SolutionIdentitySettings
 from solutions.common.models.agenda import Event, EventCalendarType, EventPeriod, EventDate
@@ -123,7 +122,7 @@ class SolutionInboxMessageTO(TO):
 
         to.picture_urls = message.picture_urls
         to.video_urls = message.video_urls
-        to.chat_topic = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+        to.chat_topic = common_translate(sln_settings.main_language,
                                          message.chat_topic_key) if message.chat_topic_key else ""
         return to
 
@@ -510,7 +509,7 @@ class SolutionAppointmentSettingsTO(object):
             text_1 = obj.text_1
 
         if not text_1:
-            text_1 = common_translate(language, SOLUTION_COMMON, 'appointment-1')
+            text_1 = common_translate(language, 'appointment-1')
 
         to.text_1 = text_1
         return to
@@ -629,7 +628,7 @@ class SolutionRepairSettingsTO(object):
             text_1 = obj.text_1
 
         if not text_1:
-            text_1 = common_translate(language, SOLUTION_COMMON, 'repair-1')
+            text_1 = common_translate(language, 'repair-1')
 
         to.text_1 = text_1
         return to

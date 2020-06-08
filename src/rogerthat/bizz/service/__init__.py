@@ -16,14 +16,14 @@
 # @@license_version:1.7@@
 
 import base64
-from contextlib import closing
 import json
 import logging
 import os
-from types import NoneType
 import urllib
 import urlparse
 import uuid
+from contextlib import closing
+from types import NoneType
 from zipfile import ZipFile
 
 from google.appengine.api import images, search

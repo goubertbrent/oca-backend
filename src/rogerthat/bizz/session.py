@@ -16,8 +16,8 @@
 # @@license_version:1.7@@
 
 import logging
-from types import NoneType
 import uuid
+from types import NoneType
 
 from google.appengine.api import users as gusers
 from google.appengine.ext import db, deferred

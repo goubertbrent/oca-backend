@@ -17,14 +17,15 @@
 
 from types import NoneType
 
+from google.appengine.ext import deferred, db
+
+from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.js_embedding.mapping import update_jsembedding_response
 from rogerthat.capi.system import updateJsEmbedding
 from rogerthat.dal.mobile import get_active_mobiles_keys
 from rogerthat.rpc.rpc import logError
 from rogerthat.to.js_embedding import UpdateJSEmbeddingRequestTO
-from google.appengine.ext import deferred, db
-from mcfw.rpc import returns, arguments
 
 
 @returns(NoneType)

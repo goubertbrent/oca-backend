@@ -43,13 +43,13 @@ from solutions.common.restapi import get_branding_settings
 
 class GeoCodeErrorException(HttpBadRequestException):
     def __init__(self, language):
-        msg = translate(language, SOLUTION_COMMON, 'could_not_resolve_job_address')
+        msg = translate(language, 'could_not_resolve_job_address')
         super(GeoCodeErrorException, self).__init__(msg)
 
 
 class JobOfferNotFoundException(HttpNotFoundException):
     def __init__(self, language, job_id):
-        msg = translate(language, SOLUTION_COMMON, 'job_offer_not_found')
+        msg = translate(language, 'job_offer_not_found')
         super(JobOfferNotFoundException, self).__init__(msg, {'id': job_id})
 
 
@@ -111,7 +111,7 @@ def update_job_offer(service_user, job_id, data):
     source.avatar_url = branding_settings.avatar_url
     source.type = JobOfferSourceType.OCA
     source.id = unicode(job_offer.id)
-    source.name = translate(language, SOLUTION_COMMON, 'our-city-app')
+    source.name = translate(language, 'our-city-app')
 
     rt_data.source = source
     rt_data.visible = job_offer.status == JobStatus.ONGOING
@@ -164,30 +164,30 @@ def _set_job_properties(language, model, data):
 def _get_details_from_job_offer(job_offer, language):
     # type: (OcaJobOffer, str) -> unicode
     lines = [
-        translate(language, SOLUTION_COMMON, 'name_in_city_searching_for', name='**%s**' % job_offer.employer.name,
+        translate(language, 'name_in_city_searching_for', name='**%s**' % job_offer.employer.name,
                   city='**%s**' % job_offer.location.city),
         '## %s ' % job_offer.function.title,
-        '%s: %s' % (translate(language, SOLUTION_COMMON, 'oca.contract_type'),
-                    translate(language, SOLUTION_COMMON, CONTRACT_TYPE_TRANSLATIONS[job_offer.contract.type])),
-        '### %s' % translate(language, SOLUTION_COMMON, 'oca.function_description'),
+        '%s: %s' % (translate(language, 'oca.contract_type'),
+                    translate(language, CONTRACT_TYPE_TRANSLATIONS[job_offer.contract.type])),
+        '### %s' % translate(language, 'oca.function_description'),
         job_offer.function.description,
         '',
-        '### %s' % translate(language, SOLUTION_COMMON, 'profile'),
+        '### %s' % translate(language, 'profile'),
         job_offer.profile,
         '',
         job_offer.details,
         '',
-        '### %s' % translate(language, SOLUTION_COMMON, 'place_of_employment'),
+        '### %s' % translate(language, 'place_of_employment'),
         job_offer.employer.name,
         """{street} {nr}
 {postal_code} {city}
 """.format(street=job_offer.location.street, nr=job_offer.location.street_number,
            postal_code=job_offer.location.postal_code, city=job_offer.location.city),
         '',
-        '### %s' % translate(language, SOLUTION_COMMON, 'how_and_where_apply'),
-        '**{by_email}**: [{email}](tel://{email})'.format(by_email=translate(language, SOLUTION_COMMON, 'by_email'),
+        '### %s' % translate(language, 'how_and_where_apply'),
+        '**{by_email}**: [{email}](tel://{email})'.format(by_email=translate(language, 'by_email'),
                                                           email=job_offer.contact_information.email),
-        '**{by_phone}**: [{phone}](tel://{phone})'.format(by_phone=translate(language, SOLUTION_COMMON, 'by_phone'),
+        '**{by_phone}**: [{phone}](tel://{phone})'.format(by_phone=translate(language, 'by_phone'),
                                                           phone=job_offer.contact_information.phone_number),
     ]
     return '\n'.join(lines)

@@ -35,7 +35,7 @@ from shop.dal import get_customer
 from shop.models import Order, OrderItem, Product, RegioManagerTeam, Contact, StripePayment, StripePaymentItem
 from shop.to import OrderItemTO, ProductTO, ShopProductTO, OrderItemReturnStatusTO
 from solution_server_settings import get_solution_server_settings
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings
 
@@ -157,7 +157,7 @@ def add_item_to_order(item):
                             order_item = it
                         elif len(product.possible_counts) != 0:
                             raise BusinessException(
-                                translate(customer.language, SOLUTION_COMMON, u'cant_order_more_than_specified',
+                                translate(customer.language, u'cant_order_more_than_specified',
                                           allowed_items=max(product.possible_counts)))
         total = product.price * item.count
         vat = total * vat_pct / 100

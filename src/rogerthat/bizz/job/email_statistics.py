@@ -19,6 +19,7 @@ import base64
 import datetime
 
 from google.appengine.ext import db
+
 from mcfw.rpc import arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.service.statistics import get_statistics, get_statistics_list
@@ -238,9 +239,9 @@ def _send_statistics_for_service_user(si, admin_emails, default_language, settin
         variables = dict(service=si.name)
         body = render("service_statistics_email", [default_language], variables)
         subject = "Weekly statistics for your identities of %s" % si.name
-        
+
         attachments = []
         attachments.append(('filename=stats_%s_w_%s.xls' % (now_date_today.year, now_date_today.isocalendar()[1]),
                             base64.b64encode(output.getvalue())))
-        
+
         send_mail(settings.dashboardEmail, emails_to_send, subject, body, attachments=attachments)

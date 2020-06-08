@@ -21,8 +21,8 @@ import itertools
 import json
 import logging
 import threading
-from types import NoneType
 import uuid
+from types import NoneType
 
 from google.appengine.api import memcache, images, search
 from google.appengine.ext import db, deferred

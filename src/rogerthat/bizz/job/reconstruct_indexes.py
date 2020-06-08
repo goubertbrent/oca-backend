@@ -18,6 +18,7 @@
 from types import NoneType
 
 from google.appengine.ext import db
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.job import run_job

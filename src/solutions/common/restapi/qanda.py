@@ -24,7 +24,6 @@ from mcfw.restapi import rest
 from mcfw.rpc import arguments, returns
 from shop.models import RegioManagerTeam
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz.qanda import search_question as bizz_search_question
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.qanda import Question, QuestionReply
@@ -56,7 +55,7 @@ def ask_question(title, description, modules):
                  modules=modules,
                  language=sln_settings.main_language,
                  team_id=default_team_id).put()
-        
+
         message = """Please reply to %s (%s) with the following link:
 %s/internal/shop/questions
 
@@ -101,7 +100,7 @@ Description:
 
             return ReturnStatusTO.create(True, None)
         sln_settings = get_solution_settings(service_user)
-        return ReturnStatusTO.create(False, translate(sln_settings.main_language, SOLUTION_COMMON, 'Could not find question'))
+        return ReturnStatusTO.create(False, translate(sln_settings.main_language, 'Could not find question'))
 
     xg_on = db.create_transaction_options(xg=True)
     return db.run_in_transaction_options(xg_on, trans)

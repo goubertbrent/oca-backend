@@ -43,7 +43,7 @@ from rogerthat.utils import try_or_defer
 from rogerthat.utils.service import create_service_identity_user
 from shop.dal import get_customer
 from shop.models import Customer
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.bizz import OrganizationType
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email
@@ -99,7 +99,7 @@ def save_voucher_settings(service_email, data):
         customer.user_email)])  # type: VoucherSettings, SolutionServiceConsent
     if service_consent and VoucherProviderId.CIRKLO in data.providers \
         and SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
-        err = translate(customer.language, SOLUTION_COMMON, 'oca.cirklo_disabled_reason_privacy')
+        err = translate(customer.language, 'oca.cirklo_disabled_reason_privacy')
         raise HttpBadRequestException(err)
     if not settings:
         settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
@@ -189,7 +189,7 @@ def api_vouchers_save_cirklo_settings(data):
     service_user = users.get_current_user()
     if not get_current_session().shop:
         lang = get_solution_settings(service_user).main_language
-        raise HttpForbiddenException(translate(lang, SOLUTION_COMMON, 'no_permission'))
+        raise HttpForbiddenException(translate(lang, 'no_permission'))
     city_id = data['city_id']
     other_city = CirkloCity.get_by_service_email(service_user.email())  # type: CirkloCity
     key = CirkloCity.create_key(city_id)

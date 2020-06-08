@@ -28,7 +28,6 @@ from rogerthat.dal.service import get_service_identity
 from rogerthat.restapi.service_panel import generate_api_key
 from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
-from solutions import translate, SOLUTION_COMMON
 from solutions.common.bizz import get_default_app_id
 from solutions.common.models.participation import ParticipationCity
 
@@ -80,7 +79,7 @@ def get_participation_city(service_user):
         api_key_name = 'Participation'
         settings = generate_api_key(api_key_name)
         new_api_key = [key for key in settings.apiKeys if key.name == api_key_name][0]
-        info = translate(lang, SOLUTION_COMMON, 'oca.default_participation_info')
+        info = translate(lang, 'oca.default_participation_info')
         secret = _create_new_city(app_id, new_api_key.key, name, info)
         model = ParticipationCity(key=city_key,
                                   secret=secret)

@@ -40,7 +40,7 @@ from rogerthat.to import convert_to_unicode, TO
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils.service import get_service_user_from_service_identity_user
 from solution_server_settings import get_solution_server_settings, SolutionServerSettings
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.models import CirkloUserVouchers, VoucherProviderId, \
     CirkloCity
@@ -107,7 +107,7 @@ def add_voucher(service_user, app_user, qr_content):
             raise Exception('Unexpected result from cirklo api')
     if not voucher_id:
         sln_settings = get_solution_settings(service_user)
-        msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'not_a_valid_cirklo_qr_code')
+        msg = translate(sln_settings.main_language, 'not_a_valid_cirklo_qr_code')
         raise TranslatedException(msg)
     key = CirkloUserVouchers.create_key(app_user)
     vouchers = key.get() or CirkloUserVouchers(key=key)  # type: CirkloUserVouchers
@@ -116,7 +116,7 @@ def add_voucher(service_user, app_user, qr_content):
         vouchers.put()
     else:
         sln_settings = get_solution_settings(service_user)
-        msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'duplicate_cirklo_voucher')
+        msg = translate(sln_settings.main_language, 'duplicate_cirklo_voucher')
         raise TranslatedException(msg)
     voucher = AppVoucher.from_cirklo(voucher_id, voucher_details, datetime.utcnow())
     return {
@@ -266,5 +266,5 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
     except Exception:
         logging.error('Error while handling cirklo call %s' % method, exc_info=True)
         sln_settings = get_solution_settings(service_user)
-        response.error = translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        response.error = translate(sln_settings.main_language, 'error-occured-unknown')
     return response

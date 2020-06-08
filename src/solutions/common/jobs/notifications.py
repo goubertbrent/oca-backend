@@ -34,7 +34,7 @@ from rogerthat.rpc import users
 from rogerthat.service.api import system
 from rogerthat.settings import get_server_settings
 from rogerthat.utils import send_mail_via_mime
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.jobs.models import JobsSettings, JobNotificationType, JobSolicitation, OcaJobOffer
 from solutions.common.jobs.to import JobsSettingsTO
@@ -93,11 +93,11 @@ def _get_subject_for_update_count(lang, jobs_count, updates_count):
     # type: (unicode, int, int) -> unicode
     if jobs_count == 1:
         if updates_count == 1:
-            return translate(lang, SOLUTION_COMMON, 'there_is_an_update_about_your_job')
+            return translate(lang, 'there_is_an_update_about_your_job')
         else:
-            return translate(lang, SOLUTION_COMMON, 'there_are_some_update_about_your_job')
+            return translate(lang, 'there_are_some_update_about_your_job')
     else:
-        return translate(lang, SOLUTION_COMMON, 'there_are_some_update_about_your_jobs')
+        return translate(lang, 'there_are_some_update_about_your_jobs')
 
 
 def _get_body_for_job_updates(lang, jobs, updates_per_job):
@@ -109,13 +109,13 @@ def _get_body_for_job_updates(lang, jobs, updates_per_job):
         html_job_name = '<b>%s</b>' % job_name
         update_count = updates_per_job[jobs[0].id]
         if update_count == 1:
-            html_body.append(translate(lang, SOLUTION_COMMON, 'jobs_one_new_update_message', job_name=html_job_name))
-            text_body.append(translate(lang, SOLUTION_COMMON, 'jobs_one_new_update_message', job_name=job_name))
+            html_body.append(translate(lang, 'jobs_one_new_update_message', job_name=html_job_name))
+            text_body.append(translate(lang, 'jobs_one_new_update_message', job_name=job_name))
         else:
-            html_body.append(translate(lang, SOLUTION_COMMON, 'jobs_some_updates_message', job_name=html_job_name))
-            text_body.append(translate(lang, SOLUTION_COMMON, 'jobs_some_updates_message', job_name=job_name))
+            html_body.append(translate(lang, 'jobs_some_updates_message', job_name=html_job_name))
+            text_body.append(translate(lang, 'jobs_some_updates_message', job_name=job_name))
     else:
-        msg = translate(lang, SOLUTION_COMMON, 'jobs_multiple_updates_message')
+        msg = translate(lang, 'jobs_multiple_updates_message')
         html_body.append(msg)
         html_body.append('<ul>')
         text_body.append(msg)
@@ -123,9 +123,9 @@ def _get_body_for_job_updates(lang, jobs, updates_per_job):
         for job in jobs:
             update_count = updates_per_job[job.id]
             if update_count == 1:
-                update_line = translate(lang, SOLUTION_COMMON, 'one_new_update')
+                update_line = translate(lang, 'one_new_update')
             else:
-                update_line = translate(lang, SOLUTION_COMMON, 'x_new_updates', count=update_count)
+                update_line = translate(lang, 'x_new_updates', count=update_count)
             html_body.append('<li><b>%s:</b> %s</li>' % (job.function.title, update_line))
             text_body.append('* %s: %s' % (job.function.title, update_line))
         html_body.append('</ul>')
@@ -136,7 +136,7 @@ def _send_email_for_notification(sln_settings, jobs_settings, subject, html_body
     # type: (SolutionSettings, JobsSettings, unicode, unicode, unicode) -> None
 
     def transl(key, **params):
-        return translate(sln_settings.main_language, SOLUTION_COMMON, key, **params)
+        return translate(sln_settings.main_language, key, **params)
 
     settings = get_server_settings()
 

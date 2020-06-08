@@ -15,9 +15,10 @@
 #
 # @@license_version:1.7@@
 
+from google.appengine.ext import db
+
 from rogerthat.bizz.job import run_job
 from rogerthat.models import UserProfile
-from google.appengine.ext import db
 
 
 def job():

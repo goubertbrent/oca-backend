@@ -16,14 +16,14 @@
 # @@license_version:1.7@@
 
 import base64
-from datetime import datetime
 import hashlib
 import json
 import logging
 import os
-from random import choice
 import re
 import time
+from datetime import datetime
+from random import choice
 from types import NoneType
 
 from google.appengine.api import urlfetch
@@ -61,10 +61,10 @@ from rogerthat.rpc.rpc import mapping, logError
 from rogerthat.rpc.service import logServiceError
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import render
-from rogerthat.to import GeoPointTO
 from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateLookAndFeelResponseTO, UpdateEmbeddedAppsResponseTO, \
     UpdateEmbeddedAppResponseTO
 from rogerthat.to.profile import UserProfileTO
+from rogerthat.to.service import ProfilePhoneNumberTO
 from rogerthat.to.system import UserStatusTO, IdentityTO, UpdateSettingsResponseTO, UnregisterMobileResponseTO, \
     UnregisterMobileRequestTO, IdentityUpdateResponseTO, LogErrorResponseTO, LogErrorRequestTO, ForwardLogsResponseTO, \
     ForwardLogsRequestTO, UpdateEmbeddedAppTranslationsResponseTO, EmbeddedAppTranslationsTO, \
@@ -77,8 +77,6 @@ from rogerthat.utils.app import get_app_id_from_app_user, get_app_user_tuple
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.languages import get_iso_lang
 from rogerthat.utils.transactions import run_in_xg_transaction, run_in_transaction
-from rogerthat.to.service import ProfilePhoneNumberTO
-
 
 try:
     from cStringIO import StringIO
@@ -843,7 +841,7 @@ def _update_profile_phone_number(app_user, request, is_update=False):
         if is_update:
             return None
         profile_info = UserProfileInfo(key=upi_key)
-        
+
     phone_number = UserProfileInfoPhoneNumber(created=datetime.now(),
                                               type=request.type,
                                               label=request.label,

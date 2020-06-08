@@ -20,9 +20,11 @@ import logging
 from jinja2 import nodes
 from jinja2.ext import Extension
 
+from rogerthat.utils import get_python_stack_trace
+
 
 class TranslateExtension(Extension):
-    tags = set(['translate'])
+    tags = {'translate'}
 
     def parse(self, parser):
         _ = parser.parse_expression()  # translate tag
@@ -30,15 +32,20 @@ class TranslateExtension(Extension):
         args = [a for a in args.iter_child_nodes()]
         return nodes.Output([self.call_method('_translate', args), ])
 
-    def _translate(self, language, lib, key, *args):
+    def _translate(self, language, key, *args):
         from solutions import translate
         try:
-            kwargs = dict()
+            # TODO: remove this if statement after july 2020
+            if key == 'common':
+                logging.error('executed translate with wrong arguments: %s', get_python_stack_trace(False))
+                arglist = list(args)
+                key = args.pop(0)
+                args = arglist
+            kwargs = {}
             for arg in args:
                 arg_pieces = arg.split('=', 1)
                 kwargs[arg_pieces[0]] = arg_pieces[1]
-
-            translation = translate(language, lib, key, **kwargs)
+            translation = translate(language, key, **kwargs)
             if "_html" in kwargs:
                 translation = translation.replace('\n', '<br>')
             return translation

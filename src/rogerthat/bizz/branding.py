@@ -15,23 +15,23 @@
 #
 # @@license_version:1.7@@
 
-from HTMLParser import HTMLParser, HTMLParseError
 import base64
-from contextlib import closing
 import hashlib
 import json
 import logging
 import re
 import time
-from types import NoneType
 import urllib
+from HTMLParser import HTMLParser, HTMLParseError
+from contextlib import closing
+from types import NoneType
 from zipfile import ZipFile, BadZipfile, ZIP_DEFLATED
 
 import cloudstorage
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, blobstore
 from google.appengine.ext.deferred import deferred
+
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
@@ -59,7 +59,6 @@ from rogerthat.utils import now, parse_color
 from rogerthat.utils.languages import get_iso_lang
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip
-
 
 try:
     from cStringIO import StringIO

@@ -187,7 +187,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
             coords = map(int, position.split(','))
 
             if not static_content_id and pdf_upload == "":
-                error = translate(sln_settings.main_language, SOLUTION_COMMON, 'PDF is required')
+                error = translate(sln_settings.main_language, 'PDF is required')
                 self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
                                                                     error=error))
                 return
@@ -196,7 +196,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
                 branding_hash = None
             else:
                 if pdf_upload.type != "application/pdf":
-                    error = translate(sln_settings.main_language, SOLUTION_COMMON, 'PDF not of correct type.')
+                    error = translate(sln_settings.main_language, 'PDF not of correct type.')
                     self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
                                                                         error=error))
                     return
@@ -211,7 +211,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
                     logging.debug("Uploaded pdf contains %s pages", doc.numPages)
                     del doc
                 except:
-                    error = translate(sln_settings.main_language, SOLUTION_COMMON, 'uploaded-file-not-a-pdf')
+                    error = translate(sln_settings.main_language, 'uploaded-file-not-a-pdf')
                     self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
                                                                         error=error))
                     return
@@ -220,7 +220,7 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
                 pdf_stream.seek(0)
                 pdf_bytes = pdf_stream.read()
                 if len(pdf_bytes) > MAX_BRANDING_PDF_SIZE:
-                    error = translate(sln_settings.main_language, SOLUTION_COMMON, 'pdf-size-too-large')
+                    error = translate(sln_settings.main_language, 'pdf-size-too-large')
                     self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
                                                                         error=error))
                     return
@@ -269,7 +269,6 @@ class UploadStaticContentPDFHandler(webapp.RequestHandler):
                 'Error while trying to save static content PDF for user %s' % sln_settings.service_user.email())
             self.response.out.write(broadcast_via_iframe_result(u'solutions.common.static_content.pdf.post_result',
                                                                 error=translate(sln_settings.main_language,
-                                                                                SOLUTION_COMMON,
                                                                                 'error-occured-unknown')))
 
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Stripe {% translate language, "common", "Payment loading" %}</title>
+  <title>Stripe {% translate language, "Payment loading" %}</title>
 
   <style>
     html {
@@ -29,14 +29,14 @@
 <body>
 	<p>
 		<b>Stripe</b>
-	  	<ins>{% translate language, "common", "Payment loading" %}</ins>
+	  	<ins>{% translate language, "Payment loading" %}</ins>
 	</p>
-	<p>{% translate language, "common", "Redirecting to Stripe..." %}</p>
+	<p>{% translate language, "Redirecting to Stripe..." %}</p>
 </body>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 	var stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
-	
+
 	stripe.redirectToCheckout({
 	  // Make the id field from the Checkout Session creation API response
 	  // available to this file, so you can provide it as parameter here

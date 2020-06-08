@@ -190,7 +190,7 @@ def publish_item(service_identity_user, app_id, is_free_regional_news, coupon, s
 
 def get_news_review_message(lang, timezone, header=None, **data):
     def trans(term, *args, **kwargs):
-        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
+        return common_translate(lang, unicode(term), *args, **kwargs)
 
     message = u'{}\n\n'.format(header or trans('news_review_requested'))
     message += u'{}: {}\n'.format(trans('title'), data['title'])
@@ -479,10 +479,10 @@ def get_locations(app_id):
 def check_can_send_news(sln_settings, service_info):
     # type: (SolutionSettings, ServiceInfo) -> None
     if sln_settings.hidden_by_city:
-        reason = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'your_service_was_hidden_by_your_city')
-        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'cannot_send_news', reason='\n' + reason)
+        reason = common_translate(sln_settings.main_language, 'your_service_was_hidden_by_your_city')
+        msg = common_translate(sln_settings.main_language, 'cannot_send_news', reason='\n' + reason)
         raise HttpForbiddenException(msg)
     if not service_info.visible:
-        reason = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'news_service_invisible_reason')
-        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'cannot_send_news', reason='\n' + reason)
+        reason = common_translate(sln_settings.main_language, 'news_service_invisible_reason')
+        msg = common_translate(sln_settings.main_language, 'cannot_send_news', reason='\n' + reason)
         raise HttpForbiddenException(msg)

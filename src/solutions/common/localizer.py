@@ -2498,7 +2498,7 @@ translations = \
          u'month_short': u'm',
          u'more-users': u'M\xe1s usuarios',
          u'my-reservations-btn-cancel': u'Cancelar reserva',
-         u'my-reservations-btn-cancel-confirm': u'Est\xe1s seguro que deseas anular la reserva del     %(arrival_date_time)s?',
+         u'my-reservations-btn-cancel-confirm': u'Est\xe1s seguro que deseas anular la reserva del %(arrival_date_time)s?',
          u'my-reservations-btn-edit-comment': u'Modificar comentario',
          u'my-reservations-btn-edit-people': u'Modificar n\xfamero de personas',
          u'my-reservations-canceled': u'Su reserva ha sido cancelada satisfactoriamente.',

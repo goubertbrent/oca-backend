@@ -20,53 +20,53 @@
 <div id="loyalty" class="page" style="display: none;">
 {% if SolutionModule.HIDDEN_CITY_WIDE_LOTTERY not in sln_settings.modules %}
 	<div id="loyalty_order_now">
-	    <p>{% translate language, 'common' , 'you_do_not_have_tablet_yet_contact_support' %}</p>
+	    <p>{% translate language, 'you_do_not_have_tablet_yet_contact_support' %}</p>
 	    <button type="button" class="btn btn-default btn-large" id="loyalty_request_device">
-	        {% translate language, 'common', 'request_loyalty_device' %}
+	        {% translate language, 'request_loyalty_device' %}
 	    </button>
 	</div>
 {% endif %}
     <div id="loyalty_export" style="display: none;">
     	<a href="#/loyalty" class="btn btn-success pull-left" style="margin-right: 20px; margin-top: 20px;">
-    		<i class="fa fa-arrow-left"></i> {% translate language, "common", 'back' %}</a>
+    		<i class="fa fa-arrow-left"></i> {% translate language, 'back' %}</a>
 
     	<div class="span12">
 	    	<div class="span5">
-	    		<h2>{% translate language, "common", 'loyalty' %}</h2>
+	    		<h2>{% translate language, 'loyalty' %}</h2>
 	    		<div id="loyalty-export-list"></div>
 	    		<div>
-				    <a class="btn btn-default" id="load-more-loyalty-exports">{% translate language, "common", 'Load more' %}</a>
+				    <a class="btn btn-default" id="load-more-loyalty-exports">{% translate language, 'Load more' %}</a>
 				</div>
 	    	</div>
 	    	<div id="loyalty_export_vouchers" class="span5">
-	    		<h2>{% translate language, "common", 'Vouchers' %}</h2>
+	    		<h2>{% translate language, 'Vouchers' %}</h2>
 	    		<div id="voucher-export-list"></div>
 	    		<div>
-				    <a class="btn btn-default" id="load-more-voucher-exports">{% translate language, "common", 'Load more' %}</a>
+				    <a class="btn btn-default" id="load-more-voucher-exports">{% translate language, 'Load more' %}</a>
 				</div>
 	    	</div>
     	</div>
     </div>
     <a id="loyalty_export_btn" class="btn btn-success" href="#/loyalty/export" style="display:none;">
-        {% translate language, "common", 'export' %}...
+        {% translate language, 'export' %}...
     </a>
 
     <div id="loyalty_lottery" class="clearfix loyalty_filter_show_2 loyalty_filter_hide_1 loyalty_filter_hide_3" style="display:none; margin-top: 20px;">
         <button id="loyalty_add_lottery" type="button" class="btn btn-success" style="margin-bottom: 20px;">
-                {% translate language, "common", "Add lottery" %}
+                {% translate language, "Add lottery" %}
         </button>
 
         <div class="alert alert-danger add-lottery-required" style="display: none;">
-            <h4>{% translate language, "common", "loyalty-lottery-configure-title" %}</h4>
+            <h4>{% translate language, "loyalty-lottery-configure-title" %}</h4>
             <br/>
 
-            <div>{% translate language, "common", "loyalty-lottery-configure-text" %}</div>
+            <div>{% translate language, "loyalty-lottery-configure-text" %}</div>
         </div>
 
         <div id="lottery-history" class="span12" style="display: none; padding: 20px; margin-bottom: 20px; margin-left: 0; background-color: #fff; border: 1px solid #ddd; -webkit-border-radius: 4px; -moz-border-radius: 4px; border-radius: 4px;">
             <ul class="nav nav-tabs">
-                <li class="active" section="lottery-history-pending"><a href="#/loyalty"><i class="fa fa-inbox"></i> {% translate language, "common", "Pending" %} <span class="badge"></span></a></li>
-                <li class="" section="lottery-history-history"><a href="#/loyalty"><i class="fa fa-trash"></i> {% translate language, "common", "Trash" %} <span class="badge"></span></a></li>
+                <li class="active" section="lottery-history-pending"><a href="#/loyalty"><i class="fa fa-inbox"></i> {% translate language, "Pending" %} <span class="badge"></span></a></li>
+                <li class="" section="lottery-history-history"><a href="#/loyalty"><i class="fa fa-trash"></i> {% translate language, "Trash" %} <span class="badge"></span></a></li>
             </ul>
 
             <section id="lottery-history-pending">

@@ -16,14 +16,14 @@
 # @@license_version:1.7@@
 
 import base64
-from datetime import datetime
 import imghdr
 import json
 import logging
 import random
-from types import NoneType
 import urllib2
 import urlparse
+from datetime import datetime
+from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
@@ -32,9 +32,9 @@ from google.appengine.ext.ndb.query import Cursor
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
-from mcfw.rpc import returns, arguments, serialize_complex_value
+from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
-from rogerthat.bizz.features import Features, Version, mobile_supports_feature
+from rogerthat.bizz.features import Features, mobile_supports_feature
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.log_analysis import NEWS_CREATED, NEWS_ROGERED, NEWS_REACHED, NEWS, NEWS_SPONSORING_TIMED_OUT, \
     NEWS_UPDATED, NEWS_NEW_FOLLOWER, NEWS_ACTION
@@ -49,22 +49,20 @@ from rogerthat.bizz.news.matching import create_matches_for_news_item, \
 from rogerthat.bizz.news.searching import find_news, re_index_news_item, re_index_news_item_by_key
 from rogerthat.bizz.roles import has_role
 from rogerthat.bizz.service import _validate_roles
-from rogerthat.capi.news import newNews, disableNews, createNotification
+from rogerthat.capi.news import disableNews, createNotification
 from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
 from rogerthat.dal import put_in_chunks
 from rogerthat.dal.friend import get_friends_map, get_friends_map_cached
-from rogerthat.dal.mobile import get_mobile_key_by_account, \
-    get_mobile_settings_cached
+from rogerthat.dal.mobile import get_mobile_key_by_account
 from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service
 from rogerthat.dal.roles import get_service_roles_by_ids
 from rogerthat.dal.service import get_service_identity, \
-    get_friend_service_identity_connections_of_service_identity_keys_query, is_broadcast_type_enabled, \
     ndb_get_service_menu_items, get_service_identities_not_cached, get_default_service_identity
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
     CannotChangePropertyException, MissingNewsArgumentException, InvalidNewsTypeException, NoPermissionToNewsException, \
     ValueTooLongException, DemoServiceException, InvalidScheduledTimestamp, \
     EmptyActionButtonCaption, InvalidActionButtonRoles, InvalidActionButtonFlowParamsException, TrialServiceException
-from rogerthat.models import ServiceProfile, FriendMap, PokeTagMap, UserProfile, ServiceMenuDef, NdbApp, App, \
+from rogerthat.models import ServiceProfile, FriendMap, PokeTagMap, UserProfile, ServiceMenuDef, NdbApp, \
     UserProfileInfoAddress, NdbProfile, UserProfileInfo, NdbUserProfile
 from rogerthat.models.maps import MapService
 from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatistics, NewsGroup, NewsSettingsUser, \
@@ -85,22 +83,20 @@ from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.news import GetNewsItemsResponseTO, AppNewsItemTO, NewsActionButtonTO, NewsIdsListResultTO, \
     NewsItemTO, NewsItemListResultTO, DisableNewsRequestTO, GetNewsResponseTO, NewsReadInfoTO, \
-    DisableNewsResponseTO, NewNewsRequestTO, NewNewsResponseTO, NewsTargetAudienceTO, \
+    DisableNewsResponseTO, NewNewsResponseTO, NewsTargetAudienceTO, \
     NewsItemStatisticsTO, NewsFeedNameTO, NewsItemInternalStatistics, BaseMediaTO, MediaTO, \
     GetNewsGroupsResponseTO, IfEmtpyScreenTO, NewsGroupRowTO, NewsGroupTO, NewsGroupTabInfoTO, NewsGroupFilterInfoTO, \
     NewsGroupLayoutTO, GetNewsStreamItemsResponseTO, NewsStreamItemTO, GetNewsGroupServicesResponseTO, NewsSenderTO, \
     SaveNewsGroupServicesResponseTO, SaveNewsGroupFiltersResponseTO, CreateNotificationRequestTO, \
     CreateNotificationResponseTO, NewsLocationsTO, UpdateBadgeCountResponseTO, GetNewsGroupResponseTO
-from rogerthat.to.push import NewNewsNotification, NewsStreamNotification
+from rogerthat.to.push import NewsStreamNotification
 from rogerthat.translations import localize
 from rogerthat.utils import now, slog, is_flag_set, try_or_defer, guid, bizz_check
 from rogerthat.utils.app import get_app_id_from_app_user, create_app_user
-from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import add_slash_default, get_service_user_from_service_identity_user, \
     remove_slash_default
 from rogerthat.utils.transactions import run_in_transaction
-
 
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
@@ -1131,7 +1127,7 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                 item_flags = NewsItem.DEFAULT_FLAGS
             else:
                 item_flags = flags
-                
+
 
             news_item = NewsItem(key=NewsItem.create_key(ndb_allocate_id(NewsItem)),
                                  sticky=sticky,

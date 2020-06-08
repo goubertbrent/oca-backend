@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
-    <definition name="{% translate language, 'common', 'appointment' %}"
+    <definition name="{% translate language, 'appointment' %}"
                 language="{{ language }}"
                 startReference="message_day">
         <formMessage
@@ -15,8 +15,8 @@
             <content>{{ text_1|e }}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -51,11 +51,11 @@
             autoLock="true"
             brandingKey="{{ branding_key }}"
             negativeReference="message_day">
-            <content>{% translate language, 'common', 'appointment-2' %}</content>
+            <content>{% translate language, 'appointment-2' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'back' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'back' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -96,11 +96,11 @@
             autoLock="true"
             brandingKey="{{ branding_key }}"
             negativeReference="flow_code_phone_default">
-            <content>{% translate language, 'common', 'appointment-3' %}</content>
+            <content>{% translate language, 'appointment-3' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'back' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Send' %}"
+                negativeButtonCaption="{% translate language, 'back' %}"
+                positiveButtonCaption="{% translate language, 'Send' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -120,7 +120,7 @@
             brandingKey="{{ branding_key }}"
             dismissReference="base64:eyJsYW5nIjoibmwiLCJpZCI6ImVuZF9lbmQiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0="
             autoLock="true">
-            <content>{% translate language, 'common', 'appointment-5' %}</content>
+            <content>{% translate language, 'appointment-5' %}</content>
         </message>
         <end id="base64:eyJsYW5nIjoibmwiLCJpZCI6ImVuZF9lbmQiLCJtZmQiOiJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2owTEVncHRZeTEwY21GamEyVnlJZzVqYVhSNU1URkFkR1Z6ZEM1aVpRd0xFaEZOWlhOellXZGxSbXh2ZDBSbGMybG5iaUlJUVdaemNISmhZV3NNIn0="
              waitForFollowUpMessage="false"/>

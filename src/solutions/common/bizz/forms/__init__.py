@@ -15,11 +15,11 @@
 #
 # @@license_version:1.7@@
 
+from datetime import datetime
 import json
 import logging
-import random
-from datetime import datetime
 from os import path
+import random
 
 import cloudstorage
 import dateutil
@@ -48,7 +48,8 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import try_or_defer, parse_color
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
-from solutions import SOLUTION_COMMON, translate
+from solutions import translate
+from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, get_next_free_spot_in_service_menu
 from solutions.common.bizz.forms.integrations import get_form_integration
 from solutions.common.bizz.forms.statistics import get_all_statistic_keys, update_form_statistics, get_form_statistics, \
@@ -390,7 +391,7 @@ def create_form_submission(service_user, details, form):
     if oca_form.finished:  # TODO: replace with not oca_form.visible and not form.test
         user = create_app_user_by_email(details.email, details.app_id)
         lang = get_user_profile(user).language
-        error = translate(lang, SOLUTION_COMMON, 'oca.form_ended_error')
+        error = translate(lang, 'oca.form_ended_error')
         return FormSubmittedCallbackResultTO(valid=False, error=error)
 
     try_or_defer(_save_form_submission, details, form, service_user)

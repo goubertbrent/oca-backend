@@ -26,7 +26,6 @@ from rogerthat.service.api import app
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
 from rogerthat.to.app import AppSettingsTO
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz.cityapp import get_uitdatabank_events
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, \
@@ -112,12 +111,12 @@ def uitdatabank_check_cityapp_settings():
         success, count, result = get_uitdatabank_events(settings, 1, 50)
         if not success:
             try:
-                result = translate(sln_settings.main_language, SOLUTION_COMMON, result)
+                result = translate(sln_settings.main_language, result)
             except ValueError:
                 pass
     except Exception:
         logging.debug('Failed to check uitdatabank.be version: %s params: %s', settings.version, settings.params, exc_info=1)
-        success, result = False, translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again')
+        success, result = False, translate(sln_settings.main_language, 'error-occured-unknown-try-again')
 
     if success:
         if not settings.enabled:

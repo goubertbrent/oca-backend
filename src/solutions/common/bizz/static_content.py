@@ -61,8 +61,8 @@ def put_static_content(service_user, static_content):
         raise
     except ServiceApiException:
         logging.exception('Failed to store static content branding', exc_info=True)
-        raise BusinessException(translate(get_solution_settings(service_user).main_language, SOLUTION_COMMON,
-                                          'error-occured-unknown-try-again'))
+        raise BusinessException(
+            translate(get_solution_settings(service_user).main_language, 'error-occured-unknown-try-again'))
 
     def trans():
         sln_settings = get_solution_settings(service_user)

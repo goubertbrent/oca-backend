@@ -276,7 +276,7 @@ def delete_loyalty_visit(key):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         sln_settings = get_solution_settings(service_user)
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/customer_points/detail", "get", read_only_access=True)
@@ -387,7 +387,7 @@ def add_loyalty_scan(key, loyalty_type, value):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         sln_settings = get_solution_settings(service_user)
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/scans/redeem", "post")
@@ -414,7 +414,7 @@ def redeem_loyalty_scan(key, loyalty_type, value):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         sln_settings = get_solution_settings(service_user)
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/lottery/add", "post")
@@ -459,7 +459,7 @@ def add_loyalty_lottery_info(winnings, date):
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/lottery/edit", "post")
@@ -498,7 +498,7 @@ def edit_loyalty_lottery_info(key, winnings, date):
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/lottery/delete", "post")
@@ -529,7 +529,7 @@ def delete_loyalty_lottery_info(key):
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/lottery/close", "post")
@@ -549,7 +549,7 @@ def close_loyalty_lottery_info(key):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         sln_settings = get_solution_settings(service_user)
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/loyalty/lottery/load", "get", read_only_access=True)
@@ -705,7 +705,7 @@ def add_city_wide_lottery_info(city_app_id, winnings, date, x_winners):
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/city_wide_lottery/edit", "post")
@@ -739,7 +739,7 @@ def edit_city_wide_lottery_info(key, winnings, date, x_winners):
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/city_wide_lottery/delete", "post")
@@ -764,7 +764,7 @@ def delete_city_wide_lottery_info(key):
 
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/city_wide_lottery/close", "post")
@@ -784,7 +784,7 @@ def close_city_wide_lottery_info(key):
         return RETURNSTATUS_TO_SUCCESS
     except BusinessException, e:
         sln_settings = get_solution_settings(service_user)
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, e.message))
 
 
 @rest("/common/city_wide_lottery/load", "get", read_only_access=True)
@@ -805,8 +805,7 @@ def can_edit_city_postal_codes():
     service_user = users.get_current_user()
     sln_settings = get_solution_settings(service_user)
     if SolutionModule.CITY_APP not in sln_settings.modules:
-        raise BusinessException(common_translate(sln_settings.main_language,
-                                                 SOLUTION_COMMON, u'insufficient-permissions'))
+        raise BusinessException(common_translate(sln_settings.main_language, u'insufficient-permissions'))
     return sln_settings
 
 
@@ -819,8 +818,7 @@ def restapi_add_city_postal_code(app_id, postal_code):
         add_city_postal_code(app_id, postal_code)
         return RETURNSTATUS_TO_SUCCESS
     except ValueError:
-        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language,
-                                     SOLUTION_COMMON, u'invlid_postal_code'))
+        return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, u'invlid_postal_code'))
     except BusinessException as e:
         return ReturnStatusTO.create(False, e.message)
 

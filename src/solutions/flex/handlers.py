@@ -45,7 +45,6 @@ from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity
 from solutions import translate, translations, COMMON_JS_KEYS
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.functionalities import get_functionalities
@@ -271,8 +270,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             return
         session_ = users.get_current_session()
         lang = sln_settings.main_language or DEFAULT_LANGUAGE
-        all_translations = {key: translate(lang, SOLUTION_COMMON, key)
-                            for key in translations[SOLUTION_COMMON]['en']}
+        all_translations = {key: translate(lang, key) for key in translations[DEFAULT_LANGUAGE]}
         for other_key, key in COMMON_JS_KEYS.iteritems():
             all_translations[other_key] = all_translations[key]
         service_identity = session_.service_identity if session_.service_identity else ServiceIdentity.DEFAULT
@@ -434,8 +432,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:
-            params['bulk_invite_message'] = translate(lang, SOLUTION_COMMON,
-                                                      "settings-bulk-invite-message",
+            params['bulk_invite_message'] = translate(lang, "settings-bulk-invite-message",
                                                       app_name=system.get_identity().app_names[0])
 
         params['menu'] = get_restaurant_menu(service_user) if SolutionModule.MENU in sln_settings.modules else None

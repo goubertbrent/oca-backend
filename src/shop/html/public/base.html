@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
-    <title>{% block title %}{% endblock %} | {% translate language, "common", "our-city-app" %}</title>
+    <title>{% block title %}{% endblock %} | {% translate language, "our-city-app" %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="/static/images/public/favicon.png"/>
 
@@ -21,8 +21,8 @@
     <div id="header">
         <div id="logo"></div>
         {%if not app_id %}
-        <a id="home-link" class="pull-right" href="{% translate language, 'common', 'http://www.ourcityapps.com' %}">
-            <h4 style="color: white;">{% translate language, "common", "home" %}</h4>
+        <a id="home-link" class="pull-right" href="{% translate language, 'http://www.ourcityapps.com' %}">
+            <h4 style="color: white;">{% translate language, "home" %}</h4>
         </a>
         {% endif %}
     </div>
@@ -35,23 +35,23 @@
 <script>
     //Used by sln-utils
     var CommonTranslations = {
-        AJAX_ERROR_MESSAGE: '{% translate language, "common", "ajax-error-message" %}',
-        ALERT: '{% translate language, "common", "Alert" %}',
-        CANCEL: '{% translate language, "common", "Cancel" %}',
-        CHANNEL_DISCONNECTED_RELOAD_BROWSER: '{% translate language, "common", "channel-disconnected-reload-browser" %}',
-        CLOSE: '{% translate language, "common", "Close" %}',
-        CONFIRM: '{% translate language, "common", "Confirm" %}',
-        INPUT: '{% translate language, "common", "Input" %}',
-        NO: '{% translate language, "common", "No" %}',
-        PARSING_DOT_DOT_DOT: '{% translate language, "common", "parsing-dot-dot-dot" %}',
-        SUBMIT: '{% translate language, "common", "Submit" %}',
-        WARNING: '{% translate language, "common", "warning" %}',
-        YES: '{% translate language, "common", "Yes" %}',
-        ERROR: '{% translate language, "common", "Error" %}',
-        SUCCESS: '{% translate language, "common", "Success" %}',
-        SUBMITTING_DOT_DOT_DOT: '{% translate language, "common", "submitting-dot-dot-dot" %}',
-        EMAIL: '{% translate language, "common", "Email" %}',
-        remember_my_choice: '{% translate language, "common", "remember_my_choice" %}'
+        AJAX_ERROR_MESSAGE: '{% translate language, "ajax-error-message" %}',
+        ALERT: '{% translate language, "Alert" %}',
+        CANCEL: '{% translate language, "Cancel" %}',
+        CHANNEL_DISCONNECTED_RELOAD_BROWSER: '{% translate language, "channel-disconnected-reload-browser" %}',
+        CLOSE: '{% translate language, "Close" %}',
+        CONFIRM: '{% translate language, "Confirm" %}',
+        INPUT: '{% translate language, "Input" %}',
+        NO: '{% translate language, "No" %}',
+        PARSING_DOT_DOT_DOT: '{% translate language, "parsing-dot-dot-dot" %}',
+        SUBMIT: '{% translate language, "Submit" %}',
+        WARNING: '{% translate language, "warning" %}',
+        YES: '{% translate language, "Yes" %}',
+        ERROR: '{% translate language, "Error" %}',
+        SUCCESS: '{% translate language, "Success" %}',
+        SUBMITTING_DOT_DOT_DOT: '{% translate language, "submitting-dot-dot-dot" %}',
+        EMAIL: '{% translate language, "Email" %}',
+        remember_my_choice: '{% translate language, "remember_my_choice" %}'
     };
     var SIGNUP_APP_ID = '{{ app_id }}';
 </script>

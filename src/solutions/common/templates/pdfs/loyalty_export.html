@@ -55,18 +55,18 @@
                 </p>
 
                 <p>
-                    {% translate language, "common", "telephone_abbr" %}: +32 9 324 25 64<br>
+                    {% translate language, "telephone_abbr" %}: +32 9 324 25 64<br>
                     info@mobicage.com<br>
                 </p>
 
                 <p>
-                    {% translate language, "common", "vat" %}: BE 0835 560 572<br>
+                    {% translate language, "vat" %}: BE 0835 560 572<br>
                     IBAN: BE85 3630 8576 4006<br>
                     BIC: BBRUBEBB<br>
                 </p>
             </td>
             <td class="col3">
-                <p><b>{% translate language, "common", "customer_details" %}</b></p>
+                <p><b>{% translate language, "customer_details" %}</b></p>
 
                 <p>
                     {{ customer.name }}<br/>
@@ -83,12 +83,12 @@
                 </p>
 
                 <p>
-                    {% translate language, "common", "telephone_abbr" %}: {{ contact.phone_number }}<br>
+                    {% translate language, "telephone_abbr" %}: {{ contact.phone_number }}<br>
                     {{ contact.email }}<br>
                 </p>
 
                 <p>
-                    {% if customer.vat %}{% translate language, "common", "vat" %}: {{ customer.vat }}{% else %}&nbsp;
+                    {% if customer.vat %}{% translate language, "vat" %}: {{ customer.vat }}{% else %}&nbsp;
                     {% endif %}<br>
                 </p>
             </td>
@@ -98,18 +98,18 @@
 </header>
 <div>
     <h2 style="font-size: 24px; margin-top: 50px;">
-        {% translate customer.language, "common", "loyalty_expenses_in", "month=" + month %}
+        {% translate customer.language, "loyalty_expenses_in", "month=" + month %}
     </h2>
 
     {% if revenue_discounts|count > 0 %}
-    <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'discounts'%}</h3>
+    <h3 style="font-size: 16px;">{% translate customer.language, 'discounts'%}</h3>
     <table>
         <thead>
         <tr>
-            <th style="text-align: left; width:45%;">{% translate customer.language, 'common', 'User' %}</th>
-            <th style="text-align: left; width:25%;">{% translate customer.language, 'common', 'Date' %}</th>
-            <th style="text-align: left; width:15%;">{% translate customer.language, 'common', 'Spent' %}</th>
-            <th style="text-align: left; width:15%;">{% translate customer.language, 'common', 'Discount' %}
+            <th style="text-align: left; width:45%;">{% translate customer.language, 'User' %}</th>
+            <th style="text-align: left; width:25%;">{% translate customer.language, 'Date' %}</th>
+            <th style="text-align: left; width:15%;">{% translate customer.language, 'Spent' %}</th>
+            <th style="text-align: left; width:15%;">{% translate customer.language, 'Discount' %}
                 ({{ x_discount }}%)
             </th>
         </tr>
@@ -125,7 +125,7 @@
         {% endfor %}
         <tr>
             <td></td>
-            <td><b>{% translate customer.language, 'common', 'total'%}</b></td>
+            <td><b>{% translate customer.language, 'total'%}</b></td>
             <td><b>{{ currency }} {{ total_spent }}</b></td>
             <td><b>{{ currency }} {{ total_revenue_discount }}</b></td>
         </tr>
@@ -133,13 +133,13 @@
     </table>
     {% endif %}
     {% if lotery|count > 0 %}
-    <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'Lottery'%}</h3>
+    <h3 style="font-size: 16px;">{% translate customer.language, 'Lottery'%}</h3>
     <table>
         <thead>
         <tr>
-            <th style="text-align: left; width:45%;">{% translate customer.language, 'common', 'User' %}</th>
-            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'Date'%}</th>
-            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'prize'%}</th>
+            <th style="text-align: left; width:45%;">{% translate customer.language, 'User' %}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'Date'%}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'prize'%}</th>
         </tr>
         </thead>
         <tbody>
@@ -155,13 +155,13 @@
     {% endif %}
 
     {% if stamps|count > 0 %}
-    <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'stamps'%}</h3>
+    <h3 style="font-size: 16px;">{% translate customer.language, 'stamps'%}</h3>
     <table>
         <thead>
         <tr>
-            <th style="text-align: left; width:45%;">{% translate customer.language, 'common', 'User' %}</th>
-            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'Date'%}</th>
-            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'common', 'prize'%}</th>
+            <th style="text-align: left; width:45%;">{% translate customer.language, 'User' %}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'Date'%}</th>
+            <th style="text-align: left; width:27.5%;">{% translate customer.language, 'prize'%}</th>
         </tr>
         </thead>
         <tbody>
@@ -177,13 +177,13 @@
     {% endif %}
 
     {% if coupons|count > 0 %}
-        <h3 style="font-size: 16px;">{% translate customer.language, 'common', 'Coupons' %}</h3>
+        <h3 style="font-size: 16px;">{% translate customer.language, 'Coupons' %}</h3>
         <table>
             <thead>
             <tr>
-                <th style="text-align: left; width:80%;">{% translate customer.language, 'common', 'coupon_content' %}</th>
+                <th style="text-align: left; width:80%;">{% translate customer.language, 'coupon_content' %}</th>
                 <th style="width:10%;"></th>
-                <th style="text-align: left; width:10%;">{% translate customer.language, 'common', 'amount' %}</th>
+                <th style="text-align: left; width:10%;">{% translate customer.language, 'amount' %}</th>
             </tr>
             </thead>
             <tbody>

@@ -192,17 +192,14 @@ def _pick_winner(service_user, sln_loyalty_lottery_key):
     next_datetime_tz = datetime.fromtimestamp(now() + 24 * 3600, pytz.timezone(sln_settings.timezone))
     next_date_str = format_datetime(next_datetime_tz, format='medium', locale=sln_settings.main_language or DEFAULT_LANGUAGE)
 
-    msg_ok = translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-ok',
-                       name=user_detail.name,
-                       date_loot=loot_date_str,
-                       prize=sln_loyalty_lottery.winnings,
-                       date=next_date_str)
-    msg_sorry = translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-nok')
+    msg_ok = translate(sln_settings.main_language, 'loyalty-lottery-loot-ok', name=user_detail.name,
+                       date_loot=loot_date_str, prize=sln_loyalty_lottery.winnings, date=next_date_str)
+    msg_sorry = translate(sln_settings.main_language, 'loyalty-lottery-loot-nok')
 
     btn = AnswerTO()
     btn.id = u'%s' % json.dumps({"key": unicode(sln_loyalty_lottery_key)})
     btn.type = u'button'
-    btn.caption = translate(sln_settings.main_language, SOLUTION_COMMON, 'Confirm')
+    btn.caption = translate(sln_settings.main_language, 'Confirm')
     btn.action = None
     btn.ui_flags = 0
 

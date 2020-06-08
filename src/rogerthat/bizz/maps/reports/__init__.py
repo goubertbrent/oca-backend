@@ -41,7 +41,6 @@ from rogerthat.to.maps import GetMapResponseTO, GetMapItemsResponseTO, \
 from rogerthat.translations import localize
 from rogerthat.utils.app import get_app_id_from_app_user
 
-
 REPORTS_TAG = 'reports'
 
 

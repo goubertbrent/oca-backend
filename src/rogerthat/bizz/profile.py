@@ -18,13 +18,13 @@
 import base64
 import datetime
 import hashlib
-from httplib import HTTPException
 import json
 import logging
 import os
 import re
-from types import NoneType
 import types
+from httplib import HTTPException
+from types import NoneType
 
 import facebook
 from google.appengine.api import images, urlfetch, search
@@ -76,7 +76,6 @@ from rogerthat.utils.app import get_app_id_from_app_user, create_app_user, get_h
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
-
 
 try:
     from cStringIO import StringIO
@@ -357,7 +356,7 @@ def get_profile_for_facebook_user(access_token, app_user, update=False, language
             avatar = get_avatar_by_id(profile.avatarId)
             if not avatar:
                 avatar = Avatar(user=app_user)
-        
+
         profile.first_name = None
         profile.last_name = None
         if fb_profile.get("first_name"):

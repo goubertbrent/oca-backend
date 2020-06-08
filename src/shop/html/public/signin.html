@@ -1,14 +1,14 @@
 {% extends 'public/base.html' %}
 
-{% block title %}{% translate language, "common", "sign-in" %}{% endblock %}
+{% block title %}{% translate language, "sign-in" %}{% endblock %}
 
 {% block js %}
     <script>
         var SigninTranslations = {
-            LOGIN_FAIL: '{% translate language, "common", "invalid-email-password-combination" %}',
-            TOO_MANY_ATTEMPTS: '{% translate language, "common", "too-many-failed-attempts" %}',
-            DEACTIVATED_ACCOUNT: '{% translate language, "common", "deactivated-account" %}',
-            DEACTIVATED_SERVICE: '{% translate language, "common", "deactivated-service" %}',
+            LOGIN_FAIL: '{% translate language, "invalid-email-password-combination" %}',
+            TOO_MANY_ATTEMPTS: '{% translate language, "too-many-failed-attempts" %}',
+            DEACTIVATED_ACCOUNT: '{% translate language, "deactivated-account" %}',
+            DEACTIVATED_SERVICE: '{% translate language, "deactivated-service" %}',
         };
     </script>
     <script src="/static/js/public/signin.js"></script>
@@ -16,30 +16,30 @@
 
 {% block content %}
     <div id="signin_box" class="span6 box-small-width" style="float: none; margin: 0 auto;">
-        <h1>{% translate language, "common", "sign-in" %}</h1>
+        <h1>{% translate language, "sign-in" %}</h1>
         <p id="singin_note" style="word-wrap: break-word;" align="justify">
-            {% translate language, "common", "signin_note" %}
+            {% translate language, "signin_note" %}
         </p>
 
         <form id="signin_form" class="white-box">
             <input id="email" type="email" class="input-block-level" autocomplete="current-email"
-                   placeholder="{% translate language, 'common', 'email_address' %}" required>
+                   placeholder="{% translate language, 'email_address' %}" required>
             <div>
                 <input id="password" type="password" class="input-block-level"
-                       placeholder="{% translate language, 'common', 'password' %}" minlength="5" required
+                       placeholder="{% translate language, 'password' %}" minlength="5" required
                        autocomplete="current-password">
                 <button id="signin_button" class="btn btn-wizard pull-right" type="button">
-                    {% translate language, "common", "sign-in" %}
+                    {% translate language, "sign-in" %}
                 </button>
             </div>
             <p id="errors" class="text-error" style="display: none;"></p>
             <a id="forgot_password" href="{{ reset_password_url }}">
-                {% translate language, "common", "forgot-password" %}
+                {% translate language, "forgot-password" %}
             </a>
             <p class="no-account-yet">
-                {% translate language, "common", "do-not-have-account" %}
+                {% translate language, "do-not-have-account" %}
                 <a href="{{ signup_url }}">
-                    {% translate language, "common", "you-can-signup" %}
+                    {% translate language, "you-can-signup" %}
                 </a>
             </p>
         </form>

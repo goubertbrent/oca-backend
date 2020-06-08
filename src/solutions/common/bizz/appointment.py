@@ -30,7 +30,6 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.settings import get_service_info
@@ -85,14 +84,14 @@ def appointment_asked(service_user, message_flow_run_id, member, steps, end_id, 
 %s: %s
 
 %s:
-%s""" % (common_translate(language, SOLUTION_COMMON , 'days'),
+%s""" % (common_translate(language , 'days'),
          "\n".join(days_str),
-         common_translate(language, SOLUTION_COMMON , 'phone'),
+         common_translate(language , 'phone'),
          phone.form_result.result.value,
-         common_translate(language, SOLUTION_COMMON , 'reason'),
+         common_translate(language , 'reason'),
          reason.form_result.result.value)
 
-    msg = common_translate(language, SOLUTION_COMMON, 'if-appointment-received', appointment=msg_appointment)
+    msg = common_translate(language, 'if-appointment-received', appointment=msg_appointment)
 
     message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_APPOINTMENT, None, False, user_details, reason.acknowledged_timestamp, msg, True)
 
@@ -115,9 +114,9 @@ def appointment_asked(service_user, message_flow_run_id, member, steps, end_id, 
 def put_appointment_weekday_timeframe(service_user, appointment_id, day, time_from, time_until):
     sln_settings = get_solution_settings(service_user)
     if time_from == time_until:
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'time-start-end-equal'))
+        raise BusinessException(common_translate(sln_settings.main_language, 'time-start-end-equal'))
     if time_from >= time_until:
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'time-start-end-smaller'))
+        raise BusinessException(common_translate(sln_settings.main_language, 'time-start-end-smaller'))
 
     sln_settings = get_solution_settings(service_user)
     if appointment_id:

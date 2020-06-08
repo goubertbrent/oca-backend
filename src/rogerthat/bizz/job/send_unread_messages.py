@@ -18,7 +18,6 @@
 import itertools
 import json
 
-
 import cloudstorage
 from mapreduce.input_readers import DatastoreInputReader
 from pipeline import pipeline
@@ -33,8 +32,8 @@ def unread_message_reduce(key, values):
     # used in other places
     json_line = json.dumps({"key":key, "value":list(itertools.chain.from_iterable(values))})
     yield "%s\n" % json_line
-    
-    
+
+
 class CleanupGoogleCloudStorageFiles(pipeline.Pipeline):
     # used in other places
 
@@ -45,7 +44,7 @@ class CleanupGoogleCloudStorageFiles(pipeline.Pipeline):
 
 class DatastoreQueryInputReader(DatastoreInputReader):
     # used in other places
- 
+
     @classmethod
     def _validate_filters(cls, filters, model_class):
         pass

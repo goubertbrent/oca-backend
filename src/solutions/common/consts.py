@@ -118,7 +118,6 @@ TRANSLATION_MAPPING = {
     'Retry',
     'Save',
     'Settings',
-    'Services',
     'Time',
     'Type',
     'Url',

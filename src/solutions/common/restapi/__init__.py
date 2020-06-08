@@ -69,7 +69,6 @@ from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
 from shop.models import Customer, CustomerSignup
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
@@ -428,7 +427,7 @@ def export_inbox_messages(email=''):
         send_statistics_export_email(service_user, service_identity, email, sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except InvalidEmailFormatException as ex:
-        error_msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'invalid_email_format',
+        error_msg = common_translate(sln_settings.main_language, 'invalid_email_format',
                                      email=ex.email)
         return ReturnStatusTO.create(False, error_msg)
 
@@ -442,9 +441,9 @@ def api_send_message_to_services(organization_types=None, message=None):
     sln_settings = get_solution_settings(service_user)
 
     def _validation_err(translation_key):
-        field = common_translate(sln_settings.main_language, SOLUTION_COMMON, translation_key)
+        field = common_translate(sln_settings.main_language, translation_key)
         raise HttpBadRequestException(
-            '%s: %s' % (field, common_translate(sln_settings.main_language, SOLUTION_COMMON, 'this_field_is_required')))
+            '%s: %s' % (field, common_translate(sln_settings.main_language, 'this_field_is_required')))
 
     if SolutionModule.CITY_APP not in sln_settings.modules:
         raise HttpForbiddenException()
@@ -659,7 +658,7 @@ def settings_publish_changes(friends=None):
         return ReturnStatusTO.create(False, reason or e.message)
     except AvatarImageNotSquareException:
         sln_settings = get_solution_settings(service_user)
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+        message = common_translate(sln_settings.main_language,
                                    'please_select_valid_avatar_image')
         return ReturnStatusTO.create(False, message)
     except BusinessException as e:
@@ -806,7 +805,7 @@ def delete_calendar(calendar_id):
     try:
         sc = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
         if sc.events.count(1) > 0:
-            raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+            raise BusinessException(common_translate(sln_settings.main_language,
                                                      'calendar-remove-failed-has-events'))
 
         sc.deleted = True
@@ -835,7 +834,7 @@ def save_calendar(calendar):
 
             if c.name.lower() == calendar.name.lower():
                 if calendar.id != c.calendar_id:
-                    raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                    raise BusinessException(common_translate(sln_settings.main_language,
                                                              'calendar-name-already-exists', name=calendar.name))
 
         sc.name = calendar.name
@@ -897,7 +896,7 @@ def calendar_put_google_import(calendar_id, google_calendars):
             sc = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
             if not sc:
                 raise BusinessException(
-                    common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
+                    common_translate(sln_settings.main_language, 'Calendar not found'))
 
             deferred.defer(update_events_from_google, service_user, calendar_id, _transactional=True)
 
@@ -1133,7 +1132,7 @@ def users_add_user_roles(key, user_roles):
 
                     if not EMAIL_REGEX.match(key):
                         return ReturnStatusTO.create(False,
-                                                     common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                                     common_translate(sln_settings.main_language,
                                                                       'Please provide a valid e-mail address'))
                     forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
                     if key not in forwarders:
@@ -1201,8 +1200,7 @@ def rest_add_service_email(user_email):
         service_user = users.get_current_user()
         if not EMAIL_REGEX.match(user_email):
             sln_settings = get_solution_settings(service_user)
-            message = common_translate(
-                sln_settings.main_language, 'common', 'invalid_email_format', email=user_email)
+            message = common_translate(sln_settings.main_language, 'invalid_email_format', email=user_email)
             return ReturnStatusTO.create(False, message)
         add_service_admin(service_user, user_email, base_url)
         return RETURNSTATUS_TO_SUCCESS
@@ -1272,7 +1270,7 @@ def inbox_add_forwarder(key, forwarder_type=SolutionSettings.INBOX_FORWARDER_TYP
 
     if forwarder_type == SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL:
         if not EMAIL_REGEX.match(key):
-            return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON,
+            return ReturnStatusTO.create(False, common_translate(sln_settings.main_language,
                                                                  'Please provide a valid e-mail address'))
     elif forwarder_type == SolutionSettings.INBOX_FORWARDER_TYPE_MOBILE:
         app_user = sanitize_app_user(users.User(key))

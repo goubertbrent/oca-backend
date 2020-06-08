@@ -18,6 +18,7 @@
 import uuid
 
 from google.appengine.ext import deferred
+
 from rogerthat.bizz.payment import sync_payment_assets
 from rogerthat.dal.payment import get_payment_user_key
 from rogerthat.models.payment import PaymentOauthLoginState, PaymentUser, PaymentUserProvider

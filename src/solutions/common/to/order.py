@@ -18,7 +18,6 @@
 from mcfw.properties import bool_property, long_property, unicode_property, typed_property
 from rogerthat.to import TO
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import SECONDS_IN_MINUTE
 from solutions.common.models.order import SolutionOrderSettings
 from solutions.common.to.payments import TransactionDetailsTO
@@ -48,8 +47,8 @@ class SolutionOrderSettingsTO(TO):
             return None
         to = cls()
         text_1 = None
-        pause_msg = common_translate(language, SOLUTION_COMMON, 'default_orders_paused_message')
-        outside_hours_msg = common_translate(language, SOLUTION_COMMON, 'default_outside_hours_message')
+        pause_msg = common_translate(language, 'default_orders_paused_message')
+        outside_hours_msg = common_translate(language, 'default_outside_hours_message')
         if obj:
             text_1 = obj.text_1
             to.order_type = obj.order_type
@@ -71,11 +70,11 @@ class SolutionOrderSettingsTO(TO):
             to.disable_order_outside_hours = False
             to.outside_hours_message = outside_hours_msg
         if not text_1:
-            text_1 = common_translate(language, SOLUTION_COMMON, 'order-flow-details')
+            text_1 = common_translate(language, 'order-flow-details')
 
         to.text_1 = text_1
         if not to.order_ready_message:
-            to.order_ready_message = common_translate(language, SOLUTION_COMMON, 'order-ready')
+            to.order_ready_message = common_translate(language, 'order-ready')
         return to
 
 

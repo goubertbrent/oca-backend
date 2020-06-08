@@ -17,7 +17,7 @@
 
 import logging
 
-from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions import translate as common_translate
 
 
 def localize(lang, key, **kwargs):
@@ -26,8 +26,8 @@ def localize(lang, key, **kwargs):
     if key not in MAPPING:
         logging.warn("Translation key %s not found in mapping. Fallback to key" % key)
         return key
-    
-    return common_translate(lang, SOLUTION_COMMON, MAPPING[key], **kwargs)
+
+    return common_translate(lang, MAPPING[key], **kwargs)
 
 
 MAPPING = {

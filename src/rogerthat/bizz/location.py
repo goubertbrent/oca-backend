@@ -25,18 +25,17 @@ from datetime import datetime
 from struct import unpack
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 from google.appengine.api import memcache, urlfetch
 from google.appengine.api.urlfetch import fetch
 from google.appengine.ext import db, deferred, ndb
 
-from babel.dates import format_datetime, get_timezone
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.messaging import sendMessage, dashboardNotification
 from rogerthat.capi.location import getLocation, locationResult, trackLocation
-from rogerthat.consts import MC_DASHBOARD
-from rogerthat.consts import SCHEDULED_QUEUE
+from rogerthat.consts import MC_DASHBOARD, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key
 from rogerthat.dal.app import get_app_by_user, get_app_name_by_id
 from rogerthat.dal.friend import get_friends_map

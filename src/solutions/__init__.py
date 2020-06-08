@@ -20,48 +20,39 @@ import logging
 from google.appengine.ext import webapp
 
 from rogerthat.translations import DEFAULT_LANGUAGE
+from rogerthat.utils import get_python_stack_trace
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import UNIT_SYMBOLS
-from solutions.common.localizer import translations as common_translations
+from solutions.common.localizer import translations
 from solutions.flex import SOLUTION_FLEX
-
-SOLUTIONS = [SOLUTION_FLEX]
-
-translations = {
-    SOLUTION_COMMON: common_translations,
-}
 
 webapp.template.register_template_library('solutions.templates.filter')
 
 
-def translate(language, lib, key, suppress_warning=False, _duplicate_backslashes=False, **kwargs):
-    if not language:
-        language = DEFAULT_LANGUAGE
-    if not lib or not key:
-        raise ValueError("lib and key are required arguments")
-    if lib not in translations:
-        raise ValueError("Unknown translation library '%s' requested" % lib)
-    library = translations[lib]
-    language = language.replace('-', '_')
-    if language not in library:
+def translate(language, key, suppress_warning=False, _duplicate_backslashes=False, **kwargs):
+    # type: (str, str, bool, bool, dict) -> str
+    if key == SOLUTION_COMMON:
+        # TODO: remove this if statement after july 2020
+        logging.error('Called translate with wrong arguments: %s', get_python_stack_trace(False))
+        key = suppress_warning
+        suppress_warning = False
+
+    language = (language or DEFAULT_LANGUAGE).replace('-', '_')
+    if language not in translations:
         if '_' in language:
             language = language.split('_')[0]
-            if language not in library:
+            if language not in translations:
                 language = DEFAULT_LANGUAGE
         else:
             language = DEFAULT_LANGUAGE
-    if key in library[language]:
-        s = library[language][key]
+    if key in translations[language]:
+        s = translations[language][key]
     else:
-        if key not in library[DEFAULT_LANGUAGE]:
-            if lib != SOLUTION_COMMON:
-                return translate(language, SOLUTION_COMMON, key, suppress_warning, **kwargs)
-            else:
-                raise ValueError("Translation key '%s' not found in library '%s' for default language" % (key, lib))
+        if key not in translations[DEFAULT_LANGUAGE]:
+            raise ValueError("Translation key '%s' not found for default language" % key)
         if not suppress_warning:
-            logging.warn("Translation key '%s' not found in library '%s' for language "
-                         "'%s' - fallback to default" % (key, lib, language))
-        s = library[DEFAULT_LANGUAGE][key]
+            logging.warn("Translation key '%s' not found for language '%s' - fallback to default" % (key, language))
+        s = translations[DEFAULT_LANGUAGE][key]
 
     if kwargs:
         s = s % kwargs
@@ -74,7 +65,7 @@ def translate(language, lib, key, suppress_warning=False, _duplicate_backslashes
 
 def translate_unit_symbol(language, unit):
     try:
-        return translate(language, SOLUTION_COMMON, UNIT_SYMBOLS[unit])
+        return translate(language, UNIT_SYMBOLS[unit])
     except ValueError:
         return UNIT_SYMBOLS[unit]
 

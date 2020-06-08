@@ -25,7 +25,7 @@ from rogerthat.exceptions.news import NewsNotFoundException
 from rogerthat.rpc import users
 from rogerthat.service.api import news
 from rogerthat.utils import today
-from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions import translate as common_translate
 from solutions.common.bizz.budget import update_budget, BUDGET_RATE
 from solutions.common.bizz.service import new_inbox_message, send_inbox_message_update
 from solutions.common.dal import get_solution_settings
@@ -68,7 +68,7 @@ def update_regional_news_budget(sln_news_item_key):
 
     def send_inbox_message():
         message = common_translate(
-            sln_settings.main_language, SOLUTION_COMMON, 'consumed_n_regional_news_views_message',
+            sln_settings.main_language, 'consumed_n_regional_news_views_message',
             title=news_item.title, id=news_item.id, n=total_reach)
         inbox_message = new_inbox_message(sln_settings, message, service_identity=service_identity)
         send_inbox_message_update(sln_settings, inbox_message, service_identity)
@@ -78,7 +78,7 @@ def update_regional_news_budget(sln_news_item_key):
         sln_news_item = sln_news_item_key.get()
         if total_reach:
             memo = common_translate(
-                sln_settings.main_language, SOLUTION_COMMON, 'consumed_n_regional_news_views', n=total_reach)
+                sln_settings.main_language, 'consumed_n_regional_news_views', n=total_reach)
             deducted_amount = -long(round(total_reach / BUDGET_RATE))
             update_budget(service_user, deducted_amount, service_identity,
                           BudgetTransaction.TYPE_NEWS, sln_news_item_key, memo)

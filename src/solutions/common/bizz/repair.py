@@ -32,7 +32,6 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now, try_or_defer
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import _get_value
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
@@ -76,7 +75,7 @@ def _repair_order_received(service_user, message_flow_run_id, member, steps, end
     o.picture_url = picture_url
     o.user = user_details[0].toAppUser() if user_details else None
 
-    msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-repair-order-received',
+    msg = common_translate(sln_settings.main_language, 'if-repair-order-received',
                            remarks=remarks)
 
     message = create_solution_inbox_message(service_user, service_identity, SolutionInboxMessage.CATEGORY_REPAIR, None,
@@ -100,7 +99,7 @@ def _repair_order_received(service_user, message_flow_run_id, member, steps, end
         att = AttachmentTO()
         att.content_type = AttachmentTO.CONTENT_TYPE_IMG_JPG
         att.download_url = picture_url
-        att.name = common_translate(sln_settings.main_language, SOLUTION_COMMON, u'picture')
+        att.name = common_translate(sln_settings.main_language, u'picture')
         att.size = 0
         attachments = [att]
 

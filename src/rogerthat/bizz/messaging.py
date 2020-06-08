@@ -1346,7 +1346,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                 try_or_defer(_start_distributing_chat_message, m, parent_message, others,
                              read_only=False, context=context, skip_sender=skip_sender)
         else:
-            deferred.defer(_distribute_new_chat_message_to_all_members, ChatAdminMembers, key, parent_key, context, 
+            deferred.defer(_distribute_new_chat_message_to_all_members, ChatAdminMembers, key, parent_key, context,
                            skip_sender=skip_sender, _transactional=is_in_transaction, _queue=FAST_CONTROLLER_QUEUE)
             deferred.defer(_distribute_new_chat_message_to_all_members, ChatWriterMembers, key, parent_key, context,
                            skip_sender=skip_sender, _transactional=is_in_transaction, _queue=FAST_CONTROLLER_QUEUE)
@@ -1720,7 +1720,7 @@ def start_chat(sender_user, topic, description, writers, readers, tag, context, 
     content = json.dumps(_create_chat_data(topic, description, _create_chat_metadata(metadata)))
 
     members = writers + readers
-    
+
     def trans():
         sender_is_service = is_service_identity_user(sender_user)
         message = sendMessage(sender_user, members, message_flags, 0, None, content, [], None, None, tag,

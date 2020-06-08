@@ -30,7 +30,7 @@ from rogerthat.utils import now
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.service import get_identity_from_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from solutions import SOLUTION_COMMON, translate
+from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.exceptions.news import NewsCouponNotFoundException, NewsCouponAlreadyUsedException
 from solutions.common.models.news import NewsCoupon, RedeemedBy
@@ -41,7 +41,7 @@ API_METHOD_SOLUTION_COUPON_REDEEM = 'solutions.coupons.redeem'
 
 
 def t(lang, key):
-    return translate(lang, SOLUTION_COMMON, key)
+    return translate(lang, key)
 
 
 @returns(SendApiCallCallbackResultTO)

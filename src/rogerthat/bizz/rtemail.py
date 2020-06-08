@@ -24,6 +24,7 @@ import urllib
 from google.appengine.api import app_identity
 from google.appengine.ext import deferred
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.messaging import process_mfr_email_reply
@@ -32,7 +33,6 @@ from rogerthat.dal.profile import get_profile_info
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.utils.crypto import encrypt
-
 
 EMAIL_REGEX = re.compile(r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
 EMAIL_ADDRESS_EXPRESSION = re.compile("([^<]*<(?P<mail1>[^>]+)>.*|(?P<mail2>[^<]*))")

@@ -66,7 +66,7 @@ from solutions.common.bizz.customer_signups import deny_signup
 from solutions.common.bizz.discussion_groups import poke_discussion_groups, follow_discussion_groups, \
     discussion_group_deleted
 from solutions.common.bizz.events import API_METHOD_SOLUTION_EVENTS_ADDTOCALENDER, add_event_to_calender, \
-    API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events,\
+    API_METHOD_SOLUTION_EVENTS_LOAD, solution_load_events, \
     get_events_announcements, API_METHOD_SOLUTION_EVENTS_ANNOUNCEMENTS
 from solutions.common.bizz.group_purchase import API_METHOD_GROUP_PURCHASE_PURCHASE, solution_group_purchcase_purchase
 from solutions.common.bizz.inbox import add_solution_inbox_message, create_solution_inbox_message, \
@@ -164,7 +164,7 @@ def _get_step_with_id(steps, step_id):
 def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
     if url is None or not (url.startswith("http://") or url.startswith("https://")):
         logging.debug("Invalid url (%(url)s). It must be reachable over http or https." % {'url': url})
-        raise BusinessException(common_translate(language, SOLUTION_COMMON,
+        raise BusinessException(common_translate(language,
                                                  "Invalid url (%(url)s). It must be reachable over http or https.",
                                                  url=url))
 
@@ -173,7 +173,7 @@ def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
         result = urlfetch.fetch(url, method="HEAD", deadline=10)
     except:
         logging.debug("Could not validate url (%(url)s)" % {'url': url}, exc_info=True)
-        raise BusinessException(common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
+        raise BusinessException(common_translate(language, "Could not validate url %(url)s", url=url))
 
     if result.status_code != 200:
         logging.debug("Could not validate url (%s). Response status code: %s", url, result.status_code)
@@ -181,12 +181,12 @@ def validate_broadcast_url(url, language=DEFAULT_LANGUAGE):
             result = urlfetch.fetch(url, method="GET", deadline=10)
         except:
             raise BusinessException(
-                common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
+                common_translate(language, "Could not validate url %(url)s", url=url))
 
         if result.status_code != 200:
             logging.debug("Could not validate url via GET. Response status code: %s", result.status_code)
             raise BusinessException(
-                common_translate(language, SOLUTION_COMMON, "Could not validate url %(url)s", url=url))
+                common_translate(language, "Could not validate url %(url)s", url=url))
 
 
 @returns(ReturnStatusTO)
@@ -229,7 +229,7 @@ def broadcast_send(service_user, service_identity, broadcast_type, message,
             broadcast_epoch = broadcast_date.toEpoch()
             countdown = (broadcast_epoch + timezone_offset(sln_settings.timezone)) - now_
             if countdown >= 60 * 60 * 24 * 30:
-                error_msgs.append(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                error_msgs.append(common_translate(sln_settings.main_language,
                                                    u'broadcast-schedule-too-far-in-future'))
 
         if error_msgs:
@@ -329,9 +329,7 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
     app_user = user_details.toAppUser()
     solution = get_solution_settings(service_user).solution
     if not get_news_publisher_from_app_user(app_user, service_user, solution):
-        return result_message(common_translate(user_details.language,
-                                               SOLUTION_COMMON,
-                                               u'no_permission'))
+        return result_message(common_translate(user_details.language, u'no_permission'))
 
     news_type = NewsItem.TYPE_NORMAL
     first_step = steps[0]
@@ -368,9 +366,7 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
             result = urlfetch.fetch(image_url, deadline=30)
 
             if result.status_code != 200:
-                message = common_translate(user_details.language,
-                                           SOLUTION_COMMON,
-                                           u'broadcast_could_not_get_item_photo')
+                message = common_translate(user_details.language, u'broadcast_could_not_get_item_photo')
                 return result_message(message)
 
             image = ',' + b64encode(result.content)
@@ -388,13 +384,12 @@ def broadcast_create_news_item(service_user, message_flow_run_id, member, steps,
         put_news_item(service_identity_user, title, message, action_button=None, news_type=news_type,
                       qr_code_caption=title, app_ids=app_ids, scheduled_at=0, news_id=None, media=media,
                       group_type=group_type)
-        message = common_translate(user_details.language,
-                                   SOLUTION_COMMON, u'news_item_published')
+        message = common_translate(user_details.language, u'news_item_published')
         result = result_message(message)
     except BusinessException as e:
         sln_settings = get_solution_settings(service_user)
         try:
-            message = common_translate(sln_settings.main_language, SOLUTION_COMMON, e.message)
+            message = common_translate(sln_settings.main_language, e.message)
         except ValueError:
             message = e.message
         result = result_message(message)
@@ -465,10 +460,10 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
     result.value.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
     result.value.form = TextBlockFormTO()
 
-    result.value.form.negative_button = common_translate(user_details[0].language, SOLUTION_COMMON, u'Cancel')
+    result.value.form.negative_button = common_translate(user_details[0].language, u'Cancel')
     result.value.form.negative_button_ui_flags = 0
     result.value.form.negative_confirmation = None
-    result.value.form.positive_button = common_translate(user_details[0].language, SOLUTION_COMMON, u'Send')
+    result.value.form.positive_button = common_translate(user_details[0].language, u'Send')
     result.value.form.positive_button_ui_flags = 0
     result.value.form.positive_confirmation = None
     result.value.form.javascript_validation = None
@@ -478,10 +473,8 @@ def inbox_forwarding_reply_pressed(service_user, status, answer_id, received_tim
     result.value.form.widget.place_holder = u''
     result.value.form.widget.value = u''
 
-    result.value.message = common_translate(user_details[0].language, SOLUTION_COMMON, u'inbox-forwarding-reply-to') % {
-        'if_name': user_details[0].name,
-        'if_email': human_user_email
-    }
+    result.value.message = common_translate(user_details[0].language, u'inbox-forwarding-reply-to', if_name=user_details[0].name,
+                                            if_email=human_user_email)
     result.value.tag = POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX + answer_id
     result.value.attachments = []
     result.value.step_id = None
@@ -668,7 +661,7 @@ def send_broadcast(service_user, service_identity, broadcast_type, message, targ
 
     if not ssb.statistics_keys:
         raise BusinessException(
-            common_translate(sln_settings.main_language, SOLUTION_COMMON, "Broadcast failed, no connected users"))
+            common_translate(sln_settings.main_language, "Broadcast failed, no connected users"))
     ssb.put()
 
     sln_settings.broadcast_to_all_locations = broadcast_to_all_locations
@@ -830,14 +823,12 @@ def _send_inbox_forwarders_message_by_app(service_user, service_identity, app_us
                     members.append(
                         MemberTO.from_user(create_app_user_by_email(message.sender.email, message.sender.app_id)))
                 flags = ChatFlags.ALLOW_ANSWER_BUTTONS | ChatFlags.ALLOW_PICTURE | ChatFlags.ALLOW_VIDEO
-                metadata = []
-                metadata.append(KeyValueTO.create(common_translate(sln_settings.main_language, SOLUTION_COMMON, "Date"),
-                                                  "%s %s" % (msg_params['if_date'], msg_params['if_time'])))
+                metadata = [KeyValueTO.create(common_translate(sln_settings.main_language, "Date"),
+                                              "%s %s" % (msg_params['if_date'], msg_params['if_time']))]
                 avatar = system.get_avatar()
                 try:
                     message.message_key = messaging.start_chat(list(set(members)),
                                                                common_translate(sln_settings.main_language,
-                                                                                SOLUTION_COMMON,
                                                                                 message.chat_topic_key),
                                                                "%s <%s>" % (
                                                                    msg_params['if_name'], msg_params['if_email']),

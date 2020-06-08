@@ -22,7 +22,7 @@ from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
-from solutions import SOLUTION_COMMON
+from solutions.common import SOLUTION_COMMON
 
 
 class VoucherProviderId(Enum):

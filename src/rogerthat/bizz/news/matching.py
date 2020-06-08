@@ -15,8 +15,8 @@
 #
 # @@license_version:1.7@@
 
-from datetime import date, datetime
 import logging
+from datetime import date, datetime
 
 from google.appengine.ext import ndb, deferred, db
 from google.appengine.ext.ndb.query import Cursor
@@ -352,7 +352,7 @@ def _create_news_item_match(user_settings, news_item):
         if nsus.blocked:
             invisible_reasons.add(NewsItemMatch.REASON_BLOCKED)
             break
-    
+
     service_visible = get_service_visible(news_item.sender)
     if not service_visible:
         invisible_reasons.add(NewsItemMatch.REASON_SERVICE_INVISIBLE)

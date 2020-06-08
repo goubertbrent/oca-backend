@@ -86,14 +86,14 @@ class InvalidTableException(BusinessException):
 
 
 @returns(RestaurantSettings)
-@arguments(service_user=users.User, service_identity=unicode, translate=FunctionType, default_lang=unicode)
-def put_default_restaurant_settings(service_user, service_identity, translate, default_lang):
+@arguments(service_user=users.User, service_identity=unicode, translate_f=FunctionType, default_lang=unicode)
+def put_default_restaurant_settings(service_user, service_identity, translate_f, default_lang):
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     settings = RestaurantSettings(key=RestaurantSettings.create_key(service_identity_user))
     settings.shifts = Shifts()
 
     shift = Shift()
-    shift.name = translate('shift-lunch')
+    shift.name = translate_f('shift-lunch')
     shift.capacity = 50
     shift.max_group_size = 6
     shift.leap_time = 30
@@ -101,11 +101,11 @@ def put_default_restaurant_settings(service_user, service_identity, translate, d
     shift.start = 12 * 60 * 60
     shift.end = 14 * 60 * 60
     shift.days = [1, 2, 3, 4, 5]
-    shift.comment = translate('shift-comment0')
+    shift.comment = translate_f('shift-comment0')
     settings.shifts.add(shift)
 
     shift = Shift()
-    shift.name = translate('shift-dinner')
+    shift.name = translate_f('shift-dinner')
     shift.capacity = 50
     shift.max_group_size = 6
     shift.leap_time = 30
@@ -113,7 +113,7 @@ def put_default_restaurant_settings(service_user, service_identity, translate, d
     shift.start = 18 * 60 * 60
     shift.end = 21 * 60 * 60
     shift.days = [1, 2, 3, 4, 5]
-    shift.comment = translate('shift-comment1')
+    shift.comment = translate_f('shift-comment1')
     settings.shifts.add(shift)
     settings.put()
     return settings
@@ -163,11 +163,12 @@ def reservation_part2(service_user, message_flow_run_id, member, steps, end_id, 
     people = data['people']
 
     real_result = FlowMemberResultCallbackResultTO()
+    sln_settings = get_solution_settings(service_user)
     status = reserve_table(service_user, service_identity, user_details, date, people, name, phone, comment)
     if status == STATUS_AVAILABLE:
         real_result.type = u'message'
         result = MessageCallbackResultTypeTO()
-        result.message = _translate_service_user(service_user, u'table-reserved')
+        result.message = common_translate(sln_settings.main_language, u'table-reserved')
         result.tag = MESSAGE_TAG_RESERVE_SUCCESS
         result.answers = []
         result.branding = get_solution_main_branding(service_user).branding_key
@@ -218,6 +219,9 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT
     info = json.loads(answer_id)
     action = info.get('action')
+    sln_settings = get_solution_settings(service_user)
+    lang = sln_settings.main_language
+
     if action == 'cancel':
         cancel_reservation(service_user, info['reservation'])
 
@@ -229,7 +233,7 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         result.value.branding = get_solution_main_branding(service_user).branding_key
         result.value.dismiss_button_ui_flags = 0
         result.value.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
-        result.value.message = _translate_service_user(service_user, u'my-reservations-canceled')
+        result.value.message = common_translate(lang, u'my-reservations-canceled')
         result.value.tag = None
         result.value.attachments = []
         result.value.step_id = u'message_reservation_canceled'
@@ -239,17 +243,17 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
 
         now_ = now()
         if reservation.solution_inbox_message_key:
-            msg = _translate_service_user(service_user, 'if-update-reservation-cancel')
-            message, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False, user_details, now_, msg)
+            msg = common_translate(lang, 'if-update-reservation-cancel')
+            message, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False,
+                                                    user_details, now_, msg)
         else:
-            msg = _translate_service_user(service_user, 'update-reservation-cancel') % {
-                'user_name': user_details[0].name,
-                'user_email': user_details[0].email,
-                'people': reservation.people,
-                'weekday': _format_weekday_service_user(service_user, reservation.date),
-                'date': _format_date_service_user(service_user, reservation.date),
-                'time': _format_time_service_user(service_user, reservation.date)
-            }
+            msg = common_translate(lang, 'update-reservation-cancel',
+                                   user_name=user_details[0].name,
+                                   user_email=user_details[0].email,
+                                   people=reservation.people,
+                                   weekday=_format_weekday_service_user(service_user, reservation.date),
+                                   date=_format_date_service_user(service_user, reservation.date),
+                                   time=_format_time_service_user(service_user, reservation.date))
             message = create_solution_inbox_message(service_user, service_identity,
                                                     SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
                                                     unicode(reservation.key()), False, user_details, now_, msg, True)
@@ -276,10 +280,10 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         result.value.branding = get_solution_main_branding(service_user).branding_key
         result.value.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
         result.value.form = SingleSliderFormTO()
-        result.value.form.negative_button = _translate_service_user(service_user, u'Cancel', SOLUTION_COMMON)
+        result.value.form.negative_button = common_translate(lang, u'Cancel')
         result.value.form.negative_button_ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
         result.value.form.negative_confirmation = None
-        result.value.form.positive_button = _translate_service_user(service_user, u'reservation-button-check-db')
+        result.value.form.positive_button = common_translate(lang, u'reservation-button-check-db')
         result.value.form.positive_button_ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
         result.value.form.positive_confirmation = None
         result.value.form.javascript_validation = None
@@ -288,8 +292,9 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         result.value.form.widget.max = 20
         result.value.form.widget.min = 1
         result.value.form.widget.value = int(reservation.people)
-        result.value.message = _translate_service_user(service_user, u'reservation-message-amount-people')
-        result.value.tag = MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE + json.dumps(dict(reservation=info['reservation'])).decode('utf8')
+        result.value.message = common_translate(lang, u'reservation-message-amount-people')
+        result.value.tag = MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE + json.dumps(
+            dict(reservation=info['reservation'])).decode('utf8')
         result.value.attachments = []
         result.value.step_id = u'message_number_of_people'
         return result
@@ -304,20 +309,21 @@ def my_reservations_detail_updated(service_user, status, answer_id, received_tim
         result.value.branding = get_solution_main_branding(service_user).branding_key
         result.value.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
         result.value.form = TextBlockFormTO()
-        result.value.form.negative_button = _translate_service_user(service_user, u'Cancel', SOLUTION_COMMON)
+        result.value.form.negative_button = common_translate(lang, u'Cancel')
         result.value.form.negative_button_ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
         result.value.form.negative_confirmation = None
-        result.value.form.positive_button = _translate_service_user(service_user, u'Submit', SOLUTION_COMMON)
+        result.value.form.positive_button = common_translate(lang, u'Submit')
         result.value.form.positive_button_ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
         result.value.form.positive_confirmation = None
         result.value.form.javascript_validation = None
         result.value.form.type = TextBlockTO.TYPE
         result.value.form.widget = TextBlockTO()
         result.value.form.widget.max_chars = 500
-        result.value.form.widget.place_holder = _translate_service_user(service_user, u'(optional)')
+        result.value.form.widget.place_holder = common_translate(lang, u'(optional)')
         result.value.form.widget.value = reservation.comment
-        result.value.message = _translate_service_user(service_user, u'reservation-message-comments')
-        result.value.tag = MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT + json.dumps(dict(reservation=info['reservation'])).decode('utf8')
+        result.value.message = common_translate(lang, u'reservation-message-comments')
+        result.value.tag = MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT + json.dumps(
+            dict(reservation=info['reservation'])).decode('utf8')
         result.value.attachments = []
         result.value.step_id = u'message_edit_comment'
         return result
@@ -348,28 +354,26 @@ def my_reservations_edit_comment_updated(service_user, status, form_result, answ
         result.value = _create_reservation_edited_message(service_user, user_details)
 
         reservation = db.get(info['reservation'])
-
+        sln_settings = get_solution_settings(service_user)
+        lang = sln_settings.main_language
 
         now_ = now()
         if reservation.solution_inbox_message_key:
-            msg = _translate_service_user(service_user, 'if-update-reservation-comment') % {
-                'comment': comment_new
-            }
-            message_parent, message = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False, user_details, now_, msg)
+            msg = common_translate(lang, 'if-update-reservation-comment', comment=comment_new)
+            message_parent, message = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key,
+                                                                 False, user_details, now_, msg)
         else:
-            msg = _translate_service_user(service_user, 'update-reservation-comment') % {
-                'user_name': user_details[0].name,
-                'user_email': user_details[0].email,
-                'people': reservation.people,
-                'weekday': _format_weekday_service_user(service_user, reservation.date),
-                'date': _format_date_service_user(service_user, reservation.date),
-                'time': _format_time_service_user(service_user, reservation.date),
-                'comment': comment_new
-            }
+            msg = common_translate(lang, 'update-reservation-comment',
+                                   user_name=user_details[0].name,
+                                   user_email=user_details[0].email,
+                                   people=reservation.people,
+                                   weekday=_format_weekday_service_user(service_user, reservation.date),
+                                   date=_format_date_service_user(service_user, reservation.date),
+                                   time=_format_time_service_user(service_user, reservation.date),
+                                   comment=comment_new)
             message = create_solution_inbox_message(service_user, service_identity,
                                                     SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
                                                     unicode(reservation.key()), False, user_details, now_, msg, True)
-        sln_settings = get_solution_settings(service_user)
         service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
                      message=SolutionInboxMessageTO.fromModel(message_parent if message_parent else message,
@@ -404,34 +408,32 @@ def my_reservations_edit_people_updated(service_user, status, form_result, answe
     people_new = int(form_result.result.value)
 
     status = edit_reservation(service_user, info['reservation'], people=people_new)
+    sln_settings = get_solution_settings(service_user)
+    lang = sln_settings.main_language
 
     result = FormAcknowledgedCallbackResultTO()
     result.type = u'message'
     if status == STATUS_AVAILABLE:
         result.value = _create_reservation_edited_message(service_user, user_details)
 
-        msg = _translate_service_user(service_user, 'if-update-reservation-people') % {
-            'people_old': people_old,
-            'people_new': people_new,
-        }
+        msg = common_translate(lang, 'if-update-reservation-people', people_old=people_old, people_new=people_new)
 
         now_ = now()
         if reservation.solution_inbox_message_key:
             message, _ = add_solution_inbox_message(service_user, reservation.solution_inbox_message_key, False, user_details, now_, msg)
         else:
-            msg = _translate_service_user(service_user, 'update-reservation-people') % {
-                'user_name': user_details[0].name,
-                'user_email': user_details[0].email,
-                'people_old': people_old,
-                'people_new': people_new,
-                'weekday': _format_weekday_service_user(service_user, reservation.date),
-                'date': _format_date_service_user(service_user, reservation.date),
-                'time': _format_time_service_user(service_user, reservation.date)
-            }
+            msg = common_translate(lang, 'update-reservation-people',
+                                   user_name=user_details[0].name,
+                                   user_email=user_details[0].email,
+                                   people_old=people_old,
+                                   people_new=people_new,
+                                   weekday=_format_weekday_service_user(service_user, reservation.date),
+                                   date=_format_date_service_user(service_user, reservation.date),
+                                   time=_format_time_service_user(service_user, reservation.date)
+                                   )
             message = create_solution_inbox_message(service_user, service_identity,
                                                     SolutionInboxMessage.CATEGORY_RESTAURANT_RESERVATION,
                                                     unicode(reservation.key()), False, user_details, now_, msg, True)
-        sln_settings = get_solution_settings(service_user)
         service_info = get_service_info(service_user, service_identity)
         send_message(service_user, u"solutions.common.messaging.update", service_identity=service_identity,
                      message=SolutionInboxMessageTO.fromModel(message, sln_settings, service_info, True).to_dict())
@@ -465,10 +467,11 @@ def _create_reservations_overview_message(service_user, service_identity, user_d
         return btn
 
     answers = map(convert_reservation_to_button, reservations)
+    lang = get_solution_settings(service_user).main_language
     if answers:
-        msg = _translate_service_user(service_user, u'my-reservations-select-reservation')
+        msg = common_translate(lang, u'my-reservations-select-reservation')
     else:
-        msg = _translate_service_user(service_user, u'my-reservations-no-reservations')
+        msg = common_translate(lang, u'my-reservations-no-reservations')
 
     result = MessageCallbackResultTypeTO()
     result.alert_flags = 0
@@ -481,6 +484,7 @@ def _create_reservations_overview_message(service_user, service_identity, user_d
     result.attachments = []
     result.step_id = u'message_reservation_overview'
     return result
+
 
 @returns(MessageCallbackResultTypeTO)
 @arguments(reservation_key=unicode, user_details=[UserDetailsTO])
@@ -498,23 +502,25 @@ def _create_reservation_details_message(reservation_key, user_details):
                            'arrival_date_time' : '%s %s' % (date, time_)
                            }
 
+    sln_settings = get_solution_settings(service_user)
     btn_people = AnswerTO()
     btn_people.action = None
-    btn_people.caption = _translate_service_user(service_user, u'my-reservations-btn-edit-people')
+    btn_people.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-edit-people')
     btn_people.id = json.dumps(dict(reservation=reservation_key, action='edit-people')).decode('utf8')
     btn_people.type = u"button"
     btn_people.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
 
     btn_comment = AnswerTO()
     btn_comment.action = None
-    btn_comment.caption = _translate_service_user(service_user, u'my-reservations-btn-edit-comment')
+    btn_comment.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-edit-comment')
     btn_comment.id = json.dumps(dict(reservation=reservation_key, action='edit-comment')).decode('utf8')
     btn_comment.type = u"button"
     btn_comment.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
 
     btn_cancel = AnswerTO()
-    btn_cancel.action = "confirm://" + (_translate_service_user(service_user, u'my-reservations-btn-cancel-confirm') % reservation_details)
-    btn_cancel.caption = _translate_service_user(service_user, u'my-reservations-btn-cancel')
+    btn_cancel.action = "confirm://" + (
+        common_translate(sln_settings.main_language, u'my-reservations-btn-cancel-confirm', arrival_date_time=reservation_details['reservation_details']))
+    btn_cancel.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-cancel')
     btn_cancel.id = json.dumps(dict(reservation=reservation_key, action='cancel')).decode('utf8')
     btn_cancel.type = u"button"
     btn_cancel.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
@@ -526,7 +532,9 @@ def _create_reservation_details_message(reservation_key, user_details):
     result.branding = get_solution_main_branding(reservation_service_user).branding_key
     result.dismiss_button_ui_flags = 0
     result.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
-    result.message = _translate_service_user(service_user, u'my-reservations-detail') % reservation_details
+    result.message = common_translate(sln_settings.main_language, u'my-reservations-detail', arrival_time=reservation_details['arrival_time'],
+                                      arrival_date=reservation_details['arrival_date'], number=reservation_details['number'],
+                                      comment=reservation_details['comment'], date_reservation_done=reservation_details['date_reservation_done'])
     result.tag = MESSAGE_TAG_MY_RESERVATIONS_DETAIL
     result.attachments = []
     result.step_id = u'message_reservation_detail'
@@ -542,7 +550,8 @@ def _create_reservation_edited_message(service_user, user_details):
     result.branding = get_solution_main_branding(service_user).branding_key
     result.dismiss_button_ui_flags = 0
     result.flags = Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK
-    result.message = _translate_service_user(service_user, u'my-reservations-edited')
+    lang = get_solution_settings(service_user).main_language
+    result.message = common_translate(lang, u'my-reservations-edited')
     result.tag = MESSAGE_TAG_MY_RESERVATIONS_DETAIL
     result.attachments = []
     result.step_id = u'message_reservation_edited'
@@ -552,14 +561,15 @@ def _create_reservation_edited_message(service_user, user_details):
 @arguments(service_user=users.User, service_identity=unicode, user_details=[UserDetailsTO], status=unicode, date=(int, long))
 def _fail_message(service_user, service_identity, user_details, status, date=0):
     from solutions.common.bizz.messaging import MESSAGE_TAG_RESERVE_FAIL
+    lang = get_solution_settings(service_user).main_language
     result = MessageCallbackResultTypeTO()
     result.tag = MESSAGE_TAG_RESERVE_FAIL
-    result.message = _translate_service_user(service_user, status)
+    result.message = common_translate(lang, status)
     if status in (STATUS_NO_TABLES, STATUS_SHORT_NOTICE, STATUS_TOO_MANY_PEOPLE):
         call = AnswerTO()
         call.id = u'call'
         call.type = u'button'
-        call.caption = _translate_service_user(service_user, u'call-restaurant-btn')
+        call.caption = common_translate(lang, u'call-restaurant-btn')
         call.action = u'tel://%s' % system.get_identity(service_identity).phone_number
         call.ui_flags = 0
         result.answers = [call]
@@ -567,8 +577,7 @@ def _fail_message(service_user, service_identity, user_details, status, date=0):
     elif status == STATUS_KITCHEN_CLOSED and date:
         date = datetime.utcfromtimestamp(date)
         shifts = _get_shifts_on_date(service_user, service_identity, date)
-        extra_line = _translate_service_user(service_user, u'kitchen-closed-extra-line') % {
-            'week_day': _format_weekday_service_user(service_user, date)}
+        extra_line = common_translate(lang, u'kitchen-closed-extra-line', week_day=_format_weekday_service_user(service_user, date))
         for shift in shifts:
             start_hour = shift.start / 3600
             start_minutes = (shift.start % 3600) / 60
@@ -665,16 +674,16 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
                  % (date, people, name, comment))
     date = datetime.utcfromtimestamp(date)
     rogerthat_user = user_details[0].toAppUser() if user_details else None
+    sln_settings = get_solution_settings(service_user)
 
     if user_details:
-        msg = _translate_service_user(service_user, 'if-reservation-received') % {
-                'reservation_weekday': _format_weekday_service_user(service_user, date),
-                'reservation_date': _format_date_service_user(service_user, date),
-                'reservation_time': _format_time_service_user(service_user, date),
-                'reservation_count': people,
-                'reservation_phone': phone,
-                'reservation_remarks': comment
-                }
+        msg = common_translate(sln_settings.main_language, 'if-reservation-received',
+                               reservation_weekday=_format_weekday_service_user(service_user, date),
+                               reservation_date=_format_date_service_user(service_user, date),
+                               reservation_time=_format_time_service_user(service_user, date),
+                               reservation_count=people,
+                               reservation_phone=phone,
+                               reservation_remarks=comment)
     else:
         msg = None
 
@@ -712,7 +721,6 @@ def reserve_table(service_user, service_identity, user_details, date, people, na
                 u"shift": serialize_complex_value(start_time, TimestampTO, False)}]
 
     if message:
-        sln_settings = get_solution_settings(service_user)
         service_info = get_service_info(service_user, service_identity)
         sm_data.append({
             u"type": u"solutions.common.messaging.update",
@@ -780,14 +788,13 @@ def _send_cancellation_message(reservation_key):
     try:
         reservation = RestaurantReservation.get(reservation_key)
         reservation_service_user = get_service_user_from_service_identity_user(reservation.service_identity_user)
+        sln_settings = get_solution_settings(reservation_service_user)
         bizz_check(not reservation.user is None, "This is only for reservations made by the app.")
-        message = _translate_service_user(reservation_service_user, u'cancellation-message')
-        date = "%s %s" % (_format_date_service_user(reservation_service_user, reservation.date), _format_time_service_user(reservation_service_user, reservation.date))
-        common_settings = get_solution_settings(reservation_service_user)
-        resto = common_settings.name
-        message = message % {'date': date, 'resto': resto}
+        date = "%s %s" % (_format_date_service_user(reservation_service_user, reservation.date),
+                          _format_time_service_user(reservation_service_user, reservation.date))
+        resto = sln_settings.name
+        message = common_translate(sln_settings.main_language, u'cancellation-message', date=date, resto=resto)
         if reservation.solution_inbox_message_key:
-            sln_settings = get_solution_settings(reservation_service_user)
             sim_parent, _ = add_solution_inbox_message(reservation_service_user, reservation.solution_inbox_message_key,
                                                        True, None, now(), message, mark_as_unread=False,
                                                        mark_as_read=True)
@@ -1110,13 +1117,6 @@ def _get_matching_shift2(service_user, service_identity, seconds_from_midnight, 
         if weekday in shift.days and shift.start <= seconds_from_midnight < shift.end:
             return shift
     return None
-
-
-@returns(unicode)
-@arguments(service_user=users.User, key=unicode, solution=unicode)
-def _translate_service_user(service_user, key, solution=SOLUTION_COMMON):
-    settings = get_solution_settings(service_user)  # TODO: make cached
-    return common_translate(settings.main_language, solution, key)
 
 
 @returns(unicode)

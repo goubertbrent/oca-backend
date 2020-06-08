@@ -16,25 +16,25 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import OrderedDict
+from contextlib import closing
 import csv
 import datetime
+from functools import partial
 import hashlib
 import json
 import logging
 import os
+from types import NoneType
 import urllib
 import urlparse
-from collections import OrderedDict
-from contextlib import closing
-from functools import partial
-from types import NoneType
 
-import cloudstorage
-import httplib2
 from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db, ndb
+import httplib2
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
 from typing import Tuple, Union, List
@@ -94,7 +94,7 @@ from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, A
     OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-from solutions import SOLUTION_COMMON, translate as common_translate, translate
+from solutions import translate as common_translate, translate
 from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor, DEFAULT_BROADCAST_TYPES
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
@@ -110,6 +110,7 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
+
 
 try:
     from cStringIO import StringIO
@@ -548,7 +549,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             if fb_url:
                 page = SyncedNameValue()
                 page.value = fb_url
-                page.name = translate(customer.language, SOLUTION_COMMON, 'Facebook page')
+                page.name = common_translate(customer.language, 'Facebook page')
                 websites.append(page)
         if customer.website:
             url = validate_url(customer.website)
@@ -604,7 +605,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 to_put.append(new_default_app)
                 if not is_redeploy:
                     app_settings = get_app_settings(new_default_app_id)
-                    app_settings.birthday_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                    app_settings.birthday_message = common_translate(sln_settings.main_language,
                                                                      u'birthday_message_default_text')
                     to_put.append(app_settings)
             customer.default_app_id = new_default_app_id
@@ -656,8 +657,8 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             text_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email.tmpl').render(params)
             html_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email_html.tmpl').render(params)
 
-            subject = '%s - %s' % (common_translate(customer.language, SOLUTION_COMMON, 'our-city-app'),
-                                   common_translate(customer.language, SOLUTION_COMMON, 'login_information'))
+            subject = '%s - %s' % (common_translate(customer.language, 'our-city-app'),
+                                   common_translate(customer.language, 'login_information'))
             app = get_app_by_id(customer.app_id)
             from_email = '%s <%s>' % (app.name, shop_translate(customer.language, 'oca_info_email_address'))
 
@@ -2210,7 +2211,7 @@ def get_signup_summary(lang, customer_signup):
     """
 
     def trans(term, *args, **kwargs):
-        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
+        return common_translate(lang, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
     org_type_name = ServiceProfile.localized_singular_organization_type(
@@ -2257,12 +2258,12 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     btn_accept = AnswerTO()
     btn_accept.id = u'approve'
     btn_accept.type = u'button'
-    btn_accept.caption = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'reservation-approve')
+    btn_accept.caption = common_translate(sln_settings.main_language, 'reservation-approve')
     btn_accept.ui_flags = 0
     btn_deny = AnswerTO()
     btn_deny.id = u'decline'
     btn_deny.type = u'button'
-    btn_deny.caption = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'reservation-decline')
+    btn_deny.caption = common_translate(sln_settings.main_language, 'reservation-decline')
     btn_deny.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
     answers = [btn_accept, btn_deny]
     msg_params = {'if_name': customer_signup.customer_name, 'if_email': customer_signup.customer_email}
@@ -2290,7 +2291,7 @@ def send_signup_verification_email(city_customer, signup, host=None):
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.b64encode(data)})
 
     lang = city_customer.language
-    translate = partial(common_translate, lang, SOLUTION_COMMON)
+    translate = partial(common_translate, lang)
     base_url = host or get_server_settings().baseUrl
     link = '{}/customers/signup-password/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
     subject = city_customer.name + ' - ' + translate('signup')
@@ -2319,8 +2320,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     profile = get_service_or_user_profile(users.User(user_email))
     if isinstance(profile, ServiceProfile) or profile and profile.passwordHash:
         url = '{}/customers/signin/{}?email={}'.format(get_server_url(), city_customer.default_app_id, user_email)
-        message = translate(customer.language, SOLUTION_COMMON, 'signup_already_registered_with_email')
-        goto_login = translate(customer.language, SOLUTION_COMMON, 'go_to_login_page')
+        message = translate(customer.language, 'signup_already_registered_with_email')
+        goto_login = translate(customer.language, 'go_to_login_page')
         raise HttpBadRequestException(message, {'url': url, 'label': goto_login})
 
     signup = CustomerSignup(parent=city_customer)
@@ -2338,7 +2339,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     try:
         signup.company_vat = company.vat and normalize_vat(city_customer.country, company.vat)
     except BusinessException:
-        msg = translate(customer.language, SOLUTION_COMMON, 'vat_invalid')
+        msg = translate(customer.language, 'vat_invalid')
         raise HttpBadRequestException(msg)
 
     signup.customer_name = customer.name
@@ -2598,7 +2599,7 @@ def add_service_admin(service_user, owner_user_email, base_url):
         user_profile.isCreatedForService = True
         user_profile.owningServiceEmails = [service_email]
         update_password_hash(user_profile, password_hash, now())
-        action = common_translate(user_profile.language, SOLUTION_COMMON, 'reset-password')
+        action = common_translate(user_profile.language, 'reset-password')
         url_params = get_reset_password_url_params(user_profile.name, user_profile.user, action=action)
         reset_password_link = '%s/customers/setpassword/%s?%s' % (base_url, user_profile.app_id, url_params)
         params = {
@@ -2606,13 +2607,13 @@ def add_service_admin(service_user, owner_user_email, base_url):
             'user_email': owner_user_email,
             'user_name': user_profile.name,
             'link': reset_password_link,
-            'link_text': common_translate(user_profile.language, SOLUTION_COMMON, 'set_password'),
+            'link_text': common_translate(user_profile.language, 'set_password'),
             'language': service_profile.defaultLanguage
         }
         text_body = JINJA_ENVIRONMENT.get_template('emails/service_admin_added.tmpl').render(params)
         html_body = JINJA_ENVIRONMENT.get_template('emails/service_admin_added.html').render(params)
-        subject = '%s - %s' % (common_translate(user_profile.language, SOLUTION_COMMON, 'our-city-app'),
-                               common_translate(user_profile.language, SOLUTION_COMMON,
+        subject = '%s - %s' % (common_translate(user_profile.language, 'our-city-app'),
+                               common_translate(user_profile.language,
                                                 'permission_granted_to_service'))
         app = get_app_by_id(user_profile.app_id)
         from_email = '%s <%s>' % (app.name, shop_translate(user_profile.language, 'oca_info_email_address'))

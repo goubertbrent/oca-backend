@@ -52,12 +52,11 @@ from rogerthat.models.properties.forms import MdpScope, TextWidget, OpenIdScope
 from rogerthat.models.properties.messaging import JsFlowDefinition, JsFlowDefinitions
 from rogerthat.rpc import users
 from rogerthat.rpc.service import ServiceApiException, BusinessException
-from rogerthat.settings import get_server_settings
 from rogerthat.to import WIDGET_MAPPING
 from rogerthat.to.friends import FRIEND_TYPE_SERVICE
 from rogerthat.to.messaging.forms import TextLineTO, TextBlockTO, AutoCompleteTO, SingleSelectTO, MultiSelectTO, \
     SingleSliderTO, RangeSliderTO, DateSelectTO, PhotoUploadTO, GPSLocationTO, MyDigiPassTO, \
-    AdvancedOrderTO, FriendSelectTO, SignTO, OauthTO, PayTO, OpenIdTO, OpenIdFormTO, OpenIdFormMessageTO, OpenIdProvider
+    AdvancedOrderTO, FriendSelectTO, SignTO, OauthTO, PayTO, OpenIdTO, OpenIdFormMessageTO
 from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, channel, bizz_check, reversed_dict, xml_escape, parse_color
 from rogerthat.utils.attachment import get_attachment_content_type_and_length

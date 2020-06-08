@@ -20,12 +20,12 @@ import logging
 import string
 import urllib
 
-from google.appengine.api import urlfetch
-
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
+from google.appengine.api import urlfetch
 from jose import jwt, jws
 from jose.utils import base64url_decode, base64_to_long
+
 from mcfw.cache import cached
 from mcfw.properties import unicode_list_property, bool_property, unicode_property
 from mcfw.rpc import arguments, returns

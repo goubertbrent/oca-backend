@@ -216,7 +216,7 @@ class SolutionModule(Enum):
 
     @classmethod
     def get_translated_description(cls, language, key):
-        return solutions.translate(language, SOLUTION_COMMON, cls.MODULES_TRANSLATION_KEYS[key])
+        return solutions.translate(language, cls.MODULES_TRANSLATION_KEYS[key])
 
     @classmethod
     def action_order(cls, module):
@@ -337,10 +337,10 @@ def _format_weekday(language, dt):
 
 
 @returns(unicode)
-@arguments(service_user=users.User, key=unicode, solution=unicode)
-def _translate(service_user, key, solution=SOLUTION_COMMON):
+@arguments(service_user=users.User, key=unicode)
+def _translate(service_user, key):
     settings = get_solution_settings(service_user)
-    return common_translate(settings.main_language, solution, key)
+    return common_translate(settings.main_language, key)
 
 
 @cached(1, request=True, memcache=False)
@@ -355,7 +355,7 @@ def update_reserved_menu_item_labels(sln_settings):
     with users.set_user(sln_settings.service_user):
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             put_reserved_menu_item_label(
-                i, common_translate(sln_settings.main_language, SOLUTION_COMMON, label))
+                i, common_translate(sln_settings.main_language, label))
 
 
 @returns(ProvisionResponseTO)
@@ -660,14 +660,14 @@ def validate_before_provision(service_user, sln_settings):
     lang = sln_settings.main_language
     errors = []
     if not branding_settings.avatar_url:
-        errors.append(common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_avatar'))
+        errors.append(common_translate(lang, 'default_settings_warning_avatar'))
     if not branding_settings.logo_url:
-        errors.append(common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_logo'))
+        errors.append(common_translate(lang, 'default_settings_warning_logo'))
     if menu_is_visible(sln_settings):
         menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
         if not menu or menu.is_default:
             errors.append(
-                common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_menu'))
+                common_translate(lang, 'default_settings_warning_menu'))
     identities = [ServiceIdentity.DEFAULT]
     keys = []
     if sln_settings.identities:
@@ -679,12 +679,12 @@ def validate_before_provision(service_user, sln_settings):
     for identity in identities:
         hours = models.get(OpeningHours.create_key(service_user, identity))  # type: OpeningHours
         if not hours or hours.type not in (OpeningHours.TYPE_STRUCTURED, OpeningHours.TYPE_NOT_RELEVANT):
-            errors.append(common_translate(lang, SOLUTION_COMMON, 'need_opening_hours_before_publish'))
+            errors.append(common_translate(lang, 'need_opening_hours_before_publish'))
         service_info = models.get(ServiceInfo.create_key(service_user, identity))  # type: ServiceInfo
         if not service_info or not service_info.place_types or not service_info.main_place_type:
-            errors.append(common_translate(lang, SOLUTION_COMMON, 'need_place_type_before_publish'))
+            errors.append(common_translate(lang, 'need_place_type_before_publish'))
         if not service_info or not service_info.addresses:
-            errors.append(common_translate(lang, SOLUTION_COMMON, 'configure_your_address'))
+            errors.append(common_translate(lang, 'configure_your_address'))
     return errors
 
 
@@ -728,7 +728,6 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                                                tzinfo=get_timezone(sln_settings.timezone),
                                                locale=sln_settings.main_language)
                     raise BusinessException(common_translate(sln_settings.main_language,
-                                                             SOLUTION_COMMON,
                                                              'you-can-only-publish-every-15-min',
                                                              time_str=time_str))
                 last_publish = now_
@@ -737,7 +736,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
 
                 errors = validate_before_provision(service_user, sln_settings)
                 if errors:
-                    msg = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                    msg = common_translate(sln_settings.main_language,
                                            'default_settings_warning') + ':'
                     lines = [msg] + errors
                     raise BusinessException('\n • '.join(lines))
@@ -751,7 +750,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                 if isinstance(e, BusinessException):
                     errormsg = e.message
                 else:
-                    errormsg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'failed_to_create_service')
+                    errormsg = common_translate(sln_settings.main_language, 'failed_to_create_service')
                 channel.send_message(cur_user, 'common.provision.failed',
                                      errormsg=errormsg)
             if broadcast_to_users:
@@ -789,7 +788,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
         if not sln_settings:
             sln_settings = get_solution_settings(service_user)
         raise BusinessException(
-            common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
+            common_translate(sln_settings.main_language, 'error-occured-unknown-try-again'))
 
 
 @returns()
@@ -814,7 +813,7 @@ def service_auto_connect(service_user):
 @arguments()
 def get_all_existing_broadcast_types():
     # translate the keys and sort
-    return sorted((common_translate(DEFAULT_LANGUAGE, SOLUTION_COMMON, k) for k in MERCHANT_BROADCAST_TYPES))
+    return sorted((common_translate(DEFAULT_LANGUAGE, k) for k in MERCHANT_BROADCAST_TYPES))
 
 
 @returns(unicode)
@@ -960,7 +959,7 @@ def delete_file_blob(service_user, file_id):
 @arguments(key=unicode, language=unicode)
 def try_to_translate(key, language):
     try:
-        return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
+        return common_translate(language, key, suppress_warning=True)
     except:
         return key
 
@@ -1066,12 +1065,12 @@ def delete_news_publisher(app_user, service_user, solution):
 
 
 @returns()
-@arguments(sln_settings=SolutionSettings, solution=unicode)
-def set_default_broadcast_types(sln_settings, solution=SOLUTION_COMMON):
+@arguments(sln_settings=SolutionSettings)
+def set_default_broadcast_types(sln_settings):
     if not sln_settings.broadcast_types:
         sln_settings.broadcast_types = []
         for broadcast_type in DEFAULT_BROADCAST_TYPES:
-            translated = common_translate(sln_settings.main_language, solution, broadcast_type)
+            translated = common_translate(sln_settings.main_language, broadcast_type)
             sln_settings.broadcast_types.append(translated)
 
 

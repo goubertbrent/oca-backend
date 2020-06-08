@@ -1,18 +1,18 @@
 <div class="broken">
-<h2>{% translate language, "common", "broken-reservations" %}</h2>
-{% translate language, "common", "broken-comment" %}<br>
-<b>{% translate language, "common", "broken-comment-instruction" %}</b>{% raw %}
+<h2>{% translate language, "broken-reservations" %}</h2>
+{% translate language, "broken-comment" %}<br>
+<b>{% translate language, "broken-comment-instruction" %}</b>{% raw %}
 {{if via_rogerthat > 0}}
-<br><button class="btn btn-success via-rogerthat">{% endraw %}{% translate language, "common", "send-cancel-notification-via-rogerthat" %}{% raw %} (${via_rogerthat})</button>
+<br><button class="btn btn-success via-rogerthat">{% endraw %}{% translate language, "send-cancel-notification-via-rogerthat" %}{% raw %} (${via_rogerthat})</button>
 {{/if}}
 <table class="table table-striped">
     <thead>
         <tr>
 {%- endraw %}
-            <th>{% translate language, "common", "Date" %}</th>
+            <th>{% translate language, "Date" %}</th>
             <th>#</th>
-            <th>{% translate language, "common", "reservation-name" %}</th>
-            <th>{% translate language, "common", "phone" %}</th>
+            <th>{% translate language, "reservation-name" %}</th>
+            <th>{% translate language, "phone" %}</th>
 {% raw %}
         </tr>
     </thead>
@@ -27,7 +27,7 @@
             	{{each $value.alternative_shifts}}
             	<button class="btn btn-primary move-shift" shift="${$value}">&rarr; ${$value}</button>&nbsp;
                 {{/each}}
-            	<button class="btn btn-success notified" shift="${$value}">{% endraw %}{% translate language, "common", "reservation-notified" %}{% raw %}</button>&nbsp;
+            	<button class="btn btn-success notified" shift="${$value}">{% endraw %}{% translate language, "reservation-notified" %}{% raw %}</button>&nbsp;
             </td>
         </tr>
         {{/each}}

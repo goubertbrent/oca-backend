@@ -1,6 +1,6 @@
 {% extends 'public/base.html' %}
 
-{% block title %}{% translate language, "common", "signup" %}{% endblock %}
+{% block title %}{% translate language, "signup" %}{% endblock %}
 
 {% block css %}
     <link rel="stylesheet" href="/static/css/public/signup.css">
@@ -9,9 +9,9 @@
     <script>
 
         var SignupTranslations = {
-            LOADING_CAPTCHA_CHALLENGE: '{% translate language, "common", "loading_captcha_challenge" %}',
+            LOADING_CAPTCHA_CHALLENGE: '{% translate language, "loading_captcha_challenge" %}',
             SIGNUP_SUCCCESS: {{ signup_success }},
-            PLEASE_AGREE_TO_TOC: '{% translate language, "common", "please_agree_to_toc" %}'
+            PLEASE_AGREE_TO_TOC: '{% translate language, "please_agree_to_toc" %}'
         };
 
     </script>
@@ -20,18 +20,18 @@
 
 {% block content %}
             <div class="span12" style="float: none; margin: 0 auto;">
-                <h1>{% translate language, "common", "signup" %}</h1>
+                <h1>{% translate language, "signup" %}</h1>
                 <div class="span12">
                     <p id="signup_note" style="word-wrap: break-word;" align="justify">
                         {% if email_verified %}
-                        {% translate language, "common", "your_registration_request_submitted" %}
+                        {% translate language, "your_registration_request_submitted" %}
                         {% else %}
-                        {% translate language, "common", "signup_note" %}
+                        {% translate language, "signup_note" %}
                         {% endif %}
                     </p>
                     <br/>
                     <a id="go_back" class="btn btn-wizard" href="{{ signin_url }}" style="display: none;">
-                        {% translate language, "common", "okay-i-got-it" %}
+                        {% translate language, "okay-i-got-it" %}
                     </a>
                 </div>
                 {% if not email_verified %}
@@ -40,16 +40,16 @@
                         <div id="tab0">
                             <div class="control-group">
                                 <div class="controls">
-                                    <h4>{% translate language, "common", "application" %}</h4>
+                                    <h4>{% translate language, "application" %}</h4>
                                 </div>
                             </div>
                             <div class="control-group">
                                 <label for="language" class="control-label">
-                                    {% translate language, "common", "Language" %}
+                                    {% translate language, "Language" %}
                                 </label>
                                 <div class="controls">
                                     <select id="language" class="input-block-level" required>
-                                        <option value="">{% translate language, "common", "Select..." %}</option>
+                                        <option value="">{% translate language, "Select..." %}</option>
                                         {% for lang_code, lang_name in languages %}
                                         <option value="{{ lang_code }}" {% if language == lang_code %}selected{% endif %}>{{ lang_name }}</option>
                                         {% endfor %}
@@ -57,13 +57,13 @@
                                 </div>
                             </div>
                             <div class="control-group">
-                                <label for="already_in_app" class="control-label">{% translate language, "common", "already_have_an_app" %}</label>
+                                <label for="already_in_app" class="control-label">{% translate language, "already_have_an_app" %}</label>
                                 <div class="controls">
                                     <div class="radio">
-                                        <label><input type="radio" name="already_in_app" value="yes" checked>{% translate language, "common", "Yes" %}</label>
+                                        <label><input type="radio" name="already_in_app" value="yes" checked>{% translate language, "Yes" %}</label>
                                     </div>
                                     <div class="radio">
-                                        <label><input type="radio" name="already_in_app" value="no">{% translate language, "common", "No" %}</label>
+                                        <label><input type="radio" name="already_in_app" value="no">{% translate language, "No" %}</label>
                                     </div>
                                 </div>
                             </div>
@@ -71,14 +71,14 @@
                         <div id="tab1" style="display: none;">
                             <div class="control-group">
                                 <div class="controls">
-                                    <h4>{% translate language, "common", "application" %}</h4>
+                                    <h4>{% translate language, "application" %}</h4>
                                 </div>
                             </div>
                             <div class="control-group {% if app_id %}hidden{% endif %}">
-                                <label for="app" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
+                                <label for="app" class="control-label">{% translate language, "City/Municipality" %}</label>
                                 <div class="controls">
                                     <select id="app" class="input-block-level" required >
-                                        <option value="">{% translate language, "common", "Select..." %}</option>
+                                        <option value="">{% translate language, "Select..." %}</option>
                                         {% for app in apps %}
                                         <option value="{{ app.app_id }}" {% if app_id== app.app_id %}selected{% endif%}>{{ app.name }}</option>
                                         {% endfor %}
@@ -86,7 +86,7 @@
                                 </div>
                             </div>
                             <div id="organization_types" class="control-group" style="display: none;">
-                                <label for="organization_type" class="control-label">{% translate language, "common", "organization_type" %}</label>
+                                <label for="organization_type" class="control-label">{% translate language, "organization_type" %}</label>
                                 <div class="controls">
                                 </div>
                             </div>
@@ -94,61 +94,61 @@
                         <div id="tab2" style="display: none;">
                             <div class="control-group">
                                 <div class="controls">
-                                    <h4>{% translate language, 'common', 'signup_info_enterprise_association' %}</h4>
-                                    <p>{% translate language, 'common', 'signup_info_user_contact' %}</p>
+                                    <h4>{% translate language, 'signup_info_enterprise_association' %}</h4>
+                                    <p>{% translate language, 'signup_info_user_contact' %}</p>
                                 </div>
                             </div>
                             <div id="enterprise">
                                 <div class="control-group">
-                                    <label for="enterprise_vat" class="control-label">{% translate language, "common", "vat" %}</label>
+                                    <label for="enterprise_vat" class="control-label">{% translate language, "vat" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_vat" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_name" class="control-label">{% translate language, "common", "reservation-name" %}</label>
+                                    <label for="enterprise_name" class="control-label">{% translate language, "reservation-name" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_name" type="text" class="input-block-level" minlength="3" maxlength="50" required/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_user_email" class="control-label">{% translate language, "common", "Email" %}</label>
+                                    <label for="enterprise_user_email" class="control-label">{% translate language, "Email" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_user_email" type="email" pattern="[a-zA-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+\/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?" class="input-block-level" required/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_telephone" class="control-label">{% translate language, "common", "Phone number" %}</label>
+                                    <label for="enterprise_telephone" class="control-label">{% translate language, "Phone number" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_telephone" type="tel" pattern="^[0-9\-\+\s\(\)]*$" class="input-block-level" required/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_address1" class="control-label">{% translate language, "common", "address" %}</label>
+                                    <label for="enterprise_address1" class="control-label">{% translate language, "address" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_address1" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_zip_code" class="control-label">{% translate language, "common", "zip_code" %}</label>
+                                    <label for="enterprise_zip_code" class="control-label">{% translate language, "zip_code" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_zip_code" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_city" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
+                                    <label for="enterprise_city" class="control-label">{% translate language, "City/Municipality" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_city" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_website" class="control-label">{% translate language, "common", "Website" %}</label>
+                                    <label for="enterprise_website" class="control-label">{% translate language, "Website" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_website" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="enterprise_facebook_page" class="control-label">{% translate language, "common", "Facebook page" %}</label>
+                                    <label for="enterprise_facebook_page" class="control-label">{% translate language, "Facebook page" %}</label>
                                     <div class="controls">
                                         <input id="enterprise_facebook_page" type="text" class="input-block-level"/>
                                     </div>
@@ -158,43 +158,43 @@
                         <div id="tab3" style="display: none;">
                             <div class="control-group">
                                 <div class="controls">
-                                    <h4>{% translate language, "common", "signup_info_contact" %}</h4>
-                                    <p>{% translate language, "common", "signup_info_contact_2" %}</p>
+                                    <h4>{% translate language, "signup_info_contact" %}</h4>
+                                    <p>{% translate language, "signup_info_contact_2" %}</p>
                                 </div>
                             </div>
                             <div id="contact">
                                 <div class="control-group">
-                                    <label for="contact_name" class="control-label">{% translate language, "common", "reservation-name" %}</label>
+                                    <label for="contact_name" class="control-label">{% translate language, "reservation-name" %}</label>
                                     <div class="controls">
                                         <input id="contact_name" class="input-block-level" type="text" minlength="3" maxlength="50" required/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="contact_address1" class="control-label">{% translate language, "common", "address" %}</label>
+                                    <label for="contact_address1" class="control-label">{% translate language, "address" %}</label>
                                     <div class="controls">
                                         <input id="contact_address1" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="contact_zip_code" class="control-label">{% translate language, "common", "zip_code" %}</label>
+                                    <label for="contact_zip_code" class="control-label">{% translate language, "zip_code" %}</label>
                                     <div class="controls">
                                         <input id="contact_zip_code" type="text" class="input-block-level"/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="contact_city" class="control-label">{% translate language, "common", "City/Municipality" %}</label>
+                                    <label for="contact_city" class="control-label">{% translate language, "City/Municipality" %}</label>
                                     <div class="controls">
                                         <input id="contact_city" type="text" class="input-block-level" required/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="contact_user_email" class="control-label">{% translate language, "common", "Email" %}</label>
+                                    <label for="contact_user_email" class="control-label">{% translate language, "Email" %}</label>
                                     <div class="controls">
                                         <input id="contact_user_email" type="email" pattern="[a-zA-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+\/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?" class="input-block-level" required/>
                                     </div>
                                 </div>
                                 <div class="control-group">
-                                    <label for="contact_telephone" class="control-label">{% translate language, "common", "Phone number" %}</label>
+                                    <label for="contact_telephone" class="control-label">{% translate language, "Phone number" %}</label>
                                     <div class="controls">
                                         <input id="contact_telephone" type="tel" pattern="^[0-9\-\+\s\(\)]*$"
                                                class="input-block-level" required>
@@ -210,7 +210,7 @@
                             <div class="control-group" id="email_consents">
                                 <label class="checkbox" for="agree-to-toc">
                                     <input type="checkbox" id="agree-to-toc" name="agree-to-toc" required>
-                                    {% translate language, 'common', 'i_agree_to_toc' %}
+                                    {% translate language, 'i_agree_to_toc' %}
                                 </label>
                                 <div id="privacy-settings-1"></div>
                             </div>
@@ -221,9 +221,9 @@
                         </div>
                         <hr />
                         <div id="recaptcha_container" class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="signupCallback" data-size="invisible"></div>
-                        <button id="signup" style="display: none;" class="btn btn-wizard pull-right" type="button">{% translate language, "common", "Submit" %} <i class="icon-ok icon-white"></i></button>
-                        <button id="next" class="btn btn-wizard pull-right" type="button">{% translate language, "common", "Next" %} <i class="icon-circle-arrow-right icon-white"></i></button>
-                        <button id="back" style="display: none;" class="btn btn btn-wizard pull-left" type="button"><i class="icon-circle-arrow-left icon-white"></i> {% translate language, "common", "back" %}</button>
+                        <button id="signup" style="display: none;" class="btn btn-wizard pull-right" type="button">{% translate language, "Submit" %} <i class="icon-ok icon-white"></i></button>
+                        <button id="next" class="btn btn-wizard pull-right" type="button">{% translate language, "Next" %} <i class="icon-circle-arrow-right icon-white"></i></button>
+                        <button id="back" style="display: none;" class="btn btn btn-wizard pull-left" type="button"><i class="icon-circle-arrow-left icon-white"></i> {% translate language, "back" %}</button>
                         <div class="clearfix"></div>
                     </form>
 

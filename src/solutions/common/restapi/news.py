@@ -38,7 +38,7 @@ from rogerthat.to.news import NewsItemTO, NewsItemListResultTO, NewsActionButton
 from rogerthat.utils.service import create_service_identity_user
 from shop.exceptions import BusinessException
 from shop.models import ShopApp
-from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions import translate as common_translate
 from solutions.common.bizz.news import get_news, put_news_item, delete_news, get_news_statistics, get_news_reviews, \
     send_news_review_reply, publish_item_from_review, AllNewsSentToReviewWarning, get_locations, \
     is_regional_news_enabled, check_can_send_news
@@ -54,7 +54,7 @@ from solutions.common.utils import is_default_service_identity
 
 def _translate_exception_msg(sln_settings, msg):
     try:
-        return common_translate(sln_settings.main_language, SOLUTION_COMMON, msg)
+        return common_translate(sln_settings.main_language, msg)
     except ValueError:
         return msg
 
@@ -204,27 +204,27 @@ def rest_get_news_options():
     if default_app.demo or shop_app.paid_features_enabled:
         media_types.append(MediaType.VIDEO_YOUTUBE)
     action_buttons = [
-        NewsActionButtonWebsite(label=common_translate(lang, SOLUTION_COMMON, 'Website'),
+        NewsActionButtonWebsite(label=common_translate(lang, 'Website'),
                                 icon='http',
                                 button=NewsActionButtonTO('url',
-                                                          common_translate(lang, SOLUTION_COMMON, 'open_website'),
+                                                          common_translate(lang, 'open_website'),
                                                           '')),
-        NewsActionButtonAttachment(label=common_translate(lang, SOLUTION_COMMON, 'Attachment'),
+        NewsActionButtonAttachment(label=common_translate(lang, 'Attachment'),
                                    icon='attachment',
                                    button=NewsActionButtonTO('attachment',
-                                                             common_translate(lang, SOLUTION_COMMON, 'Attachment'),
+                                                             common_translate(lang, 'Attachment'),
                                                              '')),
-        NewsActionButtonEmail(label=common_translate(lang, SOLUTION_COMMON, 'email_address'),
+        NewsActionButtonEmail(label=common_translate(lang, 'email_address'),
                               icon='alternate_email',
                               email='',
                               button=NewsActionButtonTO('email',
-                                                        common_translate(lang, SOLUTION_COMMON, 'send_email'),
+                                                        common_translate(lang, 'send_email'),
                                                         '')),
-        NewsActionButtonPhone(label=common_translate(lang, SOLUTION_COMMON, 'Phone number'),
+        NewsActionButtonPhone(label=common_translate(lang, 'Phone number'),
                               icon='call',
                               phone='',
                               button=NewsActionButtonTO('phone',
-                                                        common_translate(lang, SOLUTION_COMMON, 'Call'),
+                                                        common_translate(lang, 'Call'),
                                                         '')),
     ]
     menu = system.get_menu()
@@ -235,10 +235,10 @@ def rest_get_news_options():
                            for item in menu.items if not item.roles])
 
     open_actions = [
-        ('scan', common_translate(lang, SOLUTION_COMMON, 'Scan')),
-        ('profile', common_translate(lang, SOLUTION_COMMON, 'profile')),
-        ('settings', common_translate(lang, SOLUTION_COMMON, 'Settings')),
-        ('messages', common_translate(lang, SOLUTION_COMMON, 'news_items')),
+        ('scan', common_translate(lang,  'Scan')),
+        ('profile', common_translate(lang, 'profile')),
+        ('settings', common_translate(lang,  'Settings')),
+        ('messages', common_translate(lang,  'news_items')),
     ]
 
     for action, label in open_actions:
@@ -252,7 +252,7 @@ def rest_get_news_options():
         action_buttons.append(NewsActionButtonOpen(
             label=job_offer.info.function.title,
             icon='work',
-            button=NewsActionButtonTO('job', common_translate(lang, SOLUTION_COMMON, 'oca.apply_for_job'),
+            button=NewsActionButtonTO('job', common_translate(lang,  'oca.apply_for_job'),
                                       'open://{"action_type":"job","action":"%s"}' % job_offer.id)
         ))
 

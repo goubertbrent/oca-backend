@@ -1,20 +1,20 @@
 <div id="inbox" class="row page" style="display: none;">
     <div id="inbox-overview" class="span12">
         <ul class="nav nav-tabs">
-            <li class="active" section="inbox-unread"><a href="#"><i class="fa fa-inbox"></i> {% translate language, "common", "Inbox" %} <span class="badge"></span></a></li>
-            <li class="" section="inbox-starred"><a href="#"><i class="fa fa-star"></i> {% translate language, "common", "Starred" %} <span class="badge"></span></a></li>
-            <li class="" section="inbox-read"><a href="#"><i class="fa fa-eye"></i> {% translate language, "common", "Read" %} <span class="badge"></span></a></li>
-            <li class="" section="inbox-trash"><a href="#"><i class="fa fa-trash"></i> {% translate language, "common", "Trash" %} <span class="badge"></span></a></li>
-            <button type="button" class="btn btn-primary pull-right" id="send-message-to-services" style="display: none;">{% translate language, 'common', 'send_message' %}</button>
+            <li class="active" section="inbox-unread"><a href="#"><i class="fa fa-inbox"></i> {% translate language, "Inbox" %} <span class="badge"></span></a></li>
+            <li class="" section="inbox-starred"><a href="#"><i class="fa fa-star"></i> {% translate language, "Starred" %} <span class="badge"></span></a></li>
+            <li class="" section="inbox-read"><a href="#"><i class="fa fa-eye"></i> {% translate language, "Read" %} <span class="badge"></span></a></li>
+            <li class="" section="inbox-trash"><a href="#"><i class="fa fa-trash"></i> {% translate language, "Trash" %} <span class="badge"></span></a></li>
+            <button type="button" class="btn btn-primary pull-right" id="send-message-to-services" style="display: none;">{% translate language, 'send_message' %}</button>
         </ul>
 
         <section _count="0" id="inbox-unread">
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
-                        <th class="span2">{% translate language, "common", "Date" %}</th>
-                        <th class="span3">{% translate language, "common", "inbox-from" %}</th>
-                        <th>{% translate language, "common", "message" %}</th>
+                        <th class="span2">{% translate language, "Date" %}</th>
+                        <th class="span3">{% translate language, "inbox-from" %}</th>
+                        <th>{% translate language, "message" %}</th>
                         <th style="width: 220px;">&nbsp;</th>
                     </tr>
                 </thead>
@@ -30,9 +30,9 @@
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
-                        <th class="span2">{% translate language, "common", "Date" %}</th>
-                        <th class="span3">{% translate language, "common", "inbox-from" %}</th>
-                        <th>{% translate language, "common", "message" %}</th>
+                        <th class="span2">{% translate language, "Date" %}</th>
+                        <th class="span3">{% translate language, "inbox-from" %}</th>
+                        <th>{% translate language, "message" %}</th>
                         <th style="width: 220px;">&nbsp;</th>
                     </tr>
                 </thead>
@@ -48,9 +48,9 @@
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
-                        <th class="span2">{% translate language, "common", "Date" %}</th>
-                        <th class="span3">{% translate language, "common", "inbox-from" %}</th>
-                        <th>{% translate language, "common", "message" %}</th>
+                        <th class="span2">{% translate language, "Date" %}</th>
+                        <th class="span3">{% translate language, "inbox-from" %}</th>
+                        <th>{% translate language, "message" %}</th>
                         <th style="width: 220px;">&nbsp;</th>
                     </tr>
                 </thead>
@@ -63,14 +63,14 @@
         </section>
 
         <section _count="0" id="inbox-trash" style="display: none;">
-            <button id="inbox-trash-all" class="btn btn-primary" type="button">{% translate language, "common", "Delete all" %}</button>
+            <button id="inbox-trash-all" class="btn btn-primary" type="button">{% translate language, "Delete all" %}</button>
             <br><br>
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
-                        <th class="span2">{% translate language, "common", "Date" %}</th>
-                        <th class="span3">{% translate language, "common", "inbox-from" %}</th>
-                        <th>{% translate language, "common", "message" %}</th>
+                        <th class="span2">{% translate language, "Date" %}</th>
+                        <th class="span3">{% translate language, "inbox-from" %}</th>
+                        <th>{% translate language, "message" %}</th>
                         <th style="width: 220px;">&nbsp;</th>
                     </tr>
                 </thead>
@@ -86,7 +86,7 @@
     <div id="inbox-reply" class="span12" style="display: none;">
         <legend class="inbox-reply-title"><i style="width: 35px; height: 35px; font-size: 25px;"></i><span></span></legend>
         <div>
-            <button id="inbox-reply-back" style="float: left; margin-right: 20px;" class="btn btn-large"><i class="fa fa-chevron-left "></i> {% translate language, "common", "back" %}</button>
+            <button id="inbox-reply-back" style="float: left; margin-right: 20px;" class="btn btn-large"><i class="fa fa-chevron-left "></i> {% translate language, "back" %}</button>
 
             <div class="btn-toolbar">
               <div class="btn-group">
@@ -103,8 +103,8 @@
             </tbody>
         </table>
         <div class="inbox-reply-input" style="display: none;">
-            <textarea rows="5" class="span12" placeholder="{% translate language, "common", "enter-dot-dot-dot" %}"></textarea>
-            <button class="btn btn-large">{% translate language, "common", "inbox-reply" %}</button>
+            <textarea rows="5" class="span12" placeholder="{% translate language, "enter-dot-dot-dot" %}"></textarea>
+            <button class="btn btn-large">{% translate language, "inbox-reply" %}</button>
         </div>
 
         <br><br>

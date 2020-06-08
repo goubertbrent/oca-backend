@@ -99,7 +99,7 @@ def save_menu(service_user, menu):
         for c in menu.categories:
             if c.name in category_names:
                 raise BusinessException(
-                    common_translate(sln_settings.main_language, SOLUTION_COMMON, "category_duplicate_name", name=c.name))
+                    common_translate(sln_settings.main_language, "category_duplicate_name", name=c.name))
             if c.id == MISSING:
                 c.id = str(uuid.uuid4()).decode('UTF-8')
             category_names.append(c.name)
@@ -107,7 +107,7 @@ def save_menu(service_user, menu):
             for i in c.items:
                 if i.name in item_names:
                     raise BusinessException(
-                        common_translate(sln_settings.main_language, SOLUTION_COMMON, "product_duplicate_name", name=i.name))
+                        common_translate(sln_settings.main_language, "product_duplicate_name", name=i.name))
                 if i.id == MISSING:
                     i.id = str(uuid.uuid4()).decode('UTF-8')
                 item_names.append(i.name)
@@ -128,8 +128,8 @@ def import_menu_from_excel(service_user, file_contents):
     import xlrd
     sln_settings = get_solution_settings(service_user)
 
-    def translate(t, *args, **kwargs):
-        return common_translate(sln_settings.main_language, SOLUTION_COMMON, t, *args, **kwargs)
+    def menu_translate(translation_key, *args, **kwargs):
+        return common_translate(sln_settings.main_language, translation_key, *args, **kwargs)
 
     def make_category(name, index, predescription=None, postdescription=None, items=None):
         cat = MenuCategory()
@@ -145,18 +145,18 @@ def import_menu_from_excel(service_user, file_contents):
 
         return cat
 
-    available_units = map(translate, UNITS.values())
+    available_units = map(menu_translate, UNITS.values())
 
     def guess_unit(item_name, unit):
         for unit_no, unit_name in UNITS.iteritems():
             try:
-                if unit in (unit_name, translate(unit_name)):
+                if unit in (unit_name, menu_translate(unit_name)):
                     return unit_no
             except KeyError:
                 continue
 
         units = ', '.join(available_units)
-        raise BusinessException(translate('item_unit_is_not_known', name=item_name, unit=unit, units=units))
+        raise BusinessException(menu_translate('item_unit_is_not_known', name=item_name, unit=unit, units=units))
 
     def make_item(name, description, price, unit, visible_in=None, step=1, image_url=None):
         item = MenuItem()
@@ -166,7 +166,7 @@ def import_menu_from_excel(service_user, file_contents):
         try:
             price = float(price)
         except ValueError:
-            raise BusinessException(translate('item_price_is_not_number', name=name))
+            raise BusinessException(menu_translate('item_price_is_not_number', name=name))
 
         item.price = long(price * 100)
         item.has_price = bool(item.price)
@@ -180,7 +180,7 @@ def import_menu_from_excel(service_user, file_contents):
         if image_url:
             response = download(image_url)
             if response.status_code != 200:
-                raise BusinessException(translate('download_failed', url=image_url))
+                raise BusinessException(menu_translate('download_failed', url=image_url))
             item.image_id = create_file_blob(service_user, response.content).key().id()
 
         item.step = step
@@ -189,7 +189,7 @@ def import_menu_from_excel(service_user, file_contents):
     try:
         xl = xlrd.open_workbook(file_contents=base64.b64decode(file_contents), use_mmap=False)
     except xlrd.biffh.XLRDError:  # @UndefinedVariable
-        raise BusinessException(translate('make_sure_excel_format'))
+        raise BusinessException(menu_translate('make_sure_excel_format'))
 
     categories = OrderedDict()
     category_item_names = dict()
@@ -200,12 +200,12 @@ def import_menu_from_excel(service_user, file_contents):
             continue
 
         if len(sheet.row(0)) < 5:
-            raise BusinessException(translate('please_provide_5_columns'))
+            raise BusinessException(menu_translate('please_provide_5_columns'))
 
         # check the category name at every first row of a sheet
         # we need at least 1 category
         if not sheet.row(1)[0].value:
-            raise BusinessException(translate('please_provide_1_category'))
+            raise BusinessException(menu_translate('please_provide_1_category'))
 
         # make categories and items, every row is an item
         # with an optional category in the first position
@@ -214,7 +214,7 @@ def import_menu_from_excel(service_user, file_contents):
             try:
                 cat_name, name, desc, unit, price, image_url = [cell.value for cell in sheet.row(r)]
             except ValueError:
-                raise BusinessException(translate('please_check_missing_product_details', row_number=r + 1))
+                raise BusinessException(menu_translate('please_check_missing_product_details', row_number=r + 1))
 
             cat_name, name, unit = map(unicode.strip, [cat_name, name, unit])
             if not cat_name:
@@ -234,12 +234,12 @@ def import_menu_from_excel(service_user, file_contents):
 
             if '' in (name, unit, price):
                 logging.info((name, unit, price))
-                raise BusinessException(translate('please_check_missing_product_details', row_number=r + 1))
+                raise BusinessException(menu_translate('please_check_missing_product_details', row_number=r + 1))
 
             item = make_item(name, desc, price, unit, image_url=image_url)
             if name in category_item_names[category.name]:
-                raise BusinessException('%s\n%s' % (translate('product_duplicate_name', name=name),
-                                                    translate('product_at_row', row_number=r + 1)))
+                raise BusinessException('%s\n%s' % (menu_translate('product_duplicate_name', name=name),
+                                                    menu_translate('product_at_row', row_number=r + 1)))
 
             category_item_names[category.name].append(name)
             category.items.append(item)
@@ -282,16 +282,16 @@ def export_menu_to_excel(service_user, sln_settings=None):
     if not sln_settings:
         sln_settings = get_solution_settings(service_user)
     language = sln_settings.main_language
-    translate = partial(common_translate, language, SOLUTION_COMMON)
+    translate_f = partial(common_translate, language)
 
     menu = get_restaurant_menu(service_user, sln_settings.solution)
     workbook = xlwt.Workbook(encoding="utf-8")
-    sheet = workbook.add_sheet(translate('menu'))
+    sheet = workbook.add_sheet(translate_f('menu'))
     settings = get_server_settings()
 
     row = 0
     for i, head in enumerate(MENU_HEADER):
-        sheet.write(row, i, translate(head).capitalize())
+        sheet.write(row, i, translate_f(head).capitalize())
 
     for cat in menu.categories:
         for item_idx, item in enumerate(cat.items):
@@ -300,7 +300,7 @@ def export_menu_to_excel(service_user, sln_settings=None):
                 sheet.write(row, 0, cat.name)
             sheet.write(row, 1, item.name)
             sheet.write(row, 2, item.description)
-            sheet.write(row, 3, translate(UNITS[item.unit]))
+            sheet.write(row, 3, translate_f(UNITS[item.unit]))
             sheet.write(row, 4, item.price / 100.0)
             if item.image_id:
                 sheet.write(row, 5, get_item_image_url(item.image_id, settings))
@@ -311,31 +311,31 @@ def export_menu_to_excel(service_user, sln_settings=None):
 
 
 @returns(RestaurantMenu)
-@arguments(service_user=users.User, translate=FunctionType, solution=unicode)
-def _put_default_menu(service_user, translate=None, solution=None):
-    if not translate:
+@arguments(service_user=users.User, translate_f=FunctionType, solution=unicode)
+def _put_default_menu(service_user, translate_f=None, solution=None):
+    if not translate_f:
         languages_to = system.get_languages()
         default_lang = languages_to.default_language
-        translate = partial(common_translate, default_lang, SOLUTION_COMMON)
+        translate_f = partial(common_translate, default_lang)
     if not solution:
         solution = get_solution_settings(service_user).solution
 
     menu = RestaurantMenu(key=RestaurantMenu.create_key(service_user, solution))
     menu.is_default = True
-    menu.predescription = translate('prediscription') + " " + translate('your-menu')
-    menu.postdescription = translate('postdiscription') + " " + translate('your-menu')
+    menu.predescription = translate_f('prediscription') + " " + translate_f('your-menu')
+    menu.postdescription = translate_f('postdiscription') + " " + translate_f('your-menu')
     menu.categories = MenuCategories()
 
     drinks = MenuCategory()
-    drinks.name = translate('drinks')
+    drinks.name = translate_f('drinks')
     drinks.items = []
     drinks.index = 0
-    drinks.predescription = translate('prediscription') + " " + translate('drinks')
-    drinks.postdescription = translate('postdiscription') + " " + translate('drinks')
+    drinks.predescription = translate_f('prediscription') + " " + translate_f('drinks')
+    drinks.postdescription = translate_f('postdiscription') + " " + translate_f('drinks')
     drinks.id = str(uuid.uuid4()).decode('UTF-8')
     for i in range(3):
         drink = MenuItem()
-        drink.name = translate('drink%d' % i)
+        drink.name = translate_f('drink%d' % i)
         drink.price = 180
         drink.has_price = True
         drink.description = None
@@ -349,18 +349,18 @@ def _put_default_menu(service_user, translate=None, solution=None):
     menu.categories.add(drinks)
 
     starters = MenuCategory()
-    starters.name = translate('starters')
+    starters.name = translate_f('starters')
     starters.items = []
     starters.index = 1
-    starters.predescription = translate('prediscription') + " " + translate('starters')
-    starters.postdescription = translate('postdiscription') + " " + translate('starters')
+    starters.predescription = translate_f('prediscription') + " " + translate_f('starters')
+    starters.postdescription = translate_f('postdiscription') + " " + translate_f('starters')
     starters.id = str(uuid.uuid4()).decode('UTF-8')
     for i in range(3):
         starter = MenuItem()
-        starter.name = translate('starter%d' % i)
+        starter.name = translate_f('starter%d' % i)
         starter.price = 695
         starter.has_price = True
-        starter.description = translate('starter%d-desc' % i)
+        starter.description = translate_f('starter%d-desc' % i)
         starter.step = 1
         starter.unit = starter.custom_unit = UNIT_PIECE
         starter.visible_in = MenuItem.VISIBLE_IN_MENU | MenuItem.VISIBLE_IN_ORDER
@@ -371,11 +371,11 @@ def _put_default_menu(service_user, translate=None, solution=None):
     menu.categories.add(starters)
 
     main_courses = MenuCategory()
-    main_courses.name = translate('main-courses')
+    main_courses.name = translate_f('main-courses')
     main_courses.items = []
     main_courses.index = 2
-    main_courses.predescription = translate('prediscription') + " " + translate('main-courses')
-    main_courses.postdescription = translate('postdiscription') + " " + translate('main-courses')
+    main_courses.predescription = translate_f('prediscription') + " " + translate_f('main-courses')
+    main_courses.postdescription = translate_f('postdiscription') + " " + translate_f('main-courses')
     main_courses.id = str(uuid.uuid4()).decode('UTF-8')
     menu.categories.add(main_courses)
 
@@ -405,7 +405,6 @@ def get_menu_item_qr_url(service_user, category_index, item_index):
 
             def create_qr():
                 return qr.create(common_translate(get_solution_settings(service_user).main_language,
-                                                  SOLUTION_COMMON,
                                                   u'upload_menu_item_image',
                                                   item_name=item.name),
                                  json.dumps(tag), qr_template_id, flow=u'Upload image')
@@ -454,13 +453,13 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
         menu = get_restaurant_menu(service_user, sln_settings.solution)
         category = menu.categories[category_id]
         if not category:
-            return create_error(common_translate(sln_settings.main_language, SOLUTION_COMMON, u'category_not_found',
+            return create_error(common_translate(sln_settings.main_language, u'category_not_found',
                                                  name=category_name))
         for item in category.items:
             if item.id == item_id:
                 break
         else:
-            return create_error(common_translate(sln_settings.main_language, SOLUTION_COMMON, u'item_not_found',
+            return create_error(common_translate(sln_settings.main_language, u'item_not_found',
                                                  name=item_name))
 
         if item.image_id:
@@ -468,7 +467,7 @@ def set_menu_item_image(service_user, message_flow_run_id, member, steps, end_id
 
         response = download_image()
         if response.status_code != 200:
-            return create_error(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+            return create_error(common_translate(sln_settings.main_language,
                                                  u'error-occured-unknown-try-again'))
 
         item.image_id = create_file_blob(service_user, response.content).key().id()

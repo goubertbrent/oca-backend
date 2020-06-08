@@ -47,7 +47,7 @@ td.reservation-controls {
 <div id="reservations" class="row page" style="display: none;">
     <div class="reservations-no-shifts span12" style="display: none;">
         <div class="alert alert-error">
-            <h3>{% translate language, "common", "reservation-add-shifts" %}</h3>
+            <h3>{% translate language, "reservation-add-shifts" %}</h3>
         </div>
     </div>
 
@@ -58,7 +58,7 @@ td.reservation-controls {
         <div class="row">
             <div class="span6" id="today-capacity">
                 <h3>
-                    {% translate language, "common", "reservation-today" %}: <span></span>
+                    {% translate language, "reservation-today" %}: <span></span>
                 </h3>
                 <div class="progress">
                     <!--
@@ -70,13 +70,13 @@ td.reservation-controls {
             </div>
             <div class="span3" id="tomorrow-capacity">
                 <h3>
-                    {% translate language, "common", "reservation-tomorrow" %}: <span></span>
+                    {% translate language, "reservation-tomorrow" %}: <span></span>
                 </h3>
                 <div class="progress"></div>
             </div>
             <div class="span3" id="next_week-capacity">
                 <h3>
-                    {% translate language, "common", "reservation-next-week" %}: <span></span>
+                    {% translate language, "reservation-next-week" %}: <span></span>
                 </h3>
                 <div class="progress"></div>
             </div>
@@ -85,7 +85,7 @@ td.reservation-controls {
             <div class="span12">
                 <form id="reservation_form" class="form-inline">
                     <fieldset>
-                        <h4>{% translate language, 'common', 'reservation-add-new-reservation' %}</h4>
+                        <h4>{% translate language, 'reservation-add-new-reservation' %}</h4>
                         <div id="reservation-date-control" class="input-append date"
                             data-date="12-02-2012">
                             <input id="reservation-date" class="input-small" size="16"
@@ -99,15 +99,15 @@ td.reservation-controls {
                                 class="icon-time"></i></span>
                         </div>
                         <input class="input-medium" type="text"
-                            placeholder="{% translate language, 'common', 'reservation-enter-name' %}"
+                            placeholder="{% translate language, 'reservation-enter-name' %}"
                             id="reservation-name" data-trigger="manual"
-                            title="{% translate language, 'common', 'name-required' %}"> <input
+                            title="{% translate language, 'name-required' %}"> <input
                             class="input-small" type="text"
-                            placeholder="{% translate language, 'common', 'reservation-enter-phone' %}"
+                            placeholder="{% translate language, 'reservation-enter-phone' %}"
                             id="reservation-phone">
                         <div class="input-append">
                             <input class="input-mini" id="reservation-people" type="text"
-                                placeholder="{% translate language, 'common', 'reservation-people' %}"
+                                placeholder="{% translate language, 'reservation-people' %}"
                                 value="2">
                             <button id="reservation-people-plus" class="btn btn-success"
                                 type="button">+</button>
@@ -115,20 +115,19 @@ td.reservation-controls {
                                 type="button">-</button>
                         </div>
                         <input class="input-medium" type="text"
-                            placeholder="{% translate language, 'common', 'reservation-comment' %}"
+                            placeholder="{% translate language, 'reservation-comment' %}"
                             id="reservation-comment">
                         <button class="btn btn-primary" type="button"
-                            id="make_reservation">{% translate language,
-                            "common", "reservation-add" %}</button>
+                            id="make_reservation">{% translate language, "reservation-add" %}</button>
                         <div class="btn-group" style="display: none;"
                             id="make_reservation_forced">
                             <button class="btn btn-warning reservation-cancel"
-                                type="button">{% translate language, "common",
+                                type="button">{% translate language,
                                 "Cancel" %}</button>
                             <button class="btn btn-primary reservation-add" type="button">{%
-                                translate language, "common", "reservation-add" %}</button>
+                                translate language, "reservation-add" %}</button>
                             <button class="btn btn-danger reservation-force-add"
-                                type="button">{% translate language, "common",
+                                type="button">{% translate language,
                                 "reservation-force-add" %}</button>
                         </div>
                     </fieldset>
@@ -138,23 +137,23 @@ td.reservation-controls {
         <div class="row reservation-successful">
             <div class="span12">
                 <div class="alert alert-success">
-                    {% translate language, 'common', 'reservation-success' %}
+                    {% translate language, 'reservation-success' %}
                 </div>
             </div>
         </div>
         <div class="row server-validation-error restaurant-closed">
             <div class="span12">
                 <div class="alert alert-error">
-                    {% translate language, 'common', 'reservation-failed' %}<br>
-                    {% translate language, 'common', 'restaurant-closed' %}
+                    {% translate language, 'reservation-failed' %}<br>
+                    {% translate language, 'restaurant-closed' %}
                 </div>
             </div>
         </div>
         <div class="row server-validation-error kitchen-closed">
             <div class="span12">
                 <div class="alert alert-error">
-                    {% translate language, 'common', 'reservation-failed' %}<br>
-                    {% translate language, 'common', 'kitchen-closed',
+                    {% translate language, 'reservation-failed' %}<br>
+                    {% translate language, 'kitchen-closed',
                     'reservation_time=' %}
                 </div>
             </div>
@@ -162,32 +161,32 @@ td.reservation-controls {
         <div class="row server-validation-error past-reservation">
             <div class="span12">
                 <div class="alert alert-error">
-                    {% translate language, 'common', 'reservation-failed' %}<br>
-                    {% translate language, 'common', 'past-reservation' %}
+                    {% translate language, 'reservation-failed' %}<br>
+                    {% translate language, 'past-reservation' %}
                 </div>
             </div>
         </div>
         <div class="row server-validation-error short-notice">
             <div class="span12">
                 <div class="alert alert-error">
-                    {% translate language, 'common', 'reservation-failed' %}<br>
-                    {% translate language, 'common', 'short-notice' %}
+                    {% translate language, 'reservation-failed' %}<br>
+                    {% translate language, 'short-notice' %}
                 </div>
             </div>
         </div>
         <div class="row server-validation-error too-many-people">
             <div class="span12">
                 <div class="alert alert-error">
-                    {% translate language, 'common', 'reservation-failed' %}<br>
-                    {% translate language, 'common', 'too-many-people' %}
+                    {% translate language, 'reservation-failed' %}<br>
+                    {% translate language, 'too-many-people' %}
                 </div>
             </div>
         </div>
         <div class="row server-validation-error no-tables">
             <div class="span12">
                 <div class="alert alert-error">
-                    {% translate language, 'common', 'reservation-failed' %}<br>
-                    {% translate language, 'common', 'no-tables' %}
+                    {% translate language, 'reservation-failed' %}<br>
+                    {% translate language, 'no-tables' %}
                 </div>
             </div>
         </div>

@@ -39,7 +39,6 @@ from rogerthat.utils import now
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.channel import send_message
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_first_fmr_step_result_value, SolutionModule
 from solutions.common.bizz.inbox import create_solution_inbox_message, add_solution_inbox_message
 from solutions.common.bizz.loyalty import update_user_data_admins
@@ -91,7 +90,7 @@ def order_sandwich_received(service_user, message_flow_run_id, member, steps, en
     result.value.branding = main_branding.branding_key
     result.value.dismiss_button_ui_flags = 0
     result.value.tag = None
-    result.value.message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u'order-sandwich-received')
+    result.value.message = common_translate(sln_settings.main_language, u'order-sandwich-received')
     result.value.step_id = u'message_sandwich_ordered'
     return result
 
@@ -127,7 +126,7 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
 
     customizations = ['']
     customizations.extend([sw.description for sw in sandwich_customizations])
-    msg = common_translate(lang, SOLUTION_COMMON, 'if-sandwich-order-received',
+    msg = common_translate(lang, 'if-sandwich-order-received',
                            sandwich_type=sandwich_type.description,
                            topping=sandwich_topping.description if sandwich_topping else u"",
                            customizations=u"\n - ".join(customizations),
@@ -137,7 +136,7 @@ def process_sandwich_order(service_user, service_identity, user_details, type_, 
         takeaway_time_str = format_datetime(
             datetime.fromtimestamp(takeaway_time, tz=get_timezone(sln_settings.timezone)), format='short',
             locale=lang)
-        msg = '%s\n%s: %s' % (msg, common_translate(lang, SOLUTION_COMMON, 'takeaway_time'), takeaway_time_str)
+        msg = '%s\n%s: %s' % (msg, common_translate(lang, 'takeaway_time'), takeaway_time_str)
 
     create_inbox_message = True
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
@@ -367,7 +366,7 @@ def sandwich_order_from_broadcast_pressed(service_user, status, answer_id, recei
 
 
 def get_sandwich_reminder_broadcast_type(language, day):
-    return common_translate(language, SOLUTION_COMMON, u'order-sandwich-broadcast-day-broadcast-type',
+    return common_translate(language, u'order-sandwich-broadcast-day-broadcast-type',
                             day=dates.get_day_names('wide', 'format', language)[SandwichSettings.DAYS.index(day)])
 
 
@@ -387,23 +386,23 @@ def validate_sandwiches(language, sandwich_types, sandwich_toppings, sandwich_op
     option_labels = []
     for sandwich_type in sandwich_types:
         if sandwich_type.description in type_labels:
-            msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_type',
+            msg = common_translate(language, 'duplicate_sandwich_type',
                                    label=sandwich_type.description)
             errors.add(msg)
         else:
             type_labels.append(sandwich_type.description)
     if len(sandwich_toppings) < 2:
-        errors.add(common_translate(language, SOLUTION_COMMON, 'insufficient_toppings'))
+        errors.add(common_translate(language, 'insufficient_toppings'))
     for sandwich_topping in sandwich_toppings:
         if sandwich_topping.description in topping_lables:
-            msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_topping',
+            msg = common_translate(language, 'duplicate_sandwich_topping',
                                    label=sandwich_topping.description)
             errors.add(msg)
         else:
             topping_lables.append(sandwich_topping.description)
     for sandwich_option in sandwich_options:
         if sandwich_option.description in option_labels:
-            msg = common_translate(language, SOLUTION_COMMON, 'duplicate_sandwich_option',
+            msg = common_translate(language, 'duplicate_sandwich_option',
                                    label=sandwich_option.description)
             errors.add(msg)
         else:

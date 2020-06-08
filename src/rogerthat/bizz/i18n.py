@@ -20,8 +20,8 @@ import re
 from collections import defaultdict
 
 from google.appengine.ext import db, deferred
-
 from lxml import etree
+
 from mcfw.cache import cached
 from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key, put_and_invalidate_cache

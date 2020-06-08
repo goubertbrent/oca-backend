@@ -33,7 +33,6 @@ from rogerthat.utils.channel import send_message
 from rogerthat.utils.models import reconstruct_key
 from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SERVICE_AUTOCONNECT_INVITE_TAG
 from solutions.common.bizz.inbox import create_solution_inbox_message
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
@@ -145,7 +144,7 @@ def bulk_invite_result(service_user, service_identity, tag, email, result, user_
     if save_message:
         now_ = now()
         sln_settings = get_solution_settings(service_user)
-        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-accepted-invitation',
+        msg = common_translate(sln_settings.main_language, 'if-accepted-invitation',
                                if_name=user_details[0].name,
                                if_email=user_details[0].email)
 

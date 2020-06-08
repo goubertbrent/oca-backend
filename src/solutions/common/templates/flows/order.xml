@@ -16,8 +16,8 @@
             <content>{{ text_1|e }}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -26,7 +26,7 @@
                 <javascriptValidation>
                     function run(result, rogerthat) {
                         if (!result.value || result.value.length &lt; 5) {
-                            return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=5' %}";
+                            return "{% translate language, 'please_enter_at_least_x_characters', 'characters=5' %}";
                         }
                     }
                 </javascriptValidation>
@@ -41,11 +41,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="flow_code_phone_default">
-            <content>{% translate language, 'common', 'order-flow-picture' %}</content>
+            <content>{% translate language, 'order-flow-picture' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'skip' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'skip' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -77,11 +77,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'order-flow-phone' %}</content>
+            <content>{% translate language, 'order-flow-phone' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Submit' %}"
                 negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="TextLineWidget"
@@ -91,7 +91,7 @@
                 <javascriptValidation>
                     function run(result, rogerthat) {
                         if (!result.value || result.value.length &lt; 8) {
-                            return "{% translate language, 'common', 'please_enter_a_valid_phone_number' %}";
+                            return "{% translate language, 'please_enter_a_valid_phone_number' %}";
                         }
                     }
                 </javascriptValidation>
@@ -135,9 +135,9 @@
             autoLock="true">
             <content>
                 {%- if manual_confirmation -%}
-                    {% translate language, 'common', 'order-flow-manual-confirm', 'name=' + name %}
+                    {% translate language, 'order-flow-manual-confirm', 'name=' + name %}
                 {%- else -%}
-                    {% translate language, 'common', 'order-flow-tnx' %}
+                    {% translate language, 'order-flow-tnx' %}
                 {%- endif -%}
             </content>
         </message>

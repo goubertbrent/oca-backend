@@ -17,7 +17,7 @@
 
 from __future__ import unicode_literals
 
-from solutions import translate as common_translate, SOLUTION_COMMON
+from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule
 
 OTHER_LANGUAGES = ['nl']
@@ -56,7 +56,7 @@ class Functionality(object):
 
     def translate(self, key, fallback=None):
         try:
-            return common_translate(self.language, SOLUTION_COMMON, key)
+            return common_translate(self.language, key)
         except (KeyError, ValueError):
             return fallback or key
 

@@ -43,7 +43,7 @@ from rogerthat.utils.channel import send_message
 from rogerthat.utils.cloud_tasks import schedule_tasks, create_task
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip_blob
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.bizz import broadcast_updates_pending, SolutionModule
 from solutions.common.cron.news.rss import parse_rss_items
 from solutions.common.dal import get_solution_settings, get_solution_main_branding, \
@@ -376,25 +376,25 @@ def get_consents_for_app(app_id, lang, user_consent_types):
     groups = [
         PrivacySettingsGroupTO(
             page=1,
-            description='<h4>%s</h4>' % translate(lang, SOLUTION_COMMON, 'consent_share_with_city'),
+            description='<h4>%s</h4>' % translate(lang, 'consent_share_with_city'),
             items=[PrivacySettingsTO(
                 type=SolutionServiceConsent.TYPE_CITY_CONTACT,
                 enabled=SolutionServiceConsent.TYPE_CITY_CONTACT in user_consent_types,
-                label=translate(lang, SOLUTION_COMMON, 'consent_city_contact')
+                label=translate(lang, 'consent_city_contact')
             )]
         ),
         PrivacySettingsGroupTO(
             page=1,
-            description='<h4>%s</h4>' % translate(lang, SOLUTION_COMMON, 'consent_platform_communication'),
+            description='<h4>%s</h4>' % translate(lang, 'consent_platform_communication'),
             items=[
                 PrivacySettingsTO(
                     type=SolutionServiceConsent.TYPE_NEWSLETTER,
                     enabled=SolutionServiceConsent.TYPE_NEWSLETTER in user_consent_types,
-                    label=translate(lang, SOLUTION_COMMON, 'email_consent_newsletter')
+                    label=translate(lang, 'email_consent_newsletter')
                 ), PrivacySettingsTO(
                     type=SolutionServiceConsent.TYPE_EMAIL_MARKETING,
                     enabled=SolutionServiceConsent.TYPE_EMAIL_MARKETING in user_consent_types,
-                    label=translate(lang, SOLUTION_COMMON, 'email_consent_marketing')
+                    label=translate(lang, 'email_consent_marketing')
                 )
             ]
         )
@@ -402,10 +402,10 @@ def get_consents_for_app(app_id, lang, user_consent_types):
     md = Markdown(output='html', extensions=['nl2br', NewTabExtension()])
     if SolutionModule.CIRKLO_VOUCHERS in city_service_settings.modules:
         lines = [
-            '#### %s' % translate(lang, SOLUTION_COMMON, 'cirklo_info_title'),
-            translate(lang, SOLUTION_COMMON, 'cirklo_info_text'),
+            '#### %s' % translate(lang, 'cirklo_info_title'),
+            translate(lang, 'cirklo_info_text'),
             '',
-            translate(lang, SOLUTION_COMMON, 'cirklo_participation_text'),
+            translate(lang, 'cirklo_participation_text'),
         ]
         groups.append(PrivacySettingsGroupTO(
             page=2,
@@ -413,6 +413,6 @@ def get_consents_for_app(app_id, lang, user_consent_types):
             items=[PrivacySettingsTO(
                 type=SolutionServiceConsent.TYPE_CIRKLO_SHARE,
                 enabled=SolutionServiceConsent.TYPE_CIRKLO_SHARE in user_consent_types,
-                label=translate(lang, SOLUTION_COMMON, 'consent_cirklo_share')
+                label=translate(lang, 'consent_cirklo_share')
             )]))
     return groups

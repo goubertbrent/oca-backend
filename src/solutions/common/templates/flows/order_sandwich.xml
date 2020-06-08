@@ -30,10 +30,10 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'order-sandwich-message-bread' %}</content>
+            <content>{% translate language, 'order-sandwich-message-bread' %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="SelectSingleWidget" value="{% if types|length < 1 %}type_{{ types[0].type_id }}{% endif %}">
@@ -49,7 +49,7 @@
                     function run(result, rogerthat){
                         var type = result.value;
                         if(!type){
-                            return "{% translate language, 'common', 'please_select_a_sandwich_type' %}"
+                            return "{% translate language, 'please_select_a_sandwich_type' %}"
                         }
                     }
                 </javascriptValidation>
@@ -64,10 +64,10 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'order-sandwich-message-topping' %}</content>
+            <content>{% translate language, 'order-sandwich-message-topping' %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="SelectSingleWidget" value="{% if toppings|length < 1 %}topping_{{ toppings[0].topping_id }}{% endif %}">
@@ -83,7 +83,7 @@
                     function run(result, rogerthat){
                         var topping = result.value;
                         if(!topping){
-                            return "{% translate language, 'common', 'please_select_a_topping' %}"
+                            return "{% translate language, 'please_select_a_topping' %}"
                         }
                     }
                 </javascriptValidation>
@@ -110,11 +110,11 @@
                 vibrate="false"
                 autoLock="true"
                 negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'order-sandwich-message-customize' %}</content>
+            <content>{% translate language, 'order-sandwich-message-customize' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -137,9 +137,9 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'select_date_and_time_for_pickup' %}</content>
-            <form positiveButtonCaption="{% translate language, 'common', 'Next' %}"
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
+            <content>{% translate language, 'select_date_and_time_for_pickup' %}</content>
+            <form positiveButtonCaption="{% translate language, 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="SelectDateWidget"
                         minuteInterval="1"
@@ -151,7 +151,7 @@
                     function run(result, rogerthat){
                         {% if multiple_locations %}
                         if (rogerthat === undefined) {
-                            return '{% translate language, 'common', 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
+                            return '{% translate language, 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
                         }
                         {% endif %}
                         var timezoneOffsets = {{ timezone_offsets }};
@@ -193,11 +193,11 @@
                 vibrate="false"
                 autoLock="true"
                 negativeReference="flow_code_check_internet_before_flush">
-            <content>{% translate language, 'common', 'order-sandwich-message-add-remark' %}</content>
+            <content>{% translate language, 'order-sandwich-message-add-remark' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'order-sandwich-message-skip-remark' %}"
-                positiveButtonCaption="{% translate language, 'common', 'order' %}"
+                negativeButtonCaption="{% translate language, 'order-sandwich-message-skip-remark' %}"
+                positiveButtonCaption="{% translate language, 'order' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -281,14 +281,14 @@
             allowDismiss="false"
             vibrate="true"
             autoLock="true">
-            <content>{% translate language, 'common', 'message_no_internet_try_again' %}</content>
+            <content>{% translate language, 'message_no_internet_try_again' %}</content>
             <answer
                 id="button_try_again"
-                caption="{% translate language, 'common', 'Try again' %}"
+                caption="{% translate language, 'Try again' %}"
                 reference="flow_code_check_internet_before_flush" />
             <answer
                 id="button_abort"
-                caption="{% translate language, 'common', 'Cancel order' %}"
+                caption="{% translate language, 'Cancel order' %}"
                 reference="end_cancel" />
         </message>
 
@@ -382,9 +382,9 @@
                  allowDismiss="false"
                  vibrate="false"
                  autoLock="true">
-            <content>{% translate language, 'common', 'error-occured-unknown-try-again' %}</content>
+            <content>{% translate language, 'error-occured-unknown-try-again' %}</content>
             <answer action=""
-                    caption="{% translate language, 'common', 'okay-i-got-it' %}"
+                    caption="{% translate language, 'okay-i-got-it' %}"
                     id="button_ok"
                     reference="end_cancel"/>
         </message>

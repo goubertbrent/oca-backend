@@ -15,17 +15,17 @@
 #
 # @@license_version:1.7@@
 
-from types import NoneType
 import uuid
+from types import NoneType
 
 from google.appengine.ext import db
 
+from mcfw.rpc import arguments, returns
 from rogerthat.bizz.job import run_job
 from rogerthat.dal.service import get_all_service_friend_keys_query, is_broadcast_type_enabled, \
     get_broadcast_audience_of_service_identity_keys_query
 from rogerthat.rpc import users
 from rogerthat.to.messaging import AnswerTO, UserMemberTO, AttachmentTO
-from mcfw.rpc import arguments, returns
 
 
 @arguments(service_user=users.User, flow=unicode, broadcast_type=unicode, tag=unicode)

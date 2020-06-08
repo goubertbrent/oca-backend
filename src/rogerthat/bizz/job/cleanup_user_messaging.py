@@ -18,6 +18,7 @@
 import logging
 
 from google.appengine.ext import db
+
 from mcfw.rpc import arguments
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.messaging import delete_conversation

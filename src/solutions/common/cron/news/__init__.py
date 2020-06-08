@@ -35,7 +35,6 @@ from rogerthat.rpc import users
 from rogerthat.service.api import news
 from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, NewsFeedNameTO
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
 
@@ -45,7 +44,7 @@ BROADCAST_TYPE_NEWS = u"News"
 
 def transl(key, language):
     try:
-        return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
+        return common_translate(language, key, suppress_warning=True)
     except:
         return key
 

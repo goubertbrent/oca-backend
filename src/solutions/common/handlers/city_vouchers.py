@@ -21,7 +21,7 @@ import csv
 from rogerthat.rpc import users
 from rogerthat.service.api import system
 from shop.dal import get_customer
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.city_vouchers import SolutionCityVoucherQRCodeExport, SolutionCityVoucherExport, \
@@ -30,7 +30,7 @@ import webapp2
 
 
 def get_exported_filename(language, year, month):
-    name = translate(language, SOLUTION_COMMON, 'Vouchers')
+    name = translate(language, 'Vouchers')
     return '%s %s-%s.xls' % (name, year, month)
 
 

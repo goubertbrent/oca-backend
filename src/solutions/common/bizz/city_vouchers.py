@@ -292,14 +292,14 @@ def _resolve_voucher(service_user, service_identity, url):
     if sln_city_voucher.activated:
         if sln_city_voucher.expired:
             raise BusinessException(
-                common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Voucher has expired'))
+                common_translate(sln_settings.main_language, 'Voucher has expired'))
         r_dict["status"] = 1
         r_dict["value"] = sln_city_voucher.value
         r_dict["redeemed_value"] = sln_city_voucher.redeemed_value
     elif service_user == city_service_user:
         r_dict["status"] = 2
     else:
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Voucher not activated'))
+        raise BusinessException(common_translate(sln_settings.main_language, 'Voucher not activated'))
 
     return r_dict
 
@@ -323,7 +323,7 @@ def solution_voucher_resolve(service_user, email, method, params, tag, service_i
     except:
         logging.error("solutions.voucher.resolve exception occurred", exc_info=True)
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -360,7 +360,7 @@ def solution_voucher_pin_activate(service_user, email, method, params, tag, serv
             raise Exception(u"sln_city_voucher_settings was None")
 
         if jsondata["pin"] not in sln_city_voucher_settings.pincodes:
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Pincode invalid')
+            r.error = common_translate(sln_settings.main_language, 'Pincode invalid')
             return r
 
         index = sln_city_voucher_settings.pincodes.index(jsondata["pin"])
@@ -370,7 +370,7 @@ def solution_voucher_pin_activate(service_user, email, method, params, tag, serv
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:
         logging.error("solutions.voucher.activate.pin exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -449,7 +449,7 @@ def solution_voucher_activate(service_user, email, method, params, tag, service_
 
     except:
         logging.error("solutions.voucher.activate exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -494,7 +494,7 @@ def solution_voucher_redeem(service_user, email, method, params, tag, service_id
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:
         logging.error("solutions.voucher.redeem exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -560,13 +560,13 @@ def solution_voucher_confirm_redeem(service_user, email, method, params, tag, se
         value_left = db.run_in_transaction_options(xg_on, trans)
 
         r_dict = {
-            'title': common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Transaction successful'),
-            'content': common_translate(sln_settings.main_language, SOLUTION_COMMON, 'voucher_value_is',
+            'title': common_translate(sln_settings.main_language, 'Transaction successful'),
+            'content': common_translate(sln_settings.main_language, 'voucher_value_is',
                                         currency=sln_settings.currency_symbol, value=round(value_left / 100.0, 2))
         }
         result = json.dumps(r_dict)
         r.result = result if isinstance(result, unicode) else result.decode("utf8")
     except:
         logging.error("solutions.voucher.redeem.confirm exception occurred", exc_info=True)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r

@@ -204,9 +204,9 @@ def send_inbox_message_update(sln_settings, message, service_identity=None):
 def _send_signup_status_inbox_reply(sln_settings, parent_chat_key, approved, reason):
     lang = sln_settings.main_language
     if approved:
-        message = common_translate(lang, SOLUTION_COMMON, u'approved')
+        message = common_translate(lang, u'approved')
     else:
-        message = common_translate(lang, SOLUTION_COMMON, u'signup_request_denial_reason', reason=reason)
+        message = common_translate(lang, u'signup_request_denial_reason', reason=reason)
 
     inbox_message = new_inbox_message(sln_settings, message, parent_chat_key,
                                       mark_as_read=not approved,
@@ -227,15 +227,13 @@ def _send_approved_signup_email(signup):
 
 
 def _send_denied_signup_email(city_customer, signup, reason):
-    subject = common_translate(signup.language, SOLUTION_COMMON,
-                               u'signup_request_denied_by_city', city=city_customer.name)
+    subject = common_translate(signup.language, u'signup_request_denied_by_city', city=city_customer.name)
     lines = [
-        common_translate(signup.language, SOLUTION_COMMON, 'dear_name', name=signup.customer_name),
-        common_translate(signup.language, SOLUTION_COMMON, 'signup_request_denial_reason', reason=reason),
-        common_translate(signup.language, SOLUTION_COMMON, 'signup_request_denial_reason_contact')
+        common_translate(signup.language, 'dear_name', name=signup.customer_name),
+        common_translate(signup.language, 'signup_request_denial_reason', reason=reason),
+        common_translate(signup.language, 'signup_request_denial_reason_contact')
     ]
     message = '\n\n'.join(lines)
-
     app = get_app_by_id(city_customer.default_app_id)
     from_email = '%s <%s>' % (app.name, app.dashboard_email_address)
     send_mail(from_email, signup.customer_email, subject, message)

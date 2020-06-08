@@ -19,7 +19,7 @@ from google.appengine.ext import db
 
 from rogerthat.dal import parent_key
 from rogerthat.rpc import users
-from solutions import SOLUTION_COMMON
+from solutions.common import SOLUTION_COMMON
 
 
 class SolutionStaticContent(db.Model):

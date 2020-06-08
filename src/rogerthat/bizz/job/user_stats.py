@@ -16,11 +16,11 @@
 # @@license_version:1.7@@
 
 import base64
-from collections import defaultdict, namedtuple
-from contextlib import closing
 import datetime
 import json
 import logging
+from collections import defaultdict, namedtuple
+from contextlib import closing
 
 import cloudstorage
 from dateutil.relativedelta import relativedelta

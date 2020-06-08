@@ -53,7 +53,6 @@ from rogerthat.utils.rfc3339 import rfc3339
 from rogerthat.utils.service import create_service_identity_user
 from solution_server_settings import get_solution_server_settings
 from solutions import translate, translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, \
     get_default_app_id, get_organization_type
 from solutions.common.bizz.events.events_search import search_events, index_events, delete_events_from_index
@@ -219,7 +218,7 @@ def update_events_from_google(service_user, calendar_id):
 
 def put_google_events(service_user, calendar_id, solution, google_events, language):
     to_put = []
-    no_title_text = common_translate(language, SOLUTION_COMMON, '(No title)')
+    no_title_text = common_translate(language, '(No title)')
     for google_event in google_events:
         google_event_id = google_event['id']
         try:
@@ -287,10 +286,10 @@ def put_event(sln_settings, new_event, default_app_id, organization_type):
     service_user = sln_settings.service_user
 
     if not new_event.periods:
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'event-date-required'))
+        raise BusinessException(common_translate(sln_settings.main_language, 'event-date-required'))
 
     if not new_event.title:
-        raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Title is required'))
+        raise BusinessException(common_translate(sln_settings.main_language, 'Title is required'))
 
     if new_event.external_link is MISSING:
         new_event.external_link = None
@@ -450,9 +449,9 @@ def add_event_to_calender(service_user, email, method, params, tag, service_iden
     event = get_event_by_id(service_user, sln_settings.solution, event_id)
     start_date, end_date = event.get_closest_occurrence(date)
     if not start_date:
-        result.error = translate(lang, SOLUTION_COMMON, 'this_event_has_ended')
+        result.error = translate(lang, 'this_event_has_ended')
         return result
-    email_subject = '%s: %s' % (translate(lang, SOLUTION_COMMON, 'event'), event.title)
+    email_subject = '%s: %s' % (translate(lang, 'event'), event.title)
 
     dtstart = (start_date.date or start_date.datetime).replace(tzinfo=sln_settings.tz_info)
     dtend = (end_date.date or end_date.datetime).replace(tzinfo=sln_settings.tz_info)
@@ -467,9 +466,9 @@ def add_event_to_calender(service_user, email, method, params, tag, service_iden
     ]
     if event.description:
         body.append(event.description)
-    body.append('%s: %s' % (translate(lang, SOLUTION_COMMON, 'when'), when))
+    body.append('%s: %s' % (translate(lang, 'when'), when))
     if event.place:
-        body.append('%s: %s' % (translate(lang, SOLUTION_COMMON, 'oca.location'), event.place))
+        body.append('%s: %s' % (translate(lang, 'oca.location'), event.place))
 
     cal = Calendar()
     cal.add('prodid', '-//Our City App//calendar//')
@@ -500,6 +499,6 @@ def add_event_to_calender(service_user, email, method, params, tag, service_iden
         '%s <%s>' % (app.name, app.dashboard_email_address))
     send_mail(from_, email, email_subject, '\n'.join(body), attachments=attachments)
 
-    msg = translate(lang, SOLUTION_COMMON, 'an_email_has_been_sent_with_event_details')
+    msg = translate(lang, 'an_email_has_been_sent_with_event_details')
     result.result = json.dumps({'message': msg}).decode('utf-8')
     return result

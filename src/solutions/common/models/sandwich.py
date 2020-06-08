@@ -71,13 +71,12 @@ class SandwichSettings(db.Model):
         sandwich_settings = cls.get(cls.create_key(service_user, solution))
         if not sandwich_settings:
             from solutions import translate as common_translate
-            from solutions.common import SOLUTION_COMMON
             from solutions.common.dal import get_solution_settings
 
             sln_settings = get_solution_settings(service_user)
             sandwich_settings = SandwichSettings(key_name=service_user.email(),
                                                  parent=parent_key(service_user, solution))
-            sandwich_settings.reminder_broadcast_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+            sandwich_settings.reminder_broadcast_message = common_translate(sln_settings.main_language,
                                                                             u'order-sandwich-reminder-message')
             sandwich_settings.put()
 

@@ -31,17 +31,17 @@
             vibrate="false"
             autoLock="true"
             negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkcFFHa3VZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiaklNIiwgImlkIjogImVuZF9mYWlsIiwgImxhbmciOiAibmwifQ==">
-            <content>{% translate language, 'common', 'reservation-message-name' %}</content>
+            <content>{% translate language, 'reservation-message-name' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
-                negativeButtonConfirmation="{% translate language, 'common', 'CancelReservationConfirmation' %}">
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
+                negativeButtonConfirmation="{% translate language, 'CancelReservationConfirmation' %}">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:type="TextLineWidget"
                     maxChars="50"
-                    placeholder="{% translate language, 'common', 'reservation-name' %}" />
+                    placeholder="{% translate language, 'reservation-name' %}" />
             </form>
         </formMessage>
         <flowCode
@@ -66,17 +66,17 @@
             vibrate="false"
             autoLock="true"
             negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkcFFHa3VZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiaklNIiwgImlkIjogImVuZF9mYWlsIiwgImxhbmciOiAibmwifQ==">
-            <content>{% translate language, 'common', 'reservation-message-phone' %}</content>
+            <content>{% translate language, 'reservation-message-phone' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
-                negativeButtonConfirmation="{% translate language, 'common', 'CancelReservationConfirmation' %}">
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
+                negativeButtonConfirmation="{% translate language, 'CancelReservationConfirmation' %}">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:type="TextLineWidget"
                     maxChars="50"
-                    placeholder="{% translate language, 'common', 'Phone number' %}" />
+                    placeholder="{% translate language, 'Phone number' %}" />
             </form>
         </formMessage>
         <flowCode
@@ -117,17 +117,17 @@
             vibrate="false"
             autoLock="true"
             negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkcFFHa3VZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiaklNIiwgImlkIjogImVuZF9mYWlsIiwgImxhbmciOiAibmwifQ==">
-            <content>{% translate language, 'common', 'reservation-message-comments' %}</content>
+            <content>{% translate language, 'reservation-message-comments' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'reservation-button-reserve' %}"
-                negativeButtonConfirmation="{% translate language, 'common', 'CancelReservationConfirmation' %}">
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'reservation-button-reserve' %}"
+                negativeButtonConfirmation="{% translate language, 'CancelReservationConfirmation' %}">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:type="TextBlockWidget"
                     maxChars="500"
-                    placeholder="{% translate language, 'common', '(optional)' %}" />
+                    placeholder="{% translate language, '(optional)' %}" />
             </form>
         </formMessage>
         <resultsFlush

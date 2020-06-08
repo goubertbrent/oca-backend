@@ -27,7 +27,6 @@ from rogerthat.service.api import system
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.utils.transactions import allow_transaction_propagation, run_in_xg_transaction
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import create_or_update_solution_service, SolutionModule, OrganizationType
 from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMENT, POKE_TAG_ASK_QUESTION, \
     POKE_TAG_GROUP_PURCHASE, POKE_TAG_MENU, POKE_TAG_REPAIR, POKE_TAG_SANDWICH_BAR, POKE_TAG_WHEN_WHERE, \
@@ -210,7 +209,7 @@ def provision(service_user, friends=None, transactional=True):
             sln_settings.modules_to_remove = []
 
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
-            system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
+            system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, label))
 
         if transactional:
             sln_settings = allow_transaction_propagation(run_in_xg_transaction, provision_all_modules, sln_settings,

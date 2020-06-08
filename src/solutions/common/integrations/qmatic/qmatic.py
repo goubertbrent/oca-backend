@@ -40,7 +40,6 @@ from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils import send_mail
 from rogerthat.utils.app import get_app_id_from_app_user, get_human_user_from_app_user
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings
 
@@ -64,7 +63,7 @@ class TranslatedException(Exception):
         self.params = params or {}
 
     def get_message(self, language):
-        return common_translate(language, SOLUTION_COMMON, self.translation_key, **self.params)
+        return common_translate(language, self.translation_key, **self.params)
 
 
 def get_qmatic_settings(service_user):
@@ -180,7 +179,7 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
     except Exception:
         logging.error('Error while handling q-matic call %s' % method, exc_info=True)
         sln_settings = get_solution_settings(service_user)
-        response.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        response.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return response
 
 
@@ -331,17 +330,17 @@ def create_ical(qmatic_settings, app_user, appointment_id):
     body = [
         appointment['title'],
         '',
-        '%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'when'), when),
+        '%s: %s' % (common_translate(lang, 'when'), when),
     ]
 
     if location:
-        body.append('%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'oca.location'), location))
+        body.append('%s: %s' % (common_translate(lang, 'oca.location'), location))
     if appointment['notes']:
-        body.append('%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'Note'), appointment['notes']))
+        body.append('%s: %s' % (common_translate(lang, 'Note'), appointment['notes']))
 
     # TODO shouldn't allow this more than 3 times to avoid spam
     send_mail(from_, to_email, subject, '\n'.join(body), attachments=[ical_attachment])
-    msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'an_email_has_been_sent_with_appointment_event')
+    msg = common_translate(sln_settings.main_language, 'an_email_has_been_sent_with_appointment_event')
     return {'message': msg}
 
 

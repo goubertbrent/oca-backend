@@ -24,9 +24,11 @@
 #
 
 import sys
+
 from lxml import etree as etree_
 
 from rogerthat.bizz.service.mfd import gen as supermod
+
 
 def parsexml_(infile, parser=None, **kwargs):
     if parser is None:

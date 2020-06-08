@@ -10,7 +10,7 @@
             allowDismiss="true"
             vibrate="false"
             dismissReference="end_end" autoLock="true">
-            <content>{% translate language, 'common', 'order-flow-tnx' %}</content>
+            <content>{% translate language, 'order-flow-tnx' %}</content>
         </message>
         <message id="message_has_prescription"
             alertIntervalType="NONE"
@@ -19,9 +19,9 @@
             allowDismiss="false"
             vibrate="false"
             autoLock="true">
-            <content>{% translate language, 'common', 'order-flow-prescription' %}</content>
-            <answer action="" caption="{% translate language, 'common', 'Yes' %}" id="button_button_yes" reference="message_photo_upload_prescription"/>
-            <answer action="" caption="{% translate language, 'common', 'No' %}" id="button_button_no" reference="message_photo_upload_box"/>
+            <content>{% translate language, 'order-flow-prescription' %}</content>
+            <answer action="" caption="{% translate language, 'Yes' %}" id="button_button_yes" reference="message_photo_upload_prescription"/>
+            <answer action="" caption="{% translate language, 'No' %}" id="button_button_no" reference="message_photo_upload_box"/>
         </message>
         <formMessage id="message_photo_upload_box"
             alertIntervalType="NONE"
@@ -31,11 +31,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="message_describe_box">
-            <content>{% translate language, 'common', 'order-flow-picture' %}</content>
+            <content>{% translate language, 'order-flow-picture' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'skip' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'skip' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
             </form>
@@ -48,11 +48,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="end_end">
-            <content>{% translate language, 'common', 'order-flow-prescription-picture' %}</content>
+            <content>{% translate language, 'order-flow-prescription-picture' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget" camera="true" quality="800000" gallery="true"/>
             </form>
@@ -65,17 +65,17 @@
             vibrate="false"
             autoLock="true"
             negativeReference="flush_flush">
-            <content>{% translate language, 'common', 'order-flow-comments' %}</content>
+            <content>{% translate language, 'order-flow-comments' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'skip' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+                negativeButtonCaption="{% translate language, 'skip' %}"
+                positiveButtonCaption="{% translate language, 'Submit' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:type="TextBlockWidget"
                     maxChars="500"
-                    placeholder="{% translate language, 'common', '(optional)' %}"/>
+                    placeholder="{% translate language, '(optional)' %}"/>
             </form>
         </formMessage>
         <formMessage id="message_describe_box"
@@ -86,11 +86,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="end_end">
-            <content>{% translate language, 'common', 'order-flow-describe' %}</content>
+            <content>{% translate language, 'order-flow-describe' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

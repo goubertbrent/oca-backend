@@ -19,16 +19,16 @@
                 {{ custom_message }}
             {% else %}
                 {%- if SolutionModule.CITY_APP in settings.modules -%}
-                    {% translate language, 'common', 'ask-question-message-cityapp-1' %}
+                    {% translate language, 'ask-question-message-cityapp-1' %}
                 {%- else -%}
-                    {% translate language, 'common', 'ask-question-message-1' %}
+                    {% translate language, 'ask-question-message-1' %}
                 {%- endif -%}
             {% endif %}
         </content>
         <form
             positiveButtonConfirmation=""
-            negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-            positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+            negativeButtonCaption="{% translate language, 'Cancel' %}"
+            positiveButtonCaption="{% translate language, 'Submit' %}"
             negativeButtonConfirmation="">
             <widget
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -39,7 +39,7 @@
             <javascriptValidation>
                 function run(result) {
                     if (!result.value || result.value.length &lt; 10) {
-                        return '{% translate language, 'common', 'please_enter_at_least_x_characters', "characters=10", '_duplicate_backslashes=True' %}';
+                        return '{% translate language, 'please_enter_at_least_x_characters', "characters=10", '_duplicate_backslashes=True' %}';
                     }
                 }
             </javascriptValidation>

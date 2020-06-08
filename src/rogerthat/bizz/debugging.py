@@ -18,6 +18,7 @@
 import base64
 
 from google.appengine.ext import deferred, db
+
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.system import start_log_forwarding, delete_xmpp_account
