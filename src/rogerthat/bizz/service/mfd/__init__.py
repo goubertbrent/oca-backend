@@ -19,9 +19,9 @@ import base64
 import json
 import logging
 import re
+from types import NoneType
 import uuid
 import zlib
-from types import NoneType
 
 from google.appengine.ext import db
 
@@ -63,6 +63,7 @@ from rogerthat.utils.attachment import get_attachment_content_type_and_length
 from rogerthat.utils.crypto import md5_hex
 from rogerthat.utils.service import add_slash_default
 from rogerthat.utils.transactions import run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -727,6 +728,7 @@ def get_printable_id_from_b64id(b64id, cutprefix=''):
 @returns(NoneType)
 @arguments(mfdef=MessageFlowDefinitionSub, service_user=users.User, from_xml_only_flow=bool)
 def validate_message_flow_definition(mfdef, service_user, from_xml_only_flow=False):
+    from rogerthat.bizz.messaging import validate_module_supported
     ids = list()
     references = {mfdef.startReference}
     bizz_check(mfdef.end, "An 'End' exit is missing!", MessageFlowValidationException)
@@ -814,6 +816,7 @@ def validate_message_flow_definition(mfdef, service_user, from_xml_only_flow=Fal
                    "Red button label is not set for %s '%s'!" % (mf.module_name, printable_id),
                    MessageFlowValidationException)
         to = TO_CONVERSION_MAPPING[mf.form.widget.__class__].fromWidgetXmlSub(mf.form.widget)
+        validate_module_supported(to.TYPE)
         try:
             WIDGET_MAPPING[to.TYPE].to_validate(to)
         except ServiceApiException, e:

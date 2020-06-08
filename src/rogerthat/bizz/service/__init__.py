@@ -402,6 +402,13 @@ class InvalidGroupTypeException(ServiceApiException):
     def __init__(self, group_type):
         ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 40,
                                      u"Invalid group type", group_type=group_type)
+        
+        
+class ModulesNotSupportedException(ServiceApiException):
+
+    def __init__(self, modules):
+        ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 41,
+                                     u"Some modules are no longer supported: %s" % ', '.join(modules), modules=modules)
 
 
 @returns(users.User)
