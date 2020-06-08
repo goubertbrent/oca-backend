@@ -35,7 +35,6 @@ from rogerthat.bizz.friends import ack_invitation_by_invitation_secret, makeFrie
     REGISTRATION_ORIGIN_OAUTH, ORIGIN_USER_INVITE
 from rogerthat.bizz.job import hookup_with_default_services
 from rogerthat.bizz.messaging import send_messages_after_registration
-from rogerthat.bizz.payment import sync_payment_database
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.bizz.roles import grant_service_roles
 from rogerthat.bizz.service.mfr import start_local_flow
@@ -542,8 +541,6 @@ def _finishup_mobile_registration_step2(mobile_key, invitor_code, invitor_secret
 
     def trans():  # Operates on 2 entity groups
         hookup_with_default_services.schedule(mobile_user, ipaddress)
-        deferred.defer(sync_payment_database, mobile_user, _transactional=True)
-
         if invitor_code and invitor_secret:
             pp = ProfilePointer.get(invitor_code)
             if not pp:
