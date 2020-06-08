@@ -32,8 +32,6 @@ from shop.dal import get_customer
 from solutions import translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
-from solutions.common.bizz.service import get_allowed_modules,\
-    get_allowed_broadcast_types
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models import SolutionInboxMessage
 from solutions.common.to.qanda import ModuleTO
@@ -41,6 +39,7 @@ from solutions.common.to.services import ModuleAndBroadcastTypesTO
 
 
 def get_modules_and_broadcast_types():
+    from solutions.common.bizz.service import get_allowed_modules, get_allowed_broadcast_types
     city_service_user = users.get_current_user()
     city_customer = get_customer(city_service_user)
     lang = get_solution_settings(city_service_user).main_language
