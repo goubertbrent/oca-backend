@@ -182,6 +182,7 @@ def _create_message_flow_run(service_user, service_identity_user, message_flow_r
     return mfr
 
 
+# TODO: remove
 @returns(unicode)
 @arguments(service_identity_user=users.User, message_parent_key=unicode,
            flow=(str, unicode, MessageFlowDesign, CustomMessageFlowDesign),

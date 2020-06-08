@@ -281,6 +281,7 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
     mobidick_uri = "%s/callback_api" % settings.mobidickAddress
     if service_api_callback.targetMFR:
         sik = get_mfr_sik(profile.user).sik
+        logging.error('Sending service api callback to MFR for service %s', profile.service_user)
         uri = mfr_uri
     else:
         if profile.callBackURI == "mobidick":

@@ -1592,22 +1592,22 @@ def press_menu_item(user, service_identity_user, coords, context, menuGeneration
     if service_identity.menuGeneration == menuGeneration:
         smd = get_service_menu_item_by_coordinates(service_identity_user, coords)
         if smd:
-            from rogerthat.bizz.service.mfr import start_flow
+            from rogerthat.bizz.service.mfr import start_local_flow
             if smd.staticFlowKey and not message_flow_run_id:
                 logging.info("User did not start static flow. Starting flow now.")
-                message_flow_run_id = str(uuid.uuid4())
-                start_flow(service_identity_user, None, smd.staticFlowKey, [user], False, True, smd.tag, context,
-                           key=message_flow_run_id)
+                start_local_flow(service_identity_user, None, None, members=[user], flow=smd.staticFlowKey,
+                                 check_friends=False, tag=smd.tag, context=context)
+                # To see if this still occurs, log an error so we can search on it
+                logging.error('Starting flow from staticFlowKey: %s - %s', smd.staticFlowKey, service_identity_user)
             elif not smd.staticFlowKey and not message_flow_run_id and smd.isBroadcastSettings:
                 from rogerthat.bizz.service.broadcast import generate_broadcast_settings_flow_def
                 from rogerthat.bizz.service.mfd import to_xml_unicode
                 helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
                 mfds = generate_broadcast_settings_flow_def(helper, get_user_profile(user))
                 azzert(mfds, "Expected broadcast settings.")
-                mfd = MessageFlowDesign()
-                mfd.xml = to_xml_unicode(mfds, 'messageFlowDefinitionSet', True)
-                start_flow(service_identity_user, None, mfd, [user], False, True, smd.tag, context,
-                           key=message_flow_run_id, allow_reserved_tag=True)
+                xml = to_xml_unicode(mfds, 'messageFlowDefinitionSet', True)
+                start_local_flow(service_identity_user, None, xml, [user], check_friends=False, tag=smd.tag,
+                                 context=context)
 
             if (smd.form_id and not mobile_supports_feature(users.get_current_mobile(), Features.FORMS)) or \
                     (smd.embeddedApp and not mobile_supports_feature(users.get_current_mobile(), Features.EMBEDDED_APPS_IN_SMI)):
