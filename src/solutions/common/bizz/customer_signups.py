@@ -30,7 +30,6 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils.app import get_app_user_tuple
 from shop.dal import get_customer
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models import SolutionInboxMessage
@@ -45,7 +44,7 @@ def get_modules_and_broadcast_types():
     lang = get_solution_settings(city_service_user).main_language
     modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
                get_allowed_modules(city_customer)]
-    broadcast_types = [translate(lang, SOLUTION_COMMON, k) for k in get_allowed_broadcast_types(city_customer)]
+    broadcast_types = [translate(lang, k) for k in get_allowed_broadcast_types(city_customer)]
     return ModuleAndBroadcastTypesTO(modules, broadcast_types)
 
 
