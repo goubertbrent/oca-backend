@@ -37,7 +37,7 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.features import Features, Version
 from rogerthat.bizz.job.update_friends import update_friend_service_identity_connections
-from rogerthat.capi.system import unregisterMobile, forwardLogs, updateEmbeddedAppTranslations
+from rogerthat.capi.system import unregisterMobile, forwardLogs
 from rogerthat.consts import FAST_QUEUE, HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import put_and_invalidate_cache, generator
 from rogerthat.dal.app import get_app_by_id
@@ -67,11 +67,9 @@ from rogerthat.to.profile import UserProfileTO
 from rogerthat.to.service import ProfilePhoneNumberTO
 from rogerthat.to.system import UserStatusTO, IdentityTO, UpdateSettingsResponseTO, UnregisterMobileResponseTO, \
     UnregisterMobileRequestTO, IdentityUpdateResponseTO, LogErrorResponseTO, LogErrorRequestTO, ForwardLogsResponseTO, \
-    ForwardLogsRequestTO, UpdateEmbeddedAppTranslationsResponseTO, EmbeddedAppTranslationsTO, \
-    UpdateEmbeddedAppTranslationsRequestTO, AddProfileAddressRequestTO, \
-    ProfileAddressTO, UpdateProfileAddressRequestTO, \
+    ForwardLogsRequestTO, AddProfileAddressRequestTO, ProfileAddressTO, UpdateProfileAddressRequestTO, \
     AddProfilePhoneNumberRequestTO, UpdateProfilePhoneNumberRequestTO
-from rogerthat.translations import DEFAULT_LANGUAGE, D, localize
+from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now, try_or_defer, send_mail, file_get_contents
 from rogerthat.utils.app import get_app_id_from_app_user, get_app_user_tuple
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
@@ -186,18 +184,15 @@ def account_removal_response(sender, stanza):
            appType=int, product=unicode, timestamp=long, timezone=unicode, timezoneDeltaGMT=int, osVersion=unicode,
            deviceModelName=unicode, simCountry=unicode, simCountryCode=unicode, simCarrierName=unicode,
            simCarrierCode=unicode, netCountry=unicode, netCountryCode=unicode, netCarrierName=unicode,
-           netCarrierCode=unicode, localeLanguage=unicode, localeCountry=unicode, now_time=int, embeddedApps=[unicode],
-           deviceId=unicode)
+           netCarrierCode=unicode, localeLanguage=unicode, localeCountry=unicode, now_time=int, deviceId=unicode)
 def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushBackLog, appType, product, timestamp,
                 timezone, timezoneDeltaGMT, osVersion, deviceModelName, simCountry, simCountryCode, simCarrierName,
                 simCarrierCode, netCountry, netCountryCode, netCarrierName, netCarrierCode, localeLanguage,
-                localeCountry, now_time, embeddedApps, deviceId):
+                localeCountry, now_time, deviceId):
     from rogerthat.bizz.look_and_feel import update_look_and_feel_for_user
     m = current_mobile
     mobile_key = m.key()
     ms_key = get_mobile_settings_cached(m).key()
-
-    embeddedApps = MISSING.default(embeddedApps, [])
 
     def trans():
         # type: () -> tuple[Mobile, UserProfile, bool]
@@ -242,7 +237,6 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
 
         language = mobile.localeLanguage
         if language:
-            should_update_embedded_apps = False
             if '-' in language:
                 language = get_iso_lang(language.lower())
             elif mobile.localeCountry:
@@ -254,19 +248,8 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
                 deferred.defer(update_friend_service_identity_connections, my_profile.key(), [u"language"],
                                _transactional=True)
                 db.delete_async(get_broadcast_settings_flow_cache_keys_of_user(my_profile.user))
-                if embeddedApps:
-                    should_update_embedded_apps = True
             deferred.defer(update_look_and_feel_for_user, current_user, _transactional=True, _queue=FAST_QUEUE)
 
-            # User updated to app version x.1.x, send custom translations
-            # todo: this will also trigger when user updates from 3.0.x to 3.1.x which we don't really want
-            should_update_embedded_apps = should_update_embedded_apps or majorVersion > 1 and ms.majorVersion == 0
-            # Update when embedded apps are different
-            should_update_embedded_apps = should_update_embedded_apps or not set(embeddedApps).issubset(
-                set(my_profile.embedded_apps or []))
-            if should_update_embedded_apps:
-                deferred.defer(update_embedded_app_translations_for_user, current_user, embeddedApps, language,
-                               _transactional=True)
 
         ms.majorVersion = majorVersion
         ms.minorVersion = minorVersion
@@ -275,7 +258,6 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
         my_profile.country = mobile.netCountry or mobile.simCountry or mobile.localeCountry
         my_profile.timezone = mobile.timezone
         my_profile.timezoneDeltaGMT = mobile.timezoneDeltaGMT
-        my_profile.embedded_apps = embeddedApps
         must_update_app_settings = False
         if my_profile.tos_version != get_current_document_version(DOC_TERMS):
             if mobile.is_android:
@@ -299,17 +281,17 @@ def _heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushB
            appType=int, product=unicode, timestamp=long, timezone=unicode, timezoneDeltaGMT=int, osVersion=unicode,
            deviceModelName=unicode, simCountry=unicode, simCountryCode=unicode, simCarrierName=unicode,
            simCarrierCode=unicode, netCountry=unicode, netCountryCode=unicode, netCarrierName=unicode,
-           netCarrierCode=unicode, localeLanguage=unicode, localeCountry=unicode, embeddedApps=[unicode], deviceId=unicode)
+           netCarrierCode=unicode, localeLanguage=unicode, localeCountry=unicode, deviceId=unicode)
 def heart_beat(current_user, current_mobile, majorVersion, minorVersion, flushBackLog, appType, product, timestamp,
                timezone, timezoneDeltaGMT, osVersion, deviceModelName, simCountry, simCountryCode, simCarrierName,
                simCarrierCode, netCountry, netCountryCode, netCarrierName, netCarrierCode, localeLanguage,
-               localeCountry, embeddedApps, deviceId):
+               localeCountry, deviceId):
     now_time = int(time.time())
 
     try_or_defer(_heart_beat, current_user, current_mobile, majorVersion, minorVersion, flushBackLog, appType, product,
                  timestamp, timezone, timezoneDeltaGMT, osVersion, deviceModelName, simCountry, simCountryCode,
                  simCarrierName, simCarrierCode, netCountry, netCountryCode, netCarrierName, netCarrierCode,
-                 localeLanguage, localeCountry, now_time, embeddedApps, deviceId,
+                 localeLanguage, localeCountry, now_time, deviceId,
                  accept_missing=True)
     return now_time
 
@@ -977,13 +959,6 @@ def update_look_and_feel_response(context, result):
     pass
 
 
-@mapping('com.mobicage.capi.system.update_embedded_app_translations')
-@returns(NoneType)
-@arguments(context=RpcCAPICall, result=UpdateEmbeddedAppTranslationsResponseTO)
-def update_embedded_app_translations_response(context, result):
-    pass
-
-
 @mapping('com.mobicage.capi.system.update_embedded_app')
 @returns(NoneType)
 @arguments(context=RpcCAPICall, result=UpdateEmbeddedAppResponseTO)
@@ -996,27 +971,3 @@ def update_embedded_app_response(context, result):
 @arguments(context=RpcCAPICall, result=UpdateEmbeddedAppsResponseTO)
 def update_embedded_apps_response(context, result):
     pass
-
-
-@returns()
-@arguments(app_user=users.User, embedded_apps=[unicode], language=unicode)
-def update_embedded_app_translations_for_user(app_user, embedded_apps, language):
-    translations = get_embedded_app_translations(embedded_apps, language)
-    if translations:
-        updateEmbeddedAppTranslations(update_embedded_app_translations_response, logError, app_user,
-                                      request=UpdateEmbeddedAppTranslationsRequestTO(translations))
-
-
-@returns([EmbeddedAppTranslationsTO])
-@arguments(embedded_apps=[unicode], language=unicode)
-def get_embedded_app_translations(embedded_apps, language):
-    translations = []
-    for embedded_app in embedded_apps:
-        trans = {}
-        for translation_key in D[DEFAULT_LANGUAGE]:
-            if translation_key.startswith(embedded_app):
-                key = translation_key.replace('%s.' % embedded_app, '')
-                trans[key] = localize(language, translation_key)
-        if trans:
-            translations.append(EmbeddedAppTranslationsTO(embedded_app, json.dumps(trans).decode('utf-8')))
-    return translations

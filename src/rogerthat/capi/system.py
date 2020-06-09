@@ -24,7 +24,7 @@ from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateAppAssetRequestTO, 
 from rogerthat.to.js_embedding import UpdateJSEmbeddingResponseTO, UpdateJSEmbeddingRequestTO
 from rogerthat.to.system import UpdateSettingsResponseTO, UpdateSettingsRequestTO, UnregisterMobileResponseTO, \
     UnregisterMobileRequestTO, IdentityUpdateResponseTO, IdentityUpdateRequestTO, ForwardLogsResponseTO, \
-    ForwardLogsRequestTO, UpdateEmbeddedAppTranslationsResponseTO, UpdateEmbeddedAppTranslationsRequestTO
+    ForwardLogsRequestTO
 
 
 @capi('com.mobicage.capi.system.updateSettings')
@@ -73,13 +73,6 @@ def updateAppAsset(request):
 @returns(UpdateLookAndFeelResponseTO)
 @arguments(request=UpdateLookAndFeelRequestTO)
 def updateLookAndFeel(request):
-    pass
-
-
-@capi('com.mobicage.capi.system.updateEmbeddedAppTranslations', feature_version=Features.PAYMENTS)
-@returns(UpdateEmbeddedAppTranslationsResponseTO)
-@arguments(request=UpdateEmbeddedAppTranslationsRequestTO)
-def updateEmbeddedAppTranslations(request):
     pass
 
 

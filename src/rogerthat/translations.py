@@ -638,15 +638,6 @@ Accuracy: %(accuracy)sm""",
 """Reply""": u"""Reply""",
 
 
-"""rogerthat-payment.account""": u"""{{ provider }} Account""",
-
-
-"""rogerthat-payment.bank""": u"""Bank account""",
-
-
-"""rogerthat-payment.creditcard""": u"""Credit card""",
-
-
 """Save""": u"""Save""",
 
 
@@ -1150,9 +1141,6 @@ Precisión: %(accuracy)sm""",
 """Reply""": u"""Responder""",
 
 
-"""rogerthat-payment.creditcard""": u"""Tarjeta de crédito""",
-
-
 """Save""": u"""Guardar""",
 
 
@@ -1654,9 +1642,6 @@ Exactitude: %(accuracy)sm""",
 
 
 """Reply""": u"""Répondre""",
-
-
-"""rogerthat-payment.creditcard""": u"""Carte de crédit""",
 
 
 """Save""": u"""Sauvegarder""",
@@ -2366,15 +2351,6 @@ Nauwkeurigheid: %(accuracy)sm""",
 
 
 """Reply""": u"""Antwoorden""",
-
-
-"""rogerthat-payment.account""": u"""{{ provider }} Rekening""",
-
-
-"""rogerthat-payment.bank""": u"""Bankrekening""",
-
-
-"""rogerthat-payment.creditcard""": u"""Kredietkaart""",
 
 
 """Save""": u"""Bewaren""",
@@ -3131,9 +3107,6 @@ Acuratete: %(accuracy)sm""",
 
 
 """Reply""": u"""Raspuns""",
-
-
-"""rogerthat-payment.creditcard""": u"""Card de credit""",
 
 
 """Save""": u"""Salveaza""",

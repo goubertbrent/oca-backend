@@ -214,7 +214,6 @@ class HeartBeatRequestTO(object):
     localeCountry = unicode_property('20')
     timezoneDeltaGMT = long_property('21')
     deviceModelName = unicode_property('22')
-    embeddedApps = unicode_list_property('23')
     deviceId = unicode_property('24')
 
 
@@ -502,27 +501,6 @@ class TranslationSetTO(object):
 class LanguagesTO(object):
     default_language = unicode_property('1')
     supported_languages = unicode_list_property('2')
-
-
-class EmbeddedAppTranslationsTO(object):
-    embedded_app = unicode_property('1')
-    # json encoded { 'example_translation': 'Example translation'}
-    translations = unicode_property('2')
-
-    def __init__(self, embedded_app=None, translations=None):
-        self.embedded_app = embedded_app
-        self.translations = translations
-
-
-class UpdateEmbeddedAppTranslationsRequestTO(object):
-    translations = typed_property('1', EmbeddedAppTranslationsTO, True)
-
-    def __init__(self, translations):
-        self.translations = translations or []
-
-
-class UpdateEmbeddedAppTranslationsResponseTO(object):
-    pass
 
 
 class ExportResultTO(object):

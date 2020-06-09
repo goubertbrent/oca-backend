@@ -121,8 +121,8 @@ def heartBeat(request):
                                      simCarrierCode=request.simCarrierCode, netCountry=request.netCountry,
                                      netCountryCode=request.netCountryCode, netCarrierName=request.netCarrierName,
                                      netCarrierCode=request.netCarrierCode, localeLanguage=request.localeLanguage,
-                                     localeCountry=request.localeCountry, embeddedApps=request.embeddedApps,
-                                     deviceId=request.deviceId, accept_missing=True)
+                                     localeCountry=request.localeCountry, deviceId=request.deviceId,
+                                     accept_missing=True)
     slog('T', get_current_user().email(), "com.mobicage.api.system.heartBeat", timestamp=request.timestamp,
          major_version=request.majorVersion, minor_version=request.minorVersion, product=request.product,
          sdk_version=request.SDKVersion, networkState=request.networkState)

@@ -790,7 +790,6 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     unsubscribed_from_reminder_email = ndb.BooleanProperty(indexed=False, default=False)
     owncloud_password = ndb.StringProperty(indexed=False)
     look_and_feel_id = ndb.IntegerProperty(indexed=False)
-    embedded_apps = ndb.StringProperty(repeated=True)
 
     isCreatedForService = ndb.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = ndb.StringProperty(indexed=True, repeated=True)
@@ -839,7 +838,6 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     unsubscribed_from_reminder_email = db.BooleanProperty(indexed=False, default=False)
     owncloud_password = db.StringProperty(indexed=False)
     look_and_feel_id = db.IntegerProperty(indexed=False)
-    embedded_apps = db.StringListProperty(default=[])
 
     isCreatedForService = db.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = db.StringListProperty(indexed=True)
