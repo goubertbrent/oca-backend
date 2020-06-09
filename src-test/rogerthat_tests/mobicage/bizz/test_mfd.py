@@ -529,6 +529,8 @@ class Test(mc_unittest.TestCase):
         forms = list()
         start_a = mfdUtil.add_start_module()
         for m in MFD_FORM_MODULES:
+            if m in ('MYDIGIPASS', 'Friend select', 'Sign', 'Pay'):
+                continue
             print 'Adding MFD module: %s' % m
             forms.append(mfdUtil.add_form_message_module(m, str(MFD_FORM_MODULES.index(m))))
         end_a_1 = mfdUtil.add_end_module("1")
@@ -576,6 +578,8 @@ class Test(mc_unittest.TestCase):
 
         forms = list()
         for m in MFD_FORM_MODULES:
+            if m in ('MYDIGIPASS', 'Friend select', 'Sign', 'Pay'):
+                continue
             print 'Adding MFD module: %s' % m
             forms.append(mfdUtil.add_form_message_module(m, str(MFD_FORM_MODULES.index(m))))
 

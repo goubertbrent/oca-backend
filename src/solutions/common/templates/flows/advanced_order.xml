@@ -402,7 +402,7 @@
                 }
             </javascriptCode>
         </flowCode>
-
+		{% if payment_enabled %}
         <flowCode
             id="flowcode_calculate_payment"
             exceptionReference="flush_advanced_order_processing">
@@ -454,19 +454,6 @@
                                    calculate_amount: true,
                                });
                                break;
-                           case 'threefold':
-                           case 'threefold_testnet':
-                               if (provider.settings.address) {
-                                   methods.push({
-                                       provider_id: provider.provider_id,
-                                       currency: 'TFT',
-                                       amount: 0,
-                                       target: provider.settings.address,
-                                       precision: 5,
-                                       calculate_amount: true,
-                                   });
-                               }
-                               break;
                        }
                    }
                     return {
@@ -487,7 +474,9 @@
                 };
             </javascriptCode>
         </flowCode>
+        {% endif %}
 
+		{% if payment_enabled %}
         <formMessage brandingKey="{{ branding_key }}"
                      id="message_pay_optional"
                      alertIntervalType="NONE" alertType="SILENT"
@@ -516,7 +505,9 @@
                 </widget>
             </form>
         </formMessage>
+        {% endif %}
 
+		{% if payment_enabled %}
         <formMessage brandingKey="{{ branding_key }}"
                      id="message_pay_required"
                      alertIntervalType="NONE" alertType="SILENT"
@@ -545,6 +536,7 @@
                 </widget>
             </form>
         </formMessage>
+        {% endif %}
 
         <flowCode
             id="flow_code_check_internet_before_flush"
@@ -553,10 +545,12 @@
                 name="flowcode_internet"
                 value="flowcode_internet"
                 reference="flush_advanced_order_processing"/>
+            {% if payment_enabled %}
             <outlet
                 name="flowcode_internet_with_payment"
                 value="flowcode_internet_with_payment"
                 reference="flowcode_calculate_payment"/>
+            {% endif %}
             <outlet
                 name="message_no_internet"
                 value="message_no_internet"
@@ -566,10 +560,12 @@
                     if (rogerthat.system.internet &amp;&amp; !rogerthat.system.internet.connected) {
                         return {outlet: 'message_no_internet'};
                     }
+                    {% if payment_enabled %}
                     var steps = messageFlowRun.steps;
                     if (steps[0]['step_id'] === 'message_advanced_order_with_pay') {
                         return {outlet: 'flowcode_internet_with_payment'};
                     }
+                    {% endif %}
                     return {outlet: 'flowcode_internet'};
                 };
             </javascriptCode>

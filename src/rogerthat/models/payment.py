@@ -29,7 +29,6 @@ class AssetTypes(Enum):
     BANK = u'bank'
     ACCOUNT = u'account'
     CREDITCARD = u'creditcard'
-    CRYPTOCURRENCY_WALLET = u'cryptocurrency_wallet'
 
 
 class RequiredAction(Enum):
@@ -69,7 +68,7 @@ class PaymentProvider(NdbModel):
     Attributes:
         version (long): Implementation version, to check if the app supports this payment provider
         description (unicode): String containing markdown with an explanation on how to authorize this payment provider,
-         used when clicking 'add payment provider' 
+         used when clicking 'add payment provider'
     """
     name = ndb.StringProperty(indexed=False)
     logo_id = ndb.IntegerProperty(indexed=False)
@@ -193,7 +192,7 @@ class PaymentUser(ndb.Model):
         if self.get_provider(provider_id):
             return True
         return False
-    
+
     def has_asset(self, provider_id, asset_id):
         if not self.assets:
             return False
@@ -202,7 +201,7 @@ class PaymentUser(ndb.Model):
                 if asset.asset_id == asset_id:
                     return True
         return False
-        
+
 
     def get_assets_by_provider(self, provider_id):
         if not self.assets:

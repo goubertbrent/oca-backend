@@ -407,8 +407,6 @@ def _pick_city_wide_lottery_winner(service_user, sln_cwl_lottery_key):
         with set_user(service_user):
             app_info = get_app_info_cached(eud.app_id)
         eud.app_name = app_info.name
-        eud.public_key = None
-        eud.public_keys = []
         winners_info.append(eud)
 
         winner_text = winner_text + "\n - %s (%s)" % (eud.name, eud.email)

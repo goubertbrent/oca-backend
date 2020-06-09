@@ -245,8 +245,6 @@ class CreatePaymentAssetTO(object):
     type = unicode_property('type')  # Must be one of payment.consts.AssetTypes
     currency = unicode_property('currency')
     iban = unicode_property('iban')  # Only used when type == 'bank'
-    address = unicode_property('address')  # Only used when type == 'cryptocurrency_wallet'
-    id = unicode_property('id')  # Currently only used when type == 'cryptocurrency_wallet'
 
 
 class PaymentProviderTransactionTO(object):
@@ -466,69 +464,6 @@ class GetPendingPaymentSignatureDataRequestTO(object):
     asset_id = unicode_property('2')
 
 
-class CryptoTransactionInputTO(object):
-    parent_id = unicode_property('1')
-    timelock = long_property('2')
-
-    def __init__(self, parent_id=None, timelock=0):
-        self.parent_id = parent_id
-        self.timelock = timelock
-
-
-class CryptoTransactionOutputTO(object):
-    value = unicode_property('1')
-    unlockhash = unicode_property('2')
-
-    def __init__(self, value=None, unlockhash=None):
-        self.value = value
-        self.unlockhash = unlockhash
-
-
-class CryptoTransactionDataTO(object):
-    input = typed_property('1', CryptoTransactionInputTO, False)
-    outputs = typed_property('2', CryptoTransactionOutputTO, True)
-    timelock = long_property('3', default=0)
-    algorithm = unicode_property('4', default=None)
-    public_key_index = long_property('5', default=0)
-    public_key = unicode_property('6', default=None)
-    signature_hash = unicode_property('7', default=None)
-    signature = unicode_property('8', default=None)
-
-
-class CryptoTransactionTO(object):
-    minerfees = unicode_property('1')
-    data = typed_property('2', CryptoTransactionDataTO, True)
-    from_address = unicode_property('3')
-    to_address = unicode_property('4')
-
-    def __init__(self, minerfees=None, data=None, from_address=None, to_address=None):
-        self.minerfees = minerfees
-        self.data = data or []
-        self.from_address = from_address
-        self.to_address = to_address
-
-
-class GetPendingPaymentSignatureDataResponseTO(PaymentRpcResultTO):
-    result = typed_property('result', CryptoTransactionTO, False)
-
-    def __init__(self, success=False, error=None, result=None):
-        super(GetPendingPaymentSignatureDataResponseTO, self).__init__(success, error)
-        self.result = result
-
-
-class ConfirmPaymentRequestTO(object):
-    transaction_id = unicode_property('1')
-    crypto_transaction = typed_property('2', CryptoTransactionTO, False)
-
-
-class ConfirmPaymentResponseTO(PaymentRpcResultTO):
-    result = typed_property('result', PendingPaymentTO, False)
-
-    def __init__(self, success=False, error=None, result=None):
-        super(ConfirmPaymentResponseTO, self).__init__(success, error)
-        self.result = result
-
-
 class UpdatePaymentStatusRequestTO(PendingPaymentTO):
     pass
 
@@ -600,10 +535,6 @@ class PayconiqSettingsTO(TO):
     jwt = unicode_property('jwt', default=None)
 
 
-class ThreeFoldSettingsTO(TO):
-    address = unicode_property('address', default=None)
-
-
 class ServicePaymentProviderFeeTO(TO):
     amount = long_property('amount', default=0)
     precision = long_property('precision', default=2)
@@ -613,8 +544,6 @@ class ServicePaymentProviderFeeTO(TO):
 
 PAYMENT_SETTINGS_MAPPING = {
     'payconiq': PayconiqSettingsTO,
-    'threefold': ThreeFoldSettingsTO,
-    'threefold_testnet': ThreeFoldSettingsTO,
 }
 
 
@@ -629,8 +558,6 @@ class ServicePaymentProviderTO(TO):
         # type: () -> bool
         if self.provider_id == 'payconiq':
             return not not (self.settings.merchant_id and self.settings.jwt)
-        elif self.provider_id in ['threefold', 'threefold_testnet']:
-            return not not self.settings.address
 
     @property
     def is_enabled(self):

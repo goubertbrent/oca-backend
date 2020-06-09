@@ -30,7 +30,7 @@ from rogerthat.to.profile import UserProfileTO
 class ConsentSettingsTO(object):
     ask_tos = bool_property('1', default=False)
     ask_push_notifications = bool_property('2', default=False)
-    
+
     @staticmethod
     def fromUserProfile(app_settings, user_profile):
         s = ConsentSettingsTO()
@@ -97,7 +97,7 @@ class SettingsTO(TO):
         else:
             s.wifiOnlyDownloads = SettingsTO.wifiOnlyDownloads.default or False
             s.backgroundFetchTimestamps = SettingsTO.backgroundFetchTimestamps.default
-        
+
         s.consent = ConsentSettingsTO.fromUserProfile(app_settings, user_profile)
         return s
 
@@ -351,11 +351,11 @@ class BaseProfilePhoneNumberTO(TO):
     type = long_property('type')
     label = unicode_property('label')
     number = unicode_property('number')
-    
+
 
 class ProfilePhoneNumberTO(BaseProfilePhoneNumberTO):
     uid = unicode_property('1')
-    
+
     @classmethod
     def from_model(cls, model):
         # type: (UserProfileInfoPhoneNumber) -> ProfilePhoneNumberTO
@@ -363,7 +363,7 @@ class ProfilePhoneNumberTO(BaseProfilePhoneNumberTO):
                    type=model.type,
                    label=model.label,
                    number=model.number)
-    
+
     @staticmethod
     def compare_objects(obj1, obj2):
         from rogerthat.models import UserPhoneNumberType
@@ -502,15 +502,6 @@ class TranslationSetTO(object):
 class LanguagesTO(object):
     default_language = unicode_property('1')
     supported_languages = unicode_list_property('2')
-
-
-class SetSecureInfoRequestTO(object):
-    public_key = unicode_property('1', default=None)  # deprecated since public_keys
-    public_keys = typed_property('2', PublicKeyTO, True, default=[])
-
-
-class SetSecureInfoResponseTO(object):
-    pass
 
 
 class EmbeddedAppTranslationsTO(object):

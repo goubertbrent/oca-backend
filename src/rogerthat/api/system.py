@@ -46,7 +46,6 @@ from rogerthat.to.system import SettingsTO, SaveSettingsRequest, SaveSettingsRes
     GetIdentityRequestTO, GetIdentityResponseTO, UpdateApplePushDeviceTokenRequestTO, \
     UpdateApplePushDeviceTokenResponseTO, GetIdentityQRCodeRequestTO, GetIdentityQRCodeResponseTO, \
     SetMobilePhoneNumberRequestTO, SetMobilePhoneNumberResponseTO, EditProfileRequestTO, EditProfileResponseTO, \
-    SetSecureInfoResponseTO, SetSecureInfoRequestTO, \
     GetProfileAddressesResponseTO, GetProfileAddressesRequestTO, \
     AddProfileAddressResponseTO, AddProfileAddressRequestTO, \
     DeleteProfileAddressesResponseTO, DeleteProfileAddressesRequestTO, \
@@ -300,14 +299,6 @@ def deleteProfilePhoneNumbers(request):
 @arguments(request=GetJSEmbeddingRequestTO)
 def getJsEmbedding(request):
     return GetJSEmbeddingResponseTO.fromDBJSEmbedding(JSEmbedding.all())
-
-
-@expose(('api',))
-@returns(SetSecureInfoResponseTO)
-@arguments(request=SetSecureInfoRequestTO)
-def setSecureInfo(request):
-    from rogerthat.bizz.system import set_secure_info
-    set_secure_info(users.get_current_user(), users.get_current_mobile(), request.public_key, request.public_keys)
 
 
 @expose(('api',))

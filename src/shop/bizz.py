@@ -2052,7 +2052,7 @@ def export_cirklo_customers_csv(google_user, app_id):
         logging.debug('Fetched %s customers', len(customers))
         qry.with_cursor(qry.cursor())
         for customer in customers:
-            if customer.organization_type in (ServiceProfile.ORGANIZATION_TYPE_CITY,):
+            if customer.organization_type in (ServiceProfile.ORGANIZATION_TYPE_CITY, ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
                 continue
             consents = get_customer_consents(customer.user_email)
             if SolutionServiceConsent.TYPE_CIRKLO_SHARE in consents.types:

@@ -600,18 +600,14 @@ class UserDetailsTO(TO):
     language = unicode_property('3')
     avatar_url = unicode_property('4')
     app_id = unicode_property('5')
-    public_key = unicode_property('6', default=None)  # deprecated since public_keys
-    public_keys = typed_property('7', PublicKeyTO, True, default=[])
 
     @classmethod
-    def create(cls, email, name, language, avatar_url, app_id, public_key=None, public_keys=None):
+    def create(cls, email, name, language, avatar_url, app_id):
         return cls(email=email,
                    name=name,
                    language=language,
                    avatar_url=avatar_url,
-                   app_id=app_id,
-                   public_key=public_key,
-                   public_keys=public_keys or [])
+                   app_id=app_id)
 
     @classmethod
     def fromUserProfile(cls, user_profile):
@@ -619,9 +615,7 @@ class UserDetailsTO(TO):
                    name=user_profile.name,
                    language=user_profile.language,
                    avatar_url=user_profile.avatarUrl,
-                   app_id=user_profile.app_id,
-                   public_key=user_profile.public_key,
-                   public_keys=user_profile.public_keys.values() if user_profile.public_keys else [])
+                   app_id=user_profile.app_id)
 
     def toAppUser(self):
         from rogerthat.utils.app import create_app_user_by_email

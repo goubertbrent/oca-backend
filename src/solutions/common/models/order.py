@@ -26,7 +26,6 @@ from rogerthat.utils.service import get_identity_from_service_identity_user, \
 from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_SIMPLE, ORDER_TYPE_ADVANCED, SECONDS_IN_MINUTE
 from solutions.common.models.appointment import SolutionAppointmentWeekdayTimeframe
-from solutions.common.models.payment import PaymentTransaction
 from solutions.common.models.properties import SolutionUserProperty
 
 
@@ -95,8 +94,6 @@ class SolutionOrder(db.Model):
         if self.transaction_id and self.payment_provider:
             if self.payment_provider == 'payconiq':
                 return PayconiqTransaction.create_key(self.transaction_id)
-            elif 'threefold' in self.payment_provider:
-                return PaymentTransaction.create_key(self.payment_provider, self.transaction_id)
 
     @property
     def service_identity_user(self):

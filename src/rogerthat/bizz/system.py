@@ -50,9 +50,9 @@ from rogerthat.dal.mobile import get_mobile_by_id, get_mobile_by_key, get_user_a
 from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, get_profile_info, \
     get_deactivated_user_profile, get_service_profile
 from rogerthat.models import UserProfile, Avatar, CurrentlyForwardingLogs, Installation, InstallationLog, \
-    PublicKeyHistory, UserProfileInfo, UserProfileInfoAddress, \
+    UserProfileInfo, UserProfileInfoAddress, \
     UserProfileInfoPhoneNumber
-from rogerthat.models.properties.profiles import MobileDetails, PublicKeys, PublicKeyTO
+from rogerthat.models.properties.profiles import MobileDetails
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile, RpcCAPICall, ServiceAPICallback, Session, \
@@ -961,43 +961,6 @@ def delete_service_finished(service_user, email, success):
 @arguments(context=ServiceAPICallback, result=NoneType)
 def system_service_deleted_response_handler(context, result):
     pass
-
-
-@returns(NoneType)
-@arguments(app_user=users.User, current_mobile=Mobile, public_key=unicode, public_keys=[PublicKeyTO])
-def set_secure_info(app_user, current_mobile, public_key, public_keys):
-    try_or_defer(_set_secure_info, app_user, current_mobile, public_key, public_keys)
-
-
-@returns(NoneType)
-@arguments(app_user=users.User, current_mobile=Mobile, public_key=unicode, public_keys=[PublicKeyTO])
-def _set_secure_info(app_user, current_mobile, public_key, public_keys):
-    def trans():
-
-        user_profile = get_user_profile(app_user)
-        if public_keys is not MISSING:
-            changed_properties = [u"public_keys"]
-            if not user_profile.public_keys:
-                user_profile.public_keys = PublicKeys()
-            for pk in public_keys:
-                if pk.public_key:
-                    user_profile.public_keys.addNew(pk.algorithm, pk.name, pk.index, pk.public_key)
-                    name = PublicKeyHistory.create_name(pk.algorithm, pk.name, pk.index)
-                    pk = PublicKeyHistory.create(app_user, name, pk.public_key)
-                    pk.put()
-                else:
-                    user_profile.public_keys.remove(pk.algorithm, pk.name, pk.index)
-        else:
-            changed_properties = [u"public_key"]
-            user_profile.public_key = public_key
-            pk = PublicKeyHistory.create(app_user, None, public_key)
-            pk.put()
-        user_profile.version += 1
-        user_profile.put()
-
-        update_friend_service_identity_connections(user_profile.key(), changed_properties)  # trigger friend.update
-
-    run_in_xg_transaction(trans)
 
 
 @mapping('com.mobicage.capi.system.update_app_asset')

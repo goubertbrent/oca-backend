@@ -313,7 +313,6 @@ class LoyaltyLotteryInfoTO(object):
             eud.language = obj.winner_info.language
             eud.email = obj.winner_info.email
             eud.app_id = obj.winner_info.app_id
-            eud.public_key = None
             app_info = get_app_info_cached(obj.winner_info.app_id)
             eud.app_name = app_info.name
             to.winners.append(eud)

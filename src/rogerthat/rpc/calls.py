@@ -29,7 +29,7 @@ from rogerthat.api.services import getActionInfo, startAction, getMenuIcon, pres
     pokeService, getStaticFlow, sendApiCall, updateUserData, getUserLink
 from rogerthat.api.system import logError as logClientError, saveSettings, heartBeat, getIdentity, \
     updateApplePushDeviceToken, unregisterMobile as unregisterMobile_api, getIdentityQRCode, setMobilePhoneNumber, \
-    editProfile, getJsEmbedding, setSecureInfo, getAppAsset, getEmbeddedApps, getEmbeddedApp, \
+    editProfile, getJsEmbedding, getAppAsset, getEmbeddedApps, getEmbeddedApp, \
     getProfileAddresses, addProfileAddress, deleteProfileAddresses, updateProfileAddress, \
     listZipCodes, listStreets, addProfilePhoneNumber, updateProfilePhoneNumber, \
     deleteProfilePhoneNumbers, getProfilePhoneNumbers
@@ -154,7 +154,6 @@ mapping = {
     u'com.mobicage.api.system.deleteProfilePhoneNumbers': deleteProfilePhoneNumbers,
     u'com.mobicage.api.system.updateApplePushDeviceToken': updateApplePushDeviceToken,
     u'com.mobicage.api.system.getJsEmbedding': getJsEmbedding,
-    u'com.mobicage.api.system.setSecureInfo': setSecureInfo,
     u'com.mobicage.api.system.getAppAsset': getAppAsset,
     u'com.mobicage.api.system.getEmbeddedApps': getEmbeddedApps,
     u'com.mobicage.api.system.getEmbeddedApp': getEmbeddedApp,
@@ -211,9 +210,7 @@ mapping = {
     u'com.mobicage.api.payment.verifyPaymentAsset': payment.verifyPaymentAsset,
     u'com.mobicage.api.payment.receivePayment': payment.receivePayment,
     u'com.mobicage.api.payment.getPendingPaymentDetails': payment.getPendingPaymentDetails,
-    u'com.mobicage.api.payment.getPendingPaymentSignatureData': payment.getPendingPaymentSignatureData,
     u'com.mobicage.api.payment.cancelPayment': payment.cancelPayment,
-    u'com.mobicage.api.payment.confirmPayment': payment.confirmPayment,
     u'com.mobicage.api.payment.createAsset': payment.createAsset,
     u'com.mobicage.api.payment.getTargetInfo': payment.getTargetInfo,
     u'com.mobicage.api.payment.createTransaction': payment.createTransaction,

@@ -53,7 +53,7 @@ from rogerthat.to.messaging.forms import PaymentMethodTO
 from rogerthat.to.payment import AppPaymentProviderTO, UpdatePaymentProviderRequestTO, UpdatePaymentStatusRequestTO, \
     ErrorPaymentTO, PendingPaymentTO, PendingPaymentDetailsTO, \
     PaymentProviderAssetTO, UpdatePaymentProvidersRequestTO, UpdatePaymentAssetsRequestTO, PaymentProviderTO, \
-    CreatePaymentAssetTO, CryptoTransactionTO, GetPaymentProfileResponseTO, TargetInfoTO, TargetInfoAssetTO, \
+    CreatePaymentAssetTO, GetPaymentProfileResponseTO, TargetInfoTO, TargetInfoAssetTO, \
     CreateTransactionResultTO, GetPaymentMethodsRequestTO, GetPaymentMethodsResponseTO, PaymentProviderMethodsTO, \
     PayMethodTO, ServicePaymentProviderFeeTO, ServicePaymentProviderTO
 from rogerthat.to.service import UserDetailsTO
@@ -465,34 +465,6 @@ def get_pending_payment_details(app_user, transaction_id):
                                    ppr.amount, ppr.memo, ppr.timestamp, ppr.precision)
 
 
-@returns(CryptoTransactionTO)
-@arguments(app_user=users.User, transaction_id=unicode, asset_id=unicode)
-def get_pending_payment_signature_data(app_user, transaction_id, asset_id):
-    ppr = PaymentPendingReceive.create_key(transaction_id).get()
-    _validate_transaction_call(ppr, app_user)
-
-    if not ppr.pay_user or ppr.pay_user != app_user:
-        raise PaymentException(ErrorPaymentTO.PERMISSION_DENIED, get_lang(app_user))
-
-    if ppr.status not in (PaymentPendingReceive.STATUS_SCANNED,):
-        raise PaymentException(ErrorPaymentTO.TRANSACTION_FINISHED, get_lang(app_user))
-    try:
-        ppr.status = PaymentPendingReceive.STATUS_SIGNATURE
-        ppr.pay_asset_id = asset_id
-        return get_api_module(ppr.provider_id).get_payment_signature_data(app_user, transaction_id, asset_id,
-                                                                          ppr.asset_id, ppr.amount, ppr.currency,
-                                                                          ppr.memo, ppr.precision)
-    except PaymentException:
-        raise
-    except Exception as e:
-        logging.exception(e)
-        ppr.status = PaymentPendingReceive.STATUS_FAILED
-        raise PaymentException(ErrorPaymentTO.UNKNOWN, get_lang(app_user))
-    finally:
-        ppr.put()
-        deferred.defer(send_update_payment_status_request, ppr)
-
-
 def _validate_transaction_call(pending_payment, app_user, validate_started=True):
     # type: (PaymentPendingReceive, users.User) -> PaymentProvider
     if not pending_payment:
@@ -503,36 +475,6 @@ def _validate_transaction_call(pending_payment, app_user, validate_started=True)
     if validate_started and not pending_payment.pay_user:
         raise PaymentException(ErrorPaymentTO.TRANSACTION_NOT_INITIATED, get_lang(app_user))
     return payment_provider
-
-
-@returns(PendingPaymentTO)
-@arguments(app_user=users.User, transaction_id=unicode, crypto_transaction=CryptoTransactionTO)
-def confirm_payment(app_user, transaction_id, crypto_transaction):
-    ppr = PaymentPendingReceive.create_key(transaction_id).get()
-    _validate_transaction_call(ppr, app_user)
-
-    if not ppr.pay_user or ppr.pay_user != app_user:
-        raise PaymentException(ErrorPaymentTO.PERMISSION_DENIED, get_lang(app_user))
-
-    if ppr.status not in (PaymentPendingReceive.STATUS_SIGNATURE,):
-        raise PaymentException(ErrorPaymentTO.TRANSACTION_FINISHED, get_lang(app_user))
-
-    try:
-        ppr.status = get_api_module(ppr.provider_id).confirm_payment(ppr.pay_user, ppr.app_user, transaction_id,
-                                                                     ppr.pay_asset_id,
-                                                                     ppr.asset_id, ppr.amount, ppr.currency, ppr.memo,
-                                                                     ppr.precision, crypto_transaction)
-        if ppr.status == PaymentPendingReceive.STATUS_CONFIRMED:
-            deferred.defer(sync_payment_asset, app_user, ppr.provider_id, ppr.pay_asset_id)
-            deferred.defer(sync_payment_asset, ppr.app_user, ppr.provider_id, ppr.asset_id)
-        return PendingPaymentTO.create(ppr.status, transaction_id)
-    except Exception as e:
-        logging.exception(e)
-        ppr.status = PaymentPendingReceive.STATUS_FAILED
-        raise PaymentException(ErrorPaymentTO.UNKNOWN, get_lang(app_user))
-    finally:
-        ppr.put()
-        deferred.defer(send_update_payment_status_request, ppr)
 
 
 def get_and_update_payment_database_info(app_user):

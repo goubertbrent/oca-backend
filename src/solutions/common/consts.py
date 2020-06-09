@@ -72,7 +72,6 @@ SECONDS_IN_WEEK = 604800
 CURRENCIES = ['EUR', 'USD', 'GBP', 'RON', 'ZAR']
 CURRENCY_NAMES = {
     'RON': u'Leu',
-    'TFT': u'ThreeFold Token'
 }
 
 

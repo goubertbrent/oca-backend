@@ -19,7 +19,7 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz.payment.providers.test.consts import PAYMENT_PROVIDER_ID
 from rogerthat.rpc import users
 from rogerthat.to.payment import GetPaymentProfileResponseTO, PaymentProviderAssetTO, \
-    CreatePaymentAssetTO,  CryptoTransactionTO, PaymentAssetBalanceTO
+    CreatePaymentAssetTO, PaymentAssetBalanceTO
 
 
 @returns(PaymentProviderAssetTO)
@@ -97,17 +97,3 @@ def get_pending_transactions(app_user, asset_id, cursor=None):
 @arguments(app_user=users.User, asset_id=unicode, code=unicode)
 def verify_payment_asset(app_user, asset_id, code):
     raise NotImplementedError('verify_payment_asset is not implemented yet')
-
-
-@returns(CryptoTransactionTO)
-@arguments(app_user=users.User, transaction_id=unicode, from_asset_id=unicode, to_asset_id=unicode, amount=(int, long),
-           currency=unicode, memo=unicode)
-def get_payment_signature_data(app_user, transaction_id, from_asset_id, to_asset_id, amount, currency, memo):
-    return None
-
-
-@returns(unicode)
-@arguments(from_user=users.User, to_user=users.User, transaction_id=unicode, from_asset_id=unicode, to_asset_id=unicode, amount=(int, long),
-           currency=unicode, memo=unicode, crypto_transaction=CryptoTransactionTO)
-def confirm_payment(from_user, to_user, transaction_id, from_asset_id, to_asset_id, amount, currency, memo, crypto_transaction):
-    raise NotImplementedError('confirm_payment is not implemented yet')

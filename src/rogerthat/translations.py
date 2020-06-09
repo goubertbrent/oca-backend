@@ -647,14 +647,6 @@ Accuracy: %(accuracy)sm""",
 """rogerthat-payment.creditcard""": u"""Credit card""",
 
 
-"""rogerthat-payment.cryptocurrency_wallet""": u"""Cryptocurrency wallet""",
-
-
-"""rogerthat-payment.threefold_description""": u"""# ThreeFold Token
-
-### Our backed, safe digital currency funds a neutral green Internet""",
-
-
 """Save""": u"""Save""",
 
 
@@ -2383,14 +2375,6 @@ Nauwkeurigheid: %(accuracy)sm""",
 
 
 """rogerthat-payment.creditcard""": u"""Kredietkaart""",
-
-
-"""rogerthat-payment.cryptocurrency_wallet""": u"""Cryptocurrency portemonnee""",
-
-
-"""rogerthat-payment.threefold_description""": u"""# ThreeFold Token
-
-### Onze gesteunde, veilige digitale valuta financiert een neutraal groen internet""",
 
 
 """Save""": u"""Bewaren""",

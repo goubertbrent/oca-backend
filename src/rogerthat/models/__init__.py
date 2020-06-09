@@ -51,7 +51,7 @@ from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
-from rogerthat.models.properties.profiles import MobileDetailsProperty, PublicKeysProperty, NdBPublicKeysProperty
+from rogerthat.models.properties.profiles import MobileDetailsProperty
 from rogerthat.models.utils import get_meta, add_meta
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
@@ -792,9 +792,6 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     look_and_feel_id = ndb.IntegerProperty(indexed=False)
     embedded_apps = ndb.StringProperty(repeated=True)
 
-    public_key = ndb.TextProperty(indexed=False)  # base64
-    public_keys = NdBPublicKeysProperty()
-
     isCreatedForService = ndb.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = ndb.StringProperty(indexed=True, repeated=True)
 
@@ -843,9 +840,6 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     owncloud_password = db.StringProperty(indexed=False)
     look_and_feel_id = db.IntegerProperty(indexed=False)
     embedded_apps = db.StringListProperty(default=[])
-
-    public_key = db.TextProperty(indexed=False)  # base64
-    public_keys = PublicKeysProperty()
 
     isCreatedForService = db.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = db.StringListProperty(indexed=True)
@@ -987,28 +981,6 @@ class UserConsentHistory(NdbModel):
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     consent_type = ndb.StringProperty()
     data = ndb.JsonProperty(compressed=True)
-
-
-class PublicKeyHistory(db.Model):
-    timestamp = db.IntegerProperty()
-    name = db.StringProperty()
-    public_key = db.TextProperty()
-
-    @classmethod
-    def create_name(cls, algorithm, name, index):
-        if algorithm and name:
-            return u"%s.%s.%s" % (algorithm, name, index)
-        else:
-            return None
-
-    @classmethod
-    def create(cls, app_user, name, public_key):
-        return cls(
-            parent=db.Key.from_path(cls.kind(), app_user.email()),
-            timestamp=now(),
-            name=name,
-            public_key=public_key
-        )
 
 
 class NdbFacebookUserProfile(NdbUserProfile):
