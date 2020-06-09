@@ -15,12 +15,16 @@
 #
 # @@license_version:1.7@@
 
-from google.appengine.ext import db
+import logging
+
+from google.appengine.ext import db, ndb
 
 from mcfw.properties import unicode_property, long_property
 from mcfw.serialization import s_long, ds_long, s_unicode, ds_unicode, get_list_serializer, get_list_deserializer, \
     s_bool, ds_bool, CustomProperty
+from mcfw.utils import convert_to_str
 from rogerthat.to import TO
+
 
 try:
     from cStringIO import StringIO
@@ -147,6 +151,34 @@ class MobileDetailsProperty(db.UnindexedProperty, CustomProperty):
 
     def empty(self, value):
         return not value
+    
+
+class MobileDetailsNdbProperty(ndb.GenericProperty):
+
+    data_type = MobileDetails
+
+    @staticmethod
+    def get_serializer():
+        return _serialize_mobile_details
+
+    @staticmethod
+    def get_deserializer():
+        return _deserialize_mobile_details
+
+    def _to_base_type(self, value):
+        stream = StringIO()
+        _serialize_mobile_details(stream, value)
+        return db.Blob(stream.getvalue())
+
+    def _from_base_type(self, value):
+        if value is None:
+            return None
+        return _deserialize_mobile_details(StringIO(convert_to_str(value)))
+
+    def _validate(self, value):
+        if value is not None and not isinstance(value, MobileDetails):
+            raise ValueError('Property %s must be convertible to a MobileDetails instance (%s)' % (self._name, value))
+        return super(MobileDetailsNdbProperty, self)._validate(value)
 
 
 class PublicKeyTO(TO):

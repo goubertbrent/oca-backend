@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 
+from collections import namedtuple
 import datetime
 import hashlib
 import json
@@ -24,7 +25,6 @@ import urllib
 import urlparse
 import uuid
 import zlib
-from collections import namedtuple
 
 from dateutil.parser import parse as parse_date
 from google.appengine.ext import db, ndb
@@ -51,7 +51,8 @@ from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
-from rogerthat.models.properties.profiles import MobileDetailsProperty
+from rogerthat.models.properties.profiles import MobileDetailsProperty,\
+    MobileDetailsNdbProperty
 from rogerthat.models.utils import get_meta, add_meta
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
@@ -59,6 +60,7 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import base38, base65, llist, now, calculate_age_from_date, set_flag, unset_flag, is_flag_set
 from rogerthat.utils.crypto import sha256_hex, encrypt
 from rogerthat.utils.translations import localize_app_translation
+
 
 try:
     from cStringIO import StringIO
@@ -680,6 +682,9 @@ class NdbProfile(BaseProfile, NdbPolyModel):
     @classmethod
     def _class_key(cls):
         return [cls._get_kind()]
+    
+    def _pre_put_hook(self):
+        raise Exception('Use db instead of NdbProfile')
 
 
 class ProfileInfo(object):
@@ -777,7 +782,7 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     last_name = ndb.StringProperty(indexed=False)
     qualifiedIdentifier = ndb.StringProperty()
     language = ndb.StringProperty(indexed=False)
-    mobiles = MobileDetailsProperty()
+    mobiles = MobileDetailsNdbProperty()
     ysaaa = ndb.BooleanProperty(indexed=False, default=False)
     birthdate = ndb.IntegerProperty(indexed=False)
     birth_day = ndb.IntegerProperty()  # 815 -> august 15
