@@ -189,7 +189,7 @@ class SolutionModule(Enum):
 
     FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT}
+                             APPOINTMENT, JOBS}
 
     @classmethod
     def all(cls):

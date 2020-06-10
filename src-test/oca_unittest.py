@@ -180,7 +180,7 @@ class TestCase(unittest.TestCase):
 
         for app_id, new_app in apps.iteritems():
             if new_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-                put_shop_app(new_app.app_id, signup_enabled=True, paid_features_enabled=True)
+                put_shop_app(new_app.app_id, signup_enabled=True, paid_features_enabled=True, jobs_enabled=True)
 
     def setup_qr_templates(self):
         qrtemplate_keys = []

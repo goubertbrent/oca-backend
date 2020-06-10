@@ -22,8 +22,10 @@ $(function() {
         var appId = checkbox.closest('tr').data('appId');
         var signupCheckbox = $(`#checkbox_signup_${appId}`);
         var paidFeaturesCheckbox = $(`#checkbox_paid_features_${appId}`);
+        var jobsCheckbox = $(`#checkbox_jobs_${appId}`);
         var signupEnabled = signupCheckbox.prop('checked');
         var isPaying = paidFeaturesCheckbox.prop('checked');
+        var jobsEnabled = jobsCheckbox.prop('checked');
         sln.call({
             showProcessing : true,
             url: `/internal/shop/rest/shop-apps/${appId}`,
@@ -31,10 +33,12 @@ $(function() {
             data : {
                 signup_enabled: signupEnabled,
                 paid_features_enabled: isPaying,
+                jobs_enabled: jobsEnabled
             },
             success : function(data) {
                 signupCheckbox.prop('enabled', data.signup_enabled);
                 paidFeaturesCheckbox.prop('enabled', data.paid_features_enabled);
+                jobsCheckbox.prop('enabled', data.jobs_enabled);
             }
         });
     });

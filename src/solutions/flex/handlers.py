@@ -19,10 +19,10 @@ import json
 import logging
 import os
 
-import jinja2
-import webapp2
 from babel import dates, Locale
 from jinja2 import StrictUndefined, Undefined
+import jinja2
+import webapp2
 
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
@@ -44,6 +44,7 @@ from shop.bizz import get_organization_types, is_signup_enabled, update_customer
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity
+from shop.models import ShopApp
 from solutions import translate, translations, COMMON_JS_KEYS
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
@@ -60,6 +61,7 @@ from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
+
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -316,15 +318,12 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 service_identity_user = create_service_identity_user(service_user, service_identity)
                 si = get_service_identity(service_identity_user)
                 city_app_id = si.app_id
-                active_app_ids = si.sorted_app_ids
             else:
                 city_app_id = customer.app_id
-                active_app_ids = customer.sorted_app_ids
         else:
             city_app_id = None
             logging.info('Getting app ids from service identity since no customer exists for user %s', service_user)
             service_identity_user = create_service_identity_user(service_user, service_identity)
-            active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
         locale = Locale.parse(lang)
         currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
@@ -365,11 +364,12 @@ class FlexHomeHandler(webapp2.RequestHandler):
         country = customer and customer.country
         functionality_modules = functionality_info = None
         if city_app_id and is_signup_enabled(city_app_id):
+            shop_app = ShopApp.create_key(city_app_id).get()
             functionality_modules, functionality_info = map(json.dumps, get_functionalities(country,
                                                                                             lang,
                                                                                             sln_settings.modules,
                                                                                             sln_settings.activated_modules,
-                                                                                            active_app_ids))
+                                                                                            shop_app))
 
         vouchers_settings = None
         if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:

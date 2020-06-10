@@ -15,6 +15,7 @@
             <th>App name</th>
             <th>Signup enabled</th>
             <th>Paid features</th>
+            <th>Jobs enabled</th>
         </tr>
         </thead>
         <tbody>
@@ -40,6 +41,13 @@
                         <input type="checkbox" id="checkbox_paid_features_{{ app.app_id }}"
                                {% if app.paid_features_enabled %}checked{% endif %}>
                         Enable paid features
+                    </label>
+                </td>
+                <td>
+                    <label for="checkbox_jobs_{{ app.app_id }}" class="checkbox">
+                        <input type="checkbox" id="checkbox_jobs_{{ app.app_id }}"
+                               {% if app.jobs_enabled %}checked{% endif %}>
+                        Jobs enabled
                     </label>
                 </td>
             </div>

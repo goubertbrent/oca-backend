@@ -18,24 +18,23 @@
 from __future__ import unicode_literals
 
 import base64
+from contextlib import closing
+from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-import urllib
-from contextlib import closing
-from datetime import timedelta, datetime
 from types import NoneType
+import urllib
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import jinja2
 from babel import dates
 from babel.dates import format_timedelta, get_next_timezone_transition, format_time
 from babel.numbers import format_currency
 from google.appengine.ext import db, deferred, ndb
+import jinja2
 from typing import List
 
-import solutions
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
@@ -57,6 +56,7 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
+import solutions
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
     OrganizationType, OCAEmbeddedApps
@@ -107,6 +107,7 @@ from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
+
 
 try:
     from cStringIO import StringIO
@@ -1868,6 +1869,16 @@ def put_cirklo_module(sln_settings, current_coords, main_branding, default_lang,
     return [item]
 
 
+@returns(NoneType)
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], service_menu=ServiceMenuDetailTO)
+def delete_jobs(sln_settings, current_coords, service_menu=None):
+    from solutions.common.jobs.models import OcaJobOffer
+    job_count = OcaJobOffer.list_by_user(sln_settings.service_user).count(None)
+    if job_count:
+        logging.error('delete_jobs called for service:%s job_count:%s', sln_settings.service_user, job_count)
+    _default_delete(sln_settings, current_coords, service_menu)
+
+
 @returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
@@ -1947,7 +1958,7 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.STATIC_CONTENT: delete_static_content,
     SolutionModule.WHEN_WHERE: _default_delete,
     SolutionModule.HIDDEN_CITY_WIDE_LOTTERY: _default_delete,
-    SolutionModule.JOBS: _default_delete,
+    SolutionModule.JOBS: delete_jobs,
     SolutionModule.FORMS: _default_delete,
     SolutionModule.PARTICIPATION: _default_delete,
     SolutionModule.Q_MATIC: _default_delete,

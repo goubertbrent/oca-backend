@@ -1241,6 +1241,10 @@ class AuditLog(db.Model):
     variables = db.TextProperty()
 
 
+class PaidFeatures(Enum):
+    JOBS = 'jobs'
+
+
 class ShopApp(NdbModel):
     name = ndb.StringProperty(indexed=False)
     searched_south_west_bounds = ndb.GeoPtProperty(repeated=True)  # [south_west1, south_west2, ...]
@@ -1249,6 +1253,7 @@ class ShopApp(NdbModel):
     signup_enabled = ndb.BooleanProperty(default=False)
     # When true, enables paid features like news based on location, youtube videos in news item, ...
     paid_features_enabled = ndb.BooleanProperty(default=False)
+    paid_features = ndb.StringProperty(repeated=True)
 
     def south_west(self):
         if not self.searched_south_west_bounds:
@@ -1265,7 +1270,11 @@ class ShopApp(NdbModel):
     @property
     def app_id(self):
         return self.key.id()
-
+    
+    @property
+    def jobs_enabled(self):
+        return PaidFeatures.JOBS in self.paid_features
+        
     @classmethod
     def create_key(cls, app_id):
         return ndb.Key(cls, app_id)

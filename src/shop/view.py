@@ -2246,7 +2246,7 @@ def load_prospect_history(prospect_id):
 def set_app_signup_enabled(app_id, data):
     # type: (str, ShopAppTO) -> ShopAppTO
     azzert(is_admin(gusers.get_current_user()))
-    model = put_shop_app(app_id, data.signup_enabled, data.paid_features_enabled)
+    model = put_shop_app(app_id, data.signup_enabled, data.paid_features_enabled, data.jobs_enabled)
     return ShopAppTO.from_model(model)
 
 

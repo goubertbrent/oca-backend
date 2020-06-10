@@ -46,7 +46,7 @@ def _3_set_app_disabled(app_id):
     app = get_app(app_id)
     app.disabled = True
     app.put()
-    put_shop_app(app_id, False, False)
+    put_shop_app(app_id, False, False, False)
 
 
 def _4_disable_all_customers(app_id, reason, dry_run=True):

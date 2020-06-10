@@ -55,7 +55,7 @@ class JobOfferNotFoundException(HttpNotFoundException):
 
 def list_job_offers(service_user):
     # type: (users.User) -> List[Tuple[OcaJobOffer, JobOfferStatistics]]
-    offers = OcaJobOffer.list_by_user(service_user)
+    offers = [offer for offer in OcaJobOffer.list_by_user(service_user) if offer.status != JobStatus.DELETED]
     stats_keys = [JobOfferStatistics.create_key(service_user, offer.id) for offer in offers]
     stats_models = get_multi(stats_keys)
     return [(offer, stats) for offer, stats in zip(offers, stats_models)]

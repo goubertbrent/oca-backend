@@ -17,8 +17,10 @@
 
 from __future__ import unicode_literals
 
+from shop.models import PaidFeatures
 from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule
+
 
 OTHER_LANGUAGES = ['nl']
 
@@ -136,9 +138,12 @@ def sort_modules(name):
     return name
 
 
-def get_functionalities(country, language, my_modules, activated_modules, app_ids):
+def get_functionalities(country, language, my_modules, activated_modules, shop_app):
     # we need the broadcast module to be the first
     modules = sorted(SolutionModule.FUNCTIONALITY_MODULES, key=sort_modules)
+
+    if not shop_app or PaidFeatures.JOBS not in shop_app.paid_features:
+        modules.remove(SolutionModule.JOBS)
 
     if SolutionModule.CITY_APP in my_modules:
         modules.remove(SolutionModule.LOYALTY)

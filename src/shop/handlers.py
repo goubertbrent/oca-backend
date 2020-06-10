@@ -698,7 +698,6 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             
         
         params = {
-            'name': 'test name',
         }
 
         self.response.out.write(self.render('cirklo_accept', **params))

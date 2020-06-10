@@ -34,6 +34,7 @@ $(function() {
         loyalty: 'loyalty',
         bulk_invite: 'bulk-invite',
         menu: 'menu',
+        jobs: 'jobs',
         hidden_city_wide_lottery: 'loyalty',
     };
 

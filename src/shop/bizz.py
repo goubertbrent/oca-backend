@@ -89,7 +89,7 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
 from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
-    ShopApp, LegalDocumentAcceptance, LegalDocumentType
+    ShopApp, LegalDocumentAcceptance, LegalDocumentType, PaidFeatures
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, CustomerServiceTO, \
     OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
@@ -1931,13 +1931,18 @@ def get_prospect_history(prospect_id):
     return ProspectHistory.all().ancestor(Prospect.create_key(prospect_id))
 
 
-def put_shop_app(app_id, signup_enabled, paid_features_enabled):
-    # type: (str, bool, bool) -> ShopApp
+def put_shop_app(app_id, signup_enabled, paid_features_enabled, jobs_enabled):
+    # type: (str, bool, bool, bool) -> ShopApp
     key = ShopApp.create_key(app_id)
     shop_app = key.get() or ShopApp(key=key,
                                     name=get_app_by_id(app_id).name)
     shop_app.signup_enabled = signup_enabled
     shop_app.paid_features_enabled = paid_features_enabled
+    if not shop_app.paid_features:
+        shop_app.paid_features = []
+    if shop_app.paid_features_enabled:
+        if jobs_enabled and PaidFeatures.JOBS not in shop_app.paid_features:
+            shop_app.paid_features.append(PaidFeatures.JOBS)
     shop_app.put()
     return shop_app
 

@@ -15,9 +15,9 @@
 #
 # @@license_version:1.7@@
 
+from datetime import datetime
 import logging
 import time
-from datetime import datetime
 
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
@@ -34,7 +34,8 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import channel, log_offload, now, send_mail
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import run_in_xg_transaction
-from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus
+from shop.models import Product, RegioManagerTeam, CustomerSignup, Customer, CustomerSignupStatus,\
+    ShopApp
 from shop.to import CustomerServiceTO
 from solutions import SOLUTION_COMMON, translate as common_translate
 from solutions.common.bizz import SolutionModule, DEFAULT_BROADCAST_TYPES, ASSOCIATION_BROADCAST_TYPES, common_provision
@@ -45,6 +46,7 @@ from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_settings
 from solutions.common.models import SolutionServiceConsent, SolutionServiceConsentHistory
 from solutions.common.to import SolutionInboxMessageTO, ProvisionResponseTO
+
 
 # signup smart emails with the countdown (seconds) they should be sent after
 # successfull registration
@@ -71,9 +73,13 @@ def get_allowed_modules(city_customer):
     Args:
         city_customer (Customer)
     """
+    
     if city_customer.can_only_edit_organization_type(ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
         return SolutionModule.ASSOCIATION_MODULES
     else:
+        shop_app = ShopApp.create_key(city_customer.default_app_id).get()
+        if shop_app and shop_app.jobs_enabled:
+            return set(list(SolutionModule.POSSIBLE_MODULES) + [SolutionModule.JOBS])
         return SolutionModule.POSSIBLE_MODULES
 
 
