@@ -2423,10 +2423,7 @@ def get_customer_consent_cirklo_url(customer):
     if not customer.user_email:
         return ''
 
-    data = dict(c=customer.user_email, s=unicode(customer.key()))
-    data['d'] = calculate_customer_url_digest(data)
-    data = encrypt(users.User(customer.user_email), json.dumps(data))
-    url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
+    url_params = urllib.urlencode({'cid': customer.id})
     host = get_server_settings().baseUrl
     return '{}/customers/consent/cirklo?{}'.format(host, url_params)
 

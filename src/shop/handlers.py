@@ -663,19 +663,26 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
         return super(PublicPageHandler, self).dispatch()
 
     def get(self):
-        email = self.request.get('email')
-        data = self.request.get('data')
-
-        try:
-            data = validate_customer_url_data(email, data)
-        except InvalidUrlException:
-            return self.return_error('invalid_url')
-
-        customer = db.get(data['s']) # Customer
+        customer_id = self.request.get('cid')
+        if customer_id:
+            try:
+                customer = Customer.get_by_id(long(customer_id))
+            except:
+                return self.return_error('invalid_url')
+        else:
+            email = self.request.get('email')
+            data = self.request.get('data')
+    
+            try:
+                data = validate_customer_url_data(email, data)
+            except InvalidUrlException:
+                return self.return_error('invalid_url')
+    
+            customer = db.get(data['s']) # Customer
         if not customer:
             return self.abort(404)
 
-        consents = get_customer_consents(email)
+        consents = get_customer_consents(customer.user_email)
         should_put_consents = False
         if SolutionServiceConsent.TYPE_CITY_CONTACT not in consents.types:
             consents.types.append(SolutionServiceConsent.TYPE_CITY_CONTACT)
