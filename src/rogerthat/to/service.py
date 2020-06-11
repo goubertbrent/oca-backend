@@ -21,6 +21,7 @@ import json
 from mcfw.properties import azzert, long_property, unicode_property, typed_property, bool_property, \
     unicode_list_property, long_list_property
 from mcfw.rpc import arguments
+from mcfw.utils import Enum
 from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.profile import get_search_config, get_profile_infos
 from rogerthat.dal.service import get_broadcast_settings_items
@@ -622,11 +623,24 @@ class UserDetailsTO(TO):
         return create_app_user_by_email(self.email, self.app_id)
 
 
+class UserEmailAddressType(Enum):
+    OTHER = 0
+    PERSONAL = 1
+    WORK = 2
+
+
+class ProfileEmailAddressTO(TO):
+    type = long_property('type')
+    label = unicode_property('label')
+    email = unicode_property('email')
+
+
 class UserContextTO(TO):
     id = unicode_property('id')
     email = unicode_property('email')
     first_name = unicode_property('first_name')
     last_name = unicode_property('last_name')
+    email_addresses = typed_property('email_addresses', ProfileEmailAddressTO, True)
     addresses = typed_property('addresses', ProfileAddressTO, True)
     phone_numbers = typed_property('phone_numbers', ProfilePhoneNumberTO, True)
 

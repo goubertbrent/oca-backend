@@ -3435,9 +3435,42 @@ class ProfileStreets(NdbModel):
         return ndb.Key(cls, zip_code, parent=ndb.Key(cls, country_code))
 
 
+class UserContextScope(Enum):
+    NAME = 'user.name'
+    EMAIL = 'user.email' # deprecated
+    EMAIL_ADDRESSES = 'user.email_addresses' # todo implement
+    ADDRESSES = 'user.addresses'
+    PHONE_NUMBERS = 'user.phone_numbers'
+
+
+class UserContextLink(NdbModel):
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    service_user = ndb.UserProperty()
+    link = ndb.StringProperty()
+    scopes = ndb.StringProperty(repeated=True)
+
+    @property
+    def uid(self):
+        return self.key.id().decode('utf8')
+
+    @staticmethod
+    def create_uid(items):
+        digester = hashlib.sha256()
+        for i in items:
+            v = i.encode('utf8') if isinstance(i, unicode) else i
+            digester.update(v.upper())
+        return digester.hexdigest().upper()
+
+    @classmethod
+    def create_key(cls, uid):
+        return ndb.Key(cls, uid)
+
+
 class UserContext(NdbModel):
     created = ndb.DateTimeProperty(auto_now_add=True)
     app_user = ndb.UserProperty(indexed=False)
+    link_uid = ndb.StringProperty()
+    scopes = ndb.StringProperty(repeated=True, indexed=False)
 
     @property
     def uid(self):

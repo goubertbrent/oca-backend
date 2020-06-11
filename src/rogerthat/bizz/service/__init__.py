@@ -16,14 +16,14 @@
 # @@license_version:1.7@@
 
 import base64
+from contextlib import closing
 import json
 import logging
 import os
+from types import NoneType
 import urllib
 import urlparse
 import uuid
-from contextlib import closing
-from types import NoneType
 from zipfile import ZipFile
 
 from google.appengine.api import images, search
@@ -79,7 +79,7 @@ from rogerthat.models import Profile, APIKey, SIKKey, ServiceEmail, ServiceInter
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \
     ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, ServiceCallBackConfiguration, \
-    FriendServiceIdentityConnection, FriendMap, UserContext
+    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink
 from rogerthat.models.properties.friend import FriendDetail, FriendDetails
 from rogerthat.models.properties.keyvalue import KVStore, InvalidKeyError
 from rogerthat.models.settings import ServiceInfo
@@ -119,6 +119,7 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user,
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, on_trans_committed, \
     on_trans_rollbacked
 from solutions.common.integrations.cirklo.models import VoucherSettings
+
 
 try:
     from cStringIO import StringIO
@@ -1575,7 +1576,13 @@ def poke_service_by_hashed_tag(user, service_identity_user, hashed_tag, context=
 def get_user_link(app_user, link):
     uid = uuid.uuid4().hex
     uc = UserContext(key=UserContext.create_key(uid),
-                     app_user=app_user)
+                     app_user=app_user,
+                     link_uid=UserContextLink.create_uid([link]))
+
+    context_link = UserContextLink.create_key(uc.link_uid).get()
+    if not context_link:
+        logging.error('get_user_link was called but link was not found...')
+    uc.scopes = context_link.scopes if context_link else []
     uc.put()
 
     parsed_url = urlparse.urlparse(link)
