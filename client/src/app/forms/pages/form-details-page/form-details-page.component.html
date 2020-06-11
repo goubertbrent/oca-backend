@@ -23,6 +23,10 @@
       <mat-icon>file_copy</mat-icon>
       <span>{{ 'oca.make_copy' | translate }}</span>
     </button>
+    <button mat-menu-item (click)="showDeveloperInfo()">
+      <mat-icon>code</mat-icon>
+      <span>{{ 'oca.developer_information' | translate }}</span>
+    </button>
   </ng-template>
 </mat-menu>
 <ng-container *ngIf="form$ | async as form">

@@ -20,6 +20,9 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.developer_information': u'Developer information',
+         u'oca.form_id': u'Form id',
+         u'oca.version': u'Version',
          u'cirklo_info_text': u'[Cirklo Light](https://cirklo-light.com) is an initiative from [Our City App](https://ourcityapps.com) & [The Studio](https://thestudio.digital) that focuses on cities and municipalities. This out-of-the-box solution allows citizens to purchase **gift cards** from their own city/municipality and spend them in the network of local entrepreneurs.',
          u'cirklo_info_title': u'Your digital gift card solution',
          u'cirklo_participation_text': u'If you want to participate, this means that you are one of the merchants with whom it will soon be possible to pay with the own VOUCHER of your city/municipality.\n\nAre you interested in participating in this initiative of your city/municipality? Great! By checking the checkbox below, you will notify your city/municipality of your interest and share your contact information with them.\n\nIn case your city/municipality has already started this initiative via Cirklo Light, you will soon receive an invitation email at the SAME email address that you provided during this registration. Containing information on how to scan your customers\' vouchers etc.',
@@ -3979,6 +3982,9 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.developer_information': u'Developer informatie',
+         u'oca.form_id': u'Bevraging id',
+         u'oca.version': u'Versie',
          u'cirklo_info_text': u'[Cirklo Light](https://cirklo-light.com) is een cadeaubon-initiatief van [Onze Stad App](https://onzestadapp.be) & [The Studio](https://thestudio.digital) dat zich richt op steden en gemeenten. Deze out-of-the-box oplossing laat burgers toe om **cadeaubonnen** van hun eigen stad/gemeente aan te kopen en die uit te geven in het netwerk van lokale ondernemers.',
          u'cirklo_participation_text': u'Wanneer u hieraan zou deelnemen, betekent dit dat u één van de handelaars bent bij wie het binnenkort mogelijk zal zijn om te betalen met de waardebon van uw stad/gemeente.\n\nHeeft u interesse om deel te nemen aan dit initiatief van uw stad/gemeente? Super! Door onderstaande checkbox aan te vinken brengt u uw stad/gemeente hiervan op de hoogte & deelt u uw gegevens met hen.\n\nIn het geval dat uw stad/gemeente reeds van start ging met dit initiatief via Cirklo Light ontvangt u binnenkort een uitnodigingsmail op HETZELFDE e-mailadres dat u tijdens deze registratie opgaf, met info over hoe je waardebonnen van jouw klanten kan scannen enz.',
          u'cirklo_info_title': u'Dé digitale cadeaubon oplossing',
