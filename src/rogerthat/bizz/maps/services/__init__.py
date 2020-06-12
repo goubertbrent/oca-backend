@@ -374,10 +374,11 @@ def save_map_service(service_identity_user):
         map_service.vertical_items.append(MapServiceListItem(item=v_map_item))
 
     if opening_hours and opening_hours.type in (OpeningHours.TYPE_TEXTUAL, OpeningHours.TYPE_NOT_RELEVANT):
-        map_service.vertical_items.append(MapServiceListItem(
-            item=ExpandableListSectionItemTO(icon='fa-clock-o',
-                                             title=opening_hours.text)
-        ))
+        if opening_hours.text and opening_hours.text.strip():
+            map_service.vertical_items.append(MapServiceListItem(
+                item=ExpandableListSectionItemTO(icon='fa-clock-o',
+                                                 title=opening_hours.text)
+            ))
     elif opening_hours and opening_hours.type == OpeningHours.TYPE_STRUCTURED:
         map_service.opening_hours_links.append(opening_hours.key)
         item = MapServiceListItem(item=OpeningHoursListSectionItemTO(

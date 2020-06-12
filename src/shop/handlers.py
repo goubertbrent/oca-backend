@@ -484,7 +484,7 @@ class CustomerSignupHandler(PublicPageHandler):
             version = get_current_document_version(DOC_TERMS_SERVICE)
             legal_language = get_legal_language(language)
             params = {
-                'apps': apps,
+                'apps': sorted(apps, key=lambda x: x.name),
                 'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
                 'email_verified': False,
                 'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version)
