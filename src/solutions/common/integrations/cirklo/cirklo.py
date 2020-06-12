@@ -178,9 +178,15 @@ def get_vouchers(service_user, app_user):
             vouchers.append(AppVoucher.from_cirklo(voucher_id, json.loads(result.content), current_date))
         else:
             logging.error('Invalid cirklo api response: %s', result.status_code)
-    main_city_id = get_city_id_by_service_email(service_user.email())
+    try:
+        main_city_id = get_city_id_by_service_email(service_user.email())
+    except:
+        main_city_id = None
     if not main_city_id:
-        raise Exception('No cityId found for service %s' % service_user.email())
+        logging.error('No cityId found for service %s' % service_user.email())
+        sln_settings = get_solution_settings(service_user)
+        msg = translate(sln_settings.main_language, 'cirklo_vouchers_not_live_yet')
+        raise TranslatedException(msg)
     city_ids = {voucher.cityId for voucher in vouchers}
     city_ids.add(main_city_id)
     logos = get_logo_url_for_city_ids(list(city_ids))
