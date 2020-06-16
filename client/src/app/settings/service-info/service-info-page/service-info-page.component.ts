@@ -182,6 +182,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       uploadPrefix: 'branding/logo',
       listPrefix: 'branding/logo',
       gallery: { prefix: 'logo' },
+      croppedImageType: 'image/jpeg',
     });
     dialog.afterClosed().subscribe((result: UploadedFileResult | null) => {
       if (result) {
@@ -190,7 +191,8 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  updateImage(width: number, height: number, uploadUrl: string, partialConfig: Pick<UploadFileDialogConfig, 'title' | 'uploadPrefix' | 'listPrefix' | 'gallery'>) {
+  updateImage(width: number, height: number, uploadUrl: string,
+              partialConfig: Pick<UploadFileDialogConfig, 'title' | 'uploadPrefix' | 'listPrefix' | 'gallery'| 'croppedImageType'>) {
     const config: MatDialogConfig<UploadFileDialogConfig> = {
       data: {
         cropOptions: {
@@ -209,6 +211,7 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
         ...partialConfig,
       },
     };
+    console.log(config);
     return this.matDialog.open(UploadFileDialogComponent, config);
   }
 
