@@ -519,7 +519,7 @@ def _create_reservation_details_message(reservation_key, user_details):
 
     btn_cancel = AnswerTO()
     btn_cancel.action = "confirm://" + (
-        common_translate(sln_settings.main_language, u'my-reservations-btn-cancel-confirm', arrival_date_time=reservation_details['reservation_details']))
+        common_translate(sln_settings.main_language, u'my-reservations-btn-cancel-confirm', arrival_date_time=reservation_details['arrival_date_time']))
     btn_cancel.caption = common_translate(sln_settings.main_language, u'my-reservations-btn-cancel')
     btn_cancel.id = json.dumps(dict(reservation=reservation_key, action='cancel')).decode('utf8')
     btn_cancel.type = u"button"
