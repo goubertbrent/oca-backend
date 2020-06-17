@@ -78,8 +78,8 @@ $(function () {
         getAppInfo: function (appId, language, options) {
             return this.get('/unauthenticated/osa/signup/app-info/' + appId + '?language=' + language, options);
         },
-        getPrivacySettings: function (appId) {
-            return this.get('/unauthenticated/osa/signup/privacy-settings/' + appId);
+        getPrivacySettings: function (appId, language) {
+            return this.get('/unauthenticated/osa/signup/privacy-settings/' + appId + '?language=' + language);
         },
         signup: function (data) {
             return this.post('/unauthenticated/osa/customer/signup', data, {showError: false});
@@ -392,7 +392,7 @@ $(function () {
     }
 
     function getPrivacySettings(appId) {
-        return requests.getPrivacySettings(appId).then(function (settings) {
+        return requests.getPrivacySettings(appId, getSelectedLanguage()).then(function (settings) {
             privacySettings = settings;
             var container1 = $('#privacy-settings-1');
             var container2 = $('#privacy-settings-2');
