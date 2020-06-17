@@ -24,8 +24,9 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz import news
 from rogerthat.bizz.news import get_news_items_statistics
 from rogerthat.bizz.service import get_and_validate_service_identity_user
+from rogerthat.models import BaseServiceProfile
 from rogerthat.rpc import users
-from rogerthat.rpc.service import service_api
+from rogerthat.rpc.service import service_api, service_api_callback
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsItemListResultTO, \
@@ -112,3 +113,23 @@ def delete(news_id, service_identity=None):
     service_user = users.get_current_user()
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
     return news.delete(news_id, service_identity_user)
+
+
+@service_api_callback(function=u"news.created", code=BaseServiceProfile.CALLBACK_NEWS_CREATED)
+@returns(NoneType)
+@arguments(news_item=NewsItemTO)
+def news_created(news_item):
+    pass
+
+@service_api_callback(function=u"news.updated", code=BaseServiceProfile.CALLBACK_NEWS_UPDATED)
+@returns(NoneType)
+@arguments(news_item=NewsItemTO)
+def news_updated(news_item):
+    pass
+
+@service_api_callback(function=u"news.deleted", code=BaseServiceProfile.CALLBACK_NEWS_DELETED)
+@returns(NoneType)
+@arguments(news_id=(int, long), service_identity=unicode)
+def news_deleted(news_id, service_identity):
+    pass
+

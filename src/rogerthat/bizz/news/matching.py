@@ -161,6 +161,7 @@ def create_matches_for_news_item_key(news_item_key, old_group_ids, should_create
 
 
 def create_matches_for_news_item(news_item, old_group_ids, should_create_notification=False):
+    from rogerthat.bizz.news import do_callback_for_create, do_callback_for_update
     logging.debug('debugging_news create_matches_for_news_item %s', news_item.id)
     logging.debug('debugging_news old_group_ids: %s' % old_group_ids)
     logging.debug('debugging_news new_group_ids: %s' % news_item.group_ids)
@@ -180,6 +181,11 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
         deferred.defer(_update_service_filter, group_id, news_item.sender, _queue=NEWS_MATCHING_QUEUE)
         run_job(_create_matches_for_news_item_qry, [group_id],
                 _create_matches_for_news_item_worker, [news_item.id, should_create_notification], worker_queue=NEWS_MATCHING_QUEUE)
+    
+    if old_group_ids:
+        do_callback_for_update(news_item)
+    else:
+        do_callback_for_create(news_item)
 
 
 @ndb.transactional(xg=True)

@@ -20,6 +20,7 @@ import datetime
 import hashlib
 import json
 import logging
+import re
 import time
 import urllib
 import urlparse
@@ -1033,6 +1034,9 @@ class BaseServiceProfile(object):
     CALLBACK_SYSTEM_API_CALL = 1 << 8
     CALLBACK_SYSTEM_SERVICE_DELETED = 1 << 14
     CALLBACK_SYSTEM_BRANDINGS_UPDATED = 1 << 19
+    CALLBACK_NEWS_CREATED = 1 << 23
+    CALLBACK_NEWS_UPDATED = 1 << 24
+    CALLBACK_NEWS_DELETED = 1 << 25
 
     CALLBACKS = (CALLBACK_APP_INSTALLATION_PROGRESS, CALLBACK_FRIEND_INVITE_RESULT, CALLBACK_FRIEND_INVITED, CALLBACK_FRIEND_BROKE_UP,
                  CALLBACK_MESSAGING_RECEIVED, CALLBACK_MESSAGING_POKE, CALLBACK_MESSAGING_FLOW_MEMBER_RESULT,
@@ -1040,7 +1044,7 @@ class BaseServiceProfile(object):
                  CALLBACK_SYSTEM_SERVICE_DELETED, CALLBACK_SYSTEM_BRANDINGS_UPDATED, CALLBACK_FRIEND_IS_IN_ROLES,
                  CALLBACK_FRIEND_UPDATE, CALLBACK_MESSAGING_NEW_CHAT_MESSAGE, CALLBACK_MESSAGING_CHAT_DELETED,
                  CALLBACK_FRIEND_LOCATION_FIX, CALLBACK_FRIEND_REGISTER, CALLBACK_FRIEND_REGISTER_RESULT,
-                 CALLBACK_FORM_SUBMITTED)
+                 CALLBACK_FORM_SUBMITTED, CALLBACK_NEWS_CREATED, CALLBACK_NEWS_UPDATED, CALLBACK_NEWS_DELETED)
 
     DEFAULT_CALLBACKS = CALLBACK_FRIEND_INVITE_RESULT | CALLBACK_FRIEND_INVITED | CALLBACK_FRIEND_BROKE_UP | \
         CALLBACK_FRIEND_UPDATE | CALLBACK_MESSAGING_POKE | CALLBACK_MESSAGING_RECEIVED | \
@@ -1199,6 +1203,43 @@ class ServiceProfile(Profile, BaseServiceProfile):
     expiredAt = db.IntegerProperty(default=0)
 
 
+class ServiceCallBackConfig(NdbModel):
+    created = ndb.DateTimeProperty()
+    updated = ndb.DateTimeProperty()
+    name = ndb.TextProperty()
+    uri = ndb.TextProperty()
+    regexes = ndb.TextProperty(repeated=True)
+    callbacks = ndb.IntegerProperty(default=-1)
+    custom_headers = ndb.JsonProperty(default=None)
+    
+    def is_regex_match(self, tag):
+        for regex in self.regexes:
+            if re.match(regex, tag):
+                return True
+        return False
+
+    def is_callback_enabled(self, callback):
+        if self.callbacks == -1:
+            return False
+        return self.callbacks & callback == callback
+
+
+class ServiceCallBackSettings(NdbModel):
+    configs = ndb.LocalStructuredProperty(ServiceCallBackConfig, repeated=True)  # type: List[ServiceCallBackConfig]
+    
+    def get_config(self, name):
+        for config in self.configs:
+            if config.name == name:
+                return config
+        return None
+    
+    @classmethod
+    def create_key(cls, service_user):
+        return ndb.Key(cls,
+                       service_user.email(),
+                       parent=parent_ndb_key(service_user))
+
+
 class ServiceCallBackConfiguration(db.Model):
     creationTime = db.IntegerProperty(indexed=False)
     regex = db.TextProperty(indexed=False)
@@ -1214,26 +1255,7 @@ class ServiceCallBackConfiguration(db.Model):
 
     @classmethod
     def create_key(cls, name, service_user):
-        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), name, parent=parent_key(service_user))
-
-
-@deserializer
-def ds_service_callback_configuration(stream):
-    return ds_model(stream, ServiceCallBackConfiguration)
-
-
-@serializer
-def s_service_callback_configuration(stream, app):
-    s_model(stream, app, ServiceCallBackConfiguration)
-
-
-register(ServiceCallBackConfiguration, s_service_callback_configuration, ds_service_callback_configuration)
-
-s_service_callback_configuration_list = get_list_serializer(s_service_callback_configuration)
-ds_service_callback_configuration_list = get_list_deserializer(ds_service_callback_configuration)
-register(ListSerializer(ServiceCallBackConfiguration), s_service_callback_configuration_list,
-         ds_service_callback_configuration_list)
 
 
 class ProfileHashIndex(db.Model):

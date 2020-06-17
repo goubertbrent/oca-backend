@@ -17,6 +17,7 @@
 
 import base64
 from contextlib import closing
+from datetime import datetime
 import json
 import logging
 import os
@@ -73,13 +74,13 @@ from rogerthat.dal.service import get_api_keys, get_api_key, get_api_key_count, 
     get_service_menu_item_by_coordinates, get_service_identity, get_friend_serviceidentity_connection, \
     get_default_service_identity, get_service_identity_not_cached, get_service_identities, get_child_identities, \
     get_service_interaction_defs, get_users_connected_to_service_identity, log_service_activity, \
-    get_service_identities_by_service_identity_users, get_regex_callback_configurations, \
-    get_regex_callback_configurations_cached
+    get_service_identities_by_service_identity_users
 from rogerthat.models import Profile, APIKey, SIKKey, ServiceEmail, ServiceInteractionDef, ShortURL, \
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \
-    ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, ServiceCallBackConfiguration, \
-    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink
+    ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, \
+    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink,\
+    ServiceCallBackSettings, ServiceCallBackConfig
 from rogerthat.models.properties.friend import FriendDetail, FriendDetails
 from rogerthat.models.properties.keyvalue import KVStore, InvalidKeyError
 from rogerthat.models.settings import ServiceInfo
@@ -479,9 +480,12 @@ def get_configuration(service_user):
     else:
         conf.mobidickUrl = None
     conf.actions = [] if conf.mobidickUrl else list(get_configuration_actions(service_user))
+    
     conf.regexCallbackConfigurations = []
-    for scc in get_regex_callback_configurations(service_user):
-        conf.regexCallbackConfigurations.append(ServiceCallbackConfigurationRegexTO.fromModel(scc))
+    callback_settings = ServiceCallBackSettings.create_key(service_user).get()
+    if callback_settings:
+        for config in callback_settings.configs:
+            conf.regexCallbackConfigurations.append(ServiceCallbackConfigurationRegexTO.fromModel(config))
     return conf
 
 
@@ -1254,44 +1258,95 @@ def update_callback_configuration(service_user, httpURI):
 
 
 @returns(ServiceConfigurationTO)
-@arguments(service_user=users.User, name=unicode, regex=unicode, httpURI=unicode)
-def create_callback_configuration(service_user, name, regex, httpURI):
-
-    def trans():
-        callback_config_key = ServiceCallBackConfiguration.create_key(name, service_user)
-        callback_config = ServiceCallBackConfiguration.get(callback_config_key)
-        if not callback_config:
-            callback_config = ServiceCallBackConfiguration(key=callback_config_key)
-        callback_config.creationTime = now()
-        callback_config.regex = regex
-        callback_config.callBackURI = httpURI.strip() if httpURI else None
-        callback_config.put()
-
-    db.run_in_transaction(trans)
-
-    invalidate_cache(get_regex_callback_configurations_cached, service_user)
-
+@arguments(service_user=users.User, name=unicode, httpURI=unicode, regexes=[unicode], callbacks=(int, long), custom_headers=unicode)
+def create_callback_configuration(service_user, name, httpURI, regexes, callbacks, custom_headers):
+    
+    callback_settings_key = ServiceCallBackSettings.create_key(service_user)
+    callback_settings = callback_settings_key.get()
+    if not callback_settings:
+        callback_settings = ServiceCallBackSettings(key=callback_settings_key,
+                                                    configs=[])
+    
+    data_correct = False
+    if len(regexes) >= 1:
+        data_correct = True
+    elif callbacks > 0:
+        data_correct = True
+        
+    try:
+        if custom_headers:
+            custom_headers_dict = json.loads(custom_headers)
+            if not isinstance(custom_headers_dict, dict):
+                raise Exception('custom_headers was not a dict')
+            for key, value in custom_headers_dict.iteritems():
+                if not isinstance(key, (str, unicode)):
+                    raise Exception('key was not a str')
+                if not isinstance(value, (str, unicode)):
+                    raise Exception('value was not a str')
+        else:
+            custom_headers_dict = None
+    except:
+        logging.debug('failed to save custom headers', exc_info=True)
+        custom_headers_dict = None
+    
+    current_config = callback_settings.get_config(name)
+    corrent_d = datetime.utcnow()
+    if current_config:
+        current_config.updated = corrent_d
+        current_config.uri = httpURI.strip() if httpURI else None
+        current_config.regexes = regexes
+        current_config.callbacks = callbacks
+        current_config.custom_headers = custom_headers_dict
+        if not data_correct:
+            callback_settings.configs.remove(current_config)
+    else:
+        new_config = ServiceCallBackConfig(created=corrent_d,
+                                           updated=corrent_d,
+                                           name=name,
+                                           uri=httpURI.strip() if httpURI else None,
+                                           regexes=regexes,
+                                           callbacks=callbacks,
+                                           custom_headers=custom_headers_dict)
+        if data_correct:
+            callback_settings.configs.append(new_config)
+    
+    if callback_settings.configs:   
+        callback_settings.put()
+    else:
+        callback_settings_key.delete()
+ 
     return get_configuration(service_user)
-
-
+ 
+ 
 @returns()
 @arguments(service_user=users.User, name=unicode)
 def test_callback_configuration(service_user, name):
-    callback_config = ServiceCallBackConfiguration.get(ServiceCallBackConfiguration.create_key(name, service_user))
-    if callback_config:
-        from google.appengine.api.memcache import set  # @UnresolvedImport
-        set(service_user.email() + "_interactive_logs", True, 300)
-        perform_test_callback(service_user, callback_name=name)
-
-
+    from google.appengine.api.memcache import set  # @UnresolvedImport
+    callback_settings = ServiceCallBackSettings.create_key(service_user).get()
+    if not callback_settings:
+        return
+    config = callback_settings.get_config(name)
+    if not config:
+        return
+    set(service_user.email() + "_interactive_logs", True, 300)
+    perform_test_callback(service_user, callback_name=name)
+ 
+ 
 @returns(ServiceConfigurationTO)
 @arguments(service_user=users.User, name=unicode)
 def delete_callback_configuration(service_user, name):
-    callback_config = ServiceCallBackConfiguration.get(ServiceCallBackConfiguration.create_key(name, service_user))
-    if callback_config:
-        callback_config.delete()
-
-    invalidate_cache(get_regex_callback_configurations_cached, service_user)
+    callback_settings_key = ServiceCallBackSettings.create_key(service_user)
+    callback_settings = callback_settings_key.get()
+    if callback_settings:
+        config = callback_settings.get_config(name)
+        if config:
+            callback_settings.configs.remove(config)
+    
+        if callback_settings.configs:
+            callback_settings.put()
+        else:
+            callback_settings_key.delete()
+ 
     return get_configuration(service_user)
 
 

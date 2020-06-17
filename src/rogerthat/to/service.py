@@ -34,7 +34,7 @@ from rogerthat.to.friends import GetUserInfoRequestTO, GetUserInfoResponseTO
 from rogerthat.to.profile import SearchConfigTO
 from rogerthat.to.system import ProfileAddressTO, ProfilePhoneNumberTO
 from rogerthat.translations import localize
-from rogerthat.utils import is_flag_set
+from rogerthat.utils import is_flag_set, get_epoch_from_datetime
 from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.service import remove_slash_default, get_identity_from_service_identity_user
 
@@ -62,18 +62,23 @@ class ServiceLanguagesTO(object):
 
 
 class ServiceCallbackConfigurationRegexTO(object):
-    timestamp = long_property('1')
-    name = unicode_property('2')
-    regex = unicode_property('3')
-    callBackURI = unicode_property('4')
+    created = long_property('created')
+    name = unicode_property('name')
+    uri = unicode_property('uri')
+    regexes = unicode_list_property('regexes')
+    callbacks = long_property('callbacks')
+    custom_headers = unicode_property('custom_headers')
+    
 
     @staticmethod
     def fromModel(model):
         to = ServiceCallbackConfigurationRegexTO()
-        to.timestamp = model.creationTime
+        to.created = get_epoch_from_datetime(model.created)
         to.name = model.name
-        to.regex = model.regex
-        to.callBackURI = model.callBackURI
+        to.uri = model.uri
+        to.regexes = model.regexes
+        to.callbacks = model.callbacks
+        to.custom_headers = json.dumps(model.custom_headers).decode('utf8') if model.custom_headers else u''
         return to
 
 

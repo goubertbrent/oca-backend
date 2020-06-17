@@ -122,28 +122,38 @@ def process_callback(response, sik, service_api_callback, synchronous):
     if response.status_code != 200:
         raise Exception("%s failed with http status code %s.\nBody:\n%s" %
                         (response.final_url, response.status_code, response.content))
-    callback_result = json.loads(response.content)
-    raw_result_unicode = json.dumps(privatize(deepcopy(callback_result)), ensure_ascii=False)
     sik_model = get_sik(sik)
+    if service_api_callback.resultFunction:
+        callback_result = json.loads(response.content)
+    else:
+        callback_result =  {
+            'error': None,
+            'id': service_api_callback.callid,
+            'result': None
+        }
+    raw_result_unicode = json.dumps(privatize(deepcopy(callback_result)), ensure_ascii=False)
     result = _process_callback_result(sik_model, callback_result, raw_result_unicode, service_api_callback, True,
                                       synchronous)
     if result:
         return result
 
 
-def send_service_api_callback(service_api_callback, sik, url, synchronous):
-    response = api_callbacks.append(url, service_api_callback, sik, synchronous)
+def send_service_api_callback(service_api_callback, sik, url, synchronous, custom_headers=None):
+    response = api_callbacks.append(url, service_api_callback, sik, synchronous=synchronous, custom_headers=custom_headers)
     if response:
         return process_callback(response, sik, service_api_callback, synchronous)
 
 
-def _make_api_callback_rpc(service_api_call, sik, endpoint):
+def _make_api_callback_rpc(service_api_call, sik, endpoint, custom_headers=None):
     rpc_item = urlfetch.create_rpc(10, None)
     payload = service_api_call.call.encode('utf8')
-    headers = {
+    headers = {}
+    if custom_headers:
+        headers.update(custom_headers)
+    headers.update({
         'Content-type': 'application/json-rpc; charset=utf-8',
         'X-Nuntiuz-Service-Key': sik
-    }
+    })
     urlfetch.make_fetch_call(rpc_item, endpoint, payload, urlfetch.POST, headers, allow_truncated=False,
                              follow_redirects=False)
     return rpc_item
@@ -161,9 +171,9 @@ def _finalize_api_callback_rpc(rpc_item, endpoint, start_time, sik, service_api_
     return process_callback(response, sik, service_api_call, synchronous)
 
 
-def _retry_api_callback(service_api_call, sik, endpoint):
+def _retry_api_callback(service_api_call, sik, endpoint, custom_headers=None):
     start_time = now()
-    rpc = _make_api_callback_rpc(service_api_call, sik, endpoint)
+    rpc = _make_api_callback_rpc(service_api_call, sik, endpoint, custom_headers=custom_headers)
     _finalize_api_callback_rpc(rpc, endpoint, start_time, sik, service_api_call, False)
 
 
@@ -172,21 +182,20 @@ class DirectRpcCaller(threading.local):
     def __init__(self):
         self.items = []
 
-    def append(self, endpoint, service_api_call, sik, synchronous=False):
-        # type: (str, ServiceAPICallback, dict, bool) -> object
-        rpc_item = _make_api_callback_rpc(service_api_call, sik, endpoint)
+    def append(self, endpoint, service_api_call, sik, synchronous=False, custom_headers=None):
+        rpc_item = _make_api_callback_rpc(service_api_call, sik, endpoint, custom_headers=custom_headers)
         if synchronous:
             return rpc_item.get_result()
-        self.items.append((rpc_item, endpoint, time.time(), service_api_call, sik))
+        self.items.append((rpc_item, endpoint, time.time(), service_api_call, sik, custom_headers))
 
     def finalize(self):
-        for rpc_item, endpoint, start_time, service_api_call, sik in self.items:
+        for rpc_item, endpoint, start_time, service_api_call, sik, custom_headers in self.items:
             try:
                 _finalize_api_callback_rpc(rpc_item, endpoint, start_time, sik, service_api_call, False)
             except:
                 logging.warning('Failed to reach %s! Retrying.' % endpoint, exc_info=1)
                 retry_options = TaskRetryOptions(min_backoff_seconds=5, task_retry_limit=3)
-                deferred.defer(_retry_api_callback, service_api_call, sik, endpoint,
+                deferred.defer(_retry_api_callback, service_api_call, sik, endpoint, custom_headers=custom_headers,
                                _queue=HIGH_LOAD_WORKER_QUEUE, _retry_options=retry_options)
         del self.items[:]
 

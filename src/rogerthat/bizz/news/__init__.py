@@ -16,14 +16,14 @@
 # @@license_version:1.7@@
 
 import base64
+from datetime import datetime
 import imghdr
 import json
 import logging
 import random
+from types import NoneType
 import urllib2
 import urlparse
-from datetime import datetime
-from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
@@ -54,7 +54,8 @@ from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATC
 from rogerthat.dal import put_in_chunks
 from rogerthat.dal.friend import get_friends_map, get_friends_map_cached
 from rogerthat.dal.mobile import get_mobile_key_by_account
-from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service
+from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service,\
+    get_service_profile
 from rogerthat.dal.roles import get_service_roles_by_ids
 from rogerthat.dal.service import get_service_identity, \
     ndb_get_service_menu_items, get_service_identities_not_cached, get_default_service_identity
@@ -75,10 +76,10 @@ from rogerthat.models.properties.news import NewsItemStatistics, NewsStatisticPe
     NewsFeeds, NewsFeed
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
-from rogerthat.rpc.models import RpcCAPICall, Mobile
+from rogerthat.rpc.models import RpcCAPICall, Mobile, ServiceAPICallback
 from rogerthat.rpc.rpc import logError, mapping, CAPI_KEYWORD_ARG_PRIORITY, PRIORITY_HIGH, \
     CAPI_KEYWORD_ARG_APPLE_PUSH_MESSAGE, CAPI_KEYWORD_PUSH_DATA, DO_NOT_SAVE_RPCCALL_OBJECTS
-from rogerthat.rpc.service import BusinessException
+from rogerthat.rpc.service import BusinessException, logServiceError
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.news import GetNewsItemsResponseTO, AppNewsItemTO, NewsActionButtonTO, NewsIdsListResultTO, \
@@ -95,8 +96,9 @@ from rogerthat.utils import now, slog, is_flag_set, try_or_defer, guid, bizz_che
 from rogerthat.utils.app import get_app_id_from_app_user, create_app_user
 from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import add_slash_default, get_service_user_from_service_identity_user, \
-    remove_slash_default
+    remove_slash_default, get_service_identity_tuple
 from rogerthat.utils.transactions import run_in_transaction
+
 
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
@@ -1722,6 +1724,7 @@ def delete(news_id, service_identity_user):
         news_item.put()
         delete_news_matches(news_id)
         re_index_news_item(news_item)
+        do_callback_for_delete(news_item.sender, news_id)
         return True
     if news_item.media and news_item.media.content:
         to_delete.append(NewsItemImage.create_key(news_item.media.content))
@@ -1762,3 +1765,28 @@ def match_roles_of_item(si_user, app_user, news_item):
     user_profile = get_user_profile(app_user)
     service_identity = get_service_identity(si_user)
     return any([has_role(service_identity, user_profile, role) for role in roles])
+
+
+def do_callback_for_create(news_item):
+    from rogerthat.service.api.news import news_created
+    service_user = get_service_user_from_service_identity_user(news_item.sender)
+    news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
+    news_created(None, logServiceError, get_service_profile(service_user),
+                    news_item=news_item_to)
+    
+    
+def do_callback_for_update(news_item):
+    from rogerthat.service.api.news import news_updated
+    service_user = get_service_user_from_service_identity_user(news_item.sender)
+    news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
+    news_updated(None, logServiceError, get_service_profile(service_user),
+                    news_item=news_item_to)
+    
+
+def do_callback_for_delete(service_identity_user, news_id):
+    from rogerthat.service.api.news import news_deleted
+    service_user, service_identity = get_service_identity_tuple(service_identity_user)
+    news_deleted(None, logServiceError, get_service_profile(service_user),
+                    news_id=news_id, service_identity=service_identity)
+    
+    

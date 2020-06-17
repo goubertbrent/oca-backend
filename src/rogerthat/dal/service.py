@@ -32,7 +32,7 @@ from mcfw.rpc import arguments, returns
 from rogerthat.dal import parent_key, generator
 from rogerthat.models import APIKey, SIKKey, FriendServiceIdentityConnection, ServiceInteractionDef, MFRSIKey, \
     ServiceMenuDef, ServiceIdentity, Broadcast, QRTemplate, ServiceIdentityStatistic, UserProfile, \
-    ServiceProfile, FriendServiceIdentityConnectionArchive, ServiceCallBackConfiguration, NdbServiceMenuDef
+    ServiceProfile, FriendServiceIdentityConnectionArchive, NdbServiceMenuDef
 from rogerthat.rpc import users, rpc
 from rogerthat.rpc.models import ServiceLog, ServiceAPICallback, NdbServiceLog
 from rogerthat.utils import now, get_epoch_from_datetime
@@ -502,16 +502,3 @@ def get_all_statistics_by_service_user(service_user):
 def get_service_idenities_by_send_email_statistics():
     qry = ServiceIdentity.gql("WHERE emailStatistics = True")
     return qry
-
-
-@returns([ServiceCallBackConfiguration])
-@arguments(service_user=users.User)
-def get_regex_callback_configurations(service_user):
-    return generator(ServiceCallBackConfiguration.all().ancestor(parent_key(service_user)).run())
-
-
-@cached(1, memcache=True, request=True, lifetime=0)
-@returns([ServiceCallBackConfiguration])
-@arguments(service_user=users.User)
-def get_regex_callback_configurations_cached(service_user):
-    return get_regex_callback_configurations(service_user)

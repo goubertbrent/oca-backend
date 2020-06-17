@@ -25,7 +25,7 @@ var serviceScript = function () {
 
     var ak_template = '<li><span class="mcdata">${name}</span><br><span style="font-family: monospace;">${key}</span><br>Generated on ${date} <a class="action-link">Delete</a></li>';
     var ai_template = '{{each actions}}<li class="mcwarning">${$value}</li>{{/each}}';
-    var cc_template = '<li><span class="mcdata">${name}</span><br><span style="font-family: monospace;">${regex}</span><br><span style="font-family: monospace;">${uri}</span><br>Created on ${date} - <a class="action-link cc-test">Test</a> - <a class="action-link cc-delete">Delete</a></li>';
+    var cc_template = '<li><span class="mcdata">${name}</span><br><span style="font-family: monospace;">${uri}</span><br>Created on ${date} - <a class="action-link cc-test">Test</a> - <a class="action-link cc-edit">Edit</a> - <a class="action-link cc-delete">Delete</a></li>';
 
     var applyJQueryInUI = function () {
         lj("#apiKeysContainer").panel({
@@ -242,7 +242,8 @@ var serviceScript = function () {
 
                 lj("#addCallbackConfigDialog_httpCallBackURI", "dc").val("");
                 lj("#addCallbackConfigDialog_httpCallBackURIRequired", "dc").hide();
-
+                
+                lj("#addCallbackConfigDialog_customHeaders", "dc").val("");
                 lj("#addCallbackConfigDialog_name", "dc").focus();
             },
             buttons: {
@@ -257,12 +258,6 @@ var serviceScript = function () {
                         lj("#addCallbackConfigDialog_name", "dc").focus();
                         return;
                     }
-                    var regex = $.trim(lj("#addCallbackConfigDialog_regex", "dc").val());
-                    if (!regex) {
-                        lj("#addCallbackConfigDialog_regexRequired", "dc").show();
-                        lj("#addCallbackConfigDialog_regex", "dc").focus();
-                        return;
-                    }
                     var httpURI = null;
                     httpURI = lj("#addCallbackConfigDialog_httpCallBackURI", "dc").val();
                     if (!httpURI) {
@@ -270,6 +265,31 @@ var serviceScript = function () {
                         lj("#addCallbackConfigDialog_httpCallBackURI", "dc").focus();
                         return;
                     }
+                    
+                    var regexes = [];
+                    var callbacks = -1;
+                    if (lj("#addCallbackConfigDialog_sectionRegex", "dc").is(":visible")) {
+                    	var regex = $.trim(lj("#addCallbackConfigDialog_regex", "dc").val());
+                        if (!regex) {
+                            lj("#addCallbackConfigDialog_regexRequired", "dc").show();
+                            lj("#addCallbackConfigDialog_regex", "dc").focus();
+                            return;
+                        }
+                        regexes.push(regex);
+                    }
+                    if (lj("#addCallbackConfigDialog_sectionCallback", "dc").is(":visible")) {
+                    	callbacks = 0;
+                    	lj("#addCallbackConfigDialog_sectionCallback input[type=checkbox]", "dc").each(function () {
+                    		if ($(this).attr('checked')) {
+                    			var code = $(this).attr('code');
+                                if (code) {
+                                    code = new Number(code);
+                                    callbacks += code;
+                                }
+                    		}
+                        });
+                    }
+                    var customHeaders = lj("#addCallbackConfigDialog_customHeaders", "dc").val();
 
                     mctracker.call({
                         url: '/mobi/rest/service/create_callback_configuration',
@@ -277,8 +297,10 @@ var serviceScript = function () {
                         data: {
                             data: JSON.stringify({
                                 name: name,
-                                regex: regex,
                                 httpURI: httpURI,
+                                regexes: regexes,
+                                callbacks: callbacks,
+                                custom_headers: customHeaders
                             })
                         },
                         success: function  (data, textStatus, XMLHttpRequest) {
@@ -465,8 +487,7 @@ var serviceScript = function () {
     };
 
     var addCallbackConfigToUI = function(cc) {
-        cc.date = mctracker.formatDate(cc.timestamp);
-        cc.uri = cc.callBackURI;
+        cc.date = mctracker.formatDate(cc.created);
         var gatml = $.tmpl(cc_template, cc);
         gatml.hide();
         lj("#callbackConfigs").append(gatml);
@@ -491,6 +512,37 @@ var serviceScript = function () {
                     mctracker.showAjaxError(XMLHttpRequest, textStatus, data);
                 }
             });
+        });
+        $("a.cc-edit", gatml).click(function () {
+            console.log('edit cicked');
+            lj("#addCallbackConfigDialog", "d").dialog('open');
+            lj("#addCallbackConfigDialog_name", "dc").val(cc.name);
+            lj("#addCallbackConfigDialog_httpCallBackURI", "dc").val(cc.uri);
+
+            if (cc.regexes.length > 0) {
+                lj("#addCallbackConfigDialog_regex", "dc").val(cc.regexes[0]);
+                
+                lj("#addCallbackConfigDialog_sectionRegex", "dc").show();
+                lj("#addCallbackConfigDialog_sectionCallback", "dc").hide();
+            } else {
+            
+            	lj("#addCallbackConfigDialog_sectionRegex", "dc").hide();
+                lj("#addCallbackConfigDialog_sectionCallback", "dc").show();
+                
+                lj("#addCallbackConfigDialog_sectionCallback input[type=checkbox]", "dc").each(function () {
+                	if (cc.callbacks == -1) {
+                		$(this).attr('checked', false);
+                	} else {
+                		var code = $(this).attr('code');
+                        if (code) {
+                            code = new Number(code);
+                            $(this).attr('checked', ((cc.callbacks & code) == code));
+                        }
+                	}
+                });
+            }
+            lj("#addCallbackConfigDialog_customHeaders", "dc").val(cc.custom_headers);
+            
         });
         $("a.cc-delete", gatml).click(function () {
             lj("#callbackConfigNameLabel", "dc").text(cc.name);
@@ -563,10 +615,16 @@ var serviceScript = function () {
                 lj("#mobidick").hide();
             }
             $("#callbackConfigContainer").show();
+            lj("#createRegexCallbackConfig").button().click(function () {
+                lj("#addCallbackConfigDialog", "d").dialog('open');
+                lj("#addCallbackConfigDialog_sectionRegex", "dc").show();
+                lj("#addCallbackConfigDialog_sectionCallback", "dc").hide();
+            });
             lj("#createCallbackConfig").button().click(function () {
                 lj("#addCallbackConfigDialog", "d").dialog('open');
+                lj("#addCallbackConfigDialog_sectionRegex", "dc").hide();
+                lj("#addCallbackConfigDialog_sectionCallback", "dc").show();
             });
-
             lj("#callbackConfigs").empty();
             if (configuration.regexCallbackConfigurations.length > 0) {
                 $.each(configuration.regexCallbackConfigurations, function(index, val) {addCallbackConfigToUI(val);});

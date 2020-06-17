@@ -43,8 +43,8 @@ def service_api_callback_handler(solution, code):
     return wrap
 
 
-def _get_key(solution, function):
-    return "%s.%s" % (solution, function)
+def _get_key(solution, code):
+    return "%s.%s" % (solution, code)
 
 
 def service_api_callback_handler_functions(module):

@@ -20,6 +20,7 @@ import datetime
 import json
 import logging
 import os
+import time
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
@@ -538,6 +539,8 @@ class CustomerSignupPasswordHandler(PublicPageHandler):
                 deferred.defer(complete_customer_signup, email, data, service_email)
 
                 try:
+                    # Sleep to allow datastore indexes to update
+                    time.sleep(2)
                     secret, _ = create_session(users.User(email), ignore_expiration=True, cached=False)
                     server_settings = get_server_settings()
                     set_cookie(self.response, server_settings.cookieSessionName, secret)

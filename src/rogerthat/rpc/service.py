@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 
+from copy import deepcopy
 import inspect
 import json
 import logging
@@ -23,9 +24,8 @@ import random
 import re
 import threading
 import time
-import uuid
-from copy import deepcopy
 from types import NoneType
+import uuid
 
 from google.appengine.ext import webapp, db
 from google.appengine.ext.deferred.deferred import PermanentTaskFailure
@@ -38,7 +38,7 @@ from mcfw.rpc import arguments, serialize_value, get_type_details, parse_paramet
 from rogerthat.consts import SERVICE_API_CALLBACK_RETRY_UNIT, DEBUG, APPSCALE
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.dal.service import get_sik, get_api_key, log_service_activity
-from rogerthat.models import ServiceProfile, ServiceCallBackConfiguration
+from rogerthat.models import ServiceProfile, ServiceCallBackSettings
 from rogerthat.rpc import users, rpc
 from rogerthat.rpc.models import ServiceAPIResult, ServiceAPICallback, ServiceLog
 from rogerthat.rpc.rpc import check_decorations, DO_NOT_SAVE_RPCCALL_OBJECTS, mapping, APPENGINE_APP_ID, TARGET_MFR, \
@@ -50,6 +50,7 @@ from rogerthat.translations import localize, DEFAULT_LANGUAGE
 from rogerthat.utils import now, privatize, channel, try_or_defer, \
     offload, OFFLOAD_TYPE_API, OFFLOAD_TYPE_CALLBACK_API, guid
 from rogerthat.utils.transactions import run_after_transaction
+
 
 ERROR_CODE_WARNING_THRESHOLD = 2000  # ServiceApiException errorcode >= 2000 is warning log on server
 
@@ -115,15 +116,18 @@ def service_api_callback(function, code):
 
             target_mfr = TARGET_MFR in kwargs
             is_solution = bool(profile.solution)
-
             if code:  # code 0 is test.test
                 if target_mfr:
                     if code == ServiceProfile.CALLBACK_MESSAGING_RECEIVED:
                         return
                 elif is_solution:
                     if not solution_supports_api_callback(profile.solution, code) and profile.callBackURI == "mobidick":
-                        logging.debug('callback %s is not implemented for solution %s', code, profile.user)
-                        return
+                        callback_settings = ServiceCallBackSettings.create_key(profile.service_user).get()
+                        if callback_settings:
+                            is_solution = False
+                        else: 
+                            logging.debug('callback %s is not implemented for solution %s', code, profile.user)
+                            return
                 else:
                     if not profile.callbackEnabled(code):
                         logging.debug('callback %s is not enabled for %s', code, profile.user)
@@ -138,11 +142,15 @@ def service_api_callback(function, code):
             cc["id"] = callId
             message = json.dumps(cc)
             timestamp = (now_ + SERVICE_API_CALLBACK_RETRY_UNIT) * 1 if profile.enabled else -1
-            service_api_callback = ServiceAPICallback(parent_key(profile.user), callId, call=message,
+            service_api_callback = ServiceAPICallback(parent_key(profile.user),
+                                                      callId,
+                                                      call=message,
                                                       timestamp=timestamp,
                                                       resultFunction=result_f and result_f.meta[u"mapping"],
                                                       errorFunction=error_f and error_f.meta[u"mapping"],
-                                                      targetMFR=target_mfr, monitor=bool(profile.monitor), code=code,
+                                                      targetMFR=target_mfr,
+                                                      monitor=bool(profile.monitor),
+                                                      code=code,
                                                       is_solution=is_solution)
             if 'service_identity' in kwargs:
                 azzert(kwargs['service_identity'], 'service_identity should not be None')
@@ -279,6 +287,7 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
     settings = get_server_settings()
     mfr_uri = "%s/callback_api" % settings.messageFlowRunnerAddress
     mobidick_uri = "%s/callback_api" % settings.mobidickAddress
+    custom_headers = None
     if service_api_callback.targetMFR:
         sik = get_mfr_sik(profile.user).sik
         logging.error('Sending service api callback to MFR for service %s', profile.service_user)
@@ -293,28 +302,38 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
         callback_name = call_dict.get("callback_name") if call_dict else None
         tag = call_dict.get("params", {}).get("tag") if call_dict else None
         logging.debug("callback_name: '%s' and tag: '%s'", callback_name, tag)
-        if callback_name:
-            scc = ServiceCallBackConfiguration.get(
-                ServiceCallBackConfiguration.create_key(callback_name, profile.service_user))
-            if scc:
-                uri = scc.callBackURI
-        elif tag:
-            try:
-                from rogerthat.dal.service import get_regex_callback_configurations_cached
-                regex_callbacks = []
-                for scc in get_regex_callback_configurations_cached(profile.service_user):
-                    if re.match(scc.regex, tag):
-                        regex_callbacks.append(scc)
-                        logging.debug("Matched callback (%s) with regex '%s' to tag '%s'", scc.name, scc.regex, tag)
+        
+        possible_callbacks = []
+        callback_settings = ServiceCallBackSettings.create_key(profile.service_user).get()
+        if callback_settings:
+            if callback_name:
+                callback_config = callback_settings.get_config(callback_name)
+                if callback_config:
+                    possible_callbacks.append(callback_config)
+            elif tag:
+                for config in callback_settings.configs:
+                    try:
+                        is_match = config.is_regex_match(tag)
+                        if is_match:
+                            possible_callbacks.append(config)
+                            logging.debug("Matched callback (%s) with regex '%s' to tag '%s'", config.name, config.regexes, tag)
+                        else:
+                            logging.debug("Could NOT match callback (%s) with regex '%s' to tag '%s'", config.name, config.regexes, tag)
+                    except:
+                        logging.warn("Failed to submit to regex callback with tag '%s'" % tag, exc_info=True)
+            else:
+                for config in callback_settings.configs:
+                    if config.is_callback_enabled(service_api_callback.code):
+                        possible_callbacks.append(config)
+                        logging.debug("Matched callback (%s) with code '%s'", config.name, service_api_callback.code)
                     else:
-                        logging.debug(
-                            "Could NOT match callback (%s) with regex '%s' to tag '%s'", scc.name, scc.regex, tag)
-                if regex_callbacks:
-                    regex_callback = random.choice(regex_callbacks)
-                    uri = regex_callback.callBackURI
-            except:
-                logging.warn("Failed to submit to regex callback with tag '%s'" % tag, exc_info=True)
+                        logging.debug("Could NOT match callback (%s) with code '%s'", config.name, service_api_callback.code)
 
+    if possible_callbacks:
+        possible_callback = random.choice(possible_callbacks)
+        uri = possible_callback.uri
+        custom_headers = possible_callback.custom_headers
+        
     logging.info("Sending callback to %s, identifying through sik %s @ %s:\n%s"
                  % (profile.user, sik, uri, service_api_callback.call))
     if not (uri and sik):
@@ -322,7 +341,7 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
         return False, "Not enough information present to send the call!"
 
     try:
-        result = send_service_api_callback(service_api_callback, profile.sik, uri, synchronous)
+        result = send_service_api_callback(service_api_callback, profile.sik, uri, synchronous, custom_headers=custom_headers)
         if synchronous:
             return result
     except Exception as e:
@@ -743,12 +762,19 @@ def _process_callback_result(sik, result, raw_result_unicode, service_api_callba
         status = ServiceLog.STATUS_SUCCESS
     try:
         if not error:
-            callback_result = parse_parameter(u"result", service_callback_result_mapping[service_api_callback.resultFunction].meta[
-                                              u"kwarg_types"][u"result"], result["result"])
-            if synchronous:
-                return callback_result
-            service_callback_result_mapping[service_api_callback.resultFunction](
-                context=service_api_callback, result=callback_result)
+            if service_api_callback.resultFunction:
+                callback_result = parse_parameter(u"result", service_callback_result_mapping[service_api_callback.resultFunction].meta[
+                                                  u"kwarg_types"][u"result"], result["result"])
+                
+                if synchronous:
+                    return callback_result
+                service_callback_result_mapping[service_api_callback.resultFunction](
+                    context=service_api_callback, result=callback_result)
+            else:
+                if result["result"]:
+                    logging.exception('Result was set but resultFunction was None')
+                if synchronous:
+                    return None
         else:
             if not synchronous:
                 service_callback_result_mapping[service_api_callback.errorFunction](
@@ -784,11 +810,14 @@ def _validate_api_callback(result_f, error_f, target, alias, f):
         raise ValueError(
             "Target argument should be of type rogerthat.models.ServiceProfile or [rogerthat.models.ServiceProfile]")
 
-    check_decorations(result_f)
+    funcs = []
+    if result_f:
+        check_decorations(result_f)
+        funcs.append(result_f)
     check_decorations(error_f)
+    funcs.append(error_f)
     if not isinstance(target, ServiceProfile):
         raise_invalid_target()
-    funcs = result_f, error_f
     from rogerthat.rpc.calls import service_callback_result_mapping
     if any(filter(lambda fn: "mapping" not in fn.meta or fn.meta["mapping"] not in service_callback_result_mapping, funcs)):
         raise ValueError(
@@ -800,8 +829,12 @@ def _validate_api_callback(result_f, error_f, target, alias, f):
             "Result and error processing functions must have a arg 'context' of type rogerthat.models.ClientCall.")
     if any(filter(lambda fn: len(fn.meta["kwarg_types"]) != 2, funcs)):
         raise ValueError("Result and error processing functions must have 2 arguments!")
-    if f.meta["return_type"] != result_f.meta["kwarg_types"]["result"]:
-        raise ValueError("Return value type and result function result argument types do not match!")
+    
+    if result_f:
+        if f.meta["return_type"] != result_f.meta["kwarg_types"]["result"]:
+            raise ValueError("Return value type and result function result argument types do not match!")
+    elif f.meta["return_type"] != NoneType:
+        raise ValueError("Result function is required!")
     from rogerthat.rpc.calls import service_callback_mapping
     if not alias in service_callback_mapping:
         raise ValueError("Function is not present in service_callback_mapping")

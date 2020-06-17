@@ -91,6 +91,7 @@ from rogerthat.service.api.friends import broke_friendship, invited, invite_resu
     register, register_result
 from rogerthat.service.api.messaging import poke, flow_member_result, received, acknowledged, form_acknowledged, \
     new_chat_message, chat_deleted
+from rogerthat.service.api.news import news_created, news_updated, news_deleted
 from rogerthat.service.api.system import api_call, service_deleted, brandings_updated
 from rogerthat.service.api.test import test
 
@@ -334,6 +335,9 @@ service_callback_mapping = {
     u'system.brandings_updated': brandings_updated,
     u'system.service_deleted': service_deleted,
     u'forms.submitted': form_submitted,
+    u'news.created': news_created,
+    u'news.updated': news_updated,
+    u'news.deleted': news_deleted,
 }
 
 result_mapping = {

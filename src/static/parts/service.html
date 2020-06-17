@@ -49,12 +49,14 @@
             <div id="callbackConfigContainer" style="display: none;">
                 <hr>
                 <div class="clearfix">
+                    <button id="createRegexCallbackConfig">Create new regex configuration</button>
                     <button id="createCallbackConfig">Create new callback configuration</button>
                 </div>
                 <ul id="callbackConfigs" /><br>
             </div>
             <hr>
             Which callbacks do you want to receive ?<br><br>
+            <input id="cbFormSubmitted" type="checkbox" code="4194304" /><label for="cbFormSubmitted">forms.form_submitted</label><br>
             <input id="cbFriendInviteResult" type="checkbox" code="1" /><label for="cbFriendInviteResult">friend.invite_result</label><br>
             <input id="cbFriendInvited" type="checkbox" code="2" /><label for="cbFriendInvited">friend.invited</label><br>
             <input id="cbFriendBrokeUp" type="checkbox" code="4" /><label for="cbFriendBrokeUp">friend.broke_up</label><br>
@@ -68,6 +70,9 @@
             <input id="cbMessagingChatDeleted" type="checkbox" code=32768 /><label for="cbMessagingChatDeleted">messaging.chat_deleted</label><br>
             <input id="cbMessagingPoke" type="checkbox" code="16" /><label for="cbMessagingPoke">messaging.poke</label><br>
             <input id="cbMessagingFlowResult" type="checkbox" code="64" /><label for="cbMessagingFlowResult">messaging.flow_member_result</label><br>
+            <input id="cbNewsCreated" type="checkbox" code="8388608" /><label for="cbNewsCreated">news.created</label><br>
+            <input id="cbNewsUpdated" type="checkbox" code="16777216" /><label for="cbNewsUpdated">news.updated</label><br>
+            <input id="cbNewsDeleted" type="checkbox" code="33554432" /><label for="cbNewsDeleted">news.deleted</label><br>
             <input id="cbSystemApiCall" type="checkbox" code="256" /><label for="cbSystemApiCall">system.api_call</label><br>
             <input id="cbSystemBrandingsUpdated" type="checkbox" code="524288" /><label for="cbSystemBrandingsUpdated">system.brandings_updated</label><br>
         </div>
@@ -111,12 +116,42 @@
     </div>
     <div id="addCallbackConfigDialog">
         Name:<br>
-        <input id="addCallbackConfigDialog_name" type="text" style="width: 350px"><span id="addCallbackConfigDialog_nameRequired" style="display: none;" class="mcerror">required field!</span><br>
-        Regex (Will be matched to the tag of a callback):<br>
-        <input id="addCallbackConfigDialog_regex" type="text" style="width: 350px"><span id="addCallbackConfigDialog_regexRequired" style="display: none;" class="mcerror">required field!</span><br>
-        <br>
+        <input id="addCallbackConfigDialog_name" type="text" style="width: 350px">
+        <span id="addCallbackConfigDialog_nameRequired" style="display: none;" class="mcerror">required field!</span><br>
         URI to which callbacks will be posted:<br>
-	    <input id="addCallbackConfigDialog_httpCallBackURI" type="text" style="width: 350px" placeholder="https://service.example.com/callbackurl"><span id="addCallbackConfigDialog_httpCallBackURIRequired" style="display: none;" class="mcerror">required field!</span><br>
+	    <input id="addCallbackConfigDialog_httpCallBackURI" type="text" style="width: 350px" placeholder="https://service.example.com/callbackurl">
+	    <span id="addCallbackConfigDialog_httpCallBackURIRequired" style="display: none;" class="mcerror">required field!</span><br>
+	    <div id="addCallbackConfigDialog_sectionRegex" style="display: none;">
+		    Regex (Will be matched to the tag of a callback):<br>
+	        <input id="addCallbackConfigDialog_regex" type="text" style="width: 350px">
+	        <span id="addCallbackConfigDialog_regexRequired" style="display: none;" class="mcerror">required field!</span><br>
+	    </div>
+	    <div id="addCallbackConfigDialog_sectionCallback" style="display: none;">
+	    	<br>
+	        Which callbacks do you want to receive ?<br>
+	         <input id="cbCallbackFormSubmitted" type="checkbox" code="4194304" /><label for="cbCallbackFormSubmitted">forms.form_submitted</label><br>
+	         <input id="cbCallbackFriendInviteResult" type="checkbox" code="1" /><label for="cbCallbackFriendInviteResult">friend.invite_result</label><br>
+	         <input id="cbCallbackFriendInvited" type="checkbox" code="2" /><label for="cbCallbackFriendInvited">friend.invited</label><br>
+	         <input id="cbCallbackFriendBrokeUp" type="checkbox" code="4" /><label for="cbCallbackFriendBrokeUp">friend.broke_up</label><br>
+	         <input id="cbCallbackFriendUpdate" type="checkbox" code="8192" /><label for="cbCallbackFriendUpdate">friend.update</label><br>
+	         <input id="cbCallbackFriendIsInRoles" type="checkbox" code="2048" /><label for="cbCallbackFriendIsInRoles">friend.is_in_roles</label><br>
+	         <input id="cbCallbackFriendLocationFix" type="checkbox" code="65536" /><label for="cbCallbackFriendLocationFix">friend.location_fix</label><br>
+	         <input id="cbCallbackMessagingUpdateReceived" type="checkbox" code="8" /><label for="cbCallbackMessagingUpdateReceived">messaging.update (received)</label><br>
+	         <input id="cbCallbackMessagingUpdateAcknowledged" type="checkbox" code="128" /><label for="cbCallbackMessagingUpdateAcknowledged">messaging.update (acknowledged)</label><br>
+	         <input id="cbCallbackMessagingFormUpdateAcknowledged" type="checkbox" code="32" /><label for="cbCallbackMessagingFormUpdateAcknowledged">messaging.form_update (acknowledged)</label><br>
+	         <input id="cbCallbackMessagingNewChatMessage" type="checkbox" code="4096" /><label for="cbCallbackMessagingNewChatMessage">messaging.new_chat_message</label><br>
+	         <input id="cbCallbackMessagingChatDeleted" type="checkbox" code=32768 /><label for="cbCallbackMessagingChatDeleted">messaging.chat_deleted</label><br>
+	         <input id="cbCallbackMessagingPoke" type="checkbox" code="16" /><label for="cbCallbackMessagingPoke">messaging.poke</label><br>
+	         <input id="cbCallbackMessagingFlowResult" type="checkbox" code="64" /><label for="cbCallbackMessagingFlowResult">messaging.flow_member_result</label><br>
+	         <input id="cbCallbackNewsCreated" type="checkbox" code="8388608" /><label for="cbCallbackNewsCreated">news.created</label><br>
+	         <input id="cbCallbackNewsUpdated" type="checkbox" code="16777216" /><label for="cbCallbackNewsUpdated">news.updated</label><br>
+	         <input id="cbCallbackNewsDeleted" type="checkbox" code="33554432" /><label for="cbCallbackNewsDeleted">news.deleted</label><br>
+	         <input id="cbCallbackSystemApiCall" type="checkbox" code="256" /><label for="cbCallbackSystemApiCall">system.api_call</label><br>
+	         <input id="cbCallbackSystemBrandingsUpdated" type="checkbox" code="524288" /><label for="cbCallbackSystemBrandingsUpdated">system.brandings_updated</label><br>
+	         <br>
+         </div>
+         Custom Headers:<br>
+         <input id="addCallbackConfigDialog_customHeaders" type="text" style="width: 350px"">
     </div>
     <div id="deleteCallbackConfigDialog">
         Are you sure you want to delete callback <span id="callbackConfigNameLabel"/>.

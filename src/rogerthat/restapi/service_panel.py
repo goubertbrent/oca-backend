@@ -137,11 +137,11 @@ def update_callback_configuration(httpURI):
 
 @rest("/mobi/rest/service/create_callback_configuration", "post")
 @returns(ServiceConfigurationTO)
-@arguments(name=unicode, regex=unicode, httpURI=unicode)
-def create_callback_configuration(name, regex, httpURI):
+@arguments(name=unicode, httpURI=unicode, regexes=[unicode], callbacks=(int, long), custom_headers=unicode)
+def create_callback_configuration(name, httpURI, regexes, callbacks, custom_headers):
     from rogerthat.bizz.service import create_callback_configuration as create_callback_configuration_bizz
     service_user = users.get_current_user()
-    return create_callback_configuration_bizz(service_user, name, regex, httpURI)
+    return create_callback_configuration_bizz(service_user, name, httpURI, regexes, callbacks, custom_headers)
 
 
 @rest("/mobi/rest/service/test_callback_configuration", "post")

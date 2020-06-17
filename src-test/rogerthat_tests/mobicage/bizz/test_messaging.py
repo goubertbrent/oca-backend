@@ -448,7 +448,7 @@ class Test(mc_unittest.TestCase):
 
                     # look for form_update in api_callbacks
                     found = False
-                    for rpc, _, _, _, _ in api_callbacks.items:
+                    for rpc, _, _, _, _, _ in api_callbacks.items:
                         assert isinstance(rpc, UserRPC)
                         request = rpc.request
                         assert isinstance(request, URLFetchRequest)
