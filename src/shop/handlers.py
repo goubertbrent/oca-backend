@@ -539,6 +539,8 @@ class CustomerSignupPasswordHandler(PublicPageHandler):
                 deferred.defer(complete_customer_signup, email, data, service_email)
 
                 try:
+                    # Sleep to allow datastore indexes to update
+                    time.sleep(2)
                     secret, _ = create_session(users.User(signup.company_email), ignore_expiration=True, cached=False)
                     server_settings = get_server_settings()
                     set_cookie(self.response, server_settings.cookieSessionName, secret)
