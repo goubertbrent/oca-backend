@@ -520,7 +520,7 @@ class CustomerSignupPasswordHandler(PublicPageHandler):
         password_confirm = json_data.get('password_confirm')
         error = None
         try:
-            signup, parsed_data = get_customer_signup(email, data)  # type: CustomerSignup, dict
+            signup, _ = get_customer_signup(email, data)  # type: CustomerSignup, dict
         except ExpiredUrlException:
             error = self.translate('link_expired', action='')
         except AlreadyUsedUrlException:
@@ -539,9 +539,7 @@ class CustomerSignupPasswordHandler(PublicPageHandler):
                 deferred.defer(complete_customer_signup, email, data, service_email)
 
                 try:
-                    # Sleep to allow datastore indexes to update
-                    time.sleep(2)
-                    secret, _ = create_session(users.User(email), ignore_expiration=True, cached=False)
+                    secret, _ = create_session(users.User(signup.company_email), ignore_expiration=True, cached=False)
                     server_settings = get_server_settings()
                     set_cookie(self.response, server_settings.cookieSessionName, secret)
                 except:
