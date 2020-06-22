@@ -348,16 +348,12 @@ def _new_deferred_run(data):
             users.set_deferred_user(current_user)
 
         try:
-            dt = datetime.datetime.utcnow()
-            # do not log between 00:00 and 00:15
-            # too many defers are run at this time
-            if dt.hour != 0 or dt.minute > 15:
-                from rogerthat.utils import get_current_queue
-                logging.debug('Queue: %s\ndeferred.run(%s.%s%s%s)',
-                              get_current_queue(),
-                              func.__module__, func.__name__,
-                              "".join((",\n             %s" % repr(a) for a in args)),
-                              "".join((",\n             %s=%s" % (k, repr(v)) for k, v in kwds.iteritems())))
+            from rogerthat.utils import get_current_queue
+            logging.debug('Queue: %s\ndeferred.run(%s.%s%s%s)',
+                          get_current_queue(),
+                          func.__module__, func.__name__,
+                          "".join((",\n             %s" % repr(a) for a in args)),
+                          "".join((",\n             %s=%s" % (k, repr(v)) for k, v in kwds.iteritems())))
         except:
             logging.exception('Failed to log the info of this defer (%s)', func)
 

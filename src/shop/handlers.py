@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import time
+import urllib
 
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
@@ -660,6 +661,10 @@ class QuotationHandler(webapp2.RequestHandler):
 
 
 class CustomerCirkloAcceptHandler(PublicPageHandler):
+    
+    def get_url(self, customer):
+        url_params = urllib.urlencode({'cid': customer.id})
+        return '/customers/consent/cirklo?{}'.format(url_params)
 
     def dispatch(self):
         # Don't redirect to dashboard when logged in
@@ -686,6 +691,31 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             return self.abort(404)
 
         consents = get_customer_consents(customer.user_email)
+        should_accept = False
+        if SolutionServiceConsent.TYPE_CITY_CONTACT not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CITY_CONTACT)
+            should_accept = True
+        if SolutionServiceConsent.TYPE_CIRKLO_SHARE not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CIRKLO_SHARE)
+            should_accept = True
+        params = {
+            'cirklo_accept_url': self.get_url(customer),
+            'should_accept': should_accept
+        }
+
+        self.response.out.write(self.render('cirklo_accept', **params))
+
+    def post(self):
+        try:
+            customer_id = self.request.get('cid')
+            customer = Customer.get_by_id(long(customer_id))
+            if not customer:
+                raise Exception('Customer not found')
+        except:
+            self.redirect('/')
+            return
+
+        consents = get_customer_consents(customer.user_email)
         should_put_consents = False
         if SolutionServiceConsent.TYPE_CITY_CONTACT not in consents.types:
             consents.types.append(SolutionServiceConsent.TYPE_CITY_CONTACT)
@@ -706,9 +736,4 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             settings.providers = [VoucherProviderId.CIRKLO]
             settings.put()
             
-        
-        params = {
-        }
-
-        self.response.out.write(self.render('cirklo_accept', **params))
-
+        self.redirect(self.get_url(customer))

@@ -3,13 +3,27 @@
 {% block title %}Cirklo{% endblock %}
 
 {% block content %}
- <div class="span6" style="float: none; margin: 0 auto; background-color: white; padding: 10px; border-radius: 5px;">
-<p style="word-wrap: break-word;" align="center">
-🎉🎉🎉<br/><br/>
-🙌 <strong>WOEHOEW!</strong> 🙌<br/><br/>
-Proficiat beste handelaar, u hebt bij deze uw deelname aan het cadeaubon-initiatief van uw stad/gemeente via <a href="https://cirklo-light.com/pages/ondernemer" target="_blank">Cirklo Light</a> bevestigd & uw gegevens met hen gedeeld.<br/><br/>
-U ontvangt binnenkort een e-mail op <strong>DITZELFDE e-mailadres</strong> met meer informatie over hoe u waardebonnen van uw klanten kan scannen enz. Veel succes gewenst! Heeft u een vraag? Raadpleeg dan deze <a href="https://cirklo-light.com/pages/faq" target="_blank">FAQ</a> of mail naar <a href="mailto://support@cirklo-light.com" target="_blank">support@cirklo-light.com</a><br/><br/>
-🎉🎉🎉<br/>
+<div class="span6" style="float: none; margin: 0 auto; background-color: white; padding: 10px; border-radius: 5px;" align="center">
+<p style="word-wrap: break-word;">
+<br/>
+🖱🖱🖱<br/><br/>
+<strong>NOG ÉÉN ‘KLIK’ TE GAAN...</strong><br/><br/>
+Beste handelaar, u staat op het punt om uw deelname aan het cadeaubon-initiatief van uw stad/gemeente via <a href="https://cirklo-light.com/pages/ondernemer" target="_blank">Cirklo Light</a> te bevestigen. Om het bestuur van uw stad/ gemeente officieel op de hoogte te brengen van uw wens tot deelname drukt u op onderstaande knop. Hierdoor deelt u ook uw gegevens met uw stad/gemeente.<br/><br/>
+</p>
+{% if should_accept %}
+<div id="section_accept">
+	<form method="post" action="{{ cirklo_accept_url }}">
+		<button type="submit" class="btn btn-wizard" type="button">Bevestig uw deelname</button>
+	</form>
+	<br/><br/>
+</div>
+{% else %}
+<div id="section_accepted">
+	🙌 <strong>BEVESTIGD!</strong> 🙌<br/><br/>
+</div>
+{% endif %}
+<p style="word-wrap: break-word;">
+Na bevestiging ontvangt u binnenkort een e-mail op <strong>DITZELFDE e-mailadres</strong> met meer informatie over hoe u waardebonnen van uw klanten kan scannen enz. Veel succes! Heeft u een vraag? Raadpleeg dan deze <a href="https://cirklo-light.com/pages/faq" target="_blank">FAQ</a> of mail naar <a href="mailto://support@cirklo-light.com" target="_blank">support@cirklo-light.com</a><br/><br/>
 </p>
 </div>
 {% endblock %}
