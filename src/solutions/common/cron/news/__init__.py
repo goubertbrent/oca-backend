@@ -19,8 +19,9 @@ from HTMLParser import HTMLParser
 import datetime
 import hashlib
 import logging
-from types import NoneType
 import urlparse
+from HTMLParser import HTMLParser
+from types import NoneType
 
 from google.appengine.api import urlfetch, images
 from google.appengine.ext import ndb
@@ -33,11 +34,10 @@ from rogerthat.dal.service import get_default_service_identity
 from rogerthat.models.news import NewsItem, MediaType
 from rogerthat.rpc import users
 from rogerthat.service.api import news
-from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO, NewsFeedNameTO
+from rogerthat.to.news import NewsActionButtonTO, BaseMediaTO
 from solutions import translate as common_translate
 from solutions.common.models import SolutionSettings
 from solutions.common.utils import limit_string
-
 
 BROADCAST_TYPE_NEWS = u"News"
 
@@ -61,9 +61,9 @@ def get_full_url(base_url, potential_partial_url):
 
 @returns()
 @arguments(sln_settings=SolutionSettings, group_type=unicode, message=unicode, title=unicode, permalink=unicode,
-           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode], feed_name=unicode, timestamp=(NoneType, int ,long))
+           image_url=unicode, notify=bool, item_key=ndb.Key, app_ids=[unicode], timestamp=(NoneType, int ,long))
 def create_news_item(sln_settings, group_type, message, title, permalink, notify=False, image_url=None,
-                     item_key=None, app_ids=None, feed_name=None, timestamp=None):
+                     item_key=None, app_ids=None, timestamp=None):
     service_user = sln_settings.service_user
     logging.info('Creating news item:\n- %s\n- %s\n- %s\n- %s\n- %s - %s - Notification: %s', service_user, message,
                  title, group_type, permalink, image_url, notify)
@@ -73,13 +73,6 @@ def create_news_item(sln_settings, group_type, message, title, permalink, notify
         action_button = NewsActionButtonTO(u'url', link_caption, permalink)
         si = get_default_service_identity(service_user)
         news_app_ids = app_ids if app_ids else si.appIds
-
-        if feed_name:
-            feed_names = []
-            for app_id in news_app_ids:
-                feed_names.append(NewsFeedNameTO(app_id, feed_name))
-        else:
-            feed_names = None
 
         title = limit_string(title, NewsItem.MAX_TITLE_LENGTH)
         flags = NewsItem.DEFAULT_FLAGS
@@ -106,7 +99,6 @@ def create_news_item(sln_settings, group_type, message, title, permalink, notify
                                  qr_code_caption=None,
                                  scheduled_at=0,
                                  app_ids=news_app_ids,
-                                 feed_names=feed_names,
                                  media=_get_media(get_full_url(permalink, image_url)),
                                  timestamp=timestamp,
                                  accept_missing=True)

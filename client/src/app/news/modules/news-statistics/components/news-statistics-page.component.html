@@ -1,5 +1,20 @@
-<oca-news-statistics-graphs
-  *ngIf="(newsItemStats$ | async).data as stats"
-  [apps]="stats.apps"
-  [newsStatistics]="stats.news_item.statistics"
-  [selectedMetric]="selectedMetric$ | async"></oca-news-statistics-graphs>
+<ng-container *ngIf="(newsItemStats$ | async).data as stats">
+  <mat-chip-list class="totals-list" *ngIf="stats.statistics">
+    <mat-chip>
+      {{ stats.statistics.total_reached }} {{ 'oca.reached' | translate }}
+    </mat-chip>
+    <mat-chip>
+      {{ stats.statistics.users_that_rogered.length }} {{ 'oca.rogered' | translate }}
+    </mat-chip>
+    <mat-chip>
+      {{ stats.statistics.total_action }} {{ 'oca.action' | translate }}
+    </mat-chip>
+    <mat-chip>
+      {{ stats.statistics.total_followed }} {{ 'oca.followed' | translate }}
+    </mat-chip>
+  </mat-chip-list>
+  <oca-news-statistics-graphs
+    [apps]="stats.apps"
+    [newsStatistics]="stats.statistics"
+    [selectedMetric]="selectedMetric$ | async"></oca-news-statistics-graphs>
+</ng-container>

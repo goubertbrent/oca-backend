@@ -22,20 +22,18 @@ from datetime import datetime
 from google.appengine.ext import ndb
 
 import mc_unittest
-from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz.friends import makeFriends
-from rogerthat.bizz.news import create_push_notification, match_roles_of_item, \
-    get_groups_for_user
+from rogerthat.bizz.news import create_push_notification, get_groups_for_user
 from rogerthat.bizz.news.matching import should_match_location, \
-    setup_default_settings, _create_news_item_match
+    setup_default_settings, _create_news_item_match, _match_roles_of_item
 from rogerthat.bizz.profile import create_service_profile, create_service_identity_user, \
     create_user_profile
 from rogerthat.bizz.system import get_profile_addresses, \
     delete_profile_addresses, add_profile_address, update_profile_address
 from rogerthat.consts import DAY
 from rogerthat.exceptions.news import CannotUnstickNewsException
-from rogerthat.models import App, ServiceIdentity, ServiceRole, \
-    UserProfileInfoAddress, UserProfileInfo, UserProfile, UserAddressType
+from rogerthat.models import App, UserProfileInfoAddress, UserProfileInfo, UserProfile, UserAddressType, \
+    ServiceRole
 from rogerthat.models.news import NewsItem, NewsGroup, NewsSettingsService, \
     NewsSettingsServiceGroup, NewsItemAddress, NewsSettingsUser, NewsStream
 from rogerthat.models.properties.news import NewsItemStatistics
@@ -44,7 +42,7 @@ from rogerthat.service.api import news, system
 from rogerthat.to import GeoPointTO
 from rogerthat.to.messaging import MemberTO
 from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsSenderTO, \
-    NewsFeedNameTO, BaseMediaTO, NewsLocationsTO, NewsGeoAddressTO, \
+    BaseMediaTO, NewsLocationsTO, NewsGeoAddressTO, \
     NewsAddressTO, NewsTargetAudienceTO
 from rogerthat.to.system import AddProfileAddressRequestTO, UpdateProfileAddressRequestTO
 from rogerthat.utils import now
@@ -67,7 +65,7 @@ class NewsTest(mc_unittest.TestCase):
 
     @classmethod
     def _create_news_item(cls, num, sticky=False, news_type=NewsItem.TYPE_NORMAL, role_ids=None, tags=None,
-                          feed_names=None, use_media=False, app_ids=None, locations=None,
+                          use_media=False, app_ids=None, locations=None,
                           group_type=NewsGroup.TYPE_CITY,
                           use_image_url=False, use_image_url_http=False):
         def _get_file_contents(path):
@@ -122,7 +120,6 @@ class NewsTest(mc_unittest.TestCase):
                             flags=NewsItem.DEFAULT_FLAGS,
                             role_ids=role_ids,
                             tags=tags,
-                            feed_names=feed_names,
                             media=media,
                             locations=locations,
                             group_type=group_type)
@@ -196,7 +193,6 @@ class NewsTest(mc_unittest.TestCase):
         role_names = ['employee', 'manager', 'g.manager']
         with set_current_user(self.user, skip_create_session=True):
             role_ids = [system.put_role(name, ServiceRole.TYPE_MANAGED) for name in role_names]
-            si_user = create_service_identity_user(self.user, ServiceIdentity.DEFAULT)
 
             app_user_with_roles = create_app_user_by_email(u'app@test.user')
             app_user_without_roles = create_app_user_by_email(u'app@test.user.noroles')
@@ -210,31 +206,24 @@ class NewsTest(mc_unittest.TestCase):
                 system.add_role_member(role_id, MemberTO.from_user(app_user_with_roles))
             system.add_role_member(role_ids[1], MemberTO.from_user(app_user_half_roles))
 
-            news_item_with_roles = self._create_news_item(111, role_ids=role_ids)
-            news_item_without_roles = self._create_news_item(111)
+            news_item_to_with_roles = self._create_news_item(111, role_ids=role_ids)
+            news_item_with_roles = NewsItem.create_key(news_item_to_with_roles.id).get()
+            news_item_to_without_roles = self._create_news_item(111)
+            news_item_without_roles = NewsItem.create_key(news_item_to_without_roles.id).get()
 
-            self.assertTrue(match_roles_of_item(si_user, app_user_with_roles, news_item_without_roles))
-            self.assertTrue(match_roles_of_item(si_user, app_user_without_roles, news_item_without_roles))
-            self.assertTrue(match_roles_of_item(si_user, app_user_half_roles, news_item_without_roles))
+            self.assertTrue(_match_roles_of_item(app_user_with_roles, news_item_without_roles))
+            self.assertTrue(_match_roles_of_item(app_user_without_roles, news_item_without_roles))
+            self.assertTrue(_match_roles_of_item(app_user_half_roles, news_item_without_roles))
 
-            self.assertTrue(match_roles_of_item(si_user, app_user_with_roles, news_item_with_roles))
-            self.assertTrue(match_roles_of_item(si_user, app_user_half_roles, news_item_with_roles))
-            self.assertFalse(match_roles_of_item(si_user, app_user_without_roles, news_item_with_roles))
+            self.assertTrue(_match_roles_of_item(app_user_with_roles, news_item_with_roles))
+            self.assertTrue(_match_roles_of_item(app_user_half_roles, news_item_with_roles))
+            self.assertFalse(_match_roles_of_item(app_user_without_roles, news_item_with_roles))
 
     def test_tag(self):
         tags = [u'bla_bla']
         with set_current_user(self.user, skip_create_session=True):
             news_item = self._create_news_item(123, tags=tags)
             self.assertEqual(tags, news_item.tags)
-
-    def test_feed_names(self):
-        feed_names = [NewsFeedNameTO(u'rogerthat', u'bla_ moehaha')]
-
-        with set_current_user(self.user, skip_create_session=True):
-            news_item = self._create_news_item(1234, feed_names=feed_names)
-            self.assertEqual(serialize_complex_value(feed_names, NewsFeedNameTO, True),
-                             serialize_complex_value(news_item.feed_names, NewsFeedNameTO, True))
-            self.assertEqual([u'news'], news_item.tags)
 
     def test_deprecated_image(self):
         with set_current_user(self.user, skip_create_session=True):

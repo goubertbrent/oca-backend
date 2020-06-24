@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+from __future__ import unicode_literals
 import base64
 import datetime
 import json
@@ -42,7 +42,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO, \
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
     NewsItemListResultTO, NewsItemTO
 from rogerthat.utils.service import get_service_identity_tuple
 from solutions import translate as common_translate
@@ -75,10 +75,13 @@ def get_news(cursor=None, service_identity=None, tag=None):
 @returns(NewsStatsTO)
 @arguments(news_id=(int, long), service_identity=unicode)
 def get_news_statistics(news_id, service_identity=None):
-    news_item = news.get(news_id, service_identity, True)
-    apps = get_apps_by_id([s.app_id for s in news_item.statistics])
+    news_item = news.get(news_id, service_identity)
+    statistics = news.get_statistics([news_id], service_identity)
+    stats = statistics[0] if statistics else None
+    apps = get_apps_by_id([s.app_id for s in stats.details]) if stats else []
     return NewsStatsTO(
         news_item=news_item,
+        statistics=stats,
         apps=[NewsAppTO.from_model(app) for app in apps],
     )
 
@@ -351,7 +354,6 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     if default_app.demo and App.APP_ID_ROGERTHAT in app_ids:
         app_ids.remove(App.APP_ID_ROGERTHAT)
 
-    feed_names = {}
     if is_regional_news_enabled(default_app):
         if tag == NEWS_TAG:
             if default_app.demo:
@@ -360,20 +362,7 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                 # No extra apps selected --> post in LOCAL NEWS in the demo app
                 if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
                     pass  # LOCAL NEWS
-                else:
-                    feed_names[default_app.app_id] = NewsFeedNameTO(
-                        default_app.app_id, u'regional_news')  # REGIONAL NEWS
                 app_ids = [default_app.app_id]
-            else:
-                for app_id in app_ids:
-                    if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
-                        feed_names[app_id] = NewsFeedNameTO(app_id, u'regional_news')
-        else:
-            if default_app.demo:
-                feed_names[default_app.app_id] = NewsFeedNameTO(default_app.app_id, tag)
-            else:
-                for app_id in app_ids:
-                    feed_names[app_id] = NewsFeedNameTO(app_id, tag)
     sticky = False
     sticky_until = None
     kwargs = {
@@ -433,19 +422,15 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                     # create a city review for this app
                     city_kwargs = kwargs.copy()
                     city_kwargs['app_ids'] = [app_id]
-                    city_kwargs['feed_names'] = feed_names.get(app_id, [])
                     send_news_for_review(city_service, service_identity_user, app_id, is_free_regional_news,
                                          coupon, **city_kwargs)
                     # remove from current feed
                     new_app_ids.remove(app_id)
-                    if feed_names and app_id in feed_names:
-                        del feed_names[app_id]
 
         if not DEBUG and new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
             raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
 
     # for the rest
-    kwargs['feed_names'] = feed_names.values()
     kwargs['app_ids'] = new_app_ids
 
     with users.set_user(service_user):

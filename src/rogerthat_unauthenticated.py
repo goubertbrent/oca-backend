@@ -40,7 +40,7 @@ from rogerthat.pages.login import LoginHandler, AuthenticationRequiredHandler, O
 from rogerthat.pages.main import MainPage, RobotsTxt, AboutPageHandler, CrossDomainDotXml
 from rogerthat.pages.mdp import InitMyDigiPassSessionHandler, AuthorizedMyDigiPassHandler
 from rogerthat.pages.message import MessageHandler
-from rogerthat.pages.news import NewsSaveReadItems, ViewNewsImageHandler
+from rogerthat.pages.news import ViewNewsImageHandler, NewsSaveReadItems
 from rogerthat.pages.payment import PaymentCallbackHandler, PaymentLoginAppHandler, PaymentLoginRedirectHandler
 from rogerthat.pages.photo import ServiceDownloadPhotoHandler
 from rogerthat.pages.profile import GetAvatarHandler, GetCachedAvatarHandler

@@ -74,7 +74,6 @@ from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZe
 from rogerthat.utils.transactions import on_trans_committed
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings

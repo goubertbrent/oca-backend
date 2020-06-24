@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { NewsApp, NewsItemStatistics } from '../../../../interfaces';
+import { ChartBase, ChartType } from 'angular-google-charts';
+import { NewsApp, NewsItemAppStatistics, NewsItemStatistics } from '../../../../interfaces';
 
 interface Stats {
   appId: string;
@@ -20,7 +21,7 @@ interface Mapping {
   time: KV;
 }
 
-export type PossibleMetrics = Exclude<keyof NewsItemStatistics, 'app_id'>;
+export type PossibleMetrics = Exclude<keyof NewsItemAppStatistics, 'app_id'>;
 
 @Component({
   selector: 'oca-news-statistics-graphs',
@@ -29,7 +30,7 @@ export type PossibleMetrics = Exclude<keyof NewsItemStatistics, 'app_id'>;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewsStatisticsGraphsComponent implements OnChanges {
-  @Input() newsStatistics: NewsItemStatistics[];
+  @Input() newsStatistics: NewsItemStatistics | null;
   @Input() apps: NewsApp[];
   @Input() selectedMetric: PossibleMetrics = 'reached';
 
@@ -70,10 +71,13 @@ export class NewsStatisticsGraphsComponent implements OnChanges {
   }
 
   createChartData() {
+    if(!this.newsStatistics){
+      return;
+    }
     if (this.selectedApp === 'all') {
-      this.currentStats = getTotalStats(this.newsStatistics, this.selectedMetric);
+      this.currentStats = getTotalStats(this.newsStatistics.details, this.selectedMetric);
     } else {
-      const stats = this.newsStatistics.find(s => s.app_id === this.selectedApp);
+      const stats = this.newsStatistics.details.find(s => s.app_id === this.selectedApp);
       if (stats) {
         this.currentStats = getStats(stats, this.selectedMetric);
       } else {
@@ -101,7 +105,7 @@ export class NewsStatisticsGraphsComponent implements OnChanges {
     const lineTitle = this.translate.instant(metric ? metric.label : 'oca.reached');
     this.charts = {
       age: {
-        chartType: 'ColumnChart',
+        chartType: ChartType.ColumnChart,
         dataTable: appChartData.age.map(i => [ i[ 0 ] === '0 - 5' ? this.translate.instant('oca.unknown') : i[ 0 ], i[ 1 ] ]),
         columnNames: [ this.translate.instant('oca.gender'), amountStr ],
         options: {
@@ -120,7 +124,7 @@ export class NewsStatisticsGraphsComponent implements OnChanges {
         },
       },
       gender: {
-        chartType: 'PieChart',
+        chartType: ChartType.PieChart,
         dataTable: appChartData.gender.map(item => [ this.genderMapping[ item[ 0 ] ], item[ 1 ] ]),
         columnNames: [ this.translate.instant('oca.gender'), amountStr ],
         options: {
@@ -134,7 +138,7 @@ export class NewsStatisticsGraphsComponent implements OnChanges {
         },
       },
       time: {
-        chartType: 'LineChart',
+        chartType: ChartType.LineChart,
         dataTable: appChartData.time,
         columnNames: [ this.translate.instant('oca.Date'), amountStr ],
         options: {
@@ -156,7 +160,7 @@ export class NewsStatisticsGraphsComponent implements OnChanges {
   }
 }
 
-function getTotalStats(stats: NewsItemStatistics[], metric: PossibleMetrics) {
+function getTotalStats(stats: NewsItemAppStatistics[], metric: PossibleMetrics) {
   const result: Stats = {
     appId: 'all',
     age: [],
@@ -211,7 +215,7 @@ function mapToDateArray(values: KV) {
   return temp;
 }
 
-function getStats(stats: NewsItemStatistics, metric: PossibleMetrics) {
+function getStats(stats: NewsItemAppStatistics, metric: PossibleMetrics) {
   const result: Stats = {
     appId: stats.app_id,
     age: [],

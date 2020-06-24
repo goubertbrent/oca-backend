@@ -28,7 +28,7 @@ from rogerthat.models.news import NewsItemActionStatistics, NewsItemAction
 from rogerthat.models.properties.news import NewsItemStatistics
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
-from rogerthat.to.news import NewsItemInternalStatistics, NewsItemStatisticsTO
+from rogerthat.to.news import NewsItemStatisticsTO, NewsItemAppStatisticsTO
 
 
 def get_influxdb_datetime(time_str):
@@ -111,7 +111,7 @@ def get_news_items_statistics(news_items, include_details=False):
 
 
 def transform_news_statistics_resulset(result, news_id, timestamp, users_that_rogered, include_details):
-    # type: (ResultSet, long ,long, list[unicode], bool) -> NewsItemInternalStatistics
+    # type: (ResultSet, long ,long, list[unicode], bool) -> NewsItemStatisticsTO
     creation_date = datetime.utcfromtimestamp(timestamp)
     action_types = [NewsItemAction.REACHED, NewsItemAction.ROGERED, NewsItemAction.ACTION, NewsItemAction.FOLLOWED]
 
@@ -152,10 +152,10 @@ def transform_news_statistics_resulset(result, news_id, timestamp, users_that_ro
         action_stats['gender'][p['gender']] += amount
         action_stats['time'][hour_index] += amount
 
-    result = NewsItemInternalStatistics(users_that_rogered=users_that_rogered)
+    result = NewsItemStatisticsTO(news_id, users_that_rogered=users_that_rogered)
     for app_id, s in s_dict.iteritems():
         if include_details:
-            statistics_in_app = NewsItemStatisticsTO(
+            statistics_in_app = NewsItemAppStatisticsTO(
                 app_id=app_id,
                 reached=create_detail_statistics(s[NewsItemAction.REACHED], creation_date),
                 rogered=create_detail_statistics(s[NewsItemAction.ROGERED], creation_date),

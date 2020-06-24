@@ -35,6 +35,15 @@ export interface NewsItemStatisticsDetails {
 }
 
 export interface NewsItemStatistics {
+  id: number;
+  users_that_rogered: string[];
+  total_reached: number;
+  total_action: number;
+  total_followed: number;
+  details: NewsItemAppStatistics[];
+}
+
+export interface NewsItemAppStatistics {
   app_id: string;
   reached: NewsItemStatisticsDetails;
   rogered: NewsItemStatisticsDetails;
@@ -47,11 +56,6 @@ export interface NewsTargetAudience {
   max_age: number;
   gender: Gender;
   connected_users_only: boolean;
-}
-
-export interface NewsFeedName {
-  app_id: string;
-  name: string;
 }
 
 export interface NewsSender {
@@ -127,16 +131,11 @@ export interface NewsItem {
   sticky: boolean;
   sticky_until: number;
   app_ids: string[];
-  rogered: boolean;
   scheduled_at: number;
   published: boolean;
-  statistics: NewsItemStatistics[];
-  action_count: number;
-  follow_count: number;
   target_audience: NewsTargetAudience | null;
   role_ids: number[];
   tags: string[];
-  feed_names: NewsFeedName[];
   id: number;
   sender: NewsSender;
   title: string;
@@ -145,8 +144,6 @@ export interface NewsItem {
    * @deprecated use group_type instead
    */
   broadcast_type: string;
-  reach: number;
-  users_that_rogered: string[];
   buttons: NewsActionButton[];
   qr_code_content: string;
   qr_code_caption: string;
@@ -213,6 +210,8 @@ export interface NewsApp {
 
 export interface NewsStats {
   news_item: NewsItem;
+  // Only null if stats server couldn't be reached
+  statistics: NewsItemStatistics | null;
   apps: NewsApp[];
 }
 

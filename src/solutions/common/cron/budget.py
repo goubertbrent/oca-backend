@@ -53,13 +53,14 @@ def update_regional_news_budget(sln_news_item_key):
 
     with users.set_user(service_user):
         try:
-            news_item = news.get(news_id, service_identity, include_statistics=True)
+            news_item = news.get(news_id, service_identity)
+            statistics = news.get_statistics(news_id, service_identity)
         except NewsNotFoundException:
             logging.warning('News item with id %d is not found', news_id)
             return
 
     total_reach = 0
-    for app_stats in news_item.statistics:
+    for app_stats in statistics.details:
         if app_stats.app_id not in sln_news_item.app_ids:
             continue
         total_reach += app_stats.reached['total']

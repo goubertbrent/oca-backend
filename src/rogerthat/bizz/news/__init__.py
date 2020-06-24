@@ -16,25 +16,24 @@
 # @@license_version:1.7@@
 
 import base64
-from datetime import datetime
 import imghdr
 import json
 import logging
 import random
-from types import NoneType
 import urllib2
 import urlparse
+from datetime import datetime
+from types import NoneType
 
 from google.appengine.api import urlfetch, images, taskqueue
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
 from google.appengine.ext.ndb.query import Cursor
+from typing import List, Dict, Tuple
 
-from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
 from mcfw.utils import chunks
-from rogerthat.bizz.features import Features, mobile_supports_feature
 from rogerthat.bizz.job import run_job
 from rogerthat.bizz.log_analysis import NEWS_CREATED, NEWS_ROGERED, NEWS_REACHED, NEWS, NEWS_SPONSORING_TIMED_OUT, \
     NEWS_UPDATED, NEWS_NEW_FOLLOWER, NEWS_ACTION
@@ -47,23 +46,19 @@ from rogerthat.bizz.news.matching import create_matches_for_news_item, \
     delete_news_matches, enabled_filter, disable_filter, update_visibility_news_matches, \
     update_badge_count_user, create_matches_for_news_item_key
 from rogerthat.bizz.news.searching import find_news, re_index_news_item, re_index_news_item_by_key
-from rogerthat.bizz.roles import has_role
 from rogerthat.bizz.service import _validate_roles
 from rogerthat.capi.news import disableNews, createNotification
 from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
 from rogerthat.dal import put_in_chunks
-from rogerthat.dal.friend import get_friends_map, get_friends_map_cached
 from rogerthat.dal.mobile import get_mobile_key_by_account
-from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service,\
-    get_service_profile
-from rogerthat.dal.roles import get_service_roles_by_ids
+from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service, get_service_profile
 from rogerthat.dal.service import get_service_identity, \
     ndb_get_service_menu_items, get_service_identities_not_cached, get_default_service_identity
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
     CannotChangePropertyException, MissingNewsArgumentException, InvalidNewsTypeException, NoPermissionToNewsException, \
     ValueTooLongException, DemoServiceException, InvalidScheduledTimestamp, \
     EmptyActionButtonCaption, InvalidActionButtonRoles, InvalidActionButtonFlowParamsException, TrialServiceException
-from rogerthat.models import ServiceProfile, FriendMap, PokeTagMap, UserProfile, ServiceMenuDef, NdbApp, \
+from rogerthat.models import ServiceProfile, PokeTagMap, ServiceMenuDef, NdbApp, \
     UserProfileInfoAddress, NdbProfile, UserProfileInfo, NdbUserProfile
 from rogerthat.models.maps import MapService
 from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatistics, NewsGroup, NewsSettingsUser, \
@@ -71,21 +66,19 @@ from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatist
     NewsMedia, NewsStream, NewsItemLocation, NewsItemGeoAddress, NewsItemAddress, \
     NewsNotificationStatus, NewsNotificationFilter, NewsStreamCustomLayout, NewsItemAction, MediaType, \
     NewsSettingsUserGroup, NewsSettingsServiceGroup
-from rogerthat.models.properties.friend import FriendDetail
-from rogerthat.models.properties.news import NewsItemStatistics, NewsStatisticPerApp, NewsButtons, NewsButton, \
-    NewsFeeds, NewsFeed
+from rogerthat.models.properties.news import NewsItemStatistics, NewsStatisticPerApp, NewsButtons, NewsButton
 from rogerthat.models.utils import ndb_allocate_id
 from rogerthat.rpc import users
-from rogerthat.rpc.models import RpcCAPICall, Mobile, ServiceAPICallback
+from rogerthat.rpc.models import RpcCAPICall
 from rogerthat.rpc.rpc import logError, mapping, CAPI_KEYWORD_ARG_PRIORITY, PRIORITY_HIGH, \
     CAPI_KEYWORD_ARG_APPLE_PUSH_MESSAGE, CAPI_KEYWORD_PUSH_DATA, DO_NOT_SAVE_RPCCALL_OBJECTS
 from rogerthat.rpc.service import BusinessException, logServiceError
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import BaseMemberTO
-from rogerthat.to.news import GetNewsItemsResponseTO, AppNewsItemTO, NewsActionButtonTO, NewsIdsListResultTO, \
-    NewsItemTO, NewsItemListResultTO, DisableNewsRequestTO, GetNewsResponseTO, NewsReadInfoTO, \
-    DisableNewsResponseTO, NewNewsResponseTO, NewsTargetAudienceTO, \
-    NewsItemStatisticsTO, NewsFeedNameTO, NewsItemInternalStatistics, BaseMediaTO, MediaTO, \
+from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsItemListResultTO, DisableNewsRequestTO, \
+    NewsReadInfoTO, \
+    DisableNewsResponseTO, NewsTargetAudienceTO, \
+    NewsItemAppStatisticsTO, NewsItemStatisticsTO, BaseMediaTO, MediaTO, \
     GetNewsGroupsResponseTO, IfEmtpyScreenTO, NewsGroupRowTO, NewsGroupTO, NewsGroupTabInfoTO, NewsGroupFilterInfoTO, \
     NewsGroupLayoutTO, GetNewsStreamItemsResponseTO, NewsStreamItemTO, GetNewsGroupServicesResponseTO, NewsSenderTO, \
     SaveNewsGroupServicesResponseTO, SaveNewsGroupFiltersResponseTO, CreateNotificationRequestTO, \
@@ -99,36 +92,9 @@ from rogerthat.utils.service import add_slash_default, get_service_user_from_ser
     remove_slash_default, get_service_identity_tuple
 from rogerthat.utils.transactions import run_in_transaction
 
-
 _DEFAULT_LIMIT = 100
 ALLOWED_NEWS_BUTTON_ACTIONS = list(ALLOWED_BUTTON_ACTIONS) + ['poke']
 IMAGE_MAX_SIZE = 409600  # 400kb
-
-
-@returns(GetNewsResponseTO)
-@arguments(app_user=users.User, cursor=unicode, updated_since=(int, long), mobile=Mobile)
-def get_news_for_user(app_user, cursor=None, updated_since=0, mobile=None):
-    r = GetNewsResponseTO()
-    r.cursor = None
-    r.result = []
-
-    app_id = get_app_id_from_app_user(app_user)
-    profile = get_user_profile(app_user)
-    to = get_all_news(app_id, cursor, profile, mobile, updated_since, _get_connections(get_friends_map(app_user)))
-    if to.result:
-        r.cursor = to.cursor
-        r.result = to.result
-    return r
-
-
-@returns(GetNewsItemsResponseTO)
-@arguments(app_user=users.User, ids=[(int, long)])
-def get_news_items_for_user(app_user, ids=None):
-    news_items = get_news_by_ids(ids)
-    connections = _get_connections(get_friends_map(app_user))
-    base_url = get_server_settings().baseUrl
-    news_items = [NewsItemTO.from_model(model, base_url) for model in news_items if model]
-    return GetNewsItemsResponseTO(items=[AppNewsItemTO.from_news_item_to(n, connections, app_user) for n in news_items])
 
 
 def create_default_news_settings(service_user, organization_type):
@@ -248,7 +214,7 @@ def get_groups_for_user(app_user):
         custom_layout = models.pop()
         if custom_layout and custom_layout.layout:
             news_stream_layout = custom_layout.layout
-    news_groups_mapping = {group.group_id: group for group in models}  # type: dict[str, NewsGroup]
+    news_groups_mapping = {group.group_id: group for group in models}  # type: Dict[str, NewsGroup]
 
     base_url = get_server_settings().baseUrl
     type_city = news_stream and news_stream.stream_type == NewsStream.TYPE_CITY
@@ -318,7 +284,7 @@ def _get_group_services(news_group):
 
 
 def get_tabs_for_group(lang, news_groups_mapping, news_user_group):
-    # type: (str, dict[str, NewsGroup], NewsSettingsUserGroup) -> list[NewsGroupTabInfoTO]
+    # type: (str, Dict[str, NewsGroup], NewsSettingsUserGroup) -> List[NewsGroupTabInfoTO]
     tabs = []
     for group_details in news_user_group.get_details_sorted():
         news_group = news_groups_mapping.get(group_details.group_id)
@@ -343,7 +309,7 @@ def get_news_group_response(app_user, group_id):
     app_id = get_app_id_from_app_user(app_user)
     keys = [NewsStream.create_key(app_id), NewsGroup.create_key(group_id), NewsSettingsUser.create_key(app_user),
             NdbUserProfile.createKey(app_user)]
-    models = ndb.get_multi(keys) # type: tuple[NewsStream, NewsGroup,NewsSettingsUser, NdbUserProfile]
+    models = ndb.get_multi(keys)  # type: Tuple[NewsStream, NewsGroup,NewsSettingsUser, NdbUserProfile]
     news_stream, news_group, user_group_settings, user_profile = models
     all_groups = ndb.get_multi([NewsGroup.create_key(i) for i in user_group_settings.group_ids])
     group_mapping = {group.group_id: group for group in all_groups}
@@ -455,16 +421,22 @@ def get_group_subtitle_for_type(type_city, group_type, lang):
 
 def get_if_empty_for_group_type(group_type, lang):
     if group_type == NewsGroup.TYPE_PROMOTIONS:
-        return IfEmtpyScreenTO(title=localize(lang, u'No promotions'), message=localize(lang, u'There are no promotions at this time'))
+        return IfEmtpyScreenTO(title=localize(lang, u'No promotions'),
+                               message=localize(lang, u'There are no promotions at this time'))
     elif group_type == NewsGroup.TYPE_EVENTS:
-        return IfEmtpyScreenTO(title=localize(lang, u'No events'), message=localize(lang, u'There are no events at this time'))
+        return IfEmtpyScreenTO(title=localize(lang, u'No events'),
+                               message=localize(lang, u'There are no events at this time'))
     elif group_type == NewsGroup.TYPE_TRAFFIC:
-        return IfEmtpyScreenTO(title=localize(lang, u'No traffic'), message=localize(lang, u'There is no traffic at this time'))
+        return IfEmtpyScreenTO(title=localize(lang, u'No traffic'),
+                               message=localize(lang, u'There is no traffic at this time'))
     elif group_type == NewsGroup.TYPE_PRESS:
-        return IfEmtpyScreenTO(title=localize(lang, u'No press'), message=localize(lang, u'There are no local press articles at this time'))
+        return IfEmtpyScreenTO(title=localize(lang, u'No press'),
+                               message=localize(lang, u'There are no local press articles at this time'))
     elif group_type == NewsGroup.TYPE_POLLS:
-        return IfEmtpyScreenTO(title=localize(lang, u'No polls'), message=localize(lang, u'There are no polls at this time'))
-    return IfEmtpyScreenTO(title=localize(lang, u'No news'), message=localize(lang, u'There is no news at this time'))
+        return IfEmtpyScreenTO(title=localize(lang, u'No polls'),
+                               message=localize(lang, u'There are no polls at this time'))
+    return IfEmtpyScreenTO(title=localize(lang, u'No news'),
+                           message=localize(lang, u'There is no news at this time'))
 
 
 @returns(NewsItem)
@@ -710,23 +682,6 @@ def save_group_filters(app_user, group_id, enabled_filters):
     return SaveNewsGroupFiltersResponseTO()
 
 
-@returns(tuple)
-@arguments(friends_map=FriendMap)
-def _get_connections(friends_map):
-    si_users = set()
-    friend_users = set()
-    for f_user in friends_map.friends:
-        friend_detail = friends_map.friendDetails[f_user.email()]
-        if friend_detail.existence == FriendDetail.FRIEND_EXISTENCE_DELETED:
-            continue
-        friend_type = friend_detail.type
-        if friend_type == FriendDetail.TYPE_USER:
-            friend_users.add(f_user)
-        elif friend_type == FriendDetail.TYPE_SERVICE:
-            si_users.add(add_slash_default(f_user))
-    return friend_users, si_users
-
-
 @returns(NewsItemListResultTO)
 @arguments(cursor=unicode, batch_count=(int, long), service_identity_user=users.User, updated_since=(int, long),
            tag=unicode)
@@ -737,7 +692,7 @@ def get_news_by_service(cursor, batch_count, service_identity_user, updated_sinc
     qry = NewsItem.list_by_sender(service_identity_user, updated_since, tag)
     c = ndb.Cursor.from_websafe_string(cursor) if cursor else None
     results, new_cursor, has_more = qry.fetch_page(batch_count,
-                                                   start_cursor=c)  # type: list[NewsItem], ndb.Cursor, bool
+                                                   start_cursor=c)  # type: List[NewsItem], ndb.Cursor, bool
     news_items = replace_hashed_news_button_tags_with_real_tag(results, service_user)
     news_statistics_to_fill = []
     for news_item in news_items:
@@ -750,8 +705,7 @@ def get_news_by_service(cursor, batch_count, service_identity_user, updated_sinc
     for news_id in news_statistics_to_fill:
         deferred.defer(setup_news_statistics_count_for_news_id, news_id)
     r_cursor = new_cursor and new_cursor.to_websafe_string().decode('utf-8')
-    statistics = get_news_items_statistics(news_items, False)
-    return NewsItemListResultTO(news_items, has_more, r_cursor, base_url, statistics)
+    return NewsItemListResultTO(news_items, has_more, r_cursor, base_url)
 
 
 @returns([NewsItem])
@@ -788,68 +742,24 @@ def setup_news_statistics_count_for_news_id(news_id):
 
     def trans():
         news_item = NewsItem.get_by_id(news_id)
-        setup_news_statistics_count_for_news_item(news_item, True)
+        setup_news_statistics_count_for_news_item(news_item)
+        news_item.put()
 
     run_in_transaction(trans)
 
 
 @returns()
-@arguments(news_item=NewsItem, should_put=bool)
-def setup_news_statistics_count_for_news_item(news_item, should_put=False):
+@arguments(news_item=NewsItem)
+def setup_news_statistics_count_for_news_item(news_item):
     news_item.follow_count = 0
     news_item.action_count = 0
     for _, stats in news_item.statistics.iteritems():
         news_item.follow_count += stats.followed_total
         news_item.action_count += stats.action_total
-    if should_put:
-        news_item.put()
-
-
-@returns(NewsIdsListResultTO)
-@arguments(app_id=unicode, cursor=unicode, profile=UserProfile, mobile=Mobile, updated_since=(int, long),
-           connections=tuple, limit=(int, long), friends_map=FriendMap)
-def get_all_news(app_id, cursor, profile, mobile, updated_since=0, connections=None, limit=_DEFAULT_LIMIT,
-                 friends_map=None):
-    if connections is None:
-        connections = ([], [])
-
-    if mobile and mobile_supports_feature(mobile, Features.MULTIPLE_NEWS_FEEDS):
-        qry = NewsItem.list_by_app(app_id, updated_since)
-    else:
-        qry = NewsItem.list_by_app(app_id, updated_since, tag=u'news')
-    news_items, new_cursor, _ = qry.fetch_page(
-        limit, start_cursor=ndb.Cursor.from_websafe_string(cursor) if cursor else None)
-    if new_cursor:
-        r_cursor = new_cursor.to_websafe_string().decode('utf-8')
-    else:
-        r_cursor = None
-
-    # filter news items with target audience roles
-    matched_news_items = []
-    for item in news_items:
-        if (item.feeds is None or app_id not in item.feeds) and not match_app_id(item.sender, app_id):
-            continue
-        if not match_roles_of_item(item.sender, profile.user, item):
-            continue
-        if send_to_connected_users_only(item):
-            if not friends_map:
-                friends_map = get_friends_map_cached(profile.user)
-            if remove_slash_default(item.sender) not in friends_map.friends:
-                continue
-        matched_news_items.append(item)
-
-    # if all items are skipped, then
-    # try to get the next batch if available
-    if news_items and r_cursor and not matched_news_items:
-        return get_all_news(app_id, r_cursor, profile, mobile, updated_since, connections, limit, friends_map)
-
-    first_time = updated_since <= 0
-    list_result = NewsIdsListResultTO(r_cursor, matched_news_items, connections, first_time, profile)
-    return list_result
 
 
 def get_news_items_statistics(news_items, include_details=False):
-    # type: (list[NewsItem], bool) -> dict[int, NewsItemInternalStatistics]
+    # type: (List[NewsItem], bool) -> List[NewsItemStatisticsTO]
     from rogerthat.bizz.news.influx import get_news_items_statistics as get_news_items_statistics_influx
     stats_per_news_item = {}
     influx_items = []
@@ -868,7 +778,7 @@ def get_news_items_statistics(news_items, include_details=False):
             else:
                 raise
 
-    return stats_per_news_item
+    return [stats_per_news_item.get(news_item.id) for news_item in news_items]
 
 
 @returns([(NewsItem, NoneType)])
@@ -904,12 +814,11 @@ def _get_group_info(service_identity_user, group_type=None, app_ids=None, news_i
            image=unicode, news_type=int, news_buttons=[NewsActionButtonTO],
            qr_code_content=unicode, qr_code_caption=unicode, app_ids=[unicode], scheduled_at=(int, long),
            flags=int, news_id=(int, long, NoneType), target_audience=NewsTargetAudienceTO, role_ids=[(int, long)],
-           tags=[unicode], feed_names=[
-               NewsFeedNameTO], media=BaseMediaTO, locations=NewsLocationsTO, group_type=unicode,
+           tags=[unicode], media=BaseMediaTO, locations=NewsLocationsTO, group_type=unicode,
            group_visible_until=(int, long, NoneType), timestamp=(int, long, NoneType))
 def put_news(sender, sticky, sticky_until, title, message, image, news_type, news_buttons,
              qr_code_content, qr_code_caption, app_ids, scheduled_at, flags, news_id=None, target_audience=None,
-             role_ids=None, tags=None, feed_names=None, media=MISSING, locations=None, group_type=MISSING,
+             role_ids=None, tags=None, media=MISSING, locations=None, group_type=MISSING,
              group_visible_until=None, timestamp=None):
     """
     Args:
@@ -947,7 +856,7 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
     existing_news_item = None
     scheduled_at_changed = False
     if news_id:
-        existing_news_item = _get_and_validate_news_item(news_id, sender)
+        existing_news_item = get_and_validate_news_item(news_id, sender)
         if existing_news_item.sticky and sticky is not MISSING and not sticky:
             raise CannotUnstickNewsException()
         if news_type is not MISSING and existing_news_item.type != news_type:
@@ -1034,11 +943,6 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
             buttons.add(btn)
     if poke_tags_to_create:
         deferred.defer(_save_models, poke_tags_to_create, _transactional=ndb.in_transaction())
-
-    feeds = NewsFeeds()
-    if feed_names and is_set(feed_names):
-        for feed_name in feed_names:
-            feeds.add(NewsFeed(feed_name.app_id, feed_name.name))
 
     @ndb.non_transactional()
     def get_service_identity_non_transactional():
@@ -1130,7 +1034,6 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
             else:
                 item_flags = flags
 
-
             news_item = NewsItem(key=NewsItem.create_key(ndb_allocate_id(NewsItem)),
                                  sticky=sticky,
                                  sticky_until=sticky_until if sticky else 0,
@@ -1143,8 +1046,7 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
                                  scheduled_at=scheduled_at,
                                  published=scheduled_at is 0,
                                  statistics_type=statistics_type,
-                                 statistics=default_statistics,
-                                 feeds=feeds)
+                                 statistics=default_statistics)
 
         if news_item.type == NewsItem.TYPE_QR_CODE:
             if is_set(qr_code_caption):
@@ -1270,7 +1172,7 @@ def get_and_validate_media_info(type_, content):
                                                      parsed_url.fragment))
                 logging.debug('get_and_validate_media_info.to: %s', media.content)
             try:
-                image_result = urlfetch.fetch(media.content)
+                image_result = urlfetch.fetch(media.content)  # type: urlfetch._URLFetchResult
                 if image_result.status_code != 200:
                     raise Exception('Failed to download image')
                 result = image_result.content
@@ -1331,16 +1233,10 @@ def _save_models(models):
     db.put(models)
 
 
-def send_to_connected_users_only(news_item):
-    if not news_item.target_audience:
-        return False
-
-    return news_item.target_audience.connected_users_only
-
-
 def schedule_news(news_item, sender, description_branding):
     """
     Args:
+        description_branding:
         news_item (NewsItem)
         sender (users.User): service identity user
     """
@@ -1478,10 +1374,10 @@ def save_statistics_to_matches(app_user, new_actions):
 
 
 def transform_ds_news_statistics(news_item, include_details):
-    # type: (NewsItem, bool) -> NewsItemInternalStatistics
-    result = NewsItemInternalStatistics(users_that_rogered=[u.email() for u in news_item.users_that_rogered])
+    # type: (NewsItem, bool) -> NewsItemStatisticsTO
+    result = NewsItemStatisticsTO(news_item.id, users_that_rogered=[u.email() for u in news_item.users_that_rogered])
     if include_details:
-        result.details = [NewsItemStatisticsTO.from_model(app_id, stats, news_item.timestamp)
+        result.details = [NewsItemAppStatisticsTO.from_model(app_id, stats, news_item.timestamp)
                           for app_id, stats in news_item.statistics.iteritems()]
     for item in news_item.statistics:  # type: NewsItemStatistics
         result.total_action += item.action_total
@@ -1591,14 +1487,19 @@ def create_push_notification(news_item):
 
 @returns(NewsItem)
 @arguments(service_identity_user=users.User, news_id=(int, long))
-def _get_and_validate_news_item(news_id, service_identity_user):
+def get_and_validate_news_item(news_id, service_identity_user):
     # type: (long, users.User) -> NewsItem
     """
-    Returns news by id
+    Returns news by an id
 
+    Args:
+        service_identity_user (users.User)
+        news_id (long)
+    Returns:
+        NewsItem
     Raises:
-        NoPermissionToNewsException: raised when user has no permission to this news.
-        NewsNotFoundException: raised when news was not found with specified id
+        NoPermissionToNewsException
+        NewsNotFoundException
     """
     news_item = NewsItem.get_by_id(news_id)
     if not news_item or news_item.deleted:
@@ -1608,10 +1509,28 @@ def _get_and_validate_news_item(news_id, service_identity_user):
     return news_item
 
 
+def get_and_validate_news_items(news_ids, service_identity_user):
+    # type: (List[long], users.User) -> List[NewsItem]
+    """
+    Returns news by id
+
+    Raises:
+        NoPermissionToNewsException: raised when user has no permission to this news.
+        NewsNotFoundException: raised when news was not found with specified id
+    """
+    news_items = ndb.get_multi([NewsItem.create_key(news_id) for news_id in news_ids])  # type: List[NewsItem]
+    for news_id, news_item in zip(news_ids, news_items):
+        if not news_item or news_item.deleted:
+            raise NewsNotFoundException(news_id)
+        if news_item.sender != service_identity_user:
+            raise NoPermissionToNewsException(service_identity_user.email())
+    return news_items
+
+
 @returns()
 @arguments(service_identity_user=users.User, news_id=(int, long), members=[BaseMemberTO])
 def disable_news(service_identity_user, news_id, members):
-    ni = _get_and_validate_news_item(news_id, service_identity_user)
+    ni = get_and_validate_news_item(news_id, service_identity_user)
     for members_50 in chunks(members, 50):
         deferred.defer(send_disable_news_request_to_users, news_id, members_50)
 
@@ -1644,13 +1563,6 @@ def send_disable_news_request_to_users(news_id, members):
         disableNews(disable_news_response_handler, logError, app_user, request=request)
 
 
-@mapping('com.mobicage.capi.news.new_news_response_handler')
-@returns(NoneType)
-@arguments(context=RpcCAPICall, result=NewNewsResponseTO)
-def new_news_response_handler(context, result):
-    pass
-
-
 @mapping('com.mobicage.capi.news.disable_news_response_handler')
 @returns(NoneType)
 @arguments(context=RpcCAPICall, result=DisableNewsResponseTO)
@@ -1672,32 +1584,6 @@ def update_badge_count_response_handler(context, result):
     pass
 
 
-@returns(NewsItem)
-@arguments(service_identity_user=users.User, news_id=(int, long))
-def get_news(service_identity_user, news_id):
-    """
-    Returns news by an id
-
-    Args:
-        service_identity_user (users.User)
-        news_id (long)
-    Returns:
-        NewsItem
-    Raises:
-        NoPermissionToNewsException
-        NewsNotFoundException
-    """
-    return _get_and_validate_news_item(news_id, service_identity_user)
-
-
-@returns([NewsReadInfoTO])
-@arguments(news_ids=[(int, long)])
-def get_news_read_statistics(news_ids):
-    news_items = get_news_by_ids(news_ids)
-    statistics = get_news_items_statistics(news_items)
-    return [NewsReadInfoTO.from_news_model(news_item, statistics.get(news_item.id)) for news_item in news_items]
-
-
 @returns(bool)
 @arguments(news_id=(int, long), service_identity_user=users.User)
 def delete(news_id, service_identity_user):
@@ -1714,7 +1600,7 @@ def delete(news_id, service_identity_user):
     """
     to_delete = []
     try:
-        news_item = _get_and_validate_news_item(news_id, service_identity_user)
+        news_item = get_and_validate_news_item(news_id, service_identity_user)
     except NewsNotFoundException:
         return False
 
@@ -1735,58 +1621,22 @@ def delete(news_id, service_identity_user):
     return True
 
 
-@cached(1, request=True, memcache=False)
-@returns(bool)
-@arguments(service_identity_user=users.User, app_id=unicode)
-def match_app_id(service_identity_user, app_id):
-    si = get_service_identity(service_identity_user)
-    if not si:
-        return False
-    return app_id in si.appIds
-
-
-def match_roles_of_item(si_user, app_user, news_item):
-    """Check if the app user roles match the news item target audience roles.
-
-    Args:
-        si_user (users.User): service identity user
-        app_user (users.User)
-        news_item (NewsItem or NewsItemTO)
-
-    Returns:
-        bool
-    """
-    if not news_item.has_roles():
-        return True
-
-    service_user = get_service_user_from_service_identity_user(si_user)
-    role_ids = news_item.role_ids
-    roles = [role for role in get_service_roles_by_ids(service_user, role_ids) if role is not None]
-    user_profile = get_user_profile(app_user)
-    service_identity = get_service_identity(si_user)
-    return any([has_role(service_identity, user_profile, role) for role in roles])
-
-
 def do_callback_for_create(news_item):
     from rogerthat.service.api.news import news_created
     service_user = get_service_user_from_service_identity_user(news_item.sender)
     news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
-    news_created(None, logServiceError, get_service_profile(service_user),
-                    news_item=news_item_to)
-    
-    
+    news_created(None, logServiceError, get_service_profile(service_user), news_item=news_item_to)
+
+
 def do_callback_for_update(news_item):
     from rogerthat.service.api.news import news_updated
     service_user = get_service_user_from_service_identity_user(news_item.sender)
     news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
-    news_updated(None, logServiceError, get_service_profile(service_user),
-                    news_item=news_item_to)
-    
+    news_updated(None, logServiceError, get_service_profile(service_user), news_item=news_item_to)
+
 
 def do_callback_for_delete(service_identity_user, news_id):
     from rogerthat.service.api.news import news_deleted
     service_user, service_identity = get_service_identity_tuple(service_identity_user)
-    news_deleted(None, logServiceError, get_service_profile(service_user),
-                    news_id=news_id, service_identity=service_identity)
-    
-    
+    news_deleted(None, logServiceError, get_service_profile(service_user), news_id=news_id,
+                 service_identity=service_identity)

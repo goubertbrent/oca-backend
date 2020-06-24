@@ -33,22 +33,7 @@
         </span>
         </mat-card-subtitle>
       </mat-card-header>
-      <mat-card-content>
-        <mat-chip-list>
-          <mat-chip [queryParams]="{metric: 'reached'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.reach }} {{ 'oca.reached' | translate }}
-          </mat-chip>
-          <mat-chip [queryParams]="{metric: 'rogered'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.users_that_rogered.length }} {{ 'oca.rogered' | translate }}
-          </mat-chip>
-          <mat-chip [queryParams]="{metric: 'action'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.action_count }} {{ 'oca.action' | translate }}
-          </mat-chip>
-          <mat-chip [queryParams]="{metric: 'followed'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.follow_count }} {{ 'oca.followed' | translate }}
-          </mat-chip>
-        </mat-chip-list>
-      </mat-card-content>
+      <mat-card-content [innerHTML]="item.message | truncate : 250 | markdown"></mat-card-content>
       <mat-card-actions align="end">
         <button mat-button type="button" (click)="copyItem.emit(item)">
           <mat-icon>file_copy</mat-icon>

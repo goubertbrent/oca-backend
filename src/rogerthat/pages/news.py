@@ -20,8 +20,7 @@ import json
 
 import webapp2
 
-from mcfw.rpc import serialize_complex_value
-from rogerthat.bizz.news import get_news_read_statistics
+from rogerthat.bizz.news import get_news_by_ids
 from rogerthat.consts import DAY
 from rogerthat.models.news import NewsItemImage
 from rogerthat.to.news import NewsReadInfoTO
@@ -47,6 +46,10 @@ class ViewNewsImageHandler(webapp2.RequestHandler):
 
 class NewsSaveReadItems(webapp2.RequestHandler):
     def get(self):
-        news_ids = map(int, self.request.GET.get('news_ids', []).split(','))
-        data = serialize_complex_value(get_news_read_statistics(news_ids), NewsReadInfoTO, True)
-        json.dump(data, self.response.out)
+        news_ids = []
+        ids = self.request.GET.get('news_ids')
+        if ids:
+            news_ids = map(int, ids.split(','))
+        news_items = get_news_by_ids(news_ids)
+        result = [NewsReadInfoTO.from_news_model(news_item).to_dict() for news_item in news_items]
+        json.dump(result, self.response.out)

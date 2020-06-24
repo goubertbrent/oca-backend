@@ -24,6 +24,7 @@ import { DateTimeInputModule } from '../shared/date-time-input/date-time-input.m
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
 import { MarkdownModule } from '../shared/markdown/markdown.module';
 import { SharedModule } from '../shared/shared.module';
+import { TruncateModule } from '../shared/truncate/truncate.module';
 import { UploadFileModule } from '../shared/upload-file';
 import { ChooseLocationComponent } from './components/choose-location/choose-location.component';
 import { ChooseRegionComponent } from './components/choose-region-dialog/choose-region.component';
@@ -83,6 +84,7 @@ import { NewsListPageComponent } from './pages/news-list-page/news-list-page.com
     MediaSelectorModule,
     YouTubePlayerModule,
     MarkdownModule,
+    TruncateModule,
   ],
   providers: [
     { provide: MatStepperIntl, useClass: MatStepperIntlImpl, deps: [ TranslateService ] },

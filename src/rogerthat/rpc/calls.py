@@ -50,8 +50,8 @@ from rogerthat.bizz.messaging import new_message_response_handler, message_locke
     message_service_flow_member_result_response_handler, conversation_deleted_response_handler, \
     transfer_completed_response_handler, \
     new_chat_message_response_handler, update_message_response_handler, chat_deleted_response_handler
-from rogerthat.bizz.news import disable_news_response_handler, new_news_response_handler, \
-    create_notification_response_handler, update_badge_count_response_handler
+from rogerthat.bizz.news import disable_news_response_handler, create_notification_response_handler, \
+    update_badge_count_response_handler
 from rogerthat.bizz.payment import update_payment_provider_response_handler, \
     update_payment_status_response_handler, update_payment_providers_response_handler, \
     update_payment_asset_response_handler, update_payment_assets_response_handler
@@ -76,7 +76,7 @@ from rogerthat.capi.messaging import newMessage, updateMessageMemberStatus, mess
     startFlow, updateMessage, updateMyDigiPassForm, newMyDigiPassForm, newAdvancedOrderForm, updateAdvancedOrderForm, \
     updateFriendSelectForm, newFriendSelectForm, updateSignForm, newSignForm, updateOauthForm, newOauthForm, newPayForm, \
     updatePayForm, newOpenIdForm, updateOpenIdForm
-from rogerthat.capi.news import disableNews, newNews, createNotification, updateBadgeCount
+from rogerthat.capi.news import disableNews, createNotification, updateBadgeCount
 from rogerthat.capi.payment import updatePaymentProvider, updatePaymentStatus, updatePaymentAsset, \
     updatePaymentProviders, updatePaymentAssets
 from rogerthat.capi.services import receiveApiCallResult, updateUserData as capi_updateUserData
@@ -94,7 +94,6 @@ from rogerthat.service.api.messaging import poke, flow_member_result, received, 
 from rogerthat.service.api.news import news_created, news_updated, news_deleted
 from rogerthat.service.api.system import api_call, service_deleted, brandings_updated
 from rogerthat.service.api.test import test
-
 
 mapping = {
     u'com.mobicage.api.activity.logCall': logCall,
@@ -301,7 +300,6 @@ client_mapping = {
     u'com.mobicage.capi.location.trackLocation': trackLocation,
     u'com.mobicage.capi.services.receiveApiCallResult': receiveApiCallResult,
     u'com.mobicage.capi.services.updateUserData': capi_updateUserData,
-    u'com.mobicage.capi.news.newNews': newNews,
     u'com.mobicage.capi.news.disableNews': disableNews,
     u'com.mobicage.capi.news.createNotification': createNotification,
     u'com.mobicage.capi.news.updateBadgeCount': updateBadgeCount,
@@ -371,7 +369,6 @@ result_mapping = {
     u'com.mobicage.capi.location.get_location_response_error_handler': get_location_response_error_handler,
     u'com.mobicage.capi.location.track_location_response_handler': track_location_response_handler,
     u'com.mobicage.capi.location.track_location_response_error_handler': track_location_response_error_handler,
-    u'com.mobicage.capi.news.new_news_response_handler': new_news_response_handler,
     u'com.mobicage.capi.news.disable_news_response_handler': disable_news_response_handler,
     u'com.mobicage.capi.news.create_notification_response_handler': create_notification_response_handler,
     u'com.mobicage.capi.news.update_badge_count_response_handler': update_badge_count_response_handler,
