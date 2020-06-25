@@ -17,19 +17,24 @@
 
 import logging
 
-from google.appengine.api import users
+from google.appengine.api import users, urlfetch
+from google.appengine.api.app_identity.app_identity import get_application_id
 from google.appengine.ext import ndb, deferred
 
+from common.consts import JOBS_WORKER_QUEUE, JOBS_CONTROLLER_QUEUE
+from common.job import run_job, MODE_BATCH
+from common.mcfw.properties import azzert
 from common.mcfw.rpc import returns, arguments
+from common.settings import get_server_settings
+from common.setup_functions import DEBUG
 from common.utils import now
 from common.utils.app import get_app_id_from_app_user
 from common.utils.cloud_tasks import create_task, schedule_tasks
 from common.utils.location import haversine
 from common.utils.models import delete_all_models_by_query
-from common.consts import JOBS_WORKER_QUEUE, JOBS_CONTROLLER_QUEUE
-from common.job import run_job, MODE_BATCH
 from workers.jobs.models import JobOffer, JobMatchingCriteria, JobMatch,\
     JobMatchStatus, JobOfferSourceType, JobMatchingNotifications
+from workers.jobs.search import search_jobs
 
 
 @returns()
@@ -147,3 +152,84 @@ def add_job_to_notifications(app_user, job_id):
     if job_id not in job_notifications.job_ids:
         job_notifications.job_ids.append(job_id)
         job_notifications.put()
+
+
+def rebuild_matches_check_current(app_user, cursor=None):
+    job_criteria = JobMatchingCriteria.create_key(app_user).get()
+    if not job_criteria:
+        return
+    # Basically a sequential version of run_job with something happening at the end
+    matches, new_cursor, has_more = JobMatch.list_by_app_user(app_user) \
+        .fetch_page(500, start_cursor=cursor)  # type: Tuple[List[JobMatch], ndb.Cursor, bool]
+    to_get = [JobMatchingCriteria.create_key(app_user)] + [JobOffer.create_key(match.job_id) for match in matches]
+    models = ndb.get_multi(to_get)
+    criteria = models.pop(0)  # type: JobMatchingCriteria
+    to_delete = []
+    to_put = []
+    for match, job_offer in zip(matches, models):  # type: JobMatch, JobOffer
+        # If it is a match, the model is updated with new score and the old status is kept
+        is_match, distance = does_job_match_criteria(job_offer, criteria)
+        if is_match:
+            match.score = calculate_job_match_score(job_offer, criteria, distance)
+            to_put.append(match)
+        elif match.can_delete:
+            to_delete.append(match.key)
+    ndb.put_multi(to_put)
+    ndb.delete_multi(to_delete)
+
+    if has_more:
+        deferred.defer(rebuild_matches_check_current, app_user, new_cursor, _queue=JOBS_WORKER_QUEUE)
+    else:
+        deferred.defer(build_matches_check_new, app_user, _queue=JOBS_WORKER_QUEUE)
+
+
+def build_matches_check_new(app_user, cursor=None, send_new_jobs_available=True):
+    criteria = JobMatchingCriteria.create_key(app_user).get()
+    if not criteria:
+        return
+
+    results, new_cursor = search_jobs(criteria, cursor)
+    keys_to_get = results + [JobMatch.create_key(app_user, key.id()) for key in results]
+    models = ndb.get_multi(keys_to_get)
+    job_offers = models[0: len(models) / 2]
+    matches = models[len(models) / 2:]
+
+    to_put = []
+    for job_offer, match in zip(job_offers, matches):  # type: JobOffer, Optional[JobMatch]
+        if not match:
+            distance = get_distance_from_job(job_offer, criteria)
+            if distance > criteria.distance:
+                continue
+            match = JobMatch(key=JobMatch.create_key(app_user, job_offer.id))
+            match.status = JobMatchStatus.NEW
+            match.job_id = job_offer.id
+            match.score = calculate_job_match_score(job_offer, criteria, distance)
+            to_put.append(match)
+        else:
+            # Nothing to do here... score should already be set by rebuild_matches_check_current
+            continue
+    ndb.put_multi(to_put)
+    tasks = []
+    new_send_new_jobs_available = False
+    if send_new_jobs_available:
+        if to_put:
+            tasks.append(create_task(do_postback_new_jobs, app_user))
+        else:
+            new_send_new_jobs_available = True
+
+    if new_cursor:
+        tasks.append(create_task(build_matches_check_new, app_user, new_cursor, new_send_new_jobs_available))
+    schedule_tasks(tasks, JOBS_WORKER_QUEUE)
+
+
+def get_postback_base_url():
+    if DEBUG:
+        return get_server_settings().baseUrl
+    return "https://%s.appspot.com" % get_application_id()
+
+
+def do_postback_new_jobs(app_user):
+    url = '{}/workers/jobs/v1/callback/users/{}/matches'.format(get_postback_base_url(), app_user.email())
+    response = urlfetch.fetch(url, method=urlfetch.PUT, deadline=5, follow_redirects=False)
+    azzert(response.status_code == 200,
+           "Got response status code %s and response content: %s" % (response.status_code, response.content))

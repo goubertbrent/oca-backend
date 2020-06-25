@@ -1,12 +1,30 @@
+# -*- coding: utf-8 -*-
+# Copyright 2020 Green Valley Belgium NV
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# @@license_version:1.7@@
+
 import logging
 
 from google.appengine.api import users
 
+from common.elasticsearch import get_elasticsearch_config, delete_index
 from common.mcfw.exceptions import HttpNotFoundException
 from common.mcfw.restapi import rest
 from common.mcfw.rpc import returns, arguments
-from common.elasticsearch import get_elasticsearch_config, delete_index
-from workers.jobs import create_job_offer_matches, remove_job_offer_matches
+from workers.jobs import create_job_offer_matches, remove_job_offer_matches,\
+    rebuild_matches_check_current
 from workers.jobs.cleanup import cleanup_jobs_data
 from workers.jobs.models import JobOffer
 from workers.jobs.search import create_matching_index, re_index_job_offer,\
@@ -84,7 +102,15 @@ def rest_reindex_job(job_id):
         logging.debug('rest_reindex_job', exc_info=True)
         raise HttpNotFoundException('job_not_found', data={'job_id': job_id})
     
-    
+
+@rest('/jobs/v1/users/<user_id:[^/]+>/matches', 'put', silent=True, silent_result=True)
+@returns(dict)
+@arguments(user_id=unicode)
+def rest_create_user_matches(user_id):
+    rebuild_matches_check_current(users.User(user_id))
+    return {'user_id': user_id}
+
+
 @rest('/jobs/v1/users/<user_id:[^/]+>', 'delete', silent=True, silent_result=True)
 @returns(dict)
 @arguments(user_id=unicode)

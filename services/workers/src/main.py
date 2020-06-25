@@ -35,9 +35,7 @@ class MainHandler(webapp2.RequestHandler):
 def authorize_internal_request():
     if DEBUG:
         return True
-    
     allowed_app_ids = [app_identity.get_application_id()]
-    
     request = GenericRESTRequestHandler.getCurrentRequest()
     incoming_app_id = request.headers.get('X-Appengine-Inbound-Appid', None)
     if incoming_app_id and incoming_app_id in allowed_app_ids:

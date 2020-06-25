@@ -17,8 +17,8 @@
 
 from __future__ import unicode_literals
 
-import logging
 from datetime import datetime
+import logging
 from types import NoneType
 
 from google.appengine.ext import ndb, deferred, db
@@ -26,9 +26,9 @@ from google.appengine.ext.ndb.query import Cursor
 from typing import Optional, List, Union, Tuple
 
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.jobs.matching import rebuild_matches_check_current
 from rogerthat.bizz.jobs.notifications import calculate_next_reminder
 from rogerthat.bizz.jobs.translations import localize as localize_jobs
+from rogerthat.bizz.jobs.workers import create_user_matches
 from rogerthat.capi.jobs import newJobs
 from rogerthat.consts import JOBS_WORKER_QUEUE
 from rogerthat.dal.mobile import get_mobile_key_by_account
@@ -50,6 +50,7 @@ from rogerthat.translations import localize
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.location import coordinates_to_city
 from solutions.common.jobs.models import JobSolicitation
+
 
 TAG_JOB_CHAT = '__rt__.jobs_chat'
 
@@ -214,7 +215,7 @@ def save_job_criteria(app_user, request):
 
     job_criteria.put()
     if should_build_matches:
-        deferred.defer(rebuild_matches_check_current, app_user, _queue=JOBS_WORKER_QUEUE)
+        deferred.defer(create_user_matches, app_user, _queue=JOBS_WORKER_QUEUE)
     if should_calculate_reminder:
         deferred.defer(calculate_next_reminder, app_user, should_clear_notifications, _queue=JOBS_WORKER_QUEUE)
 

@@ -55,7 +55,18 @@ def re_index_job_offer(job_id):
     azzert(response.status_code == 200,
            "Got response status code %s and response content: %s" % (response.status_code, response.content))
 
-    
+
+def create_user_matches(app_user):
+    server_settings = get_server_settings()
+    if not server_settings.worker_service_url:
+        logging.error('create_user_matches skipped no worker_service_url')
+        return
+    url = '{}/jobs/v1/users/{}/matches'.format(server_settings.worker_service_url, app_user.email())
+    response = urlfetch.fetch(url, method=urlfetch.PUT, deadline=5, follow_redirects=False)
+    azzert(response.status_code == 200,
+           "Got response status code %s and response content: %s" % (response.status_code, response.content))
+
+
 def cleanup_jobs_data(app_user):
     server_settings = get_server_settings()
     if not server_settings.worker_service_url:
