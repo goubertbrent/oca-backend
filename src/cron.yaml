@@ -34,6 +34,7 @@ cron:
 - description: VDAB Jobs sync
   url: /cron/jobs/vdab/sync
   schedule: every 30 minutes
+  target: service-workers
 
 - description: News statistics
   url: /cron/news/statistics
@@ -151,6 +152,7 @@ cron:
 - description: Jobs cleanup
   url: /cron/jobs/cleanup
   schedule: every sunday 08:00
+  target: service-workers
 
 - description: Map notifications
   url: /cron/maps/notifications

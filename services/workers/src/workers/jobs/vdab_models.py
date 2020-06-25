@@ -15,9 +15,9 @@
 #
 # @@license_version:1.7@@
 
-from mcfw.properties import unicode_property, typed_property, float_property, bool_property, unicode_list_property, \
+from common.mcfw.properties import unicode_property, typed_property, float_property, bool_property, unicode_list_property, \
     long_property, long_list_property
-from rogerthat.to import TO
+from common.to import TO
 
 
 class VDABProfile(TO):

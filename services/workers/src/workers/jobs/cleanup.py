@@ -15,10 +15,13 @@
 #
 # @@license_version:1.7@@
 
-from rogerthat.bizz.job import run_job
-from rogerthat.bizz.jobs.bizz import cleanup_jobs_data
-from rogerthat.consts import JOBS_WORKER_QUEUE, JOBS_CONTROLLER_QUEUE
-from rogerthat.models.jobs import JobMatchingCriteria
+from google.appengine.ext import ndb, deferred
+
+from common.utils.models import delete_all_models_by_query
+from common.consts import JOBS_WORKER_QUEUE, JOBS_CONTROLLER_QUEUE
+from common.job import run_job
+from workers.jobs.models import JobMatchingCriteria, JobMatchingNotifications,\
+    JobMatch
 
 
 def cleanup_inactive_users():
@@ -38,3 +41,8 @@ def _worker_inactive_users(job_criteria_key):
     if not job_criteria:
         return
     cleanup_jobs_data(job_criteria.app_user)
+
+
+def cleanup_jobs_data(app_user):
+    ndb.delete_multi([JobMatchingCriteria.create_key(app_user), JobMatchingNotifications.create_key(app_user)])
+    deferred.defer(delete_all_models_by_query, JobMatch.list_by_app_user(app_user), _queue=JOBS_WORKER_QUEUE)

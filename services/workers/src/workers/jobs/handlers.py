@@ -15,13 +15,20 @@
 #
 # @@license_version:1.7@@
 
+from google.appengine.ext import deferred
 import webapp2
 
-from rogerthat.bizz.jobs.notifications import schedule_reminders
+from workers.jobs.cleanup import cleanup_inactive_users
+from workers.jobs.vdab import sync_jobs
 
 
-class SendJobNotificationsHandler(webapp2.RequestHandler):
+class CleanupJobsHandeler(webapp2.RequestHandler):
 
     def get(self):
-        schedule_reminders()
+        cleanup_inactive_users()
 
+
+class SyncVDABJobsHandler(webapp2.RequestHandler):
+
+    def get(self):
+        deferred.defer(sync_jobs)

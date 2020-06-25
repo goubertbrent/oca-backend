@@ -15,89 +15,19 @@
 #
 # @@license_version:1.7@@
 
-import logging
+
 
 from google.appengine.ext import ndb, deferred
-from typing import Optional, Tuple, List
 
-from mcfw.rpc import returns, arguments
-from rogerthat.bizz.job import run_job, MODE_BATCH
-from rogerthat.bizz.jobs.notifications import add_job_to_notifications
 from rogerthat.bizz.jobs.search import search_jobs
-from rogerthat.consts import JOBS_WORKER_QUEUE, JOBS_CONTROLLER_QUEUE
-from rogerthat.models.jobs import JobMatchingCriteria, JobOffer, \
-    JobMatch, JobMatchStatus, JobOfferSourceType
-from rogerthat.rpc import users
+from rogerthat.consts import JOBS_WORKER_QUEUE
+from rogerthat.models.jobs import JobMatchingCriteria, JobOffer, JobMatch,\
+    JobOfferSourceType, JobMatchStatus
 from rogerthat.to.jobs import JobOfferTO
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
 from rogerthat.utils.location import haversine
-from rogerthat.utils.models import delete_all_models_by_query
 
-
-@returns()
-@arguments(job_offer=JobOffer)
-def create_job_offer_matches(job_offer):
-    for job_domain in job_offer.job_domains:
-        run_job(create_matches_query_domain, [job_domain], create_matches_for_job, [job_offer.key],
-                worker_queue=JOBS_WORKER_QUEUE, controller_queue=JOBS_CONTROLLER_QUEUE, mode=MODE_BATCH, batch_size=25)
-
-
-def create_matches_query_domain(job_domain):
-    return JobMatchingCriteria.list_by_job_domain(job_domain)
-
-
-def create_matches_for_job(job_criteria_keys, job_offer_key):
-    # type: (List[ndb.Key], ndb.Key) -> None
-    job_id = job_offer_key.id()
-    match_keys = [JobMatch.create_key(users.User(key.parent().id()), job_id) for key in job_criteria_keys]
-    models = ndb.get_multi(job_criteria_keys + match_keys + [job_offer_key])
-    job_offer = models.pop()  # type: JobOffer
-    if not job_offer.visible:
-        logging.warning('Not creating matches for job, job %s is not visible', job_offer.id)
-        return
-    criteria_models = models[0: len(models) / 2]
-    match_models = models[len(models) / 2:]
-
-    to_put = []
-    to_delete = []
-    notification_criteria = []
-    for criteria, match in zip(criteria_models, match_models):  # type: JobMatchingCriteria, Optional[JobMatch]
-        is_match, distance = does_job_match_criteria(job_offer, criteria)
-        if not is_match:
-            if match and match.can_delete:
-                to_delete.append(match.key)
-        else:
-            should_put = False
-            if not match:
-                should_put = True
-                match = JobMatch(key=JobMatch.create_key(criteria.app_user, job_id))
-                match.status = JobMatchStatus.NEW
-                match.job_id = job_id
-                notification_criteria.append(criteria)
-            score = calculate_job_match_score(job_offer, criteria, distance)
-            if match.score != score:
-                match.score = score
-                should_put = True
-            if should_put:
-                to_put.append(match)
-    ndb.put_multi(to_put)
-    ndb.delete_multi(to_delete)
-
-    tasks = []
-    for criteria in notification_criteria:
-        if criteria.should_send_notifications:
-            tasks.append(create_task(add_job_to_notifications, criteria.app_user, job_id))
-    schedule_tasks(tasks, JOBS_WORKER_QUEUE)
-
-
-def remove_job_offer_matches(job_id):
-    # type: (int) -> None
-    deferred.defer(_remove_job_offer_matches, job_id, _queue=JOBS_WORKER_QUEUE)
-
-
-def _remove_job_offer_matches(job_id):
-    delete_all_models_by_query(JobMatch.list_by_job_id_and_status(job_id, JobMatchStatus.NEW))
 
 
 def rebuild_matches_check_current(app_user, cursor=None):
@@ -122,7 +52,7 @@ def rebuild_matches_check_current(app_user, cursor=None):
             to_delete.append(match.key)
     ndb.put_multi(to_put)
     ndb.delete_multi(to_delete)
-
+ 
     if has_more:
         deferred.defer(rebuild_matches_check_current, app_user, new_cursor, _queue=JOBS_WORKER_QUEUE)
     else:
@@ -154,8 +84,8 @@ def get_distance_from_job(job_offer, criteria):
     # type: (JobOffer, JobMatchingCriteria) -> int
     job_location = job_offer.info.location.geo_location
     return haversine(criteria.geo_location.lon, criteria.geo_location.lat, job_location.lon, job_location.lat)
-
-
+ 
+ 
 def calculate_job_match_score(job_offer, criteria, distance):
     # type: (JobOffer, JobMatchingCriteria, float) -> long
     # The lower the distance to the job, the higher the score

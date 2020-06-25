@@ -14,14 +14,3 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
-import webapp2
-
-from rogerthat.bizz.jobs.notifications import schedule_reminders
-
-
-class SendJobNotificationsHandler(webapp2.RequestHandler):
-
-    def get(self):
-        schedule_reminders()
-

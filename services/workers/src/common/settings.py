@@ -20,11 +20,11 @@ import logging
 from google.appengine.api import app_identity
 from google.appengine.ext import db
 
-from mcfw.cache import CachedModelMixIn, cached
-from mcfw.rpc import returns, arguments
-from mcfw.serialization import deserializer, ds_model, serializer, s_model, register
-from mcfw.utils import chunks
-from rogerthat.models.utils import add_meta
+from common.mcfw.cache import CachedModelMixIn, cached
+from common.mcfw.rpc import returns, arguments
+from common.mcfw.serialization import deserializer, ds_model, serializer, s_model, register
+from common.mcfw.utils import chunks
+from common.models.utils import add_meta
 
 
 class ServerSettings(CachedModelMixIn, db.Model):

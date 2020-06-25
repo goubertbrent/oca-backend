@@ -20,25 +20,26 @@ import json
 import logging
 import urllib
 
-import html2text
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
+import html2text
 
-from mcfw.consts import MISSING
-from mcfw.properties import azzert
-from rogerthat.bizz.job import run_job
-from rogerthat.bizz.jobs.matching import create_job_offer_matches, remove_job_offer_matches
-from rogerthat.bizz.jobs.search import re_index_job_offer
-from rogerthat.bizz.jobs.vdab_models import VDABJobOffer, VDABAddress
-from rogerthat.consts import JOBS_VDAB_QUEUE, JOBS_WORKER_QUEUE, \
+from common.mcfw.consts import MISSING
+from common.mcfw.properties import azzert
+from common.utils import now
+from common.utils.cloud_tasks import create_task, schedule_tasks
+from common.utils.location import address_to_coordinates, coordinates_to_city
+from common.consts import JOBS_VDAB_QUEUE, JOBS_WORKER_QUEUE,\
     JOBS_CONTROLLER_QUEUE
-from rogerthat.models.jobs import VDABSettings, JobOffer, JobOfferInfo, \
-    JobOfferFunction, JobOfferEmployer, JobOfferLocation, JobOfferContract, JobOfferSource, JobOfferContactInformation, \
-    JobOfferSourceType
-from rogerthat.utils import now
-from rogerthat.utils.cloud_tasks import create_task, schedule_tasks
-from rogerthat.utils.location import coordinates_to_city, address_to_coordinates
+from common.job import run_job
+from workers.jobs import remove_job_offer_matches, create_job_offer_matches
+from workers.jobs.models import VDABSettings, JobOffer, JobOfferSourceType,\
+    JobOfferSource, JobOfferInfo, JobOfferFunction, JobOfferEmployer,\
+    JobOfferLocation, JobOfferContract, JobOfferContactInformation
+from workers.jobs.search import re_index_job_offer
+from workers.jobs.vdab_models import VDABJobOffer
+
 
 API_ENDPOINT = "https://api.vdab.be/services/openservices"
 INITIAL_JOBS_SIZE = 200
@@ -48,6 +49,7 @@ BULK_JOBS_SIZE = 2000
 def sync_jobs():
     settings = VDABSettings.create_key().get()  # type: VDABSettings
     if not settings:
+        logging.debug('sync_jobs no settings found')
         return
     from_ = settings.synced_until
     until_ = now()

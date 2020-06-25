@@ -15,17 +15,24 @@
 #
 # @@license_version:1.7@@
 
-from __future__ import unicode_literals
-
 from datetime import datetime
 
+from google.appengine.api import users
 from google.appengine.ext import ndb
-from typing import List
 
-from mcfw.utils import Enum
-from rogerthat.dal import parent_ndb_key
-from rogerthat.models.common import NdbModel
-from rogerthat.rpc import users
+from common.mcfw.utils import Enum
+from common.dal import parent_ndb_key
+from common.models import NdbModel
+
+
+class VDABSettings(NdbModel):
+
+    client_id = ndb.StringProperty(indexed=False)
+    synced_until = ndb.IntegerProperty(indexed=False, default=0)
+
+    @classmethod
+    def create_key(cls):
+        return ndb.Key(cls, 'VDABSettings')
 
 
 class JobOfferFunction(NdbModel):

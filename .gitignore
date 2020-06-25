@@ -23,3 +23,5 @@ google-app-credentials.json
 # Therefore you should mark this folder as "not sources" in your editor
 src/lib
 src/static/client
+services/statistics/src/lib
+services/workers/src/lib

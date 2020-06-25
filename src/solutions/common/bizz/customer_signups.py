@@ -17,8 +17,6 @@
 
 import json
 
-from google.appengine.ext import db
-
 from mcfw.rpc import arguments, returns
 from rogerthat.models import Message
 from rogerthat.models.properties.forms import FormResult
@@ -28,39 +26,9 @@ from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO, FormTO
 from rogerthat.to.messaging.service_callback_results import FormAcknowledgedCallbackResultTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils.app import get_app_user_tuple
-from shop.dal import get_customer
 from solutions import translate
-from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models import SolutionInboxMessage
-from solutions.common.to.qanda import ModuleTO
-from solutions.common.to.services import ModuleAndBroadcastTypesTO
-
-
-def get_modules_and_broadcast_types():
-    from solutions.common.bizz.service import get_allowed_modules, get_allowed_broadcast_types
-    city_service_user = users.get_current_user()
-    city_customer = get_customer(city_service_user)
-    lang = get_solution_settings(city_service_user).main_language
-    modules = [ModuleTO.fromArray([k, SolutionModule.get_translated_description(lang, k)]) for k in
-               get_allowed_modules(city_customer)]
-    broadcast_types = [translate(lang, k) for k in get_allowed_broadcast_types(city_customer)]
-    return ModuleAndBroadcastTypesTO(modules, broadcast_types)
-
-
-def rest_signup_get_modules_and_broadcast_types(signup_key):
-    modules_and_broadcast_types = get_modules_and_broadcast_types()
-    preselected_modules = []
-
-    signup = db.get(signup_key)
-    if signup:
-        preselected_modules = signup.modules
-
-    if preselected_modules:
-        for module in modules_and_broadcast_types.modules:
-            module.is_default = module.key in preselected_modules
-
-    return modules_and_broadcast_types
 
 
 @arguments(service_user=users.User, service_identity=unicode, message_key=unicode, app_user=users.User, name=unicode,
@@ -97,10 +65,7 @@ def process_updated_customer_signup_message(service_user, service_identity, mess
                                 service_identity=service_identity,
                                 alert_flags=Message.ALERT_FLAG_VIBRATE)
         elif answer_id == 'approve':
-            modules_and_broadcast_types = rest_signup_get_modules_and_broadcast_types(parent_inbox_message.category_key)
-            modules = [m.key for m in modules_and_broadcast_types.modules if m.is_default]
-            result = rest_create_service_from_signup(parent_inbox_message.category_key, modules,
-                                                     broadcast_types=modules_and_broadcast_types.broadcast_types,
+            result = rest_create_service_from_signup(parent_inbox_message.category_key,
                                                      force=True)  # type: CreateServiceStatusTO
             if not result.success:
                 messaging.send(parent_message_key=message_key,

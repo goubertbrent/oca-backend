@@ -41,6 +41,7 @@ from rogerthat.rpc import users
 from rogerthat.templates import get_languages_from_header
 from rogerthat.utils import channel, now
 
+
 AUTHORIZED = dict()
 
 
@@ -95,7 +96,7 @@ def unsubscribe_from_reminder_email(app_user):
 def archiveUserDataAfterDisconnect(app_user, friend_map, user_profile, hard_delete=False, unregister_reason=None):
     from rogerthat.bizz.friends import breakFriendShip
     from rogerthat.bizz.news.cleanup import job as cleanup_news
-    from rogerthat.bizz.jobs.bizz import cleanup_jobs_data
+    from rogerthat.bizz.jobs.workers import cleanup_jobs_data
 
     archives_to_put = list()
     models_to_delete = list()
@@ -165,14 +166,14 @@ def archiveUserDataAfterDisconnect(app_user, friend_map, user_profile, hard_dele
     logging.info("len(models_to_delete): %s %r", len(models_to_delete), models_to_delete)
     logging.info("len(archives_to_put): %s %r", len(archives_to_put), archives_to_put)
 
+    cleanup_news(app_user)
+    cleanup_jobs_data(app_user)
+    UserProfileInfo.create_key(app_user).delete()
+
     if not hard_delete:
         db.put(archives_to_put)
     db.delete(models_to_delete)
     user_profile.invalidateCache()
-
-    cleanup_news(app_user)
-    cleanup_jobs_data(app_user)
-    UserProfileInfo.create_key(app_user).delete()
 
     if hard_delete:
         from rogerthat.bizz.job import cleanup_user_messaging

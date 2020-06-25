@@ -15,13 +15,8 @@
 #
 # @@license_version:1.7@@
 
-import webapp2
+from os import path
+from google.appengine.ext import vendor
 
-from rogerthat.bizz.jobs.notifications import schedule_reminders
-
-
-class SendJobNotificationsHandler(webapp2.RequestHandler):
-
-    def get(self):
-        schedule_reminders()
-
+lib_dir = path.join(path.dirname(path.realpath(__file__)), 'lib')
+vendor.add(lib_dir)

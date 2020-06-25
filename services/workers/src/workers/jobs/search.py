@@ -15,12 +15,105 @@
 #
 # @@license_version:1.7@@
 
+from itertools import chain
 
 from google.appengine.api import urlfetch
-from rogerthat.bizz.elasticsearch import get_elasticsearch_config, es_request
-from rogerthat.models.jobs import JobOffer
-from rogerthat.utils.app import get_app_id_from_app_user
+from google.appengine.ext import ndb
+from typing import Iterable, List, Any, Optional, Tuple
 
+from common.utils.app import get_app_id_from_app_user
+from common.consts import JOBS_CONTROLLER_QUEUE, JOBS_WORKER_QUEUE
+from common.elasticsearch import create_index, delete_doc_operations,\
+    index_doc_operations, get_elasticsearch_config, execute_bulk_request,\
+    delete_index, es_request
+from common.job import run_job, MODE_BATCH
+from workers.jobs.models import JobOffer
+
+
+def create_matching_index(config):
+    # type: (ElasticsearchSettings) -> Any
+    index = {
+        'mappings': {
+            'properties': {
+                'source': {
+                    'type': 'keyword'
+                },
+                'details': {
+                    'type': 'text'
+                },
+                'job_domains': {
+                    'type': 'keyword'
+                },
+                'contract_type': {
+                    'type': 'keyword'
+                },
+                'location': {
+                    'type': 'geo_point'
+                },
+                'tags': {
+                    'type': 'keyword'
+                },
+            }
+        }
+    }
+    return create_index(config.jobs_index, index)
+
+
+def create_job_offer_index_operations(job_offer):
+    # type: (JobOffer) -> Iterable[dict]
+    if not job_offer.visible:
+        return delete_doc_operations(job_offer.id)
+
+    tags = []
+    if job_offer.demo_app_ids:
+        tags.append('environment#demo')
+        for app_id in job_offer.demo_app_ids:
+            tags.append('app_id#%s' % app_id)
+    else:
+        tags.append('environment#production')
+
+    doc = {
+        'source': job_offer.source.type,
+        'details': job_offer.info.details,
+        'job_domains': job_offer.job_domains,
+        'contract_type': job_offer.info.contract.type,
+        'location': {
+            'lat': job_offer.info.location.geo_location.lat,
+            'lon': job_offer.info.location.geo_location.lon,
+        },
+        'tags': tags
+    }
+    return index_doc_operations(job_offer.id, doc)
+
+
+def index_jobs(job_offers):
+    # type: (Iterable[JobOffer]) -> List[dict]
+    config = get_elasticsearch_config()
+    operations = chain.from_iterable([create_job_offer_index_operations(job_offer) for job_offer in job_offers])
+    return execute_bulk_request(config.jobs_index, operations)
+
+
+def re_index_job_offer(job_offer):
+    # type: (JobOffer) -> dict
+    return index_jobs([job_offer])[0]
+
+
+def _index_jobs_keys(keys):
+    # type: (List[ndb.Key]) -> Iterable[dict]
+    job_offers = ndb.get_multi(keys)
+    return index_jobs(job_offers)
+
+
+def re_index_all_jobs():
+    config = get_elasticsearch_config()
+    delete_index(config.jobs_index)
+    create_matching_index(config)
+    run_job(_get_all_job_offers, [], _index_jobs_keys, [], controller_queue=JOBS_CONTROLLER_QUEUE,
+            worker_queue=JOBS_WORKER_QUEUE, mode=MODE_BATCH)
+
+
+def _get_all_job_offers():
+    return JobOffer.query()
 
 
 def search_jobs(job_criteria, cursor=None, amount=500):

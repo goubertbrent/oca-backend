@@ -15,13 +15,8 @@
 #
 # @@license_version:1.7@@
 
-import webapp2
-
-from rogerthat.bizz.jobs.notifications import schedule_reminders
-
-
-class SendJobNotificationsHandler(webapp2.RequestHandler):
-
-    def get(self):
-        schedule_reminders()
-
+cloud_sql_connection_name = ''
+db_user = ''
+db_pass = ''
+db_name = ''
+db_table_name = ''

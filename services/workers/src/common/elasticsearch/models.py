@@ -15,13 +15,22 @@
 #
 # @@license_version:1.7@@
 
-import webapp2
+from google.appengine.ext import ndb
 
-from rogerthat.bizz.jobs.notifications import schedule_reminders
+from common.models import NdbModel
 
 
-class SendJobNotificationsHandler(webapp2.RequestHandler):
+class ElasticsearchSettings(NdbModel):
+    base_url = ndb.TextProperty()
 
-    def get(self):
-        schedule_reminders()
+    auth_username = ndb.TextProperty()
+    auth_password = ndb.TextProperty()
 
+    events_index = ndb.TextProperty()
+    services_index = ndb.TextProperty()
+    place_types_index = ndb.TextProperty()
+    jobs_index = ndb.TextProperty()
+
+    @classmethod
+    def create_key(cls):
+        return ndb.Key(cls, u'ElasticsearchSettings')
