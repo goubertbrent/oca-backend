@@ -134,20 +134,6 @@ def send_new_jobs_notification(app_user, count, job_id):
     _send_new_job_notification(app_user, count, job_offer_to)
 
 
-# Transaction is necessary as multiple jobs can be added at the same-ish time
-@ndb.transactional()
-def add_job_to_notifications(app_user, job_id):
-    # type: (users.User, int) -> None
-    job_notifications_key = JobMatchingNotifications.create_key(app_user)
-    job_notifications = job_notifications_key.get() or JobMatchingNotifications(key=job_notifications_key,
-                                                                                schedule_time=0)
-    if job_notifications.schedule_time == 0:
-        # In 30 minutes
-        job_notifications.schedule_time = now() + 30 * 60
-    if job_id not in job_notifications.job_ids:
-        job_notifications.job_ids.append(job_id)
-        job_notifications.put()
-
 
 def _send_new_job_notification(app_user, count, item):
     # type: (users.User, int, JobOfferTO) -> None
