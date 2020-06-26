@@ -80,3 +80,17 @@ class AppVoucherList(TO):
     results = typed_property('results', AppVoucher, True)
     cities = typed_property('cities', dict)
     main_city_id = unicode_property('main_city_id')
+
+
+class CirkloCityTO(TO):
+    city_id = unicode_property('city_id', default=None)
+    logo_url = unicode_property('logo_url', default=None)
+
+    @classmethod
+    def from_model(cls, model):
+        to = cls()
+        if not model:
+            return to
+        to.city_id = model.city_id
+        to.logo_url = model.logo_url
+        return to

@@ -16,12 +16,12 @@
 # @@license_version:1.7@@
 
 import csv
+from datetime import datetime
 import logging
 import urllib
-from datetime import datetime
 
-import cloudstorage
 from babel.dates import format_datetime
+import cloudstorage
 from google.appengine.ext import ndb, db
 from google.appengine.ext.deferred import deferred
 from typing import List
@@ -48,7 +48,8 @@ from solutions.common.bizz import OrganizationType
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email
 from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId, CirkloCity
-from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO
+from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO,\
+    CirkloCityTO
 from solutions.common.models import SolutionServiceConsent
 from solutions.common.restapi.services import _check_is_city
 
@@ -174,32 +175,37 @@ def export_voucher_services():
 
 
 @rest('/common/vouchers/cirklo', 'get')
-@returns(dict)
+@returns(CirkloCityTO)
 @arguments()
 def api_vouchers_get_cirklo_settings():
     service_user = users.get_current_user()
     city = CirkloCity.get_by_service_email(service_user.email())
-    return {'city_id': city.city_id if city else None}
+    return CirkloCityTO.from_model(city)
 
 
 @rest('/common/vouchers/cirklo', 'put')
-@returns(dict)
-@arguments(data=dict)
+@returns(CirkloCityTO)
+@arguments(data=CirkloCityTO)
 def api_vouchers_save_cirklo_settings(data):
     service_user = users.get_current_user()
     if not get_current_session().shop:
         lang = get_solution_settings(service_user).main_language
         raise HttpForbiddenException(translate(lang, 'no_permission'))
-    city_id = data['city_id']
     other_city = CirkloCity.get_by_service_email(service_user.email())  # type: CirkloCity
-    key = CirkloCity.create_key(city_id)
+    if not data.city_id:
+        if other_city:
+            other_city.key.delete()
+        return CirkloCityTO.from_model(None)
+
+    key = CirkloCity.create_key(data.city_id)
     city = key.get()
     if not city:
         city = CirkloCity(key=key, service_user_email=service_user.email())
     elif city.service_user_email != service_user.email():
-        raise HttpBadRequestException('City id %s is already in use by another service' % city_id)
+        raise HttpBadRequestException('City id %s is already in use by another service' % data.city_id)
     if other_city and other_city.key != key:
         other_city.key.delete()
     invalidate_cache(get_city_id_by_service_email, service_user.email())
+    city.logo_url = data.logo_url
     city.put()
-    return {'city_id': city.city_id}
+    return CirkloCityTO.from_model(city)

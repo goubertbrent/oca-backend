@@ -24,4 +24,5 @@ export interface ExportVoucherServices {
 
 export interface CirkloSettings {
   city_id: string | null;
+  logo_url: string | null;
 }

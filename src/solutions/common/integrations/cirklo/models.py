@@ -60,6 +60,7 @@ class CirkloUserVouchers(NdbModel):
 
 class CirkloCity(NdbModel):
     service_user_email = ndb.StringProperty()
+    logo_url = ndb.TextProperty()
 
     @property
     def city_id(self):

@@ -150,8 +150,11 @@ def get_logo_url_for_city_ids(city_ids):
     logos = {}
     for city_id, city in zip(city_ids, cities):
         if city:
-            branding_settings = db.get(SolutionBrandingSettings.create_key(users.User(city.service_user_email)))
-            logos[city_id] = branding_settings.avatar_url
+            if city.logo_url:
+                logos[city_id] = city.logo_url
+            else:
+                branding_settings = db.get(SolutionBrandingSettings.create_key(users.User(city.service_user_email)))
+                logos[city_id] = branding_settings.avatar_url
         else:
             logos[city_id] = 'https://storage.googleapis.com/oca-files/misc/vouchers_default_city.png'
     return logos

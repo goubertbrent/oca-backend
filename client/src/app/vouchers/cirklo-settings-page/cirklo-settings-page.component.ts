@@ -14,6 +14,7 @@ import { areCirkloSettingsLoading, getCirkloSettings } from '../vouchers.selecto
 export class CirkloSettingsPageComponent implements OnInit, OnDestroy {
   formGroup = new FormGroup({
     city_id: new FormControl(null),
+    logo_url: new FormControl(null),
   });
   cirkloSettingsLoading$: Observable<boolean>;
   destroyed$ = new Subject();
