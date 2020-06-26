@@ -21,9 +21,10 @@ from google.appengine.ext.deferred.deferred import TaskHandler
 import webapp2
 
 from common.mcfw.restapi import rest_functions, GenericRESTRequestHandler
+from common.setup_functions import DEBUG
+from common.wsgi import CommonWSGIApplication
 from workers.jobs import restapi as jobs_restapi
 from workers.jobs.handlers import CleanupJobsHandeler, SyncVDABJobsHandler
-from common.setup_functions import DEBUG
 
 
 class MainHandler(webapp2.RequestHandler):
@@ -52,4 +53,4 @@ handlers = [
 ]
 handlers.extend(rest_functions(jobs_restapi, authorized_function=authorize_internal_request))
 
-app = webapp2.WSGIApplication(handlers)
+app = CommonWSGIApplication(handlers)

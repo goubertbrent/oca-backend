@@ -18,7 +18,9 @@
 import logging
 
 from google.appengine.api import users
+from google.appengine.ext import deferred
 
+from common.consts import JOBS_WORKER_QUEUE
 from common.elasticsearch import get_elasticsearch_config, delete_index
 from common.mcfw.exceptions import HttpNotFoundException
 from common.mcfw.restapi import rest
@@ -107,7 +109,7 @@ def rest_reindex_job(job_id):
 @returns(dict)
 @arguments(user_id=unicode)
 def rest_create_user_matches(user_id):
-    rebuild_matches_check_current(users.User(user_id))
+    deferred.defer(rebuild_matches_check_current, users.User(user_id), _queue=JOBS_WORKER_QUEUE)
     return {'user_id': user_id}
 
 

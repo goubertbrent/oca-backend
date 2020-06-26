@@ -288,6 +288,7 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
     mfr_uri = "%s/callback_api" % settings.messageFlowRunnerAddress
     mobidick_uri = "%s/callback_api" % settings.mobidickAddress
     custom_headers = None
+    possible_callbacks = []
     if service_api_callback.targetMFR:
         sik = get_mfr_sik(profile.user).sik
         logging.error('Sending service api callback to MFR for service %s', profile.service_user)
@@ -303,7 +304,6 @@ def submit_service_api_callback(profile, service_api_callback, effective_kwargs=
         tag = call_dict.get("params", {}).get("tag") if call_dict else None
         logging.debug("callback_name: '%s' and tag: '%s'", callback_name, tag)
         
-        possible_callbacks = []
         callback_settings = ServiceCallBackSettings.create_key(profile.service_user).get()
         if callback_settings:
             if callback_name:
