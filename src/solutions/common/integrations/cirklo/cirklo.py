@@ -122,7 +122,7 @@ def add_voucher(service_user, app_user, qr_content):
     return {
         'voucher': voucher.to_dict(),
         'city': {
-            'id': voucher.cityId,
+            'city_id': voucher.cityId,
             'logo_url': get_logo_url_for_city_id(voucher.cityId),
         }
     }
@@ -158,7 +158,7 @@ def get_logo_url_for_city_ids(city_ids):
         else:
             logos[city_id] = 'https://storage.googleapis.com/oca-files/misc/vouchers_default_city.png'
     return logos
-    
+
 
 @cached(0)
 @returns(unicode)

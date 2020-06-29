@@ -9,9 +9,12 @@ export interface CirkloVoucher {
   amount: number;
 }
 
-export interface CirkloCity {
-  city_id: string;
+export interface PartialCirkloCity {
   logo_url: string;
+}
+
+export interface CirkloCity extends PartialCirkloCity {
+  city_id: string;
 }
 
 export interface AddVoucherResponse {
@@ -22,9 +25,7 @@ export interface AddVoucherResponse {
 export interface CirkloVouchersList {
   results: CirkloVoucher[];
   cities: {
-    [ key: string ]: {
-      logo_url: string;
-    };
+    [ key: string ]: PartialCirkloCity;
   }
   main_city_id: string;
 }
