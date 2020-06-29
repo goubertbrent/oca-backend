@@ -19,13 +19,14 @@ import datetime
 
 from babel.dates import format_datetime
 
+from mcfw.rpc import arguments, returns
 from rogerthat.models import BroadcastStatistic, ServiceIdentity
 from rogerthat.rpc import users
-from mcfw.rpc import arguments, returns
-from solutions import translate, SOLUTION_COMMON
+from rogerthat.utils.service import create_service_identity_user
+from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.utils import is_default_service_identity
-from rogerthat.utils.service import create_service_identity_user
+
 
 try:
     from cStringIO import StringIO
@@ -52,7 +53,7 @@ def get_broadcast_statistics_excel(service_user, service_identity):
     lang = sln_settings.main_language
 
     def transl(key):
-        return translate(lang, SOLUTION_COMMON, key)
+        return translate(lang, key)
 
     if is_default_service_identity(service_identity):
         service_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)

@@ -55,13 +55,13 @@
         </div>
         {% endif %}
         <div id="no_internet" class="clearfix" style="display:none; float: right; font-size: 2em; z-index: 21; position: fixed; top: 180px; right: 0;">
-              <a style="font-size: 0.75em; border-width: 5px 0 5px 5px; border-radius: 5px 0 0 5px;" href="#" class="ui-btn ui-icon-alert ui-btn-icon-left">{% translate language, 'common', 'no-internet-connection' %}</a>
+              <a style="font-size: 0.75em; border-width: 5px 0 5px 5px; border-radius: 5px 0 0 5px;" href="#" class="ui-btn ui-icon-alert ui-btn-icon-left">{% translate language, 'no-internet-connection' %}</a>
         </div>
 
 	    <div data-role="popup" data-dismissible="false" id="qr-scanned-select-popup" class="ui-content">
 	        <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeQrScannedSelectPopup ui-btn-right"></a>
 	        <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'QR code scanned: select action' %}</h1>
+	            <h1>{% translate language, 'QR code scanned: select action' %}</h1>
 	            <h3 class="user_name"></h3>
 	            <div id="qr-scanned-select-popup-options" class="clearfix">
 	            </div>
@@ -70,7 +70,7 @@
 	    <div data-role="popup" data-dismissible="false" id="add-1-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeAdd1Popup ui-btn-right"></a>
             <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'Add loyalty points' %}</h1>
+	            <h1>{% translate language, 'Add loyalty points' %}</h1>
 	            <h3 class="user_name"></h3>
 	            <div class="add-1-popup-enabled">
 	                <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
@@ -102,39 +102,39 @@
                             </div>
 						</div>
 
-		                <button class="closeAdd1Popup rectancular-small-btn ui-btn btn-green ui-corner-all" addAction="submit" onclick="">{% translate language, 'common', 'Submit' %}</button>
-		                <button class="closeAdd1Popup rectancular-small-btn ui-btn btn-red ui-corner-all" addAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+		                <button class="closeAdd1Popup rectancular-small-btn ui-btn btn-green ui-corner-all" addAction="submit" onclick="">{% translate language, 'Submit' %}</button>
+		                <button class="closeAdd1Popup rectancular-small-btn ui-btn btn-red ui-corner-all" addAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
 	                </div>
 	            </div>
 	            <div class="add-1-popup-disabled" style="display:none;">
 	                <h3 class="disabled_msg" style="color: #FF3500;"></h3>
-	                <button class="closeAdd1Popup square-btn ui-btn ui-btn-b ui-corner-all" addAction="close" onclick="">{% translate language, 'common', 'Close' %}</button>
+	                <button class="closeAdd1Popup square-btn ui-btn ui-btn-b ui-corner-all" addAction="close" onclick="">{% translate language, 'Close' %}</button>
 	            </div>
             </div>
         </div>
         <div data-role="popup" data-dismissible="false" id="redeem-1-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeRedeem1Popup ui-btn-right"></a>
             <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'Redeem loyalty points' %}</h1>
+	            <h1>{% translate language, 'Redeem loyalty points' %}</h1>
 	            <h3 class="user_name"></h3>
 	            <div class="redeem-1-popup-enabled">
 	                <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
 	                <h3 class="redeem_text"></h3>
 	                <div class="clearfix">
-		                <button style="float: left; margin-right: 1em;" class="closeRedeem1Popup square-btn  ui-btn btn-green ui-corner-all" redeemAction="redeem" onclick="">{% translate language, 'common', 'Redeem' %}</button>
-		                <button style="float: left;" class="closeRedeem1Popup square-btn ui-btn btn-red ui-corner-all" redeemAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+		                <button style="float: left; margin-right: 1em;" class="closeRedeem1Popup square-btn  ui-btn btn-green ui-corner-all" redeemAction="redeem" onclick="">{% translate language, 'Redeem' %}</button>
+		                <button style="float: left;" class="closeRedeem1Popup square-btn ui-btn btn-red ui-corner-all" redeemAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
 	                </div>
 	            </div>
 	            <div class="redeem-1-popup-disabled" style="display:none;">
 	                <h3 class="disabled_msg" style="color: #FF3500;"></h3>
-	                <button class="closeRedeem1Popup square-btn ui-btn ui-btn-b ui-corner-all" redeemAction="close" onclick="">{% translate language, 'common', 'Close' %}</button>
+	                <button class="closeRedeem1Popup square-btn ui-btn ui-btn-b ui-corner-all" redeemAction="close" onclick="">{% translate language, 'Close' %}</button>
 	            </div>
             </div>
         </div>
         <div data-role="popup" data-dismissible="false" id="add-3-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeAdd3Popup ui-btn-right"></a>
             <div style="padding: 2em;">
-                <h1>{% translate language, 'common', 'Add stamps' %}</h1>
+                <h1>{% translate language, 'Add stamps' %}</h1>
                 <h3 class="user_name"></h3>
                 <div class="add-3-popup-enabled">
                     <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
@@ -162,20 +162,20 @@
 						    </div>
 						</div>
 
-                        <button class="closeAdd3Popup rectancular-small-btn ui-btn btn-green ui-corner-all" addAction="submit" onclick="">{% translate language, 'common', 'Submit' %}</button>
-                        <button class="closeAdd3Popup rectancular-small-btn ui-btn btn-red ui-corner-all" addAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+                        <button class="closeAdd3Popup rectancular-small-btn ui-btn btn-green ui-corner-all" addAction="submit" onclick="">{% translate language, 'Submit' %}</button>
+                        <button class="closeAdd3Popup rectancular-small-btn ui-btn btn-red ui-corner-all" addAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                     </div>
                 </div>
                 <div class="add-3-popup-disabled" style="display:none;">
                     <h3 class="disabled_msg" style="color: #FF3500;"></h3>
-                    <button class="closeAdd3Popup square-btn ui-btn ui-btn-b ui-corner-all" addAction="close" onclick="">{% translate language, 'common', 'Close' %}</button>
+                    <button class="closeAdd3Popup square-btn ui-btn ui-btn-b ui-corner-all" addAction="close" onclick="">{% translate language, 'Close' %}</button>
                 </div>
             </div>
         </div>
         <div data-role="popup" data-dismissible="false" id="redeem-3-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeRedeem3Popup ui-btn-right"></a>
             <div style="padding: 2em;">
-                <h1>{% translate language, 'common', 'Redeem stamps' %}</h1>
+                <h1>{% translate language, 'Redeem stamps' %}</h1>
                 <h3 class="user_name"></h3>
                 <div class="redeem-3-popup-enabled">
                     <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
@@ -198,13 +198,13 @@
                                 <div class="screen"></div>
                             </div>
                         </div>
-                        <button class="closeRedeem3Popup rectancular-small-btn ui-btn btn-green ui-corner-all" redeemAction="redeem" onclick="">{% translate language, 'common', 'Redeem' %}</button>
-                        <button class="closeRedeem3Popup rectancular-small-btn ui-btn btn-red ui-corner-all" redeemAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+                        <button class="closeRedeem3Popup rectancular-small-btn ui-btn btn-green ui-corner-all" redeemAction="redeem" onclick="">{% translate language, 'Redeem' %}</button>
+                        <button class="closeRedeem3Popup rectancular-small-btn ui-btn btn-red ui-corner-all" redeemAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                     </div>
                 </div>
                 <div class="redeem-3-popup-disabled" style="display:none;">
                     <h3 class="disabled_msg" style="color: #FF3500;"></h3>
-                    <button class="closeRedeem3Popup square-btn ui-btn ui-btn-b ui-corner-all" redeemAction="close" onclick="">{% translate language, 'common', 'Close' %}</button>
+                    <button class="closeRedeem3Popup square-btn ui-btn ui-btn-b ui-corner-all" redeemAction="close" onclick="">{% translate language, 'Close' %}</button>
                 </div>
             </div>
         </div>
@@ -212,15 +212,15 @@
         <div data-role="popup" data-dismissible="false" id="couple-qr-code-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeCoupleQRCodePopup ui-btn-right"></a>
             <div style="padding: 2em;">
-                <h3>{% translate language, 'common', 'couple-loyalty-card-title' %}</h3>
+                <h3>{% translate language, 'couple-loyalty-card-title' %}</h3>
                 <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
                 <div class="clearfix">
                     <div style="font-size: 1.9em; padding: .7em 1em; margin-top: 0.75em; margin-bottom: 0.5em; margin-right: 1em;">
                         <input id="email" type="text" class="scroll-input-couple"/>
                     </div>
                     <div class="clearfix">
-	                    <button style="float: left;" class="closeCoupleQRCodePopup rectancular-btn ui-btn btn-green ui-corner-all" coupleAction="submit" onclick="">{% translate language, 'common', 'Submit' %}</button>
-	                    <button style="float: right;" class="closeCoupleQRCodePopup rectancular-btn ui-btn btn-red ui-corner-all" coupleAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+	                    <button style="float: left;" class="closeCoupleQRCodePopup rectancular-btn ui-btn btn-green ui-corner-all" coupleAction="submit" onclick="">{% translate language, 'Submit' %}</button>
+	                    <button style="float: right;" class="closeCoupleQRCodePopup rectancular-btn ui-btn btn-red ui-corner-all" coupleAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                     </div>
                 </div>
             </div>
@@ -229,7 +229,7 @@
          <div data-role="popup" data-dismissible="false" id="pin-activate-voucher-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closePinActivateVoucherPopup ui-btn-right"></a>
             <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'Pincode' %}</h1>
+	            <h1>{% translate language, 'Pincode' %}</h1>
                 <div class="clearfix">
 	                <div class="calculator calculator-revenue" style="font-size: 1.9em; float: left; padding: .7em 1em; margin-top: 0.75em; margin-bottom: 0.5em; margin-right: 1em;">
 					    <!-- Screen and clear key -->
@@ -257,8 +257,8 @@
                            </div>
 					</div>
 
-	                <button class="closePinActivateVoucherPopup rectancular-small-btn ui-btn btn-green ui-corner-all" pinAction="submit" onclick="">{% translate language, 'common', 'Submit' %}</button>
-	                <button class="closePinActivateVoucherPopup rectancular-small-btn ui-btn btn-red ui-corner-all" pinAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+	                <button class="closePinActivateVoucherPopup rectancular-small-btn ui-btn btn-green ui-corner-all" pinAction="submit" onclick="">{% translate language, 'Submit' %}</button>
+	                <button class="closePinActivateVoucherPopup rectancular-small-btn ui-btn btn-red ui-corner-all" pinAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                 </div>
             </div>
         </div>
@@ -266,27 +266,27 @@
         <div data-role="popup" data-dismissible="false" id="activate-voucher-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeActivateVoucherPopup ui-btn-right"></a>
             <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'Activate voucher' %} <small class="uid"></small></h1>
+	            <h1>{% translate language, 'Activate voucher' %} <small class="uid"></small></h1>
 	            <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
                 <div class="clearfix">
                     <div style="font-size: 1.9em; margin-top: 0.75em; margin-bottom: 0.5em;">
-                    	<label>{% translate language, 'common', 'Price' %}</label>
+                    	<label>{% translate language, 'Price' %}</label>
                         <input id="av-value" type="number" min="0" step="0.01" class="scroll-input-activate" />
                     </div>
                 </div>
 	            <div class="clearfix">
                     <div style="font-size: 1.9em; margin-top: 0.75em; margin-bottom: 0.5em; float: left; width: 45%;">
-                    	<label>{% translate language, 'common', 'Internal account' %}</label>
+                    	<label>{% translate language, 'Internal account' %}</label>
                         <input id="av-internal-account" type="text" class="scroll-input-activate" />
                     </div>
                     <div style="font-size: 1.9em; margin-top: 0.75em; margin-bottom: 0.5em; float: right;width: 45%;">
-                    	<label>{% translate language, 'common', 'Cost center' %}</label>
+                    	<label>{% translate language, 'Cost center' %}</label>
                         <input id="av-cost-center" type="email" class="scroll-input-activate"/>
                     </div>
                 </div>
                 <div class="clearfix">
-	                <button style="float: left; margin-right: 1em;" class="closeActivateVoucherPopup rectancular-btn ui-btn btn-green ui-corner-all" activateAction="submit" onclick="">{% translate language, 'common', 'Submit' %}</button>
-	                <button style="float: left;" class="closeActivateVoucherPopup rectancular-btn ui-btn btn-red ui-corner-all" activateAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+	                <button style="float: left; margin-right: 1em;" class="closeActivateVoucherPopup rectancular-btn ui-btn btn-green ui-corner-all" activateAction="submit" onclick="">{% translate language, 'Submit' %}</button>
+	                <button style="float: left;" class="closeActivateVoucherPopup rectancular-btn ui-btn btn-red ui-corner-all" activateAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                 </div>
             </div>
         </div>
@@ -294,10 +294,10 @@
         <div data-role="popup" data-dismissible="false" id="link-voucher-to-user" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeLinkVoucherPopup ui-btn-right"></a>
             <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'Link this voucher to a user?' %} <small class="uid"></small></h1>
+	            <h1>{% translate language, 'Link this voucher to a user?' %} <small class="uid"></small></h1>
                 <div class="clearfix">
-	                <button style="float: left; margin-right: 1em;" class="closeLinkVoucherPopup rectancular-btn ui-btn btn-green ui-corner-all" linkAction="submit" onclick="">{% translate language, 'common', 'Yes' %}</button>
-	                <button style="float: left;" class="closeLinkVoucherPopup rectancular-btn ui-btn btn-red ui-corner-all" linkAction="cancel" onclick="">{% translate language, 'common', 'No' %}</button>
+	                <button style="float: left; margin-right: 1em;" class="closeLinkVoucherPopup rectancular-btn ui-btn btn-green ui-corner-all" linkAction="submit" onclick="">{% translate language, 'Yes' %}</button>
+	                <button style="float: left;" class="closeLinkVoucherPopup rectancular-btn ui-btn btn-red ui-corner-all" linkAction="cancel" onclick="">{% translate language, 'No' %}</button>
                 </div>
             </div>
         </div>
@@ -305,7 +305,7 @@
         <div data-role="popup" data-dismissible="false" id="redeem-voucher-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeRedeemVoucherPopup ui-btn-right"></a>
             <div style="padding: 2em;">
-	            <h1>{% translate language, 'common', 'Redeem voucher' %} <small class="uid"></small></h1>
+	            <h1>{% translate language, 'Redeem voucher' %} <small class="uid"></small></h1>
 	            <h3 class="price_left"></h3>
                 <h3 class="error_msg" style="display: none; color: #FF3500;"></h3>
                 <div class="clearfix">
@@ -336,8 +336,8 @@
                            </div>
 					</div>
 
-	                <button class="closeRedeemVoucherPopup rectancular-small-btn ui-btn btn-green ui-corner-all" redeemAction="submit" onclick="">{% translate language, 'common', 'Submit' %}</button>
-	                <button class="closeRedeemVoucherPopup rectancular-small-btn ui-btn btn-red ui-corner-all" redeemAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+	                <button class="closeRedeemVoucherPopup rectancular-small-btn ui-btn btn-green ui-corner-all" redeemAction="submit" onclick="">{% translate language, 'Submit' %}</button>
+	                <button class="closeRedeemVoucherPopup rectancular-small-btn ui-btn btn-red ui-corner-all" redeemAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                 </div>
             </div>
         </div>
@@ -345,11 +345,11 @@
         <div data-role="popup" data-dismissible="false" id="confirm-redeem-voucher-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeConfirmRedeemVoucherPopup ui-btn-right"></a>
             <div style="padding: 2em;">
-            	<h1>{% translate language, 'common', 'Confirm' %} <small class="uid"></small></h1>
+            	<h1>{% translate language, 'Confirm' %} <small class="uid"></small></h1>
                 <h3 class="confirm_text"></h3>
                 <div class="clearfix">
-	                <button style="float: left; margin-right: 1em;" class="closeConfirmRedeemVoucherPopup square-btn  ui-btn btn-green ui-corner-all" confirmRedeemAction="submit" onclick="">{% translate language, 'common', 'Confirm' %}</button>
-	                <button style="float: left;" class="closeConfirmRedeemVoucherPopup square-btn ui-btn btn-red ui-corner-all" confirmRedeemAction="cancel" onclick="">{% translate language, 'common', 'Cancel' %}</button>
+	                <button style="float: left; margin-right: 1em;" class="closeConfirmRedeemVoucherPopup square-btn  ui-btn btn-green ui-corner-all" confirmRedeemAction="submit" onclick="">{% translate language, 'Confirm' %}</button>
+	                <button style="float: left;" class="closeConfirmRedeemVoucherPopup square-btn ui-btn btn-red ui-corner-all" confirmRedeemAction="cancel" onclick="">{% translate language, 'Cancel' %}</button>
                 </div>
             </div>
         </div>
@@ -357,9 +357,9 @@
         <div data-role="popup" data-dismissible="false" id="error-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeErrorPopup ui-btn-right"></a>
             <div style="padding: 2em;">
-                <h1>{% translate language, 'common', 'warning' %}</h1>
+                <h1>{% translate language, 'warning' %}</h1>
 	            <h3 class="error_msg" style="color: #FF3500;"></h3>
-                <button class="closeErrorPopup square-btn  ui-btn ui-btn-b ui-corner-all" errorAction="close" onclick="">{% translate language, 'common', 'Close' %}</button>
+                <button class="closeErrorPopup square-btn  ui-btn ui-btn-b ui-corner-all" errorAction="close" onclick="">{% translate language, 'Close' %}</button>
             </div>
         </div>
         <div data-role="popup" data-dismissible="false" id="text-popup" class="ui-content">
@@ -368,14 +368,14 @@
                 <h1 class="text_msg"></h1>
                 <h3 class="error_msg" style="color: #FF3500;"></h3>
                 <h3 class="sub_msg"></h3>
-                <button style="margin: 0 auto; margin-top: 2em;" class="closeTextPopup rectancular-btn ui-btn ui-btn-b ui-corner-all" errorAction="close" onclick="">{% translate language, 'common', 'Close' %}</button>
+                <button style="margin: 0 auto; margin-top: 2em;" class="closeTextPopup rectancular-btn ui-btn ui-btn-b ui-corner-all" errorAction="close" onclick="">{% translate language, 'Close' %}</button>
             </div>
         </div>
         <div data-role="popup" data-dismissible="false" id="hello-popup" class="ui-content">
             <a style="font-size: 3em;" href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="closeHelloPopup ui-btn-right"></a>
             <div style="padding: 2em;">
                 <h1 class="hello_msg"></h1>
-                <button class="closeHelloPopup square-btn ui-btn ui-btn-b ui-corner-all">{% translate language, 'common', 'Close' %}</button>
+                <button class="closeHelloPopup square-btn ui-btn ui-btn-b ui-corner-all">{% translate language, 'Close' %}</button>
             </div>
         </div>
     </div>

@@ -22,9 +22,6 @@ $(function () {
     var customerSignupMessageRequests = {};
     var isWaitingForProvisionUpdate = false;
 
-    var allowedBroadcastTypes = [];
-    var allowedModules = {};
-
     var loadCustomerSignups = function() {
         sln.call({
             url: '/common/customer/signup/all',
@@ -54,26 +51,6 @@ $(function () {
         }
     };
 
-    var getAllowedModulesAndBroadcastTypes = function(signupKey, callback) {
-        if(allowedModules[signupKey] && allowedBroadcastTypes.length) {
-            callback(allowedModules[signupKey], allowedBroadcastTypes);
-        } else {
-            sln.call({
-                url: '/common/customer/signup/get_defaults',
-                type: 'get',
-                data: {
-                    signup_key: signupKey
-                },
-                success: function(data){
-                    allowedModules[signupKey] = data.modules;
-                    allowedBroadcastTypes = data.broadcast_types;
-                    callback(data.modules, data.broadcast_types);
-                },
-                error: sln.showAjaxError
-            });
-        }
-    };
-
     var signupCustomer = function(signupKey, force) {
         if(force) {
             createService();
@@ -82,47 +59,33 @@ $(function () {
         }
 
         function createService() {
-            // get allowed/default modules and broadcast types
-            getAllowedModulesAndBroadcastTypes(signupKey, doCreateService);
+            sln.showProcessing(CommonTranslations.LOADING_DOT_DOT_DOT);
+            isWaitingForProvisionUpdate = true;
 
-            function doCreateService(modules, broadcastTypes) {
-                var defaultModules = [];
-                $.each(modules, function(i, module) {
-                    if(module.is_default) {
-                        defaultModules.push(module.key);
-                    }
-                });
+            sln.call({
+                url: '/common/signup/services/create',
+                type: 'post',
+                data: {
+                    signup_key: signupKey,
+                    force: force
+                },
+                success: function (data) {
+                    sln.hideProcessing();
+                    if (!data.success) {
+                        isWaitingForProvisionUpdate = false;
 
-                sln.showProcessing(CommonTranslations.LOADING_DOT_DOT_DOT);
-                isWaitingForProvisionUpdate = true;
-
-                sln.call({
-                    url: '/common/signup/services/create',
-                    type: 'post',
-                    data: {
-                        signup_key: signupKey,
-                        modules: defaultModules,
-                        broadcast_types: broadcastTypes,
-                        force: force
-                    },
-                    success: function(data) {
-                        if(!data.success) {
-                            isWaitingForProvisionUpdate = false;
-                            sln.hideProcessing();
-
-                            if(data.errormsg) {
-                                sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                            } else if(data.warningmsg) {
-                                sln.confirm(data.warningmsg, function() {
-                                    signupCustomer(signupKey, true);
-                                })
-                            }
-                            // will be updated through the channel
+                        if (data.errormsg) {
+                            sln.alert(data.errormsg, null, CommonTranslations.ERROR);
+                        } else if (data.warningmsg) {
+                            sln.confirm(data.warningmsg, function () {
+                                signupCustomer(signupKey, true);
+                            });
                         }
-                    },
-                    error: sln.showAjaxError
-                });
-            }
+                        // will be updated through the channel
+                    }
+                },
+                error: sln.showAjaxError
+            });
         }
     };
 

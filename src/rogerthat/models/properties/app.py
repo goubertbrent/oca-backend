@@ -28,10 +28,11 @@ try:
 except ImportError:
     import StringIO
 
+
 class AutoConnectedService(object):
     service_identity_email = unicode_property('1')
     removable = bool_property('2')
-    local = unicode_list_property('3')
+    local = unicode_list_property('3')  # locale
     service_roles = long_list_property('4')
 
     @classmethod
@@ -39,8 +40,8 @@ class AutoConnectedService(object):
         to = cls()
         to.service_identity_email = service_identity_email
         to.removable = removable
-        to.local = local if local else list()
-        to.service_roles = service_roles if service_roles else list()
+        to.local = local if local else []
+        to.service_roles = service_roles if service_roles else []
         return to
 
 def _serialize_auto_connected_service(stream, acs):

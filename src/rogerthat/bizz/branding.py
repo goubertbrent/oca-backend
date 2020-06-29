@@ -15,23 +15,23 @@
 #
 # @@license_version:1.7@@
 
-from HTMLParser import HTMLParser, HTMLParseError
 import base64
-from contextlib import closing
 import hashlib
 import json
 import logging
 import re
 import time
-from types import NoneType
 import urllib
+from HTMLParser import HTMLParser, HTMLParseError
+from contextlib import closing
+from types import NoneType
 from zipfile import ZipFile, BadZipfile, ZIP_DEFLATED
 
 import cloudstorage
-
 from google.appengine.api import urlfetch
 from google.appengine.ext import db, blobstore
 from google.appengine.ext.deferred import deferred
+
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
@@ -59,7 +59,6 @@ from rogerthat.utils import now, parse_color
 from rogerthat.utils.languages import get_iso_lang
 from rogerthat.utils.transactions import run_in_transaction
 from rogerthat.utils.zip_utils import replace_file_in_zip
-
 
 try:
     from cStringIO import StringIO
@@ -197,7 +196,7 @@ def _create_new_zip(service_user, branding_type, zip_, html, skip_meta_file=Fals
         if branding_type == Branding.TYPE_NORMAL and file_name == 'branding.html':
             new_zip_.writestr(file_name, html)
         elif branding_type == Branding.TYPE_APP and file_name == 'app.html' or \
-                branding_type == Branding.TYPE_CORDOVA and file_name == 'cordova.html':
+                branding_type == Branding.TYPE_CORDOVA and file_name in ('cordova.html', 'index.html'):
             translation_strings_parser.feed(html)
             new_zip_.writestr("branding.html", html)
         else:
@@ -795,9 +794,12 @@ def _parse_and_validate_branding_zip(zip_):
     elif "cordova.html" in files:
         branding_type = Branding.TYPE_CORDOVA
         html_file = "cordova.html"
+    elif "index.html" in files:
+        branding_type = Branding.TYPE_CORDOVA
+        html_file = "index.html"
     else:
         raise BrandingValidationException(
-            "zip file does not contain a branding.html, app.html or cordova.html file in the root directory.")
+            "zip file does not contain a branding.html, app.html or index.html file in the root directory.")
 
     scripts_allowed = branding_type in (Branding.TYPE_APP, Branding.TYPE_CORDOVA,)
     html, pokes, meta_properties = _parse_and_validate_html(zip_.read(html_file), html_file, scripts_allowed,

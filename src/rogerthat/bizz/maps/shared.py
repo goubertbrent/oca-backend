@@ -15,12 +15,13 @@
 #
 # @@license_version:1.7@@
 
+from typing import List
+
 from rogerthat.bizz.system import get_profile_addresses_to
 from rogerthat.models import UserProfileInfo, ServiceMenuDef
 from rogerthat.models.maps import MapConfig
 from rogerthat.to import GeoPointTO
 from rogerthat.to.maps import GetMapResponseTO, MapDefaultsTO, MapFilterTO
-from typing import List
 
 
 def get_map_response(map_config, user_profile_info, filters, add_addresses=True):

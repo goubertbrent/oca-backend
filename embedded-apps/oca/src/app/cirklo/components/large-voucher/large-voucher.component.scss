@@ -1,0 +1,74 @@
+:host {
+  display: flex;
+  margin: 16px;
+}
+
+.voucher-expired {
+  filter: grayscale(100%);
+}
+
+.gradient-container {
+  // -1 px to mostly avoid jagged edge
+  background: linear-gradient(to top left, transparent calc(50% - 1px), var(--ion-color-primary) 50%);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.voucher-card {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.expired-title {
+  text-transform: uppercase;
+}
+
+.voucher-value {
+  font-weight: bold;
+}
+
+.voucher-original-value {
+  text-decoration: line-through;
+}
+
+.transactions-button {
+  align-self: start;
+}
+
+.voucher-logo {
+  width: 128px;
+  height: 128px;
+  margin-top: 32px;
+}
+
+.voucher-value {
+  font-size: 56px;
+  margin: 16px 32px 8px;
+}
+
+.voucher-original-value {
+  font-size: 28px;
+}
+
+.voucher-validity {
+  padding: 8px;
+  text-align: center;
+}
+
+.qr-code {
+  margin: 24px 32px 16px;
+}
+
+.text-description {
+  margin: 32px 64px;
+}
+
+.qr-filter {
+  filter: contrast(0.5);
+}

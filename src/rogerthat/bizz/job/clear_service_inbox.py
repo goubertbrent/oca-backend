@@ -17,11 +17,12 @@
 
 from types import NoneType
 
+from google.appengine.ext import deferred, db
+
+from mcfw.rpc import arguments, returns
 from rogerthat.dal.messaging import get_service_user_inbox_keys_query
 from rogerthat.models import Message
 from rogerthat.rpc import users
-from google.appengine.ext import deferred, db
-from mcfw.rpc import arguments, returns
 
 
 @returns(NoneType)

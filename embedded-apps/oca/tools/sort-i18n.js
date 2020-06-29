@@ -21,8 +21,10 @@ function sortObject(object) {
   return sortedObj;
 }
 
-const path = join(__dirname, '..', 'src', 'assets', 'i18n');
-const files = fs.readdirSync(path);
+const directory = join(__dirname, '..', 'src', 'assets', 'i18n');
+const files = fs.readdirSync(directory);
 for (const file of files) {
-  sortTranslations(join(path, file));
+  const path = join(directory, file);
+  sortTranslations(path);
+  console.log(`Sorted ${path}`);
 }

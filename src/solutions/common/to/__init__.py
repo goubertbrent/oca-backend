@@ -34,7 +34,6 @@ from rogerthat.to.messaging import AttachmentTO
 from rogerthat.utils import get_epoch_from_datetime
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionInboxMessage, SolutionBrandingSettings, SolutionSettings, \
     SolutionIdentitySettings
 from solutions.common.models.agenda import Event, EventCalendarType, EventPeriod, EventDate
@@ -123,7 +122,7 @@ class SolutionInboxMessageTO(TO):
 
         to.picture_urls = message.picture_urls
         to.video_urls = message.video_urls
-        to.chat_topic = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+        to.chat_topic = common_translate(sln_settings.main_language,
                                          message.chat_topic_key) if message.chat_topic_key else ""
         return to
 
@@ -212,7 +211,7 @@ class SolutionRssSettingsTO(TO):
                                                   app_ids=l.app_ids if l.app_ids else []) for l in model.rss_links])
 
 
-class ProvisionResponseTO(object):
+class ProvisionResponseTO(TO):
     login = unicode_property('1')
     password = unicode_property('2')
     auto_login_url = unicode_property('3')
@@ -510,7 +509,7 @@ class SolutionAppointmentSettingsTO(object):
             text_1 = obj.text_1
 
         if not text_1:
-            text_1 = common_translate(language, SOLUTION_COMMON, 'appointment-1')
+            text_1 = common_translate(language, 'appointment-1')
 
         to.text_1 = text_1
         return to
@@ -629,7 +628,7 @@ class SolutionRepairSettingsTO(object):
             text_1 = obj.text_1
 
         if not text_1:
-            text_1 = common_translate(language, SOLUTION_COMMON, 'repair-1')
+            text_1 = common_translate(language, 'repair-1')
 
         to.text_1 = text_1
         return to
@@ -907,10 +906,11 @@ class ServiceTO(object):
     vat = unicode_property('13')
     website = unicode_property('14')
     facebook_page = unicode_property('15')
+    hidden_by_city = unicode_property('hidden_by_city')
 
     def __init__(self, customer_id=None, name=None, address1=None, address2=None, zip_code=None, city=None,
                  user_email=None, telephone=None, language=None, modules=None, broadcast_types=None,
-                 organization_type=None, vat=None, website=None, facebook_page=None):
+                 organization_type=None, vat=None, website=None, facebook_page=None, hidden_by_city=None):
         self.customer_id = customer_id
         self.name = name
         self.address1 = address1
@@ -926,6 +926,7 @@ class ServiceTO(object):
         self.vat = vat
         self.website = website
         self.facebook_page = facebook_page
+        self.hidden_by_city = hidden_by_city and (hidden_by_city.isoformat() + 'Z')
 
 
 class ImageReturnStatusTO(ReturnStatusTO):

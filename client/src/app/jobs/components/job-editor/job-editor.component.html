@@ -93,7 +93,7 @@
       {{ 'oca.your_job_will_be_published' | translate : {date: startDate | date : 'mediumDate'} }}
     </p>
     <div class="action-buttons">
-      <button [disabled]="disabled" mat-raised-button>{{ 'oca.Save' | translate }}</button>
+      <button [disabled]="disabled" mat-raised-button *ngIf="canSave">{{ 'oca.Save' | translate }}</button>
       <button (click)="createNewsItem.emit()" *ngIf="canUnPublish" mat-raised-button type="button">
         {{ 'oca.create_news_item' | translate }}
       </button>

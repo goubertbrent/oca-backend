@@ -1,0 +1,24 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.oca.voucher_details' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button (click)="deleteClicked()">
+        <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <app-large-voucher *ngIf="voucher$ | async as voucher"
+                     [expired]="voucher.expired"
+                     [logoUrl]="logoUrl$ | async"
+                     [qrData]="voucher | voucherQrData"
+                     [remainingValue]="voucher.amount"
+                     [validDate]="voucher.expirationDate"
+                     [value]="voucher.originalAmount"
+                     [voucherId]="voucher.id">
+  </app-large-voucher>
+</ion-content>

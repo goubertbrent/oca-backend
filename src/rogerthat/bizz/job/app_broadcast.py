@@ -23,8 +23,8 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.friends import create_add_to_services_button, ORIGIN_SERVICE_INVITE
 from rogerthat.bizz.job import run_job
-from rogerthat.bizz.service import fake_friend_connection
 from rogerthat.bizz.messaging import sendMessage
+from rogerthat.bizz.service import fake_friend_connection
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX
 from rogerthat.dal.friend import get_friends_map_key_by_user
 from rogerthat.dal.profile import get_profile_key
@@ -35,7 +35,6 @@ from rogerthat.to.messaging import UserMemberTO
 from rogerthat.utils import bizz_check
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.service import get_service_user_from_service_identity_user
-from rogerthat.utils.transactions import run_in_transaction
 
 APP_BROADCAST_TAG = u"%s.app_broadcast" % MC_RESERVED_TAG_PREFIX
 

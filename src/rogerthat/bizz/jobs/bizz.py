@@ -15,16 +15,11 @@
 #
 # @@license_version:1.7@@
 
-from google.appengine.ext import ndb, deferred
-from typing import Tuple
 
-from rogerthat.bizz.jobs.matching import create_job_offer_matches, remove_job_offer_matches
-from rogerthat.bizz.jobs.search import re_index_job_offer
-from rogerthat.consts import JOBS_WORKER_QUEUE
-from rogerthat.models.jobs import JobOffer, JobOfferInfo, JobMatchingCriteria, JobMatchingNotifications, JobMatch
-from rogerthat.to.jobs import CreateJobOfferTO
+from rogerthat.bizz.jobs.workers import create_job_offer_matches,\
+    remove_job_offer_matches, re_index_job_offer
+from rogerthat.models.jobs import JobOffer, JobOfferInfo
 from rogerthat.utils import try_or_defer
-from rogerthat.utils.models import delete_all_models_by_query
 
 
 def _set_job_offer_properties(model, data):
@@ -55,13 +50,8 @@ def create_or_update_job_offer(service_email, demo_app_ids, data):
     _set_job_offer_properties(job_offer, data)
     job_offer.put()
     if job_offer.visible:
-        create_job_offer_matches(job_offer)
+        try_or_defer(create_job_offer_matches, job_offer.id)
     else:
-        remove_job_offer_matches(job_offer.id)
-    try_or_defer(re_index_job_offer, job_offer)
+        try_or_defer(remove_job_offer_matches, job_offer.id)
+    try_or_defer(re_index_job_offer, job_offer.id)
     return job_offer, created
-
-
-def cleanup_jobs_data(app_user):
-    ndb.delete_multi([JobMatchingCriteria.create_key(app_user), JobMatchingNotifications.create_key(app_user)])
-    deferred.defer(delete_all_models_by_query, JobMatch.list_by_app_user(app_user), _queue=JOBS_WORKER_QUEUE)

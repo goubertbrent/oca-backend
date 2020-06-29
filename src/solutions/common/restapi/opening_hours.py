@@ -30,7 +30,9 @@ def rest_get_opening_hours():
     service_user = users.get_current_user()
     session_ = users.get_current_session()
     service_identity = session_.service_identity or ServiceIdentity.DEFAULT
-    return OpeningHoursTO.from_model(get_opening_hours(service_user, service_identity))
+    hours = get_opening_hours(service_user, service_identity)
+    hours.sanitize_periods()
+    return OpeningHoursTO.from_model(hours)
 
 
 @rest('/common/settings/opening-hours', 'put', silent_result=True)

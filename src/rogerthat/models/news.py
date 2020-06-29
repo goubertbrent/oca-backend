@@ -17,19 +17,17 @@
 
 from __future__ import unicode_literals
 
-from datetime import date, datetime
+from datetime import datetime
 
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb.query import QueryOptions
 
 from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
-from rogerthat.models import UserProfile
 from rogerthat.models.common import NdbModel
-from rogerthat.models.properties.news import NewsItemStatisticsProperty, NewsButtonsProperty, \
-    NewsFeedsProperty
+from rogerthat.models.properties.news import NewsItemStatisticsProperty, NewsButtonsProperty
 from rogerthat.rpc import users
-from rogerthat.utils import now, calculate_age_from_date
+from rogerthat.utils import now
 
 
 class MediaType(Enum):
@@ -122,7 +120,6 @@ class NewsItem(NdbModel):
     role_ids = ndb.IntegerProperty(indexed=False, repeated=True)
 
     tags = ndb.StringProperty(indexed=True, repeated=True)
-    feeds = NewsFeedsProperty(indexed=False)
     media = ndb.StructuredProperty(NewsMedia)  # type: NewsMedia
 
     TYPE_NORMAL = 1  # application/service to person
@@ -157,29 +154,6 @@ class NewsItem(NdbModel):
             return datetime.utcfromtimestamp(self.sticky_until)
         return self.stream_publish_timestamp
 
-    def sort_priority(self, connections, profile=None, users_that_rogered=None):
-
-        if self.sticky:
-            return 10
-
-        if profile and not self.match_target_audience(profile):
-            return 45
-
-        if users_that_rogered and any(user_that_rogered in connections[0] for user_that_rogered in users_that_rogered):
-            return 20
-
-        if self.sender in connections[1]:
-            return 30
-
-        return 40
-
-    def feed_name(self, app_id):
-        feeds = self.feeds.values() if self.feeds else []
-        for feed in feeds:
-            if feed.app_id == app_id:
-                return feed.name
-        return None
-
     @property
     def target_audience(self):
         """Get the target audience as NewsTargetAudienceTO.
@@ -203,44 +177,6 @@ class NewsItem(NdbModel):
         """Check if a news item has any assinged roles."""
         return len(self.role_ids) > 0
 
-    @staticmethod
-    def match_target_audience_of_item(profile, news_item):
-        """Check if the target audience of a news item include the user or not.
-
-        Args:
-            profile (UserProfile)
-            news_item (NewsItem or NewsItemTO)
-
-        Returns:
-           bool
-        """
-        target_audience = news_item.target_audience
-        if not target_audience:
-            return True
-
-        if profile.birthdate is None or not profile.gender >= 0:
-            return False
-
-        news_item_gender = target_audience.gender
-        any_gender = (UserProfile.GENDER_MALE_OR_FEMALE, UserProfile.GENDER_CUSTOM)
-        if news_item_gender not in any_gender:
-            if profile.gender != news_item_gender:
-                return False
-
-        min_age = target_audience.min_age
-        max_age = target_audience.max_age
-        user_birthdate = date.fromtimestamp(profile.birthdate)
-        user_age = calculate_age_from_date(user_birthdate)
-        if not (min_age <= user_age <= max_age):
-            return False
-
-        return True
-
-    def match_target_audience(self, profile):
-        if not self.target_audience_enabled:
-            return True
-        return NewsItem.match_target_audience_of_item(profile, self)
-
     @classmethod
     def list_by_sender(cls, sender, updated_since=0, tag=None):
         qry = cls.query()
@@ -253,19 +189,6 @@ class NewsItem(NdbModel):
             qry = qry.order(-cls.update_timestamp)
         else:
             qry = qry.order(-cls.published_timestamp)
-        return qry
-
-    @classmethod
-    def list_by_app(cls, app_id, updated_since=0, tag=None):
-        qry = cls.query()
-        if tag:
-            qry = qry.filter(cls.tags == tag)
-
-        qry = qry.filter(cls.app_ids == app_id)
-        qry = qry.filter(cls.deleted == False)
-        qry = qry.filter(cls.published == True)
-        qry = qry.filter(cls.update_timestamp >= updated_since)
-        qry = qry.order(-cls.update_timestamp)
         return qry
 
     @classmethod

@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { OpeningHours, PlaceType } from '../shared/interfaces/oca';
-import { Country, ServiceInfo } from './service-info/service-info';
+import { Country, PrivacySettings, PrivacySettingsGroup, ServiceInfo } from './service-info/service-info';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -31,8 +31,16 @@ export class SettingsService {
   }
 
   getCountries(): Observable<Country[]> {
-    return this.http.get<{countries: [string, string][]}>('/common/countries').pipe(
+    return this.http.get<{ countries: [string, string][] }>('/common/countries').pipe(
       map(results => results.countries.map(([code, name]) => ({ code, name }))),
     );
+  }
+
+  getPrivacySettings() {
+    return this.http.get<PrivacySettingsGroup[]>('/common/settings/privacy');
+  }
+
+  savePrivacySettings(setting: PrivacySettings) {
+    return this.http.put('/common/settings/privacy', setting);
   }
 }

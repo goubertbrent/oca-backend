@@ -19,10 +19,10 @@ import json
 import logging
 import os
 
-import jinja2
-import webapp2
 from babel import dates, Locale
 from jinja2 import StrictUndefined, Undefined
+import jinja2
+import webapp2
 
 from mcfw.rpc import serialize_complex_value
 from rogerthat.bizz import channel
@@ -44,8 +44,8 @@ from shop.bizz import get_organization_types, is_signup_enabled, update_customer
 from shop.business.legal_entities import get_vat_pct
 from shop.constants import LOGO_LANGUAGES
 from shop.dal import get_customer, get_mobicage_legal_entity
+from shop.models import ShopApp
 from solutions import translate, translations, COMMON_JS_KEYS
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import OrganizationType, SolutionModule
 from solutions.common.bizz.budget import BUDGET_RATE
 from solutions.common.bizz.functionalities import get_functionalities
@@ -61,6 +61,7 @@ from solutions.common.models.properties import MenuItem
 from solutions.common.to import SolutionEmailSettingsTO
 from solutions.flex import SOLUTION_FLEX
 from solutions.jinja_extensions import TranslateExtension
+
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), 'templates'),
@@ -271,8 +272,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             return
         session_ = users.get_current_session()
         lang = sln_settings.main_language or DEFAULT_LANGUAGE
-        all_translations = {key: translate(lang, SOLUTION_COMMON, key)
-                            for key in translations[SOLUTION_COMMON]['en']}
+        all_translations = {key: translate(lang, key) for key in translations[DEFAULT_LANGUAGE]}
         for other_key, key in COMMON_JS_KEYS.iteritems():
             all_translations[other_key] = all_translations[key]
         service_identity = session_.service_identity if session_.service_identity else ServiceIdentity.DEFAULT
@@ -318,15 +318,12 @@ class FlexHomeHandler(webapp2.RequestHandler):
                 service_identity_user = create_service_identity_user(service_user, service_identity)
                 si = get_service_identity(service_identity_user)
                 city_app_id = si.app_id
-                active_app_ids = si.sorted_app_ids
             else:
                 city_app_id = customer.app_id
-                active_app_ids = customer.sorted_app_ids
         else:
             city_app_id = None
             logging.info('Getting app ids from service identity since no customer exists for user %s', service_user)
             service_identity_user = create_service_identity_user(service_user, service_identity)
-            active_app_ids = get_service_identity(service_identity_user).sorted_app_ids
 
         locale = Locale.parse(lang)
         currency_symbols = {currency: locale.currency_symbols.get(currency, currency) for currency in CURRENCIES}
@@ -367,11 +364,12 @@ class FlexHomeHandler(webapp2.RequestHandler):
         country = customer and customer.country
         functionality_modules = functionality_info = None
         if city_app_id and is_signup_enabled(city_app_id):
+            shop_app = ShopApp.create_key(city_app_id).get()
             functionality_modules, functionality_info = map(json.dumps, get_functionalities(country,
                                                                                             lang,
                                                                                             sln_settings.modules,
                                                                                             sln_settings.activated_modules,
-                                                                                            active_app_ids))
+                                                                                            shop_app))
 
         vouchers_settings = None
         if city_app_id and SolutionModule.CITY_VOUCHERS in sln_settings.modules:
@@ -389,10 +387,11 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'logo_languages': LOGO_LANGUAGES,
                   'sln_settings': sln_settings,
                   'sln_i_settings': sln_i_settings,
+                  'hidden_by_city': sln_settings.hidden_by_city,
                   'debug': DEBUG,
                   'appscale': APPSCALE,
                   'templates': self._get_templates(lang, currency, sln_settings.modules),
-                  'service_name': sln_i_settings.name,
+                  'service_name': service_info.name,
                   'service_user_email': service_user.email().encode("utf-8"),
                   'service_identity': service_identity,
                   'has_multiple_locations': True if sln_settings.identities else False,
@@ -426,17 +425,14 @@ class FlexHomeHandler(webapp2.RequestHandler):
                   'organization_types': organization_types,
                   'organization_types_json': json.dumps(dict(organization_types)),
                   'vouchers_settings': vouchers_settings,
-                  'show_email_checkboxes': customer is not None,
-                  'service_consent': get_customer_consents(customer.user_email) if customer else None,
                   'is_city': is_city,
                   'news_review_enabled': news_review_enabled,
                   'can_edit_paddle': is_city and session_.shop,
-                  'is_shop_admin': session_.shop if session_ else False
+                  'is_shop_admin': session_.shop if session_ else False,
                   }
 
         if SolutionModule.BULK_INVITE in sln_settings.modules:
-            params['bulk_invite_message'] = translate(lang, SOLUTION_COMMON,
-                                                      "settings-bulk-invite-message",
+            params['bulk_invite_message'] = translate(lang, "settings-bulk-invite-message",
                                                       app_name=system.get_identity().app_names[0])
 
         params['menu'] = get_restaurant_menu(service_user) if SolutionModule.MENU in sln_settings.modules else None

@@ -4,17 +4,17 @@
     <thead>
     <tr>
         <th colspan="6">
-            <h4>${$value.shift.name} (${$value.fill}%): ${$value.date} {% endraw %}{% translate language, "common", "from" %}{% raw %} ${$value.time} {% endraw %}{% translate language, "common", "till" %}{% raw %} ${$value.end_time}</h4>
+            <h4>${$value.shift.name} (${$value.fill}%): ${$value.date} {% endraw %}{% translate language, "from" %}{% raw %} ${$value.time} {% endraw %}{% translate language, "till" %}{% raw %} ${$value.end_time}</h4>
         </th>
     </tr>
         <tr>
 {%- endraw %}
-            <th class="span1">{% translate language, "common", "Date" %}</th>
+            <th class="span1">{% translate language, "Date" %}</th>
             <th class="span1">#</th>
-            <th>{% translate language, "common", "reservation-name" %}</th>
-            <th>{% translate language, "common", "phone" %}</th>
-            <th>{% translate language, "common", "reservation-table" %}</th>
-            <th>{% translate language, "common", "reservation-comment" %}</th>
+            <th>{% translate language, "reservation-name" %}</th>
+            <th>{% translate language, "phone" %}</th>
+            <th>{% translate language, "reservation-table" %}</th>
+            <th>{% translate language, "reservation-comment" %}</th>
             <th class="span1"></th>
 {% raw %}
         </tr>
@@ -25,7 +25,7 @@
             <td>${$value.time}</td>
             <td>${$value.people}</td>
             <td>{{if $value.sender }} <a href="#" class="broadcastUserImage clearfix pull-left" style="heigth: 50px; width: 50px; data-html="true"
- data-toggle="popover" data-content="{% endraw %}{% translate language, "common", "app" %}: ${$value.sender.app_id}{% raw %}"
+ data-toggle="popover" data-content="{% endraw %}{% translate language, "app" %}: ${$value.sender.app_id}{% raw %}"
  data-title="${$value.sender.name}"><img src="${$value.sender.avatar_url}" height="30" width="30"></a>  {{/if}}${$value.name}</td>
             <td>${$value.phone}</td>
             <td>${$value.table_names}</td>

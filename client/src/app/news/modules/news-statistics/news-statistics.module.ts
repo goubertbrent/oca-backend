@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterModule, Routes } from '@angular/router';
@@ -19,6 +20,7 @@ const routes: Routes = [
     MatFormFieldModule,
     MatSelectModule,
     SharedModule,
+    MatChipsModule,
   ],
   exports: [ NewsStatisticsPageComponent, NewsStatisticsGraphsComponent ],
 })

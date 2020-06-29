@@ -56,6 +56,7 @@ class Test(mc_unittest.TestCase):
         self.assert_(src_is_ok, 'Wrong path: %s' % os.path.split(__file__)[0])
         src_dir = os.path.normpath(os.path.join(__file__, '..', '..', '..', '..', 'src'))
         self.assert_(os.path.isdir(src_dir), "Couldn't find src dir - tried: %s" % src_dir)
+#         print 'get_src_dir: => %s' % src_dir
         return src_dir
 
     def get_template_dir(self):
@@ -199,6 +200,7 @@ class Test(mc_unittest.TestCase):
                 keys_found_in_code.add(unicode(key))
 
         def _scan_dir(path):
+#             print '_scan_dir: -> %s' % path
             for f in os.listdir(path):
                 filename = os.path.join(path, f)
                 if os.path.isfile(filename):
@@ -207,6 +209,17 @@ class Test(mc_unittest.TestCase):
                     if f.startswith("."):
                         continue
                     _scan_dir(filename)
+                    
+        def _should_process(path):
+            ignored = [os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src', 'lib')),
+                       os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src', 'shop')),
+                       os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src', 'solutions'))]
+            for ign in ignored:
+                if path.endswith(ign) or path.startswith(ign):
+#                     print '_should_process: FALSE -> %s' % path
+                    return False
+#             print '_should_process: TRUE -> %s' % path
+            return True
 
         import ast
         testself = self
@@ -227,7 +240,11 @@ class Test(mc_unittest.TestCase):
                         try:
                             key = key_object.s
                         except:
-                            testself.assert_(False, 'Error in %s:%s' % (self.current_python_file, node.lineno))
+                            errormsg = 'Error in %s:%s' % (self.current_python_file, node.lineno)
+                            print errormsg
+                            file_errors.append(errormsg)
+                            return
+#                             testself.assert_(False, errormsg)
 
                         substitutions = set()
                         for keyword in node.keywords:
@@ -253,13 +270,19 @@ class Test(mc_unittest.TestCase):
         self.assert_(
             len(filenames) > 0, "Error: couldn't find src files with translation texts.\nIs the dir correct: %s" % src_dir)
 
+        file_errors = []
         keys_found_in_code = set()
         for filename in filenames:
+            if not _should_process(filename):
+                continue
             f = open(filename, 'r')
             body = f.read()
             f.close()
             m.current_python_file = filename
             m.visit(ast.parse(body))
+            
+        if file_errors:
+            self.assert_(False, file_errors)
 
         translated_keys = set(k for k in D[DEFAULT_LANGUAGE].iterkeys() if '.' not in k or k.endswith('.'))
 

@@ -21,6 +21,7 @@ import json
 from mcfw.properties import azzert, long_property, unicode_property, typed_property, bool_property, \
     unicode_list_property, long_list_property
 from mcfw.rpc import arguments
+from mcfw.utils import Enum
 from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.profile import get_search_config, get_profile_infos
 from rogerthat.dal.service import get_broadcast_settings_items
@@ -33,7 +34,7 @@ from rogerthat.to.friends import GetUserInfoRequestTO, GetUserInfoResponseTO
 from rogerthat.to.profile import SearchConfigTO
 from rogerthat.to.system import ProfileAddressTO, ProfilePhoneNumberTO
 from rogerthat.translations import localize
-from rogerthat.utils import is_flag_set
+from rogerthat.utils import is_flag_set, get_epoch_from_datetime
 from rogerthat.utils.app import get_human_user_from_app_user
 from rogerthat.utils.service import remove_slash_default, get_identity_from_service_identity_user
 
@@ -61,18 +62,23 @@ class ServiceLanguagesTO(object):
 
 
 class ServiceCallbackConfigurationRegexTO(object):
-    timestamp = long_property('1')
-    name = unicode_property('2')
-    regex = unicode_property('3')
-    callBackURI = unicode_property('4')
+    created = long_property('created')
+    name = unicode_property('name')
+    uri = unicode_property('uri')
+    regexes = unicode_list_property('regexes')
+    callbacks = long_property('callbacks')
+    custom_headers = unicode_property('custom_headers')
+    
 
     @staticmethod
     def fromModel(model):
         to = ServiceCallbackConfigurationRegexTO()
-        to.timestamp = model.creationTime
+        to.created = get_epoch_from_datetime(model.created)
         to.name = model.name
-        to.regex = model.regex
-        to.callBackURI = model.callBackURI
+        to.uri = model.uri
+        to.regexes = model.regexes
+        to.callbacks = model.callbacks
+        to.custom_headers = json.dumps(model.custom_headers).decode('utf8') if model.custom_headers else u''
         return to
 
 
@@ -600,18 +606,14 @@ class UserDetailsTO(TO):
     language = unicode_property('3')
     avatar_url = unicode_property('4')
     app_id = unicode_property('5')
-    public_key = unicode_property('6', default=None)  # deprecated since public_keys
-    public_keys = typed_property('7', PublicKeyTO, True, default=[])
 
     @classmethod
-    def create(cls, email, name, language, avatar_url, app_id, public_key=None, public_keys=None):
+    def create(cls, email, name, language, avatar_url, app_id):
         return cls(email=email,
                    name=name,
                    language=language,
                    avatar_url=avatar_url,
-                   app_id=app_id,
-                   public_key=public_key,
-                   public_keys=public_keys or [])
+                   app_id=app_id)
 
     @classmethod
     def fromUserProfile(cls, user_profile):
@@ -619,19 +621,31 @@ class UserDetailsTO(TO):
                    name=user_profile.name,
                    language=user_profile.language,
                    avatar_url=user_profile.avatarUrl,
-                   app_id=user_profile.app_id,
-                   public_key=user_profile.public_key,
-                   public_keys=user_profile.public_keys.values() if user_profile.public_keys else [])
+                   app_id=user_profile.app_id)
 
     def toAppUser(self):
         from rogerthat.utils.app import create_app_user_by_email
         return create_app_user_by_email(self.email, self.app_id)
 
 
+class UserEmailAddressType(Enum):
+    OTHER = 0
+    PERSONAL = 1
+    WORK = 2
+
+
+class ProfileEmailAddressTO(TO):
+    type = long_property('type')
+    label = unicode_property('label')
+    email = unicode_property('email')
+
+
 class UserContextTO(TO):
+    id = unicode_property('id')
     email = unicode_property('email')
     first_name = unicode_property('first_name')
     last_name = unicode_property('last_name')
+    email_addresses = typed_property('email_addresses', ProfileEmailAddressTO, True)
     addresses = typed_property('addresses', ProfileAddressTO, True)
     phone_numbers = typed_property('phone_numbers', ProfilePhoneNumberTO, True)
 

@@ -20,10 +20,10 @@ import json
 import logging
 from datetime import datetime
 
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb, db, deferred
 
-from dateutil.relativedelta import relativedelta
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.job import run_job
@@ -55,7 +55,13 @@ GIPOD_TAG = u'gipod'
 class GipodFilter(Enum):
     NEXT_7D = 'next_7d'
     NEXT_30D = 'next_30d'
+    STARTING_THIS_WEEK = 'starting_this_week'
     ALL = 'all'
+
+
+class GipodFilterType(Enum):
+    RANGE = 'range'
+    START_DATE = 'start_date'
 
 
 def send_notifications():
@@ -80,15 +86,11 @@ def send_notification(app_user):
     if app_id in ('be-halle',):
         return
 
-    upi = UserProfileInfo.create_key(app_user).get()
-    if not upi:
-        return
-    if not upi.addresses:
+    user_profile_info = UserProfileInfo.create_key(app_user).get()
+    if not user_profile_info or not user_profile_info.addresses:
         return
     user_profile = get_user_profile(app_user)
-    if not user_profile:
-        return
-    if not user_profile.mobiles:
+    if not user_profile or not user_profile.mobiles:
         return
 
     today = datetime.today().date() + relativedelta(days=1)
@@ -96,20 +98,19 @@ def send_notification(app_user):
     end_date = str(today + relativedelta(days=7))
 
     ids = set()
-    for a in upi.addresses:
+    for address in user_profile_info.addresses:
         cursor = None
         while True:
             if len(ids) > 99:
                 break
             r = _get_new_items(app_user,
-                               a.geo_location.lat,
-                               a.geo_location.lon,
-                               a.distance,
+                               address.geo_location.lat,
+                               address.geo_location.lon,
+                               address.distance,
                                start_date,
                                end_date,
                                cursor=cursor)
-            for i in r['ids']:
-                ids.add(i)
+            ids.update(r['ids'])
 
             if not r['cursor']:
                 break
@@ -127,7 +128,7 @@ def send_notification(app_user):
 
     mobiles = db.get([get_mobile_key_by_account(mobile_detail.account) for mobile_detail in user_profile.mobiles])
     tag = GIPOD_TAG
-    map_filter = GipodFilter.NEXT_7D
+    map_filter = GipodFilter.STARTING_THIS_WEEK
     for mobile in mobiles:
         kwargs = {DO_NOT_SAVE_RPCCALL_OBJECTS: True, CAPI_KEYWORD_ARG_PRIORITY: PRIORITY_HIGH}
         if mobile.is_ios and mobile.iOSPushId:
@@ -156,6 +157,7 @@ def get_map(app_user):
     filters = [
         MapFilterTO(key=GipodFilter.NEXT_7D, label=localize(language, 'next_x_days', days=7)),
         MapFilterTO(key=GipodFilter.NEXT_30D, label=localize(language, 'next_x_days', days=30)),
+        MapFilterTO(key=GipodFilter.STARTING_THIS_WEEK, label=localize(language, 'starting_this_week')),
         MapFilterTO(key=GipodFilter.ALL, label=localize(language, 'all'))
     ]
 
@@ -185,15 +187,19 @@ def get_map_items(app_user, request):
 
     today = datetime.today().date()
     start_date = str(today)
+    filter_type = GipodFilterType.RANGE
     if request.filter == GipodFilter.ALL:
         end_date = None
     elif request.filter == GipodFilter.NEXT_30D:
         end_date = str(today + relativedelta(days=30))
+    elif request.filter == GipodFilter.STARTING_THIS_WEEK:
+        end_date = str(today + relativedelta(days=7))
+        filter_type = GipodFilterType.START_DATE
     else:
         end_date = str(today + relativedelta(days=7))
 
     return GetMapItemsResponseTO.from_dict(_get_items(app_user, center_lat, center_lon, distance, start_date, end_date,
-                                                      cursor=request.cursor))
+                                                      cursor=request.cursor, filter_type=filter_type))
 
 
 @returns(GetMapItemDetailsResponseTO)
@@ -245,14 +251,15 @@ def _do_request(base_url, params):
     return json.loads(result.content)
 
 
-def _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit=100, cursor=None):
+def _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit=100, cursor=None, filter_type=GipodFilterType.RANGE):
     params = {
         'user_id': app_user.email(),
         'lat': lat,
         'lon': lon,
         'distance': distance,
         'start': start,
-        'limit': limit
+        'limit': limit,
+        'filter_type': filter_type
     }
     if end:
         params['end'] = end
@@ -263,8 +270,8 @@ def _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit=100, cu
 
 
 def _get_new_items(app_user, lat, lon, distance, start, end, limit=100, cursor=None):
-    params = _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit, cursor)
-    return _do_request('/plugins/gipod/items/new', params)
+    params = _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit, cursor, GipodFilterType.START_DATE)
+    return _do_request('/plugins/gipod/items/ids', params)
 
 
 def _get_map(app_user):
@@ -277,8 +284,8 @@ def _get_map(app_user):
         logging.debug('Failed to get map', exc_info=True)
 
 
-def _get_items(app_user, lat, lon, distance, start, end, limit=100, cursor=None):
-    params = _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit, cursor)
+def _get_items(app_user, lat, lon, distance, start, end, limit=100, cursor=None, filter_type=GipodFilterType.RANGE):
+    params = _make_lat_lon_params(app_user, lat, lon, distance, start, end, limit, cursor, filter_type)
     return _do_request('/plugins/gipod/items', params)
 
 

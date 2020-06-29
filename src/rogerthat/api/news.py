@@ -14,36 +14,51 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+from mcfw.properties import unicode_property, long_property, typed_property
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.news.groups import get_group_id_for_type_and_app_id
 from rogerthat.rpc import users
 from rogerthat.rpc.rpc import expose
-from rogerthat.to.news import GetNewsResponseTO, GetNewsRequestTO, GetNewsItemsResponseTO, GetNewsItemsRequestTO, \
-    GetNewsGroupsResponseTO, GetNewsGroupsRequestTO, GetNewsStreamItemsResponseTO, GetNewsStreamItemsRequestTO, \
+from rogerthat.to import TO
+from rogerthat.to.news import GetNewsGroupsResponseTO, GetNewsGroupsRequestTO, GetNewsStreamItemsResponseTO, \
+    GetNewsStreamItemsRequestTO, \
     GetNewsGroupServicesResponseTO, GetNewsGroupServicesRequestTO, SaveNewsGroupServicesResponseTO, \
     SaveNewsGroupServicesRequestTO, SaveNewsGroupFiltersResponseTO, SaveNewsGroupFiltersRequestTO, \
     GetNewsGroupResponseTO, GetNewsGroupRequestTO, SaveNewsStatisticsResponseTO, SaveNewsStatisticsRequestTO
 from rogerthat.utils.app import get_app_id_from_app_user
 
 
+class GetNewsRequestTO(TO):
+    pass
+
+
+class GetNewsResponseTO(TO):
+    cursor = unicode_property('1')
+    result = typed_property('2', dict, True)
+
+
+class GetNewsItemsRequestTO(TO):
+    pass
+
+
+class GetNewsItemsResponseTO(TO):
+    items = typed_property('1', dict, True)
+
+
+# Backwards compat - just return an empty list
 @expose(('api',))
 @returns(GetNewsResponseTO)
 @arguments(request=GetNewsRequestTO)
 def getNews(request):
-    from rogerthat.bizz.news import get_news_for_user
-    app_user = users.get_current_user()
-    mobile = users.get_current_mobile()
-    return get_news_for_user(app_user, request.cursor, request.updated_since, mobile)
+    return GetNewsResponseTO(cursor=None, result=[])
 
 
+# Backwards compat - just return an empty list
 @expose(('api',))
 @returns(GetNewsItemsResponseTO)
 @arguments(request=GetNewsItemsRequestTO)
 def getNewsItems(request):
-    from rogerthat.bizz.news import get_news_items_for_user
-    app_user = users.get_current_user()
-    return get_news_items_for_user(app_user, request.ids)
+    return GetNewsItemsResponseTO(items=[])
 
 
 @expose(('api',))

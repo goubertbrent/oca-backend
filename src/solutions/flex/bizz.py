@@ -16,6 +16,7 @@
 # @@license_version:1.7@@
 
 import logging
+from types import NoneType
 import uuid
 
 from mcfw.rpc import returns, arguments
@@ -26,19 +27,19 @@ from rogerthat.service.api import system
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.utils.transactions import allow_transaction_propagation, run_in_xg_transaction
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import create_or_update_solution_service, SolutionModule, OrganizationType
 from solutions.common.bizz.messaging import POKE_TAG_EVENTS, POKE_TAG_APPOINTMENT, POKE_TAG_ASK_QUESTION, \
     POKE_TAG_GROUP_PURCHASE, POKE_TAG_MENU, POKE_TAG_REPAIR, POKE_TAG_SANDWICH_BAR, POKE_TAG_WHEN_WHERE, \
     POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, POKE_TAG_PHARMACY_ORDER, \
     POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_Q_MATIC, \
-    POKE_TAG_JCC_APPOINTMENTS
+    POKE_TAG_JCC_APPOINTMENTS, POKE_TAG_CIRKLO_VOUCHERS
 from solutions.common.bizz.provisioning import get_and_complete_solution_settings, \
     get_and_store_main_branding, populate_identity, provision_all_modules, get_default_language
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.associations import AssociationStatistic
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex import SOLUTION_FLEX
+
 
 # [column, row, page]
 DEFAULT_COORDS = {
@@ -177,7 +178,13 @@ DEFAULT_COORDS = {
             'priority': 5,
         }
     },
-    SolutionModule.CIRKLO_VOUCHERS: None
+    SolutionModule.CIRKLO_VOUCHERS: {
+        POKE_TAG_CIRKLO_VOUCHERS: {
+            'preferred_page': 0,
+            'coords': [-1, -1, -1],
+            'priority': 5,
+        }
+    }
 }
 
 
@@ -202,7 +209,7 @@ def provision(service_user, friends=None, transactional=True):
             sln_settings.modules_to_remove = []
 
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
-            system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, SOLUTION_COMMON, label))
+            system.put_reserved_menu_item_label(i, translate(sln_settings.main_language, label))
 
         if transactional:
             sln_settings = allow_transaction_propagation(run_in_xg_transaction, provision_all_modules, sln_settings,
@@ -220,10 +227,11 @@ def provision(service_user, friends=None, transactional=True):
 @returns(ProvisionResponseTO)
 @arguments(email=unicode, name=unicode, phone_number=unicode, languages=[unicode], currency=unicode,
            modules=[unicode], broadcast_types=[unicode], apps=[unicode], allow_redeploy=bool, organization_type=int,
-           search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue])
+           search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue], password=unicode,
+           tos_version=(int, long, NoneType))
 def create_flex_service(email, name, phone_number, languages, currency, modules, broadcast_types, apps,
                         allow_redeploy, organization_type=OrganizationType.PROFIT, search_enabled=False,
-                        broadcast_to_users=None, websites=None):
+                        broadcast_to_users=None, websites=None, password=None, tos_version=None):
     from rogerthat.bizz.rtemail import EMAIL_REGEX
 
     redeploy = allow_redeploy and get_solution_settings(users.User(email)) is not None
@@ -239,7 +247,7 @@ def create_flex_service(email, name, phone_number, languages, currency, modules,
                                              phone_number, languages, currency, redeploy, organization_type, modules,
                                              broadcast_types, apps, owner_user_email=owner_user_email,
                                              search_enabled=search_enabled, broadcast_to_users=broadcast_to_users,
-                                             websites=websites)
+                                             websites=websites, password=password, tos_version=tos_version)
 
 
 @returns(AssociationStatistic)

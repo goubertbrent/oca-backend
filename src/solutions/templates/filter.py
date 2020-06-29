@@ -19,9 +19,10 @@ from google.appengine.ext import webapp
 
 register = webapp.template.create_template_register()
 
-def translate(language, lib, key):
+
+def translate(language, key):
     from solutions import translate as sln_translate
-    return sln_translate(language, lib, key)
+    return sln_translate(language, key)
 
 
 def price(price_long):

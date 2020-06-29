@@ -1,124 +1,131 @@
 <section id="section_sandwich" style="display: none;">
-	<form>
-		<fieldset>
-			<label>{% translate language, "common", "sandwiches-have-prices" %}</label>
-			<div class="btn-group">
-				<button type="button" class="btn" id="sandwichHidePrices">&nbsp;</button>
-				<button type="button" class="btn btn-success" id="sandwichShowPrices">{% translate language, "common", "Show prices" %}</button>
-			</div>
-		</fieldset>
-		<br>
-		<fieldset>
-			<legend>{% translate language, "common", "sandwiches-order-dates" %}</legend>
-		    <div id="sandwiches_available_days">
-		        {% for day_num, day_name in day_flags %}
-    		        <label class="checkbox inline">
-                       <input type="checkbox" value="{{ day_num }}"> {{ day_name }}
-                    </label>
-                {% endfor %}
-		    </div>
-		    <div>
-		        <div class="input-prepend input-append bootstrap-timepicker">
-		            <span class="add-on">{% translate language, "common", "inbox-from" %}</span>
-		            <input id="sandwich_order_from" type="text" class="input-small" readonly/>
-		            <span class="add-on">
-		                <i class="icon-time"></i>
-		            </span>
-		        </div>
-		        &nbsp;
-		        <div class="input-prepend input-append bootstrap-timepicker">
-		            <span class="add-on">{% translate language, "common", "Until" %}</span>
-		            <input id="sandwich_order_till" type="text" class="input-small" readonly/>
-		            <span class="add-on">
-		                <i class="icon-time"></i>
-		            </span>
-		        </div>
-		    </div>
-		</fieldset>
-		<br>
-		<fieldset>
-		    <legend>{% translate language, "common", "sandwiches-send-reminder" %}</legend>
-		    <div id="sandwiches_broadcast_days">
-		        {% for day_num, day_name in day_flags %}
+    <form>
+        <fieldset>
+            <label>{% translate language, "sandwiches-have-prices" %}</label>
+            <div class="btn-group">
+                <button type="button" class="btn" id="sandwichHidePrices">&nbsp;</button>
+                <button type="button" class="btn btn-success"
+                        id="sandwichShowPrices">{% translate language, "Show prices" %}</button>
+            </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>{% translate language, "sandwiches-order-dates" %}</legend>
+            <div id="sandwiches_available_days">
+                {% for day_num, day_name in day_flags %}
                     <label class="checkbox inline">
-                       <input type="checkbox" value="{{ day_num }}"> {{ day_name }}
+                        <input type="checkbox" value="{{ day_num }}"> {{ day_name }}
                     </label>
                 {% endfor %}
-		    </div>
-	        <div class="input-prepend input-append bootstrap-timepicker">
-	            <span class="add-on">{% translate language, "common", "when" %}</span>
-	            <input id="sandwich_broadcast_at" type="text" class="input-small" readonly/>
-	            <span class="add-on">
+            </div>
+            <div>
+                <div class="input-prepend input-append bootstrap-timepicker">
+                    <span class="add-on">{% translate language, "inbox-from" %}</span>
+                    <input id="sandwich_order_from" type="text" class="input-small" readonly/>
+                    <span class="add-on">
+		                <i class="icon-time"></i>
+		            </span>
+                </div>
+                &nbsp;
+                <div class="input-prepend input-append bootstrap-timepicker">
+                    <span class="add-on">{% translate language, "Until" %}</span>
+                    <input id="sandwich_order_till" type="text" class="input-small" readonly/>
+                    <span class="add-on">
+		                <i class="icon-time"></i>
+		            </span>
+                </div>
+            </div>
+        </fieldset>
+        <br>
+        <fieldset>
+            <legend>{% translate language, "sandwiches-send-reminder" %}</legend>
+            <div id="sandwiches_broadcast_days">
+                {% for day_num, day_name in day_flags %}
+                    <label class="checkbox inline">
+                        <input type="checkbox" value="{{ day_num }}"> {{ day_name }}
+                    </label>
+                {% endfor %}
+            </div>
+            <div class="input-prepend input-append bootstrap-timepicker">
+                <span class="add-on">{% translate language, "when" %}</span>
+                <input id="sandwich_broadcast_at" type="text" class="input-small" readonly/>
+                <span class="add-on">
 	                <i class="icon-time"></i>
 	            </span>
-	        </div>
-			<label>{% translate language, "common", "sandwiches-reminder-text" %}</label>
-			<textarea id="sandwich_order_reminder_broadcast_message"></textarea>
-		</fieldset>
+            </div>
+            <label>{% translate language, "sandwiches-reminder-text" %}</label>
+            <textarea id="sandwich_order_reminder_broadcast_message"></textarea>
+        </fieldset>
 
         <fieldset>
-            <legend>{% translate language, 'common' , 'Leaptime' %}</legend>
+            <legend>{% translate language, 'Leaptime' %}</legend>
 
-            <p>{% translate language, 'common', 'leap_time_info' %}</p>
+            <p>{% translate language, 'leap_time_info' %}</p>
 
             <label class="checkbox" for="sandwich_order_leaptime_enabled">
                 <input type="checkbox"
-                       id="sandwich_order_leaptime_enabled"> {% translate language, 'common', 'Enabled' %}
+                       id="sandwich_order_leaptime_enabled"> {% translate language, 'Enabled' %}
             </label>
 
             <div id="leap_time_enabled">
-                <label for="sandwich_order_leaptime">{% translate language, 'common', 'Leaptime' %}</label>
+                <label for="sandwich_order_leaptime">{% translate language, 'Leaptime' %}</label>
                 <input id="sandwich_order_leaptime" type="number" min="1" step="1">
-                <span>{% translate language, 'common', 'minutes' %}</span>
+                <span>{% translate language, 'minutes' %}</span>
             </div>
         </fieldset>
 
         <fieldset class="sandwich-types">
-			<legend>{% translate language, "common", "Kinds of bread" %}</legend>
-			<button type="button" class="btn btn-primary add_sandwich_item" item-kind="types">{% translate language, "common", "Add new" %}</button><br><br>
-			<table class="table table-striped table-bordered sandwich_table">
-				<thead>
-					<tr>
-						<th>{% translate language, "common", "description" %}</th>
-						<th>{% translate language, "common", "Price" %}</th>
-					</tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
-		</fieldset>
-		<fieldset class="sandwich-toppings">
-			<legend>{% translate language, "common", "Toppings" %}</legend>
-			<button type="button" class="btn btn-primary add_sandwich_item" item-kind="toppings">{% translate language, "common", "Add new" %}</button><br><br>
-			<table class="table table-striped table-bordered sandwich_table">
-				<thead>
-					<tr>
-						<th>{% translate language, "common", "description" %}</th>
-						<th>{% translate language, "common", "Price" %}</th>
-					</tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
-		</fieldset>
-		<fieldset class="sandwich-options">
-			<legend>{% translate language, "common", "Options" %}</legend>
-			<button type="button" class="btn btn-primary add_sandwich_item" item-kind="options">{% translate language, "common", "Add new" %}</button><br><br>
-			<table class="table table-striped table-bordered sandwich_table">
-				<thead>
-					<tr>
-						<th>{% translate language, "common", "description" %}</th>
-						<th>{% translate language, "common", "Price" %}</th>
-					</tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
-		</fieldset>
-	</form>
-	<div id="sandwichSettingItemTemplate" style="display: none;">
-		<table>
-			<tbody>
+            <legend>{% translate language, "Kinds of bread" %}</legend>
+            <button type="button" class="btn btn-primary add_sandwich_item"
+                    item-kind="types">{% translate language, "Add new" %}</button>
+            <br><br>
+            <table class="table table-striped table-bordered sandwich_table">
+                <thead>
+                <tr>
+                    <th>{% translate language, "description" %}</th>
+                    <th>{% translate language, "Price" %}</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </fieldset>
+        <fieldset class="sandwich-toppings">
+            <legend>{% translate language, "Toppings" %}</legend>
+            <button type="button" class="btn btn-primary add_sandwich_item"
+                    item-kind="toppings">{% translate language, "Add new" %}</button>
+            <br><br>
+            <table class="table table-striped table-bordered sandwich_table">
+                <thead>
+                <tr>
+                    <th>{% translate language, "description" %}</th>
+                    <th>{% translate language, "Price" %}</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </fieldset>
+        <fieldset class="sandwich-options">
+            <legend>{% translate language, "Options" %}</legend>
+            <button type="button" class="btn btn-primary add_sandwich_item"
+                    item-kind="options">{% translate language, "Add new" %}</button>
+            <br><br>
+            <table class="table table-striped table-bordered sandwich_table">
+                <thead>
+                <tr>
+                    <th>{% translate language, "description" %}</th>
+                    <th>{% translate language, "Price" %}</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </fieldset>
+    </form>
+    <div id="sandwichSettingItemTemplate" style="display: none;">
+        <table>
+            <tbody>
 				<tr>
 					<td class="sandwich-description"></td>
 					<td class="sandwich-price"></td>
@@ -135,33 +142,33 @@
 				</tr>
 			</tbody>
 		</table>
-	</div>
-	<div class="modal hide fade" id="add_edit_sandwich_item">
-		<div class="modal-header">
-			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-			<h3></h3>
-		</div>
-		<div class="modal-body">
-			<form>
-				<fieldset>
-					<div class="alert alert-error" id="add_edit_sandwich_item_error">
-					  <strong>{% translate language, "common", "Error" %}!</strong> <span></span>
-					</div>
-					<label>{% translate language, "common", "description" %}: </label>
+    </div>
+    <div class="modal hide fade" id="add_edit_sandwich_item">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h3></h3>
+        </div>
+        <div class="modal-body">
+            <form>
+                <fieldset>
+                    <div class="alert alert-error" id="add_edit_sandwich_item_error">
+                        <strong>{% translate language, "Error" %}!</strong> <span></span>
+                    </div>
+                    <label>{% translate language, "description" %}: </label>
                     <div class="input-prepend">
                         <span class="add-on"><i class="icon-info-sign"></i></span>
-    					<input type="text" id="sandwich_item_description">
+                        <input type="text" id="sandwich_item_description">
                     </div>
-					<label>{% translate language, "common", "Price" %}: </label>
+                    <label>{% translate language, "Price" %}: </label>
                     <div class="input-prepend">
                         <span class="add-on">{{ sln_settings.currency_symbol }}</span>
-    					<input type="number" id="sandwich_item_price" step="0.01">
+                        <input type="number" id="sandwich_item_price" step="0.01">
                     </div>
-				</fieldset>
-			</form>
-		</div>
-		<div class="modal-footer">
-			<a href="#" class="btn btn-primary" id="button_save_sandwich_item">{% translate language, "common", "Save" %}</a>
-		</div>
-	</div>
+                </fieldset>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary" id="button_save_sandwich_item">{% translate language, "Save" %}</a>
+        </div>
+    </div>
 </section>

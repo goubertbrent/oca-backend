@@ -20,16 +20,18 @@ import { RouterModule, Routes } from '@angular/router';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { MarkdownModule } from '../shared/markdown/markdown.module';
 import { MediaSelectorModule } from '../shared/media-selector/media-selector.module';
 import { SelectAutocompleteModule } from '../shared/select-autocomplete/select-autocomplete.module';
 import { SharedModule } from '../shared/shared.module';
-import { TimePickerModule } from '../shared/time-picker/time-picker.module';
+import { TimeInputModule } from '../shared/time-input/time-input.module';
 import { UploadFileModule } from '../shared/upload-file';
 import { OpeningHoursPeriodsEditorComponent } from './opening-hours/opening-hours-periods-editor/opening-hours-periods-editor.component';
 import { OpeningHoursPeriodsComponent } from './opening-hours/opening-hours-periods/opening-hours-periods.component';
 import { OpeningHoursSettingsPageComponent } from './opening-hours/opening-hours-settings-page/opening-hours-settings-page.component';
 import { OpeningHoursComponent } from './opening-hours/opening-hours/opening-hours.component';
 import { HoursPipe } from './pipes/hours.pipe';
+import { PrivacySettingsPageComponent } from './privacy-settings/privacy-settings-page/privacy-settings-page.component';
 import { ServiceAddressesEditorComponent } from './service-info/service-addresses-editor/service-addresses-editor.component';
 import { ServiceInfoPageComponent } from './service-info/service-info-page/service-info-page.component';
 import { ServiceMediaEditorComponent } from './service-info/service-media-editor/service-media-editor.component';
@@ -43,6 +45,7 @@ const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'service-info' },
   { path: 'opening-hours', component: OpeningHoursSettingsPageComponent },
   { path: 'service-info', component: ServiceInfoPageComponent },
+  { path: 'privacy', component: PrivacySettingsPageComponent },
 ];
 
 @NgModule({
@@ -57,6 +60,7 @@ const routes: Routes = [
     ServiceAddressesEditorComponent,
     SyncedValuesPreviewComponent,
     OpeningHoursPeriodsEditorComponent,
+    PrivacySettingsPageComponent,
   ],
   imports: [
     CommonModule,
@@ -83,8 +87,9 @@ const routes: Routes = [
     MatChipsModule,
     SharedModule,
     MatSlideToggleModule,
-    TimePickerModule,
     SelectAutocompleteModule,
+    TimeInputModule,
+    MarkdownModule,
   ],
   providers: [
     HoursPipe,

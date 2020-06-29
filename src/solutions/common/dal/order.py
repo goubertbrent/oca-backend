@@ -18,7 +18,6 @@
 from mcfw.rpc import returns, arguments
 from rogerthat.rpc import users
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.models import SolutionSettings
 from solutions.common.models.order import SolutionOrder, SolutionOrderSettings
 from solutions.common.utils import create_service_identity_user_wo_default
@@ -32,7 +31,7 @@ def get_solution_order_settings(sln_settings):
     solution_order_settings = SolutionOrderSettings.get(solution_order_settings_key)
     if not solution_order_settings:
         solution_order_settings = SolutionOrderSettings(key=solution_order_settings_key)
-        solution_order_settings.text_1 = translate(sln_settings.main_language, SOLUTION_COMMON, 'order-flow-details')
+        solution_order_settings.text_1 = translate(sln_settings.main_language, 'order-flow-details')
         solution_order_settings.put()
     return solution_order_settings
 

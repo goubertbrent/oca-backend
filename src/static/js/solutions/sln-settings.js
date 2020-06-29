@@ -87,9 +87,9 @@ $(function () {
         }
         $('#settings').find('li[section=section_' + page + ']').find('a').click();
         var dashboardDisplay = 'none';
-        if (page === 'service-info') {
+        if (page === 'service-info' || page === 'privacy') {
             dashboardDisplay = 'block';
-            newDashboardRouter(['settings']);
+            newDashboardRouter(['settings', page]);
         } else if (page === 'branding') {
             showSettingsBranding();
         } else if (page === 'app-settings') {
@@ -231,7 +231,7 @@ $(function () {
         }
     };
 
-    var toggleUpdatesPending = function (updatesPending) {
+    function toggleUpdatesPending(updatesPending) {
         var warningContainer = $('#sln-updates-pending-warning');
         var autoPublishPending = $('#autopublish-pending');
         var autoPublishError = $('#autopublish-errors');
@@ -257,7 +257,7 @@ $(function () {
             $('#service-prepublish-errors').empty();
             warningContainer.fadeOut('fast', resizeDashboard);
         }
-    };
+    }
 
     function isNotVisible() {
         return $('#sln-updates-pending-warning').css('display') === 'block' && $('#service-prepublish-errors').children().length > 0;
@@ -530,14 +530,6 @@ $(function () {
     $('#eventsVisible').click(eventsVisible);
     $('#eventsInvisible').click(eventsInvisible);
 
-    $('#newsletter-checkbox').change(function () {
-        saveConsent('newsletter', $(this).prop('checked'));
-    });
-
-    $('#email_marketing-checkbox').change(function () {
-        saveConsent('email_marketing', $(this).prop('checked'));
-    });
-
     // billing tab
     sln.configureDelayedInput($('#sln-set-iban'), saveSettings);
     sln.configureDelayedInput($('#sln-set-bic'), saveSettings);
@@ -761,22 +753,6 @@ $(function () {
             bic: $('#sln-set-bic').val()
         };
         return Requests.saveSettings(data).then(function (settings) {
-        });
-    }
-
-    function saveConsent(consent_type, enabled) {
-        sln.call({
-            url: "/common/settings/consent",
-            type: "POST",
-            data: {
-                consent_type: consent_type,
-                enabled: enabled
-            },
-            success: function (data) {
-                if (!data.success) {
-                    sln.alert(data.errormsg, null, CommonTranslations.ERROR);
-                }
-            }
         });
     }
 

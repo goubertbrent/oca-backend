@@ -18,15 +18,15 @@
 from __future__ import unicode_literals
 
 import base64
-from collections import defaultdict
-from datetime import datetime
 import logging
 import re
+from collections import defaultdict
+from datetime import datetime
 from types import NoneType
 
+import cloudstorage
 from babel import Locale
 from babel.numbers import format_currency
-import cloudstorage
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import urlfetch
 from google.appengine.api.taskqueue import taskqueue
@@ -40,28 +40,22 @@ from mcfw.rpc import returns, arguments, serialize_complex_value
 from rogerthat.bizz.forms import FormNotFoundException
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.maps.services.places import get_place_types
-from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.rtemail import EMAIL_REGEX
 from rogerthat.bizz.service import AvatarImageNotSquareException, InvalidValueException
 from rogerthat.consts import DEBUG, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe, put_in_chunks, parent_ndb_key
-from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile, get_profile_key
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
-from rogerthat.models.jobs import JobOffer
-from rogerthat.models.news import NewsGroup, MediaType
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import system
-from rogerthat.service.api.news import list_groups
 from rogerthat.service.api.system import get_flow_statistics
 from rogerthat.settings import get_server_settings
 from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.to.friends import FriendListResultTO
 from rogerthat.to.messaging import AttachmentTO, BaseMemberTO
-from rogerthat.to.news import NewsActionButtonTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.to.statistics import FlowStatisticsTO
 from rogerthat.to.system import ServiceIdentityInfoTO
@@ -70,12 +64,11 @@ from rogerthat.utils.app import get_human_user_from_app_user, sanitize_app_user,
     get_app_id_from_app_user, get_app_user_tuple
 from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user, remove_slash_default
-from shop.bizz import update_customer_consents, add_service_admin, get_service_admins
+from shop.bizz import add_service_admin, get_service_admins
 from shop.dal import get_customer, get_customer_signups
 from shop.exceptions import InvalidEmailFormatException
-from shop.models import Customer, ShopApp
+from shop.models import Customer, CustomerSignup
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import get_next_free_spots_in_service_menu, common_provision, timezone_offset, \
     broadcast_updates_pending, SolutionModule, delete_file_blob, create_file_blob, \
     create_news_publisher, delete_news_publisher, enable_or_disable_solution_module, \
@@ -91,7 +84,6 @@ from solutions.common.bizz.inbox import send_statistics_export_email, send_inbox
 from solutions.common.bizz.loyalty import update_user_data_admins
 from solutions.common.bizz.menu import _put_default_menu, get_menu_item_qr_url
 from solutions.common.bizz.messaging import validate_broadcast_url, send_reply, delete_all_trash
-from solutions.common.bizz.news import is_regional_news_enabled
 from solutions.common.bizz.paddle import get_paddle_info, populate_info_from_paddle
 from solutions.common.bizz.repair import send_message_for_repair_order, delete_repair_order
 from solutions.common.bizz.sandwich import ready_sandwich_order, delete_sandwich_order, reply_sandwich_order
@@ -115,7 +107,6 @@ from solutions.common.models.appointment import SolutionAppointmentWeekdayTimefr
 from solutions.common.models.cityapp import PaddleSettings, PaddleMapping, PaddleOrganizationalUnits
 from solutions.common.models.forms import OcaForm
 from solutions.common.models.group_purchase import SolutionGroupPurchase
-from solutions.common.models.news import NewsSettings, NewsSettingsTags
 from solutions.common.models.repair import SolutionRepairSettings
 from solutions.common.models.sandwich import SandwichType, SandwichTopping, SandwichOption, SandwichSettings, \
     SandwichOrder
@@ -130,9 +121,6 @@ from solutions.common.to import ServiceMenuFreeSpotsTO, SolutionStaticContentTO,
     SolutionCalendarWebTO, BrandingSettingsAndMenuItemsTO, ServiceMenuItemWithCoordinatesTO, \
     ServiceMenuItemWithCoordinatesListTO, SolutionGoogleCalendarStatusTO, PictureReturnStatusTO, \
     AppUserRolesTO, CustomerSignupTO, SolutionRssSettingsTO, UploadedImageTO, CreateEventItemTO
-from solutions.common.to.broadcast import NewsOptionsTO, RegionalNewsSettingsTO, NewsActionButtonWebsite, \
-    NewsActionButtonAttachment, NewsActionButtonEmail, NewsActionButtonPhone, NewsActionButtonOpen, \
-    NewsActionButtonMenuItem
 from solutions.common.to.forms import GcsFileTO
 from solutions.common.to.paddle import PaddleSettingsTO, PaddleSettingsServicesTO, SimpleServiceTO
 from solutions.common.to.statistics import AppBroadcastStatisticsTO, StatisticsResultTO
@@ -439,7 +427,7 @@ def export_inbox_messages(email=''):
         send_statistics_export_email(service_user, service_identity, email, sln_settings)
         return RETURNSTATUS_TO_SUCCESS
     except InvalidEmailFormatException as ex:
-        error_msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'invalid_email_format',
+        error_msg = common_translate(sln_settings.main_language, 'invalid_email_format',
                                      email=ex.email)
         return ReturnStatusTO.create(False, error_msg)
 
@@ -453,9 +441,9 @@ def api_send_message_to_services(organization_types=None, message=None):
     sln_settings = get_solution_settings(service_user)
 
     def _validation_err(translation_key):
-        field = common_translate(sln_settings.main_language, SOLUTION_COMMON, translation_key)
+        field = common_translate(sln_settings.main_language, translation_key)
         raise HttpBadRequestException(
-            '%s: %s' % (field, common_translate(sln_settings.main_language, SOLUTION_COMMON, 'this_field_is_required')))
+            '%s: %s' % (field, common_translate(sln_settings.main_language, 'this_field_is_required')))
 
     if SolutionModule.CITY_APP not in sln_settings.modules:
         raise HttpForbiddenException()
@@ -474,102 +462,6 @@ def api_send_message_to_services(organization_types=None, message=None):
             if customer.service_email and customer.service_email != service_user.email():
                 services.append(customer.service_user)
     send_inbox_info_messages_to_services(services, service_user, message, SolutionInboxMessage.CATEGORY_CITY_MESSAGE)
-
-
-@rest("/common/news-options", "get", read_only_access=True)
-@returns(NewsOptionsTO)
-@arguments()
-def rest_get_news_options():
-    service_user = users.get_current_user()
-    session_ = users.get_current_session()
-    service_identity = session_.service_identity or ServiceIdentity.DEFAULT
-    info = system.get_info(service_identity)
-    sln_settings = get_solution_settings(service_user)
-    lang = sln_settings.main_language
-    news_settings_key = NewsSettings.create_key(service_user, service_identity)
-    keys = [news_settings_key, ShopApp.create_key(info.default_app)]
-    news_settings, shop_app = ndb.get_multi(keys)  # type: NewsSettings, ShopApp
-    if not news_settings:
-        news_settings = NewsSettings(key=news_settings_key)
-    if not shop_app:
-        shop_app = ShopApp()
-    # For demo apps and for shop sessions, creating regional news items is free.
-    default_app = get_app_by_id(info.default_app)
-    tags = news_settings.tags
-    if session_.shop or default_app.demo and NewsSettingsTags.FREE_REGIONAL_NEWS not in news_settings.tags:
-        tags.append(NewsSettingsTags.FREE_REGIONAL_NEWS)
-
-    news_groups = list_groups(lang)
-    jobs_rpc = JobOffer.list_by_service(service_user.email()).fetch_async()
-
-    regional_enabled_types = (NewsGroup.TYPE_PRESS, NewsGroup.TYPE_PROMOTIONS)
-    regional_news_enabled = any(g.group_type in regional_enabled_types for g in news_groups) or DEBUG
-    map_url = None
-    if regional_news_enabled:
-        regional_news_enabled = is_regional_news_enabled(default_app)
-        if DEBUG or regional_news_enabled and (default_app.country == 'BE' or default_app.demo):
-            map_url = '/static/js/shop/libraries/flanders.json'
-    regional = RegionalNewsSettingsTO(enabled=regional_news_enabled, map_url=map_url)
-    media_types = [MediaType.IMAGE]
-    if default_app.demo or shop_app.paid_features_enabled:
-        media_types.append(MediaType.VIDEO_YOUTUBE)
-    action_buttons = [
-        NewsActionButtonWebsite(label=common_translate(lang, SOLUTION_COMMON, 'Website'),
-                                icon='http',
-                                button=NewsActionButtonTO('url',
-                                                          common_translate(lang, SOLUTION_COMMON, 'open_website'),
-                                                          '')),
-        NewsActionButtonAttachment(label=common_translate(lang, SOLUTION_COMMON, 'Attachment'),
-                                   icon='attachment',
-                                   button=NewsActionButtonTO('attachment',
-                                                             common_translate(lang, SOLUTION_COMMON, 'Attachment'),
-                                                             '')),
-        NewsActionButtonEmail(label=common_translate(lang, SOLUTION_COMMON, 'email_address'),
-                              icon='alternate_email',
-                              email='',
-                              button=NewsActionButtonTO('email',
-                                                        common_translate(lang, SOLUTION_COMMON, 'send_email'),
-                                                        '')),
-        NewsActionButtonPhone(label=common_translate(lang, SOLUTION_COMMON, 'Phone number'),
-                              icon='call',
-                              phone='',
-                              button=NewsActionButtonTO('phone',
-                                                        common_translate(lang, SOLUTION_COMMON, 'Call'),
-                                                        '')),
-    ]
-    menu = system.get_menu()
-    action_buttons.extend([NewsActionButtonMenuItem(label=item.label,
-                                                    icon='link',
-                                                    button=NewsActionButtonTO(item.tag, item.label[0:15],
-                                                                              'smi://' + item.tag))
-                           for item in menu.items if not item.roles])
-
-    open_actions = [
-        ('scan', common_translate(lang, SOLUTION_COMMON, 'Scan')),
-        ('profile', common_translate(lang, SOLUTION_COMMON, 'profile')),
-        ('settings', common_translate(lang, SOLUTION_COMMON, 'Settings')),
-        ('messages', common_translate(lang, SOLUTION_COMMON, 'news_items')),
-    ]
-
-    for action, label in open_actions:
-        action_buttons.append(NewsActionButtonOpen(label=label,
-                                                   icon='settings',
-                                                   button=NewsActionButtonTO('open', label[:15],
-                                                                             'open://{"action":"%s"}' % action)))
-    for job_offer in jobs_rpc.get_result():  # type: JobOffer
-        if not job_offer.visible:
-            continue
-        action_buttons.append(NewsActionButtonOpen(
-            label=job_offer.info.function.title,
-            icon='work',
-            button=NewsActionButtonTO('job', common_translate(lang, SOLUTION_COMMON, 'oca.apply_for_job'),
-                                      'open://{"action_type":"job","action":"%s"}' % job_offer.id)
-        ))
-
-    return NewsOptionsTO(tags=tags, regional=regional, groups=news_groups, media_types=media_types,
-                         # location_filter_enabled=shop_app.paid_features_enabled)
-                         location_filter_enabled=default_app.demo or DEBUG,
-                         action_buttons=action_buttons)
 
 
 @rest("/common/broadcast/rss", "get", read_only_access=True)
@@ -766,7 +658,7 @@ def settings_publish_changes(friends=None):
         return ReturnStatusTO.create(False, reason or e.message)
     except AvatarImageNotSquareException:
         sln_settings = get_solution_settings(service_user)
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+        message = common_translate(sln_settings.main_language,
                                    'please_select_valid_avatar_image')
         return ReturnStatusTO.create(False, message)
     except BusinessException as e:
@@ -834,17 +726,6 @@ def rest_update_logo(data):
 @arguments(data=BrandingSettingsTO)
 def rest_update_avatar(data):
     return BrandingSettingsTO.from_model(set_avatar(users.get_current_user(), data.avatar_url))
-
-
-@rest("/common/settings/consent", "post")
-@returns(ReturnStatusTO)
-@arguments(consent_type=unicode, enabled=bool)
-def save_consent(consent_type, enabled):
-    customer = get_customer(users.get_current_user())
-    context = u'User dashboard'
-    headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
-    update_customer_consents(customer.user_email, {consent_type: enabled}, headers, context)
-    return RETURNSTATUS_TO_SUCCESS
 
 
 @rest("/common/menu/save", "post")
@@ -924,7 +805,7 @@ def delete_calendar(calendar_id):
     try:
         sc = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
         if sc.events.count(1) > 0:
-            raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+            raise BusinessException(common_translate(sln_settings.main_language,
                                                      'calendar-remove-failed-has-events'))
 
         sc.deleted = True
@@ -953,7 +834,7 @@ def save_calendar(calendar):
 
             if c.name.lower() == calendar.name.lower():
                 if calendar.id != c.calendar_id:
-                    raise BusinessException(common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                    raise BusinessException(common_translate(sln_settings.main_language,
                                                              'calendar-name-already-exists', name=calendar.name))
 
         sc.name = calendar.name
@@ -1015,7 +896,7 @@ def calendar_put_google_import(calendar_id, google_calendars):
             sc = SolutionCalendar.create_key(calendar_id, service_user, sln_settings.solution).get()
             if not sc:
                 raise BusinessException(
-                    common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Calendar not found'))
+                    common_translate(sln_settings.main_language, 'Calendar not found'))
 
             deferred.defer(update_events_from_google, service_user, calendar_id, _transactional=True)
 
@@ -1251,7 +1132,7 @@ def users_add_user_roles(key, user_roles):
 
                     if not EMAIL_REGEX.match(key):
                         return ReturnStatusTO.create(False,
-                                                     common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                                                     common_translate(sln_settings.main_language,
                                                                       'Please provide a valid e-mail address'))
                     forwarders = sln_i_settings.get_forwarders_by_type(forwarder_type)
                     if key not in forwarders:
@@ -1319,8 +1200,7 @@ def rest_add_service_email(user_email):
         service_user = users.get_current_user()
         if not EMAIL_REGEX.match(user_email):
             sln_settings = get_solution_settings(service_user)
-            message = common_translate(
-                sln_settings.main_language, 'common', 'invalid_email_format', email=user_email)
+            message = common_translate(sln_settings.main_language, 'invalid_email_format', email=user_email)
             return ReturnStatusTO.create(False, message)
         add_service_admin(service_user, user_email, base_url)
         return RETURNSTATUS_TO_SUCCESS
@@ -1390,7 +1270,7 @@ def inbox_add_forwarder(key, forwarder_type=SolutionSettings.INBOX_FORWARDER_TYP
 
     if forwarder_type == SolutionSettings.INBOX_FORWARDER_TYPE_EMAIL:
         if not EMAIL_REGEX.match(key):
-            return ReturnStatusTO.create(False, common_translate(sln_settings.main_language, SOLUTION_COMMON,
+            return ReturnStatusTO.create(False, common_translate(sln_settings.main_language,
                                                                  'Please provide a valid e-mail address'))
     elif forwarder_type == SolutionSettings.INBOX_FORWARDER_TYPE_MOBILE:
         app_user = sanitize_app_user(users.User(key))
@@ -1959,9 +1839,9 @@ def rest_get_customer_signups():
 @returns(ReturnStatusTO)
 @arguments(signup_key=unicode, message=unicode)
 def rest_customer_signup_reply(signup_key, message):
-    signup = db.get(signup_key)
+    signup = db.get(signup_key)  # type: CustomerSignup
 
-    if signup and not signup.done:
+    if signup and not signup.done and signup.can_update:
         service_user = users.get_current_user()
         city_customer = get_customer(service_user)
         set_customer_signup_status(city_customer, signup, approved=False, reason=message)

@@ -16,17 +16,10 @@
 # @@license_version:1.7@@
 
 from mcfw.rpc import arguments, returns
-from rogerthat.rpc.rpc import capi, PRIORITY_HIGH
-from rogerthat.to.news import DisableNewsResponseTO, DisableNewsRequestTO, NewNewsResponseTO, NewNewsRequestTO, \
-    CreateNotificationResponseTO, CreateNotificationRequestTO, \
-    UpdateBadgeCountResponseTO, UpdateBadgeCountRequestTO
+from rogerthat.rpc.rpc import capi
+from rogerthat.to.news import DisableNewsResponseTO, DisableNewsRequestTO, CreateNotificationResponseTO, \
+    CreateNotificationRequestTO, UpdateBadgeCountResponseTO, UpdateBadgeCountRequestTO
 
-
-@capi('com.mobicage.capi.news.newNews', priority=PRIORITY_HIGH)
-@returns(NewNewsResponseTO)
-@arguments(request=NewNewsRequestTO)
-def newNews(request):
-    pass
 
 @capi('com.mobicage.capi.news.disableNews')
 @returns(DisableNewsResponseTO)

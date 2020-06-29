@@ -48,7 +48,7 @@
             <mat-card-content>
               <oca-media-selector (ngModelChange)="setMedia($event)"
                                   [(ngModel)]="newsItem.media"
-                                  [allowedMediaTypes]="options.data?.media_types"
+                                  [allowedMediaTypes]="options?.media_types"
                                   [logoUrl]="brandingSettings?.logo_url" name="media"></oca-media-selector>
             </mat-card-content>
           </mat-card>
@@ -67,7 +67,7 @@
                             name="button_id">
                   <mat-select-trigger>{{ actionButton?.label }}</mat-select-trigger>
                   <mat-option [value]="null">{{ 'oca.none' | translate }}</mat-option>
-                  <mat-option *ngFor="let button of options.data?.action_buttons" [value]="button">
+                  <mat-option *ngFor="let button of options?.action_buttons" [value]="button">
                     <mat-icon>{{ button.icon }}</mat-icon>
                     {{ button.label }}
                   </mat-option>
@@ -162,7 +162,7 @@
           </mat-card-header>
           <mat-card-content>
 
-            <ng-container *ngIf="newsItem.locations !== null || options.data?.location_filter_enabled">
+            <ng-container *ngIf="newsItem.locations !== null || options?.location_filter_enabled">
               <mat-slide-toggle class="toggle-margin"
                                 [checked]="newsItem.locations !== null"
                                 [disabled]="hasRegional || published"
@@ -184,7 +184,7 @@
               <br>
             </ng-container>
 
-            <ng-container *ngIf="options.data?.regional.enabled">
+            <ng-container *ngIf="options?.regional.enabled">
               <mat-slide-toggle
                 class="toggle-margin"
                 (toggleChange)="toggleLocal()"
@@ -192,7 +192,8 @@
                 [disabled]="newsItem.locations !== null || published">
                 {{ 'oca.broadcast-locally' | translate }}
               </mat-slide-toggle>
-              <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-locally-description' | translate }}</p>
+              <p [ngClass]="{'disabled': newsItem.locations || published}"
+                 class="toggle-indent">{{ 'oca.broadcast-locally-description' | translate }}</p>
 
               <br>
 
@@ -206,17 +207,17 @@
               <p class="toggle-indent" [ngClass]="{'disabled': newsItem.locations || published}">{{ 'oca.broadcast-regionally-description' | translate }}</p>
 
               <ng-container *ngIf="hasRegional">
-                <div class="map-container" *ngIf="options.data?.regional.map_url else appSelectTemplate">
+                <div *ngIf="options?.regional.map_url as mapUrl else appSelectTemplate" class="map-container">
                   <oca-news-app-map-picker name="app_ids"
-                                          [apps]="apps"
-                                          [defaultAppId]="defaultAppId"
-                                          [appStatistics]="appStatistics"
-                                          [readonly]="true"
-                                          [showLegend]="false"
-                                          [mapUrl]="options.data.regional.map_url"
-                                          [ngModel]="newsItem.app_ids"
-                                          (click)="openMapDialog()"
-                                          (ngModelChange)="appsChanged($event)"></oca-news-app-map-picker>
+                                           (click)="openMapDialog()"
+                                           (ngModelChange)="appsChanged($event)"
+                                           [appStatistics]="appStatistics"
+                                           [apps]="apps"
+                                           [defaultAppId]="defaultAppId"
+                                           [mapUrl]="mapUrl"
+                                           [ngModel]="newsItem.app_ids"
+                                           [readonly]="true"
+                                           [showLegend]="false"></oca-news-app-map-picker>
                 </div>
                 <p>{{ 'oca.broadcast-map-explanation' | translate }}</p>
                 <ng-template #appSelectTemplate>
@@ -326,17 +327,17 @@
                 <mat-card-subtitle>{{ 'oca.news_label_explanation' | translate }}</mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
-              <oca-loadable [loadable]="options">
-                <mat-form-field *ngIf="options.success">
-                  <mat-label>{{ 'oca.category' | translate }}</mat-label>
-                  <mat-select [(ngModel)]="newsItem.group_type" name="broadcast_type" required
-                              (ngModelChange)="groupTypeChanged()">
-                    <mat-option *ngFor="let group of options.data.groups" [value]="group.group_type">
-                      {{ group.name }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </oca-loadable>
+              <mat-form-field>
+                <mat-label>{{ 'oca.category' | translate }}</mat-label>
+                <mat-select (ngModelChange)="groupTypeChanged()"
+                            [(ngModel)]="newsItem.group_type"
+                            name="broadcast_type"
+                            required>
+                  <mat-option *ngFor="let group of (options?.groups || [])" [value]="group.group_type">
+                    {{ group.name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
             </mat-card-content>
           </mat-card>
 

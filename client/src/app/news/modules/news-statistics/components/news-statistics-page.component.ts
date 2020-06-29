@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { select, Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
@@ -12,7 +12,10 @@ import { PossibleMetrics } from './news-statistics-graphs/news-statistics-graphs
   selector: 'oca-news-statistics-page',
   templateUrl: './news-statistics-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
+  styles: [`.totals-list {
+    display: block;
+    margin: 16px;
+  }`],
 })
 export class NewsStatisticsPageComponent implements OnInit {
   newsItemStats$: Observable<Loadable<NewsStats>>;

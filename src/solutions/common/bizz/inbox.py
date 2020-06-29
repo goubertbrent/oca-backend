@@ -83,7 +83,7 @@ def send_styled_inbox_forwarders_email(service_user, str_key, msg_params, remind
     sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
     def transl(key, **params):
-        return common_translate(sln_settings.main_language, SOLUTION_COMMON, key, **params)
+        return common_translate(sln_settings.main_language, key, **params)
 
     chat_topic = transl(m.chat_topic_key)
 
@@ -280,9 +280,9 @@ def add_solution_inbox_message(service_user, key, sent_by_service, user_details,
 
         if not message:
             if picture_urls:
-                message = common_translate(sln_settings.main_language or DEFAULT_LANGUAGE, SOLUTION_COMMON, '<Picture>')
+                message = common_translate(sln_settings.main_language, '<Picture>')
             elif video_urls:
-                message = common_translate(sln_settings.main_language or DEFAULT_LANGUAGE, SOLUTION_COMMON, '<Video>')
+                message = common_translate(sln_settings.main_language, '<Video>')
 
         sim_parent.last_message = message
         if mark_as_unread:
@@ -402,7 +402,7 @@ def create_message_statistics_excel(messages_months_dict, language):
     # month | incoming messages | replies | total messages
 
     def transl(key):
-        return common_translate(language, SOLUTION_COMMON, key)
+        return common_translate(language, key)
 
     column_month = 0
     column_messages = 1
@@ -457,11 +457,11 @@ def _deferred_statistics_email_export(service_user, service_identity, lang, emai
     finally:
         users.clear_user()
     cur_date = format_datetime(now(), format='d-M-yyyy', locale=lang)
-    subject = common_translate(lang, SOLUTION_COMMON, 'inbox_messages_export_for_date', date=cur_date)
-    body_text = common_translate(lang, SOLUTION_COMMON, 'see_attachment_for_detailed_statistics')
+    subject = common_translate(lang, 'inbox_messages_export_for_date', date=cur_date)
+    body_text = common_translate(lang, 'see_attachment_for_detailed_statistics')
     attachment_name_pdf = 'Inbox ' + cur_date + '.pdf'
     attachment_name_inbox_excel = 'Inbox messages ' + cur_date + '.xls'
-    attachment_name_broadcast_statistics = common_translate(lang, SOLUTION_COMMON, 'broadcast_statistics') + '.xls'
+    attachment_name_broadcast_statistics = common_translate(lang, 'broadcast_statistics') + '.xls'
     attachment_name_flow_statistics_excel = 'Flow statistics ' + cur_date + '.xls'
 
     attachments = []

@@ -17,9 +17,12 @@
 
 import logging
 import time
-from types import NoneType
 import uuid
+from types import NoneType
 
+from google.appengine.ext import db, deferred
+
+from mcfw.rpc import returns, arguments
 from rogerthat.bizz.friends import send_is_in_roles
 from rogerthat.bizz.job import run_job
 from rogerthat.consts import HIGH_LOAD_CONTROLLER_QUEUE
@@ -32,8 +35,6 @@ from rogerthat.to.roles import RoleTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import try_or_defer
 from rogerthat.utils.service import create_service_identity_user, get_service_identity_tuple
-from google.appengine.ext import db, deferred
-from mcfw.rpc import returns, arguments
 
 
 class RebuildRolesJob(db.Model):

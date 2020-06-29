@@ -17,8 +17,8 @@
 
 from __future__ import unicode_literals
 
-import logging
 from datetime import datetime
+import logging
 from types import NoneType
 
 from google.appengine.ext import ndb, deferred, db
@@ -26,9 +26,9 @@ from google.appengine.ext.ndb.query import Cursor
 from typing import Optional, List, Union, Tuple
 
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.jobs.matching import rebuild_matches_check_current
 from rogerthat.bizz.jobs.notifications import calculate_next_reminder
 from rogerthat.bizz.jobs.translations import localize as localize_jobs
+from rogerthat.bizz.jobs.workers import create_user_matches
 from rogerthat.capi.jobs import newJobs
 from rogerthat.consts import JOBS_WORKER_QUEUE
 from rogerthat.dal.mobile import get_mobile_key_by_account
@@ -40,6 +40,7 @@ from rogerthat.rpc import users
 from rogerthat.rpc.models import RpcCAPICall, RpcException
 from rogerthat.rpc.rpc import mapping, logError, CAPI_KEYWORD_ARG_PRIORITY, \
     PRIORITY_HIGH
+from rogerthat.service.api.messaging import add_chat_members
 from rogerthat.to.jobs import GetJobsResponseTO, JobOfferTO, NewJobsResponseTO, \
     NewJobsRequestTO, SaveJobsCriteriaResponseTO, GetJobsCriteriaResponseTO, \
     JobKeyLabelTO, JobCriteriaLocationTO, JobCriteriaNotificationsTO, JobCriteriaGeoLocationTO, \
@@ -48,6 +49,8 @@ from rogerthat.to.jobs import GetJobsResponseTO, JobOfferTO, NewJobsResponseTO, 
 from rogerthat.translations import localize
 from rogerthat.utils import now, get_epoch_from_datetime
 from rogerthat.utils.location import coordinates_to_city
+from solutions.common.jobs.models import JobSolicitation
+
 
 TAG_JOB_CHAT = '__rt__.jobs_chat'
 
@@ -115,6 +118,7 @@ def get_job_criteria(app_user):
         to.label = localize_jobs(user_profile.language, contract_type)
         to.enabled = contract_type in job_criteria.contract_types if job_criteria else False
         response.contract_types.append(to)
+    response.contract_types.sort(key=lambda item: item.label)
 
     for domain in JOB_DOMAINS:
         to = JobKeyLabelTO()
@@ -122,6 +126,7 @@ def get_job_criteria(app_user):
         to.label = localize_jobs(user_profile.language, domain)
         to.enabled = domain in job_criteria.job_domains if job_criteria else False
         response.job_domains.append(to)
+    response.job_domains.sort(key=lambda item: item.label)
 
     if job_criteria:
         response.active = job_criteria.active
@@ -159,7 +164,7 @@ def save_job_criteria(app_user, request):
         original_job_criteria = None
     else:
         original_job_criteria = job_criteria.to_dict(exclude=['notifications', 'active'])
-    
+
     notifications = None
     job_criteria.active = request.active
     if request.criteria:
@@ -210,7 +215,7 @@ def save_job_criteria(app_user, request):
 
     job_criteria.put()
     if should_build_matches:
-        deferred.defer(rebuild_matches_check_current, app_user, _queue=JOBS_WORKER_QUEUE)
+        deferred.defer(create_user_matches, app_user, _queue=JOBS_WORKER_QUEUE)
     if should_calculate_reminder:
         deferred.defer(calculate_next_reminder, app_user, should_clear_notifications, _queue=JOBS_WORKER_QUEUE)
 
@@ -344,6 +349,12 @@ def send_new_jobs_for_activity_types(app_user, activity_types):
 
 def get_job_chat_info(app_user, job_id):
     # type: (users.User, int) -> GetJobChatInfoResponseTO
+    keys = [JobOffer.create_key(job_id), JobMatch.create_key(app_user, job_id)]
+    job_offer, job_match = ndb.get_multi(keys)  # type: JobOffer, JobMatch
+    job_sln_id = long(job_offer.source.id)
+    solicitation = JobSolicitation.list_by_job_and_user(users.User(job_offer.service_email),
+                                                        job_sln_id,
+                                                        app_user.email()).get()  # type: Optional[JobSolicitation]
     lang = get_user_profile(app_user).language
     response = GetJobChatInfoResponseTO()
     response.anonymous = JobChatAnonymousTO()
@@ -352,6 +363,14 @@ def get_job_chat_info(app_user, job_id):
     response.anonymous.default_value = False
     response.default_text = ''
     response.info_text = localize(lang, 'job_info_text')
+    if solicitation:
+        # User has already applied before, but deleted the chat.
+        # Add him back to the chat and return the original chat key.
+        job_match.chat_key = solicitation.chat_key
+        response.chat_key = solicitation.chat_key
+        with users.set_user(users.User(job_offer.service_email)):
+            add_chat_members(solicitation.chat_key, [app_user.email()])
+        job_match.put()
     return response
 
 

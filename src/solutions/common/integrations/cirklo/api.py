@@ -16,31 +16,41 @@
 # @@license_version:1.7@@
 
 import csv
+from datetime import datetime
 import logging
 import urllib
-from datetime import datetime
 
-import cloudstorage
 from babel.dates import format_datetime
+import cloudstorage
 from google.appengine.ext import ndb, db
 from google.appengine.ext.deferred import deferred
 from typing import List
 
+from mcfw.cache import invalidate_cache
 from mcfw.consts import REST_TYPE_TO
+from mcfw.exceptions import HttpBadRequestException, HttpForbiddenException
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.gcs import get_serving_url
+from rogerthat.bizz.service import re_index_map_only
 from rogerthat.consts import FILES_BUCKET, SCHEDULED_QUEUE, DAY
 from rogerthat.models import ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
+from rogerthat.rpc.users import get_current_session
 from rogerthat.translations import localize
+from rogerthat.utils import try_or_defer
+from rogerthat.utils.service import create_service_identity_user
 from shop.dal import get_customer
 from shop.models import Customer
+from solutions import translate
 from solutions.common.bizz import OrganizationType
 from solutions.common.dal import get_solution_settings
-from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId
-from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO
+from solutions.common.integrations.cirklo.cirklo import get_city_id_by_service_email
+from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId, CirkloCity
+from solutions.common.integrations.cirklo.to import VoucherListTO, VoucherServiceTO, UpdateVoucherServiceTO,\
+    CirkloCityTO
+from solutions.common.models import SolutionServiceConsent
 from solutions.common.restapi.services import _check_is_city
 
 
@@ -53,17 +63,22 @@ def get_vouchers_services(organization_type, sort=None, cursor=None, page_size=5
     city_customer = get_customer(city_service_user)
     _check_is_city(city_sln_settings, city_customer)
     if sort == 'name':
-        service_customers_qry = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id, organization_type)
+        service_customers_qry = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id,
+                                                                                  organization_type)
     else:
-        service_customers_qry = Customer.list_enabled_by_organization_type_in_app_by_creation_time(city_customer.app_id, organization_type)
+        service_customers_qry = Customer.list_enabled_by_organization_type_in_app_by_creation_time(city_customer.app_id,
+                                                                                                   organization_type)
     service_customers_qry.with_cursor(cursor)
     customers = [c for c in service_customers_qry.fetch(page_size) if c.service_email]
-    keys = [VoucherSettings.create_key(customer.service_user) for customer in customers]
+    keys = [VoucherSettings.create_key(customer.service_user) for customer in customers] + [
+        SolutionServiceConsent.create_key(customer.user_email) for customer in customers]
     models = ndb.get_multi(keys)
+    all_voucher_settings = models[:len(models) / 2]
+    service_consents = models[len(models) / 2:]
     to = VoucherListTO()
     to.total = Customer.list_enabled_by_organization_type_in_app(city_customer.app_id, organization_type).count()
-    to.results = [VoucherServiceTO.from_models(customer, voucher_settings)
-                  for customer, voucher_settings in zip(customers, models)]
+    to.results = [VoucherServiceTO.from_models(customer, voucher_settings, consent)
+                  for customer, voucher_settings, consent in zip(customers, all_voucher_settings, service_consents)]
     to.cursor = unicode(service_customers_qry.cursor())
     to.more = len(to.results) > 0
     return to
@@ -79,14 +94,23 @@ def save_voucher_settings(service_email, data):
     city_customer = get_customer(city_service_user)
     _check_is_city(city_sln_settings, city_customer)
 
-    customer = Customer.get_by_service_email(service_email)
+    customer = get_customer(users.User(service_email))
     settings_key = VoucherSettings.create_key(users.User(service_email))
-    settings = settings_key.get() or VoucherSettings(key=settings_key)  # type: VoucherSettings
+    settings, service_consent = ndb.get_multi([settings_key, SolutionServiceConsent.create_key(
+        customer.user_email)])  # type: VoucherSettings, SolutionServiceConsent
+    if service_consent and VoucherProviderId.CIRKLO in data.providers \
+        and SolutionServiceConsent.TYPE_CIRKLO_SHARE not in service_consent.types:
+        err = translate(customer.language, 'oca.cirklo_disabled_reason_privacy')
+        raise HttpBadRequestException(err)
+    if not settings:
+        settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
     settings.customer_id = customer.id
     settings.app_id = city_customer.app_id
     settings.providers = data.providers
     settings.put()
-    return VoucherServiceTO.from_models(customer, settings)
+    service_identity_user = create_service_identity_user(customer.service_user)
+    try_or_defer(re_index_map_only, service_identity_user)
+    return VoucherServiceTO.from_models(customer, settings, service_consent)
 
 
 @rest('/common/vouchers/export', 'get')
@@ -148,3 +172,40 @@ def export_voucher_services():
 
     deferred.defer(cloudstorage.delete, gcs_path, _countdown=DAY, _queue=SCHEDULED_QUEUE)
     return {'url': get_serving_url(gcs_path), 'filename': filename}
+
+
+@rest('/common/vouchers/cirklo', 'get')
+@returns(CirkloCityTO)
+@arguments()
+def api_vouchers_get_cirklo_settings():
+    service_user = users.get_current_user()
+    city = CirkloCity.get_by_service_email(service_user.email())
+    return CirkloCityTO.from_model(city)
+
+
+@rest('/common/vouchers/cirklo', 'put')
+@returns(CirkloCityTO)
+@arguments(data=CirkloCityTO)
+def api_vouchers_save_cirklo_settings(data):
+    service_user = users.get_current_user()
+    if not get_current_session().shop:
+        lang = get_solution_settings(service_user).main_language
+        raise HttpForbiddenException(translate(lang, 'no_permission'))
+    other_city = CirkloCity.get_by_service_email(service_user.email())  # type: CirkloCity
+    if not data.city_id:
+        if other_city:
+            other_city.key.delete()
+        return CirkloCityTO.from_model(None)
+
+    key = CirkloCity.create_key(data.city_id)
+    city = key.get()
+    if not city:
+        city = CirkloCity(key=key, service_user_email=service_user.email())
+    elif city.service_user_email != service_user.email():
+        raise HttpBadRequestException('City id %s is already in use by another service' % data.city_id)
+    if other_city and other_city.key != key:
+        other_city.key.delete()
+    invalidate_cache(get_city_id_by_service_email, service_user.email())
+    city.logo_url = data.logo_url
+    city.put()
+    return CirkloCityTO.from_model(city)

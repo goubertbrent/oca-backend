@@ -14,20 +14,20 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+from __future__ import unicode_literals
 import base64
 import datetime
 import json
 import logging
 from types import NoneType
 
+from babel.dates import format_datetime, get_timezone
 from google.appengine.ext import db, ndb
 from google.appengine.ext.deferred import deferred
-
-from babel.dates import format_datetime, get_timezone
 from typing import List
 
 from mcfw.consts import MISSING
+from mcfw.exceptions import HttpForbiddenException
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns
 from rogerthat.bizz.app import get_app
@@ -37,15 +37,14 @@ from rogerthat.dal.app import get_apps_by_id
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import App, Image
 from rogerthat.models.news import NewsItem
+from rogerthat.models.settings import ServiceInfo
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.rpc.users import get_current_session
 from rogerthat.service.api import app, news
-from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, NewsFeedNameTO, BaseMediaTO, NewsLocationsTO, \
+from rogerthat.to.news import NewsActionButtonTO, NewsTargetAudienceTO, BaseMediaTO, NewsLocationsTO, \
     NewsItemListResultTO, NewsItemTO
-from rogerthat.utils import now
 from rogerthat.utils.service import get_service_identity_tuple
-from shop.dal import get_customer
 from solutions import translate as common_translate
 from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule, OrganizationType
@@ -54,7 +53,7 @@ from solutions.common.bizz.service import get_inbox_message_sender_details, new_
     send_inbox_message_update, send_message_updates
 from solutions.common.dal import get_solution_settings
 from solutions.common.dal.cityapp import get_cityapp_profile, get_service_user_for_city
-from solutions.common.models import SolutionInboxMessage
+from solutions.common.models import SolutionInboxMessage, SolutionSettings
 from solutions.common.models.budget import Budget
 from solutions.common.models.news import NewsCoupon, SolutionNewsItem, NewsSettings, NewsSettingsTags, NewsReview, \
     CityAppLocations
@@ -76,10 +75,13 @@ def get_news(cursor=None, service_identity=None, tag=None):
 @returns(NewsStatsTO)
 @arguments(news_id=(int, long), service_identity=unicode)
 def get_news_statistics(news_id, service_identity=None):
-    news_item = news.get(news_id, service_identity, True)
-    apps = get_apps_by_id([s.app_id for s in news_item.statistics])
+    news_item = news.get(news_id, service_identity)
+    statistics = news.get_statistics([news_id], service_identity)
+    stats = statistics[0] if statistics else None
+    apps = get_apps_by_id([s.app_id for s in stats.details]) if stats else []
     return NewsStatsTO(
         news_item=news_item,
+        statistics=stats,
         apps=[NewsAppTO.from_model(app) for app in apps],
     )
 
@@ -191,7 +193,7 @@ def publish_item(service_identity_user, app_id, is_free_regional_news, coupon, s
 
 def get_news_review_message(lang, timezone, header=None, **data):
     def trans(term, *args, **kwargs):
-        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
+        return common_translate(lang, unicode(term), *args, **kwargs)
 
     message = u'{}\n\n'.format(header or trans('news_review_requested'))
     message += u'{}: {}\n'.format(trans('title'), data['title'])
@@ -337,6 +339,8 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
         tag = NEWS_TAG
     service_user, identity = get_service_identity_tuple(service_identity_user)
     sln_settings = get_solution_settings(service_user)
+    service_info = ServiceInfo.create_key(service_user, identity).get()
+    check_can_send_news(sln_settings, service_info)
     if news_type == NewsItem.TYPE_QR_CODE:
         azzert(SolutionModule.LOYALTY in sln_settings.modules)
         qr_code_caption = MISSING.default(qr_code_caption, title)
@@ -350,7 +354,6 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
     if default_app.demo and App.APP_ID_ROGERTHAT in app_ids:
         app_ids.remove(App.APP_ID_ROGERTHAT)
 
-    feed_names = {}
     if is_regional_news_enabled(default_app):
         if tag == NEWS_TAG:
             if default_app.demo:
@@ -359,20 +362,7 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                 # No extra apps selected --> post in LOCAL NEWS in the demo app
                 if len(app_ids) == 1 and app_ids[0] == default_app.app_id:
                     pass  # LOCAL NEWS
-                else:
-                    feed_names[default_app.app_id] = NewsFeedNameTO(
-                        default_app.app_id, u'regional_news')  # REGIONAL NEWS
                 app_ids = [default_app.app_id]
-            else:
-                for app_id in app_ids:
-                    if app_id not in (si.app_id, App.APP_ID_ROGERTHAT):
-                        feed_names[app_id] = NewsFeedNameTO(app_id, u'regional_news')
-        else:
-            if default_app.demo:
-                feed_names[default_app.app_id] = NewsFeedNameTO(default_app.app_id, tag)
-            else:
-                for app_id in app_ids:
-                    feed_names[app_id] = NewsFeedNameTO(app_id, tag)
     sticky = False
     sticky_until = None
     kwargs = {
@@ -432,19 +422,15 @@ def put_news_item(service_identity_user, title, message, action_button, news_typ
                     # create a city review for this app
                     city_kwargs = kwargs.copy()
                     city_kwargs['app_ids'] = [app_id]
-                    city_kwargs['feed_names'] = feed_names.get(app_id, [])
                     send_news_for_review(city_service, service_identity_user, app_id, is_free_regional_news,
                                          coupon, **city_kwargs)
                     # remove from current feed
                     new_app_ids.remove(app_id)
-                    if feed_names and app_id in feed_names:
-                        del feed_names[app_id]
 
         if not DEBUG and new_app_ids == [App.APP_ID_ROGERTHAT] or (not new_app_ids and len(app_ids) > 0):
             raise AllNewsSentToReviewWarning(u'news_review_all_sent_to_review')
 
     # for the rest
-    kwargs['feed_names'] = feed_names.values()
     kwargs['app_ids'] = new_app_ids
 
     with users.set_user(service_user):
@@ -473,3 +459,15 @@ def get_news_reviews(service_user):
 def get_locations(app_id):
     # type: (str) -> CityAppLocations
     return CityAppLocations.create_key(app_id).get()
+
+
+def check_can_send_news(sln_settings, service_info):
+    # type: (SolutionSettings, ServiceInfo) -> None
+    if sln_settings.hidden_by_city:
+        reason = common_translate(sln_settings.main_language, 'your_service_was_hidden_by_your_city')
+        msg = common_translate(sln_settings.main_language, 'cannot_send_news', reason='\n' + reason)
+        raise HttpForbiddenException(msg)
+    if not service_info.visible:
+        reason = common_translate(sln_settings.main_language, 'news_service_invisible_reason')
+        msg = common_translate(sln_settings.main_language, 'cannot_send_news', reason='\n' + reason)
+        raise HttpForbiddenException(msg)

@@ -9,7 +9,8 @@ import { SimpleDialogComponent, SimpleDialogData } from '../../../shared/dialog/
 import { NewsGroupType, ServiceIdentityInfo } from '../../../shared/interfaces/rogerthat';
 import { NonNullLoadable } from '../../../shared/loadable/loadable';
 import { getServiceIdentityInfo } from '../../../shared/shared.state';
-import { CreateNews, NewsItemType, NewsOptions } from '../../interfaces';
+import { filterNull } from '../../../shared/util';
+import { CreateNews, NewsItemType } from '../../interfaces';
 import { SetNewNewsItemAction } from '../../news.actions';
 import { getNewsOptions, NewsState } from '../../news.state';
 
@@ -30,9 +31,9 @@ export class CreateNewsPageComponent implements OnInit {
   ngOnInit() {
     const newsOptions$ = this.store.pipe(
       select(getNewsOptions),
-      filter(i => i.data !== null),
+      filterNull(),
       take(1),
-    ) as Observable<NonNullLoadable<NewsOptions>>;
+    );
     const serviceInfo$ = this.store.pipe(
       select(getServiceIdentityInfo),
       filter(i => i.data !== null),
@@ -41,7 +42,7 @@ export class CreateNewsPageComponent implements OnInit {
     // TODO use root ngrx store instead of localStorage
     const itemFromStorage: Partial<CreateNews> | null = JSON.parse(localStorage.getItem('news.item') || '{}');
     combineLatest([serviceInfo$, newsOptions$]).pipe(take(1)).subscribe(([serviceInfo, newsOptions]) => {
-      if (newsOptions.data.groups.length === 0) {
+      if (newsOptions.groups.length === 0) {
         const config: MatDialogConfig<SimpleDialogData> = {
           data: {
             title: this.translate.instant('oca.Error'),
@@ -54,7 +55,7 @@ export class CreateNewsPageComponent implements OnInit {
       }
       const data = serviceInfo.data;
       // Prefer city group type as default
-      const groups = newsOptions.data.groups.concat().sort((first, second) => first.group_type === NewsGroupType.CITY ? -1 : 1);
+      const groups = newsOptions.groups.concat().sort((first, second) => first.group_type === NewsGroupType.CITY ? -1 : 1);
       let item: CreateNews = {
         app_ids: [data.default_app],
         scheduled_at: null,
@@ -72,7 +73,7 @@ export class CreateNewsPageComponent implements OnInit {
         group_visible_until: null,
       };
       if (itemFromStorage) {
-        const hasGroup = newsOptions.data.groups.some(g => g.group_type === itemFromStorage.group_type);
+        const hasGroup = newsOptions.groups.some(g => g.group_type === itemFromStorage.group_type);
         if (!hasGroup) {
           delete itemFromStorage.group_type;
         }

@@ -219,4 +219,23 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   onRemoveResponse(data: { formId: number, submissionId: number }) {
     this.store.dispatch(new DeleteResponseAction(data));
   }
+
+  showDeveloperInfo() {
+    this.form$.pipe(
+      take(1),
+      takeUntil(this._destroyed),
+    ).subscribe(result => {
+      if (result?.data) {
+        const message = `${this.translate.instant('oca.form_id')} <pre>${result.data.form.id}</pre>
+${this.translate.instant('oca.version')} <pre>${result.data.form.version}</pre>`;
+        this.matDialog.open(SimpleDialogComponent, {
+          data: {
+            ok: this.translate.instant('oca.Close'),
+            message,
+            title: this.translate.instant('oca.developer_information'),
+          } as SimpleDialogData,
+        });
+      }
+    });
+  }
 }

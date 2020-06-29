@@ -94,7 +94,7 @@
             dismissReference="end_feature_not_supported"
             vibrate="false"
             autoLock="true">
-            <content>{% translate language, 'common', 'message_feature_not_supported' %}</content>
+            <content>{% translate language, 'message_feature_not_supported' %}</content>
         </message>
 
         <formMessage id="message_advanced_order"
@@ -105,12 +105,12 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_advanced_order">
-            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'common', 'enter_your_order' %}{% endif %}
+            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'enter_your_order' %}{% endif %}
 
 {{ leap_time_message }}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="AdvancedOrderWidget"
@@ -155,15 +155,15 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_advanced_order">
-            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'common', 'enter_your_order' %}{% endif %}
+            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'enter_your_order' %}{% endif %}
 
 {{ leap_time_message }}{% if min_amount_for_fee_message %}
 
 {{ min_amount_for_fee_message }}
 {% endif %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="AdvancedOrderWidget"
@@ -224,10 +224,10 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="end_advanced_order">
-            <content>{% translate language, 'common', 'order-flow-phone' %}</content>
+            <content>{% translate language, 'order-flow-phone' %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="" >
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="TextLineWidget"
@@ -237,7 +237,7 @@
                 <javascriptValidation>
                     function run(result){
                         if (!result.value || result.value.length &lt; 8) {
-                            return "{% translate language, 'common', 'please_enter_a_valid_phone_number' %}";
+                            return "{% translate language, 'please_enter_a_valid_phone_number' %}";
                         }
                      }
                 </javascriptValidation>
@@ -251,10 +251,10 @@
                      vibrate="false"
                      autoLock="true"
                      negativeReference="flow_code_phone_default">
-            <content>{% translate language, 'common', 'add_unavailable_items_or_comment' %}</content>
+            <content>{% translate language, 'add_unavailable_items_or_comment' %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'skip' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'skip' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="TextBlockWidget"
@@ -269,9 +269,9 @@
                      positiveReference="flow_code_check_internet_before_flush"
                      vibrate="false" autoLock="true"
                      negativeReference="end_advanced_order">
-            <content>{% translate language, 'common', 'select_date_and_time_for_pickup' %}</content>
-            <form positiveButtonCaption="{% translate language, 'common', 'Send' %}"
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}" >
+            <content>{% translate language, 'select_date_and_time_for_pickup' %}</content>
+            <form positiveButtonCaption="{% translate language, 'Send' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}" >
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xsi:type="SelectDateWidget"
                         minuteInterval="15"
@@ -283,7 +283,7 @@
                     function run(result, rogerthat){
                         {% if multiple_locations %}
                         if (rogerthat === undefined) {
-                            return '{% translate language, 'common', 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
+                            return '{% translate language, 'message_feature_not_supported', '_duplicate_backslashes=True' %}';
                         }
                         {% endif %}
                         function isInWorkingHours(){
@@ -310,12 +310,12 @@
                         }
                         var selectedDateTime = result.value;
                         if (selectedDateTime &lt; (currentDateTimeSeconds + leapTime + timezoneOffset)){ /* no idea why timezone has to be added here but it works */
-                            return '{% translate language, 'common', 'please_order_after', 'leap_time=' + leap_time_str, '_duplicate_backslashes=True' %}';
+                            return '{% translate language, 'please_order_after', 'leap_time=' + leap_time_str, '_duplicate_backslashes=True' %}';
                         }else if(isInWorkingHours()){
                             return;
                         }
                         else{
-                            return '{% translate language, 'common', 'can_not_order_at_that_time', '_duplicate_backslashes=True' %} {{orderable_times_str}}';
+                            return '{% translate language, 'can_not_order_at_that_time', '_duplicate_backslashes=True' %} {{orderable_times_str}}';
                         }
                     }
                 </javascriptValidation>
@@ -365,9 +365,9 @@
                         return a;
                     };
 
-                    var nextPossitiveButton = '{% translate language, 'common', 'Send' %}';
+                    var nextPossitiveButton = '{% translate language, 'Send' %}';
                     if (messageFlowRun.steps[0]['step_id'] === 'message_advanced_order_with_pay') {
-                        nextPossitiveButton = '{% translate language, 'common', 'Next' %}';
+                        nextPossitiveButton = '{% translate language, 'Next' %}';
                     }
 
                     var applyLeapTime = true;
@@ -402,7 +402,7 @@
                 }
             </javascriptCode>
         </flowCode>
-
+		{% if payment_enabled %}
         <flowCode
             id="flowcode_calculate_payment"
             exceptionReference="flush_advanced_order_processing">
@@ -454,26 +454,13 @@
                                    calculate_amount: true,
                                });
                                break;
-                           case 'threefold':
-                           case 'threefold_testnet':
-                               if (provider.settings.address) {
-                                   methods.push({
-                                       provider_id: provider.provider_id,
-                                       currency: 'TFT',
-                                       amount: 0,
-                                       target: provider.settings.address,
-                                       precision: 5,
-                                       calculate_amount: true,
-                                   });
-                               }
-                               break;
                        }
                    }
                     return {
                         outlet: outlet,
-                        message: "{% translate language, 'common', 'pay_widget_message', '_duplicate_backslashes=True' %}".replace('%(amount)s', amountStr).replace('%(currency)s', '{{ settings.currency }}'),
+                        message: "{% translate language, 'pay_widget_message', '_duplicate_backslashes=True' %}".replace('%(amount)s', amountStr).replace('%(currency)s', '{{ settings.currency }}'),
                         defaultValue: {
-                            memo: "{% translate language, 'common', 'pay_widget_memo', '_duplicate_backslashes=True' %}".replace('%(name)s', rogerthat.service.name).replace('%(app_name)s', rogerthat.system.appName),
+                            memo: "{% translate language, 'pay_widget_memo', '_duplicate_backslashes=True' %}".replace('%(name)s', rogerthat.service.name).replace('%(app_name)s', rogerthat.system.appName),
                             target: rogerthat.service.account,
                             base_method:{
                                 currency: '{{ settings.currency }}',
@@ -487,7 +474,9 @@
                 };
             </javascriptCode>
         </flowCode>
+        {% endif %}
 
+		{% if payment_enabled %}
         <formMessage brandingKey="{{ branding_key }}"
                      id="message_pay_optional"
                      alertIntervalType="NONE" alertType="SILENT"
@@ -497,8 +486,8 @@
 
             <content/>
             <form positiveButtonConfirmation="" negativeButtonConfirmation=""
-                  positiveButtonCaption="{% translate language, 'common', 'Send' %}"
-                  negativeButtonCaption="{% translate language, 'common', 'skip' %}">
+                  positiveButtonCaption="{% translate language, 'Send' %}"
+                  negativeButtonCaption="{% translate language, 'skip' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
                     <baseMethod>
                         <currency>EUR</currency>
@@ -516,7 +505,9 @@
                 </widget>
             </form>
         </formMessage>
+        {% endif %}
 
+		{% if payment_enabled %}
         <formMessage brandingKey="{{ branding_key }}"
                      id="message_pay_required"
                      alertIntervalType="NONE" alertType="SILENT"
@@ -526,8 +517,8 @@
 
             <content/>
             <form positiveButtonConfirmation="" negativeButtonConfirmation=""
-                  positiveButtonCaption="{% translate language, 'common', 'Send' %}"
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
+                  positiveButtonCaption="{% translate language, 'Send' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PayWidget" memo="App order" target="">
                     <baseMethod>
                         <currency>EUR</currency>
@@ -545,6 +536,7 @@
                 </widget>
             </form>
         </formMessage>
+        {% endif %}
 
         <flowCode
             id="flow_code_check_internet_before_flush"
@@ -553,10 +545,12 @@
                 name="flowcode_internet"
                 value="flowcode_internet"
                 reference="flush_advanced_order_processing"/>
+            {% if payment_enabled %}
             <outlet
                 name="flowcode_internet_with_payment"
                 value="flowcode_internet_with_payment"
                 reference="flowcode_calculate_payment"/>
+            {% endif %}
             <outlet
                 name="message_no_internet"
                 value="message_no_internet"
@@ -566,10 +560,12 @@
                     if (rogerthat.system.internet &amp;&amp; !rogerthat.system.internet.connected) {
                         return {outlet: 'message_no_internet'};
                     }
+                    {% if payment_enabled %}
                     var steps = messageFlowRun.steps;
                     if (steps[0]['step_id'] === 'message_advanced_order_with_pay') {
                         return {outlet: 'flowcode_internet_with_payment'};
                     }
+                    {% endif %}
                     return {outlet: 'flowcode_internet'};
                 };
             </javascriptCode>
@@ -588,7 +584,7 @@
             vibrate="false"
             dismissReference="end_processing"
             autoLock="true">
-            <content>{% translate language, 'common', 'order-flow-manual-confirm', 'name=' + settings.name|escape %}</content>
+            <content>{% translate language, 'order-flow-manual-confirm', 'name=' + settings.name|escape %}</content>
         </message>
         {% endif %}
 
@@ -600,14 +596,14 @@
             allowDismiss="false"
             vibrate="true"
             autoLock="true">
-            <content>{% translate language, 'common', 'message_no_internet_try_again' %}</content>
+            <content>{% translate language, 'message_no_internet_try_again' %}</content>
             <answer
                 id="button_try_again"
-                caption="{% translate language, 'common', 'Try again' %}"
+                caption="{% translate language, 'Try again' %}"
                 reference="flow_code_check_internet_before_flush" />
             <answer
                 id="button_abort"
-                caption="{% translate language, 'common', 'Cancel order' %}"
+                caption="{% translate language, 'Cancel order' %}"
                 reference="end_advanced_order" />
         </message>
 

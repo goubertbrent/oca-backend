@@ -6,9 +6,15 @@ import {
   ExportVoucherServicesAction,
   ExportVoucherServicesFailedAction,
   ExportVoucherServicesSuccessAction,
+  GetCirkloSettingsAction,
+  GetCirkloSettingsCompleteAction,
+  GetCirkloSettingsFailedAction,
   GetServicesAction,
   GetServicesFailedAction,
   GetServicesSuccessAction,
+  SaveCirkloSettingsAction,
+  SaveCirkloSettingsCompleteAction,
+  SaveCirkloSettingsFailedAction,
   SaveVoucherSettingsAction,
   SaveVoucherSettingsFailedAction,
   SaveVoucherSettingsSuccessAction,
@@ -45,6 +51,20 @@ export class VouchersEffects {
       map(result => new ExportVoucherServicesSuccessAction(result)),
       tap(result => window.open(result.payload.url)),
       catchError(err => this.errorService.handleError(action, ExportVoucherServicesFailedAction, err)))),
+  ));
+
+  getCirkloSettings$ = createEffect(() => this.actions$.pipe(
+    ofType<GetCirkloSettingsAction>(VouchersActionTypes.GET_CIRKLO_SETTINGS),
+    switchMap(action => this.service.getCirkloSettings().pipe(
+      map(result => new GetCirkloSettingsCompleteAction(result)),
+      catchError(err => this.errorService.handleError(action, GetCirkloSettingsFailedAction, err)))),
+  ));
+
+  saveCirkloSettings$ = createEffect(() => this.actions$.pipe(
+    ofType<SaveCirkloSettingsAction>(VouchersActionTypes.SAVE_CIRKLO_SETTINGS),
+    switchMap(action => this.service.saveCirkloSettings(action.payload).pipe(
+      map(result => new SaveCirkloSettingsCompleteAction(result)),
+      catchError(err => this.errorService.handleError(action, SaveCirkloSettingsFailedAction, err)))),
   ));
 
   constructor(private actions$: Actions<VouchersActions>,

@@ -16,8 +16,8 @@
 # @@license_version:1.7@@
 
 import logging
-from types import NoneType
 import uuid
+from types import NoneType
 
 from google.appengine.api import users as gusers
 from google.appengine.ext import db, deferred
@@ -52,13 +52,13 @@ def create_session_for_google_authenticated_user(user):
 
 
 @returns(tuple)
-@arguments(user=users.User, ignore_expiration=bool, service_identity=unicode)
-def create_session(user, ignore_expiration=False, service_identity=None):
+@arguments(user=users.User, ignore_expiration=bool, service_identity=unicode, cached=bool)
+def create_session(user, ignore_expiration=False, service_identity=None, cached=True):
     from rogerthat.dal.profile import get_profile_info
     from rogerthat.dal.roles import get_service_identities_via_user_roles
     secret = unicode(uuid.uuid4()).replace("-", "")
     timeout = now() + SESSION_TIMEOUT
-    session_profile_info = get_profile_info(user, skip_warning=True)
+    session_profile_info = get_profile_info(user, cached=cached, skip_warning=True)
     session = Session(key_name=secret,
                       user=user,
                       timeout=timeout,
@@ -68,7 +68,7 @@ def create_session(user, ignore_expiration=False, service_identity=None):
                       service_identity=service_identity)
 
     if session_profile_info.isServiceIdentity:
-        service_profile = get_service_profile(session_profile_info.service_user)
+        service_profile = get_service_profile(session_profile_info.service_user, cached=cached)
         if service_profile.expiredAt > 0:
             raise ServiceExpiredException()
     else:
@@ -83,7 +83,7 @@ def create_session(user, ignore_expiration=False, service_identity=None):
         if session_profile_info.isCreatedForService and len(user_services) == 1:
             # when there are multiple profiles, the expired checking is done in login_as logic
             if not ignore_expiration:
-                service_profile = get_service_profile(users.User(session_profile_info.owningServiceEmails[0]))
+                service_profile = get_service_profile(users.User(session_profile_info.owningServiceEmails[0]), cached=cached)
                 if service_profile.expiredAt > 0:
                     raise ServiceExpiredException()
             session = Session(key_name=secret,

@@ -1,0 +1,64 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ (merchant$ | async)?.name }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/cirklo/merchants"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content *ngIf="merchant$ | async as merchant">
+  <ion-list>
+    <ion-item *ngIf="merchant.address as address" [href]="address | merchantAddressUrl" target="_blank">
+      <ion-icon class="top-icon" name="map" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">
+        {{ address.street }} {{ address.street_number }}, {{ address.locality }}
+      </ion-label>
+    </ion-item>
+    <ion-item *ngFor="let phoneNumber of merchant.phone_numbers" [href]="'tel:' + phoneNumber.value">
+      <ion-icon class="top-icon" name="call" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">{{ phoneNumber.value }}
+        <ng-container *ngIf="phoneNumber.name">| {{ phoneNumber.name }}</ng-container>
+      </ion-label>
+    </ion-item>
+
+    <ion-item *ngFor="let email of merchant.email_addresses" [href]="'mailto:' + email.value">
+      <ion-icon class="top-icon" name="mail" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">{{ email.value }}</ion-label>
+    </ion-item>
+    <ion-item *ngFor="let website of merchant.websites" [href]="website.value" target="_blank">
+      <ion-icon class="top-icon" name="globe" slot="start"></ion-icon>
+      <ion-label class="ion-text-wrap">{{ website.value }}</ion-label>
+    </ion-item>
+    <ng-container *ngIf="merchant.opening_hours">
+      <ion-item (click)="toggleOpeningHours()" [detail]="false" button>
+        <ion-icon class="top-icon" name="time" slot="start"></ion-icon>
+        <ion-label class="ion-text-wrap">
+          {{ merchant.opening_hours.title }}
+          <table *ngIf="openingHoursExpanded" class="opening-hours-table">
+            <thead>
+            <tr>
+              <th></th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let period of merchant.opening_hours.weekday_text">
+              <td>{{ period.day }}</td>
+              <td>
+                <ion-text *ngFor="let hours of period.lines; let last = last;"
+                          [color]="hours.color ? 'warning' : ''">
+                  {{ hours.text }}<br *ngIf="!last">
+                </ion-text>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </ion-label>
+        <ion-icon name="chevron-down"
+                  class="top-icon"
+                  slot="end"
+                  [@chevronAnimation]="openingHoursExpanded.toString()"></ion-icon>
+      </ion-item>
+    </ng-container>
+  </ion-list>
+</ion-content>

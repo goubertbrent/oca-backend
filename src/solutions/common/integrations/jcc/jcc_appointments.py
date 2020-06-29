@@ -41,7 +41,7 @@ from rogerthat.to import convert_to_unicode
 from rogerthat.to.service import SendApiCallCallbackResultTO, UserDetailsTO
 from rogerthat.utils import send_mail
 from rogerthat.utils.app import get_human_user_from_app_user, get_app_id_from_app_user
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.integrations.jcc.models import JCCSettings, JccApiMethod, JCCUserAppointments, JCCAppointment
 from solutions.common.integrations.qmatic.qmatic import set_updates_pending
@@ -86,8 +86,7 @@ def save_jcc_settings(service_user, url, username=None, password=None):
         except Exception as e:
             logging.debug(e.message, exc_info=True)
             lang = get_solution_settings(service_user).main_language
-            err = translate(lang, SOLUTION_COMMON, 'Invalid url (%(url)s). It must be reachable over http or https.',
-                            url=url)
+            err = translate(lang, 'Invalid url (%(url)s). It must be reachable over http or https.', url=url)
             raise HttpBadRequestException(err)
     else:
         enabled = False
@@ -152,7 +151,7 @@ def add_appointment_to_calendar(settings, app_user, appointment_id):
         if appointment.id == appointment_id:
             break
     else:
-        return {'message': translate(sln_settings.main_language, SOLUTION_COMMON, 'appointment_not_found')}
+        return {'message': translate(sln_settings.main_language, 'appointment_not_found')}
     client = get_jcc_client(settings.url, settings.username, settings.password)
     appointment_details = client.service.getGovAppointmentDetails(appID=appointment_id)
     location = get_location(settings.url, settings.username, settings.password, appointment_details.locationID)
@@ -162,7 +161,7 @@ def add_appointment_to_calendar(settings, app_user, appointment_id):
                 for product_id in all_product_ids}
     create_ical_for_appointment(app_user, appointment_id, appointment_details, location, products,
                                 all_product_ids_list[0], sln_settings.main_language)
-    msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'an_email_has_been_sent_with_appointment_event')
+    msg = translate(sln_settings.main_language, 'an_email_has_been_sent_with_appointment_event')
     return {'message': msg}
 
 
@@ -177,7 +176,7 @@ def create_ical_for_appointment(app_user, appointment_id, appointment, location,
     event.add('uid', appointment_id)
     title = products[first_product_id]['description']
     event.add('summary', title)
-    description_lines = [translate(lang, SOLUTION_COMMON, 'activities') + ':']
+    description_lines = [translate(lang, 'activities') + ':']
     for product in products.itervalues():
         description_lines.append('- %s' % product['description'])
     if appointment.appointmentDesc:
@@ -216,11 +215,11 @@ def create_ical_for_appointment(app_user, appointment_id, appointment, location,
     body = [
         title,
         '',
-        '%s: %s' % (translate(lang, SOLUTION_COMMON, 'when'), when),
+        '%s: %s' % (translate(lang, 'when'), when),
     ]
 
     if location:
-        body.append('%s: %s' % (translate(lang, SOLUTION_COMMON, 'oca.location'), location_str))
+        body.append('%s: %s' % (translate(lang, 'oca.location'), location_str))
     if appointment.appointmentDesc:
         body.append(description)
 
@@ -347,5 +346,5 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
     except Exception:
         logging.error('Error while handling jcc call %s' % method, exc_info=True)
         sln_settings = get_solution_settings(service_user)
-        response.error = translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        response.error = translate(sln_settings.main_language, 'error-occured-unknown')
     return response

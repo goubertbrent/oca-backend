@@ -1827,6 +1827,35 @@ $(function () {
             }
         });
     });
+    
+    $('#export-cirklo-customers').click(function () {
+    	 sln.call({
+    		 url: '/internal/shop/rest/apps/all',
+             success: function (data) {
+                 var html = $.tmpl(JS_TEMPLATES.app_select_modal, {
+                	 apps: data,
+                	 selectedApp: 'osa-demo2'
+                 });
+
+                 var modal = sln.createModal(html);
+                 $('button[action=submit]', modal).click(function() {
+                	 modal.modal('hide');
+                	 var appId = $('#app_select').val();
+                	 sln.call({
+                         url: '/internal/shop/rest/customers/cirklo/export',
+                         data: {
+                             app_id: appId
+                         },
+                         success: function (data) {
+                             if (data.success) {
+                                 sln.alert('You will receive an email with the exported customers within a few minutes.');
+                             }
+                         }
+                     });
+                 });
+             }
+    	 });
+    });
 
     $(document).click(function (e) {
         "use strict";

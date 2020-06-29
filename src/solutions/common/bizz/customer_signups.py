@@ -26,7 +26,7 @@ from rogerthat.to.messaging.forms import TextBlockFormTO, TextBlockTO, FormTO
 from rogerthat.to.messaging.service_callback_results import FormAcknowledgedCallbackResultTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils.app import get_app_user_tuple
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.dal import get_solution_main_branding, get_solution_settings
 from solutions.common.models import SolutionInboxMessage
 
@@ -37,8 +37,7 @@ def process_updated_customer_signup_message(service_user, service_identity, mess
                                             parent_inbox_message):
     # type: (users.User, unicode, unicode, users.User, unicode, unicode, SolutionInboxMessage) -> None
     from solutions.common.bizz.messaging import MESSAGE_TAG_DENY_SIGNUP
-    from solutions.common.restapi.services import rest_signup_get_modules_and_broadcast_types, \
-        rest_create_service_from_signup
+    from solutions.common.restapi.services import rest_create_service_from_signup
     with users.set_user(service_user):
         sln_settings = get_solution_settings(service_user)
         if answer_id == 'decline':
@@ -47,15 +46,15 @@ def process_updated_customer_signup_message(service_user, service_identity, mess
             form = TextBlockFormTO()
             form.type = TextBlockTO.TYPE
             form.widget = widget
-            form.positive_button = translate(sln_settings.main_language, SOLUTION_COMMON, 'Confirm')
-            form.negative_button = translate(sln_settings.main_language, SOLUTION_COMMON, 'Cancel')
+            form.positive_button = translate(sln_settings.main_language, 'Confirm')
+            form.negative_button = translate(sln_settings.main_language, 'Cancel')
             form.javascript_validation = """function run(result) {
         return result.value ? true : '%s';
-    }""" % translate(sln_settings.main_language, SOLUTION_COMMON, 'this_field_is_required', _duplicate_backslashes=True)
+    }""" % translate(sln_settings.main_language, 'this_field_is_required', _duplicate_backslashes=True)
             human_user, app_id = get_app_user_tuple(app_user)
             messaging.send_form(parent_key=parent_inbox_message.message_key,
                                 parent_message_key=parent_inbox_message.message_key,
-                                message=translate(sln_settings.main_language, SOLUTION_COMMON, 'signup_not_ok'),
+                                message=translate(sln_settings.main_language, 'signup_not_ok'),
                                 member=human_user.email(),
                                 app_id=app_id,
                                 flags=Message.FLAG_AUTO_LOCK,
@@ -66,10 +65,7 @@ def process_updated_customer_signup_message(service_user, service_identity, mess
                                 service_identity=service_identity,
                                 alert_flags=Message.ALERT_FLAG_VIBRATE)
         elif answer_id == 'approve':
-            modules_and_broadcast_types = rest_signup_get_modules_and_broadcast_types(parent_inbox_message.category_key)
-            modules = [m.key for m in modules_and_broadcast_types.modules if m.is_default]
-            result = rest_create_service_from_signup(parent_inbox_message.category_key, modules,
-                                                     broadcast_types=modules_and_broadcast_types.broadcast_types,
+            result = rest_create_service_from_signup(parent_inbox_message.category_key,
                                                      force=True)  # type: CreateServiceStatusTO
             if not result.success:
                 messaging.send(parent_message_key=message_key,

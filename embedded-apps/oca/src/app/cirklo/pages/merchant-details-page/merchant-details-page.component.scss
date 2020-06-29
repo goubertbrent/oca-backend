@@ -1,0 +1,14 @@
+.opening-hours-table {
+  border-spacing: 0 8px;
+  line-height: 24px;
+  border-collapse: separate;
+
+  tr > td:first-of-type {
+    display: block;
+    margin-right: 16px;
+  }
+}
+
+.top-icon {
+  align-self: start;
+}

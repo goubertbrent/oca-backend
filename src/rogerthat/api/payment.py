@@ -19,8 +19,8 @@ import logging
 
 from mcfw.consts import MISSING
 from mcfw.rpc import returns, arguments
-from rogerthat.bizz.payment import receive_payment, get_pending_payment_details, confirm_payment, cancel_payment, \
-    get_payment_assets, create_payment_asset, get_pending_payment_signature_data, verify_payment_asset, \
+from rogerthat.bizz.payment import receive_payment, get_pending_payment_details, cancel_payment, \
+    get_payment_assets, create_payment_asset, verify_payment_asset, \
     get_payment_transactions, get_payment_profile, get_target_info, create_transaction, get_payment_methods
 from rogerthat.bizz.user import get_lang
 from rogerthat.exceptions.payment import PaymentException
@@ -30,9 +30,8 @@ from rogerthat.to.payment import GetPaymentProvidersResponseTO, GetPaymentProvid
     GetPaymentProfileResponseTO, GetPaymentProfileRequestTO, GetPaymentAssetsResponseTO, GetPaymentAssetsRequestTO, \
     GetPaymentTransactionsResponseTO, GetPaymentTransactionsRequestTO, VerifyPaymentAssetResponseTO, \
     VerifyPaymentAssetRequestTO, ReceivePaymentResponseTO, ReceivePaymentRequestTO, GetPendingPaymentDetailsResponseTO, \
-    GetPendingPaymentDetailsRequestTO, ConfirmPaymentResponseTO, ConfirmPaymentRequestTO, CancelPaymentResponseTO, \
-    CancelPaymentRequestTO, ErrorPaymentTO, CreateAssetResponseTO, CreateAssetRequestTO, \
-    GetPendingPaymentSignatureDataResponseTO, GetPendingPaymentSignatureDataRequestTO, GetTargetInfoResponseTO, \
+    GetPendingPaymentDetailsRequestTO, CancelPaymentResponseTO, \
+    CancelPaymentRequestTO, ErrorPaymentTO, CreateAssetResponseTO, CreateAssetRequestTO, GetTargetInfoResponseTO, \
     GetTargetInfoRequestTO, CreateTransactionResponseTO, CreateTransactionRequestTO, GetPaymentMethodsRequestTO, \
     GetPaymentMethodsResponseTO
 from rogerthat.translations import localize
@@ -110,24 +109,6 @@ def cancelPayment(request):
 def getPendingPaymentDetails(request):
     app_user = users.get_current_user()
     return _do_call(get_pending_payment_details, GetPendingPaymentDetailsResponseTO, app_user, request.transaction_id)
-
-
-@expose(('api',))
-@returns(GetPendingPaymentSignatureDataResponseTO)
-@arguments(request=GetPendingPaymentSignatureDataRequestTO)
-def getPendingPaymentSignatureData(request):
-    app_user = users.get_current_user()
-    return _do_call(get_pending_payment_signature_data, GetPendingPaymentSignatureDataResponseTO, app_user,
-                    request.transaction_id, request.asset_id)
-
-
-@expose(('api',))
-@returns(ConfirmPaymentResponseTO)
-@arguments(request=ConfirmPaymentRequestTO)
-def confirmPayment(request):
-    app_user = users.get_current_user()
-    return _do_call(confirm_payment, ConfirmPaymentResponseTO, app_user, request.transaction_id,
-                    request.crypto_transaction)
 
 
 @expose(('api',))

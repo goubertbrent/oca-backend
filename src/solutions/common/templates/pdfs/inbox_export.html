@@ -87,7 +87,7 @@
         <tr>
             <td style="width: 40%;"><img src="{{ logo_path }}" width="150" height="150"/></td>
             <td>
-                <h1>{% translate language, 'common', 'message_history' %}</h1>
+                <h1>{% translate language, 'message_history' %}</h1>
                 <h2>{{ sln_i_settings.name }}</h2>
             </td>
         </tr>
@@ -96,7 +96,7 @@
 </div>
 {% for msg in messages %}
     <h3{% if loop.first %} style="border-top:none;"{% endif %}>{{ msg.sender.name or sln_i_settings.name }}
-        <div class="message-date">{{ msg.datetime }} ({% translate language, 'common', msg.inbox %})</div>
+        <div class="message-date">{{ msg.datetime }} ({% translate language, msg.inbox %})</div>
     </h3>
     <p>{{ msg.message }}</p>
     {% for child in msg.children %}

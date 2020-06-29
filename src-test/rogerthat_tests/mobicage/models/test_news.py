@@ -1,29 +1,15 @@
-# -*- coding: utf-8 -*-
-# Copyright 2020 Green Valley Belgium NV
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# @@license_version:1.7@@
-
 from datetime import date
+
 from dateutil.relativedelta import relativedelta
+from google.appengine.ext import db
 
 import mc_unittest
-
-from rogerthat.rpc import users
+from rogerthat.bizz.news.matching import _match_target_audience_of_item
 from rogerthat.models import UserProfile
 from rogerthat.models.news import NewsItem
+from rogerthat.rpc import users
 from rogerthat.utils import get_epoch_from_datetime, now
+
 
 class TestNewsItem(mc_unittest.TestCase):
 
@@ -33,15 +19,21 @@ class TestNewsItem(mc_unittest.TestCase):
         date_ancient = today + relativedelta(years=-500)
         date_young = today + relativedelta(years=-10)
 
-        empty_profile = UserProfile(birthdate=None, gender=None)
+        empty_profile = UserProfile(birthdate=None, gender=None,
+                                    key=UserProfile.createKey(users.User('user0@example.com')))
         profile_old_male = UserProfile(birthdate=get_epoch_from_datetime(date_old),
-                                       gender=UserProfile.GENDER_MALE)
+                                       gender=UserProfile.GENDER_MALE,
+                                       key=UserProfile.createKey(users.User('user1@example.com')))
         profile_old_female = UserProfile(birthdate=get_epoch_from_datetime(date_old),
-                                         gender=UserProfile.GENDER_FEMALE)
+                                         gender=UserProfile.GENDER_FEMALE,
+                                         key=UserProfile.createKey(users.User('user2@example.com')))
         profile_ancient_female = UserProfile(birthdate=get_epoch_from_datetime(date_ancient),
-                                             gender=UserProfile.GENDER_FEMALE)
+                                             gender=UserProfile.GENDER_FEMALE,
+                                             key=UserProfile.createKey(users.User('user3@example.com')))
         young_female = UserProfile(birthdate=get_epoch_from_datetime(date_young),
-                                   gender=UserProfile.GENDER_FEMALE)
+                                   gender=UserProfile.GENDER_FEMALE,
+                                   key=UserProfile.createKey(users.User('user4@example.com')))
+        db.put([profile_old_male, profile_old_female, profile_ancient_female, young_female])
 
         news_item0 = NewsItem(sticky=False,
                               sender=users.User('hello@mail.com'),
@@ -50,9 +42,9 @@ class TestNewsItem(mc_unittest.TestCase):
                               rogered=False,
                               target_audience_enabled=False)
 
-        self.assertTrue(news_item0.match_target_audience(profile_old_male))
-        self.assertTrue(news_item0.match_target_audience(young_female))
-        self.assertTrue(news_item0.match_target_audience(empty_profile))
+        self.assertTrue(_match_target_audience_of_item(profile_old_male.user, news_item0))
+        self.assertTrue(_match_target_audience_of_item(young_female.user, news_item0))
+        self.assertTrue(_match_target_audience_of_item(empty_profile.user, news_item0))
 
         news_item1 = NewsItem(sticky=False,
                               sender=users.User('hello@mail.com'),
@@ -64,11 +56,11 @@ class TestNewsItem(mc_unittest.TestCase):
                               target_audience_max_age=100,
                               target_audience_gender=UserProfile.GENDER_FEMALE)
 
-        self.assertFalse(news_item1.match_target_audience(empty_profile))
-        self.assertFalse(news_item1.match_target_audience(profile_old_male))
-        self.assertTrue(news_item1.match_target_audience(profile_old_female))
-        self.assertFalse(news_item1.match_target_audience(profile_ancient_female))
-        self.assertTrue(news_item1.match_target_audience(young_female))
+        self.assertFalse(_match_target_audience_of_item(empty_profile.user, news_item1))
+        self.assertFalse(_match_target_audience_of_item(profile_old_male.user, news_item1))
+        self.assertTrue(_match_target_audience_of_item(profile_old_female.user, news_item1))
+        self.assertFalse(_match_target_audience_of_item(profile_ancient_female.user, news_item1))
+        self.assertTrue(_match_target_audience_of_item(young_female.user, news_item1))
 
         news_item2 = NewsItem(sticky=False,
                               sender=users.User('hello@mail.com'),
@@ -80,8 +72,8 @@ class TestNewsItem(mc_unittest.TestCase):
                               target_audience_max_age=99,
                               target_audience_gender=UserProfile.GENDER_MALE_OR_FEMALE)
 
-        self.assertFalse(news_item2.match_target_audience(empty_profile))
-        self.assertTrue(news_item2.match_target_audience(profile_old_male))
-        self.assertTrue(news_item2.match_target_audience(profile_old_female))
-        self.assertFalse(news_item2.match_target_audience(profile_ancient_female))
-        self.assertFalse(news_item2.match_target_audience(young_female))
+        self.assertFalse(_match_target_audience_of_item(empty_profile.user, news_item2))
+        self.assertTrue(_match_target_audience_of_item(profile_old_male.user, news_item2))
+        self.assertTrue(_match_target_audience_of_item(profile_old_female.user, news_item2))
+        self.assertFalse(_match_target_audience_of_item(profile_ancient_female.user, news_item2))
+        self.assertFalse(_match_target_audience_of_item(young_female.user, news_item2))

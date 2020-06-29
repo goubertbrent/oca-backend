@@ -23,10 +23,10 @@ from babel.dates import format_date, get_day_names, format_time
 from typing import List
 
 from mcfw.exceptions import HttpBadRequestException
-from rogerthat.bizz.opening_hours import is_always_open, is_always_closed, is_open_24_hours
+from rogerthat.bizz.opening_hours import is_always_open, is_always_closed
 from rogerthat.models import OpeningHours, OpeningPeriod, OpeningHourException
 from rogerthat.rpc import users
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings
 from solutions.common.to.opening_hours import OpeningHoursTO
@@ -77,8 +77,8 @@ def _get_day_str(day_int):
 
 def _get_open_hour_text(period, locale):
     # type: (OpeningPeriod, str) -> str
-    if is_open_24_hours(period):
-        return translate(locale, SOLUTION_COMMON, 'oca.open_24_hours')
+    if period.is_open_24_hours:
+        return translate(locale, 'oca.open_24_hours')
     open_time = format_time(period.open.datetime, 'short', locale=locale)
     close_time = format_time(period.close.datetime, 'short', locale=locale)
     line = '%s — %s' % (open_time, close_time)
@@ -112,13 +112,13 @@ def opening_hours_to_text(opening_hours, locale, current_datetime):
     day_names = get_day_names(locale=locale).values()  # Starts on monday
     day_names.insert(0, day_names.pop())  # Starts on sunday
     if is_always_open(opening_hours.periods):
-        return translate(locale, SOLUTION_COMMON, 'always_open')
+        return translate(locale, 'always_open')
     if is_always_closed(opening_hours.periods):
-        return translate(locale, SOLUTION_COMMON, 'always_closed')
+        return translate(locale, 'always_closed')
     lines = _get_opening_periods_lines(opening_hours.periods, day_names, locale)
     if opening_hours.exceptional_opening_hours:
         lines.append('')
-        lines.append(translate(locale, SOLUTION_COMMON, 'deviating_opening_hours'))
+        lines.append(translate(locale, 'deviating_opening_hours'))
         lines.append('')
     current_date = current_datetime.date()
     for exception in opening_hours.exceptional_opening_hours:
@@ -131,7 +131,7 @@ def opening_hours_to_text(opening_hours, locale, current_datetime):
             end_date = format_date(exception.end_date, 'short', locale)
             day_str = '%s — %s' % (start_date, end_date)
         if not exception.periods:
-            closed = translate(locale, SOLUTION_COMMON, 'oca.closed')
+            closed = translate(locale, 'oca.closed')
             if exception.description:
                 description = '%s — %s' % (exception.description, closed)
             else:

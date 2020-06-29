@@ -354,10 +354,10 @@ def update_loyalty_admin(service_user, service_identity, admin_app_user_email, a
 
                 if admin_functions == 0:
                     raise BusinessException(
-                        common_translate(sln_settings.main_language, SOLUTION_COMMON, 'select-at-least-one-function'))
+                        common_translate(sln_settings.main_language, 'select-at-least-one-function'))
                 if is_flag_set(SolutionLoyaltySettings.FUNCTION_SCAN, admin_functions) and not is_flag_set(SolutionLoyaltySettings.FUNCTION_SLIDESHOW, admin_functions):
                     raise BusinessException(
-                        common_translate(sln_settings.main_language, SOLUTION_COMMON, 'scan-requires-slideshow'))
+                        common_translate(sln_settings.main_language, 'scan-requires-slideshow'))
 
                 loyalty_settings.functions[i] = admin_functions
                 loyalty_settings.put()
@@ -460,12 +460,12 @@ def solution_loyalty_load(service_user, email, method, params, tag, service_iden
         else:
             r.result = None
             sln_settings = get_solution_settings(service_user)
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again')
+            r.error = common_translate(sln_settings.main_language, 'error-occured-unknown-try-again')
     except:
         logging.error("solutions.loyalty.load exception occurred", exc_info=True)
         r.result = None
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -544,7 +544,7 @@ def solution_loyalty_scan(service_user, email, method, params, tag, service_iden
         logging.error("solutions.loyalty.scan exception occurred", exc_info=True)
         r.result = None
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -624,16 +624,12 @@ def add_loyalty_for_user_revenu_discount(service_user, service_identity, admin_u
     price_new_str = format_currency(price / 100.0, sln_settings.currency, locale=sln_settings.main_language)
 
     if loyalty_settings.x_visits > visits:
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-remaining-type-1")
-        message = message % {'price_new': price_new_str,
-                             'price_total': price_total_str,
-                             'visits_remaining': loyalty_settings.x_visits - (visits - 1),
-                             'discount': loyalty_settings.x_discount}
+        message = common_translate(sln_settings.main_language, u"loyalty-message-remaining-type-1", price_new=price_new_str,
+                                   price_total=price_total_str, visits_remaining=loyalty_settings.x_visits - (visits - 1),
+                                   discount=loyalty_settings.x_discount)
     else:
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-next-type-1")
-        message = message % {'price_new': price_new_str,
-                             'price_total': price_total_str,
-                             'discount': loyalty_settings.x_discount}
+        message = common_translate(sln_settings.main_language, u"loyalty-message-next-type-1", price_new=price_new_str,
+                                   price_total=price_total_str, discount=loyalty_settings.x_discount)
 
     deferred.defer(send_email_to_user_for_loyalty_update, service_user, service_identity, app_user, message)
     return True, True, message, slv.key()
@@ -692,15 +688,13 @@ def add_loyalty_for_user_lottery(service_user, service_identity, admin_user, app
             if ll_info:
                 loot_datetime_tz = datetime.fromtimestamp(ll_info.end_timestamp, pytz.timezone(sln_settings.timezone))
                 loot_date_str = format_datetime(loot_datetime_tz, format='medium', locale=sln_settings.main_language)
-                message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"tnx-loyalty-lottery-visit")
-                message = message % {'name': user_detail.name,
-                                     'date': loot_date_str}
+                message = common_translate(sln_settings.main_language, u"tnx-loyalty-lottery-visit", name=user_detail.name, date=loot_date_str)
                 deferred.defer(send_email_to_user_for_loyalty_update, service_user, service_identity, app_user, message)
             else:
                 deferred.defer(send_styled_inbox_forwarders_email_lottery_not_configured,
                                service_user, service_identity, user_detail)
         else:
-            message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-lottery-visit-only-once")
+            message = common_translate(sln_settings.main_language, u"loyalty-lottery-visit-only-once")
             deferred.defer(send_email_to_user_for_loyalty_update, service_user, service_identity, app_user, message)
 
     return True, is_put, None, slv_key
@@ -730,29 +724,28 @@ def add_loyalty_for_user_stamps(service_user, service_identity, admin_user, app_
     count_total += count
 
     if loyalty_settings.x_stamps > count_total:
-        message_key = u"loyalty-message-remaining-type-3"
+        translation_key = u"loyalty-message-remaining-type-3"
         message_params = {}
         if count > 1:
-            message_key = u"%s-more" % message_key
+            translation_key = u"%s-more" % translation_key
             message_params['new_stamps'] = count
         else:
-            message_key = u"%s-one" % message_key
+            translation_key = u"%s-one" % translation_key
 
         if loyalty_settings.x_stamps > count_total + 1:
-            message_key = u"%s-more" % message_key
+            translation_key = u"%s-more" % translation_key
             message_params['stamps_remaining'] = loyalty_settings.x_stamps - count_total
         else:
-            message_key = u"%s-one" % message_key
+            translation_key = u"%s-one" % translation_key
 
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON, message_key)
+        message = common_translate(sln_settings.main_language, translation_key)
         if message_params:
             message = message % message_params
     else:
         if count > 1:
-            message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-next-type-3-more")
-            message = message % {'new_stamps': count}
+            message = common_translate(sln_settings.main_language, u"loyalty-message-next-type-3-more", new_stamps=count)
         else:
-            message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-next-type-3-one")
+            message = common_translate(sln_settings.main_language, u"loyalty-message-next-type-3-one")
 
     deferred.defer(send_email_to_user_for_loyalty_update, service_user, service_identity, app_user, message)
     return True, True, message, slv.key()
@@ -789,12 +782,12 @@ def solution_loyalty_put(service_user, email, method, params, tag, service_ident
             r.result = None
             sln_settings = get_solution_settings(service_user)
             r.error = common_translate(
-                sln_settings.main_language, SOLUTION_COMMON, custom_error_message_key or 'error-occured-unknown-try-again')
+                sln_settings.main_language, custom_error_message_key or 'error-occured-unknown-try-again')
     except:
         logging.error("solutions.loyalty.put exception occurred", exc_info=True)
         r.result = None
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -828,9 +821,8 @@ def redeem_loyalty_for_user_revenue_discount(service_user, service_identity, adm
 
         sln_settings = get_solution_settings(service_user)
         price_total_str = format_currency(price_total / 100.0, sln_settings.currency, locale=sln_settings.main_language)
-        message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-redeemed-type-1")
-        message = message % {'price_total': price_total_str,
-                             'discount': loyalty_settings.x_discount}
+        message = common_translate(sln_settings.main_language, u"loyalty-message-redeemed-type-1", price_total=price_total_str,
+                                   discount=loyalty_settings.x_discount)
 
     else:
         logging.warn("loyalty redeem of 0 visits")
@@ -916,14 +908,10 @@ def redeem_loyalty_for_user_stamps(service_user, service_identity, admin_user, a
 
         sln_settings = get_solution_settings(service_user)
         if total_cards_to_redeem > 1:
-            message = common_translate(
-                sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-redeemed-type-3-more")
-            message = message % {'count': total_cards_to_redeem,
-                                 'winnings': loyalty_settings.stamps_winnings}
+            message = common_translate(sln_settings.main_language, u"loyalty-message-redeemed-type-3-more", count=total_cards_to_redeem,
+                                       winnings=loyalty_settings.stamps_winnings)
         else:
-            message = common_translate(
-                sln_settings.main_language, SOLUTION_COMMON, u"loyalty-message-redeemed-type-3-one")
-            message = message % {'winnings': loyalty_settings.stamps_winnings}
+            message = common_translate(sln_settings.main_language, u"loyalty-message-redeemed-type-3-one", winnings=loyalty_settings.stamps_winnings)
     else:
         logging.warn("loyalty redeem of 0 stamps")
 
@@ -995,12 +983,12 @@ def solution_loyalty_redeem(service_user, email, method, params, tag, service_id
         else:
             r.result = None
             sln_settings = get_solution_settings(service_user)
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again')
+            r.error = common_translate(sln_settings.main_language, 'error-occured-unknown-try-again')
     except:
         logging.error("solutions.loyalty.redeem exception occurred", exc_info=True)
         r.result = None
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -1022,7 +1010,7 @@ def solution_loyalty_lottery_chance(service_user, email, method, params, tag, se
         logging.error("solutions.loyalty.lottery.chance exception occurred", exc_info=True)
         r.result = None
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -1050,12 +1038,12 @@ def solution_loyalty_couple(service_user, email, method, params, tag, service_id
             r.result = unicode(json.dumps(dict()))
         else:
             sln_settings = get_solution_settings(service_user)
-            r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'invalid_email_format', email=email)
+            r.error = common_translate(sln_settings.main_language, 'invalid_email_format', email=email)
 
     except:
         logging.error("solutions.loyalty.couple exception occurred", exc_info=True)
         sln_settings = get_solution_settings(service_user)
-        r.error = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown')
+        r.error = common_translate(sln_settings.main_language, 'error-occured-unknown')
     return r
 
 
@@ -1186,7 +1174,7 @@ def delete_visit(service_user, key):
 def _send_delete_visit(service_user, service_identity, app_user, timestamp):
     sln_settings = get_solution_settings(service_user)
     dt = datetime.utcfromtimestamp(timestamp)
-    message = common_translate(sln_settings.main_language, SOLUTION_COMMON, u'loyalty-message-delete-visit',
+    message = common_translate(sln_settings.main_language, u'loyalty-message-delete-visit',
                                date=format_date(dt, format='long', locale=sln_settings.main_language))
     deferred.defer(_send_message_to_user, service_user, service_identity, app_user, message)
 
@@ -1245,8 +1233,7 @@ def _send_message_to_user_for_loyalty_update(service_user, service_identity, adm
     answers = []
     btn = AnswerTO()
     btn.action = None
-    btn.caption = common_translate(
-        sln_settings.main_language, SOLUTION_COMMON, u'loyalty-reminder-stop-for', name=sln_settings.name)
+    btn.caption = common_translate(sln_settings.main_language, u'loyalty-reminder-stop-for', name=sln_settings.name)
     btn.id = unicode(json.dumps(dict(email=human_user.email(),
                                      app_id=app_id,
                                      all=False)))
@@ -1485,7 +1472,7 @@ def redeem_lottery_winners(service_user, service_identity, app_user, name, sim_p
         sln_settings = get_solution_settings(service_user)
         sln_i_settings = get_solution_settings_or_identity_settings(sln_settings, service_identity)
 
-        msg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-loot-receive')
+        msg = common_translate(sln_settings.main_language, 'loyalty-lottery-loot-receive')
 
         sim_parent, _ = add_solution_inbox_message(service_user, sln_loyalty_lottery.solution_inbox_message_key, True,
                                                    None, now_, msg, mark_as_read=True)
@@ -1527,7 +1514,7 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
 
     app = get_app_by_id(si.app_ids[0])
 
-    subject = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-configure-email-subject')
+    subject = common_translate(sln_settings.main_language, 'loyalty-lottery-configure-email-subject')
 
     mimeRoot = MIMEMultipart('related')
     mimeRoot['Subject'] = subject
@@ -1542,26 +1529,28 @@ def send_styled_inbox_forwarders_email_lottery_not_configured(service_user, serv
     button_css = 'display: inline-block; margin-left: 0.5em; margin-right: 0.5em; -webkit-border-radius: 6px;' \
                  ' -moz-border-radius: 6px; border-radius: 6px; font-family: Arial; color: #ffffff; font-size: 14px;' \
                  ' background: #3abb9e; padding: 8px 16px 8px 16px; text-decoration: none;'
-    if_email_footer_1 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-1',
+    if_email_footer_1 = common_translate(sln_settings.main_language, 'if-email-footer-1',
                                          service_name=sln_settings.name,
                                          app_name=app.name)
-    if_email_footer_2 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-2')
-    if_email_footer_3 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-3')
-    if_email_footer_4 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-4')
-    if_email_footer_5 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-5')
-    if_email_footer_6 = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'if-email-footer-6')
+    if_email_footer_2 = common_translate(sln_settings.main_language, 'if-email-footer-2')
+    if_email_footer_3 = common_translate(sln_settings.main_language, 'if-email-footer-3')
+    if_email_footer_4 = common_translate(sln_settings.main_language, 'if-email-footer-4')
+    if_email_footer_5 = common_translate(sln_settings.main_language, 'if-email-footer-5')
+    if_email_footer_6 = common_translate(sln_settings.main_language, 'if-email-footer-6')
 
-    if_email_body_1_button = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-configure-email-text',
+    if_email_body_1_button = common_translate(sln_settings.main_language, 'loyalty-lottery-configure-email-text',
                                               name=user_detail.name,
                                               email=service_email,
                                               link="<a href='https://dashboard.onzestadapp.be/customers/signin?email=%(service_email)s' style='%(button_css)s'>Dashboard</a>" %
-                                              {'service_email': sln_settings.login.email() if sln_settings.login else service_user.email(),
-                                               'button_css': button_css})
+                                                   {
+                                                       'service_email': sln_settings.login.email() if sln_settings.login else service_user.email(),
+                                                       'button_css': button_css})
 
-    if_email_body_1_url = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty-lottery-configure-email-text',
+    if_email_body_1_url = common_translate(sln_settings.main_language, 'loyalty-lottery-configure-email-text',
                                            name=user_detail.name,
                                            email=service_email,
-                                           link="https://dashboard.onzestadapp.be/customers/signin?email=%(service_email)s" % {'service_email': service_email})
+                                           link="https://dashboard.onzestadapp.be/customers/signin?email=%(service_email)s" % {
+                                               'service_email': service_email})
 
     body_html = """<!DOCTYPE html>
 <html>
@@ -1668,24 +1657,22 @@ def send_email_to_user_for_loyalty_update(service_user, service_identity, app_us
     app = get_app_by_id(app_id)
     server_settings = get_server_settings()
 
-    subject = common_translate(
-        sln_settings.main_language, SOLUTION_COMMON, "%(app_name)s has 1 new message for you", app_name=app.name)
+    subject = common_translate(sln_settings.main_language, "%(app_name)s has 1 new message for you", app_name=app.name)
     user_email = human_user.email()
 
-    support_email = common_translate(
-        sln_settings.main_language, SOLUTION_COMMON, 'the_our_city_app_coach_email_address')
-    support_html = common_translate(
-        sln_settings.main_language, SOLUTION_COMMON, 'the_our_city_app_coach_email_address_html', email=support_email)
-    website_link = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'http://www.ourcityapps.com')
-    install_info = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty_email_no_mobiles',
+    support_email = common_translate(sln_settings.main_language, 'the_our_city_app_coach_email_address')
+    support_html = common_translate(sln_settings.main_language, 'the_our_city_app_coach_email_address_html',
+                                    email=support_email)
+    website_link = common_translate(sln_settings.main_language, 'http://www.ourcityapps.com')
+    install_info = common_translate(sln_settings.main_language, 'loyalty_email_no_mobiles',
                                     app_name=app.name,
                                     support=support_email,
                                     website_link=website_link)
-    install_info_html = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'loyalty_email_no_mobiles_html',
+    install_info_html = common_translate(sln_settings.main_language, 'loyalty_email_no_mobiles_html',
                                          app_name=app.name,
                                          support=support_html,
                                          website_link=website_link)
-    team = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'the_our_city_app_team')
+    team = common_translate(sln_settings.main_language, 'the_our_city_app_team')
 
     service_identity_user = create_service_identity_user_wo_default(service_user, service_identity)
     service_identity_user_email = service_identity_user.email()
@@ -1694,15 +1681,15 @@ def send_email_to_user_for_loyalty_update(service_user, service_identity, app_us
     if unsubscribe_enabled:
         unsubscribe_link = generate_loyalty_no_mobiles_unsubscribe_email_link(
             app_user, service_identity_user_email, sln_settings.name)
-        unsubscribe_info = common_translate(
-            sln_settings.main_language, SOLUTION_COMMON, 'dont_receive_emails_unsubsubscribe', unsubscribe_link=unsubscribe_link)
-        unsubscribe_info_html = common_translate(
-            sln_settings.main_language, SOLUTION_COMMON, 'dont_receive_emails_unsubsubscribe_html', unsubscribe_link=unsubscribe_link)
+        unsubscribe_info = common_translate(sln_settings.main_language, 'dont_receive_emails_unsubsubscribe',
+                                            unsubscribe_link=unsubscribe_link)
+        unsubscribe_info_html = common_translate(sln_settings.main_language, 'dont_receive_emails_unsubsubscribe_html',
+                                                 unsubscribe_link=unsubscribe_link)
 
     lottery_winner_info = None
     lottery_winner_info_html = None
     if lottery_winner_message_key:
-        confirm = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Confirm')
+        confirm = common_translate(sln_settings.main_language, 'Confirm')
         confirm_link = generate_loyalty_no_mobiles_lottery_winner_link(
             app_user, service_identity_user_email, sln_settings.name, lottery_winner_message_key)
         lottery_winner_info = "%s: %s" % (confirm, confirm_link)

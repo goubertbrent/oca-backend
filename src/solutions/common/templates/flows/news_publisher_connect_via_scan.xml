@@ -16,7 +16,7 @@
             dismissReference="end_end"
             autoLock="true"
             brandingKey="{{ branding_key }}">
-            <content>{% translate language, 'common', 'create-news-from-mobile-confirm' %}</content>
+            <content>{% translate language, 'create-news-from-mobile-confirm' %}</content>
         </message>
     </definition>
 </messageFlowDefinitionSet>

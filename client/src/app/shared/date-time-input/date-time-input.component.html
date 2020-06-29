@@ -1,4 +1,4 @@
-<mat-form-field appearance="outline" style="width: calc(50% - 8px);">
+<mat-form-field style="width: calc(50% - 8px);">
   <mat-label>{{ dateLabel }}</mat-label>
   <input matInput
          readonly
@@ -26,13 +26,11 @@
     </ng-container>
   </mat-error>
 </mat-form-field>
-<mat-form-field appearance="outline" style="width: calc(50% - 8px); margin-left: 16px;">
+<mat-form-field  style="width: calc(50% - 8px); margin-left: 16px;">
   <mat-label>{{ timeLabel }}</mat-label>
-  <input type="time"
-         matInput
-         [name]="name + '_time'"
-         [disabled]="disabled"
-         [required]="required"
-         (change)="onTimeChange()"
-         #timeInput>
+  <oca-time-input (ngModelChange)="onTimeChanged($event)"
+                  [disabled]="disabled"
+                  [ngModel]="date"
+                  [required]="required"
+                  ngModelOptions="{standalone: true}"></oca-time-input>
 </mat-form-field>

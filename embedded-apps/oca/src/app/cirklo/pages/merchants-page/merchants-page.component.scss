@@ -1,0 +1,23 @@
+.merchants-info {
+  margin: 16px;
+}
+
+.open-until {
+  color: white;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.open-until-chip {
+  padding: 6px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+.closed {
+  background-color: var(--ion-color-danger);
+}
+
+.open {
+  background-color: var(--ion-color-primary);
+}

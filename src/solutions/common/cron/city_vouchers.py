@@ -36,7 +36,7 @@ from rogerthat.to.messaging import MemberTO
 from rogerthat.utils import send_mail, today
 from shop.models import Customer
 from solution_server_settings import get_solution_server_settings
-from solutions import SOLUTION_COMMON, translate as common_translate
+from solutions import translate as common_translate
 from solutions.common.bizz import SolutionModule
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionSettings
@@ -85,7 +85,7 @@ def write_header(sheet, row, translate_fn, *header):
 def create_voucher_statistics_for_city_service(service_user, language, first_day_of_last_month, first_day_of_current_month):
     import xlwt
     customer = Customer.get_by_service_email(service_user.email())
-    translate = partial(common_translate, language, SOLUTION_COMMON)
+    translate_f = partial(common_translate, language)
     if not customer:
         logging.error("failed to create voucher statistics customer not found")
         return
@@ -138,9 +138,9 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
     book = xlwt.Workbook(encoding="utf-8")
 
     # TAB 1
-    sheet_transactions = book.add_sheet(translate("Transactions"))
+    sheet_transactions = book.add_sheet(translate_f("Transactions"))
     row = 0
-    write_header(sheet_transactions, row, translate,
+    write_header(sheet_transactions, row, translate_f,
                  "Date", "Voucher", "Internal account", "Cost center",
                  "merchant", "Withdrawn value")
 
@@ -153,17 +153,17 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
         sheet_transactions.write(row, 4, merchants[transaction.service_user].name)
         sheet_transactions.write(row, 5, round(transaction.value / 100.0, 2))
     row += 2
-    sheet_transactions.write(row, 0, translate("total"))
+    sheet_transactions.write(row, 0, translate_f("total"))
     sheet_transactions.write(row, 5, xlwt.Formula('SUM(F2:F%s)' % (row - 1)))
 
     # TAB 2
-    sheet_merchants = book.add_sheet(translate("merchants"))
+    sheet_merchants = book.add_sheet(translate_f("merchants"))
     row = 0
-    sheet_merchants.write(row, 0, translate("merchant"))
-    sheet_merchants.write(row, 1, translate("address"))
+    sheet_merchants.write(row, 0, translate_f("merchant"))
+    sheet_merchants.write(row, 1, translate_f("address"))
     sheet_merchants.write(row, 2, "IBAN")
     sheet_merchants.write(row, 3, "BIC")
-    sheet_merchants.write(row, 4, translate("Total value to be paid"))
+    sheet_merchants.write(row, 4, translate_f("Total value to be paid"))
     for merchant_service_user in merchants.keys():
         merchant = merchants[merchant_service_user]
         merchant_info = merchants_info[merchant_service_user]
@@ -175,13 +175,13 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
         sheet_merchants.write(row, 4, round(merchant_transactions[merchant_service_user]["value"] / 100.0, 2))
 
     row += 2
-    sheet_merchants.write(row, 0, translate("total"))
+    sheet_merchants.write(row, 0, translate_f("total"))
     sheet_merchants.write(row, 4, xlwt.Formula('SUM(E2:E%s)' % (row - 1)))
 
     # TAB 3
-    sheet_vouchers = book.add_sheet(translate("Vouchers in circulation"))
+    sheet_vouchers = book.add_sheet(translate_f("Vouchers in circulation"))
     row = 0
-    write_header(sheet_vouchers, row, translate,
+    write_header(sheet_vouchers, row, translate_f,
                  "Voucher", "Internal account", "Cost center", "Date", "Remaining value")
 
     for voucher in vouchers:
@@ -195,13 +195,13 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
         sheet_vouchers.write(row, 4, round(value / 100.0, 2))
 
     row += 2
-    sheet_vouchers.write(row, 0, translate("total"))
+    sheet_vouchers.write(row, 0, translate_f("total"))
     sheet_vouchers.write(row, 2, xlwt.Formula('SUM(E2:E%s)' % (row - 1)))
 
     # TAB 4
-    expired_vouchers_sheet = book.add_sheet(translate("expired"))
+    expired_vouchers_sheet = book.add_sheet(translate_f("expired"))
     row = 0
-    write_header(expired_vouchers_sheet, row, translate,
+    write_header(expired_vouchers_sheet, row, translate_f,
                  "Voucher", "Internal account", "Cost center",
                  "Date", "Expiration date", "Remaining value")
 
@@ -217,24 +217,24 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
         expired_vouchers_sheet.write(row, 5, round(value / 100.0, 2))
 
     row += 2
-    expired_vouchers_sheet.write(row, 0, translate("total"))
+    expired_vouchers_sheet.write(row, 0, translate_f("total"))
     expired_vouchers_sheet.write(row, 5, xlwt.Formula('SUM(F2:F%s)' % (row - 1)))
 
     # TAB 5
-    sheet_voucher_details = book.add_sheet(translate("Voucher details"))
+    sheet_voucher_details = book.add_sheet(translate_f("Voucher details"))
     row = 0
     for voucher in sorted(unique_vouchers.itervalues(), key=lambda v: v.created):
         voucher_transactions = [h for h in voucher.load_transactions()]
-        sheet_voucher_details.write(row, 0, translate("Voucher"))
+        sheet_voucher_details.write(row, 0, translate_f("Voucher"))
         sheet_voucher_details.write(row, 1, voucher.uid)
-        sheet_voucher_details.write(row, 2, translate("Remaining value"))
+        sheet_voucher_details.write(row, 2, translate_f("Remaining value"))
         sheet_voucher_details.write(
             row, 3, xlwt.Formula('SUM(D%s:D%s)' % (row + 2,  row + 1 + len(voucher_transactions))))
 
         row += 1
-        sheet_voucher_details.write(row, 0, translate("Internal account"))
+        sheet_voucher_details.write(row, 0, translate_f("Internal account"))
         sheet_voucher_details.write(row, 1, voucher.internal_account)
-        sheet_voucher_details.write(row, 2, translate("Cost center"))
+        sheet_voucher_details.write(row, 2, translate_f("Cost center"))
         sheet_voucher_details.write(row, 3, voucher.cost_center)
 
         for history in reversed(voucher_transactions):
@@ -275,10 +275,10 @@ def create_voucher_statistics_for_city_service(service_user, language, first_day
     if to_emails:
         solution_server_settings = get_solution_server_settings()
         attachments = []
-        attachments.append(('%s %s-%s.xls' % (translate('Vouchers'), d.year, d.month),
+        attachments.append(('%s %s-%s.xls' % (translate_f('Vouchers'), d.year, d.month),
                             base64.b64encode(excel_string)))
-        subject = translate('Vouchers export')
-        message = translate('see_attachment_for_vouchers_export')
+        subject = translate_f('Vouchers export')
+        message = translate_f('see_attachment_for_vouchers_export')
         send_mail(solution_server_settings.shop_export_email, to_emails, subject, message, attachments=attachments)
 
 
@@ -286,11 +286,11 @@ def create_voucher_statistics_for_service(sln_settings, app_id, language, transa
     import xlwt
     transactions = SolutionCityVoucherTransaction.get(transaction_keys)
     book = xlwt.Workbook(encoding="utf-8")
-    translate = partial(common_translate, language, SOLUTION_COMMON)
+    translate_f = partial(common_translate, language)
 
-    sheet_transactions = book.add_sheet(translate("Transactions"))
+    sheet_transactions = book.add_sheet(translate_f("Transactions"))
     row = 0
-    write_header(sheet_transactions, row, translate,
+    write_header(sheet_transactions, row, translate_f,
                  "Date", "Voucher", "Withdrawn value")
 
     for transaction in transactions:
@@ -301,7 +301,7 @@ def create_voucher_statistics_for_service(sln_settings, app_id, language, transa
         sheet_transactions.write(row, 1, transaction.voucher.uid)
         sheet_transactions.write(row, 2, round(transaction.value / 100.0, 2))
     row += 2
-    sheet_transactions.write(row, 0, translate("total"))
+    sheet_transactions.write(row, 0, translate_f("total"))
     sheet_transactions.write(row, 2, xlwt.Formula('SUM(C2:C%s)' % (row - 1)))
 
     excel_file = StringIO()
@@ -370,7 +370,7 @@ def send_expired_voucher_message(voucher_key, sln_settings, days):
 
     if voucher.owner:
         activation_date = format_timestamp(voucher.activation_date, sln_settings, format='medium')
-        message = common_translate(language, SOLUTION_COMMON, u'voucher_expiration_message',
+        message = common_translate(language, u'voucher_expiration_message',
                                    days=days, date=activation_date)
         with users.set_user(sln_settings.service_user):
             member = MemberTO()

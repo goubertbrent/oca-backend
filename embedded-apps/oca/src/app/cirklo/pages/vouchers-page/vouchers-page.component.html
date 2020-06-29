@@ -1,0 +1,49 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.oca.vouchers' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button (click)="deleteClicked()" *ngIf="showDeleteButton$ | async" [color]="canDelete ? 'primary' : ''">
+        <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-progress-bar *ngIf="isLoading$ | async" type="indeterminate"></ion-progress-bar>
+<ion-content>
+  <div *ngIf="vouchers$ | async as vouchers" [ngSwitch]="vouchers.layout" class="main-layout">
+    <app-voucher-intro *ngSwitchCase="'none'"
+                       [description]="'app.oca.vouchers_info' | translate"
+                       [logoUrl]="vouchers.cities[vouchers.main_city_id].logo_url"
+                       [title]="'app.oca.act_local' | translate"></app-voucher-intro>
+    <app-large-voucher *ngSwitchCase="'singular'"
+                       [expired]="vouchers.result.expired"
+                       [logoUrl]="vouchers.cities[vouchers.result.cityId].logo_url"
+                       [qrData]="vouchers.result | voucherQrData"
+                       [remainingValue]="vouchers.result.amount"
+                       [validDate]="vouchers.result.expirationDate"
+                       [value]="vouchers.result.value"
+                       [voucherId]="vouchers.result.id"></app-large-voucher>
+    <ng-container *ngSwitchCase="'multiple'">
+      <app-small-voucher (delete)="confirmDelete(voucher)"
+                         *ngFor="let voucher of vouchers.results; trackBy: trackVouchers"
+                         @cardAnimation
+                         [canDelete]="canDelete"
+                         [expired]="voucher.expired"
+                         [logoUrl]="vouchers.cities[voucher.cityId].logo_url"
+                         [remainingValue]="voucher.amount"
+                         [routerLink]="[voucher.id]"
+                         [validDate]="voucher.expirationDate"
+                         [value]="voucher.originalAmount"
+                         class="voucher"></app-small-voucher>
+    </ng-container>
+  </div>
+  <div [style.bottom]="scanButtonBottom" class="scan-button-container">
+    <ion-button (click)="startScanning()" class="scan-button" type="button">
+      <ion-icon name="add" slot="start"></ion-icon>
+      <ion-label>{{ 'app.oca.scan_voucher' | translate }}</ion-label>
+    </ion-button>
+  </div>
+</ion-content>

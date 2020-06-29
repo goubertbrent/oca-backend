@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
+import { CirkloSettings, ExportVoucherServices, VoucherProviderId, VoucherService, VouchersServiceList } from './vouchers';
 
 @Injectable({
   providedIn: 'root',
@@ -24,5 +24,13 @@ export class VouchersService {
 
   exportServices() {
     return this.http.get<ExportVoucherServices>(`/common/vouchers/export`);
+  }
+
+  getCirkloSettings() {
+    return this.http.get<CirkloSettings>(`/common/vouchers/cirklo`);
+  }
+
+  saveCirkloSettings(settings: CirkloSettings) {
+    return this.http.put<CirkloSettings>(`/common/vouchers/cirklo`, settings);
   }
 }

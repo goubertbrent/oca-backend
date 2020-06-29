@@ -18,11 +18,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfZmFpbCIsICJsYW5nIjogIm5sIn0=">
-            <content>{% translate language, 'common', 'reservation-message-amount-people' %}</content>
+            <content>{% translate language, 'reservation-message-amount-people' %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'reservation-button-check-db' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'reservation-button-check-db' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -57,11 +57,11 @@
                 vibrate="false"
                 autoLock="true"
                 negativeReference="base64:eyJtZmQiOiAiYWhOa1pYWi1iVzlpYVdOaFoyVmpiRzkxWkdoeWNqb0xFZ3B0WXkxMGNtRmphMlZ5SWdkaFFHRXVZMjl0REFzU0VVMWxjM05oWjJWR2JHOTNSR1Z6YVdkdUlneHlaWE5sY25aaGRHbHZiakVNIiwgImlkIjogImVuZF9ieWVfZmFpbCIsICJsYW5nIjogIm5sIn0=">
-            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'common', 'reservation-message-date-time' %}{% endif %}</content>
+            <content>{% if custom_message %}{{ custom_message }}{% else %}{% translate language, 'reservation-message-date-time' %}{% endif %}</content>
             <form
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
+                positiveButtonCaption="{% translate language, 'Next' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

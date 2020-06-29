@@ -30,7 +30,6 @@ from rogerthat.rpc.service import BusinessException
 from rogerthat.to.system import TranslationSetTO, TranslationTO, TranslationValueTO
 from rogerthat.utils import case_insensitive_compare, reversed_dict, get_full_language_string, now, bizz_check
 
-
 FIRST_CONTENT_ROW = 10
 LANGUAGES_ROW = FIRST_CONTENT_ROW - 3
 

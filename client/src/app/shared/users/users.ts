@@ -4,5 +4,4 @@ export interface UserDetailsTO {
   language: string;
   avatar_url: string;
   app_id: string;
-  public_key: string;
 }

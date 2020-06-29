@@ -16,32 +16,33 @@
 # @@license_version:1.7@@
 
 import base64
+from collections import OrderedDict
+from contextlib import closing
 import csv
 import datetime
+from functools import partial
 import hashlib
 import json
 import logging
 import os
+from types import NoneType
 import urllib
 import urlparse
-from collections import OrderedDict
-from contextlib import closing
-from functools import partial
-from types import NoneType
 
-import cloudstorage
-import httplib2
 from babel.dates import format_datetime, get_timezone, format_date
+import cloudstorage
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, images, users as gusers
 from google.appengine.ext import deferred, db, ndb
+import httplib2
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client.client import HttpAccessTokenRefreshError
-from typing import Tuple
+from typing import Tuple, Union, List
 
+from mcfw.exceptions import HttpBadRequestException
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
-from mcfw.utils import normalize_search_string, chunks
+from mcfw.utils import normalize_search_string
 from rogerthat.bizz.app import get_app
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
@@ -61,7 +62,8 @@ from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import AnswerTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
-from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail
+from rogerthat.utils import bizz_check, now, channel, generate_random_key, get_epoch_from_datetime, send_mail, \
+    get_server_url
 from rogerthat.utils.app import create_app_user_by_email
 from rogerthat.utils.crypto import encrypt, decrypt, sha256_hex
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException, \
@@ -87,12 +89,12 @@ from shop.exceptions import BusinessException, CustomerNotFoundException, Contac
 from shop.models import Customer, Contact, normalize_vat, Invoice, Order, Charge, OrderItem, Product, \
     StructuredInfoSequence, ChargeNumber, InvoiceNumber, Prospect, ShopTask, ProspectRejectionReason, RegioManager, \
     RegioManagerStatistic, ProspectHistory, OrderNumber, RegioManagerTeam, CreditCard, LegalEntity, CustomerSignup, \
-    ShopApp, LegalDocumentAcceptance, LegalDocumentType
+    ShopApp, LegalDocumentAcceptance, LegalDocumentType, PaidFeatures
 from shop.to import CustomerChargeTO, CustomerChargesTO, BoundsTO, ProspectTO, AppRightsTO, CustomerServiceTO, \
     OrderItemTO, CompanyTO, CustomerTO
 from solution_server_settings import get_solution_server_settings, CampaignMonitorWebhook
 from solution_server_settings.consts import SHOP_OAUTH_CLIENT_ID, SHOP_OAUTH_CLIENT_SECRET
-from solutions import SOLUTION_COMMON, translate as common_translate, translate
+from solutions import translate as common_translate, translate
 from solutions.common.bizz import SolutionModule, common_provision, campaignmonitor, DEFAULT_BROADCAST_TYPES
 from solutions.common.bizz.grecaptcha import recaptcha_verify
 from solutions.common.bizz.messaging import send_inbox_forwarders_message
@@ -108,6 +110,7 @@ from solutions.common.models.hints import SolutionHint
 from solutions.common.models.statistics import AppBroadcastStatistics
 from solutions.common.to import ProvisionResponseTO
 from solutions.flex.bizz import create_flex_service
+
 
 try:
     from cStringIO import StringIO
@@ -462,18 +465,11 @@ def validate_service(service):
 
 @returns(ProvisionResponseTO)
 @arguments(customer_or_id=(int, long, Customer), service=CustomerServiceTO, skip_module_check=bool,
-           search_enabled=bool, skip_email_check=bool, broadcast_to_users=[users.User])
+           search_enabled=bool, skip_email_check=bool, broadcast_to_users=[users.User], password=unicode,
+           tos_version=(int, long, NoneType))
 def put_service(customer_or_id, service, skip_module_check=False, search_enabled=False, skip_email_check=False,
-                broadcast_to_users=None):
-    """
-    Args:
-        customer_or_id (Customer or int)
-        service (CustomerServiceTO)
-        skip_module_check (bool)
-        search_enabled (bool)
-        skip_email_check (bool)
-        broadcast_to_users (list of users.User)
-    """
+                broadcast_to_users=None, password=None, tos_version=None):
+    # type: (Union[int, long, Customer], CustomerServiceTO, bool,bool, bool, List[users.User], unicode, Union[int, long, NoneType]) -> ProvisionResponseTO
     validate_service(service)
 
     if isinstance(customer_or_id, Customer):
@@ -553,7 +549,7 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
             if fb_url:
                 page = SyncedNameValue()
                 page.value = fb_url
-                page.name = translate(customer.language, SOLUTION_COMMON, 'Facebook page')
+                page.name = common_translate(customer.language, 'Facebook page')
                 websites.append(page)
         if customer.website:
             url = validate_url(customer.website)
@@ -566,18 +562,19 @@ def put_service(customer_or_id, service, skip_module_check=False, search_enabled
     r = create_flex_service(customer.service_email if redeploy else service.email, customer.name,
                             service.phone_number, [service.language], u'EUR', modules,
                             service.broadcast_types, service.apps, redeploy, service.organization_type,
-                            search_enabled, broadcast_to_users=broadcast_to_users, websites=websites)
+                            search_enabled, broadcast_to_users=broadcast_to_users, websites=websites, password=password,
+                            tos_version=tos_version)
 
     r.auto_login_url = customer.auto_login_url
-
+    send_login_information = False if tos_version else True
     deferred.defer(_after_service_saved, customer.key(), service.email, r, redeploy, service.apps,
-                   broadcast_to_users, bool(user_existed), _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
+                   broadcast_to_users, bool(user_existed), send_login_information=send_login_information, _transactional=db.is_in_transaction(), _queue=FAST_QUEUE)
     return r
 
 
 @arguments(customer_key=db.Key, user_email=unicode, r=ProvisionResponseTO, is_redeploy=bool, app_ids=[unicode],
-           broadcast_to_users=[users.User], user_exists=bool)
-def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users, user_exists=False):
+           broadcast_to_users=[users.User], user_exists=bool, send_login_information=bool)
+def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broadcast_to_users, user_exists=False, send_login_information=True):
     """
     Args:
         customer_key (db.Key)
@@ -608,7 +605,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
                 to_put.append(new_default_app)
                 if not is_redeploy:
                     app_settings = get_app_settings(new_default_app_id)
-                    app_settings.birthday_message = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                    app_settings.birthday_message = common_translate(sln_settings.main_language,
                                                                      u'birthday_message_default_text')
                     to_put.append(app_settings)
             customer.default_app_id = new_default_app_id
@@ -628,7 +625,7 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
         if broadcast_to_users:
             channel.send_message(broadcast_to_users, 'shop.provision.success', customer_id=customer.id)
 
-        if not is_redeploy:
+        if send_login_information and not is_redeploy:
             settings = get_server_settings()
             contact = Contact.get_one(customer_key)
 
@@ -660,8 +657,8 @@ def _after_service_saved(customer_key, user_email, r, is_redeploy, app_ids, broa
             text_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email.tmpl').render(params)
             html_body = SHOP_JINJA_ENVIRONMENT.get_template('emails/login_information_email_html.tmpl').render(params)
 
-            subject = '%s - %s' % (common_translate(customer.language, SOLUTION_COMMON, 'our-city-app'),
-                                   common_translate(customer.language, SOLUTION_COMMON, 'login_information'))
+            subject = '%s - %s' % (common_translate(customer.language, 'our-city-app'),
+                                   common_translate(customer.language, 'login_information'))
             app = get_app_by_id(customer.app_id)
             from_email = '%s <%s>' % (app.name, shop_translate(customer.language, 'oca_info_email_address'))
 
@@ -1934,13 +1931,18 @@ def get_prospect_history(prospect_id):
     return ProspectHistory.all().ancestor(Prospect.create_key(prospect_id))
 
 
-def put_shop_app(app_id, signup_enabled, paid_features_enabled):
-    # type: (str, bool, bool) -> ShopApp
+def put_shop_app(app_id, signup_enabled, paid_features_enabled, jobs_enabled):
+    # type: (str, bool, bool, bool) -> ShopApp
     key = ShopApp.create_key(app_id)
     shop_app = key.get() or ShopApp(key=key,
                                     name=get_app_by_id(app_id).name)
     shop_app.signup_enabled = signup_enabled
     shop_app.paid_features_enabled = paid_features_enabled
+    if not shop_app.paid_features:
+        shop_app.paid_features = []
+    if shop_app.paid_features_enabled:
+        if jobs_enabled and PaidFeatures.JOBS not in shop_app.paid_features:
+            shop_app.paid_features.append(PaidFeatures.JOBS)
     shop_app.put()
     return shop_app
 
@@ -2020,6 +2022,78 @@ def export_customers_csv(google_user):
 
     solution_server_settings = get_solution_server_settings()
     subject = 'Customers export %s' % current_date
+    message = u'The exported customer list of %s can be found at %s' % (current_date, get_serving_url(gcs_path))
+
+    send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message)
+    if DEBUG:
+        with cloudstorage.open(gcs_path, 'r') as gcs_file:
+            logging.info(gcs_file.read())
+
+
+@returns(db.Query)
+@arguments(app_id=unicode)
+def get_all_customers_for_app(app_id):
+    return Customer.all().filter('default_app_id =', app_id)
+
+
+def export_cirklo_customers_csv(google_user, app_id):
+    result = list()
+
+    contact_data = {}
+    qry = Contact.all()
+    while True:
+        contacts = qry.fetch(300)
+        if not contacts:
+            break
+        for contact in contacts:
+            contact_data[contact.customer_key.id()] = contact
+        qry.with_cursor(qry.cursor())
+
+    qry = get_all_customers_for_app(app_id)
+    while True:
+        customers = qry.fetch(300)
+        if not customers:
+            break
+        logging.debug('Fetched %s customers', len(customers))
+        qry.with_cursor(qry.cursor())
+        for customer in customers:
+            if customer.organization_type in (ServiceProfile.ORGANIZATION_TYPE_CITY, ServiceProfile.ORGANIZATION_TYPE_NON_PROFIT):
+                continue
+            consents = get_customer_consents(customer.user_email)
+            if SolutionServiceConsent.TYPE_CIRKLO_SHARE in consents.types:
+                continue
+            d = OrderedDict()
+            d['Email'] = customer.user_email
+            d['Name'] = customer.name
+            d['creation_time'] = customer.creation_time
+            d['Customer since'] = format_datetime(customer.creation_time, 'yyyy-MM-dd HH:mm:ss',
+                                                  tzinfo=get_timezone('Europe/Brussels'))
+            contact = contact_data.get(customer.id)
+            d['First name'] = contact.first_name if contact else ''
+            d['Last name'] = contact.last_name if contact else ''
+            d['Link'] = get_customer_consent_cirklo_url(customer)
+            result.append(d)
+            for p, v in d.items():
+                if v and isinstance(v, unicode):
+                    d[p] = v.encode('utf-8')
+
+    result.sort(key=lambda d: -d['creation_time'])
+    logging.debug('Creating csv with %s customers', len(result))
+    fieldnames = ['First name', 'Last name', 'Name', 'Email', 'Customer since', 'Link']
+
+    date = format_datetime(datetime.datetime.now(), locale='en_GB', format='medium')
+    gcs_path = '/%s/customers/export-cirklo-%s.csv' % (EXPORTS_BUCKET, date.replace(' ', '-'))
+    with cloudstorage.open(gcs_path, 'w') as gcs_file:
+        writer = csv.DictWriter(gcs_file, dialect='excel', fieldnames=fieldnames)
+        writer.writeheader()
+        for row in result:
+            del row['creation_time']
+            writer.writerow(row)
+
+    current_date = format_date(datetime.date.today(), locale=DEFAULT_LANGUAGE)
+
+    solution_server_settings = get_solution_server_settings()
+    subject = 'Customers cirklo export %s' % current_date
     message = u'The exported customer list of %s can be found at %s' % (current_date, get_serving_url(gcs_path))
 
     send_mail(solution_server_settings.shop_export_email, [google_user.email()], subject, message)
@@ -2142,7 +2216,7 @@ def get_signup_summary(lang, customer_signup):
     """
 
     def trans(term, *args, **kwargs):
-        return common_translate(lang, SOLUTION_COMMON, unicode(term), *args, **kwargs)
+        return common_translate(lang, unicode(term), *args, **kwargs)
 
     org_type = customer_signup.company_organization_type
     org_type_name = ServiceProfile.localized_singular_organization_type(
@@ -2189,12 +2263,12 @@ def _send_new_customer_signup_message(service_user, customer_signup):
     btn_accept = AnswerTO()
     btn_accept.id = u'approve'
     btn_accept.type = u'button'
-    btn_accept.caption = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'reservation-approve')
+    btn_accept.caption = common_translate(sln_settings.main_language, 'reservation-approve')
     btn_accept.ui_flags = 0
     btn_deny = AnswerTO()
     btn_deny.id = u'decline'
     btn_deny.type = u'button'
-    btn_deny.caption = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'reservation-decline')
+    btn_deny.caption = common_translate(sln_settings.main_language, 'reservation-decline')
     btn_deny.ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
     answers = [btn_accept, btn_deny]
     msg_params = {'if_name': customer_signup.customer_name, 'if_email': customer_signup.customer_email}
@@ -2215,16 +2289,16 @@ def calculate_customer_url_digest(data):
 
 def send_signup_verification_email(city_customer, signup, host=None):
     # type: (Customer, CustomerSignup, str) -> None
-    data = dict(c=city_customer.service_user.email(), s=unicode(signup.key()), t=signup.timestamp)
+    data = {'c': city_customer.service_user.email(), 's': unicode(signup.key()), 't': signup.timestamp}
     user = users.User(signup.customer_email)
     data['d'] = calculate_customer_url_digest(data)
     data = encrypt(user, json.dumps(data))
     url_params = urllib.urlencode({'email': signup.customer_email, 'data': base64.b64encode(data)})
 
     lang = city_customer.language
-    translate = partial(common_translate, lang, SOLUTION_COMMON)
+    translate = partial(common_translate, lang)
     base_url = host or get_server_settings().baseUrl
-    link = '{}/customers/signup/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
+    link = '{}/customers/signup-password/{}?{}'.format(base_url, city_customer.default_app_id, url_params)
     subject = city_customer.name + ' - ' + translate('signup')
     params = {
         'language': lang,
@@ -2244,10 +2318,17 @@ def send_signup_verification_email(city_customer, signup, host=None):
            headers=dict)
 def create_customer_signup(city_customer_id, company, customer, recaptcha_token, domain=None, headers=None):
     if not recaptcha_verify(recaptcha_token):
-        raise BusinessException('Cannot verify recaptcha response')
+        raise HttpBadRequestException('Cannot verify recaptcha response')
 
     city_customer = Customer.get_by_id(city_customer_id)
     user_email = company.user_email.strip().lower()
+    profile = get_service_or_user_profile(users.User(user_email))
+    if isinstance(profile, ServiceProfile) or profile and profile.passwordHash:
+        url = '{}/customers/signin/{}?email={}'.format(get_server_url(), city_customer.default_app_id, user_email)
+        message = translate(customer.language, 'signup_already_registered_with_email')
+        goto_login = translate(customer.language, 'go_to_login_page')
+        raise HttpBadRequestException(message, {'url': url, 'label': goto_login})
+
     signup = CustomerSignup(parent=city_customer)
 
     signup.company_name = company.name
@@ -2263,7 +2344,8 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
     try:
         signup.company_vat = company.vat and normalize_vat(city_customer.country, company.vat)
     except BusinessException:
-        raise BusinessException('vat_invalid')
+        msg = translate(customer.language, 'vat_invalid')
+        raise HttpBadRequestException(msg)
 
     signup.customer_name = customer.name
     signup.customer_address1 = customer.address1
@@ -2276,7 +2358,7 @@ def create_customer_signup(city_customer_id, company, customer, recaptcha_token,
         # check if the same information has been used in a pending signup
         if signup.is_same_signup(other_signup):
             message = shop_translate(customer.language, 'signup_same_information_used')
-            raise BusinessException(message)
+            raise HttpBadRequestException(message)
 
     signup.timestamp = now()
     signup.language = customer.language
@@ -2307,43 +2389,43 @@ def validate_customer_url_data(email, data):
 
 
 @returns()
-@arguments(email=unicode, data=str)
-def complete_customer_signup(email, data):
-    data = validate_customer_url_data(email, data)
+@arguments(email=unicode, data=str, service_email=unicode)
+def complete_customer_signup(email, data, service_email=None):
 
     def update_signup():
-        signup = CustomerSignup.get(data['s'])
-        if not signup:
-            raise InvalidUrlException
-
-        timestamp = signup.timestamp
-        if not (timestamp < now() < timestamp + (3 * 24 * 3600)):
-            raise ExpiredUrlException
-
-        if signup.inbox_message_key:
-            raise AlreadyUsedUrlException
-
-        service_user = users.User(data['c'])
+        signup, parsed_data = get_customer_signup(email, data)
+        service_user = users.User(parsed_data['c'])
         signup.inbox_message_key = _send_new_customer_signup_message(service_user, signup)
+        signup.service_email = service_email
         signup.put()
 
     run_in_xg_transaction(update_signup)
 
 
+def get_customer_signup(email, data):
+    parsed_data = validate_customer_url_data(email, data)
+    signup = CustomerSignup.get(parsed_data['s'])
+    if not signup:
+        raise InvalidUrlException
+
+    timestamp = signup.timestamp
+    if not (timestamp < now() < timestamp + (3 * 24 * 3600)):
+        raise ExpiredUrlException
+
+    if signup.inbox_message_key:
+        raise AlreadyUsedUrlException
+    return signup, parsed_data
+
+
 @returns(unicode)
 @arguments(customer=Customer)
-def get_customer_email_consent_url(customer):
+def get_customer_consent_cirklo_url(customer):
     if not customer.user_email:
         return ''
 
-    from shop.view import get_current_http_host
-
-    data = dict(c=customer.user_email, s=unicode(customer.key()))
-    data['d'] = calculate_customer_url_digest(data)
-    data = encrypt(users.User(customer.user_email), json.dumps(data))
-    url_params = urllib.urlencode({'email': customer.user_email, 'data': base64.b64encode(data)})
-    host = get_current_http_host(True) or get_server_settings().baseUrl
-    return '{}/customers/email_consent?{}'.format(host, url_params)
+    url_params = urllib.urlencode({'cid': customer.id})
+    host = get_server_settings().baseUrl
+    return '{}/customers/consent/cirklo?{}'.format(host, url_params)
 
 
 @returns(SolutionServiceConsent)
@@ -2357,33 +2439,31 @@ def get_customer_consents(email):
 @returns()
 @arguments(email=unicode, consents=dict, headers=dict, context=unicode)
 def update_customer_consents(email, consents, headers, context):
-    current_consent_settings = get_customer_consents(email)
     campaignmonitor_lists = {webhook.consent_type: webhook.list_id for webhook in CampaignMonitorWebhook.query()}
     for consent, granted in consents.iteritems():
-        list_id = campaignmonitor_lists.get(consent)
-        if not list_id:
-            if DEBUG:
-                logging.error('No webhook configured for consent %s', consent)
-            else:
-                raise Exception('No webhook configured for consent %s', consent)
+        if consent in SolutionServiceConsent.EMAIL_CONSENT_TYPES:
+            list_id = campaignmonitor_lists.get(consent)
+            if not list_id:
+                if DEBUG:
+                    logging.error('No webhook configured for consent %s', consent)
+                else:
+                    raise Exception('No webhook configured for consent %s', consent)
+        else:
+            list_id = None
         data = {
             'context': context,
             'headers': headers,
             'date': datetime.datetime.now().isoformat() + 'Z'
         }
         if granted:
-            if consent not in current_consent_settings.types:
-                current_consent_settings.types.append(consent)
-                add_service_consent(email, consent, data)
-                if list_id:
-                    campaignmonitor.subscribe(list_id, email)
+            # TODO: this is a crap solution that gets and puts the same model multiple times in this for loop
+            add_service_consent(email, consent, data)
+            if list_id:
+                campaignmonitor.subscribe(list_id, email)
         else:
-            if consent in current_consent_settings.types:
-                current_consent_settings.types.remove(consent)
-                remove_service_consent(email, consent, data)
-                if list_id:
-                    campaignmonitor.unsubscribe(list_id, email)
-    current_consent_settings.put()
+            remove_service_consent(email, consent, data)
+            if list_id:
+                campaignmonitor.unsubscribe(list_id, email)
 
 
 def _get_charges_with_sent_invoice(is_reseller, manager):
@@ -2521,7 +2601,7 @@ def add_service_admin(service_user, owner_user_email, base_url):
         user_profile.isCreatedForService = True
         user_profile.owningServiceEmails = [service_email]
         update_password_hash(user_profile, password_hash, now())
-        action = common_translate(user_profile.language, SOLUTION_COMMON, 'reset-password')
+        action = common_translate(user_profile.language, 'reset-password')
         url_params = get_reset_password_url_params(user_profile.name, user_profile.user, action=action)
         reset_password_link = '%s/customers/setpassword/%s?%s' % (base_url, user_profile.app_id, url_params)
         params = {
@@ -2529,13 +2609,13 @@ def add_service_admin(service_user, owner_user_email, base_url):
             'user_email': owner_user_email,
             'user_name': user_profile.name,
             'link': reset_password_link,
-            'link_text': common_translate(user_profile.language, SOLUTION_COMMON, 'set_password'),
+            'link_text': common_translate(user_profile.language, 'set_password'),
             'language': service_profile.defaultLanguage
         }
         text_body = JINJA_ENVIRONMENT.get_template('emails/service_admin_added.tmpl').render(params)
         html_body = JINJA_ENVIRONMENT.get_template('emails/service_admin_added.html').render(params)
-        subject = '%s - %s' % (common_translate(user_profile.language, SOLUTION_COMMON, 'our-city-app'),
-                               common_translate(user_profile.language, SOLUTION_COMMON,
+        subject = '%s - %s' % (common_translate(user_profile.language, 'our-city-app'),
+                               common_translate(user_profile.language,
                                                 'permission_granted_to_service'))
         app = get_app_by_id(user_profile.app_id)
         from_email = '%s <%s>' % (app.name, shop_translate(user_profile.language, 'oca_info_email_address'))

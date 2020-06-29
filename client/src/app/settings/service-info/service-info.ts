@@ -58,3 +58,15 @@ export interface Country {
   name: string;
   code: string;
 }
+
+export interface PrivacySettings {
+  type: string;
+  label: string;
+  enabled: boolean;
+}
+
+export interface PrivacySettingsGroup {
+  page: number;
+  description: string;
+  items: PrivacySettings[];
+}

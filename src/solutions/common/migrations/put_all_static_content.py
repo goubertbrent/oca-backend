@@ -21,7 +21,7 @@ from google.appengine.ext.deferred import deferred
 from rogerthat.consts import MIGRATION_QUEUE
 from rogerthat.dal import parent_key
 from rogerthat.utils.transactions import run_in_transaction
-from solutions import SOLUTION_COMMON
+from solutions.common import SOLUTION_COMMON
 from solutions.common.models.static_content import SolutionStaticContent
 
 

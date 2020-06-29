@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <messageFlowDefinitionSet xmlns="https://rogerth.at/api/1/MessageFlow.xsd">
-	<definition name="{% translate language, 'common', 'repair' %}" language="{{ language }}"
+	<definition name="{% translate language, 'repair' %}" language="{{ language }}"
                 startReference="message_remarks">
         <end id="end_end" />
 		<message
@@ -10,7 +10,7 @@
 			brandingKey="{{ branding_key }}"
 			dismissReference="end_end"
 			autoLock="true">
-			<content>{% translate language, 'common', 'repair-3' %}</content>
+			<content>{% translate language, 'repair-3' %}</content>
 		</message>
 		<formMessage
 			id="message_remarks"
@@ -20,8 +20,8 @@
 			brandingKey="{{ branding_key }}"
 			negativeReference="end_end">
 			<content>{{ text_1|e }}</content>
-			<form positiveButtonConfirmation="" negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-				positiveButtonCaption="{% translate language, 'common', 'Next' %}" negativeButtonConfirmation="">
+			<form positiveButtonConfirmation="" negativeButtonCaption="{% translate language, 'Cancel' %}"
+				positiveButtonCaption="{% translate language, 'Next' %}" negativeButtonConfirmation="">
 				<widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 					xsi:type="TextBlockWidget" maxChars="500" />
 			</form>
@@ -33,9 +33,9 @@
 			vibrate="false" autoLock="true"
 			brandingKey="{{ branding_key }}"
 			negativeReference="flush_flush">
-			<content>{% translate language, 'common', 'repair-2' %}</content>
-			<form positiveButtonConfirmation="" negativeButtonCaption="{% translate language, 'common', 'skip' %}"
-				positiveButtonCaption="{% translate language, 'common', 'Send' %}" negativeButtonConfirmation="">
+			<content>{% translate language, 'repair-2' %}</content>
+			<form positiveButtonConfirmation="" negativeButtonCaption="{% translate language, 'skip' %}"
+				positiveButtonCaption="{% translate language, 'Send' %}" negativeButtonConfirmation="">
 				<widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 					xsi:type="PhotoUploadWidget" camera="true" quality="best" gallery="false" />
 			</form>

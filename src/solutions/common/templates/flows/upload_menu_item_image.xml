@@ -16,11 +16,11 @@
             vibrate="false"
             autoLock="true"
             negativeReference="end_done">
-            <content>{% translate language, 'common', 'upload_product_image' %}</content>
+            <content>{% translate language, 'upload_product_image' %}</content>
             <form
-                positiveButtonCaption="{% translate language, 'common', 'Submit' %}"
+                positiveButtonCaption="{% translate language, 'Submit' %}"
                 positiveButtonConfirmation=""
-                negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
+                negativeButtonCaption="{% translate language, 'Cancel' %}"
                 negativeButtonConfirmation="">
                 <widget
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

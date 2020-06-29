@@ -16,7 +16,7 @@
             vibrate="false"
             dismissReference="base64:eyJsYW5nIjogIm5sIiwgIm1mZCI6ICJhaE5rWlhaLWJXOWlhV05oWjJWamJHOTFaR2h5Y2tFTEVncHRZeTEwY21GamEyVnlJZ3R5TWpCQVptOXZMbU52YlF3TEVoRk5aWE56WVdkbFJteHZkMFJsYzJsbmJpSVBaR1YySUhkbGJHTnZiV1VnYlhObkRBIiwgImlkIjogImVuZF8xIn0="
             autoLock="true">
-            <content>{% translate language, "common", "Welcome to our app!" %}</content>
+            <content>{% translate language, "Welcome to our app!" %}</content>
         </message>
     </definition>
 </messageFlowDefinitionSet>

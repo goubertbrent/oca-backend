@@ -22,9 +22,10 @@ from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
 from typing import List, Optional
 
+from mcfw.exceptions import HttpBadRequestException
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX
 from rogerthat.models import NdbUserProfile, Message
-from rogerthat.models.jobs import JobOffer, JobMatch, JobOfferSourceType
+from rogerthat.models.jobs import JobOffer, JobOfferSourceType, JobMatch
 from rogerthat.rpc import users
 from rogerthat.service.api import messaging
 from rogerthat.to.jobs import CreateJobChatRequestTO
@@ -32,7 +33,7 @@ from rogerthat.to.messaging import MemberTO, AttachmentTO, AnswerTO
 from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import try_or_defer, date_to_iso_format
 from rogerthat.utils.app import get_app_user_tuple
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.dal import get_solution_settings
 from solutions.common.jobs.models import JobSolicitation, JobSolicitationMessage, JobSolicitationStatus, OcaJobOffer, \
     JobsSettings, JobNotificationType, JobOfferStatistics
@@ -62,7 +63,7 @@ def get_solicitations(service_user, job_id):
             info.email = user_profile.user.email().decode('utf-8')
             info.avatar_url = user_profile.avatarUrl
         else:
-            info.name = translate(lang, SOLUTION_COMMON, 'anonymous_user')
+            info.name = translate(lang, 'anonymous_user')
         results.append(JobSolicitationTO.from_model(solicitation, message, info))
     return results
 
@@ -77,12 +78,23 @@ def get_solicitation_messages(service_user, job_id, solicitation_id):
     return JobSolicitationMessage.list_by_solicitation(service_user, job_id, solicitation_id)
 
 
+@ndb.non_transactional
+def _get_lang(service_user):
+    # this method is needed because you get weird errors when attempting to fetch db models in an ndb transaction
+    return get_solution_settings(service_user).main_language
+
+
 @ndb.transactional()
 def send_solicitation_message(service_user, job_id, solicitation_id, message, from_service):
     # type: (users.User, int, int, str, bool) -> JobSolicitationMessage
     solicitation_key = JobSolicitation.create_key(service_user, job_id, solicitation_id)
     stats_key = JobOfferStatistics.create_key(service_user, job_id)
     solicitation, stats = ndb.get_multi([solicitation_key, stats_key])  # type: JobSolicitation, JobOfferStatistics
+    # Services can no longer reply if user deleted the chat.
+    # The user can 'restart' the conversation though.
+    if solicitation.status == JobSolicitationStatus.DISABLED and from_service:
+        language = _get_lang(service_user)
+        raise HttpBadRequestException(translate(language, 'oca.cannot_reply_user_has_left_the_chat'))
     if solicitation.status == JobSolicitationStatus.INITIALIZING:
         solicitation.status = JobSolicitationStatus.UNREAD
         stats.add_unread(solicitation_key)
@@ -168,11 +180,8 @@ def chat_disable_solicitation(service_user, parent_message_key, member, timestam
     job_match, solicitation = ndb.get_multi(keys)  # type: JobMatch, JobSolicitation
     job_match.chat_key = None
     solicitation.status = JobSolicitationStatus.DISABLED
-    solicitation.chat_key = None
-    solicitation.put()
     ndb.put_multi([job_match, solicitation])
     try_or_defer(_send_solicitation_disabled_to_dashboard, service_user, solicitation)
-    messaging.delete_chat(parent_message_key)
 
 
 def create_job_solicitation(app_user, job_offer, request):
@@ -206,7 +215,7 @@ def create_job_solicitation(app_user, job_offer, request):
             'solicitation_id': solicitation.id,
             'job_id': oca_job_id
         })
-        topic = translate(lang, SOLUTION_COMMON, 'solicitation_x', title=job_offer.info.function.title)
+        topic = translate(lang, 'solicitation_x', title=job_offer.info.function.title)
         chat_key = messaging.start_chat(members, topic, request.message, tag=tag, default_sticky=True,
                                         alert_flags=alert_flags, sender=app_user.email())
 
@@ -229,9 +238,9 @@ def send_new_solicitation_notification(service_user, job_key):
     job_offer, jobs_settings = ndb.get_multi([job_key, jobs_settings_key])  # type: OcaJobOffer, JobsSettings
     if JobNotificationType.NEW_SOLICITATION in jobs_settings.notifications:
         sln_settings = get_solution_settings(service_user)
-        subject = translate(sln_settings.main_language, SOLUTION_COMMON, 'jobs_email_new_job_subject')
-        text_body = translate(sln_settings.main_language, SOLUTION_COMMON, 'jobs_email_new_message_body',
+        subject = translate(sln_settings.main_language, 'jobs_email_new_job_subject')
+        text_body = translate(sln_settings.main_language, 'jobs_email_new_message_body',
                               job_offer_title=job_offer.function.title)
-        html_body = translate(sln_settings.main_language, SOLUTION_COMMON, 'jobs_email_new_message_body',
+        html_body = translate(sln_settings.main_language, 'jobs_email_new_message_body',
                               job_offer_title='<b>%s</b>' % job_offer.function.title)
         _send_email_for_notification(sln_settings, jobs_settings, subject, html_body, text_body)

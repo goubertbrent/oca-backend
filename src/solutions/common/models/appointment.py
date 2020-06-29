@@ -71,8 +71,7 @@ class SolutionAppointmentWeekdayTimeframe(db.Model):
     def label(self, language):
         time_from_dt = datetime.utcfromtimestamp(self.time_from)
         time_until_dt = datetime.utcfromtimestamp(self.time_until)
-        return translate(language, SOLUTION_COMMON , 'appointment-1-label',
-                         day=self.day_str(language),
+        return translate(language, 'appointment-1-label', day=self.day_str(language),
                          time_from=format_time(time_from_dt, format='short', locale=language),
                          time_until=format_time(time_until_dt, format='short', locale=language))
 

@@ -139,6 +139,10 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
                                  doc='Cirklo server url',
                                  order=1900)
 
+    cirklo_api_key = add_meta(db.TextProperty(),
+                              doc='Cirklo api key',
+                              order=1901)
+
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")
         get_solution_server_settings.invalidate_cache()
@@ -183,7 +187,7 @@ class CampaignMonitorOrganizationWebhook(NdbModel):
 class CampaignMonitorWebhook(NdbModel):
     create_date = ndb.DateTimeProperty(indexed=False, auto_now_add=True)
     list_id = ndb.StringProperty()
-    consent_type = ndb.StringProperty(choices=SolutionServiceConsent.TYPES)
+    consent_type = ndb.StringProperty(choices=SolutionServiceConsent.EMAIL_CONSENT_TYPES)
     organization_lists = ndb.StructuredProperty(CampaignMonitorOrganizationWebhook, repeated=True)  # type: list[CampaignMonitorOrganizationWebhook]
 
     @property

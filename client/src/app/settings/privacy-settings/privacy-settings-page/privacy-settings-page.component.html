@@ -1,0 +1,13 @@
+<!-- Using a table because the labels can be very long -->
+<ng-container *ngFor="let group of settingsGroups">
+  <div [innerHTML]="group.description | markdown"></div>
+  <table>
+    <tr *ngFor="let item of group.items">
+      <td>
+        <mat-slide-toggle (change)="settingToggled(item, $event)"
+                          [checked]="item.enabled"></mat-slide-toggle>
+      </td>
+      <td class="toggle-label">{{ item.label }}</td>
+    </tr>
+  </table>
+</ng-container>

@@ -22,7 +22,7 @@ from mcfw.utils import Enum
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
-from solutions import SOLUTION_COMMON
+from solutions.common import SOLUTION_COMMON
 
 
 class VoucherProviderId(Enum):
@@ -56,3 +56,20 @@ class CirkloUserVouchers(NdbModel):
     @classmethod
     def create_key(cls, app_user):
         return ndb.Key(cls, app_user.email(), parent=parent_ndb_key(app_user))
+
+
+class CirkloCity(NdbModel):
+    service_user_email = ndb.StringProperty()
+    logo_url = ndb.TextProperty()
+
+    @property
+    def city_id(self):
+        return self.key.id().decode('utf-8')
+
+    @classmethod
+    def create_key(cls, city_id):
+        return ndb.Key(cls, city_id)
+
+    @classmethod
+    def get_by_service_email(cls, service_email):
+        return cls.query(cls.service_user_email == service_email).get()

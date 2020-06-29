@@ -100,7 +100,10 @@ class LocationComponentValueTO(FieldComponentValueTO, BaseComponentValue):
     address = typed_property('address', PostalAddressTO, default=None)  # type: PostalAddressTO
 
     def get_string_value(self):
-        return ', '.join(self.address.address_lines) if self.address else '%s,%s' % (self.latitude, self.longitude)
+        latlon = '%s,%s' % (self.latitude, self.longitude)
+        if self.address:
+            return ', '.join(self.address.address_lines) + ' | %s' % latlon
+        return latlon
 
     def to_statistics(self):
         return [self.latitude, self.longitude]

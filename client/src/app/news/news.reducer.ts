@@ -1,4 +1,5 @@
 import { onLoadableError, onLoadableLoad, onLoadableSuccess } from '../shared/loadable/loadable';
+import { stateError, stateLoading, stateSuccess } from '../shared/util';
 import { CreateNews, NewsItem } from './interfaces';
 import { NewsActions, NewsActionTypes } from './news.actions';
 import { appsAdapter, initialNewsState, newsAdapter, NewsState } from './news.state';
@@ -6,11 +7,11 @@ import { appsAdapter, initialNewsState, newsAdapter, NewsState } from './news.st
 export function newsReducer(state: NewsState = initialNewsState, action: NewsActions): NewsState {
   switch (action.type) {
     case NewsActionTypes.GET_NEWS_OPTIONS:
-      return { ...state, newsOptions: onLoadableLoad(state.newsOptions.data) };
+      return { ...state, newsOptions: stateLoading(state.newsOptions.result) };
     case NewsActionTypes.GET_NEWS_OPTIONS_COMPLETE:
-      return { ...state, newsOptions: onLoadableSuccess(action.payload) };
+      return { ...state, newsOptions: stateSuccess(action.payload) };
     case NewsActionTypes.GET_NEWS_OPTIONS_FAILED:
-      return { ...state, newsOptions: onLoadableError(action.error, state.newsOptions.data) };
+      return { ...state, newsOptions: stateError(action.error, state.newsOptions.result) };
     case NewsActionTypes.GET_NEWS_LIST:
       return { ...state, listStatus: onLoadableLoad(state.listStatus.data) };
     case NewsActionTypes.GET_NEWS_LIST_COMPLETE:

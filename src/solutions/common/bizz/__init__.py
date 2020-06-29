@@ -67,17 +67,18 @@ from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.messaging.flow import FormFlowStepTO, FLOW_STEP_MAPPING
 from rogerthat.to.news import BaseMediaTO
 from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_task_name
+from rogerthat.utils import generate_random_key, parse_color, channel, bizz_check, now, get_current_task_name, \
+    try_or_defer
 from rogerthat.utils.app import get_app_user_tuple
 from rogerthat.utils.location import geo_code, GeoCodeStatusException, GeoCodeZeroResultsException
 from rogerthat.utils.transactions import on_trans_committed
 from solution_server_settings import get_solution_server_settings
 from solutions import translate as common_translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.consts import ORDER_TYPE_ADVANCED, OUR_CITY_APP_COLOUR, OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_restaurant_menu
 from solutions.common.dal.order import get_solution_order_settings
 from solutions.common.exceptions import TranslatedException
+from solutions.common.integrations.cirklo.models import VoucherSettings, VoucherProviderId
 from solutions.common.models import SolutionSettings, SolutionMainBranding, \
     SolutionBrandingSettings, FileBlob, SolutionNewsPublisher, SolutionModuleAppText, RestaurantMenu
 from solutions.common.models.order import SolutionOrderSettings, SolutionOrderWeekdayTimeframe
@@ -187,7 +188,7 @@ class SolutionModule(Enum):
 
     FUNCTIONALITY_MODULES = {BROADCAST, LOYALTY, ORDER, SANDWICH_BAR, RESTAURANT_RESERVATION, MENU, AGENDA,
                              PHARMACY_ORDER, HIDDEN_CITY_WIDE_LOTTERY, ASK_QUESTION, REPAIR, DISCUSSION_GROUPS,
-                             APPOINTMENT}
+                             APPOINTMENT, JOBS}
 
     @classmethod
     def all(cls):
@@ -214,7 +215,7 @@ class SolutionModule(Enum):
 
     @classmethod
     def get_translated_description(cls, language, key):
-        return solutions.translate(language, SOLUTION_COMMON, cls.MODULES_TRANSLATION_KEYS[key])
+        return solutions.translate(language, cls.MODULES_TRANSLATION_KEYS[key])
 
     @classmethod
     def action_order(cls, module):
@@ -335,10 +336,10 @@ def _format_weekday(language, dt):
 
 
 @returns(unicode)
-@arguments(service_user=users.User, key=unicode, solution=unicode)
-def _translate(service_user, key, solution=SOLUTION_COMMON):
+@arguments(service_user=users.User, key=unicode)
+def _translate(service_user, key):
     settings = get_solution_settings(service_user)
-    return common_translate(settings.main_language, solution, key)
+    return common_translate(settings.main_language, key)
 
 
 @cached(1, request=True, memcache=False)
@@ -353,24 +354,26 @@ def update_reserved_menu_item_labels(sln_settings):
     with users.set_user(sln_settings.service_user):
         for i, label in enumerate(['About', 'History', 'Call', 'Recommend']):
             put_reserved_menu_item_label(
-                i, common_translate(sln_settings.main_language, SOLUTION_COMMON, label))
+                i, common_translate(sln_settings.main_language, label))
 
 
 @returns(ProvisionResponseTO)
 @arguments(solution=unicode, email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            phone_number=unicode, languages=[unicode], currency=unicode, redeploy=bool,
            organization_type=int, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue])
+           owner_user_email=unicode, search_enabled=bool, broadcast_to_users=[users.User], websites=[SyncedNameValue],
+           password=unicode, tos_version=(int, long, NoneType))
 def create_or_update_solution_service(solution, email, name, branding_url, menu_item_color, phone_number,
                                       languages, currency, redeploy, organization_type=OrganizationType.PROFIT,
                                       modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                                      search_enabled=False, broadcast_to_users=None, websites=None):
+                                      search_enabled=False, broadcast_to_users=None, websites=None, password=None,
+                                      tos_version=None):
     if not redeploy:
         password, sln_settings = \
             create_solution_service(email, name, branding_url, menu_item_color, phone_number,
                                     solution, languages, currency, organization_type=organization_type, modules=modules,
                                     broadcast_types=broadcast_types, apps=apps, owner_user_email=owner_user_email,
-                                    search_enabled=search_enabled, websites=websites)
+                                    search_enabled=search_enabled, websites=websites, password=password, tos_version=tos_version)
         service_user = sln_settings.service_user
     else:
         service_user = users.User(email)
@@ -489,13 +492,13 @@ def update_solution_service(service_user, branding_url, menu_item_color, solutio
 @arguments(email=unicode, name=unicode, branding_url=unicode, menu_item_color=unicode,
            phone_number=unicode, solution=unicode, languages=[unicode], currency=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, modules=[unicode], broadcast_types=[unicode], apps=[unicode],
-           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue])
+           owner_user_email=unicode, search_enabled=bool, websites=[SyncedNameValue], password=unicode, tos_version=(int, long, NoneType))
 def create_solution_service(email, name, branding_url=None, menu_item_color=None, phone_number=None,
                             solution=SOLUTION_FLEX, languages=None, currency=u"EUR", category_id=None,
                             organization_type=1,
                             fail_if_exists=True, modules=None, broadcast_types=None, apps=None, owner_user_email=None,
-                            search_enabled=False, websites=None):
-    password = unicode(generate_random_key()[:8])
+                            search_enabled=False, websites=None, password=None, tos_version=None):
+    password = password or unicode(generate_random_key()[:8])
     if languages is None:
         languages = [DEFAULT_LANGUAGE]
 
@@ -518,7 +521,7 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
 
     # Raises if service already existed
     create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists,
-                   supported_app_ids=apps, owner_user_email=owner_user_email)
+                   supported_app_ids=apps, owner_user_email=owner_user_email, tos_version=tos_version)
     new_service_user = users.User(email)
 
     to_be_put = []
@@ -573,7 +576,22 @@ def create_solution_service(email, name, branding_url=None, menu_item_color=None
 
 
 def _after_service_created(service_user):
-    service_auto_connect(service_user)
+    try_or_defer(service_auto_connect, service_user)
+    try_or_defer(_execute_consent_actions, service_user)
+
+
+def _execute_consent_actions(service_user):
+    from shop.bizz import get_customer_consents
+    from shop.dal import get_customer
+    customer = get_customer(service_user)
+    consents = get_customer_consents(customer.user_email)
+    # If consent was given, automatically allow cirklo data to be shared instead of requiring city to toggle this
+    if consents.TYPE_CIRKLO_SHARE in consents.types:
+        settings = VoucherSettings(key=VoucherSettings.create_key(service_user))
+        settings.customer_id = customer.id
+        settings.app_id = customer.default_app_id
+        settings.providers = [VoucherProviderId.CIRKLO]
+        settings.put()
 
 
 def get_default_cover_media(organization_type):
@@ -641,14 +659,14 @@ def validate_before_provision(service_user, sln_settings):
     lang = sln_settings.main_language
     errors = []
     if not branding_settings.avatar_url:
-        errors.append(common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_avatar'))
+        errors.append(common_translate(lang, 'default_settings_warning_avatar'))
     if not branding_settings.logo_url:
-        errors.append(common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_logo'))
+        errors.append(common_translate(lang, 'default_settings_warning_logo'))
     if menu_is_visible(sln_settings):
         menu = db.get(RestaurantMenu.create_key(service_user, sln_settings.solution))
         if not menu or menu.is_default:
             errors.append(
-                common_translate(lang, SOLUTION_COMMON, 'default_settings_warning_menu'))
+                common_translate(lang, 'default_settings_warning_menu'))
     identities = [ServiceIdentity.DEFAULT]
     keys = []
     if sln_settings.identities:
@@ -660,12 +678,12 @@ def validate_before_provision(service_user, sln_settings):
     for identity in identities:
         hours = models.get(OpeningHours.create_key(service_user, identity))  # type: OpeningHours
         if not hours or hours.type not in (OpeningHours.TYPE_STRUCTURED, OpeningHours.TYPE_NOT_RELEVANT):
-            errors.append(common_translate(lang, SOLUTION_COMMON, 'need_opening_hours_before_publish'))
+            errors.append(common_translate(lang, 'need_opening_hours_before_publish'))
         service_info = models.get(ServiceInfo.create_key(service_user, identity))  # type: ServiceInfo
         if not service_info or not service_info.place_types or not service_info.main_place_type:
-            errors.append(common_translate(lang, SOLUTION_COMMON, 'need_place_type_before_publish'))
+            errors.append(common_translate(lang, 'need_place_type_before_publish'))
         if not service_info or not service_info.addresses:
-            errors.append(common_translate(lang, SOLUTION_COMMON, 'configure_your_address'))
+            errors.append(common_translate(lang, 'configure_your_address'))
     return errors
 
 
@@ -709,7 +727,6 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                                                tzinfo=get_timezone(sln_settings.timezone),
                                                locale=sln_settings.main_language)
                     raise BusinessException(common_translate(sln_settings.main_language,
-                                                             SOLUTION_COMMON,
                                                              'you-can-only-publish-every-15-min',
                                                              time_str=time_str))
                 last_publish = now_
@@ -718,7 +735,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
 
                 errors = validate_before_provision(service_user, sln_settings)
                 if errors:
-                    msg = common_translate(sln_settings.main_language, SOLUTION_COMMON,
+                    msg = common_translate(sln_settings.main_language,
                                            'default_settings_warning') + ':'
                     lines = [msg] + errors
                     raise BusinessException('\n • '.join(lines))
@@ -732,7 +749,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
                 if isinstance(e, BusinessException):
                     errormsg = e.message
                 else:
-                    errormsg = common_translate(sln_settings.main_language, SOLUTION_COMMON, 'failed_to_create_service')
+                    errormsg = common_translate(sln_settings.main_language, 'failed_to_create_service')
                 channel.send_message(cur_user, 'common.provision.failed',
                                      errormsg=errormsg)
             if broadcast_to_users:
@@ -770,7 +787,7 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
         if not sln_settings:
             sln_settings = get_solution_settings(service_user)
         raise BusinessException(
-            common_translate(sln_settings.main_language, SOLUTION_COMMON, 'error-occured-unknown-try-again'))
+            common_translate(sln_settings.main_language, 'error-occured-unknown-try-again'))
 
 
 @returns()
@@ -795,7 +812,7 @@ def service_auto_connect(service_user):
 @arguments()
 def get_all_existing_broadcast_types():
     # translate the keys and sort
-    return sorted((common_translate(DEFAULT_LANGUAGE, SOLUTION_COMMON, k) for k in MERCHANT_BROADCAST_TYPES))
+    return sorted((common_translate(DEFAULT_LANGUAGE, k) for k in MERCHANT_BROADCAST_TYPES))
 
 
 @returns(unicode)
@@ -941,7 +958,7 @@ def delete_file_blob(service_user, file_id):
 @arguments(key=unicode, language=unicode)
 def try_to_translate(key, language):
     try:
-        return common_translate(language, SOLUTION_COMMON, key, suppress_warning=True)
+        return common_translate(language, key, suppress_warning=True)
     except:
         return key
 
@@ -1047,12 +1064,12 @@ def delete_news_publisher(app_user, service_user, solution):
 
 
 @returns()
-@arguments(sln_settings=SolutionSettings, solution=unicode)
-def set_default_broadcast_types(sln_settings, solution=SOLUTION_COMMON):
+@arguments(sln_settings=SolutionSettings)
+def set_default_broadcast_types(sln_settings):
     if not sln_settings.broadcast_types:
         sln_settings.broadcast_types = []
         for broadcast_type in DEFAULT_BROADCAST_TYPES:
-            translated = common_translate(sln_settings.main_language, solution, broadcast_type)
+            translated = common_translate(sln_settings.main_language, broadcast_type)
             sln_settings.broadcast_types.append(translated)
 
 

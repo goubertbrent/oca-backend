@@ -20,12 +20,15 @@ import datetime
 import json
 import logging
 import os
+import time
+import urllib
 
-import webapp2
 from dateutil.relativedelta import relativedelta
 from google.appengine.api import search, users as gusers
 from google.appengine.ext import db
+from google.appengine.ext.deferred import deferred
 from google.appengine.ext.webapp import template
+import webapp2
 
 from mcfw.cache import cached
 from mcfw.consts import MISSING
@@ -35,7 +38,9 @@ from mcfw.rpc import serialize_complex_value, arguments, returns
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.registration import get_headers_for_consent
 from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
+from rogerthat.bizz.session import create_session
 from rogerthat.dal.app import get_app_by_id
+from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.exceptions.login import AlreadyUsedUrlException, InvalidUrlException, ExpiredUrlException
 from rogerthat.models import ProfilePointer, ServiceProfile
 from rogerthat.pages.legal import DOC_TERMS_SERVICE, get_current_document_version, get_version_content, \
@@ -45,22 +50,30 @@ from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_request
-from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS
+from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnStatusTO
 from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer
 from rogerthat.utils.app import get_app_id_from_app_user
+from rogerthat.utils.cookie import set_cookie
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, \
-    validate_customer_url_data, get_customer_consents, update_customer_consents
+    update_customer_consents, get_customer_signup, validate_customer_url_data,\
+    get_customer_consents
 from shop.business.i18n import shop_translate
 from shop.business.permissions import is_admin
 from shop.constants import OFFICIALLY_SUPPORTED_LANGUAGES
 from shop.dal import get_all_signup_enabled_apps
 from shop.models import Invoice, OrderItem, Product, Prospect, RegioManagerTeam, LegalEntity, Customer, \
-    Quotation, AppCss
+    Quotation, AppCss, CustomerSignup
 from shop.to import CompanyTO, CustomerTO, CustomerLocationTO, EmailConsentTO
 from shop.view import get_shop_context, get_current_http_host
 from solution_server_settings import get_solution_server_settings
+from solutions.common.bizz.settings import get_consents_for_app
+from solutions.common.integrations.cirklo.models import VoucherSettings,\
+    VoucherProviderId
 from solutions.common.models import SolutionServiceConsent
+from solutions.common.restapi.services import do_create_service
+from solutions.common.to.settings import PrivacySettingsTO, PrivacySettingsGroupTO
+
 
 try:
     from cStringIO import StringIO
@@ -447,6 +460,7 @@ class CustomerSignupHandler(PublicPageHandler):
             email = email[:-1]
         data = self.request.get('data')
         if email and data:
+            # TODO: can be removed after june 2020
             try:
                 complete_customer_signup(email, data)
             except ExpiredUrlException:
@@ -472,7 +486,7 @@ class CustomerSignupHandler(PublicPageHandler):
             version = get_current_document_version(DOC_TERMS_SERVICE)
             legal_language = get_legal_language(language)
             params = {
-                'apps': apps,
+                'apps': sorted(apps, key=lambda x: x.name),
                 'recaptcha_site_key': solution_server_settings.recaptcha_site_key,
                 'email_verified': False,
                 'toc_content': get_version_content(legal_language, DOC_TERMS_SERVICE, version)
@@ -483,6 +497,60 @@ class CustomerSignupHandler(PublicPageHandler):
         ]
         params['signup_success'] = json.dumps(self.render('signup_success', language=language))
         self.response.write(self.render('signup', **params))
+
+
+class CustomerSignupPasswordHandler(PublicPageHandler):
+
+    def get(self, app_id=''):
+        data = self.request.get('data')
+        email = self.request.get('email').rstrip('.')
+
+        params = {
+            'email': email,
+            'data': data,
+            'language': self.language,
+            'error': None,
+        }
+        self.response.write(self.render('signup_setpassword', **params))
+
+    def post(self, app_id=''):
+        json_data = json.loads(self.request.body)
+        email = json_data.get('email')
+        data = json_data.get('data')
+        password = json_data.get('password', '')
+        password_confirm = json_data.get('password_confirm')
+        error = None
+        try:
+            signup, _ = get_customer_signup(email, data)  # type: CustomerSignup, dict
+        except ExpiredUrlException:
+            error = self.translate('link_expired', action='')
+        except AlreadyUsedUrlException:
+            error = self.translate('link_is_already_used', action='')
+        except InvalidUrlException:
+            error = self.translate('invalid_url')
+        if len(password) < 8:
+            error = self.translate('password_length_error', length=8)
+        elif password != password_confirm:
+            error = self.translate('password_match_error')
+        if not error:
+            tos_version = get_current_document_version(DOC_TERMS_SERVICE)
+            result = do_create_service(signup.city_customer, signup.language, True, signup, password, tos_version=tos_version)
+            if result.success:
+                service_email = result.data['service_email']
+                deferred.defer(complete_customer_signup, email, data, service_email)
+
+                try:
+                    # Sleep to allow datastore indexes to update
+                    time.sleep(2)
+                    secret, _ = create_session(users.User(signup.company_email), ignore_expiration=True, cached=False)
+                    server_settings = get_server_settings()
+                    set_cookie(self.response, server_settings.cookieSessionName, secret)
+                except:
+                    logging.error("Failed to create session", exc_info=True)
+        else:
+            result = WarningReturnStatusTO.create(False, error)
+        self.response.headers['Content-Type'] = 'application/json'
+        self.response.write(json.dumps(result.to_dict()))
 
 
 class CustomerResetPasswordHandler(PublicPageHandler):
@@ -520,50 +588,17 @@ class CustomerSetPasswordHandler(PublicPageHandler, SetPasswordHandler):
         super(CustomerSetPasswordHandler, self).post()
 
 
-class CustomerEmailConsentHandler(PublicPageHandler):
-
-    def dispatch(self):
-        # Don't redirect to dashboard when logged in
-        return super(PublicPageHandler, self).dispatch()
-
-    def get(self, app_id=''):
-        email = self.request.get('email')
-        data = self.request.get('data')
-
-        try:
-            data = validate_customer_url_data(email, data)
-        except InvalidUrlException:
-            return self.return_error('invalid_url')
-
-        customer = db.get(data['s'])
-        if not customer:
-            return self.abort(404)
-
-        consents = get_customer_consents(email)
-        return self.response.out.write(
-            self.render('service_email_consent', email=email, name=customer.name, consents=consents))
-
-    def post(self, **kwargs):
-        context = u'User email preferences'
-        update_customer_consents(self.request.get('email'), {
-            SolutionServiceConsent.TYPE_NEWSLETTER: self.request.get(SolutionServiceConsent.TYPE_NEWSLETTER) == 'on',
-            SolutionServiceConsent.TYPE_EMAIL_MARKETING: self.request.get(
-                SolutionServiceConsent.TYPE_EMAIL_MARKETING) == 'on'
-        }, get_headers_for_consent(self.request), context)
-        self.redirect('/customers/signin')
-
-
 @rest('/unauthenticated/osa/customer/signup', 'post', read_only_access=True, authenticated=False)
 @returns(ReturnStatusTO)
 @arguments(city_customer_id=(int, long), company=CompanyTO, customer=CustomerTO, recaptcha_token=unicode,
-           email_consents=EmailConsentTO)
+           email_consents=dict)
 def customer_signup(city_customer_id, company, customer, recaptcha_token, email_consents=None):
     try:
         headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
         create_customer_signup(city_customer_id, company, customer, recaptcha_token,
                                domain=get_current_http_host(with_protocol=True), headers=headers, accept_missing=True)
         headers = get_headers_for_consent(GenericRESTRequestHandler.getCurrentRequest())
-        consents = email_consents.to_dict() if email_consents else {}
+        consents = email_consents or {}
         context = u'User signup'
         try_or_defer(update_customer_consents, customer.user_email, consents, headers, context)
         return RETURNSTATUS_TO_SUCCESS
@@ -601,6 +636,16 @@ def get_customer_info(app_id, language=None):
     }
 
 
+@rest('/unauthenticated/osa/signup/privacy-settings/<app_id:[^/]+>', 'get', read_only_access=True, authenticated=False)
+@returns([PrivacySettingsGroupTO])
+@arguments(app_id=unicode, language=unicode)
+def get_privacy_settings(app_id, language=None):
+    if not language:
+        request = GenericRESTRequestHandler.getCurrentRequest()
+        language = get_languages_from_request(request)[0]
+    return get_consents_for_app(app_id, language, [])
+
+
 class QuotationHandler(webapp2.RequestHandler):
 
     def get(self, customer_id, quotation_id):
@@ -613,3 +658,82 @@ class QuotationHandler(webapp2.RequestHandler):
         url = Quotation.download_url(Quotation.filename(bucket, customer_id, quotation_id)).encode('ascii')
         logging.info('Redirection to %s', url)
         self.redirect(url)
+
+
+class CustomerCirkloAcceptHandler(PublicPageHandler):
+    
+    def get_url(self, customer):
+        url_params = urllib.urlencode({'cid': customer.id})
+        return '/customers/consent/cirklo?{}'.format(url_params)
+
+    def dispatch(self):
+        # Don't redirect to dashboard when logged in
+        return super(PublicPageHandler, self).dispatch()
+
+    def get(self):
+        customer_id = self.request.get('cid')
+        if customer_id:
+            try:
+                customer = Customer.get_by_id(long(customer_id))
+            except:
+                return self.return_error('invalid_url')
+        else:
+            email = self.request.get('email')
+            data = self.request.get('data')
+    
+            try:
+                data = validate_customer_url_data(email, data)
+            except InvalidUrlException:
+                return self.return_error('invalid_url')
+    
+            customer = db.get(data['s']) # Customer
+        if not customer:
+            return self.abort(404)
+
+        consents = get_customer_consents(customer.user_email)
+        should_accept = False
+        if SolutionServiceConsent.TYPE_CITY_CONTACT not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CITY_CONTACT)
+            should_accept = True
+        if SolutionServiceConsent.TYPE_CIRKLO_SHARE not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CIRKLO_SHARE)
+            should_accept = True
+        params = {
+            'cirklo_accept_url': self.get_url(customer),
+            'should_accept': should_accept
+        }
+
+        self.response.out.write(self.render('cirklo_accept', **params))
+
+    def post(self):
+        try:
+            customer_id = self.request.get('cid')
+            customer = Customer.get_by_id(long(customer_id))
+            if not customer:
+                raise Exception('Customer not found')
+        except:
+            self.redirect('/')
+            return
+
+        consents = get_customer_consents(customer.user_email)
+        should_put_consents = False
+        if SolutionServiceConsent.TYPE_CITY_CONTACT not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CITY_CONTACT)
+            should_put_consents = True
+        if SolutionServiceConsent.TYPE_CIRKLO_SHARE not in consents.types:
+            consents.types.append(SolutionServiceConsent.TYPE_CIRKLO_SHARE)
+            should_put_consents = True
+            
+        if should_put_consents:
+            consents.put()
+            
+            settings_key = VoucherSettings.create_key(customer.service_user)
+            settings = settings_key.get()
+            if not settings:
+                settings = VoucherSettings(key=settings_key)  # type: VoucherSettings
+            settings.customer_id = customer.id
+            settings.app_id = customer.default_app_id
+            settings.providers = [VoucherProviderId.CIRKLO]
+            settings.put()
+            
+        self.redirect(self.get_url(customer))

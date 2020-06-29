@@ -7,7 +7,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { catchError, first, map, startWith, switchMap, tap } from 'rxjs/operators';
+import { catchError, first, map, switchMap, take, tap, withLatestFrom } from 'rxjs/operators';
 import { SimpleDialogComponent, SimpleDialogData } from '../shared/dialog/simple-dialog.component';
 import { ErrorService } from '../shared/errors/error.service';
 import { transformErrorResponse } from '../shared/errors/errors';
@@ -48,7 +48,8 @@ export class NewsEffects {
     ofType<GetNewsOptionsAction>(NewsActionTypes.GET_NEWS_OPTIONS),
     switchMap(() => this.newsService.getNewsOptions().pipe(
       map(data => new GetNewsOptionsCompleteAction(data)),
-      catchError(err => of(new GetNewsOptionsFailedAction(transformErrorResponse(err)))))),
+      catchError(err => this.errorService.toAction(GetNewsOptionsFailedAction, err)),
+    )),
   ));
    getNewsItems$ = createEffect(() => this.actions$.pipe(
     ofType<GetNewsListAction>(NewsActionTypes.GET_NEWS_LIST),

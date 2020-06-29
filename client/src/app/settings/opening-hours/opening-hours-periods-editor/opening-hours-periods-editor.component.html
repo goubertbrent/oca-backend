@@ -3,20 +3,25 @@
 </div>
 <ng-container *ngIf="!isOpen24Hours">
   <div *ngFor="let hours of periods; trackBy: trackHours;" class="periods">
-    <oca-time-picker (ngModelChange)="setOpenTime(hours, $event)"
-                     [disabled]="disabled"
-                     [label]="'oca.opening_time' | translate"
-                     [ngModelOptions]="{standalone: true}"
-                     [ngModel]="hours.open.time | hours : 'HH:mm'"
-                     required></oca-time-picker>
+    <mat-form-field>
+      <mat-label>{{ 'oca.opening_time' | translate }}</mat-label>
+      <oca-time-input (ngModelChange)="setOpenTime(hours, $event)"
+                      [disabled]="disabled"
+                      [ngModel]="hours.open.time | hours : 'date'"
+                      ngModelOptions="{standalone: true}"
+                      required>
+      </oca-time-input>
+    </mat-form-field>
     <span class="hours-divider">—</span>
-
-    <oca-time-picker (ngModelChange)="setCloseTime(hours, $event)"
-                     [disabled]="disabled"
-                     [label]="'oca.closing_time' | translate"
-                     [ngModelOptions]="{standalone: true}"
-                     [ngModel]="hours.close.time | hours : 'HH:mm'"
-                     required></oca-time-picker>
+    <mat-form-field>
+      <mat-label>{{ 'oca.closing_time' | translate }}</mat-label>
+      <oca-time-input (ngModelChange)="setCloseTime(hours, $event)"
+                      [disabled]="disabled"
+                      [ngModel]="hours.close.time | hours : 'date'"
+                      ngModelOptions="{standalone: true}"
+                      required>
+      </oca-time-input>
+    </mat-form-field>
     <mat-form-field class="period-description">
       <mat-label>{{ 'oca.description' | translate}}</mat-label>
       <input (ngModelChange)="setChanged()"

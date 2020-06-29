@@ -15,8 +15,9 @@
 #
 # @@license_version:1.7@@
 
-from rogerthat.dal.service import get_service_api_callback_records_query
 from google.appengine.ext import db, deferred
+
+from rogerthat.dal.service import get_service_api_callback_records_query
 
 
 def run(timestamp, service_user, cursor=None):

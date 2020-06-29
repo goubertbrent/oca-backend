@@ -1,10 +1,8 @@
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -37,15 +35,15 @@ import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrang
 @Component({
   selector: 'oca-edit-form',
   templateUrl: './edit-form.component.html',
-  styleUrls: [ './edit-form.component.scss' ],
+  styleUrls: ['./edit-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditFormComponent implements AfterViewInit, OnChanges {
+export class EditFormComponent implements OnChanges {
   @ViewChild('formElement', { static: true }) formElement: NgForm;
-  @ViewChild('timeInput') timeInput: ElementRef<HTMLInputElement>;
   @ViewChildren(MatInput) inputs: QueryList<MatInput>;
 
   @Input() activeIntegrations: FormIntegrationProvider[] = [];
+
   @Input() set value(value: OcaForm) {
     this._form = value;
     this._hasChanges = false;
@@ -86,19 +84,12 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
     this.setMinDate();
   }
 
-  ngAfterViewInit() {
-    if (this.hasEndDate) {
-      this.setTimeInput();
-    }
-  }
-
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.value && changes.value.currentValue) {
       this.hasTombola = this.form.settings.tombola != null;
       if (this.form.settings.visible_until) {
         this.dateInput = new Date(this.form.settings.visible_until);
         this.hasEndDate = true;
-        this.setTimeInput();
       } else {
         this.hasEndDate = false;
       }
@@ -120,10 +111,6 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
       steps.push({ step_id: CompletedFormStepType.LAUNCH });
     }
     this.form = { ...this.form, settings: { ...this.form.settings, visible: event.checked, steps } };
-    if (event.checked) {
-      // set timeInput value in next change detection cycle
-      setTimeout(() => this.setTimeInput(), 0);
-    }
     this.saveForm();
   }
 
@@ -176,14 +163,24 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
     this.form = { ...this.form, form: { ...this.form.form, submission_section: section } };
   }
 
-  updateDate() {
+  updateDate($event: Date | null) {
+    // Preserve selected time
+    debugger;
+    const visibleUntil = $event ? new Date($event.getTime()) : new Date();
+    if (this.dateInput) {
+      visibleUntil.setHours(this.dateInput.getHours());
+      visibleUntil.setMinutes(this.dateInput.getMinutes());
+    }
+    this.form = { ...this.form, settings: { ...this.form.settings, visible_until: visibleUntil } };
+  }
+
+  updateTime($event: Date | null) {
     let visibleUntil: Date | null = null;
     if (this.dateInput) {
       visibleUntil = new Date(this.dateInput.getTime());
-      const timeDate = this.timeInput.nativeElement.valueAsDate as Date | undefined;
-      if (timeDate) {
-        visibleUntil.setHours(timeDate.getUTCHours());
-        visibleUntil.setMinutes(timeDate.getUTCMinutes());
+      if ($event) {
+        visibleUntil.setHours($event.getHours());
+        visibleUntil.setMinutes($event.getMinutes());
       }
     }
     this.form = { ...this.form, settings: { ...this.form.settings, visible_until: visibleUntil } };
@@ -222,8 +219,6 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
           visible_until: visibleUntil,
         },
       };
-      // setTimeout needed because the view is not created yet at this moment
-      setTimeout(() => this.setTimeInput());
     } else {
       this.form = { ...this.form, settings: { ...this.form.settings, tombola: null } };
     }
@@ -305,15 +300,6 @@ export class EditFormComponent implements AfterViewInit, OnChanges {
       nextId += 1;
     }
     return nextId.toString();
-  }
-
-  private setTimeInput() {
-    if (this.timeInput) {
-      const d = new Date(0);
-      d.setUTCHours(this.dateInput.getHours());
-      d.setUTCMinutes(this.dateInput.getMinutes());
-      this.timeInput.nativeElement.valueAsDate = d;
-    }
   }
 
   private setNextActions() {

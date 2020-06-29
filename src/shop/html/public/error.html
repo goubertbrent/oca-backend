@@ -1,10 +1,10 @@
 {% extends 'public/base.html' %}
 
-{% block title %}{% translate language, "common", "Alert" %}{% endblock %}
+{% block title %}{% translate language, "Alert" %}{% endblock %}
 
 {% block content %}
     <div class="span6" style="float: none; margin: 0 auto;">
-        <h1>{% translate language, "common", "error-occured-sorry" %}</h1>
+        <h1>{% translate language, "error-occured-sorry" %}</h1>
         <div class="alert">
             {{ message }}
         </div>

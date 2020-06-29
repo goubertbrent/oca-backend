@@ -18,9 +18,9 @@
                  allowDismiss="false"
                  vibrate="false"
                  autoLock="true">
-            <content>{% translate language, 'common', 'error-occured-unknown-try-again' %}</content>
+            <content>{% translate language, 'error-occured-unknown-try-again' %}</content>
             <answer action=""
-                    caption="{% translate language, 'common', 'okay-i-got-it' %}"
+                    caption="{% translate language, 'okay-i-got-it' %}"
                     id="button_ok"
                     reference="end_cancel"/>
         </message>
@@ -32,14 +32,14 @@
                      allowDismiss="false"
                      vibrate="false"
                      autoLock="true">
-                <content>{% translate language, 'common', 'news_type_explanation' %}
+                <content>{% translate language, 'news_type_explanation' %}
                 </content>
                 <answer action=""
-                        caption="{% translate language, 'common', 'normal' %}"
+                        caption="{% translate language, 'normal' %}"
                         id="button_normal"
                         reference="message_content_title"/>
                 <answer action=""
-                        caption="{% translate language, 'common', 'coupon' %}"
+                        caption="{% translate language, 'coupon' %}"
                         id="button_coupon"
                         reference="message_content_title"/>
             </message>
@@ -52,18 +52,18 @@
                      negativeReference="end_cancel"
                      vibrate="false"
                      autoLock="true">
-            <content>{% translate language, 'common', 'news_content_title_explanation' %}</content>
+            <content>{% translate language, 'news_content_title_explanation' %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}">
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextLineWidget" maxChars="250"
                         keyboardType="DEFAULT"/>
                 <javascriptValidation>
                     var run = function (result, rogerthat) {
                         var title = result.value;
                         if (title.length &lt; 5) {
-                            return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=5' %}";
+                            return "{% translate language, 'please_enter_at_least_x_characters', 'characters=5' %}";
                         }
                         return true;
                     };
@@ -78,19 +78,19 @@
                      autoLock="true"
                      positiveReference="message_use_cover_photo"
                      negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'Content' %}
-{% translate language, 'common', 'news_content_message_explanation' %}</content>
+            <content>{% translate language, 'Content' %}
+{% translate language, 'news_content_message_explanation' %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonConfirmation=""
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}">
+                  positiveButtonCaption="{% translate language, 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TextBlockWidget" maxChars="1000"
                         keyboardType="DEFAULT"/>
                 <javascriptValidation>
                     function run (result, rogerthat) {
                         var message = result.value;
                         if (message.length &lt; 10) {
-                            return "{% translate language, 'common', 'please_enter_at_least_x_characters', 'characters=10' %}";
+                            return "{% translate language, 'please_enter_at_least_x_characters', 'characters=10' %}";
                         }
                         return true;
                     }
@@ -104,14 +104,14 @@
                  allowDismiss="false"
                  vibrate="false"
                  autoLock="true">
-            <content>{% translate language, 'common', 'image_optional' %}
-{% translate language, 'common', 'news_image_explanation' %}</content>
+            <content>{% translate language, 'image_optional' %}
+{% translate language, 'news_image_explanation' %}</content>
             <answer action=""
-                    caption="{% translate language, 'common', 'use_cover_photo' %}"
+                    caption="{% translate language, 'use_cover_photo' %}"
                     id="button_use_cover_photo"
                     reference="set_broadcast_types"/>
             <answer action=""
-                    caption="{% translate language, 'common', 'upload-photo' %}"
+                    caption="{% translate language, 'upload-photo' %}"
                     id="button_upload_photo"
                     reference="message_image"/>
         </message>
@@ -123,12 +123,12 @@
                      autoLock="true"
                      positiveReference="set_broadcast_types"
                      negativeReference="set_broadcast_types">
-            <content>{% translate language, 'common', 'image_optional' %}
-{% translate language, 'common', 'news_image_explanation' %}</content>
+            <content>{% translate language, 'image_optional' %}
+{% translate language, 'news_image_explanation' %}</content>
             <form positiveButtonConfirmation=""
                   negativeButtonConfirmation=""
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
-                  negativeButtonCaption="{% translate language, 'common', 'skip' %}">
+                  positiveButtonCaption="{% translate language, 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'skip' %}">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="PhotoUploadWidget"
                         camera="true" quality="best" gallery="true"/>
             </form>
@@ -141,11 +141,11 @@
                      autoLock="true"
                      positiveReference="set_target_audience"
                      negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'Label' %}
-{% translate language, 'common', 'news_label_explanation' %}</content>
+            <content>{% translate language, 'Label' %}
+{% translate language, 'news_label_explanation' %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'Next' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'Next' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SelectSingleWidget">
                     <choice value="none" label="None"/>
@@ -161,11 +161,11 @@
                      autoLock="true"
                      positiveReference="flush_news_send"
                      negativeReference="end_cancel">
-            <content>{% translate language, 'common', 'target_audience' %}
-{% translate language, 'common', 'news_target_audience_explanation' %}</content>
+            <content>{% translate language, 'target_audience' %}
+{% translate language, 'news_target_audience_explanation' %}</content>
             <form positiveButtonConfirmation=""
-                  negativeButtonCaption="{% translate language, 'common', 'Cancel' %}"
-                  positiveButtonCaption="{% translate language, 'common', 'publish' %}"
+                  negativeButtonCaption="{% translate language, 'Cancel' %}"
+                  positiveButtonCaption="{% translate language, 'publish' %}"
                   negativeButtonConfirmation="">
                 <widget xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="SelectMultiWidget">
                     <choice value="none" label="None"/>
@@ -174,7 +174,7 @@
                     function run (result, rogerthat) {
                         var apps = result.values;
                         if (apps.length &lt; 1) {
-                            return "{% translate language, 'common', 'news_target_audience_select_at_least_one_app' %}";
+                            return "{% translate language, 'news_target_audience_select_at_least_one_app' %}";
                         }
                         return true;
                     }

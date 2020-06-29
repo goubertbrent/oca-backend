@@ -37,14 +37,13 @@ from rogerthat.bizz.service.mfd.mfd_javascript import generate_js_flow
 from rogerthat.bizz.service.mfd.sub import MessageFlowDefinitionSub, FormMessageSub, contentType1Sub, EndSub, \
     ResultsFlushSub, FormSub, SelectMultiWidgetSub, ChoiceSub, MessageFlowDefinitionSetSub, FlowCodeSub, \
     OutletSub, javascriptCodeTypeSub, ValueSub
-from rogerthat.bizz.service.mfr import start_flow
+from rogerthat.bizz.service.mfr import start_local_flow
 from rogerthat.consts import MC_RESERVED_TAG_PREFIX, SCHEDULED_QUEUE
 from rogerthat.dal import parent_key
 from rogerthat.dal.profile import get_service_profile, get_user_profile
 from rogerthat.dal.service import get_broadcast_settings_items, get_friend_serviceidentity_connection
 from rogerthat.models import UserProfile, ServiceIdentity, FriendServiceIdentityConnection, Broadcast, \
-    MessageFlowDesign, Message, ServiceMenuDef, ServiceTranslation, CustomMessageFlowDesign, \
-    BroadcastSettingsFlowCache, App, BroadcastStatistic
+    MessageFlowDesign, Message, ServiceMenuDef, ServiceTranslation, BroadcastSettingsFlowCache, App, BroadcastStatistic
 from rogerthat.rpc import users
 from rogerthat.rpc.service import BusinessException
 from rogerthat.to.messaging import UserMemberTO, ButtonTO
@@ -290,16 +289,12 @@ def _send_broadcast_to_test_persons(broadcast):
 
     # Make sure all end modules are connected with a flush
     new_xml = _check_flow_end_modules(mfd)
-    if new_xml:
-        mfd = CustomMessageFlowDesign()
-        mfd.xml = new_xml
 
+    tag = json.dumps({Broadcast.TAG_MC_BROADCAST: unicode(broadcast.key()),
+                      '%s.tag' % MC_RESERVED_TAG_PREFIX: broadcast.tag})
     for si, testers in si_mapped_to_testers.iteritems():
-        deferred.defer(start_flow, si.user, message_parent_key=None, flow=mfd, members=testers,
-                       check_friends=False, result_callback=False,
-                       tag=json.dumps({Broadcast.TAG_MC_BROADCAST: unicode(broadcast.key()),
-                                       '%s.tag' % MC_RESERVED_TAG_PREFIX: broadcast.tag}),
-                       _transactional=db.is_in_transaction(), broadcast_type=broadcast.type_)
+        deferred.defer(start_local_flow, si.user, None, flow=new_xml, members=testers,
+                       check_friends=False, tag=tag, _transactional=db.is_in_transaction())
 
 
 @returns(Broadcast)
@@ -372,9 +367,8 @@ def ack_test_broadcast(message):
     btn_index = message.memberStatusses[message.members.index(test_person)].button_index
     if btn_index == message.buttons[BROADCAST_RETRY_ID].index:
         flow = Broadcast.get(message.broadcast_key).message_flow
-        start_flow(add_slash_default(message.sender), message_parent_key=message.pkey, flow=flow, members=[test_person],
-                   check_friends=False, result_callback=False,
-                   tag=json.dumps({Broadcast.TAG_MC_BROADCAST: message.broadcast_key}), broadcast_type=message.broadcast_type)
+        start_local_flow(add_slash_default(message.sender), message.pkey, flow=flow, members=[test_person],
+                         check_friends=False, tag=json.dumps({Broadcast.TAG_MC_BROADCAST: message.broadcast_key}))
     else:
         accepted = btn_index == message.buttons[BROADCAST_ACCEPT_ID].index
 

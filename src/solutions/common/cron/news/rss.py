@@ -93,10 +93,6 @@ def _worker(rss_settings_key):
             continue
 
         app_ids = rss_link.app_ids if rss_link.app_ids else None
-        if rss_link.group_type == NewsGroup.TYPE_PRESS:
-            feed_name = u'press'
-        else:
-            feed_name = None
 
         dry_run = not rss_link.dry_runned
         if dry_run:
@@ -147,7 +143,7 @@ def _worker(rss_settings_key):
                                                   hash=scraped_item.hash,
                                                   date=scraped_item.date,
                                                   rss_url=scraped_item.rss_url)
-                
+
                 if not dry_run:
                     # todo create a parameter to save items on dry run
                     if not dry_run and scraped_item.date and scraped_item.date < last_week_datetime:
@@ -171,10 +167,10 @@ def _worker(rss_settings_key):
                                 timestamp = get_epoch_from_datetime(scraped_item.date)
                                 if timestamp > now():
                                     timestamp = None
-    
+
                         tasks.append(create_task(create_news_item, sln_settings, rss_link.group_type, scraped_item.message,
                                                  scraped_item.title, scraped_item.url, False if dry_run else rss_settings.notify,
-                                                 scraped_item.image_url, new_key, app_ids=app_ids, feed_name=feed_name, timestamp=timestamp))
+                                                 scraped_item.image_url, new_key, app_ids=app_ids, timestamp=timestamp))
                 to_put.append(new_item)
 
     scraped_items = sorted([s for s in scraped_items if s.date], key=lambda x: x.date)  # oldest items first

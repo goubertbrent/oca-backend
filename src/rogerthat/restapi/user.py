@@ -44,7 +44,8 @@ from rogerthat.dal.profile import get_profile_info, get_service_or_user_profile,
     get_user_profile
 from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.models import ActivationLog, App, CurrentlyForwardingLogs, FriendServiceIdentityConnection, \
-    ServiceIdentity, UserContext, UserProfileInfo, UserAddressType
+    ServiceIdentity, UserContext, UserProfileInfo, UserAddressType,\
+    UserContextScope
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
 from rogerthat.settings import get_server_settings
@@ -55,7 +56,7 @@ from rogerthat.to.system import ProfileAddressTO, ProfilePhoneNumberTO
 from rogerthat.translations import DEFAULT_LANGUAGE, localize
 from rogerthat.utils import now, is_clean_app_user_email, send_mail, get_server_url
 from rogerthat.utils.app import create_app_user_by_email, \
-    get_human_user_from_app_user
+    get_human_user_from_app_user, sanitize_app_user
 from rogerthat.utils.cookie import set_cookie
 from rogerthat.utils.crypto import encrypt, sha256_hex, decrypt
 
@@ -276,8 +277,11 @@ def unsubscribe_reminder(email, data, reason):
 def unsubscribe_deactivate(email, data, reason):
 
     def parse_data(email, data):
-        app_user_email = create_app_user_by_email(email).email()
-        user = users.User(app_user_email)
+        if ":" in email:
+            user = sanitize_app_user(users.User(email))
+        else:
+            app_user_email = create_app_user_by_email(email).email()
+            user = users.User(app_user_email)
         data = base64.decodestring(data)
         data = decrypt(user, data)
         data = json.loads(data)
@@ -335,54 +339,66 @@ def user_statistic():
 
 
 @rest("/mobi/rest/user/context/<uid:[^/]+>", "get")
-@returns(UserContextTO)
+@returns(dict)
 @arguments(uid=unicode)
 def get_user_context(uid):
-    uc = UserContext.create_key(uid).get()
-    if not uc and not DEBUG:
-        logging.debug("not found %s" % uid)
+    user_context = UserContext.create_key(uid).get()  # type: UserContext
+    if not user_context and not DEBUG:
+        logging.debug('Context not found: ' + uid)
         raise HttpNotFoundException()
-    elif uc:
-        expiration_time = uc.created + relativedelta(minutes=5)
-        if expiration_time < datetime.now():
-            logging.debug("expired since %s" % expiration_time)
-            raise HttpNotFoundException()
-        app_user = uc.app_user
+    elif user_context:
+        expiration_time = user_context.created + relativedelta(minutes=5)
+        is_expired = expiration_time < datetime.now()
+        if is_expired:
+            logging.debug('Context expired since %s, returning limited information' % expiration_time)
+            return {'id': user_context.app_user.email()}
+        return get_user_context_dict(user_context.app_user, user_context.scopes)
     else:
-        app_user = users.User(uid)
+        return get_user_context_dict(users.User(uid), UserContextScope.all())
 
-    up = get_user_profile(app_user)
-    if not up:
-        logging.debug("profile not found %s" % app_user)
+
+def get_user_context_dict(app_user, scopes):
+    user_profile = get_user_profile(app_user)
+    if not user_profile:
+        logging.debug('User profile not found: %s' % app_user)
         raise HttpNotFoundException()
 
-    if up.first_name:
-        first_name = up.first_name
-        last_name = up.last_name
-    else:
-        parts = up.name.split(" ", 1)
-        if len(parts) == 1:
-            first_name = parts[0]
-            last_name = None
+    r = {'id': app_user.email()}
+    if UserContextScope.NAME in scopes:
+        if user_profile.first_name:
+            r['first_name'] = user_profile.first_name
+            r['last_name'] = user_profile.last_name
         else:
-            first_name = parts[0]
-            last_name = parts[1]
+            parts = user_profile.name.split(' ', 1)
+            if len(parts) == 1:
+                r['first_name'] = parts[0]
+                r['last_name'] = None
+            else:
+                r['first_name'] = parts[0]
+                r['last_name'] = parts[1]
 
-    addresses = []
-    upi = UserProfileInfo.create_key(up.user).get()
-    if upi and upi.addresses:
-        for address in upi.addresses:
-            if address.type == UserAddressType.HOME:
-                addresses.append(ProfileAddressTO.from_model(address))
-                break
-    
-    phone_numbers = []
-    if upi and upi.phone_numbers:
-        for m in upi.phone_numbers:
-            phone_numbers.append(ProfilePhoneNumberTO.from_model(m))
+    if UserContextScope.EMAIL in scopes:
+        r['email'] = get_human_user_from_app_user(app_user).email()
 
-    return UserContextTO(email=get_human_user_from_app_user(up.user).email(),
-                         first_name=first_name,
-                         last_name=last_name,
-                         addresses=addresses,
-                         phone_numbers=sorted(phone_numbers))
+    if UserContextScope.EMAIL_ADDRESSES in scopes:
+        r['email_addresses'] = [] # todo implement
+
+    if UserContextScope.ADDRESSES in scopes or UserContextScope.PHONE_NUMBERS in scopes:
+        user_profile_info = UserProfileInfo.create_key(user_profile.user).get()
+        if UserContextScope.ADDRESSES in scopes:
+            addresses = []
+            if user_profile_info:
+                for address in user_profile_info.addresses:
+                    if address.type == UserAddressType.HOME:
+                        addresses.append(ProfileAddressTO.from_model(address).to_dict())
+                        break
+            r['addresses'] = addresses
+
+        if UserContextScope.PHONE_NUMBERS in scopes:
+            phone_numbers = []
+            if user_profile_info:
+                for m in user_profile_info.phone_numbers:
+                    phone_numbers.append(ProfilePhoneNumberTO.from_model(m))
+            r['phone_numbers'] = [pn.to_dict() for pn in sorted(phone_numbers)]
+
+    return r

@@ -15,9 +15,11 @@
 #
 # @@license_version:1.7@@
 
+from google.appengine.api import app_identity
 import webapp2
 
-from mcfw.restapi import rest_functions
+from mcfw.restapi import rest_functions, GenericRESTRequestHandler
+from rogerthat.consts import DEBUG
 from rogerthat.handlers.image_handlers import AppQRTemplateHandler
 from rogerthat.handlers.itsme import ItsmeAuthorizeHandler, ItsmeLoginHandler, ItsmeAuthorizedHandler, ItsmeJWKsHandler
 from rogerthat.handlers.upload_handlers import UploadAppAssetHandler, UploadDefaultBrandingHandler, \
@@ -40,7 +42,7 @@ from rogerthat.pages.login import LoginHandler, AuthenticationRequiredHandler, O
 from rogerthat.pages.main import MainPage, RobotsTxt, AboutPageHandler, CrossDomainDotXml
 from rogerthat.pages.mdp import InitMyDigiPassSessionHandler, AuthorizedMyDigiPassHandler
 from rogerthat.pages.message import MessageHandler
-from rogerthat.pages.news import NewsSaveReadItems, ViewNewsImageHandler
+from rogerthat.pages.news import ViewNewsImageHandler, NewsSaveReadItems
 from rogerthat.pages.payment import PaymentCallbackHandler, PaymentLoginAppHandler, PaymentLoginRedirectHandler
 from rogerthat.pages.photo import ServiceDownloadPhotoHandler
 from rogerthat.pages.profile import GetAvatarHandler, GetCachedAvatarHandler
@@ -67,6 +69,17 @@ from rogerthat.rpc.service import ServiceApiHandler, CallbackResponseReceiver
 from rogerthat.service.api import XMLSchemaHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from rogerthat_service_api_calls import register_all_service_api_calls
+from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
+
+def authorize_internal_request():
+    if DEBUG:
+        return True
+    allowed_app_ids = [app_identity.get_application_id()]
+    request = GenericRESTRequestHandler.getCurrentRequest()
+    incoming_app_id = request.headers.get('X-Appengine-Inbound-Appid', None)
+    if incoming_app_id and incoming_app_id in allowed_app_ids:
+        return True
+    return False
 
 
 handlers = [
@@ -167,6 +180,7 @@ handlers.extend(rest_functions(embedded_apps))
 handlers.extend(rest_functions(payment))
 handlers.extend(rest_functions(logger))
 handlers.extend(rest_functions(firebase))
+handlers.extend(rest_functions(jobs_worker_callbacks, authorized_function=authorize_internal_request))
 
 register_all_service_api_calls()
 

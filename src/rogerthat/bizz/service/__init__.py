@@ -17,6 +17,7 @@
 
 import base64
 from contextlib import closing
+from datetime import datetime
 import json
 import logging
 import os
@@ -28,7 +29,7 @@ from zipfile import ZipFile
 
 from google.appengine.api import images, search
 from google.appengine.ext import db, deferred, ndb
-from typing import Optional
+from typing import Optional, Tuple, List
 
 from mcfw.cache import cached, invalidate_cache
 from mcfw.consts import MISSING
@@ -47,7 +48,7 @@ from rogerthat.bizz.job.update_friends import schedule_update_a_friend_of_servic
     schedule_update_all_friends_of_service_user, create_update_friend_requests, convert_friend, \
     do_update_friend_request
 from rogerthat.bizz.maps.services import cleanup_map_index, add_map_index, \
-    save_map_service
+    save_map_service, SearchTag
 from rogerthat.bizz.maps.services.places import get_place_details
 from rogerthat.bizz.messaging import BrandingNotFoundException, sendMessage, sendForm, ReservedTagException
 from rogerthat.bizz.profile import update_friends, create_user_profile, update_password_hash, _validate_name, \
@@ -73,13 +74,13 @@ from rogerthat.dal.service import get_api_keys, get_api_key, get_api_key_count, 
     get_service_menu_item_by_coordinates, get_service_identity, get_friend_serviceidentity_connection, \
     get_default_service_identity, get_service_identity_not_cached, get_service_identities, get_child_identities, \
     get_service_interaction_defs, get_users_connected_to_service_identity, log_service_activity, \
-    get_service_identities_by_service_identity_users, get_regex_callback_configurations, \
-    get_regex_callback_configurations_cached
+    get_service_identities_by_service_identity_users
 from rogerthat.models import Profile, APIKey, SIKKey, ServiceEmail, ServiceInteractionDef, ShortURL, \
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \
-    ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, ServiceCallBackConfiguration, \
-    FriendServiceIdentityConnection, FriendMap, UserContext
+    ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, \
+    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink,\
+    ServiceCallBackSettings, ServiceCallBackConfig
 from rogerthat.models.properties.friend import FriendDetail, FriendDetails
 from rogerthat.models.properties.keyvalue import KVStore, InvalidKeyError
 from rogerthat.models.settings import ServiceInfo
@@ -118,6 +119,7 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user,
     get_service_identity_tuple, is_valid_service_identifier, remove_slash_default
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, on_trans_committed, \
     on_trans_rollbacked
+from solutions.common.integrations.cirklo.models import VoucherSettings
 
 
 try:
@@ -402,6 +404,13 @@ class InvalidGroupTypeException(ServiceApiException):
     def __init__(self, group_type):
         ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 40,
                                      u"Invalid group type", group_type=group_type)
+        
+        
+class ModulesNotSupportedException(ServiceApiException):
+
+    def __init__(self, modules):
+        ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 41,
+                                     u"Some modules are no longer supported: %s" % ', '.join(modules), modules=modules)
 
 
 @returns(users.User)
@@ -471,9 +480,12 @@ def get_configuration(service_user):
     else:
         conf.mobidickUrl = None
     conf.actions = [] if conf.mobidickUrl else list(get_configuration_actions(service_user))
+    
     conf.regexCallbackConfigurations = []
-    for scc in get_regex_callback_configurations(service_user):
-        conf.regexCallbackConfigurations.append(ServiceCallbackConfigurationRegexTO.fromModel(scc))
+    callback_settings = ServiceCallBackSettings.create_key(service_user).get()
+    if callback_settings:
+        for config in callback_settings.configs:
+            conf.regexCallbackConfigurations.append(ServiceCallbackConfigurationRegexTO.fromModel(config))
     return conf
 
 
@@ -1246,44 +1258,95 @@ def update_callback_configuration(service_user, httpURI):
 
 
 @returns(ServiceConfigurationTO)
-@arguments(service_user=users.User, name=unicode, regex=unicode, httpURI=unicode)
-def create_callback_configuration(service_user, name, regex, httpURI):
-
-    def trans():
-        callback_config_key = ServiceCallBackConfiguration.create_key(name, service_user)
-        callback_config = ServiceCallBackConfiguration.get(callback_config_key)
-        if not callback_config:
-            callback_config = ServiceCallBackConfiguration(key=callback_config_key)
-        callback_config.creationTime = now()
-        callback_config.regex = regex
-        callback_config.callBackURI = httpURI.strip() if httpURI else None
-        callback_config.put()
-
-    db.run_in_transaction(trans)
-
-    invalidate_cache(get_regex_callback_configurations_cached, service_user)
-
+@arguments(service_user=users.User, name=unicode, httpURI=unicode, regexes=[unicode], callbacks=(int, long), custom_headers=unicode)
+def create_callback_configuration(service_user, name, httpURI, regexes, callbacks, custom_headers):
+    
+    callback_settings_key = ServiceCallBackSettings.create_key(service_user)
+    callback_settings = callback_settings_key.get()
+    if not callback_settings:
+        callback_settings = ServiceCallBackSettings(key=callback_settings_key,
+                                                    configs=[])
+    
+    data_correct = False
+    if len(regexes) >= 1:
+        data_correct = True
+    elif callbacks > 0:
+        data_correct = True
+        
+    try:
+        if custom_headers:
+            custom_headers_dict = json.loads(custom_headers)
+            if not isinstance(custom_headers_dict, dict):
+                raise Exception('custom_headers was not a dict')
+            for key, value in custom_headers_dict.iteritems():
+                if not isinstance(key, (str, unicode)):
+                    raise Exception('key was not a str')
+                if not isinstance(value, (str, unicode)):
+                    raise Exception('value was not a str')
+        else:
+            custom_headers_dict = None
+    except:
+        logging.debug('failed to save custom headers', exc_info=True)
+        custom_headers_dict = None
+    
+    current_config = callback_settings.get_config(name)
+    corrent_d = datetime.utcnow()
+    if current_config:
+        current_config.updated = corrent_d
+        current_config.uri = httpURI.strip() if httpURI else None
+        current_config.regexes = regexes
+        current_config.callbacks = callbacks
+        current_config.custom_headers = custom_headers_dict
+        if not data_correct:
+            callback_settings.configs.remove(current_config)
+    else:
+        new_config = ServiceCallBackConfig(created=corrent_d,
+                                           updated=corrent_d,
+                                           name=name,
+                                           uri=httpURI.strip() if httpURI else None,
+                                           regexes=regexes,
+                                           callbacks=callbacks,
+                                           custom_headers=custom_headers_dict)
+        if data_correct:
+            callback_settings.configs.append(new_config)
+    
+    if callback_settings.configs:   
+        callback_settings.put()
+    else:
+        callback_settings_key.delete()
+ 
     return get_configuration(service_user)
-
-
+ 
+ 
 @returns()
 @arguments(service_user=users.User, name=unicode)
 def test_callback_configuration(service_user, name):
-    callback_config = ServiceCallBackConfiguration.get(ServiceCallBackConfiguration.create_key(name, service_user))
-    if callback_config:
-        from google.appengine.api.memcache import set  # @UnresolvedImport
-        set(service_user.email() + "_interactive_logs", True, 300)
-        perform_test_callback(service_user, callback_name=name)
-
-
+    from google.appengine.api.memcache import set  # @UnresolvedImport
+    callback_settings = ServiceCallBackSettings.create_key(service_user).get()
+    if not callback_settings:
+        return
+    config = callback_settings.get_config(name)
+    if not config:
+        return
+    set(service_user.email() + "_interactive_logs", True, 300)
+    perform_test_callback(service_user, callback_name=name)
+ 
+ 
 @returns(ServiceConfigurationTO)
 @arguments(service_user=users.User, name=unicode)
 def delete_callback_configuration(service_user, name):
-    callback_config = ServiceCallBackConfiguration.get(ServiceCallBackConfiguration.create_key(name, service_user))
-    if callback_config:
-        callback_config.delete()
-
-    invalidate_cache(get_regex_callback_configurations_cached, service_user)
+    callback_settings_key = ServiceCallBackSettings.create_key(service_user)
+    callback_settings = callback_settings_key.get()
+    if callback_settings:
+        config = callback_settings.get_config(name)
+        if config:
+            callback_settings.configs.remove(config)
+    
+        if callback_settings.configs:
+            callback_settings.put()
+        else:
+            callback_settings_key.delete()
+ 
     return get_configuration(service_user)
 
 
@@ -1568,7 +1631,13 @@ def poke_service_by_hashed_tag(user, service_identity_user, hashed_tag, context=
 def get_user_link(app_user, link):
     uid = uuid.uuid4().hex
     uc = UserContext(key=UserContext.create_key(uid),
-                     app_user=app_user)
+                     app_user=app_user,
+                     link_uid=UserContextLink.create_uid([link]))
+
+    context_link = UserContextLink.create_key(uc.link_uid).get()
+    if not context_link:
+        logging.error('get_user_link was called but link was not found...')
+    uc.scopes = context_link.scopes if context_link else []
     uc.put()
 
     parsed_url = urlparse.urlparse(link)
@@ -1592,22 +1661,22 @@ def press_menu_item(user, service_identity_user, coords, context, menuGeneration
     if service_identity.menuGeneration == menuGeneration:
         smd = get_service_menu_item_by_coordinates(service_identity_user, coords)
         if smd:
-            from rogerthat.bizz.service.mfr import start_flow
+            from rogerthat.bizz.service.mfr import start_local_flow
             if smd.staticFlowKey and not message_flow_run_id:
                 logging.info("User did not start static flow. Starting flow now.")
-                message_flow_run_id = str(uuid.uuid4())
-                start_flow(service_identity_user, None, smd.staticFlowKey, [user], False, True, smd.tag, context,
-                           key=message_flow_run_id)
+                start_local_flow(service_identity_user, None, None, members=[user], flow=smd.staticFlowKey,
+                                 check_friends=False, tag=smd.tag, context=context)
+                # To see if this still occurs, log an error so we can search on it
+                logging.error('Starting flow from staticFlowKey: %s - %s', smd.staticFlowKey, service_identity_user)
             elif not smd.staticFlowKey and not message_flow_run_id and smd.isBroadcastSettings:
                 from rogerthat.bizz.service.broadcast import generate_broadcast_settings_flow_def
                 from rogerthat.bizz.service.mfd import to_xml_unicode
                 helper = FriendHelper.from_data_store(service_identity_user, FRIEND_TYPE_SERVICE)
                 mfds = generate_broadcast_settings_flow_def(helper, get_user_profile(user))
                 azzert(mfds, "Expected broadcast settings.")
-                mfd = MessageFlowDesign()
-                mfd.xml = to_xml_unicode(mfds, 'messageFlowDefinitionSet', True)
-                start_flow(service_identity_user, None, mfd, [user], False, True, smd.tag, context,
-                           key=message_flow_run_id, allow_reserved_tag=True)
+                xml = to_xml_unicode(mfds, 'messageFlowDefinitionSet', True)
+                start_local_flow(service_identity_user, None, xml, [user], check_friends=False, tag=smd.tag,
+                                 context=context)
 
             if (smd.form_id and not mobile_supports_feature(users.get_current_mobile(), Features.FORMS)) or \
                     (smd.embeddedApp and not mobile_supports_feature(users.get_current_mobile(), Features.EMBEDDED_APPS_IN_SMI)):
@@ -2186,7 +2255,7 @@ def remove_service_identity_from_index(service_identity_user):
 
 
 def get_search_fields(service_user, service_identity_user, sc):
-    from rogerthat.bizz.app import get_app
+    # type: (users.User, users.User, ServiceIdentity) -> Tuple[str, List[str], List[search.Field]]
     service_identity = get_service_identity(service_identity_user)
     service_profile = get_service_profile(service_user)
     service_menu_item_labels = []
@@ -2222,30 +2291,31 @@ def get_search_fields(service_user, service_identity_user, sc):
         fields.append(search.TextField(name=name, value=value))
 
     tags = set()
-    default_app = get_app(service_identity.app_id)
+    default_app = get_app_by_id(service_identity.app_id)
     if default_app.demo:
-        tags.add('environment#demo')
+        tags.add(SearchTag.environment('demo'))
     else:
-        tags.add('environment#production')
+        tags.add(SearchTag.environment('production'))
 
     for app_id in service_identity.appIds:
-        if app_id in (App.APP_ID_ROGERTHAT, App.APP_ID_OSA_LOYALTY):
-            continue
-        if default_app.type == App.APP_TYPE_CITY_APP and app_id.startswith('be-'):
-            tags.add('group#cityapps_belgium')
-        tags.add('app_id#%s' % app_id)
+        if default_app.country:
+            tags.add(SearchTag.country(default_app.country))
+        tags.add(SearchTag.app(app_id))
 
-    service_info = ServiceInfo.create_key(service_user, service_identity.identifier).get()
+    keys = [ServiceInfo.create_key(service_user, service_identity.identifier), VoucherSettings.create_key(service_user)]
+    service_info, voucher_settings = ndb.get_multi(keys)  # type: ServiceInfo, VoucherSettings
     if not service_info:
         logging.warn('skipping place_types in get_search_fields for service_user:%s identifier:%s', service_user, service_identity.identifier)
         return service_identity.name.lower(), list(tags), fields
 
     for place_type in service_info.place_types:
-        tags.add('place_type#%s' % place_type)
         place_details = get_place_details(place_type, 'en')
         if not place_details:
             continue
-        tags.add('place_type#%s' % place_type)
+        tags.add(SearchTag.place_type(place_type))
+    if voucher_settings:
+        for provider in voucher_settings.providers:
+            tags.add(SearchTag.vouchers(provider))
 
     return service_identity.name.lower(), list(tags), fields
 
@@ -2304,7 +2374,8 @@ def re_index(service_identity_user):
                 ])
             loc_index.put(loc_doc)
             docs.append(loc_doc)
-        if save_map_service(service_identity_user):
+        map_service = save_map_service(service_identity_user)
+        if map_service and map_service.geo_location:
             should_cleanup = False
             add_map_index(service_identity_user, locs, name, tags, get_map_txt_from_fields(fields))
     if should_cleanup:
@@ -2328,7 +2399,8 @@ def re_index_map_only(service_identity_user):
     should_cleanup = True
     if locs:
         name, tags, fields = get_search_fields(service_user, service_identity_user, sc)
-        if save_map_service(service_identity_user):
+        map_service = save_map_service(service_identity_user)
+        if map_service and map_service.geo_location:
             should_cleanup = False
             add_map_index(service_identity_user, locs, name, tags, get_map_txt_from_fields(fields))
     if should_cleanup:
@@ -3003,9 +3075,9 @@ def validate_app_admin(service_user, app_ids):
 @returns(tuple)
 @arguments(email=unicode, name=unicode, password=unicode, languages=[unicode], solution=unicode, category_id=unicode,
            organization_type=int, fail_if_exists=bool, supported_app_ids=[unicode],
-           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode)
+           callback_configuration=ServiceCallbackConfigurationTO, owner_user_email=unicode, tos_version=(int, long, NoneType))
 def create_service(email, name, password, languages, solution, category_id, organization_type, fail_if_exists=True,
-                   supported_app_ids=None, callback_configuration=None, owner_user_email=None):
+                   supported_app_ids=None, callback_configuration=None, owner_user_email=None, tos_version=None):
     service_email = email
     new_service_user = users.User(service_email)
 
@@ -3029,6 +3101,8 @@ def create_service(email, name, password, languages, solution, category_id, orga
         service_profile.category_id = category_id
         service_profile.organizationType = organization_type
         service_profile.version = 1
+        if tos_version:
+            service_profile.tos_version = tos_version
 
         service_identity.qualifiedIdentifier = owner_user_email
         service_identity.content_branding_hash = None

@@ -21,7 +21,7 @@ export type SimpleDialogResult = undefined | SimpleDialogResultValue;
 @Component({
   selector: 'oca-simple-dialog',
   templateUrl: 'simple-dialog.component.html',
-  encapsulation: ViewEncapsulation.None,
+  styleUrls: ['simple-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimpleDialogComponent {

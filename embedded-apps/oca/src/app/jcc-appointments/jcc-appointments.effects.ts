@@ -6,7 +6,7 @@ import { Actions, Effect, ofType } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { catchError, filter, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
+import { catchError, delay, filter, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
 import { AppState } from '../reducers';
 import { RogerthatService } from '../rogerthat/rogerthat.service';
 import { ErrorService } from '../shared/error.service';
@@ -282,6 +282,7 @@ export class JccAppointmentsEffects {
 
   @Effect() afterCreateAppointment$ = this.actions$.pipe(
     ofType<CreateAppointmentCompleteAction>(JccAppointmentsActionTypes.CREATE_APPOINTMENT_SUCCESS),
+    delay(500),
     tap(() => {
       this.showDialog(this.translate.instant('app.oca.your_appointment_was_booked'));
     }),

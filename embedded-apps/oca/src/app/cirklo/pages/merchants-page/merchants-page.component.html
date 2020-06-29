@@ -1,0 +1,32 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.oca.merchants' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <ion-progress-bar *ngIf="loading$ | async" type="indeterminate"></ion-progress-bar>
+  <p class="merchants-info">{{ 'app.oca.cirklo_merchants_info' | translate }}</p>
+  <ion-list>
+    <ion-item *ngFor="let merchant of merchants$ | async; trackBy: trackById"
+              [routerLink]="[merchant.id]"
+              detail target="_blank">
+      <ion-label>
+        <h3>{{ merchant.name }}</h3>
+        <ng-container *ngIf="merchant.opening_hours">
+          <div class="open-until">
+          <span [class.closed]="!merchant.opening_hours.open_now" [class.open]="merchant.opening_hours.open_now"
+                class="open-until-chip">
+            {{ merchant.opening_hours.title }} {{ merchant.opening_hours.subtitle }}
+          </span>
+          </div>
+        </ng-container>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+  <ion-infinite-scroll (ionInfinite)="loadMore()" [disabled]="!(hasMore$ | async)">
+    <ion-infinite-scroll-content></ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+</ion-content>

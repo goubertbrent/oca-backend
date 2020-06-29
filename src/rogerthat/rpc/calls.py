@@ -29,7 +29,7 @@ from rogerthat.api.services import getActionInfo, startAction, getMenuIcon, pres
     pokeService, getStaticFlow, sendApiCall, updateUserData, getUserLink
 from rogerthat.api.system import logError as logClientError, saveSettings, heartBeat, getIdentity, \
     updateApplePushDeviceToken, unregisterMobile as unregisterMobile_api, getIdentityQRCode, setMobilePhoneNumber, \
-    editProfile, getJsEmbedding, setSecureInfo, getAppAsset, getEmbeddedApps, getEmbeddedApp, \
+    editProfile, getJsEmbedding, getAppAsset, getEmbeddedApps, getEmbeddedApp, \
     getProfileAddresses, addProfileAddress, deleteProfileAddresses, updateProfileAddress, \
     listZipCodes, listStreets, addProfilePhoneNumber, updateProfilePhoneNumber, \
     deleteProfilePhoneNumbers, getProfilePhoneNumbers
@@ -50,8 +50,8 @@ from rogerthat.bizz.messaging import new_message_response_handler, message_locke
     message_service_flow_member_result_response_handler, conversation_deleted_response_handler, \
     transfer_completed_response_handler, \
     new_chat_message_response_handler, update_message_response_handler, chat_deleted_response_handler
-from rogerthat.bizz.news import disable_news_response_handler, new_news_response_handler, \
-    create_notification_response_handler, update_badge_count_response_handler
+from rogerthat.bizz.news import disable_news_response_handler, create_notification_response_handler, \
+    update_badge_count_response_handler
 from rogerthat.bizz.payment import update_payment_provider_response_handler, \
     update_payment_status_response_handler, update_payment_providers_response_handler, \
     update_payment_asset_response_handler, update_payment_assets_response_handler
@@ -61,8 +61,7 @@ from rogerthat.bizz.service.mfr import start_flow_response_handler
 from rogerthat.bizz.system import unregister_mobile_success_callback, update_settings_response_handler, \
     identity_update_response_handler, forward_logs_response_handler, \
     system_service_deleted_response_handler, update_app_asset_response, update_look_and_feel_response, \
-    update_embedded_app_translations_response, update_embedded_apps_response, \
-    update_embedded_app_response
+    update_embedded_apps_response, update_embedded_app_response
 from rogerthat.capi.forms import test_form_response_handler, testForm
 from rogerthat.capi.friends import updateFriend, becameFriends, updateFriendSet, updateGroups
 from rogerthat.capi.jobs import newJobs
@@ -77,13 +76,13 @@ from rogerthat.capi.messaging import newMessage, updateMessageMemberStatus, mess
     startFlow, updateMessage, updateMyDigiPassForm, newMyDigiPassForm, newAdvancedOrderForm, updateAdvancedOrderForm, \
     updateFriendSelectForm, newFriendSelectForm, updateSignForm, newSignForm, updateOauthForm, newOauthForm, newPayForm, \
     updatePayForm, newOpenIdForm, updateOpenIdForm
-from rogerthat.capi.news import disableNews, newNews, createNotification, updateBadgeCount
+from rogerthat.capi.news import disableNews, createNotification, updateBadgeCount
 from rogerthat.capi.payment import updatePaymentProvider, updatePaymentStatus, updatePaymentAsset, \
     updatePaymentProviders, updatePaymentAssets
 from rogerthat.capi.services import receiveApiCallResult, updateUserData as capi_updateUserData
 from rogerthat.capi.system import unregisterMobile as unregisterMobile_capi, updateSettings, \
-    identityUpdate, forwardLogs, updateJsEmbedding, updateAppAsset, updateLookAndFeel, updateEmbeddedAppTranslations, \
-    updateEmbeddedApps, updateEmbeddedApp
+    identityUpdate, forwardLogs, updateJsEmbedding, updateAppAsset, updateLookAndFeel, updateEmbeddedApps,\
+    updateEmbeddedApp
 from rogerthat.rpc.rpc import logError, dismissError
 from rogerthat.rpc.service import logServiceError
 from rogerthat.service.api.app import installation_progress_response_receiver, installation_progress
@@ -92,9 +91,9 @@ from rogerthat.service.api.friends import broke_friendship, invited, invite_resu
     register, register_result
 from rogerthat.service.api.messaging import poke, flow_member_result, received, acknowledged, form_acknowledged, \
     new_chat_message, chat_deleted
+from rogerthat.service.api.news import news_created, news_updated, news_deleted
 from rogerthat.service.api.system import api_call, service_deleted, brandings_updated
 from rogerthat.service.api.test import test
-
 
 mapping = {
     u'com.mobicage.api.activity.logCall': logCall,
@@ -154,7 +153,6 @@ mapping = {
     u'com.mobicage.api.system.deleteProfilePhoneNumbers': deleteProfilePhoneNumbers,
     u'com.mobicage.api.system.updateApplePushDeviceToken': updateApplePushDeviceToken,
     u'com.mobicage.api.system.getJsEmbedding': getJsEmbedding,
-    u'com.mobicage.api.system.setSecureInfo': setSecureInfo,
     u'com.mobicage.api.system.getAppAsset': getAppAsset,
     u'com.mobicage.api.system.getEmbeddedApps': getEmbeddedApps,
     u'com.mobicage.api.system.getEmbeddedApp': getEmbeddedApp,
@@ -211,9 +209,7 @@ mapping = {
     u'com.mobicage.api.payment.verifyPaymentAsset': payment.verifyPaymentAsset,
     u'com.mobicage.api.payment.receivePayment': payment.receivePayment,
     u'com.mobicage.api.payment.getPendingPaymentDetails': payment.getPendingPaymentDetails,
-    u'com.mobicage.api.payment.getPendingPaymentSignatureData': payment.getPendingPaymentSignatureData,
     u'com.mobicage.api.payment.cancelPayment': payment.cancelPayment,
-    u'com.mobicage.api.payment.confirmPayment': payment.confirmPayment,
     u'com.mobicage.api.payment.createAsset': payment.createAsset,
     u'com.mobicage.api.payment.getTargetInfo': payment.getTargetInfo,
     u'com.mobicage.api.payment.createTransaction': payment.createTransaction,
@@ -255,7 +251,6 @@ client_mapping = {
     u'com.mobicage.capi.system.updateJsEmbedding': updateJsEmbedding,
     u'com.mobicage.capi.system.updateAppAsset': updateAppAsset,
     u'com.mobicage.capi.system.updateLookAndFeel': updateLookAndFeel,
-    u'com.mobicage.capi.system.updateEmbeddedAppTranslations': updateEmbeddedAppTranslations,
     u'com.mobicage.capi.system.updateEmbeddedApp': updateEmbeddedApp,
     u'com.mobicage.capi.system.updateEmbeddedApps': updateEmbeddedApps,
     u'com.mobicage.capi.messaging.newMessage': newMessage,
@@ -305,7 +300,6 @@ client_mapping = {
     u'com.mobicage.capi.location.trackLocation': trackLocation,
     u'com.mobicage.capi.services.receiveApiCallResult': receiveApiCallResult,
     u'com.mobicage.capi.services.updateUserData': capi_updateUserData,
-    u'com.mobicage.capi.news.newNews': newNews,
     u'com.mobicage.capi.news.disableNews': disableNews,
     u'com.mobicage.capi.news.createNotification': createNotification,
     u'com.mobicage.capi.news.updateBadgeCount': updateBadgeCount,
@@ -339,6 +333,9 @@ service_callback_mapping = {
     u'system.brandings_updated': brandings_updated,
     u'system.service_deleted': service_deleted,
     u'forms.submitted': form_submitted,
+    u'news.created': news_created,
+    u'news.updated': news_updated,
+    u'news.deleted': news_deleted,
 }
 
 result_mapping = {
@@ -365,7 +362,6 @@ result_mapping = {
     u'com.mobicage.capi.system.update_jsembedding_response': update_jsembedding_response,
     u'com.mobicage.capi.system.update_app_asset': update_app_asset_response,
     u'com.mobicage.capi.system.update_look_and_feel': update_look_and_feel_response,
-    u'com.mobicage.capi.system.update_embedded_app_translations': update_embedded_app_translations_response,
     u'com.mobicage.capi.system.update_embedded_app': update_embedded_app_response,
     u'com.mobicage.capi.system.update_embedded_apps': update_embedded_apps_response,
     u'com.mobicage.capi.location.get_location_response_handler': get_location_response_handler,
@@ -373,7 +369,6 @@ result_mapping = {
     u'com.mobicage.capi.location.get_location_response_error_handler': get_location_response_error_handler,
     u'com.mobicage.capi.location.track_location_response_handler': track_location_response_handler,
     u'com.mobicage.capi.location.track_location_response_error_handler': track_location_response_error_handler,
-    u'com.mobicage.capi.news.new_news_response_handler': new_news_response_handler,
     u'com.mobicage.capi.news.disable_news_response_handler': disable_news_response_handler,
     u'com.mobicage.capi.news.create_notification_response_handler': create_notification_response_handler,
     u'com.mobicage.capi.news.update_badge_count_response_handler': update_badge_count_response_handler,

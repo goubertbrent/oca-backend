@@ -15,16 +15,16 @@
 #
 # @@license_version:1.7@@
 
+import json
+import logging
+import time
 #
 # Most of this file is taken from gae-plugin-framework/framework/server/framework/bizz/firebase.py
 # with some modifications for custom token claims
 from base64 import b64encode
-import json
-import logging
-import time
 
-from google.appengine.api import app_identity
 import httplib2
+from google.appengine.api import app_identity
 from jose import jwt
 from jose.constants import Algorithms
 from oauth2client.client import GoogleCredentials

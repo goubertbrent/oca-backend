@@ -100,9 +100,7 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
     o.picture_url = picture_url
     o.user = app_user
 
-    msg = translate(sln_settings.main_language, SOLUTION_COMMON, 'if-order-received',
-                    remarks=remarks,
-                    phone_number="")
+    msg = translate(sln_settings.main_language, 'if-order-received', remarks=remarks, phone_number="")
 
     message = create_solution_inbox_message(service_user, service_identity,
                                             SolutionInboxMessage.CATEGORY_PHARMACY_ORDER, None, False, user_details,
@@ -123,7 +121,7 @@ def pharmacy_order_received(service_user, message_flow_run_id, member, steps, en
         att = AttachmentTO()
         att.content_type = AttachmentTO.CONTENT_TYPE_IMG_JPG
         att.download_url = picture_url
-        att.name = translate(sln_settings.main_language, SOLUTION_COMMON, u'picture')
+        att.name = translate(sln_settings.main_language, u'picture')
         att.size = 0
         send_inbox_forwarders_message(service_user, service_identity, app_user, msg, {
             'if_name': user_details[0].name,

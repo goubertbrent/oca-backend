@@ -18,9 +18,9 @@
 import datetime
 import logging
 
+import xlwt
 from babel.dates import format_date
 from google.appengine.ext import db
-import xlwt
 
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.messaging import parse_to_human_readable_tag
@@ -28,7 +28,6 @@ from rogerthat.dal.service import get_identity_statistics
 from rogerthat.models import ServiceIdentityStatistic, FlowStatistics
 from rogerthat.rpc import users
 from rogerthat.to.statistics import ServiceIdentityStatisticsTO, DayStatisticsTO, MenuItemPressTO, FlowStatisticsTO
-
 
 try:
     from cStringIO import StringIO

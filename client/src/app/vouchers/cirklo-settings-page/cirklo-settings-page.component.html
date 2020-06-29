@@ -1,0 +1,18 @@
+<mat-toolbar>
+  <a mat-icon-button routerLink="..">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <h1 class="flex-grow">{{ 'oca.cirklo_light' | translate }}</h1>
+</mat-toolbar>
+<mat-progress-bar *ngIf="cirkloSettingsLoading$ | async" mode="indeterminate"></mat-progress-bar>
+<form (ngSubmit)="save()" [formGroup]="formGroup" class="settings-form">
+  <mat-form-field class="full-width">
+    <mat-label>Cirklo city id</mat-label>
+    <input formControlName="city_id" matInput>
+  </mat-form-field>
+  <mat-form-field class="full-width">
+    <mat-label>Logo url</mat-label>
+    <input formControlName="logo_url" matInput>
+  </mat-form-field>
+  <button [disabled]="cirkloSettingsLoading$ | async" mat-stroked-button>{{ 'oca.Save' | translate }}</button>
+</form>

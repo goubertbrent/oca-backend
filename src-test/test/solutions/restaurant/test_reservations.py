@@ -63,8 +63,8 @@ class Test(oca_unittest.TestCase):
     def test_create_restaurant_identity(self):
         self.set_datastore_hr_probability(1)
 
-        root_proj = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')
-        branding_url = os.path.join(root_proj, 'mobicage-backend', 'src-test', 'rogerthat_tests', 'mobicage', 'bizz',
+        root_proj = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..')
+        branding_url = os.path.join(root_proj, 'src-test', 'rogerthat_tests', 'mobicage', 'bizz',
                                     'nuntiuz.zip')
 
         email = u"resto_soluton@foo.com"

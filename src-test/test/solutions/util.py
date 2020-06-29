@@ -53,8 +53,7 @@ def setup_payment_providers():
         app_ids=[],
         conversion_ratio=ConversionRatioTO(
             base=TEST_CURRENCY,
-            values=[ConversionRatioValueTO(currency='EUR', rate=.5),
-                    ConversionRatioValueTO(currency='TFT', rate=0.1)]
+            values=[ConversionRatioValueTO(currency='EUR', rate=.5)]
         )
     )
     create_payment_provider(obj)

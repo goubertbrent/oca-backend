@@ -19,6 +19,7 @@
       <excludeFolder url="file://$MODULE_DIR$/client/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/embedded-apps/oca/www" />
       <excludeFolder url="file://$MODULE_DIR$/src/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/src/static/client" />
     </content>
     <orderEntry type="jdk" jdkName="Python 2.7 (oca-backend)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

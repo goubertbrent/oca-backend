@@ -1,7 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -15,6 +18,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
 import { MAT_PAGINATOR_INTL_PROVIDER } from '../shared/i18n/material-components';
+import { CirkloSettingsPageComponent } from './cirklo-settings-page/cirklo-settings-page.component';
 import { VouchersPageComponent } from './vouchers-page/vouchers-page.component';
 import { VouchersEffects } from './vouchers.effects';
 import { vouchersFeatureKey, vouchersReducer } from './vouchers.reducer';
@@ -22,11 +26,12 @@ import { vouchersFeatureKey, vouchersReducer } from './vouchers.reducer';
 
 const routes: Routes = [
   { path: '', component: VouchersPageComponent },
+  { path: 'settings', component: CirkloSettingsPageComponent },
 ];
 
 
 @NgModule({
-  declarations: [VouchersPageComponent],
+  declarations: [VouchersPageComponent, CirkloSettingsPageComponent],
   imports: [
     CommonModule,
     EffectsModule.forFeature([VouchersEffects]),
@@ -43,6 +48,9 @@ const routes: Routes = [
     MatIconModule,
     MatTooltipModule,
     MatSortModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   providers: [MAT_PAGINATOR_INTL_PROVIDER],
 })

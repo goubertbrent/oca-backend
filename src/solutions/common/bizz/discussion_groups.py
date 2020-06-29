@@ -41,7 +41,6 @@ from rogerthat.to.service import UserDetailsTO
 from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction, on_trans_committed
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.dal import get_solution_settings
 from solutions.common.handlers import JINJA_ENVIRONMENT
 from solutions.common.models import SolutionSettings, SolutionMainBranding
@@ -157,7 +156,7 @@ def delete_discussion_group(service_user, discussion_group_id):
 
     if discussion_group.message_key:
         sln_settings = get_solution_settings(service_user)
-        message = translate(sln_settings.main_language, SOLUTION_COMMON, 'discussion_group_stopped')
+        message = translate(sln_settings.main_language, 'discussion_group_stopped')
         messaging.send_chat_message(discussion_group.message_key, message)
         messaging.update_chat(discussion_group.message_key, flags=messaging.ChatFlags.READ_ONLY)
 
@@ -191,10 +190,10 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
     if widget.choices:
         form = MultiSelectFormTO()
         form.javascript_validation = None
-        form.negative_button = translate(sln_settings.main_language, SOLUTION_COMMON, u'Cancel')
+        form.negative_button = translate(sln_settings.main_language, u'Cancel')
         form.negative_button_ui_flags = 0
         form.negative_confirmation = None
-        form.positive_button = translate(sln_settings.main_language, SOLUTION_COMMON, u'Save')
+        form.positive_button = translate(sln_settings.main_language, u'Save')
         form.positive_button_ui_flags = Message.UI_FLAG_EXPECT_NEXT_WAIT_5
         form.positive_confirmation = None
         form.type = MultiSelectTO.TYPE
@@ -203,14 +202,14 @@ def poke_discussion_groups(service_user, email, tag, result_key, context, servic
         result.type = TYPE_FORM
         result.value = FormCallbackResultTypeTO()
         result.value.form = form
-        result.value.message = translate(sln_settings.main_language, SOLUTION_COMMON, u'discussion_group_choices')
+        result.value.message = translate(sln_settings.main_language, u'discussion_group_choices')
         result.value.tag = POKE_TAG_DISCUSSION_GROUPS
     else:
         result.type = TYPE_MESSAGE
         result.value = MessageCallbackResultTypeTO()
         result.value.answers = list()
         result.value.dismiss_button_ui_flags = 0
-        result.value.message = translate(sln_settings.main_language, SOLUTION_COMMON, u'no_discussion_groups_yet')
+        result.value.message = translate(sln_settings.main_language, u'no_discussion_groups_yet')
         result.value.tag = None
 
     result.value.alert_flags = Message.ALERT_FLAG_SILENT
@@ -280,9 +279,9 @@ def follow_discussion_groups(service_user, status, form_result, answer_id, membe
     result.value.branding = sln_main_branding.branding_key
     result.value.dismiss_button_ui_flags = 0
     result.value.flags = Message.FLAG_AUTO_LOCK | Message.FLAG_ALLOW_DISMISS
-    result.value.message = translate(sln_settings.main_language, SOLUTION_COMMON, u'Your changes have been saved.')
+    result.value.message = translate(sln_settings.main_language, u'Your changes have been saved.')
     if followed_new_group:
-        result.value.message += u'\n\n%s' % translate(sln_settings.main_language, SOLUTION_COMMON,
+        result.value.message += u'\n\n%s' % translate(sln_settings.main_language,
                                                       u'you_can_find_discussion_groups_on_homescreen')
     result.value.step_id = None
     result.value.tag = None

@@ -36,7 +36,7 @@ from rogerthat.models.payment import PaymentPendingReceive
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.to.payment import GetPaymentProfileResponseTO, PaymentProviderAssetTO, CreatePaymentAssetTO, \
-    CryptoTransactionTO, ErrorPaymentTO, CreateTransactionResultTO, TargetInfoTO
+    ErrorPaymentTO, CreateTransactionResultTO, TargetInfoTO
 from rogerthat.translations import localize
 from rogerthat.utils import now
 from rogerthat.utils.service import create_service_identity_user, add_slash_default
@@ -200,22 +200,6 @@ def get_pending_transactions(app_user, asset_id, cursor=None):
 @arguments(app_user=users.User, asset_id=unicode, code=unicode)
 def verify_payment_asset(app_user, asset_id, code):
     raise NotImplementedError(u'verify_payment_asset is not implemented yet')
-
-
-@returns(CryptoTransactionTO)
-@arguments(app_user=users.User, transaction_id=unicode, from_asset_id=unicode, to_asset_id=unicode, amount=(int, long),
-           currency=unicode, memo=unicode, precision=(int, long))
-def get_payment_signature_data(app_user, transaction_id, from_asset_id, to_asset_id, amount, currency, memo, precision):
-    return None
-
-
-@returns(unicode)
-@arguments(from_user=users.User, to_user=users.User, transaction_id=unicode, from_asset_id=unicode, to_asset_id=unicode,
-           amount=(int, long), currency=unicode, memo=unicode, precision=(int, long),
-           crypto_transaction=CryptoTransactionTO)
-def confirm_payment(from_user, to_user, transaction_id, from_asset_id, to_asset_id, amount, currency, memo,
-                    precision, crypto_transaction):
-    raise PaymentPendingReceive.STATUS_FAILED
 
 
 @returns(CreateTransactionResultTO)

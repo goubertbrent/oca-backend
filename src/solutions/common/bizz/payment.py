@@ -15,26 +15,19 @@
 #
 # @@license_version:1.7@@
 
-import logging
+from google.appengine.ext import db
 
-from google.appengine.ext import db, ndb
-from google.appengine.ext.deferred import deferred
-
-from mcfw.properties import azzert
 from rogerthat.bizz.payment import get_api_module
-from rogerthat.bizz.payment.providers.threefold.api import _get_total_amount
 from rogerthat.consts import DEBUG
 from rogerthat.dal.service import get_service_identity
 from rogerthat.models import ServiceIdentity
 from rogerthat.rpc import users
 from rogerthat.service.api.payments import list_providers, put_provider
 from rogerthat.to.payment import ServicePaymentProviderTO, PAYMENT_SETTINGS_MAPPING, ServicePaymentProviderFeeTO
-from rogerthat.utils.channel import send_message
 from rogerthat.utils.service import create_service_identity_user
 from solutions.common.bizz import broadcast_updates_pending
 from solutions.common.dal import get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings
-from solutions.common.models.payment import PaymentTransaction
 from solutions.common.to.payments import TransactionDetailsTO
 from solutions.common.utils import is_default_service_identity
 
@@ -111,15 +104,9 @@ def get_visible_payment_providers(service_user, service_identity, test_mode):
     default_app_id = get_service_identity(create_service_identity_user(service_user, service_identity)).defaultAppId
     providers = []
     if DEBUG or default_app_id.startswith('osa-'):
-        return ['payconiq', 'threefold_testnet']
+        return ['payconiq']
     if default_app_id.startswith('be-'):
         providers.append('payconiq')
-    # In the future the `if 'threefold'` will be removed
-    if 'threefold' in default_app_id:
-        if test_mode:
-            providers.append('threefold_testnet')
-        else:
-            providers.append('threefold')
     return providers
 
 
@@ -129,60 +116,5 @@ def get_transaction_details(payment_provider, transaction_id, service_user, serv
     if payment_provider == 'payconiq':
         transaction = mod.get_public_transaction(transaction_id)
         return TransactionDetailsTO.from_dict(transaction)
-    elif payment_provider in ['threefold', 'threefold_testnet']:
-        settings_mapping = {p.provider_id: p.settings for p in get_providers_settings(service_user, service_identity)}
-        tf_settings = settings_mapping[payment_provider]  # type: ThreeFoldSettingsTO
-        service_address = tf_settings.address
-        azzert(tf_settings.address)
-        transaction = mod.get_public_transaction(transaction_id)
-        amount = _get_total_amount(transaction, service_address)
-        azzert(amount)
-        status = PaymentTransaction.STATUS_SUCCEEDED
-        if transaction['unconfirmed']:  # Usually will be true
-            status = PaymentTransaction.STATUS_PENDING
-        # Transaction id = external transaction id for ThreeFold transactions
-        transaction_key = PaymentTransaction.create_key(payment_provider, transaction_id)
-        transaction_model = PaymentTransaction(
-            key=transaction_key,
-            test_mode=False,
-            target=service_address,
-            currency='TFT',
-            amount=amount,
-            precision=9,
-            app_user=app_user.email(),
-            status=status,
-            external_id=transaction_id,
-            service_user=service_user.email())
-        if status == PaymentTransaction.STATUS_PENDING:
-            deferred.defer(_check_transaction_completed, transaction_key, _countdown=60)
-        else:
-            transaction_model.timestamp = mod.get_timestamp_from_block(transaction['transaction']['height'])
-        transaction_model.put()
-        return TransactionDetailsTO.from_model(transaction_model)
     else:
         raise Exception('Unknown payment provider %s' % payment_provider)
-
-
-@ndb.transactional(xg=True)
-def _check_transaction_completed(transaction_key):
-    transaction = transaction_key.get()  # type: PaymentTransaction
-    if transaction.status != PaymentTransaction.STATUS_PENDING:
-        return
-    mod = get_api_module(transaction.provider_id)
-    try:
-        ext_trans = mod.get_public_transaction(transaction.external_id)
-    except Exception as e:
-        logging.exception(e.message)
-        if 'unrecognized hash' in e.message:  # in case of a fork this transaction will not exist
-            transaction.status = PaymentTransaction.STATUS_FAILED
-            transaction.put()
-            deferred.defer(send_message, transaction.service_user, u'solutions.common.orders.update',
-                           _transactional=True)
-        return
-    if ext_trans['unconfirmed']:
-        deferred.defer(_check_transaction_completed, transaction_key, _transactional=True, _countdown=60)
-    else:
-        transaction.status = PaymentTransaction.STATUS_SUCCEEDED
-        transaction.timestamp = mod.get_timestamp_from_block(ext_trans['transaction']['height'])
-        transaction.put()
-        deferred.defer(send_message, transaction.service_user, u'solutions.common.orders.update', _transactional=True)

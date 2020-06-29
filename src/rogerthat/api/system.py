@@ -46,7 +46,6 @@ from rogerthat.to.system import SettingsTO, SaveSettingsRequest, SaveSettingsRes
     GetIdentityRequestTO, GetIdentityResponseTO, UpdateApplePushDeviceTokenRequestTO, \
     UpdateApplePushDeviceTokenResponseTO, GetIdentityQRCodeRequestTO, GetIdentityQRCodeResponseTO, \
     SetMobilePhoneNumberRequestTO, SetMobilePhoneNumberResponseTO, EditProfileRequestTO, EditProfileResponseTO, \
-    SetSecureInfoResponseTO, SetSecureInfoRequestTO, \
     GetProfileAddressesResponseTO, GetProfileAddressesRequestTO, \
     AddProfileAddressResponseTO, AddProfileAddressRequestTO, \
     DeleteProfileAddressesResponseTO, DeleteProfileAddressesRequestTO, \
@@ -122,8 +121,8 @@ def heartBeat(request):
                                      simCarrierCode=request.simCarrierCode, netCountry=request.netCountry,
                                      netCountryCode=request.netCountryCode, netCarrierName=request.netCarrierName,
                                      netCarrierCode=request.netCarrierCode, localeLanguage=request.localeLanguage,
-                                     localeCountry=request.localeCountry, embeddedApps=request.embeddedApps,
-                                     deviceId=request.deviceId, accept_missing=True)
+                                     localeCountry=request.localeCountry, deviceId=request.deviceId,
+                                     accept_missing=True)
     slog('T', get_current_user().email(), "com.mobicage.api.system.heartBeat", timestamp=request.timestamp,
          major_version=request.majorVersion, minor_version=request.minorVersion, product=request.product,
          sdk_version=request.SDKVersion, networkState=request.networkState)
@@ -300,14 +299,6 @@ def deleteProfilePhoneNumbers(request):
 @arguments(request=GetJSEmbeddingRequestTO)
 def getJsEmbedding(request):
     return GetJSEmbeddingResponseTO.fromDBJSEmbedding(JSEmbedding.all())
-
-
-@expose(('api',))
-@returns(SetSecureInfoResponseTO)
-@arguments(request=SetSecureInfoRequestTO)
-def setSecureInfo(request):
-    from rogerthat.bizz.system import set_secure_info
-    set_secure_info(users.get_current_user(), users.get_current_mobile(), request.public_key, request.public_keys)
 
 
 @expose(('api',))

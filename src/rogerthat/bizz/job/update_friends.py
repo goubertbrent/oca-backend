@@ -51,7 +51,6 @@ from rogerthat.utils.service import remove_slash_default, get_service_user_from_
     create_service_identity_user
 from rogerthat.utils.transactions import run_in_transaction
 
-
 try:
     from cStringIO import StringIO
 except ImportError:

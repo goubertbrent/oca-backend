@@ -28,16 +28,6 @@ from rogerthat.models.common import NdbModel
 from rogerthat.rpc import users
 
 
-class VDABSettings(NdbModel):
-
-    client_id = ndb.StringProperty(indexed=False)
-    synced_until = ndb.IntegerProperty(indexed=False, default=0)
-
-    @classmethod
-    def create_key(cls):
-        return ndb.Key(cls, 'VDABSettings')
-
-
 class JobOfferFunction(NdbModel):
     title = ndb.StringProperty()
     description = ndb.TextProperty()

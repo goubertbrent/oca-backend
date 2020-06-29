@@ -19,9 +19,9 @@ import base64
 import logging
 import re
 
+import cloudstorage
 from google.appengine.ext import db, deferred
 
-import cloudstorage
 from mcfw.cache import cached, invalidate_cache
 from mcfw.consts import MISSING
 from mcfw.exceptions import HttpBadRequestException, HttpNotFoundException
@@ -442,6 +442,16 @@ def update_app(app_id, data):
                 to_put.append(si)
             acs.service_identity_email = service_identity_user.email()
             app.auto_connected_services.add(acs)
+
+        # Add mainservice as autoconnected service if it's not already added
+        if app.main_service:
+            main_service_identity_email = add_slash_default(users.User(app.main_service))
+            service = AutoConnectedService()
+            service.service_identity_email = main_service_identity_email.email()
+            service.removable = False
+            service.local = []
+            service.service_roles = []
+            app.auto_connected_services.add(service)
 
         new_acs = [acs for acs in app.auto_connected_services
                    if acs.service_identity_email not in old_auto_connected_services]

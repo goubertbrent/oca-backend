@@ -91,7 +91,7 @@ from rogerthat.to.messaging import ButtonTO, NewMessageRequestTO, NewMessageResp
     GetConversationMemberMatchesResponseTO
 from rogerthat.to.messaging.flow import FLOW_STEP_MAPPING, FormFlowStepTO
 from rogerthat.to.messaging.forms import FormTO, WebFormMessageTO, UpdateFormResponseTO, TextBlockTO, MyDigiPassTO, \
-    FriendSelectTO
+    FriendSelectTO, SignTO, PayTO
 from rogerthat.to.messaging.service_callback_results import MessageAcknowledgedCallbackResultTO, \
     FormAcknowledgedCallbackResultTO, FlowMemberResultCallbackResultTO
 from rogerthat.to.push import NewMessageNotification, remove_markdown
@@ -105,6 +105,7 @@ from rogerthat.utils.iOS import construct_push_notification
 from rogerthat.utils.service import get_service_identity_tuple, get_service_user_from_service_identity_user, \
     remove_slash_default, create_service_identity_user, get_identity_from_service_identity_user, add_slash_default
 from rogerthat.utils.transactions import on_trans_committed, run_in_transaction
+
 
 try:
     from cStringIO import StringIO
@@ -1346,7 +1347,7 @@ def sendMessage(sender_user_possibly_with_slash_default, members, flags, timeout
                 try_or_defer(_start_distributing_chat_message, m, parent_message, others,
                              read_only=False, context=context, skip_sender=skip_sender)
         else:
-            deferred.defer(_distribute_new_chat_message_to_all_members, ChatAdminMembers, key, parent_key, context, 
+            deferred.defer(_distribute_new_chat_message_to_all_members, ChatAdminMembers, key, parent_key, context,
                            skip_sender=skip_sender, _transactional=is_in_transaction, _queue=FAST_CONTROLLER_QUEUE)
             deferred.defer(_distribute_new_chat_message_to_all_members, ChatWriterMembers, key, parent_key, context,
                            skip_sender=skip_sender, _transactional=is_in_transaction, _queue=FAST_CONTROLLER_QUEUE)
@@ -1720,7 +1721,7 @@ def start_chat(sender_user, topic, description, writers, readers, tag, context, 
     content = json.dumps(_create_chat_data(topic, description, _create_chat_metadata(metadata)))
 
     members = writers + readers
-    
+
     def trans():
         sender_is_service = is_service_identity_user(sender_user)
         message = sendMessage(sender_user, members, message_flags, 0, None, content, [], None, None, tag,
@@ -3778,6 +3779,12 @@ def validate_advanced_order(widgetTO):
                     "step_unit_conversion", "Step unit conversion is a required argument when step unit is given in item with id '%s' for category with id '%s'" % (i.id, c.id))
 
 
+def validate_module_supported(module_type):
+    if module_type in (FriendSelectTO.TYPE, MyDigiPassTO.TYPE, SignTO.TYPE, PayTO.TYPE):
+        from rogerthat.bizz.service import ModulesNotSupportedException
+        raise ModulesNotSupportedException(modules=[module_type])
+
+
 def _ack_message(message_key, message_parent_key, responder, timestamp, button_id, custom_reply, is_form=False):
     message = get_message(message_key, message_parent_key)
     if message.flags & Message.FLAG_LOCKED == Message.FLAG_LOCKED:
@@ -4499,9 +4506,10 @@ def _validate_form(formTO, service_user, app_user):
         raise InvalidFormException("Form has no or empty attribute 'type'.")
     if not formTO.widget or formTO.widget is MISSING:
         raise InvalidFormException("Form has no or empty attribute 'widget'.")
+    validate_module_supported(formTO.type)
     WIDGET_MAPPING[formTO.type].to_validate(formTO.widget)
     if formTO.type == MyDigiPassTO.TYPE:
-        validate_my_digi_pass_support(service_user, app_user)
+        validate_my_digi_pass_support(service_user, app_user) 
     elif formTO.type == Sign.TYPE:
         validate_sign_support(service_user, app_user)
     if formTO.positive_button == MISSING or formTO.positive_button == None or not formTO.positive_button.strip():

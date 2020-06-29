@@ -21,8 +21,8 @@ import logging
 import os
 from zipfile import ZipFile
 
-from babel.dates import format_datetime
 import cloudstorage
+from babel.dates import format_datetime
 from google.appengine.api import urlfetch
 from google.appengine.ext import deferred, db
 from pipeline import pipeline

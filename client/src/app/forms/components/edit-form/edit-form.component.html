@@ -66,16 +66,27 @@
       <ng-container *ngIf="hasEndDate">
         <mat-form-field>
           <mat-label>{{ 'oca.end_date' | translate }}</mat-label>
-          <input name="visible_until" matInput [matDatepicker]="picker" [(ngModel)]="dateInput"
+          <input (click)="picker.open()"
+                 (ngModelChange)="updateDate($event)"
+                 [matDatepicker]="picker"
+                 [min]="minDate"
                  [disabled]="form.settings.finished"
-                 [min]="minDate" (ngModelChange)="updateDate()" (click)="picker.open()" required readonly>
+                 [ngModel]="dateInput"
+                 matInput
+                 name="visible_until"
+                 readonly
+                 required>
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
         <mat-form-field>
           <mat-label>{{ 'oca.end_time' | translate }}</mat-label>
-          <input name="time" type="time" matInput required #timeInput (change)="updateDate()"
-                 [disabled]="form.settings.finished">
+          <oca-time-input #timeInput="ngModel"
+                          (ngModelChange)="updateTime($event)"
+                          [disabled]="form.settings.finished"
+                          [ngModel]="dateInput"
+                          name="time" required></oca-time-input>
+          <mat-error *ngIf="timeInput.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
         </mat-form-field>
         <p>{{ 'oca.visible_until_details' | translate }}</p>
       </ng-container>

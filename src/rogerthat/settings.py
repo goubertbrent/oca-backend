@@ -172,6 +172,10 @@ class ServerSettings(CachedModelMixIn, db.Model):
     mobileFirebaseCredentials = add_meta(db.TextProperty(),
                                          doc='Credentials json file for firebase storage on android and ios',
                                          order=400)
+    
+    worker_service_url = add_meta(db.StringProperty(indexed=False),
+                                                    doc='Worker service url',
+                                                    order=500)
 
     @property
     def senderEmail(self):

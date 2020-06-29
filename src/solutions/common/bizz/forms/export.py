@@ -27,7 +27,7 @@ from rogerthat.rpc import users
 from rogerthat.service.api.forms import service_api
 from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, DatetimeComponentValueTO
 from rogerthat.utils.app import get_human_user_from_app_user
-from solutions import translate, SOLUTION_COMMON
+from solutions import translate
 from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings
 from solutions.common.models.forms import FormSubmission, OcaForm
@@ -65,12 +65,12 @@ def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
     sheet = book.add_sheet(form.title)  # type: xlwt.Worksheet
     row = 0
     column = 0
-    sheet.write(row, column, translate(language, SOLUTION_COMMON, 'User'))
+    sheet.write(row, column, translate(language, 'User'))
     column += 1
-    sheet.write(row, column, translate(language, SOLUTION_COMMON, 'Date'))
+    sheet.write(row, column, translate(language, 'Date'))
     column += 1
     if oca_form.has_integration:
-        sheet.write(row, column, translate(language, SOLUTION_COMMON, 'oca.external_reference'))
+        sheet.write(row, column, translate(language, 'oca.external_reference'))
         column += 1
     for section in form.sections:  # type: FormSectionTO
         for component in section.components:  # type: ParagraphComponentTO

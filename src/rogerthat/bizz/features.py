@@ -71,7 +71,6 @@ class Features(Enum):
     SPLIT_USER_DATA = Feature(ios=Version(1, 2517), android=Version(1, 3608))
     PAYMENTS = Feature(ios=Version(1, 2637), android=Version(1, 3874))  # TODO bump to newest version
     EMBEDDED_APPS = Feature(ios=Version(1, 2637), android=Version(1, 3883))
-    MULTIPLE_NEWS_FEEDS = Feature(ios=Version(1, 2697), android=Version(1, 3939))
     ASK_TOS = Feature(ios=Version(1, 2729), android=Version(1, 3989))
     FORMS = Feature(ios=Version(1, 3383), android=Version(1, 4890))
     EMBEDDED_APPS_IN_SMI = Feature(ios=Version(1, 3793), android=Version(1, 5558))

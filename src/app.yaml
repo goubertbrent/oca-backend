@@ -347,3 +347,7 @@ handlers:
   - url: /oauth/.*
     script: rogerthat_unauthenticated.app
     secure: always
+
+  - url: /workers/.*
+    script: rogerthat_unauthenticated.app
+    secure: always

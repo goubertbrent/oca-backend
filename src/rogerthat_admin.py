@@ -23,8 +23,7 @@ from rogerthat.bizz.maps import MapNotificationsHandler
 from rogerthat.bizz.rtemail import EmailHandler
 from rogerthat.cron.apn_expiration_check import ApnExpirationCheckHandler
 from rogerthat.cron.birthday import BirthdayMessagesCronHandler
-from rogerthat.cron.jobs import SyncVDABJobsHandler, SendJobNotificationsHandler, \
-    CleanupJobsHandeler
+from rogerthat.cron.jobs import SendJobNotificationsHandler
 from rogerthat.cron.news import NewsUnstickHandler, NewsStatisticsHandler, \
     NewsServiceSetupHandler, NewsGroupVisibilityHandler
 from rogerthat.cron.oauth import RemoveStatesHandler
@@ -80,8 +79,6 @@ handlers = [
     ('/cron/birthday_messages', BirthdayMessagesCronHandler),
     ('/cron/daily_statistics', DailyStatisticsHandler),
     ('/cron/jobs/notifications', SendJobNotificationsHandler),
-    ('/cron/jobs/cleanup', CleanupJobsHandeler),
-    ('/cron/jobs/vdab/sync', SyncVDABJobsHandler),
     ('/cron/clean-oauth', RemoveStatesHandler),
     ('/cron/maps/notifications', MapNotificationsHandler),
     ('/cron/user/cleanup/context', CleanupUserContextHandler),

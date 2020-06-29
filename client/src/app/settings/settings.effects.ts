@@ -52,13 +52,8 @@ export class SettingsEffects {
     ofType<GetServiceInfoAction>(SettingsActionTypes.GET_SERVICE_INFO),
     switchMap(action => this.settingsService.getServiceInfo().pipe(
       map(result => new GetServiceInfoCompleteAction(result)),
-      catchError(err => of(new GetServiceInfoFailedAction(err.error.error))))),
+      catchError(err => this.errorService.handleError(action, GetServiceInfoFailedAction, err)))),
   ));
-
-   showErrorDialog = createEffect(() => this.actions$.pipe(
-    ofType<GetServiceInfoFailedAction>(SettingsActionTypes.GET_SERVICE_INFO_FAILED),
-    tap(action => this.errorService.showErrorDialog(action.error)),
-  ), { dispatch: false });
 
    updateServiceInfo = createEffect(() => this.actions$.pipe(
     ofType<UpdateServiceInfoAction>(SettingsActionTypes.UPDATE_SERVICE_INFO),

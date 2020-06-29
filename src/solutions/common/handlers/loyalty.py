@@ -210,8 +210,8 @@ class LoyaltyNoMobilesUnsubscribeEmailHandler(webapp.RequestHandler):
         data_dict, app_user = self.get_user_info()
         if not data_dict or not app_user:
             language = self.request.get("language", DEFAULT_LANGUAGE)
-            title = common_translate(language, SOLUTION_COMMON, u'Error')
-            text = common_translate(language, SOLUTION_COMMON, u"error-occured-unknown-try-again")
+            title = common_translate(language, u'Error')
+            text = common_translate(language, u"error-occured-unknown-try-again")
         else:
             azzert(data_dict['a'] == "loyalty_no_mobiles_unsubscribe")
             service_name = data_dict['n']
@@ -234,8 +234,8 @@ class LoyaltyNoMobilesUnsubscribeEmailHandler(webapp.RequestHandler):
             else:
                 language = self.request.get("language", DEFAULT_LANGUAGE)
 
-            title = common_translate(language, SOLUTION_COMMON, u'You have been unsubscribed')
-            text = common_translate(language, SOLUTION_COMMON, u'You will not receive any loyalty updates from "%(name)s" anymore', name=service_name)
+            title = common_translate(language, u'You have been unsubscribed')
+            text = common_translate(language, u'You will not receive any loyalty updates from "%(name)s" anymore', name=service_name)
 
         params = {
             'title': title,
@@ -251,8 +251,8 @@ class LoyaltyLotteryConfirmWinnerHandler(LoyaltyNoMobilesUnsubscribeEmailHandler
         data_dict, app_user = self.get_user_info()
         if not data_dict or not app_user:
             language = self.request.get("language", DEFAULT_LANGUAGE)
-            title = common_translate(language, SOLUTION_COMMON, u'Error')
-            text = common_translate(language, SOLUTION_COMMON, u"error-occured-unknown-try-again")
+            title = common_translate(language, u'Error')
+            text = common_translate(language, u"error-occured-unknown-try-again")
         else:
             azzert(data_dict['a'] == "loyalty_no_mobiles_lottery_winner")
             service_email = data_dict['e']
@@ -263,15 +263,15 @@ class LoyaltyLotteryConfirmWinnerHandler(LoyaltyNoMobilesUnsubscribeEmailHandler
                 language = self.request.get("language", user_profile.language)
                 inbox_message = SolutionInboxMessage.get(data_dict['mk'])
                 if redeem_lottery_winners(service_user, service_identity, app_user, user_profile.name, inbox_message):
-                    title = common_translate(language, SOLUTION_COMMON, u'Success')
-                    text = common_translate(language, SOLUTION_COMMON, u'loyalty-lottery-loot-receive')
+                    title = common_translate(language, u'Success')
+                    text = common_translate(language, u'loyalty-lottery-loot-receive')
                 else:
-                    title = common_translate(language, SOLUTION_COMMON, u'Error')
-                    text = common_translate(language, SOLUTION_COMMON, u'Unfortunately you have not confirmed on time and lost your chance')
+                    title = common_translate(language, u'Error')
+                    text = common_translate(language, u'Unfortunately you have not confirmed on time and lost your chance')
             else:
                 language = self.request.get("language", DEFAULT_LANGUAGE)
-                title = common_translate(language, SOLUTION_COMMON, u'Error')
-                text = common_translate(language, SOLUTION_COMMON, u"error-occured-unknown-try-again")
+                title = common_translate(language, u'Error')
+                text = common_translate(language, u"error-occured-unknown-try-again")
 
         params = {
             'title': title,

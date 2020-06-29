@@ -17,73 +17,50 @@
 
 import logging
 
-__all__ = [ 'localize', 'SUPPORTED_LANGUAGES' ]
-
-DEFAULT_LANGUAGE = "nl"
-
-# TODO move this to normal translations
+from solutions import translate as common_translate
 
 
 def localize(lang, key, **kwargs):
     if not lang:
-        lang = DEFAULT_LANGUAGE
-    lang = lang.replace('-', '_')
-    if lang not in D:
-        if '_' in lang:
-            lang = lang.split('_')[0]
-            if lang not in D:
-                lang = DEFAULT_LANGUAGE
-        else:
-            lang = DEFAULT_LANGUAGE
-    langdict = D[lang]
-    if key not in langdict:
-        # Fall back to default language
-        if lang != DEFAULT_LANGUAGE:
-            logging.warn("Translation key %s not found in language %s - fallback to default" % (key, lang))
-            lang = DEFAULT_LANGUAGE
-            langdict = D[lang]
-    if key in langdict:
-        return langdict[key] % kwargs
-    logging.warn("Translation key %s not found in default language. Fallback to key" % key)
-    return unicode(key) % kwargs
+        lang = 'nl'
+    if key not in MAPPING:
+        logging.warn("Translation key %s not found in mapping. Fallback to key" % key)
+        return key
 
-D = { }
+    return common_translate(lang, MAPPING[key], **kwargs)
 
-D["nl"] = {
-    """contract_type_001""": u"""Vast""",
-    """contract_type_002""": u"""Tijdelijk""",
-    """contract_type_003""": u"""Jongerenjobs""",
-    """contract_type_004""": u"""Freelance""",
-    """contract_type_005""": u"""Flexijob""",
-    """contract_type_006""": u"""Dienstenchequebaan""",
-    """contract_type_007""": u"""Vrijwilligerswerk""",
 
-    """job_domain_001""": u"""Aankoop""",
-    """job_domain_002""": u"""Administratie""",
-    """job_domain_003""": u"""Bouw""",
-    """job_domain_004""": u"""Communicatie""",
-    """job_domain_005""": u"""Creatief""",
-    """job_domain_006""": u"""Financieel""",
-    """job_domain_007""": u"""Gezondheid""",
-    """job_domain_008""": u"""Horeca en toerisme""",
-    """job_domain_009""": u"""Human resources""",
-    """job_domain_010""": u"""ICT""",
-    """job_domain_011""": u"""Juridisch""",
-    """job_domain_012""": u"""Land- en tuinbouw""",
-    """job_domain_013""": u"""Logistiek en transport""",
-    """job_domain_014""": u"""Dienstverlening""",
-    """job_domain_015""": u"""Management""",
-    """job_domain_016""": u"""Marketing""",
-    """job_domain_017""": u"""Onderhoud""",
-    """job_domain_018""": u"""Onderwijs""",
-    """job_domain_019""": u"""Overheid""",
-    """job_domain_020""": u"""Onderzoek en ontwikkeling""",
-    """job_domain_021""": u"""Productie""",
-    """job_domain_022""": u"""Techniek""",
-    """job_domain_023""": u"""Verkoop""",
-    """job_domain_024""": u"""Andere""",
+MAPPING = {
+    """contract_type_001""": u"""oca.fulltime""",
+    """contract_type_002""": u"""oca.temporary""",
+    """contract_type_003""": u"""oca.youth_jobs""",
+    """contract_type_004""": u"""oca.freelance""",
+    """contract_type_005""": u"""oca.flexijob""",
+    """contract_type_006""": u"""oca.service_check_job""",
+    """contract_type_007""": u"""oca.volunteer_work""",
 
+    """job_domain_001""": u"""oca.purchase""",
+    """job_domain_002""": u"""oca.administration""",
+    """job_domain_003""": u"""oca.construction""",
+    """job_domain_004""": u"""oca.communication""",
+    """job_domain_005""": u"""oca.creative""",
+    """job_domain_006""": u"""oca.financial""",
+    """job_domain_007""": u"""oca.health""",
+    """job_domain_008""": u"""oca.hospitality_and_tourism""",
+    """job_domain_009""": u"""oca.human_resources""",
+    """job_domain_010""": u"""oca.ict""",
+    """job_domain_011""": u"""oca.legal""",
+    """job_domain_012""": u"""oca.agriculture_and_horticulture""",
+    """job_domain_013""": u"""oca.logistics_and_transport""",
+    """job_domain_014""": u"""oca.services""",
+    """job_domain_015""": u"""oca.management""",
+    """job_domain_016""": u"""oca.marketing""",
+    """job_domain_017""": u"""oca.maintenance""",
+    """job_domain_018""": u"""oca.education""",
+    """job_domain_019""": u"""oca.government""",
+    """job_domain_020""": u"""oca.research_and_development""",
+    """job_domain_021""": u"""oca.production""",
+    """job_domain_022""": u"""oca.technic""",
+    """job_domain_023""": u"""oca.sale""",
+    """job_domain_024""": u"""oca.others""",
 }
-
-# Keep this line at the bottom
-SUPPORTED_LANGUAGES = D.keys()

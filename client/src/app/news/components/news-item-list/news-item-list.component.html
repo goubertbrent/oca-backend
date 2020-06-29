@@ -1,5 +1,10 @@
+<div class="fab-bottom-right">
+  <a mat-fab routerLink="/news/create">
+    <mat-icon>add</mat-icon>
+  </a>
+</div>
 <div class="items-container">
-  <mat-card routerLink="/news/create" class="create-card">
+  <mat-card class="create-card" routerLink="/news/create">
     <mat-card-header>
       <mat-card-title>{{ 'oca.create_message' | translate }}</mat-card-title>
       <mat-card-subtitle>
@@ -28,22 +33,7 @@
         </span>
         </mat-card-subtitle>
       </mat-card-header>
-      <mat-card-content>
-        <mat-chip-list>
-          <mat-chip [queryParams]="{metric: 'reached'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.reach }} {{ 'oca.reached' | translate }}
-          </mat-chip>
-          <mat-chip [queryParams]="{metric: 'rogered'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.users_that_rogered.length }} {{ 'oca.rogered' | translate }}
-          </mat-chip>
-          <mat-chip [queryParams]="{metric: 'action'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.action_count }} {{ 'oca.action' | translate }}
-          </mat-chip>
-          <mat-chip [queryParams]="{metric: 'followed'}" [routerLink]="['/news/details', item.id, 'statistics']">
-            {{ item.follow_count }} {{ 'oca.followed' | translate }}
-          </mat-chip>
-        </mat-chip-list>
-      </mat-card-content>
+      <mat-card-content [innerHTML]="item.message | truncate : 250 | markdown"></mat-card-content>
       <mat-card-actions align="end">
         <button mat-button type="button" (click)="copyItem.emit(item)">
           <mat-icon>file_copy</mat-icon>
@@ -52,6 +42,10 @@
         <a [routerLink]="['/news/details', item.id]" mat-button>
           <mat-icon>edit</mat-icon>
           <span>&nbsp;{{ 'oca.Edit' | translate }}</span>
+        </a>
+        <a [routerLink]="['/news/details', item.id, 'statistics']" mat-button>
+          <mat-icon>show_chart</mat-icon>
+          <span>&nbsp;{{ 'oca.statistics' | translate }}</span>
         </a>
         <button (click)="deleteItem.emit(item)" mat-button color="warn">
           <mat-icon>delete</mat-icon>

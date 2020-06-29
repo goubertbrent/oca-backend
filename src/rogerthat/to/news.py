@@ -20,6 +20,7 @@ import json
 import time
 
 from dateutil.relativedelta import relativedelta
+from typing import List
 
 from mcfw.properties import long_list_property, typed_property, bool_property, long_property, unicode_property, \
     unicode_list_property, azzert, float_property
@@ -104,15 +105,6 @@ def _deserialize_news_buttons(stream):
     return _deserialize_news_button_list(stream, version)
 
 
-class AppNewsInfoTO(object):
-    id = long_property('1')
-    version = long_property('2')
-    sort_timestamp = long_property('3')
-    sort_priority = long_property('4')
-    sender_email = unicode_property('5', default=None)
-    feed_name = unicode_property('7', default=None)
-
-
 class NewsItemStatisticsTimeTO(TO):
     timestamp = long_property('1')
     amount = long_property('2')
@@ -169,8 +161,8 @@ class NewsItemStatisticsDetailsTO(TO):
         return cls(age, gender, time_to, getattr(model, '%s_total' % news_type))
 
 
-class NewsItemStatisticsTO(TO):
-    app_id = unicode_property('1')
+class NewsItemAppStatisticsTO(TO):
+    app_id = unicode_property('app_id')
     # following dicts could have type NewsItemStatisticsDetailsTO, but are dictionaries for enhanced performance
     reached = typed_property('2', dict, False)  # type: dict
     rogered = typed_property('3', dict, False)  # type: dict
@@ -192,15 +184,17 @@ class NewsItemStatisticsTO(TO):
         return cls(app_id=app_id, reached=reached, rogered=rogered, action=action, followed=followed)
 
 
-class NewsItemInternalStatistics(TO):
+class NewsItemStatisticsTO(TO):
+    id = long_property('id')
     users_that_rogered = unicode_list_property('users_that_rogered')
     total_reached = long_property('total_reached')
     total_action = long_property('total_action')
     total_followed = long_property('total_followed')
-    details = typed_property('details', NewsItemStatisticsTO, True)
+    details = typed_property('details', NewsItemAppStatisticsTO, True)  # type: List[NewsItemAppStatisticsTO]
 
-    def __init__(self, total_reached=0, users_that_rogered=None, total_action=0, total_followed=0, details=None):
-        super(NewsItemInternalStatistics, self).__init__(
+    def __init__(self, id_=0, total_reached=0, users_that_rogered=None, total_action=0, total_followed=0, details=None):
+        super(NewsItemStatisticsTO, self).__init__(
+            id=id_,
             users_that_rogered=users_that_rogered or [],
             total_reached=total_reached,
             total_action=total_action,
@@ -209,24 +203,16 @@ class NewsItemInternalStatistics(TO):
         )
 
 
+class NewsStatisticsResultTO(TO):
+    id = long_property('id')
+    data = typed_property('data', NewsItemStatisticsTO)
+
+
 class NewsTargetAudienceTO(object):
     min_age = long_property('1', default=0)
     max_age = long_property('2', default=200)
     gender = long_property('3', default=UserProfile.GENDER_MALE_OR_FEMALE)
     connected_users_only = bool_property('4', default=False)
-
-
-class NewsFeedNameTO(TO):
-    app_id = unicode_property('1')
-    name = unicode_property('2')
-
-    def __init__(self, app_id=None, name=None):
-        self.app_id = app_id
-        self.name = name
-
-    @classmethod
-    def from_model(cls, model):
-        return cls(model.app_id, model.name)
 
 
 class BaseMediaTO(TO):
@@ -283,9 +269,7 @@ class BaseNewsItemTO(object):
     title = unicode_property('3')
     message = unicode_property('4')
     image_url = unicode_property('5', default=None)  # deprecated
-    broadcast_type = unicode_property('6') # deprecated
-    reach = long_property('7')
-    users_that_rogered = unicode_list_property('8')
+    broadcast_type = unicode_property('6')  # deprecated
     buttons = typed_property('9', NewsActionButtonTO, True)
     qr_code_content = unicode_property('10')
     qr_code_caption = unicode_property('11')
@@ -296,11 +280,8 @@ class BaseNewsItemTO(object):
     media = typed_property('media', MediaTO, False, default=None)  # type: MediaTO
 
     def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, title=None,
-                 message=None, image_url=None, reach=0, users_that_rogered=None, buttons=None,
+                 message=None, image_url=None, buttons=None,
                  qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1, media=None):
-
-        if users_that_rogered is None:
-            users_that_rogered = []
         if buttons is None:
             buttons = []
         self.id = news_id
@@ -311,8 +292,6 @@ class BaseNewsItemTO(object):
         self.message = message
         self.image_url = image_url
         self.broadcast_type = None
-        self.reach = reach
-        self.users_that_rogered = users_that_rogered
         self.buttons = [NewsActionButtonTO.from_model(button) for button in buttons]
         self.qr_code_content = qr_code_content
         self.qr_code_caption = qr_code_caption
@@ -323,91 +302,13 @@ class BaseNewsItemTO(object):
         self.media = media
 
     @classmethod
-    def from_model(cls, model, base_url, statistics=None):
-        # type: (NewsItem, unicode, NewsItemInternalStatistics) -> BaseNewsItemTO
+    def from_model(cls, model, base_url):
+        # type: (NewsItem, unicode) -> BaseNewsItemTO
         from rogerthat.dal.service import get_service_identity
-
-        if not statistics:
-            statistics = NewsItemInternalStatistics()
-
         si = get_service_identity(model.sender)
         return cls(model.id, si.service_identity_user.email(), si.name, si.avatarId, model.title, model.message,
-                   model.media_url(base_url), statistics.total_reached,
-                   statistics.users_that_rogered, model.buttons, model.qr_code_content, model.qr_code_caption,
+                   model.media_url(base_url), model.buttons, model.qr_code_content, model.qr_code_caption,
                    model.version, model.timestamp, model.flags, model.type, model.media)
-
-
-class AppNewsItemTO(BaseNewsItemTO):
-    sort_timestamp = long_property('101')
-    sort_priority = long_property('102')
-    feed_name = unicode_property('103', default=None)
-
-    @classmethod
-    def from_news_item_to(cls, news_item_to, connections, app_user):
-        """
-        Args:
-            news_item_to (NewsItemTO)
-            connections (tuple of (list of users.User))
-            app_user (users.User)
-
-        Returns:
-            app_news_item_to (AppNewsItemTO)
-        """
-        to = cls()
-        to.id = news_item_to.id
-        to.sender = NewsSenderTO(news_item_to.sender.email, news_item_to.sender.name, news_item_to.sender.avatar_id)
-        to.title = news_item_to.title
-        to.message = news_item_to.message
-        to.image_url = news_item_to.image_url
-        to.media = news_item_to.media
-        to.broadcast_type = news_item_to.broadcast_type
-        to.reach = news_item_to.reach
-
-        to.users_that_rogered = []
-        for friend in connections[0]:
-            if friend.email() in news_item_to.users_that_rogered:
-                human_friend, _ = get_app_user_tuple(friend)
-                to.users_that_rogered.append(human_friend.email())
-
-        to.buttons = news_item_to.buttons
-        if news_item_to.qr_code_content:
-            try:
-                content = json.loads(news_item_to.qr_code_content)
-                content['u'] = app_user.email()
-                to.qr_code_content = u'%s' % json.dumps(content)
-            except:
-                to.qr_code_content = news_item_to.qr_code_content
-        else:
-            to.qr_code_content = news_item_to.qr_code_content
-        to.qr_code_caption = news_item_to.qr_code_caption
-        to.version = news_item_to.version
-        to.timestamp = news_item_to.timestamp
-        to.flags = news_item_to.flags
-        to.type = news_item_to.type
-
-        app_id = get_app_id_from_app_user(app_user)
-        for feed_name in news_item_to.feed_names:
-            if feed_name.app_id == app_id:
-                to.feed_name = feed_name.name
-                break
-        else:
-            to.feed_name = None
-
-        to.sort_timestamp = max(news_item_to.sticky and news_item_to.sticky_until, news_item_to.timestamp) or 0
-        if news_item_to.sticky:
-            to.sort_priority = 10
-        else:
-            user_profile = get_user_profile(app_user)
-            if not NewsItem.match_target_audience_of_item(user_profile, news_item_to):
-                to.sort_priority = 45
-            elif to.users_that_rogered:
-                to.sort_priority = 20
-            elif users.User(news_item_to.sender.email) in connections[1]:
-                to.sort_priority = 30
-            else:
-                to.sort_priority = 40
-
-        return to
 
 
 class NewsItemTO(BaseNewsItemTO):
@@ -419,63 +320,47 @@ class NewsItemTO(BaseNewsItemTO):
     sticky = bool_property('101')
     sticky_until = long_property('102')
     app_ids = unicode_list_property('103')
-    rogered = bool_property('104')
     scheduled_at = long_property('105')
     published = bool_property('106')
-    statistics = typed_property('107', NewsItemStatisticsTO, True)
-    action_count = long_property('108')
-    follow_count = long_property('109')
 
     target_audience = typed_property('110', NewsTargetAudienceTO, False)
     role_ids = long_list_property('111', default=[])
     tags = unicode_list_property('112')
-    feed_names = typed_property('113', NewsFeedNameTO, True)
     group_type = unicode_property('114', default=None)
     locations = typed_property('locations', NewsLocationsTO)
     group_visible_until = long_property('group_visible_until')
 
     def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, title=None,
-                 message=None, image_url=None, reach=0, users_that_rogered=None, buttons=None,
+                 message=None, image_url=None, buttons=None,
                  qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1,
-                 sticky=False, sticky_until=0, app_ids=None, rogered=False, scheduled_at=0, published=False,
-                 statistics=None, action_count=-1, follow_count=-1, target_audience=None, role_ids=None,
-                 tags=None, feed_names=None, media=None, group_type=None, locations=None, group_visible_until=None):
+                 sticky=False, sticky_until=0, app_ids=None, scheduled_at=0, published=False,
+                 target_audience=None, role_ids=None,
+                 tags=None, media=None, group_type=None, locations=None, group_visible_until=None):
 
         if app_ids is None:
             app_ids = []
-        if users_that_rogered is None:
-            users_that_rogered = []
         if buttons is None:
             buttons = []
-        if statistics is None:
-            statistics = []
         if role_ids is None:
             role_ids = []
         if tags is None:
             tags = []
-        if feed_names is None:
-            feed_names = []
 
         super(NewsItemTO, self).__init__(news_id, sender_email, sender_name, sender_avatar_id, title,
-                                         message, image_url, reach, users_that_rogered, buttons,
+                                         message, image_url, buttons,
                                          qr_code_content, qr_code_caption, version, timestamp, flags, news_type, media)
 
         self.sticky = sticky
         self.sticky_until = sticky_until
         self.app_ids = app_ids
-        self.rogered = rogered
         self.scheduled_at = scheduled_at
         if scheduled_at:
             self.timestamp = scheduled_at
         self.published = published
-        self.statistics = statistics
-        self.action_count = action_count
-        self.follow_count = follow_count
 
         self.target_audience = target_audience
         self.role_ids = role_ids
         self.tags = tags
-        self.feed_names = feed_names
         self.group_type = group_type
         self.locations = locations
         self.group_visible_until = group_visible_until
@@ -485,20 +370,11 @@ class NewsItemTO(BaseNewsItemTO):
         return len(self.role_ids) > 0
 
     @classmethod
-    def from_model(cls, model, base_url, statistics=None):
-        # type: (NewsItem, unicode, NewsItemInternalStatistics) -> NewsItemTO
+    def from_model(cls, model, base_url):
+        # type: (NewsItem, unicode) -> NewsItemTO
         from rogerthat.dal.service import get_service_identity
         si = get_service_identity(model.sender)
         buttons = model.buttons.values() if model.buttons else []
-
-        if not statistics:
-            statistics = NewsItemInternalStatistics()
-
-        feed_names = []
-        if model.feeds:
-            for feed in model.feeds.values():
-                feed_name = NewsFeedNameTO.from_model(feed)
-                feed_names.append(feed_name)
 
         # set the target audience
         if model.target_audience_enabled:
@@ -531,12 +407,10 @@ class NewsItemTO(BaseNewsItemTO):
         else:
             locations = None
         return cls(model.id, sender_email, sender_name, sender_avatar_id, model.title, model.message,
-                   media and media.content, statistics.total_reached,
-                   statistics.users_that_rogered, buttons, model.qr_code_content, model.qr_code_caption, model.version,
+                   media and media.content, buttons, model.qr_code_content, model.qr_code_caption, model.version,
                    model.timestamp, model.flags, model.type, model.sticky, model.sticky_until, model.app_ids,
-                   True if statistics.users_that_rogered else False, model.scheduled_at, model.published,
-                   statistics.details, statistics.total_action, statistics.total_followed, target_audience,
-                   model.role_ids, model.tags, feed_names, media, group_type, locations,
+                   model.scheduled_at, model.published, target_audience,
+                   model.role_ids, model.tags, media, group_type, locations,
                    model.group_visible_until and long(time.mktime(model.group_visible_until.timetuple())))
 
 
@@ -570,60 +444,16 @@ class NewsItemListResultTO(object):
     cursor = unicode_property('2')
     more = bool_property('more')
 
-    def __init__(self, news_items=None, more=True, cursor=None, base_url=None, statistics=None):
-        # type: (list[NewsItem], bool, unicode, unicode, dict[int, NewsItemInternalStatistics]) -> None
+    def __init__(self, news_items=None, more=True, cursor=None, base_url=None):
+        # type: (list[NewsItem], bool, unicode, unicode) -> None
         if news_items is None:
             news_items = []
-        if statistics is None:
-            statistics = {}
         self.cursor = cursor
         results = []
         for news_item in news_items:
-            stats = statistics.get(news_item.id) or NewsItemInternalStatistics()
-            results.append(NewsItemTO.from_model(news_item, base_url, stats))
+            results.append(NewsItemTO.from_model(news_item, base_url))
         self.result = results
         self.more = more
-
-
-class NewsIdsListResultTO(object):
-    cursor = unicode_property('1')
-    result = typed_property('2', AppNewsInfoTO, True)
-
-    def __init__(self, cursor=None, news_items=None, connections=None, first_time=False, profile=None,
-                 users_that_rogered=None):
-        # type: (unicode, list[NewsItem], tuple[list, list], bool, UserProfile, dict[int, list[unicode]]) -> None
-        if news_items is None:
-            news_items = []
-        if connections is None:
-            connections = ([], [])
-        if users_that_rogered is None:
-            users_that_rogered = {}
-
-        if cursor:
-            self.cursor = cursor if isinstance(cursor, unicode) else cursor.decode('utf-8')
-        else:
-            self.cursor = None
-
-        self.result = []
-
-        for news_item in news_items:
-            to = AppNewsInfoTO()
-            to.id = news_item.id
-            to.version = news_item.version
-            to.sort_timestamp = news_item.sort_timestamp
-            to.sort_priority = 50 if first_time else news_item.sort_priority(connections, profile,
-                                                                             users_that_rogered.get(news_item.id, []))
-            to.sender_email = remove_slash_default(news_item.sender).email()
-            to.feed_name = news_item.feed_name(get_app_id_from_app_user(profile.user))
-            self.result.append(to)
-
-
-class NewNewsRequestTO(object):
-    news_item = typed_property('1', AppNewsItemTO, False)
-
-
-class NewNewsResponseTO(object):
-    pass
 
 
 class DisableNewsRequestTO(object):
@@ -635,23 +465,6 @@ class DisableNewsRequestTO(object):
 
 class DisableNewsResponseTO(object):
     pass
-
-
-class GetNewsRequestTO(object):
-    cursor = unicode_property('1')
-    updated_since = long_property('2')
-
-
-class GetNewsResponseTO(NewsIdsListResultTO):
-    pass
-
-
-class GetNewsItemsRequestTO(object):
-    ids = long_list_property('1')
-
-
-class GetNewsItemsResponseTO(TO):
-    items = typed_property('1', AppNewsItemTO, True)
 
 
 class SaveNewsStatisticsRequestTO(object):
@@ -852,9 +665,9 @@ class NewsReadInfoTO(TO):
 
     @classmethod
     def from_news_model(cls, model, statistics=None):
-        # type: (NewsItem, NewsItemInternalStatistics) -> NewsReadInfoTO
+        # type: (NewsItem, NewsItemStatisticsTO) -> NewsReadInfoTO
         if not statistics:
-            statistics = NewsItemInternalStatistics()
+            statistics = NewsItemStatisticsTO(model.id)
         return cls(news_id=model.id,
                    app_ids=model.app_ids or [],
                    read_count=statistics.total_reached,

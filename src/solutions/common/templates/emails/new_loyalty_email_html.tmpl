@@ -97,12 +97,12 @@ ol li {
                 <table style="width: 100%;">
                     <tr>
                         <td>
-                            <p>{% translate language, 'common', 'dear_name', 'name=' + profile.name|e %},</p>
+                            <p>{% translate language, 'dear_name', 'name=' + profile.name|e %},</p>
                             <p>{{ message }} ({{ sln_settings.name }})</p>
                             {%if lottery_winner_info %}<p>{{ lottery_winner_info }}</p>{% endif %}
                             <p>{{ install_info }}</p>
                             {% if unsubscribe_info %}<p>{{ unsubscribe_info }}</p>{% endif %}
-                            <p>{% translate language, 'common', 'Kind regards' %},</p>
+                            <p>{% translate language, 'Kind regards' %},</p>
                             <p>{{ team }}.</p>
                         </td>
                     </tr>

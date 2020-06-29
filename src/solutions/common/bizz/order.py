@@ -118,17 +118,14 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                 att = AttachmentTO()
                 att.content_type = AttachmentTO.CONTENT_TYPE_IMG_JPG
                 att.download_url = picture_url
-                att.name = translate(lang, SOLUTION_COMMON, u'picture')
+                att.name = translate(lang, u'picture')
                 att.size = 0
                 attachments = [att]
             else:
                 picture_url = None
                 attachments = []
             phone = _get_value(steps[2], u'message_phone')
-            msg = common_translate(lang, SOLUTION_COMMON, 'if-order-received') % {
-                'remarks': details,
-                'phone_number': phone
-            }
+            msg = common_translate(lang, 'if-order-received', remarks=details, phone_number=phone)
 
         elif order_type == ORDER_TYPE_ADVANCED:
             with closing(StringIO()) as order:
@@ -162,23 +159,23 @@ def _order_received(service_user, message_flow_run_id, member, steps, end_id, en
                 if comment:
                     if has_order_items:
                         order.write('\n\n')
-                    c = '%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'reservation-comment'), comment)
+                    c = '%s: %s' % (common_translate(lang, 'reservation-comment'), comment)
                     order.write(c.encode('utf-8') if isinstance(c, unicode) else c)
                 details = get_extended_details_from_tag(order.getvalue().decode('utf-8'))
                 if transaction_details:
-                    details += u'\n\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_received_paid',
+                    details += u'\n\n%s' % common_translate(lang, 'order_received_paid',
                                                           amount=u'%.2f' % transaction_details.get_display_amount(),
                                                           currency=transaction_details.currency)
                 elif sln_i_settings.payment_enabled:
-                    details += u'\n\n%s' % common_translate(lang, SOLUTION_COMMON, 'order_not_paid_yet')
+                    details += u'\n\n%s' % common_translate(lang, 'order_not_paid_yet')
 
                 takeaway_datetime = datetime.datetime.fromtimestamp(takeaway_time,
                                                                     tz=get_timezone(sln_settings.timezone))
                 takeaway_time_str = format_datetime(takeaway_datetime, locale=lang, format='d/M/yyyy H:mm')
 
-                msg = '%s:\n%s\n%s: %s\n%s: %s' % (common_translate(lang, SOLUTION_COMMON, 'order_received'), details,
-                                                   common_translate(lang, SOLUTION_COMMON, 'phone_number'), phone,
-                                                   common_translate(lang, SOLUTION_COMMON, 'takeaway_time'),
+                msg = '%s:\n%s\n%s: %s\n%s: %s' % (common_translate(lang, 'order_received'), details,
+                                                   common_translate(lang, 'phone_number'), phone,
+                                                   common_translate(lang, 'takeaway_time'),
                                                    takeaway_time_str)
         else:
             raise BusinessException('Unsupported order type %s', order_type)
@@ -238,8 +235,8 @@ def _send_order_confirmation(service_user, lang, message_flow_run_id, member, st
     try:
         messaging.send(parent_key=parent_message_key,
                        parent_message_key=parent_message_key,
-                       message=u'%s\n\n%s:\n%s' % (translate(lang, SOLUTION_COMMON, u'order_complete_will_notify'),
-                                                   translate(lang, SOLUTION_COMMON, u'details'),
+                       message=u'%s\n\n%s:\n%s' % (translate(lang, u'order_complete_will_notify'),
+                                                   translate(lang, u'details'),
                                                    order_details),
                        answers=list(),
                        flags=Message.FLAG_ALLOW_DISMISS | Message.FLAG_AUTO_LOCK,
@@ -270,7 +267,7 @@ def poke_order(service_user, email, tag, result_key, context, service_identity, 
             msg = order_settings.outside_hours_message
         if msg:
             main_branding = get_solution_main_branding(service_user)
-            button = AnswerTO(id_=u'ok', caption=common_translate(sln_settings.main_language, SOLUTION_COMMON, 'Close'))
+            button = AnswerTO(id_=u'ok', caption=common_translate(sln_settings.main_language, 'Close'))
             return PokeCallbackResultTO(type=TYPE_MESSAGE,
                                         value=MessageCallbackResultTypeTO(message=msg,
                                                                           answers=[button],
@@ -447,10 +444,10 @@ def put_order_weekday_timeframe(service_user, timeframe_id, day, time_from, time
     sln_settings = get_solution_settings(service_user)
     if time_from == time_until:
         raise BusinessException(
-            common_translate(sln_settings.main_language, SOLUTION_COMMON, 'time-start-end-equal'))
+            common_translate(sln_settings.main_language, 'time-start-end-equal'))
     if time_from >= time_until:
         raise BusinessException(
-            common_translate(sln_settings.main_language, SOLUTION_COMMON, 'time-start-end-smaller'))
+            common_translate(sln_settings.main_language, 'time-start-end-smaller'))
 
     sln_settings = get_solution_settings(service_user)
     if timeframe_id:

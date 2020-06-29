@@ -15,7 +15,10 @@
 #
 # @@license_version:1.7@@
 
+import logging
+
 from google.appengine.ext import db, ndb
+
 from mcfw.properties import unicode_property, long_property
 from mcfw.serialization import s_long, ds_long, s_unicode, ds_unicode, get_list_serializer, get_list_deserializer, \
     s_bool, ds_bool, CustomProperty
@@ -148,6 +151,34 @@ class MobileDetailsProperty(db.UnindexedProperty, CustomProperty):
 
     def empty(self, value):
         return not value
+    
+
+class MobileDetailsNdbProperty(ndb.GenericProperty):
+
+    data_type = MobileDetails
+
+    @staticmethod
+    def get_serializer():
+        return _serialize_mobile_details
+
+    @staticmethod
+    def get_deserializer():
+        return _deserialize_mobile_details
+
+    def _to_base_type(self, value):
+        stream = StringIO()
+        _serialize_mobile_details(stream, value)
+        return db.Blob(stream.getvalue())
+
+    def _from_base_type(self, value):
+        if value is None:
+            return None
+        return _deserialize_mobile_details(StringIO(convert_to_str(value)))
+
+    def _validate(self, value):
+        if value is not None and not isinstance(value, MobileDetails):
+            raise ValueError('Property %s must be convertible to a MobileDetails instance (%s)' % (self._name, value))
+        return super(MobileDetailsNdbProperty, self)._validate(value)
 
 
 class PublicKeyTO(TO):
@@ -175,124 +206,3 @@ def deserialize_public_key(stream, version):
     pk.index = ds_unicode(stream)
     pk.public_key = ds_unicode(stream)
     return pk
-
-_serialize_public_key_list = get_list_serializer(serialize_public_key)
-_deserialize_public_key_list = get_list_deserializer(deserialize_public_key, True)
-
-
-class PublicKeys(object):
-
-    def __init__(self):
-        self._table = dict()
-
-    def append(self, pk):
-        if not pk or not isinstance(pk, PublicKeyTO):
-            raise ValueError
-        self._table[u"%s.%s.%s" % (pk.algorithm, pk.name, pk.index)] = pk
-        return pk
-
-    def addNew(self, algorithm, name, index, public_key):
-        pk = PublicKeyTO()
-        pk.algorithm = algorithm
-        pk.name = name
-        pk.index = index
-        pk.public_key = public_key
-        self.append(pk)
-        return pk
-
-    def remove(self, algorithm, name, index):
-        self._table.pop(u"%s.%s.%s" % (algorithm, name, index), None)
-
-    def __iter__(self):
-        for val in self._table.values():
-            yield val
-
-    def __getitem__(self, key):
-        return self._table[key]
-
-    def __contains__(self, key):
-        return key in self._table
-
-    def __len__(self):
-        return len(self._table)
-
-    def values(self):
-        return self._table.values()
-
-
-def _serialize_public_keys(stream, public_keys):
-    s_long(stream, 1)
-    if public_keys is None:
-        s_bool(stream, False)
-    else:
-        s_bool(stream, True)
-        _serialize_public_key_list(stream, public_keys.values())
-
-
-def _deserialize_public_keys(stream):
-    version = ds_long(stream)
-    if ds_bool(stream):
-        pks = PublicKeys()
-        for pk in _deserialize_public_key_list(stream, version):
-            pks.append(pk)
-        return pks
-    else:
-        return None
-
-
-class PublicKeysProperty(db.UnindexedProperty, CustomProperty):
-    get_serializer = lambda self: _serialize_public_keys
-    get_deserializer = lambda self: _deserialize_public_keys
-
-    # Tell what the user type is.
-    data_type = PublicKeys
-
-    # For writing to datastore.
-    def get_value_for_datastore(self, model_instance):
-        stream = StringIO()
-        _serialize_public_keys(stream, super(PublicKeysProperty,
-                                             self).get_value_for_datastore(model_instance))
-        return db.Blob(stream.getvalue())
-
-    # For reading from datastore.
-    def make_value_from_datastore(self, value):
-        if value is None:
-            return None
-        return _deserialize_public_keys(StringIO(value))
-
-    def validate(self, value):
-        if value is not None and not isinstance(value, PublicKeys):
-            raise ValueError('Property %s must be convertible to a PublicKeys instance (%s)' % (self.name, value))
-        return super(PublicKeysProperty, self).validate(value)
-
-    def empty(self, value):
-        return not value
-
-
-class NdBPublicKeysProperty(ndb.GenericProperty, CustomProperty):
-
-    @staticmethod
-    def get_serializer():
-        return _serialize_public_keys
-
-    @staticmethod
-    def get_deserializer():
-        return _deserialize_public_keys
-
-    def _to_base_type(self, value):
-        stream = StringIO()
-        _serialize_public_keys(stream, value)
-        return db.Blob(stream.getvalue())
-
-    def _from_base_type(self, value):
-        if value is None:
-            return None
-        return _deserialize_public_keys(StringIO(convert_to_str(value)))
-
-    # Tell what the user type is.
-    data_type = PublicKeys
-
-    def _validate(self, value):
-        if value is not None and not isinstance(value, PublicKeys):
-            raise ValueError('Property %s must be convertible to a PublicKeys instance (%s)' % (self._name, value))
-        return super(NdBPublicKeysProperty, self)._validate(value)

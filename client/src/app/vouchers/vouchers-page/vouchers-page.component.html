@@ -3,6 +3,9 @@
   <button (click)="export()" [disabled]="loading$ | async" mat-icon-button [matTooltip]="'oca.export' | translate">
     <mat-icon>get_app</mat-icon>
   </button>
+  <a mat-icon-button routerLink="settings">
+    <mat-icon>settings</mat-icon>
+  </a>
 </mat-toolbar>
 <p class="vouchers-info">{{ 'oca.cirklo_light_info_page' | translate }}</p>
 <mat-tab-group (selectedIndexChange)="tabChanged($event)">
@@ -29,6 +32,10 @@
     <th *matHeaderCellDef mat-header-cell>{{ 'oca.cirklo_light_enabled' | translate }}</th>
     <td *matCellDef="let row" mat-cell>
       <mat-slide-toggle (change)="toggleProvider($event, row, cirklo)"
+                        #toggle
+                        [disabled]="!toggle.checked && row.disabled_providers.includes(cirklo)"
+                        [matTooltipDisabled]="!toggle.disabled"
+                        [matTooltip]="'oca.cirklo_disabled_reason_privacy' | translate"
                         [checked]="row.providers.includes(cirklo)"></mat-slide-toggle>
     </td>
   </ng-container>

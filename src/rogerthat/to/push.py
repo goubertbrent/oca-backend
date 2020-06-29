@@ -97,28 +97,10 @@ class NewMessageNotification(PushData):
         )
 
 
-class NewNewsNotification(PushData):
-
-    def __init__(self, sender_name, title, message, news_id, feed_name):
-        # type: (str, str, str, long, str) -> None
-        super(NewNewsNotification, self).__init__(
-            data=AndroidNotification(
-                title=sender_name,
-                body=title,
-                long_body=u'%s\n%s' % (title, remove_markdown(message)),
-                click_action=NotificationAction.OPEN_NEWS,
-                tag=u'%s' % news_id,
-                channel=AndroidNotification.CHANNEL_NEWS,
-                extras=json.dumps({'id': news_id,
-                                   'feed_name': feed_name}),
-            )
-        )
-
-
 class NewsStreamNotification(PushData):
 
     def __init__(self, sender_name, title, message, news_id, group_id, service):
-        # type: (str, str, str, long, str) -> None
+        # type: (str, str, str, long, str, str) -> None
         super(NewsStreamNotification, self).__init__(
             data=AndroidNotification(
                 title=sender_name,

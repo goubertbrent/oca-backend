@@ -53,6 +53,7 @@ export class JobEditorComponent implements AfterViewInit, OnDestroy {
   CONTRACT_TYPES = CONTRACT_TYPES;
   formGroup: FormGroupTyped<EditJobOffer>;
 
+  canSave = true;
   canPublish = false;
   canUnPublish = false;
   canRemove = false;
@@ -193,6 +194,8 @@ export class JobEditorComponent implements AfterViewInit, OnDestroy {
     }
     const status = this.formGroup.controls.status.value as JobStatus;
     const match = this.formGroup.controls.match.value as JobMatched | null;
+    // In case there was a match you can never update this job offer anymore
+    this.canSave = !match || match.source === JobMatchSource.NO_MATCH;
     // Can only publish in case status is NEW or HIDDEN and when there was no match in the past
     this.canPublish = status === JobStatus.NEW || (status === JobStatus.HIDDEN && (!match || match.source === JobMatchSource.NO_MATCH));
     this.canUnPublish = status === JobStatus.ONGOING;

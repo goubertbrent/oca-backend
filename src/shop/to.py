@@ -658,6 +658,7 @@ class ShopAppTO(object):
     postal_codes = unicode_list_property('4')
     signup_enabled = bool_property('5')
     paid_features_enabled = bool_property('paid_features_enabled')
+    jobs_enabled = bool_property('jobs_enabled')
 
     @classmethod
     def from_model(cls, model):
@@ -670,6 +671,7 @@ class ShopAppTO(object):
         to.postal_codes = model.postal_codes
         to.signup_enabled = model.signup_enabled
         to.paid_features_enabled = model.paid_features_enabled
+        to.jobs_enabled = model.jobs_enabled
         return to
 
 

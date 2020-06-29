@@ -34,6 +34,7 @@ cron:
 - description: VDAB Jobs sync
   url: /cron/jobs/vdab/sync
   schedule: every 30 minutes
+  target: service-workers
 
 - description: News statistics
   url: /cron/news/statistics
@@ -42,50 +43,18 @@ cron:
 - description: News group visibility reset
   url: /cron/news/group_visibility
   schedule: every 30 minutes
+  
+- description: Solution rss scraper
+  url: /admin/cron/rpc/solution_rss_scraper
+  schedule: every 30 minutes
 
-- description: Clean up oauth states
-  url: /cron/clean-oauth
-  schedule: every day 00:00
+- description: Schedule deletion of finished forms
+  url: /admin/cron/finish_forms
+  schedule: every 1 hours
 
-- description: Cleanup user context models
-  url: /cron/user/cleanup/context
-  schedule: every day 00:00
-
-- description: Daily statistics
-  url: /cron/daily_statistics
-  schedule: every day 04:00
-
-- description: App statistics cache
-  url: /cron/app_statistics_cache
-  schedule: every day 05:00
-
-- description: news service setup
-  url: /cron/news/service_setup
-  schedule: every day 05:30
-
-- description: APN expiration check
-  url: /cron/apn_expiration_check
-  schedule: every day 12:00
-
-- description: News unstick
-  url: /cron/news/unstick
-  schedule: every day 12:00
-
-- description: Birthday messages
-  url: /cron/birthday_messages
-  schedule: every day 12:00
-
-- description: Service statistics email
-  url: /cron/rpc/service_statistics_email
-  schedule: every monday 05:00
-
-- description: Jobs cleanup
-  url: /cron/jobs/cleanup
-  schedule: every sunday 08:00
-
-- description: Map notifications
-  url: /cron/maps/notifications
-  schedule: every sunday 18:00
+- description: Notifications for new solicitation messages
+  url: /admin/cron/jobs-notifications
+  schedule: every 1 hours
 
 - description: Solution Sandwich auto broadcast
   url: /admin/cron/rpc/solution_module_sandwich_auto_broadcast
@@ -95,21 +64,30 @@ cron:
   url: /admin/cron/rpc/solution_loyalty_lottery_loot
   schedule: every 1 hours
 
-- description: Solution rss scraper
-  url: /admin/cron/rpc/solution_rss_scraper
-  schedule: every 30 minutes
+- description: Clean up oauth states
+  url: /cron/clean-oauth
+  schedule: every day 00:00
 
-- description: Solution sync google calendar events
-  url: /admin/cron/rpc/solution_sync_google_calendar_events
-  schedule: every day 23:30
-
-- description: Reindex all periodic events
-  url: /admin/cron/rpc/re_index_periodic_events
-  schedule: 1 of month 09:00
-
+- description: Cleanup user context models
+  url: /cron/user/cleanup/context
+  schedule: every day 00:00
+  
 - description: Shop recurrent billing
   url: /admin/cron/shop/recurrent_billing
   schedule: every day 00:00
+
+- description: Solution regional news budget check/update
+  url: /admin/cron/rpc/solutions_news_budget_updater
+  schedule: every day 00:00
+
+- description: Clean unverified signup requests
+  url: /admin/cron/shop/clean_unverified_signup_requests
+  schedule: every day 00:00
+
+- description: Parse service logs
+  url: /parse
+  schedule: every day 00:05
+  target: service-statistics
 
 - description: Paddle sync
   url: /admin/cron/paddle
@@ -123,42 +101,71 @@ cron:
   url: /admin/cron/rpc/city_association_statistics
   schedule: every day 00:30
 
+- description: Expired vouchers reminder
+  url: /admin/cron/rpc/solution_expired_vouchers_reminder
+  schedule: every day 02:00
+
+- description: Daily statistics
+  url: /cron/daily_statistics
+  schedule: every day 04:00
+  
+- description: Daily OCA statistics
+  url: /admin/cron/daily_statistics
+  schedule: every day 04:30
+
+- description: App statistics cache
+  url: /cron/app_statistics_cache
+  schedule: every day 05:00
+
+- description: news service setup
+  url: /cron/news/service_setup
+  schedule: every day 05:30
+  
 - description: Solution events cleanup
   url: /admin/cron/rpc/cleanup_solution_events
   schedule: every day 08:00
 
-- description: Solution regional news budget check/update
-  url: /admin/cron/rpc/solutions_news_budget_updater
-  schedule: every day 00:00
+- description: APN expiration check
+  url: /cron/apn_expiration_check
+  schedule: every day 12:00
 
+- description: News unstick
+  url: /cron/news/unstick
+  schedule: every day 12:00
+
+- description: Birthday messages
+  url: /cron/birthday_messages
+  schedule: every day 12:00
+  
+- description: Solution sync google calendar events
+  url: /admin/cron/rpc/solution_sync_google_calendar_events
+  schedule: every day 23:30
+
+- description: Service statistics email
+  url: /cron/rpc/service_statistics_email
+  schedule: every monday 05:00
+  
 - description: Shop export reseller invoices
   url: /admin/cron/rpc/shop_export_reseller_invoices
   schedule: every monday 14:00
+
+- description: Jobs cleanup
+  url: /cron/jobs/cleanup
+  schedule: every sunday 08:00
+  target: service-workers
+
+- description: Map notifications
+  url: /cron/maps/notifications
+  schedule: every sunday 18:00
 
 - description: Loyalty export
   url: /admin/cron/rpc/solution_city_vouchers
   schedule: 1 of month 8:00
 
-- description: Expired vouchers reminder
-  url: /admin/cron/rpc/solution_expired_vouchers_reminder
-  schedule: every day 02:00
+- description: Reindex all periodic events
+  url: /admin/cron/rpc/re_index_periodic_events
+  schedule: 1 of month 09:00
 
 - description: Loyalty export
   url: /admin/cron/rpc/solution_loyalty_export
   schedule: 1 of month 12:00
-
-- description: Clean unverified signup requests
-  url: /admin/cron/shop/clean_unverified_signup_requests
-  schedule: every day 00:00
-
-- description: Daily OCA statistics
-  url: /admin/cron/daily_statistics
-  schedule: every day 04:30
-
-- description: Schedule deletion of finished forms
-  url: /admin/cron/finish_forms
-  schedule: every 1 hours
-
-- description: Notifications for new solicitation messages
-  url: /admin/cron/jobs-notifications
-  schedule: every 1 hours

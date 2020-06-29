@@ -38,7 +38,6 @@ from rogerthat.utils import now, file_get_contents
 from rogerthat.utils.channel import send_message
 from solutions import translate
 import solutions
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import broadcast_updates_pending, put_branding
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.handlers import JINJA_ENVIRONMENT
@@ -172,7 +171,7 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
     sln_settings = get_solution_settings(service_user)
     if not units > 0:
         raise BusinessException(
-            translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-required-at-least-1-unit'))
+            translate(sln_settings.main_language, 'new-group-subscription-failure-required-at-least-1-unit'))
     main_branding = get_solution_main_branding(service_user)
     app_user = user_detail.toAppUser() if user_detail else None
 
@@ -185,12 +184,12 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
             for subscription in sgp.subscriptions_for_user(app_user):
                 units_user += subscription.units
         if sgp.max_units_pp and units_user >= sgp.max_units_pp:
-            raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON,
-                                              'new-group-subscription-failure-reached-maximum'))
+            raise BusinessException(
+                translate(sln_settings.main_language, 'new-group-subscription-failure-reached-maximum'))
         if sgp.max_units_pp and (units_user + units) > sgp.max_units_pp:
-            raise BusinessException(translate(sln_settings.main_language, SOLUTION_COMMON,
-                                              'new-group-subscription-failure-exceeded-maximum',
-                                              max_units=sgp.max_units_pp - units_user))
+            raise BusinessException(
+                translate(sln_settings.main_language, 'new-group-subscription-failure-exceeded-maximum',
+                          max_units=sgp.max_units_pp - units_user))
         if (sgp.units_available - units) >= 0:
             sgpe = SolutionGroupPurchaseSubscription(parent=sgp)
             sgpe.sender = SolutionUser.fromTO(user_detail) if user_detail else None
@@ -203,7 +202,7 @@ def new_group_purchase_subscription(service_user, service_identity, group_purcha
             units_user += units
         else:
             raise BusinessException(
-                translate(sln_settings.main_language, SOLUTION_COMMON, 'new-group-subscription-failure-insufficient-units'))
+                translate(sln_settings.main_language, 'new-group-subscription-failure-insufficient-units'))
         return sln_settings, sgp, units_user
 
     xg_on = db.create_transaction_options(xg=True)
@@ -315,23 +314,22 @@ def solution_group_purchcase_purchase(service_user, email, method, params, tag, 
             service_user, service_identity, group_purchase_id, user_details[0].name, user_details[0], units)
         r.result = u"Successfully purchased %s units" % units
         r.error = None
-        message = translate(sln_settings.main_language, SOLUTION_COMMON, 'group-subscription-successful-title',
-                            units=units, title=sgp.title)
+        message = translate(sln_settings.main_language, 'group-subscription-successful-title', units=units,
+                            title=sgp.title)
     except BusinessException, e:
         r.result = e.message
         r.error = None
         sgp = SolutionGroupPurchase.get_by_id(
             group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
-        message = translate(sln_settings.main_language, SOLUTION_COMMON, 'group-subscription-failure-title-reason',
-                            units=units, title=sgp.title, reason=e.message)
+        message = translate(sln_settings.main_language, 'group-subscription-failure-title-reason', units=units,
+                            title=sgp.title, reason=e.message)
     except:
         logging.error("Failure when adding new group_purchase subscription", exc_info=1)
         r.result = None
         r.error = u"An unknown error occurred"
         sgp = SolutionGroupPurchase.get_by_id(
             group_purchase_id, parent_key_unsafe(service_identity_user, sln_settings.solution))
-        message = translate(sln_settings.main_language, SOLUTION_COMMON, 'group-subscription-failure-unknown-title',
-                            title=sgp.title)
+        message = translate(sln_settings.main_language, 'group-subscription-failure-unknown-title', title=sgp.title)
 
     member = MemberTO()
     member.alert_flags = Message.ALERT_FLAG_VIBRATE

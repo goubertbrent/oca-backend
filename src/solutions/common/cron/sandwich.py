@@ -31,7 +31,6 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import now
 from rogerthat.utils.transactions import run_in_xg_transaction
 from solutions import translate
-from solutions.common import SOLUTION_COMMON
 from solutions.common.bizz import SolutionModule
 from solutions.common.bizz.messaging import MESSAGE_TAG_SANDWICH_ORDER_NOW
 from solutions.common.bizz.sandwich import get_sandwich_reminder_broadcast_type
@@ -116,14 +115,13 @@ def _broadcast(sln_settings_key, sandwich_settings_key, broadcast_type):
     message = sandwich_settings.reminder_broadcast_message
     order_sandwich_answer = AnswerTO()
     order_sandwich_answer.action = None
-    order_sandwich_answer.caption = translate(sln_settings.main_language, SOLUTION_COMMON, u'order')
+    order_sandwich_answer.caption = translate(sln_settings.main_language, u'order')
     order_sandwich_answer.type = u'button'
     order_sandwich_answer.id = u'order'
     order_sandwich_answer.ui_flags = 1
     no_sandwich_today_answer = AnswerTO()
     no_sandwich_today_answer.action = None
-    no_sandwich_today_answer.caption = translate(sln_settings.main_language, SOLUTION_COMMON,
-                                                 u'order-sandwiches-not-today')
+    no_sandwich_today_answer.caption = translate(sln_settings.main_language, u'order-sandwiches-not-today')
     no_sandwich_today_answer.type = u'button'
     no_sandwich_today_answer.id = u'Not now'
     no_sandwich_today_answer.ui_flags = 0

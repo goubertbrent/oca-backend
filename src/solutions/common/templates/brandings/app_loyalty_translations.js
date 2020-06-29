@@ -17,8 +17,8 @@
  */
 
 var Translations = {
-    LOTTERY_TEXT_DISCOUNT : "{% translate language, 'common', 'lottery-text-discount', '_duplicate_backslashes=true' %}",  // REPLACE %(count)s %(chance)s
-    LOTTERY_TEXT_VISITS : "{% translate language, 'common', 'lottery-text-visits', '_duplicate_backslashes=true' %}",  // REPLACE %(count)s
-    REDEEM_TEXT_DISCOUNT : "{% translate language, 'common', 'redeem-text-discount', '_duplicate_backslashes=true' %}",  // REPLACE {0} {1} {2}
-    ROGERTHAT_FUNCTION_UNSUPPORTED_UPDATE : "{% translate language, 'common', 'rogerthat_function_unsupported_update', '_duplicate_backslashes=true' %}"
+    LOTTERY_TEXT_DISCOUNT : "{% translate language, 'lottery-text-discount', '_duplicate_backslashes=true' %}",  // REPLACE %(count)s %(chance)s
+    LOTTERY_TEXT_VISITS : "{% translate language, 'lottery-text-visits', '_duplicate_backslashes=true' %}",  // REPLACE %(count)s
+    REDEEM_TEXT_DISCOUNT : "{% translate language, 'redeem-text-discount', '_duplicate_backslashes=true' %}",  // REPLACE {0} {1} {2}
+    ROGERTHAT_FUNCTION_UNSUPPORTED_UPDATE : "{% translate language, 'rogerthat_function_unsupported_update', '_duplicate_backslashes=true' %}"
 };

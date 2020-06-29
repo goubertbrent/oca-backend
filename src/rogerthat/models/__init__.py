@@ -15,16 +15,17 @@
 #
 # @@license_version:1.7@@
 
+from collections import namedtuple
 import datetime
 import hashlib
 import json
 import logging
+import re
 import time
 import urllib
 import urlparse
 import uuid
 import zlib
-from collections import namedtuple
 
 from dateutil.parser import parse as parse_date
 from google.appengine.ext import db, ndb
@@ -51,7 +52,8 @@ from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore
 from rogerthat.models.properties.messaging import ButtonsProperty, MemberStatusesProperty, JsFlowDefinitionsProperty, \
     AttachmentsProperty, SpecializedList, EmbeddedAppProperty
 from rogerthat.models.properties.oauth import OAuthSettingsProperty
-from rogerthat.models.properties.profiles import MobileDetailsProperty, PublicKeysProperty, NdBPublicKeysProperty
+from rogerthat.models.properties.profiles import MobileDetailsProperty,\
+    MobileDetailsNdbProperty
 from rogerthat.models.utils import get_meta, add_meta
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Mobile
@@ -59,6 +61,7 @@ from rogerthat.translations import DEFAULT_LANGUAGE
 from rogerthat.utils import base38, base65, llist, now, calculate_age_from_date, set_flag, unset_flag, is_flag_set
 from rogerthat.utils.crypto import sha256_hex, encrypt
 from rogerthat.utils.translations import localize_app_translation
+
 
 try:
     from cStringIO import StringIO
@@ -680,6 +683,9 @@ class NdbProfile(BaseProfile, NdbPolyModel):
     @classmethod
     def _class_key(cls):
         return [cls._get_kind()]
+    
+    def _pre_put_hook(self):
+        raise Exception('Use db instead of NdbProfile')
 
 
 class ProfileInfo(object):
@@ -777,7 +783,7 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     last_name = ndb.StringProperty(indexed=False)
     qualifiedIdentifier = ndb.StringProperty()
     language = ndb.StringProperty(indexed=False)
-    mobiles = MobileDetailsProperty()
+    mobiles = MobileDetailsNdbProperty()
     ysaaa = ndb.BooleanProperty(indexed=False, default=False)
     birthdate = ndb.IntegerProperty(indexed=False)
     birth_day = ndb.IntegerProperty()  # 815 -> august 15
@@ -790,10 +796,6 @@ class NdbUserProfile(NdbProfile, ProfileInfo):
     unsubscribed_from_reminder_email = ndb.BooleanProperty(indexed=False, default=False)
     owncloud_password = ndb.StringProperty(indexed=False)
     look_and_feel_id = ndb.IntegerProperty(indexed=False)
-    embedded_apps = ndb.StringProperty(repeated=True)
-
-    public_key = ndb.TextProperty(indexed=False)  # base64
-    public_keys = NdBPublicKeysProperty()
 
     isCreatedForService = ndb.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = ndb.StringProperty(indexed=True, repeated=True)
@@ -842,10 +844,6 @@ class UserProfile(Profile, BaseUserProfile, ArchivedModel):
     unsubscribed_from_reminder_email = db.BooleanProperty(indexed=False, default=False)
     owncloud_password = db.StringProperty(indexed=False)
     look_and_feel_id = db.IntegerProperty(indexed=False)
-    embedded_apps = db.StringListProperty(default=[])
-
-    public_key = db.TextProperty(indexed=False)  # base64
-    public_keys = PublicKeysProperty()
 
     isCreatedForService = db.BooleanProperty(indexed=False, default=False)
     owningServiceEmails = db.StringListProperty(indexed=True)
@@ -935,7 +933,7 @@ class UserProfileInfoPhoneNumber(NdbModel):
     type = ndb.IntegerProperty(default=UserPhoneNumberType.OTHER, choices=UserPhoneNumberType.all())
     label = ndb.TextProperty(indexed=False)
     number = ndb.StringProperty(indexed=False)
-    
+
     @property
     def uid(self):
         return UserProfileInfoPhoneNumber.create_uid([str(self.type), self.number])
@@ -972,7 +970,7 @@ class UserProfileInfo(NdbModel):
             if a.address_uid == address_uid:
                 return a
         return None
-    
+
     def get_phone_number(self, uid):
         for m in self.phone_numbers:
             if m.uid == uid:
@@ -987,28 +985,6 @@ class UserConsentHistory(NdbModel):
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     consent_type = ndb.StringProperty()
     data = ndb.JsonProperty(compressed=True)
-
-
-class PublicKeyHistory(db.Model):
-    timestamp = db.IntegerProperty()
-    name = db.StringProperty()
-    public_key = db.TextProperty()
-
-    @classmethod
-    def create_name(cls, algorithm, name, index):
-        if algorithm and name:
-            return u"%s.%s.%s" % (algorithm, name, index)
-        else:
-            return None
-
-    @classmethod
-    def create(cls, app_user, name, public_key):
-        return cls(
-            parent=db.Key.from_path(cls.kind(), app_user.email()),
-            timestamp=now(),
-            name=name,
-            public_key=public_key
-        )
 
 
 class NdbFacebookUserProfile(NdbUserProfile):
@@ -1058,6 +1034,9 @@ class BaseServiceProfile(object):
     CALLBACK_SYSTEM_API_CALL = 1 << 8
     CALLBACK_SYSTEM_SERVICE_DELETED = 1 << 14
     CALLBACK_SYSTEM_BRANDINGS_UPDATED = 1 << 19
+    CALLBACK_NEWS_CREATED = 1 << 23
+    CALLBACK_NEWS_UPDATED = 1 << 24
+    CALLBACK_NEWS_DELETED = 1 << 25
 
     CALLBACKS = (CALLBACK_APP_INSTALLATION_PROGRESS, CALLBACK_FRIEND_INVITE_RESULT, CALLBACK_FRIEND_INVITED, CALLBACK_FRIEND_BROKE_UP,
                  CALLBACK_MESSAGING_RECEIVED, CALLBACK_MESSAGING_POKE, CALLBACK_MESSAGING_FLOW_MEMBER_RESULT,
@@ -1065,7 +1044,7 @@ class BaseServiceProfile(object):
                  CALLBACK_SYSTEM_SERVICE_DELETED, CALLBACK_SYSTEM_BRANDINGS_UPDATED, CALLBACK_FRIEND_IS_IN_ROLES,
                  CALLBACK_FRIEND_UPDATE, CALLBACK_MESSAGING_NEW_CHAT_MESSAGE, CALLBACK_MESSAGING_CHAT_DELETED,
                  CALLBACK_FRIEND_LOCATION_FIX, CALLBACK_FRIEND_REGISTER, CALLBACK_FRIEND_REGISTER_RESULT,
-                 CALLBACK_FORM_SUBMITTED)
+                 CALLBACK_FORM_SUBMITTED, CALLBACK_NEWS_CREATED, CALLBACK_NEWS_UPDATED, CALLBACK_NEWS_DELETED)
 
     DEFAULT_CALLBACKS = CALLBACK_FRIEND_INVITE_RESULT | CALLBACK_FRIEND_INVITED | CALLBACK_FRIEND_BROKE_UP | \
         CALLBACK_FRIEND_UPDATE | CALLBACK_MESSAGING_POKE | CALLBACK_MESSAGING_RECEIVED | \
@@ -1224,6 +1203,43 @@ class ServiceProfile(Profile, BaseServiceProfile):
     expiredAt = db.IntegerProperty(default=0)
 
 
+class ServiceCallBackConfig(NdbModel):
+    created = ndb.DateTimeProperty()
+    updated = ndb.DateTimeProperty()
+    name = ndb.TextProperty()
+    uri = ndb.TextProperty()
+    regexes = ndb.TextProperty(repeated=True)
+    callbacks = ndb.IntegerProperty(default=-1)
+    custom_headers = ndb.JsonProperty(default=None)
+    
+    def is_regex_match(self, tag):
+        for regex in self.regexes:
+            if re.match(regex, tag):
+                return True
+        return False
+
+    def is_callback_enabled(self, callback):
+        if self.callbacks == -1:
+            return False
+        return self.callbacks & callback == callback
+
+
+class ServiceCallBackSettings(NdbModel):
+    configs = ndb.LocalStructuredProperty(ServiceCallBackConfig, repeated=True)  # type: List[ServiceCallBackConfig]
+    
+    def get_config(self, name):
+        for config in self.configs:
+            if config.name == name:
+                return config
+        return None
+    
+    @classmethod
+    def create_key(cls, service_user):
+        return ndb.Key(cls,
+                       service_user.email(),
+                       parent=parent_ndb_key(service_user))
+
+
 class ServiceCallBackConfiguration(db.Model):
     creationTime = db.IntegerProperty(indexed=False)
     regex = db.TextProperty(indexed=False)
@@ -1239,26 +1255,7 @@ class ServiceCallBackConfiguration(db.Model):
 
     @classmethod
     def create_key(cls, name, service_user):
-        from rogerthat.dal import parent_key
         return db.Key.from_path(cls.kind(), name, parent=parent_key(service_user))
-
-
-@deserializer
-def ds_service_callback_configuration(stream):
-    return ds_model(stream, ServiceCallBackConfiguration)
-
-
-@serializer
-def s_service_callback_configuration(stream, app):
-    s_model(stream, app, ServiceCallBackConfiguration)
-
-
-register(ServiceCallBackConfiguration, s_service_callback_configuration, ds_service_callback_configuration)
-
-s_service_callback_configuration_list = get_list_serializer(s_service_callback_configuration)
-ds_service_callback_configuration_list = get_list_deserializer(ds_service_callback_configuration)
-register(ListSerializer(ServiceCallBackConfiguration), s_service_callback_configuration_list,
-         ds_service_callback_configuration_list)
 
 
 class ProfileHashIndex(db.Model):
@@ -1554,6 +1551,12 @@ class OpeningPeriod(NdbModel):
     description = ndb.TextProperty()
     description_color = ndb.TextProperty()
 
+    @property
+    def is_open_24_hours(self):
+        # type: () -> bool
+        # If a place is open on a day for 24 hours, close will be None and the time is 0000
+        return not self.close and self.open.time == '0000'
+
     @classmethod
     def from_to(cls, period):
         return cls(close=OpeningHour.from_to(period.close),
@@ -1587,7 +1590,7 @@ class OpeningHourException(NdbModel):
                    description_color=to.description_color,
                    periods=[OpeningPeriod.from_to(period) for period in to.periods])
 
-    
+
 class OpeningHours(NdbModel):
     TYPE_TEXTUAL = u'textual'
     TYPE_STRUCTURED = u'structured'
@@ -1617,7 +1620,22 @@ class OpeningHours(NdbModel):
         for exception in self.exceptional_opening_hours:
             exception.periods = sorted(exception.periods, key=_sort_period)
 
+    def sanitize_periods(self):
+        # Removes duplicate 'open 24 hours' entries and ensures only 1 entry when a day is open 24h
+        open_all_day = {period.open.day for period in self.periods if period.is_open_24_hours}
+        open_all_day_entries = []
+        for period in reversed(self.periods):
+            open_day = period.open.day
+            if period.is_open_24_hours:
+                if open_day in open_all_day_entries:
+                    self.periods.remove(period)
+                else:
+                    open_all_day_entries.append(open_day)
+            elif open_day in open_all_day:
+                self.periods.remove(period)
+
     def _pre_put_hook(self):
+        self.sanitize_periods()
         self.sort_dates()
 
 
@@ -1812,18 +1830,6 @@ class ServiceAdmin(db.Model):
     @property
     def service(self):
         return users.User(self.parent_key().name())
-
-
-class UserAccount(db.Model):
-    type = db.StringProperty()
-
-    @property
-    def user(self):
-        return users.User(self.parent_key().name())
-
-    @property
-    def account(self):
-        return self.key().name()
 
 
 class MyDigiPassState(db.Model):
@@ -2066,13 +2072,13 @@ class BrandingEditorConfiguration(db.Model):
 class Branding(CachedModelMixIn, db.Model):
     TYPE_NORMAL = 1  # This branding can be used for messages/menu/screenBranding/descriptionBranding
     TYPE_APP = 2  # This branding contains an app.html and can only be used as static branding
-    TYPE_CORDOVA = 3  # This branding contains an cordova.html
+    TYPE_CORDOVA = 3  # This branding contains an cordova.html or index.html
     TYPES = (TYPE_NORMAL, TYPE_APP, TYPE_CORDOVA)
 
     TYPE_MAPPING = {
         TYPE_NORMAL: 'branding.html',
         TYPE_APP: 'app.html',
-        TYPE_CORDOVA: 'cordova.html',
+        TYPE_CORDOVA: 'index.html',
     }
 
     COLOR_SCHEME_LIGHT = u"light"
@@ -3451,9 +3457,42 @@ class ProfileStreets(NdbModel):
         return ndb.Key(cls, zip_code, parent=ndb.Key(cls, country_code))
 
 
+class UserContextScope(Enum):
+    NAME = 'user.name'
+    EMAIL = 'user.email' # deprecated
+    EMAIL_ADDRESSES = 'user.email_addresses' # todo implement
+    ADDRESSES = 'user.addresses'
+    PHONE_NUMBERS = 'user.phone_numbers'
+
+
+class UserContextLink(NdbModel):
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    service_user = ndb.UserProperty()
+    link = ndb.StringProperty()
+    scopes = ndb.StringProperty(repeated=True)
+
+    @property
+    def uid(self):
+        return self.key.id().decode('utf8')
+
+    @staticmethod
+    def create_uid(items):
+        digester = hashlib.sha256()
+        for i in items:
+            v = i.encode('utf8') if isinstance(i, unicode) else i
+            digester.update(v.upper())
+        return digester.hexdigest().upper()
+
+    @classmethod
+    def create_key(cls, uid):
+        return ndb.Key(cls, uid)
+
+
 class UserContext(NdbModel):
     created = ndb.DateTimeProperty(auto_now_add=True)
     app_user = ndb.UserProperty(indexed=False)
+    link_uid = ndb.StringProperty()
+    scopes = ndb.StringProperty(repeated=True, indexed=False)
 
     @property
     def uid(self):

@@ -10,7 +10,6 @@
 # Command line options:
 #   ('-f', '')
 #   ('--no-questions', '')
-from rogerthat.utils import xml_escape
 #   ('--external-encoding', 'utf-8')
 #   ('-o', 'gen.py')
 #   ('-s', 'sub.py')
@@ -25,11 +24,12 @@ from rogerthat.utils import xml_escape
 #   mfd
 #
 
-import sys
-import re as re_
 import base64
 import datetime as datetime_
+import re as re_
+import sys
 import warnings as warnings_
+
 try:
     from lxml import etree as etree_
 except ImportError:
@@ -103,7 +103,7 @@ except ImportError:
 try:
     from generatedssuper import GeneratedsSuper
 except ImportError as exp:
-    
+
     class GeneratedsSuper(object):
         tzoff_pattern = re_.compile(r'(\+|-)((0\d|1[0-3]):[0-5]\d|14:00)$')
         class _FixedOffsetTZ(datetime_.tzinfo):
@@ -429,7 +429,7 @@ except ImportError as exp:
             return self.__dict__ == other.__dict__
         def __ne__(self, other):
             return not self.__eq__(other)
-    
+
     def getSubclassFromModule_(module, class_):
         '''Get the subclass of a class from a specific module.'''
         name = class_.__name__ + 'Sub'
