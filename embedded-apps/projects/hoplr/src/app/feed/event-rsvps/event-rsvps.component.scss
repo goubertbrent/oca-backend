@@ -1,0 +1,37 @@
+:host {
+  --image-size: 48px;
+  cursor: pointer;
+}
+
+.rsvps-summary {
+  font-size: 1.125em;
+  text-decoration: underline;
+  font-weight: bold;
+  text-transform: lowercase;
+}
+
+.activity-preview__interaction {
+  display: block;
+  padding: 1em;
+  background-color: #f7f8f9;
+  border-radius: 4px;
+}
+
+.rsvp-list {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+}
+
+.rsvp-user {
+  display: inline-block;
+  height: var(--image-size);
+  width: var(--image-size);
+  margin: 8px 8px 0 0;
+
+  img {
+    max-width: none;
+    height: var(--image-size);
+    width: var(--image-size);
+  }
+}

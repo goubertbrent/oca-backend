@@ -1,0 +1,23 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ neighbourhoodName$ | async }}</ion-title>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button (click)="confirmLogout()">
+        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <ion-progress-bar *ngIf="loading$ | async" type="indeterminate"></ion-progress-bar>
+  <div *ngIf="feed$ | async as feed" class="feed">
+    <hoplr-feed-item [item]="item" *ngFor="let item of feed.results" [baseUrl]="feed.baseUrl"></hoplr-feed-item>
+  </div>
+  <ion-infinite-scroll (ionInfinite)="loadMore()" [disabled]="!(hasMore$ | async)">
+    <ion-infinite-scroll-content></ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+  <div class="spacer"></div>
+</ion-content>

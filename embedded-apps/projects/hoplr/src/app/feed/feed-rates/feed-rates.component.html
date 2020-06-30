@@ -1,0 +1,47 @@
+<ng-container *ngIf="emoticonChips">
+  <ion-chip (click)="showDetails(chip)" *ngFor="let chip of emoticonChips" outline class="emoticon-chip">
+    <ion-avatar>
+      <img [src]="chip.iconUrl"/>
+    </ion-avatar>
+    <ion-label>
+      <ng-container *ngIf="!small">{{ chip.label | translate }}&nbsp;&nbsp;</ng-container>{{ chip.rates.length }}
+    </ion-label>
+  </ion-chip>
+</ng-container>
+<div *ngIf="votes" class="votes-bar">
+  <ion-progress-bar [value]="votes.upvoteAmount" class="vote-progress"></ion-progress-bar>
+  <ion-button (click)="showUpvotes()"
+              fill="clear"
+              size="small"
+              type="button">
+    {{ 'app.hoplr.upvoted_percent' | translate : {amount: votes.upvotePercent} }}
+  </ion-button>
+</div>
+<div *ngIf="perception" class="perception">
+  <div class="perception-values">
+    <div *ngFor="let item of perception.items" class="perception-result">
+      <div class="perception-votes">{{ item.amount }}</div>
+      <div [style.height]="item.height" class="perception-votes-block perception-score-{{ item.score }}"></div>
+      <div class="perception-votes-value">{{ item.score }}</div>
+    </div>
+  </div>
+  <p class="total-score">{{ 'app.hoplr.score' | translate }}: {{ perception.score }}</p>
+  <p>{{ perception.totalVotes | i18nPlural : votesPluralMap | translate : {votes: perception.totalVotes} }}</p>
+</div>
+<div *ngIf="poll" class="poll-results">
+  <div class="poll-selection__option-list">
+    <div *ngFor="let option of poll.options" class="poll-selection__option-wrapper">
+      <span class="poll-selection__percentage">{{ option.percent }}%</span>
+      <div class="poll-selection__option">
+        <div [class.poll-selection__result--best]="option.best"
+             class="poll-selection__result"
+             style="width: {{ option.percent }}%;">
+        </div>
+        <span>{{ option.label }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="option-poll__footer">
+    <span>{{ poll.totalVotes | i18nPlural : votesPluralMap | translate: {votes: poll.totalVotes} }}</span>
+  </div>
+</div>

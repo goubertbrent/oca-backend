@@ -18,8 +18,8 @@
 import sys
 
 import yaml
-
 from google.appengine.ext import db, ndb
+
 from mcfw.consts import MISSING
 from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
@@ -33,6 +33,7 @@ except ImportError:
 
 @returns(db.Property)
 def add_meta(prop, **kwargs):
+    # kwargs -> doc=None, order=None, skip_on_archive=False
     azzert(isinstance(prop, db.Property))
     for k, v in kwargs.iteritems():
         setattr(prop, '_%s' % k, v)

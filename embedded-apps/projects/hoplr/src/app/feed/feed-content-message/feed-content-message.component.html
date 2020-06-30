@@ -1,0 +1,18 @@
+<iframe *ngIf="safeVideoUrl"
+        [src]="safeVideoUrl"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" class="video-frame"></iframe>
+<hoplr-feed-text-box *ngFor="let survey of message.data.Surveys"
+               [title]="('app.hoplr.survey' | translate) + ': ' + survey.Survey.Title">
+  <ng-container *ngIf="canParticipateInSurvey(survey); else surveyExpired">
+    <div [innerHTML]="survey.Survey.Description | markdown"></div>
+    <ion-button [href]="baseUrl + '/enquete/' + survey.Survey.PublicCode" target="_blank">
+      {{ 'app.hoplr.fill_in_survey' | translate }}
+    </ion-button>
+  </ng-container>
+  <ng-template #surveyExpired>
+    <p>{{ 'app.hoplr.survey_expired_message' | translate : {date: survey.Survey.End | date : 'mediumDate'} }}</p>
+  </ng-template>
+</hoplr-feed-text-box>
+<hoplr-feed-text-box [title]="'app.hoplr.impacted_streets' | translate" *ngIf="message.data.Streets.length">
+  <p *ngFor="let street of message.data.Streets">{{ street }}</p>
+</hoplr-feed-text-box>

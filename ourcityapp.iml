@@ -17,7 +17,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src-test" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src-tools" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/client/tmp" />
-      <excludeFolder url="file://$MODULE_DIR$/embedded-apps/oca/www" />
+      <excludeFolder url="file://$MODULE_DIR$/embedded-apps/dist" />
       <excludeFolder url="file://$MODULE_DIR$/src/lib" />
       <excludeFolder url="file://$MODULE_DIR$/src/static/client" />
     </content>

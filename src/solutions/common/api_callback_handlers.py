@@ -40,15 +40,13 @@ from rogerthat.utils.channel import send_message
 from rogerthat.utils.models import reconstruct_key
 from solutions.common.bizz.bulk_invite import bulk_invite_result
 from solutions.common.bizz.customer_signups import process_updated_customer_signup_message
-from solutions.common.bizz.discussion_groups import discussion_group_deleted
 from solutions.common.bizz.forms import create_form_submission
 from solutions.common.bizz.inbox import add_solution_inbox_message
 from solutions.common.bizz.loyalty import loyalty_qr_register, loyalty_qr_register_result, redeem_lottery_winners
 from solutions.common.bizz.messaging import API_METHOD_MAPPING, POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX, \
     reply_on_inbox_forwarding, MESSAGE_TAG_MAPPING, POKE_TAG_MAPPING, MESSAGE_TAG_MY_RESERVATIONS_EDIT_COMMENT, \
     MESSAGE_TAG_MY_RESERVATIONS_EDIT_PEOPLE, POKE_TAG_RESERVE_PART2, \
-    POKE_TAG_INBOX_FORWARDING_REPLY, POKE_TAG_DISCUSSION_GROUPS, \
-    CHAT_DELETED_MAPPING, CHAT_NEW_MESSAGE_MAPPING
+    POKE_TAG_INBOX_FORWARDING_REPLY, CHAT_DELETED_MAPPING, CHAT_NEW_MESSAGE_MAPPING
 from solutions.common.bizz.provisioning import STATIC_CONTENT_TAG_PREFIX
 from solutions.common.bizz.reservation import my_reservations_edit_comment_updated, my_reservations_edit_people_updated, \
     reservation_part2

@@ -1,0 +1,12 @@
+<ng-container [ngSwitch]="images.length">
+  <div *ngSwitchCase="1"
+       class="single-image"
+       [style.backgroundImage]="'url(' + images[0].ImageUrl + ')'"
+       (click)="showImagesModal(0)"></div>
+  <div *ngSwitchDefault class="image-list">
+    <img (click)="showImagesModal(index)"
+         *ngFor="let image of images; let index = index"
+         [src]="image.ImageUrl"
+         class="image"/>
+  </div>
+</ng-container>

@@ -1,0 +1,144 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.hoplr.registration' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/signin"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <mat-vertical-stepper #stepper [linear]="true">
+    <ng-template matStepperIcon="edit">
+      <ion-icon name="pencil"></ion-icon>
+    </ng-template>
+    <ng-template matStepperIcon="done">
+      <ion-icon name="checkmark"></ion-icon>
+    </ng-template>
+    <mat-step [label]="'app.hoplr.address' | translate" [stepControl]="addressForm">
+      <form [formGroup]="addressForm">
+        <h2>{{ 'app.hoplr.step_address_title' | translate }}</h2>
+        <ion-text color="medium">{{ 'app.hoplr.step_address_description' | translate }}</ion-text>
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.street_name' | translate }}</ion-label>
+            <ion-input autocomplete="address-line1" formControlName="streetName" required></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(addressForm.controls.streetName, 'required')" class="error-message" color="danger">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.street_number' | translate }}</ion-label>
+            <ion-input formControlName="streetNumber" required></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(addressForm.controls.streetNumber, 'required')" class="error-message"
+                    color="danger">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.city_or_municipality' | translate }}</ion-label>
+            <ion-input autocomplete="address-level2" formControlName="cityName" required></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(addressForm.controls.cityName, 'required')" class="error-message" color="danger">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+        </ion-list>
+        <div>
+          <ion-button (click)="nextStepAddress()">{{ 'app.hoplr.next' | translate }}</ion-button>
+        </div>
+      </form>
+    </mat-step>
+    <mat-step [completed]="canRegister" [label]="'app.hoplr.invitation_code' | translate">
+      <h2>{{ 'app.hoplr.invitation_code' | translate }}</h2>
+      <ion-text color="medium">{{ 'app.hoplr.invitation_code_info' | translate }}</ion-text>
+      <form [formGroup]="invitationForm">
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.invitation_code' | translate }}</ion-label>
+            <ion-input autocomplete="one-time-code" formControlName="invitationCode"></ion-input>
+          </ion-item>
+        </ion-list>
+        <div>
+          <ion-button (click)="stepper.previous()" [disabled]="isLoadingNeighbourhood$ | async">
+            {{ 'app.hoplr.previous' | translate }}
+          </ion-button>
+          <ion-button (click)="nextStepInvitation()" [disabled]="isLoadingNeighbourhood$ | async">
+            {{ 'app.hoplr.next' | translate }}
+          </ion-button>
+          <ion-spinner *ngIf="isLoadingNeighbourhood$ | async as loading"></ion-spinner>
+        </div>
+      </form>
+    </mat-step>
+    <mat-step [label]="'app.hoplr.neighbourhood' | translate">
+      <ng-container *ngIf="neighbourhood$ | async as neighbourhood">
+        <h2>
+          {{ 'app.hoplr.your_neighbourhood_is' | translate : {name: neighbourhood.Title} }}
+        </h2>
+        <p>
+          <ion-text color="medium">{{ 'app.hoplr.your_neighbourhood_info' | translate }}</ion-text>
+        </p>
+      </ng-container>
+      <ion-button (click)="stepper.next()" type="button">{{ 'app.hoplr.register' | translate }}</ion-button>
+    </mat-step>
+    <mat-step [label]="'app.hoplr.register' | translate" [stepControl]="registerForm">
+      <form (ngSubmit)="register()" [formGroup]="registerForm">
+        <ion-list>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.first_name' | translate }}</ion-label>
+            <ion-input autocomplete="given-name" formControlName="firstName" required></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(registerForm.controls.firstName, 'required')" class="error-message" color="danger">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.last_name' | translate }}</ion-label>
+            <ion-input autocomplete="family-name" formControlName="lastName" required></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(registerForm.controls.lastName, 'required')" class="error-message" color="danger">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.email' | translate }}</ion-label>
+            <ion-input autocomplete="email" formControlName="email" required type="email"></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(registerForm.controls.email, 'required')" class="error-message" color="danger"
+                    minlength="8">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+          <ion-item>
+            <ion-label position="floating">{{ 'app.hoplr.password' | translate }}</ion-label>
+            <ion-input autocomplete="new-password" formControlName="password" required type="password"></ion-input>
+          </ion-item>
+          <ion-text *ngIf="hasError(registerForm.controls.password, 'required')" class="error-message" color="danger">
+            {{ 'app.hoplr.this_field_is_required' | translate }}
+          </ion-text>
+          <ion-text *ngIf="hasError(registerForm.controls.password, 'minlength')" class="error-message" color="danger">
+            {{ 'app.hoplr.password_length_error' | translate : {amount: 8} }}
+          </ion-text>
+          <ion-item href="https://www.hoplr.com/terms" target="_blank">
+            <ion-label>{{ 'app.hoplr.terms_of_use' | translate }}</ion-label>
+            <ion-icon name="open" slot="end"></ion-icon>
+          </ion-item>
+          <ion-item href="https://www.hoplr.com/privacy-policy" target="_blank">
+            <ion-label>{{ 'app.hoplr.privacy_policy' | translate }}</ion-label>
+            <ion-icon name="open" slot="end"></ion-icon>
+          </ion-item>
+          <ion-item>
+            <ion-label>{{ 'app.hoplr.agree_to_holpr_tos' | translate }}</ion-label>
+            <ion-checkbox formControlName="tos" required></ion-checkbox>
+          </ion-item>
+          <ion-text *ngIf="hasError(registerForm.controls.tos, 'required')" class="error-message" color="danger">
+            {{ 'app.hoplr.you_must_agree_to_the_tos' | translate }}
+          </ion-text>
+          <!-- Add margin otherwise the page can't scroll down far enough for some reason -->
+          <ion-button [disabled]="isRegistering$ | async"
+                      class="register-button"
+                      expand="block"
+                      size="medium"
+                      type="submit">
+            {{ 'app.hoplr.register' | translate }}
+          </ion-button>
+        </ion-list>
+      </form>
+    </mat-step>
+  </mat-vertical-stepper>
+</ion-content>

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-from mcfw.properties import unicode_property, long_property, typed_property
+from mcfw.properties import unicode_property, typed_property
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.news.groups import get_group_id_for_type_and_app_id
 from rogerthat.rpc import users

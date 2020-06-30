@@ -630,6 +630,9 @@ class BaseProfile(CachedModelMixIn):
         from rogerthat.settings import get_server_settings
         return u"%s/unauthenticated/mobi/cached/avatar/%s" % (get_server_settings().baseUrl, self.avatarId)
 
+    def get_avatar_url(self, base_url):
+        return u'%s/unauthenticated/mobi/cached/avatar/%s' % (base_url, self.avatarId)
+
 
 class Profile(BaseProfile, polymodel.PolyModel):
     avatarId = db.IntegerProperty(indexed=False, default=-1)
@@ -683,7 +686,7 @@ class NdbProfile(BaseProfile, NdbPolyModel):
     @classmethod
     def _class_key(cls):
         return [cls._get_kind()]
-    
+
     def _pre_put_hook(self):
         raise Exception('Use db instead of NdbProfile')
 
@@ -1211,7 +1214,7 @@ class ServiceCallBackConfig(NdbModel):
     regexes = ndb.TextProperty(repeated=True)
     callbacks = ndb.IntegerProperty(default=-1)
     custom_headers = ndb.JsonProperty(default=None)
-    
+
     def is_regex_match(self, tag):
         for regex in self.regexes:
             if re.match(regex, tag):
@@ -1226,13 +1229,13 @@ class ServiceCallBackConfig(NdbModel):
 
 class ServiceCallBackSettings(NdbModel):
     configs = ndb.LocalStructuredProperty(ServiceCallBackConfig, repeated=True)  # type: List[ServiceCallBackConfig]
-    
+
     def get_config(self, name):
         for config in self.configs:
             if config.name == name:
                 return config
         return None
-    
+
     @classmethod
     def create_key(cls, service_user):
         return ndb.Key(cls,

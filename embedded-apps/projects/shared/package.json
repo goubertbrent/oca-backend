@@ -1,0 +1,10 @@
+{
+  "name": "shared",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/common": "^9.1.1",
+    "@angular/core": "^9.1.1",
+    "tslib": "^1.10.0",
+    "rogerthat-plugin": "git+https://github.com/our-city-app/cordova-mobicage-plugin.git#794d66a3e9847cd8f500ddf7b297bcc1f6ae469f"
+  }
+}

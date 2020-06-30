@@ -1,0 +1,18 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ label }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeModal()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content [fullscreen]="true">
+  <ion-list>
+    <ng-container *ngFor="let list of rates">
+      <ion-list-header>{{ list.label | translate }}</ion-list-header>
+      <hoplr-user-list-item *ngFor="let rate of list.rates" [user]="rate.User"></hoplr-user-list-item>
+    </ng-container>
+  </ion-list>
+</ion-content>

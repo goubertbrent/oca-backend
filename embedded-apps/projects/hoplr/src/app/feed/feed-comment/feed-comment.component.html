@@ -1,0 +1,11 @@
+<div class="user-block">
+  <img [alt]="comment.User.ProfileName" [src]="comment.User.ThumbUrl" class="comment-avatar">
+  <div class="content-block">
+    <div class="comment-header">
+      <ion-label class="profile-name">{{ comment.User.ProfileName }}</ion-label>
+      <ion-text class="comment-date" color="medium">{{ comment.DateTime | dynamicDate }}</ion-text>
+    </div>
+    <ion-label class="comment-text" [innerHTML]="comment.Comment | markdown"></ion-label>
+    <hoplr-feed-rates *ngIf="rates" [rates]="rates" [small]="true"></hoplr-feed-rates>
+  </div>
+</div>

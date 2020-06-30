@@ -1,0 +1,18 @@
+.error-message {
+  font-size: 12px;
+  animation-name: errorAnimation;
+  animation-duration: 400ms;
+}
+
+@keyframes errorAnimation {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.register-button {
+  margin: 16px 16px 48px;
+}

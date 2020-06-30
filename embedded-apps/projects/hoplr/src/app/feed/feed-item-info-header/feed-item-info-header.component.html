@@ -1,0 +1,8 @@
+<div class="title-line">
+  <span>{{ title }}</span>
+  <ion-button (click)="moreInfoShown = !moreInfoShown" color="light" size="small" type="button">
+    <ion-icon name="help-circle-outline" slot="start"></ion-icon>
+    {{ 'app.hoplr.more_info' | translate }}
+  </ion-button>
+</div>
+<div *ngIf="moreInfoShown" [innerHTML]="description | markdown"></div>

@@ -1,0 +1,27 @@
+:host {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.text-block {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+}
+
+.header {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.subheader {
+  font-size: 12px;
+  margin-top: 4px;
+}

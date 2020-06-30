@@ -1,0 +1,19 @@
+<div class="event-header-layout">
+  <div class="date">
+    <span class="day">{{ event.data.From | date : 'd' }}</span>
+    <span class="month">{{ event.data.From | date : 'MMM' }}</span>
+  </div>
+  <div class="info-layout">
+    <div class="when">
+      {{ event | eventDate }}
+    </div>
+    <div class="where">
+      <span>{{ event.data.Category.Title }}</span>
+      <span *ngIf="event.data.Address">{{ event.data.Address }}</span>
+      <span>
+        <ng-container *ngIf="event.data.Price as price">{{ price | currency : 'EUR' :  'symbol' }}</ng-container>
+        <ng-container *ngIf="!event.data.Price">{{ 'app.hoplr.price_free' | translate }}</ng-container>
+      </span>
+    </div>
+  </div>
+</div>

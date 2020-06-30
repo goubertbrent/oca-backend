@@ -1,0 +1,8 @@
+<div class="activity-preview__interaction">
+  <span class="rsvps-summary" *ngIf="summary">{{ summary }}</span>
+  <div class="rsvp-list">
+    <ion-avatar *ngFor="let rsvp of rsvps" class="rsvp-user">
+      <img [src]="rsvp.User.ThumbUrl" [alt]="rsvp.User.ProfileName"/>
+    </ion-avatar>
+  </div>
+</div>

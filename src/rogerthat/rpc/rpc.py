@@ -205,7 +205,7 @@ class JabberRpcCaller(threading.local):
     def __init__(self, endpoint):
         self.items = list()
         self.endpoint = endpoint
-        
+
     def append(self, payload):
         settings = get_server_settings()
         if DEBUG and not settings.jabberEndPoints:

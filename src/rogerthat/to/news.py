@@ -15,9 +15,9 @@
 #
 # @@license_version:1.7@@
 
-from datetime import datetime
 import json
 import time
+from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from typing import List
@@ -26,14 +26,11 @@ from mcfw.properties import long_list_property, typed_property, bool_property, l
     unicode_list_property, azzert, float_property
 from mcfw.serialization import s_long, ds_long, s_bool, s_unicode, ds_bool, ds_unicode, \
     get_list_serializer, get_list_deserializer
-from rogerthat.dal.profile import get_user_profile
-from rogerthat.models import UserProfile
+from rogerthat.models import UserProfile, ServiceIdentity, NdbServiceProfile
 from rogerthat.models.news import NewsItem, NewsNotificationStatus, NewsMatchType
 from rogerthat.models.properties.news import NewsItemStatistics
 from rogerthat.rpc import users
-from rogerthat.to import BaseButtonTO, TO
-from rogerthat.to import KeyValueLongTO
-from rogerthat.utils.app import get_app_user_tuple, get_app_id_from_app_user
+from rogerthat.to import BaseButtonTO, TO, KeyValueLongTO
 from rogerthat.utils.service import remove_slash_default
 
 
@@ -41,26 +38,39 @@ class NewsSenderTO(object):
     email = unicode_property('1')
     name = unicode_property('2')
     avatar_id = long_property('3')
+    avatar_url = unicode_property('avatar_url')
 
-    def __init__(self, email=None, name=None, avatar_id=None):
+    def __init__(self, email=None, name=None, avatar_id=None, avatar_url=None):
         self.email = email
         self.name = name
         self.avatar_id = avatar_id
+        self.avatar_url = avatar_url
+
+    @classmethod
+    def from_service_models(cls, base_url, service_profile, si):
+        # type: (str, NdbServiceProfile, ServiceIdentity) -> NewsSenderTO
+        return cls(email=remove_slash_default(si.service_identity_user).email(),
+                   name=si.name,
+                   avatar_id=service_profile.avatarId,
+                   avatar_url=service_profile.get_avatar_url(base_url))
 
 
 def _serialize_news_sender(stream, sender):
-    s_long(stream, 1)  # version
+    s_long(stream, 2)  # version
     s_unicode(stream, sender.email)
     s_unicode(stream, sender.name)
     s_long(stream, sender.avatar_id)
+    s_unicode(stream, sender.avatar_url)
 
 
 def _deserialize_news_sender(stream):
-    _ = ds_long(stream)  # version
+    version = ds_long(stream)  # version
     sender = NewsSenderTO()
     sender.email = ds_unicode(stream)
     sender.name = ds_unicode(stream)
     sender.avatar_id = ds_long(stream)
+    if version > 1:
+        sender.avatar_url = ds_unicode(stream)
     return sender
 
 
@@ -279,15 +289,15 @@ class BaseNewsItemTO(object):
     type = long_property('15')
     media = typed_property('media', MediaTO, False, default=None)  # type: MediaTO
 
-    def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, title=None,
-                 message=None, image_url=None, buttons=None,
+    def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, sender_avatar_url=None,
+                 title=None, message=None, image_url=None, buttons=None,
                  qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1, media=None):
         if buttons is None:
             buttons = []
         self.id = news_id
         if sender_email:
             sender_email = remove_slash_default(users.User(sender_email)).email()
-        self.sender = NewsSenderTO(sender_email, sender_name, sender_avatar_id)
+        self.sender = NewsSenderTO(sender_email, sender_name, sender_avatar_id, sender_avatar_url)
         self.title = title
         self.message = message
         self.image_url = image_url
@@ -330,8 +340,8 @@ class NewsItemTO(BaseNewsItemTO):
     locations = typed_property('locations', NewsLocationsTO)
     group_visible_until = long_property('group_visible_until')
 
-    def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, title=None,
-                 message=None, image_url=None, buttons=None,
+    def __init__(self, news_id=0, sender_email=None, sender_name=None, sender_avatar_id=0, sender_avatar_url=None,
+                 title=None, message=None, image_url=None, buttons=None,
                  qr_code_content=None, qr_code_caption=None, version=0, timestamp=0, flags=0, news_type=1,
                  sticky=False, sticky_until=0, app_ids=None, scheduled_at=0, published=False,
                  target_audience=None, role_ids=None,
@@ -346,7 +356,7 @@ class NewsItemTO(BaseNewsItemTO):
         if tags is None:
             tags = []
 
-        super(NewsItemTO, self).__init__(news_id, sender_email, sender_name, sender_avatar_id, title,
+        super(NewsItemTO, self).__init__(news_id, sender_email, sender_name, sender_avatar_id, sender_avatar_url, title,
                                          message, image_url, buttons,
                                          qr_code_content, qr_code_caption, version, timestamp, flags, news_type, media)
 
@@ -370,10 +380,8 @@ class NewsItemTO(BaseNewsItemTO):
         return len(self.role_ids) > 0
 
     @classmethod
-    def from_model(cls, model, base_url):
-        # type: (NewsItem, unicode) -> NewsItemTO
-        from rogerthat.dal.service import get_service_identity
-        si = get_service_identity(model.sender)
+    def from_model(cls, model, base_url, service_profile=None, service_identity=None):
+        # type: (NewsItem, unicode, NdbServiceProfile, ServiceIdentity) -> NewsItemTO
         buttons = model.buttons.values() if model.buttons else []
 
         # set the target audience
@@ -386,8 +394,9 @@ class NewsItemTO(BaseNewsItemTO):
         else:
             target_audience = None
         sender_email = model.sender.email()
-        sender_name = si.name if si else u""
-        sender_avatar_id = si.avatarId if si else -1
+        sender_name = service_identity.name
+        sender_avatar_id = service_profile.avatarId
+        sender_avatar_url = service_profile.get_avatar_url(base_url)
         if model.media:
             media = MediaTO(type=model.media.type, width=model.media.width, height=model.media.height,
                             content=model.media_url(base_url))
@@ -406,7 +415,7 @@ class NewsItemTO(BaseNewsItemTO):
                                                        for geo_address in model.locations.geo_addresses])
         else:
             locations = None
-        return cls(model.id, sender_email, sender_name, sender_avatar_id, model.title, model.message,
+        return cls(model.id, sender_email, sender_name, sender_avatar_id, sender_avatar_url, model.title, model.message,
                    media and media.content, buttons, model.qr_code_content, model.qr_code_caption, model.version,
                    model.timestamp, model.flags, model.type, model.sticky, model.sticky_until, model.app_ids,
                    model.scheduled_at, model.published, target_audience,
@@ -444,14 +453,13 @@ class NewsItemListResultTO(object):
     cursor = unicode_property('2')
     more = bool_property('more')
 
-    def __init__(self, news_items=None, more=True, cursor=None, base_url=None):
-        # type: (list[NewsItem], bool, unicode, unicode) -> None
+    def __init__(self, news_items=None, more=True, cursor=None, base_url=None, service_profile=None,
+                 service_identity=None):
+        # type: (list[NewsItem], bool, unicode, unicode, NdbServiceProfile, ServiceIdentity) -> None
         if news_items is None:
             news_items = []
         self.cursor = cursor
-        results = []
-        for news_item in news_items:
-            results.append(NewsItemTO.from_model(news_item, base_url))
+        results = [NewsItemTO.from_model(item, base_url, service_profile, service_identity) for item in news_items]
         self.result = results
         self.more = more
 
@@ -562,7 +570,7 @@ class NewsStreamItemTO(TO):
     def from_model(cls, app_user, news_match, news_item_to, notifications=NewsNotificationStatus.NOT_SET, blocked=False):
         to = cls()
         to.id = news_item_to.id
-        to.sender = NewsSenderTO(news_item_to.sender.email, news_item_to.sender.name, news_item_to.sender.avatar_id)
+        to.sender = news_item_to.sender
         to.title = news_item_to.title
         to.message = news_item_to.message
         to.media = news_item_to.media

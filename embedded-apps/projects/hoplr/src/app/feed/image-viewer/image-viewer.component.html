@@ -1,0 +1,16 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeModal()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <ion-slides [pager]="true" [options]="options">
+    <ion-slide *ngFor="let image of images" class="image-slide">
+      <img [src]="image.ImageUrl"/>
+    </ion-slide>
+  </ion-slides>
+</ion-content>

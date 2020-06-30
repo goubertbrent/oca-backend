@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 550px;
+}
+
+.feed-item {
+  display: flex;
+  flex-direction: column;
+  margin: 16px 0;
+
+  h2 {
+    font-weight: bold;
+  }
+}
+
+.item-content {
+  padding: 0;
+}
+
+.item-content-padding:not(:empty) {
+  padding: 0 16px 8px;
+}
+
+.item-rates {
+  margin-top: 4px;
+}
+
+.item-attachment {
+  display: flex;
+  align-items: center;
+
+  ion-icon {
+    height: 24px;
+    width: 24px;
+  }
+}
+
+.item-attachment-name {
+  margin: 0 16px;
+  flex: 1;
+  text-decoration: none;
+  color: var(--ion-color-dark);
+}
+
+.category-chip {
+  height: 22px;
+  font-size: 12px;
+  padding: 2px 8px 2px 8px;
+}
+
+.neighbourhoods-info {
+  color: var(--ion-color-medium);
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.feed-comments {
+  ion-item-divider {
+    --background: transparent;
+    transform: translateY(-16px);
+  }
+}
+
+// for some reason the item at the bottom is cut off without some extra space at the bottom
+.spacer {
+  height: 64px;
+}

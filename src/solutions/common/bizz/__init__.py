@@ -40,6 +40,7 @@ from mcfw.properties import object_factory, unicode_property, long_list_property
 from mcfw.rpc import returns, arguments
 from mcfw.utils import Enum
 from rogerthat.bizz.branding import is_branding
+from rogerthat.bizz.embedded_applications import send_update_all_embedded_apps
 from rogerthat.bizz.rtemail import generate_auto_login_url
 from rogerthat.bizz.service import create_service, InvalidAppIdException, RoleNotFoundException, \
     AvatarImageNotSquareException
@@ -58,7 +59,7 @@ from rogerthat.rpc.service import ServiceApiException, BusinessException
 from rogerthat.rpc.users import User
 from rogerthat.service.api import app, qr
 from rogerthat.service.api.system import list_roles, add_role_member, delete_role_member, put_role, store_branding, \
-    store_pdf_branding, put_reserved_menu_item_label
+    store_pdf_branding, put_reserved_menu_item_label, get_menu
 from rogerthat.to import TO
 from rogerthat.to.app import AppInfoTO
 from rogerthat.to.branding import BrandingTO
@@ -92,6 +93,7 @@ class OCAEmbeddedApps(Enum):
     # Contains shared functionality that is the same for many of the services
     # Including but not limitted to: q-matic appointments
     OCA = 'oca'
+    HOPLR = 'hoplr'
 
 
 CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']
@@ -134,6 +136,7 @@ class SolutionModule(Enum):
     REPORTS = u'reports'
     JCC_APPOINTMENTS = 'jcc_appointments'
     CIRKLO_VOUCHERS = 'cirklo_vouchers'
+    HOPLR = 'hoplr'
 
     HIDDEN_CITY_WIDE_LOTTERY = u'hidden_city_wide_lottery'
 
@@ -788,6 +791,24 @@ def common_provision(service_user, sln_settings=None, broadcast_to_users=None, f
             sln_settings = get_solution_settings(service_user)
         raise BusinessException(
             common_translate(sln_settings.main_language, 'error-occured-unknown-try-again'))
+    deferred.defer(_check_embedded_apps_after_publish, service_user)
+
+
+def _check_embedded_apps_after_publish(service_user):
+    from shop.dal import get_customer
+    customer = get_customer(service_user)
+    app_id = customer.default_app_id
+    app = get_app_by_id(app_id)
+    if app.main_service == service_user.email():
+        with users.set_user(service_user):
+            menu = get_menu()
+            embedded_apps = {item.embeddedApp for item in menu.items if item.embeddedApp}
+            if set(app.embedded_apps).symmetric_difference(embedded_apps):
+                logging.debug('Updating embedded apps for app %s: from %s to %s', app_id, app.embedded_apps,
+                              embedded_apps)
+                app.embedded_apps = list(embedded_apps)
+                put_and_invalidate_cache(app)
+                deferred.defer(send_update_all_embedded_apps, app_id, _countdown=2)
 
 
 @returns()

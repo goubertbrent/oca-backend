@@ -181,7 +181,7 @@ def create_matches_for_news_item(news_item, old_group_ids, should_create_notific
         deferred.defer(_update_service_filter, group_id, news_item.sender, _queue=NEWS_MATCHING_QUEUE)
         run_job(_create_matches_for_news_item_qry, [group_id],
                 _create_matches_for_news_item_worker, [news_item.id, should_create_notification], worker_queue=NEWS_MATCHING_QUEUE)
-    
+
     if old_group_ids:
         do_callback_for_update(news_item)
     else:

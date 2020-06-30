@@ -41,6 +41,7 @@ from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connecte
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DEBUG, DAY
 from rogerthat.dal import parent_ndb_key, parent_key, put_and_invalidate_cache
+from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, OpeningHours, ServiceIdentity
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.models.settings import ServiceInfo
@@ -69,7 +70,7 @@ from solutions.common.bizz.messaging import POKE_TAG_ASK_QUESTION, POKE_TAG_APPO
     POKE_TAG_RESERVE_PART1, POKE_TAG_MY_RESERVATIONS, POKE_TAG_ORDER, \
     POKE_TAG_LOYALTY_ADMIN, POKE_TAG_PHARMACY_ORDER, POKE_TAG_LOYALTY, POKE_TAG_DISCUSSION_GROUPS, \
     POKE_TAG_BROADCAST_CREATE_NEWS, POKE_TAG_BROADCAST_CREATE_NEWS_CONNECT, POKE_TAG_Q_MATIC, POKE_TAG_JCC_APPOINTMENTS, \
-    POKE_TAG_CIRKLO_VOUCHERS
+    POKE_TAG_CIRKLO_VOUCHERS, POKE_TAG_HOPLR
 from solutions.common.bizz.opening_hours import opening_hours_to_text
 from solutions.common.bizz.order import ORDER_FLOW_NAME
 from solutions.common.bizz.payment import get_providers_settings
@@ -143,6 +144,7 @@ POKE_TAGS = {
     SolutionModule.REPORTS: None,
     SolutionModule.JCC_APPOINTMENTS: POKE_TAG_JCC_APPOINTMENTS,
     SolutionModule.CIRKLO_VOUCHERS: POKE_TAG_CIRKLO_VOUCHERS,
+    SolutionModule.HOPLR: POKE_TAG_HOPLR,
 }
 
 STATIC_CONTENT_TAG_PREFIX = 'Static content: '
@@ -1880,6 +1882,20 @@ def delete_jobs(sln_settings, current_coords, service_menu=None):
 
 
 @returns([SolutionServiceMenuItem])
+@arguments(sln_settings=SolutionSettings, current_coords=[(int, long)], main_branding=SolutionMainBranding,
+           default_lang=unicode, tag=unicode)
+def put_hoplr_module(sln_settings, current_coords, main_branding, default_lang, tag):
+    # type: (SolutionSettings, list[int], SolutionMainBranding, unicode, unicode) -> list[SolutionServiceMenuItem]
+    item = SolutionServiceMenuItem(u'fa-home',
+                                   sln_settings.menu_item_color,
+                                   'Hoplr',
+                                   tag,
+                                   action=SolutionModule.action_order(SolutionModule.HOPLR),
+                                   embedded_app=OCAEmbeddedApps.HOPLR)
+    return [item]
+
+
+@returns([SolutionServiceMenuItem])
 def _dummy_put(*args, **kwargs):
     return []  # we don't need to do anything
 
@@ -1933,6 +1949,7 @@ MODULES_PUT_FUNCS = {
     SolutionModule.REPORTS: _dummy_put,
     SolutionModule.JCC_APPOINTMENTS: put_jcc_appointments_module,
     SolutionModule.CIRKLO_VOUCHERS: put_cirklo_module,
+    SolutionModule.HOPLR: put_hoplr_module,
 }
 
 
@@ -1965,4 +1982,5 @@ MODULES_DELETE_FUNCS = {
     SolutionModule.REPORTS: _default_delete,
     SolutionModule.JCC_APPOINTMENTS: _default_delete,
     SolutionModule.CIRKLO_VOUCHERS: _default_delete,
+    SolutionModule.HOPLR: _default_delete,
 }

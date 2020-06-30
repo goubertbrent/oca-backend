@@ -18,6 +18,10 @@
 from webapp2 import Route
 from webapp2_extras.routes import RedirectRoute
 
+import shop.handlers
+import solutions.common.restapi
+import solutions.common.restapi.app
+import solutions.common.restapi.campaignmonitor
 from bob.handlers import SetIosAppIdHandler
 from mcfw.consts import NOT_AUTHENTICATED
 from mcfw.restapi import rest_functions
@@ -28,7 +32,6 @@ from shop.handlers import ExportInvoicesHandler, ExportProductsHandler, Prospect
     CustomerMapHandler, CustomerMapServicesHandler, CustomerSigninHandler, \
     CustomerSignupHandler, CustomerSetPasswordHandler, CustomerResetPasswordHandler, CustomerSignupPasswordHandler, \
     CustomerCirkloAcceptHandler
-import shop.handlers
 from solutions.common.handlers.launcher import GetOSALaucherAppsHandler, GetOSALaucherAppHandler
 from solutions.common.handlers.loyalty import LoyaltySlideDownloadHandler, LoyaltyNoMobilesUnsubscribeEmailHandler, \
     LoyaltyLotteryConfirmWinnerHandler
@@ -37,12 +40,8 @@ from solutions.common.handlers.menu import ViewMenuItemImageHandler
 from solutions.common.handlers.payments import StripeHandler, StripeSuccessHandler, \
     StripeCancelHandler, StripeWebhookHandler
 from solutions.common.handlers.vcard import VCardHandler
-import solutions.common.restapi
-import solutions.common.restapi.app
-import solutions.common.restapi.campaignmonitor
 from solutions.common.restapi.rss import RssCoronavirusDotBeHandler
 from solutions.flex.handlers import FlexHomeHandler
-
 
 handlers = [
     ('/flex/', FlexHomeHandler),

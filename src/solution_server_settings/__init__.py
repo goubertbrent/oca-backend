@@ -142,6 +142,18 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     cirklo_api_key = add_meta(db.TextProperty(),
                               doc='Cirklo api key',
                               order=1901)
+    holpr_api_url = add_meta(db.TextProperty(),
+                             doc='Hoplr api server url',
+                             order=2000)
+    hoplr_base_url = add_meta(db.TextProperty(default='https://hoplr.com'),
+                              doc='Hoplr client url',
+                              order=2001)
+    hoplr_client_id = add_meta(db.TextProperty(),
+                               doc='Hoplr client id',
+                               order=2002)
+    hoplr_media_base_url = add_meta(db.TextProperty(default='https://hoplrcontent.blob.core.windows.net'),
+                                    doc='Hoplr media base url',
+                                    order=2003)
 
     def invalidateCache(self):
         logging.info("SolutionServerSettings removed from cache.")

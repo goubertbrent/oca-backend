@@ -58,7 +58,7 @@ class CirkloApiMethod(Enum):
 
 class UnknownMethodException(Exception):
     def __init__(self, method):
-        super(UnknownMethodException, self).__init__('Unknown cirkle method: ' + method)
+        super(UnknownMethodException, self).__init__('Unknown cirklo method: ' + method)
 
 
 class TranslatedException(Exception):

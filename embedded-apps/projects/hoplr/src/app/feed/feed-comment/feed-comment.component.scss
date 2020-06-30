@@ -1,0 +1,42 @@
+$font-size: 14px;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.user-block {
+  display: flex;
+}
+
+.content-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.comment-avatar {
+  margin-right: 16px;
+  height: 36px;
+  width: 36px;
+}
+
+.comment-header {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.profile-name {
+  font-weight: bold;
+  font-size: $font-size;
+}
+
+.comment-date {
+  font-size: $font-size;
+  margin: 0 8px;
+}
+
+.comment-text {
+  margin-top: 4px;
+}

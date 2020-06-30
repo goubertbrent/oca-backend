@@ -93,6 +93,7 @@ from solutions.common.bizz.settings import get_service_info
 from solutions.common.dal import get_solution_main_branding, get_solution_settings, get_solution_identity_settings, \
     get_solution_settings_or_identity_settings, get_news_publisher_from_app_user
 from solutions.common.integrations.cirklo import cirklo
+from solutions.common.integrations.hoplr import hoplr
 from solutions.common.integrations.jcc import jcc_appointments
 from solutions.common.integrations.jcc.models import JccApiMethod
 from solutions.common.integrations.qmatic import qmatic
@@ -126,6 +127,7 @@ POKE_TAG_FORMS = u'__sln__.forms'
 POKE_TAG_Q_MATIC = u'__sln__.q_matic'
 POKE_TAG_JCC_APPOINTMENTS = u'__sln__.jcc_appointments'
 POKE_TAG_CIRKLO_VOUCHERS = u'__sln__.cirklo'
+POKE_TAG_HOPLR = u'__sln__.hoplr'
 
 POKE_TAG_INBOX_FORWARDING_REPLY = u"inbox_forwarding_reply"
 POKE_TAG_INBOX_FORWARDING_REPLY_TEXT_BOX = u"inbox_forwarding_reply_text_box"
@@ -947,6 +949,8 @@ for method in JccApiMethod.all():
 for method in cirklo.CirkloApiMethod.all():
     API_METHOD_MAPPING[method] = cirklo.handle_method
 
+for method in hoplr.HoplrApiMethod.all():
+    API_METHOD_MAPPING[method] = hoplr.handle_method
 
 FLOW_STATISTICS_MAPPING = {
     POKE_TAG_ORDER: SolutionModule.ORDER,

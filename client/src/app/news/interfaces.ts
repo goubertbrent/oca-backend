@@ -62,6 +62,7 @@ export interface NewsSender {
   email: string;
   name: string;
   avatar_id: string;
+  avatar_url: string;
 }
 
 export interface NewsActionButton extends BaseButton {

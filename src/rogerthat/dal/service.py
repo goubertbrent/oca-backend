@@ -405,7 +405,7 @@ def get_service_identity(service_identity_user):
 @returns([ServiceIdentity])
 @arguments(service_identity_users=[users.User])
 def get_service_identities_not_cached(service_identity_users):
-    # type: (users.User) -> List[ServiceIdentity]
+    # type: (List[users.User]) -> List[ServiceIdentity]
     # XXX: populate cache
     return db.get([ServiceIdentity.keyFromUser(service_identity_user)
                    for service_identity_user in service_identity_users])

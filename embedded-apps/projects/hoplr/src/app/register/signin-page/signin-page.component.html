@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.hoplr.log_in' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <form (ngSubmit)="signIn()" [formGroup]="signinForm">
+    <ion-list>
+      <ion-item>
+        <ion-label position="floating">{{ 'app.hoplr.email' | translate }}</ion-label>
+        <ion-input autocomplete="email" formControlName="username" type="email"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="floating">{{ 'app.hoplr.password' | translate }}</ion-label>
+        <ion-input autocomplete="current-password" formControlName="password" type="password"></ion-input>
+      </ion-item>
+    </ion-list>
+    <ion-button [disabled]="loading$ | async" class="btn-margin" expand="block" type="submit">
+      {{ 'app.hoplr.log_in' | translate }}
+    </ion-button>
+  </form>
+  <div class="create-layout">
+    <hr/>
+    <span>{{ 'app.hoplr.or' | translate }}</span>
+    <hr/>
+  </div>
+  <ion-button class="btn-margin" expand="block" routerLink="register">
+    {{ 'app.hoplr.create_account' | translate }}
+  </ion-button>
+</ion-content>

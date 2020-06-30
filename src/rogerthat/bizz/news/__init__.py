@@ -51,7 +51,7 @@ from rogerthat.capi.news import disableNews, createNotification
 from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
 from rogerthat.dal import put_in_chunks
 from rogerthat.dal.mobile import get_mobile_key_by_account
-from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service, get_service_profile
+from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service, get_service_profile, get_service_profiles
 from rogerthat.dal.service import get_service_identity, \
     ndb_get_service_menu_items, get_service_identities_not_cached, get_default_service_identity
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
@@ -59,7 +59,7 @@ from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsEx
     ValueTooLongException, DemoServiceException, InvalidScheduledTimestamp, \
     EmptyActionButtonCaption, InvalidActionButtonRoles, InvalidActionButtonFlowParamsException, TrialServiceException
 from rogerthat.models import ServiceProfile, PokeTagMap, ServiceMenuDef, NdbApp, \
-    UserProfileInfoAddress, NdbProfile, UserProfileInfo, NdbUserProfile
+    UserProfileInfoAddress, NdbProfile, UserProfileInfo, NdbUserProfile, ServiceIdentity, NdbServiceProfile
 from rogerthat.models.maps import MapService
 from rogerthat.models.news import NewsItem, NewsItemImage, NewsItemActionStatistics, NewsGroup, NewsSettingsUser, \
     NewsItemMatch, NewsSettingsService, NewsSettingsUserService, \
@@ -76,7 +76,6 @@ from rogerthat.rpc.service import BusinessException, logServiceError
 from rogerthat.settings import get_server_settings
 from rogerthat.to.messaging import BaseMemberTO
 from rogerthat.to.news import NewsActionButtonTO, NewsItemTO, NewsItemListResultTO, DisableNewsRequestTO, \
-    NewsReadInfoTO, \
     DisableNewsResponseTO, NewsTargetAudienceTO, \
     NewsItemAppStatisticsTO, NewsItemStatisticsTO, BaseMediaTO, MediaTO, \
     GetNewsGroupsResponseTO, IfEmtpyScreenTO, NewsGroupRowTO, NewsGroupTO, NewsGroupTabInfoTO, NewsGroupFilterInfoTO, \
@@ -170,6 +169,42 @@ def _worker_update_visibility_news_items(ni_key, visible):
     re_index_news_item(news_item)
 
 
+def _get_service_identity_users_for_groups(news_groups):
+    # type: (List[NewsGroup]) -> List[users.User]
+    si_users = set()
+    for news_group in news_groups:
+        if news_group.service_filter and news_group.services:
+            si_users.update({service_identity_user for service_identity_user in news_group.services})
+    return list(si_users)
+
+
+def get_service_profiles_and_identities(service_identity_users):
+    # type: (Iterable[users.User]) -> Tuple[Dict[users.User, NdbServiceProfile], Dict[users.User, ServiceIdentity]]
+    service_users = [get_service_user_from_service_identity_user(u) for u in service_identity_users]
+    profiles_futures = ndb.get_multi_async([NdbProfile.createKey(user) for user in service_users])
+    if service_identity_users:
+        service_identities = {si.service_identity_user: si
+                              for si in get_service_identities_not_cached(service_identity_users)}
+    else:
+        service_identities = {}
+    service_profiles = {p.get_result().user: p.get_result() for p in profiles_futures}
+    return service_profiles, service_identities
+
+
+def _get_news_group_services_from_mapping(base_url, news_group, service_profiles, services_identities):
+    # type: (str, NewsGroup, Dict[users.User, NdbServiceProfile], Dict[users.User, ServiceIdentity]) -> List[NewsSenderTO]
+    services = []
+    if news_group.service_filter:
+        for service_identity_user in news_group.services:
+            service_identity = services_identities.get(service_identity_user)
+            if not service_identity:
+                logging.warning('Could not find service identity %s, skipping', service_identity_user)
+                continue
+            service_profile = service_profiles[service_identity.service_user]
+            services.append(NewsSenderTO.from_service_models(base_url, service_profile, service_identity))
+    return services
+
+
 @returns(GetNewsGroupsResponseTO)
 @arguments(app_user=users.User)
 def get_groups_for_user(app_user):
@@ -228,6 +263,8 @@ def get_groups_for_user(app_user):
                                                                                       group_details.group_id,
                                                                                       group_details.last_load_request)
 
+    si_users = _get_service_identity_users_for_groups(news_groups_mapping.values())
+    service_profiles, services_identities = get_service_profiles_and_identities(si_users)
     for news_user_group in news_user_settings.get_groups_sorted():
         key = news_user_group.details[0].group_id if len(news_user_group.details) == 1 else news_user_group.group_type
         tabs = get_tabs_for_group(lang, news_groups_mapping, news_user_group)
@@ -246,7 +283,7 @@ def get_groups_for_user(app_user):
             if_empty=get_if_empty_for_group_type(news_user_group.group_type, lang),
             tabs=tabs,
             layout=layout,
-            services=_get_group_services(news_group)
+            services=_get_news_group_services_from_mapping(base_url, news_group, service_profiles, services_identities)
         )
 
     if news_stream_layout:
@@ -267,20 +304,6 @@ def get_groups_for_user(app_user):
         if row.items:
             response.rows.append(row)
     return response
-
-
-def _get_group_services(news_group):
-    services = []
-    if news_group.service_filter and news_group.services:
-        for service_identity_user in news_group.services:
-            # TODO: rpcs in (nested) for loop
-            si = get_service_identity(service_identity_user)
-            if not si:
-                continue
-            services.append(NewsSenderTO(email=remove_slash_default(si.service_identity_user).email(),
-                                         name=si.name,
-                                         avatar_id=si.avatarId))
-    return services
 
 
 def get_tabs_for_group(lang, news_groups_mapping, news_user_group):
@@ -322,13 +345,16 @@ def get_news_group_response(app_user, group_id):
     else:
         badge_count = 0
     type_city = news_stream and news_stream.stream_type == NewsStream.TYPE_CITY
+
+    si_users = _get_service_identity_users_for_groups([news_group])
+    service_profiles, services_identities = get_service_profiles_and_identities(si_users)
     group = NewsGroupTO(
         key=group_id,
         name=get_group_title(type_city, news_group, lang),
         if_empty=get_if_empty_for_group_type(news_group.group_type, lang),
         tabs=get_tabs_for_group(lang, group_mapping, news_user_group),
         layout=get_layout_params_for_group(base_url, type_city, app_user, lang, news_group, badge_count),
-        services=_get_group_services(news_group)
+        services=_get_news_group_services_from_mapping(base_url, news_group, service_profiles, services_identities),
     )
     return GetNewsGroupResponseTO(group=group)
 
@@ -541,8 +567,15 @@ def get_items_for_user_by_search_string(app_user, search_string, cursor):
 def _get_news_stream_items_for_user(app_user, ids, group_id):
     news_items = get_news_by_ids(ids)
     base_url = get_server_settings().baseUrl
+    service_profiles, service_identities = get_service_profiles_and_identities(list({item.sender
+                                                                                     for item in news_items}))
 
-    news_items_dict = {news_item.id: NewsItemTO.from_model(news_item, base_url) for news_item in news_items}
+    news_items_dict = {news_item.id: NewsItemTO.from_model(
+        news_item,
+        base_url,
+        service_profiles[get_service_user_from_service_identity_user(news_item.sender)],
+        service_identities[news_item.sender]
+    ) for news_item in news_items}
 
     if group_id:
         model_keys = []
@@ -587,11 +620,13 @@ def get_group_services(app_user, group_id, key, cursor):
         batch_count, start_cursor=Cursor.from_websafe_string(cursor) if cursor else None, keys_only=True)
 
     service_identity_users = [users.User(item.id()) for item in items]
+    service_users = [get_service_user_from_service_identity_user(u) for u in service_identity_users]
+    service_profiles = {prof.service_user: prof for prof in get_service_profiles(service_users)}
     sis = get_service_identities_not_cached(service_identity_users)
+    base_url = get_server_settings().baseUrl
     for si in sis:
-        r.services.append(NewsSenderTO(email=remove_slash_default(si.service_identity_user).email(),
-                                       name=si.name,
-                                       avatar_id=si.avatarId))
+        service_profile = service_profiles.get(si.service_user)
+        r.services.append(NewsSenderTO.from_service_models(base_url, service_profile, si))
 
     if has_more:
         r.cursor = new_cursor.to_websafe_string().decode('utf-8') if new_cursor else None
@@ -705,7 +740,9 @@ def get_news_by_service(cursor, batch_count, service_identity_user, updated_sinc
     for news_id in news_statistics_to_fill:
         deferred.defer(setup_news_statistics_count_for_news_id, news_id)
     r_cursor = new_cursor and new_cursor.to_websafe_string().decode('utf-8')
-    return NewsItemListResultTO(news_items, has_more, r_cursor, base_url)
+    service_profile = get_service_profile(service_user)
+    service_identity = get_service_identity(service_identity_user)
+    return NewsItemListResultTO(news_items, has_more, r_cursor, base_url, service_profile, service_identity)
 
 
 @returns([NewsItem])
@@ -784,6 +821,7 @@ def get_news_items_statistics(news_items, include_details=False):
 @returns([(NewsItem, NoneType)])
 @arguments(news_ids=[(int, long)])
 def get_news_by_ids(news_ids):
+    # type: (List[int]) -> List[NewsItem]
     return ndb.get_multi([NewsItem.create_key(i) for i in news_ids])
 
 
@@ -1136,14 +1174,14 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
             map_service.has_news = True
             to_put.append(map_service)
         ndb.put_multi(to_put)
-        action = NEWS_CREATED if not news_id else NEWS_UPDATED
-        deferred.defer(slog, 'News item saved', sender.email(), NEWS, action=action, news_id=news_item.id,
-                       app_ids=news_item.app_ids, sticky=sticky, _transactional=True)
         return news_item
 
     news_item = trans(existing_news_item.id if existing_news_item else None, news_type)
+    action = NEWS_CREATED if not news_id else NEWS_UPDATED
+    slog('News item saved', sender.email(), NEWS, action=action, news_id=news_item.id, app_ids=news_item.app_ids,
+         sticky=sticky)
 
-    if is_set(scheduled_at) and scheduled_at != 0:
+    if not news_item.published and is_set(scheduled_at) and scheduled_at != 0:
         if scheduled_at_changed or news_item.scheduled_task_name is None:
             schedule_news(news_item, sender, si.descriptionBranding)
     else:
@@ -1624,15 +1662,21 @@ def delete(news_id, service_identity_user):
 def do_callback_for_create(news_item):
     from rogerthat.service.api.news import news_created
     service_user = get_service_user_from_service_identity_user(news_item.sender)
-    news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
-    news_created(None, logServiceError, get_service_profile(service_user), news_item=news_item_to)
+    service_profile = get_service_profile(service_user)
+    service_identity = get_service_identity(news_item.sender)
+    news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl, service_profile, service_identity)
+    news_created(None, logServiceError, service_profile, news_item=news_item_to,
+                 service_identity=service_identity.identifier)
 
 
 def do_callback_for_update(news_item):
     from rogerthat.service.api.news import news_updated
     service_user = get_service_user_from_service_identity_user(news_item.sender)
-    news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
-    news_updated(None, logServiceError, get_service_profile(service_user), news_item=news_item_to)
+    service_profile = get_service_profile(service_user)
+    service_identity = get_service_identity(news_item.sender)
+    news_item_to = NewsItemTO.from_model(news_item, get_server_settings().baseUrl, service_profile, service_identity)
+    news_updated(None, logServiceError, service_profile, news_item=news_item_to,
+                 service_identity=service_identity.identifier)
 
 
 def do_callback_for_delete(service_identity_user, news_id):

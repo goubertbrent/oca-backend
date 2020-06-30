@@ -1,0 +1,62 @@
+<ion-card class="feed-item">
+  <ion-card-header>
+    <hoplr-feed-item-info-header *ngIf="item.type === 'shout' && item.data.Businesses.length"
+                                 [description]="'app.hoplr.visible_for_external_businesses_info' | translate"
+                                 [title]="'app.hoplr.visible_for_external_businesses' | translate : {business: item.data.Businesses[0].Business.Title}">
+    </hoplr-feed-item-info-header>
+    <hoplr-feed-item-info-header *ngIf="item.type === 'message' && item.data.Business as business"
+                                 [description]="'app.hoplr.visible_for_local_business_info' | translate"
+                                 [title]="'app.hoplr.visible_for_external_businesses' | translate : { business: item.data.Business.Title}">
+    </hoplr-feed-item-info-header>
+    <hoplr-feed-item-header
+      [avatarUrl]="item.type === 'message' ? item.data.Business.ThumbUrl : item.data.User.ThumbUrl"
+      [header]="item.type === 'message' ? item.data.Business.Title : item.data.User.ProfileName"
+      [subheader]="item | itemSubHeader"></hoplr-feed-item-header>
+  </ion-card-header>
+  <ion-card-content class="item-content">
+    <hoplr-event-header *ngIf="item.type === 'event'" [event]="item"></hoplr-event-header>
+    <div class="item-content-padding">
+      <h2>{{ item.data.Title }}</h2>
+      <div *ngIf="item.data.Text" [innerHTML]="item.data.Text | markdown"></div>
+      <ng-container *ngIf="item.type === 'shout'">
+        <ion-chip class="category-chip">{{ item.data.Category.Title }}</ion-chip>
+        <ion-chip *ngIf="item.data.Category2 as cat" class="category-chip">{{ cat.Title }}</ion-chip>
+        <ion-chip *ngIf="item.data.Category3 as cat" class="category-chip">{{ cat.Title }}</ion-chip>
+      </ng-container>
+    </div>
+    <hoplr-feed-content-message *ngIf="item.type === 'message'"
+                                [baseUrl]="baseUrl"
+                                [message]="item"></hoplr-feed-content-message>
+    <hoplr-feed-images *ngIf="item.data.Images.length"
+                       [images]="item.data.Images"></hoplr-feed-images>
+    <ng-container *ngIf="item.type === 'message' || item.type === 'shout'">
+      <hoplr-feed-text-box *ngFor="let attachment of item.data.Attachments">
+        <div class="item-attachment">
+          <ion-icon name="document-attach-outline"></ion-icon>
+          <a [download]="attachment.Filename" [href]="attachment.Url" class="item-attachment-name" target="_blank">
+            {{ attachment.Filename }}
+          </a>
+          <ion-button [download]="attachment.Filename" [href]="attachment.Url" target="_blank">
+            {{ 'app.hoplr.download' | translate }}
+          </ion-button>
+        </div>
+      </hoplr-feed-text-box>
+    </ng-container>
+    <div class="item-content-padding">
+      <p *ngIf="item.type === 'message' || item.type === 'event' && item.data.Neighbourhoods?.length > 1" class="neighbourhoods-info">
+        {{ 'app.hoplr.message_visible_in_x_neighbourhoods' | translate : {amount: item.data.Neighbourhoods.length} }}
+      </p>
+      <hoplr-event-rsvps *ngIf="item.type === 'event'" [rsvps]="item.data.Rsvps"></hoplr-event-rsvps>
+      <hoplr-feed-rates *ngIf="rates.length"
+                        [messageType]="item.type === 'message' ? item.data.MessageType : undefined"
+                        [pollOptions]="item.type === 'message' ? item.data.PollOptions : []"
+                        [rates]="rates" class="item-rates"></hoplr-feed-rates>
+      <div *ngIf="item.data.Comments.length" class="feed-comments">
+        <ion-item-divider></ion-item-divider>
+        <hoplr-feed-comment *ngFor="let comment of item.data.Comments"
+                            [comment]="comment"
+                            [rates]="commentRatesMap.get(comment.Id)"></hoplr-feed-comment>
+      </div>
+    </div>
+  </ion-card-content>
+</ion-card>

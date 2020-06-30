@@ -22,6 +22,8 @@ from mcfw.rpc import returns, arguments
 from rogerthat.bizz import news
 from rogerthat.bizz.news import get_news_items_statistics
 from rogerthat.bizz.service import get_and_validate_service_identity_user
+from rogerthat.dal.profile import get_service_profile
+from rogerthat.dal.service import get_service_identity
 from rogerthat.models import BaseServiceProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.service import service_api, service_api_callback
@@ -39,7 +41,9 @@ def get(news_id, service_identity=None):
     service_user = users.get_current_user()
     service_identity_user = get_and_validate_service_identity_user(service_user, service_identity)
     news_item = news.get_and_validate_news_item(news_id, service_identity_user)
-    return NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
+    service_profile = get_service_profile(service_user)
+    si = get_service_identity(service_identity_user)
+    return NewsItemTO.from_model(news_item, get_server_settings().baseUrl, service_profile, si)
 
 
 @service_api(function=u'news.get_statistics', silent_result=True)
@@ -80,7 +84,9 @@ def publish(sticky=MISSING, sticky_until=MISSING, title=MISSING, message=MISSING
                 if button.id == btn.id and button.action.startswith('poke://'):
                     button.action = btn.action
                     break
-    return NewsItemTO.from_model(news_item, get_server_settings().baseUrl)
+    service_profile = get_service_profile(service_user)
+    si = get_service_identity(service_identity_user)
+    return NewsItemTO.from_model(news_item, get_server_settings().baseUrl, service_profile, si)
 
 
 @service_api(function=u'news.disable')
@@ -122,14 +128,15 @@ def delete(news_id, service_identity=None):
 
 @service_api_callback(function=u"news.created", code=BaseServiceProfile.CALLBACK_NEWS_CREATED)
 @returns(NoneType)
-@arguments(news_item=NewsItemTO)
-def news_created(news_item):
+@arguments(news_item=NewsItemTO, service_identity=unicode)
+def news_created(news_item, service_identity):
     pass
+
 
 @service_api_callback(function=u"news.updated", code=BaseServiceProfile.CALLBACK_NEWS_UPDATED)
 @returns(NoneType)
-@arguments(news_item=NewsItemTO)
-def news_updated(news_item):
+@arguments(news_item=NewsItemTO, service_identity=unicode)
+def news_updated(news_item, service_identity):
     pass
 
 @service_api_callback(function=u"news.deleted", code=BaseServiceProfile.CALLBACK_NEWS_DELETED)

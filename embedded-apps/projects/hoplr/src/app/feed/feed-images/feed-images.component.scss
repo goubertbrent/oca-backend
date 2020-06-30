@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.image-list {
+  display: flex;
+
+  .image {
+    height: 120px;
+    margin-right: 8px;
+    cursor: pointer;
+  }
+}
+
+.single-image {
+  width: 100%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  cursor: pointer;
+  height: 300px;
+}
