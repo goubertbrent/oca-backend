@@ -14,3 +14,15 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+
+
+# create_matches_for_user
+# delete_matches_for_user
+# create_matches_for_news_item
+# block_matches
+# reactivate_blocked_matches
+# delete_news_matches
+# update_visibility_news_matches
+# enabled_filter -> unused
+# disable_filter -> unused
+# update_badge_count_user -> callback

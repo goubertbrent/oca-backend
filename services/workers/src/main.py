@@ -24,6 +24,7 @@ from common.mcfw.restapi import rest_functions, GenericRESTRequestHandler
 from common.setup_functions import DEBUG
 from common.wsgi import CommonWSGIApplication
 from workers.jobs import restapi as jobs_restapi
+from workers.news import restapi as news_restapi
 from workers.jobs.handlers import CleanupJobsHandeler, SyncVDABJobsHandler
 
 
@@ -52,5 +53,6 @@ handlers = [
     ('/', MainHandler),
 ]
 handlers.extend(rest_functions(jobs_restapi, authorized_function=authorize_internal_request))
+handlers.extend(rest_functions(news_restapi, authorized_function=authorize_internal_request))
 
 app = CommonWSGIApplication(handlers)
