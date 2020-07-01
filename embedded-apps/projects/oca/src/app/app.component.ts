@@ -31,7 +31,7 @@ export class AppComponent {
               private location: Location,
               private store: Store,
               private alertController: AlertController) {
-    this.initializeApp();
+    this.initializeApp().catch(err => console.error(err));
   }
 
   async initializeApp() {

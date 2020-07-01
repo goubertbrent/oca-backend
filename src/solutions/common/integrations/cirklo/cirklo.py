@@ -31,7 +31,6 @@ from mcfw.utils import Enum
 from rogerthat.bizz.maps.services import search_services_by_tags, SearchTag, get_tags_app
 from rogerthat.bizz.opening_hours import get_opening_hours_info
 from rogerthat.consts import DEBUG
-from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.profile import get_user_profile
 from rogerthat.models import OpeningHours, ServiceIdentity
 from rogerthat.models.settings import ServiceInfo
@@ -249,7 +248,6 @@ def handle_method(service_user, email, method, params, tag, service_identity, us
         json_data = json.loads(params) if params else {}
         user = user_details[0]
         app_user = user.toAppUser()
-        # TODO: properly implement with correct urls and data
         if method == CirkloApiMethod.GET_VOUCHERS:
             result = get_vouchers(service_user, app_user)
         elif method == CirkloApiMethod.ADD_VOUCHER:

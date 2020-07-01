@@ -150,7 +150,7 @@ export class FeedRatesComponent implements OnChanges {
   async showDetails(item: RateOption) {
     const modal = await this.modalController.create({
       component: RatesModalComponent,
-      componentProps: { rates: [item] },
+      componentProps: { rates: [item], label: this.translate.instant('app.hoplr.reactions') },
     });
     await modal.present();
   }
@@ -159,7 +159,7 @@ export class FeedRatesComponent implements OnChanges {
     const modal = await this.modalController.create({
       component: RatesModalComponent,
       // tslint:disable-next-line:no-non-null-assertion
-      componentProps: { rates: this.votes!.rates, label: '' },
+      componentProps: { rates: this.votes!.rates, label: this.translate.instant('app.hoplr.votes') },
     });
     await modal.present();
   }

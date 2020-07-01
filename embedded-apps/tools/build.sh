@@ -10,10 +10,13 @@ if [ -z "${project}" ]; then
     break
   done
 fi
+set -eux
 npm run ng build -- --prod --project "${project}"
 rm -f "${project}".zip
 dist_dir=${current_dir}/../dist
 cd ${dist_dir}/${project}
+indexpath="$dist_dir/$project/index.html"
+python ../../tools/set-version.py $(realpath "$indexpath")
 zip_path=${current_dir}/../"${project}".zip
 zip -qr "$zip_path" .
 cd -

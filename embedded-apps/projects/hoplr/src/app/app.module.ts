@@ -10,23 +10,18 @@ import { EffectsModule } from '@ngrx/effects';
 import { StoreModule } from '@ngrx/store';
 import { MissingTranslationHandler, TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { RogerthatEffects } from '@oca/rogerthat';
-import { BackButtonModule, CUSTOM_LOCALE_PROVIDER, HttpLoaderFactory, MissingTranslationWarnHandler } from '@oca/shared';
+import { CUSTOM_LOCALE_PROVIDER, HttpLoaderFactory, MissingTranslationWarnHandler } from '@oca/shared';
 import { environment } from '../environments/environment';
 import { AppComponent } from './app.component';
-import { LoadingPageComponent } from './loading-page/loading-page.component';
 import { metaReducers, state } from './state';
 
 const routes: Routes = [
-  { path: '', component: LoadingPageComponent },
   { path: 'signin', loadChildren: () => import('./register/signin.module').then(m => m.SigninModule) },
   { path: 'feed', loadChildren: () => import ('./feed/feed.module').then(m => m.FeedModule) },
 ];
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    LoadingPageComponent,
-  ],
+  declarations: [AppComponent],
   imports: [
     BrowserModule,
     // Required for @angular/material
@@ -44,6 +39,7 @@ const routes: Routes = [
         useClass: MissingTranslationWarnHandler,
       },
     }),
+    RouterModule.forRoot(routes),
     EffectsModule.forRoot([RogerthatEffects, ...environment.ngrxEffects]),
     StoreModule.forRoot(state, {
       metaReducers: metaReducers as any,
@@ -56,8 +52,6 @@ const routes: Routes = [
       },
     }),
     environment.extraAppImports,
-    RouterModule.forRoot(routes),
-    BackButtonModule,
   ],
   providers: [
     StatusBar,

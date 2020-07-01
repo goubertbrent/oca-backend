@@ -68,7 +68,7 @@ export class HoplrTestEffects extends HoplrEffects {
 
   getUserInfo$ = createEffect(() => this.actions$.pipe(
     ofType<GetUserInformationAction>(HoplrActionTypes.GET_USER_INFORMATION),
-    delay(randint(100, 400)),
+    delay(randint(1000, 2000)),
     map(() => new GetUserInformationSuccessAction(USER_INFO)),
   ));
 

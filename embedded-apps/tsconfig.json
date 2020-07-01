@@ -1,33 +1,35 @@
+/*
+  This is a "Solution Style" tsconfig.json file, and is used by editors and TypeScript’s language server to improve development experience.
+  It is not intended to be used to perform a compilation.
+
+  To learn more about this file see: https://angular.io/config/solution-tsconfig.
+*/
 {
-  "compileOnSave": false,
-  "compilerOptions": {
-    "baseUrl": "./",
-    "outDir": "./dist/out-tsc",
-    "sourceMap": true,
-    "declaration": false,
-    "strict": true,
-    "strictPropertyInitialization": false,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "importHelpers": true,
-    "target": "es2015",
-    "lib": [
-      "es2018",
-      "dom"
-    ],
-    "paths": {
-      "@oca/rogerthat": [
-        "./projects/rogerthat/src/index.ts"
-      ],
-      "@oca/shared": [
-        "./projects/shared/src/index.ts"
-      ]
+  "files": [],
+  "references": [
+    {
+      "path": "./projects/oca/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/oca/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/hoplr/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/hoplr/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/rogerthat/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/rogerthat/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/shared/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/shared/tsconfig.spec.json"
     }
-  },
-  "angularCompilerOptions": {
-    "strictInjectionParameters": false,
-    "strictTemplates": false
-  }
+  ]
 }

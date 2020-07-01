@@ -1,8 +1,8 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CameraType, GetNewsStreamItemsRequestTO, GetNewsStreamItemsResponseTO, RogerthatContext } from 'rogerthat-plugin';
-import { from, Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { from, Observable, of, Subject, throwError } from 'rxjs';
+import { catchError, filter, map, mergeMap, take } from 'rxjs/operators';
 import { AppVersion } from './rogerthat';
 import { ScanQrCodeUpdateAction, SetServiceDataAction, SetUserDataAction } from './rogerthat.actions';
 import { RogerthatState } from './rogerthat.state';
@@ -10,12 +10,14 @@ import { RogerthatState } from './rogerthat.state';
 @Injectable({ providedIn: 'root' })
 export class RogerthatService {
   version: AppVersion;
+  private apiCallResult$: Subject<{ method: string; result: any; error: string | null; tag: string }>;
 
   constructor(private ngZone: NgZone,
               private store: Store<RogerthatState>) {
   }
 
   initialize() {
+    NgZone.assertInAngularZone();
     this.store.dispatch(new SetUserDataAction(rogerthat.user.data));
     this.store.dispatch(new SetServiceDataAction(rogerthat.service.data));
     const cb = rogerthat.callbacks;
@@ -28,7 +30,7 @@ export class RogerthatService {
   }
 
   getContext(): Observable<RogerthatContext | null> {
-    return from(rogerthat.context()).pipe(map(result => result.context));
+    return from(this.wrapPromise(rogerthat.context())).pipe(map(result => result.context));
   }
 
   isSupported(androidVersion: [number, number, number], iosVersion: [number, number, number]) {
@@ -45,6 +47,7 @@ export class RogerthatService {
   }
 
   apiCall<T>(method: string, data?: any, tag?: string | null): Observable<T> {
+    NgZone.assertInAngularZone();
     if (!tag) {
       tag = rogerthat.util.uuid();
     }
@@ -53,28 +56,61 @@ export class RogerthatService {
     } else {
       data = '';
     }
-    return from(rogerthat.api.call(method, data, tag, true)).pipe(
-      map(result => (result && result.result ? JSON.parse(result.result) : null) as T),
-      catchError(err => {
-        let resultError = err;
-        if (err.hasOwnProperty('error')) {
-          try {
-            resultError = JSON.parse(err.error);
-          } catch (ignored) {
-            resultError = err.error;
+    const callResult = rogerthat.api.call(method, data, tag, true);
+    if (callResult instanceof Promise) {
+      return from(this.wrapPromise(callResult)).pipe(
+        map(result => (result && result.result ? JSON.parse(result.result) : null) as T),
+        catchError(err => {
+          let resultError = err;
+          if (err.hasOwnProperty('error')) {
+            resultError = this.getError(err);
           }
-        }
-        return throwError(resultError);
-      }),
-    );
+          return throwError(resultError);
+        }));
+    } else {
+      if (!this.apiCallResult$) {
+        this.setupApiResultListener();
+      }
+      return this.ngZone.run(() => this.apiCallResult$.pipe(
+        filter(r => r.method === method && r.tag === tag),
+        mergeMap(result => result.error ? throwError(this.getError(result.error)) : of(result.result as T)),
+        take(1),
+      ));
+    }
   }
 
   getNewsStreamItems(request: GetNewsStreamItemsRequestTO): Observable<GetNewsStreamItemsResponseTO> {
-    return from(rogerthat.news.getNewsStreamItems(request));
+    return from(this.wrapPromise(rogerthat.news.getNewsStreamItems(request)));
   }
 
   startScanningQrCode(cameraType: CameraType): Observable<void> {
-    return from(rogerthat.camera.startScanningQrCode(cameraType));
+    return from(this.wrapPromise(rogerthat.camera.startScanningQrCode(cameraType)));
   }
 
+  private getError(error: any) {
+    try {
+      return JSON.parse(error.error);
+    } catch (ignored) {
+      return error.error;
+    }
+  }
+
+  private setupApiResultListener() {
+    this.apiCallResult$ = new Subject();
+    rogerthat.api.callbacks.resultReceived((method, result, error, tag) => {
+      this.ngZone.run(() => this.apiCallResult$.next({
+        method,
+        result: result ? JSON.parse(result) : null,
+        error,
+        tag,
+      }));
+    });
+  }
+
+  private wrapPromise<T>(promise: Promise<T>) {
+      return new Promise<T>((resolve, reject) => {
+        promise.then(result => this.ngZone.run(() => resolve(result)));
+        promise.catch(err => this.ngZone.run(() => reject(err)));
+      });
+  }
 }
