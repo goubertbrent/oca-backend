@@ -40,27 +40,30 @@ export class CirkloAppComponent {
         this.exit();
       }
     });
-    this.ngZone.run(() => {
-      this.rogerthatService.initialize();
-      this.translate.use(getLanguage(rogerthat.user.language));
-      if (rogerthat.system.colors) {
-        setColor('primary', rogerthat.system.colors.primary);
-        if (rogerthat.system.os === 'ios') {
-          this.statusBar.styleDefault();
+    await this.platform.ready();
+    rogerthat.callbacks.ready(() => {
+      this.ngZone.run(() => {
+        this.rogerthatService.initialize();
+        this.translate.use(getLanguage(rogerthat.user.language));
+        if (rogerthat.system.colors) {
+          setColor('primary', rogerthat.system.colors.primary);
+          if (rogerthat.system.os === 'ios') {
+            this.statusBar.styleDefault();
+          } else {
+            this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
+          }
         } else {
-          this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
+          this.statusBar.styleDefault();
         }
-      } else {
-        this.statusBar.styleDefault();
-      }
-      this.isCompatible();
-    });
-    if (rogerthat.system.debug) {
-      this.actions$.subscribe(action => {
-        const { type, ...rest } = action;
-        return console.log(`${type} - ${JSON.stringify(rest)}`);
+        this.isCompatible();
       });
-    }
+      if (rogerthat.system.debug) {
+        this.actions$.subscribe(action => {
+          const { type, ...rest } = action;
+          return console.log(`${type} - ${JSON.stringify(rest)}`);
+        });
+      }
+    });
   }
 
   private async shouldExitApp(): Promise<boolean> {

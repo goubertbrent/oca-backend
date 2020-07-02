@@ -39,8 +39,6 @@ import { VoucherTransactionsPageComponent } from './pages/voucher-transactions-p
 import { VouchersPageComponent } from './pages/vouchers-page/vouchers-page.component';
 import { VoucherQrDataPipe } from './voucher-qr-data.pipe';
 
-document.addEventListener('deviceready', () => console.log('device ready'));
-
 @Injectable()
 class CanActivateRoute implements CanActivate {
 
@@ -49,10 +47,7 @@ class CanActivateRoute implements CanActivate {
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> |
     Promise<boolean | UrlTree> | boolean | UrlTree {
-    return this.platform.ready().then(result => {
-      console.log('platform ready => ' + result);
-      return true;
-    });
+    return this.platform.ready().then(() => true);
   }
 
 }

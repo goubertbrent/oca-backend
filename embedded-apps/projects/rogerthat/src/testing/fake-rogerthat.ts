@@ -47,6 +47,9 @@ const rogerthat = {
     appId: 'em-be-osa-demo2',
     appVersion: '2.1.5555',
     debug: true,
+    colors: {
+      primary: '#FFFF00'
+    }
   },
   service: {
     data: {},
