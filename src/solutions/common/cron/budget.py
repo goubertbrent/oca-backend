@@ -54,7 +54,7 @@ def update_regional_news_budget(sln_news_item_key):
     with users.set_user(service_user):
         try:
             news_item = news.get(news_id, service_identity)
-            statistics = news.get_statistics(news_id, service_identity)
+            statistics = news.get_statistics([news_id], service_identity)[0]
         except NewsNotFoundException:
             logging.warning('News item with id %d is not found', news_id)
             return
