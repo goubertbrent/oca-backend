@@ -21,6 +21,7 @@
     "invitation_code": "Uitnodigingscode",
     "invitation_code_info": "Voor de veiligheid en privacy van uw buurt vragen we iedereen om hun adres te verifiëren met een unieke verificatiecode. Als u geen verificatiecode voor Hoplr hebt ontvangen, kunt u deze stap overslaan, maar totdat u geaccepteerd bent door een van de ambassadeurs van de buurt kunt zal u nog niet alle functies kunnen gebruiken.",
     "last_name": "Achternaam",
+    "log_in": "Log in",
     "log_out": "Uitloggen",
     "logout_confirmation": "Afmelden bevestiging",
     "message_visible_in_x_neighbourhoods": "Dit bericht en de reacties zijn zichtbaar in {{amount}} buurten",

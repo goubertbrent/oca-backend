@@ -1,16 +1,14 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 import { AlertController, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
 import { Actions } from '@ngrx/effects';
-import { select, Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { getScannedQr, RogerthatService } from '@oca/rogerthat';
-import { CallStateType, DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
-import { map, take } from 'rxjs/operators';
+import { RogerthatService } from '@oca/rogerthat';
+import { DEFAULT_LOCALE, getLanguage, setColor } from '@oca/shared';
 
 
 @Component({
@@ -25,11 +23,9 @@ export class AppComponent {
               private statusBar: StatusBar,
               private rogerthatService: RogerthatService,
               private translate: TranslateService,
-              private cdRef: ChangeDetectorRef,
               private actions$: Actions,
               private router: Router,
               private location: Location,
-              private store: Store,
               private ngZone: NgZone,
               private alertController: AlertController) {
     this.initializeApp().catch(err => console.error(err));
@@ -40,7 +36,7 @@ export class AppComponent {
     await this.platform.ready();
     this.splashScreen.hide();
     this.platform.backButton.subscribe(async () => {
-      if (await this.shouldExitApp()) {
+      if (this.shouldExitApp()) {
         this.exit();
       }
     });
@@ -69,23 +65,13 @@ export class AppComponent {
     // });
   }
 
-  private async shouldExitApp(): Promise<boolean> {
+  private shouldExitApp(): boolean {
     const whitelist = [
       '/q-matic/appointments',
       '/jcc-appointments/appointments',
       '/events',
-      '/cirklo/vouchers',
-      '/cirklo/merchants',
-      '/cirklo/info',
     ];
-    const canExit = whitelist.includes(this.router.url);
-    // When scanning a qr code, don't actually quit
-    const isScanning = await this.store.pipe(
-      select(getScannedQr),
-      map(s => s.state === CallStateType.LOADING),
-      take(1),
-    ).toPromise();
-    return canExit && !isScanning;
+    return whitelist.includes(this.location.path());
   }
 
   private getRootPage(): string[] {
@@ -93,13 +79,11 @@ export class AppComponent {
       Q_MATIC: sha256('__sln__.q_matic'),
       EVENTS: sha256('agenda'),
       JCC_APPOINTMENTS: sha256('__sln__.jcc_appointments'),
-      CIRKLO: sha256('__sln__.cirklo'),
     };
     const PAGE_MAPPING = {
       [ TAGS.Q_MATIC ]: ['q-matic'],
       [ TAGS.EVENTS ]: ['events'],
       [ TAGS.JCC_APPOINTMENTS ]: ['jcc-appointments'],
-      [ TAGS.CIRKLO ]: ['cirklo'],
     };
     const tag = rogerthat.menuItem.hashedTag in PAGE_MAPPING ? rogerthat.menuItem.hashedTag : TAGS.EVENTS;
     return PAGE_MAPPING[ tag ];

@@ -1,0 +1,43 @@
+<ion-card [class.voucher-expired]="expired" class="voucher-card">
+  <div class="gradient-container">
+    <!-- Transactions are not currently implemented, so hide it for now -->
+    <!--    <ion-button [routerLink]="['/cirklo', 'vouchers', voucherId, 'transactions']"-->
+    <!--                class="transactions-button" color="light" fill="clear">-->
+    <!--      <ion-icon size="large" slot="start" src="/assets/icon/business.svg"></ion-icon>-->
+    <!--      <ion-label>{{ 'app.cirklo.transactions' | translate }}</ion-label>-->
+    <!--    </ion-button>-->
+    <img [src]="logoUrl" alt="Logo" class="voucher-logo">
+  </div>
+  <ng-container *ngIf="expired; else notExpired">
+    <h2 class="expired-title">{{ 'app.cirklo.voucher_expired_title' | translate }}</h2>
+  </ng-container>
+  <ng-template #notExpired>
+    <ion-text [color]="remainingValue > 0 ? 'primary' : ''" class="voucher-value">
+      {{ remainingValue | currency : 'EUR' :  'symbol': '1.0-2' }}
+    </ion-text>
+    <ng-container *ngIf="value !== remainingValue">
+      <ion-text [color]="remainingValue > 0 ? 'primary' : ''" class="voucher-original-value">
+        {{ value | currency : 'EUR' : 'symbol' : '1.0-2' }}
+      </ion-text>
+    </ng-container>
+  </ng-template>
+  <qrcode *ngIf="remainingValue; else nothingLeft"
+          [margin]="0"
+          [qrdata]="qrData"
+          [width]="240"
+          [class.qr-filter]="expired"
+          class="qr-code"></qrcode>
+  <ng-template #nothingLeft>
+    <h2>{{ 'app.cirklo.voucher_used_up_title' | translate }}</h2>
+    <p [innerHTML]="'app.cirklo.voucher_used_up_description' | translate : { url: cirkloUrl }"
+       class="text-description"></p>
+  </ng-template>
+  <div class="voucher-validity">
+    <ng-container *ngIf="!expired">
+      {{ 'app.cirklo.valid_until_date' | translate : {date: validDate | date : 'mediumDate'} }}
+    </ng-container>
+    <ng-container *ngIf="expired">
+      {{ 'app.cirklo.expired_since_date' | translate : {date: validDate | date : 'mediumDate'} }}
+    </ng-container>
+  </div>
+</ion-card>

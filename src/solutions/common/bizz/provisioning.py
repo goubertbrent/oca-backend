@@ -18,30 +18,30 @@
 from __future__ import unicode_literals
 
 import base64
-from contextlib import closing
-from datetime import timedelta, datetime
 import json
 import logging
 import os
 import time
-from types import NoneType
 import urllib
+from contextlib import closing
+from datetime import timedelta, datetime
+from types import NoneType
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import jinja2
 from babel import dates
 from babel.dates import format_timedelta, get_next_timezone_transition, format_time
 from babel.numbers import format_currency
 from google.appengine.ext import db, deferred, ndb
-import jinja2
 from typing import List
 
+import solutions
 from mcfw.properties import azzert
 from mcfw.rpc import arguments, returns, serialize_complex_value
 from rogerthat.bizz.app import add_auto_connected_services, delete_auto_connected_service
 from rogerthat.bizz.features import Features
 from rogerthat.consts import DEBUG, DAY
 from rogerthat.dal import parent_ndb_key, parent_key, put_and_invalidate_cache
-from rogerthat.dal.app import get_app_by_id
 from rogerthat.models import Branding, ServiceMenuDef, ServiceRole, App, OpeningHours, ServiceIdentity
 from rogerthat.models.properties.app import AutoConnectedService
 from rogerthat.models.settings import ServiceInfo
@@ -57,7 +57,6 @@ from rogerthat.utils import now, is_flag_set, xml_escape
 from rogerthat.utils.service import create_service_identity_user
 from rogerthat.utils.transactions import on_trans_committed
 from solutions import translate as common_translate
-import solutions
 from solutions.common.bizz import timezone_offset, render_common_content, SolutionModule, \
     get_coords_of_service_menu_item, get_next_free_spot_in_service_menu, SolutionServiceMenuItem, put_branding, \
     OrganizationType, OCAEmbeddedApps
@@ -108,7 +107,6 @@ from solutions.common.to import MenuTO, SolutionGroupPurchaseTO, TimestampTO
 from solutions.common.to.loyalty import LoyaltyRevenueDiscountSettingsTO, LoyaltyStampsSettingsTO
 from solutions.common.utils import is_default_service_identity
 from solutions.jinja_extensions import TranslateExtension
-
 
 try:
     from cStringIO import StringIO
@@ -1867,7 +1865,7 @@ def put_cirklo_module(sln_settings, current_coords, main_branding, default_lang,
                                    common_translate(default_lang, 'voucher'),
                                    tag,
                                    action=SolutionModule.action_order(SolutionModule.CIRKLO_VOUCHERS),
-                                   embedded_app=OCAEmbeddedApps.OCA)
+                                   embedded_app=OCAEmbeddedApps.CIRKLO)
     return [item]
 
 

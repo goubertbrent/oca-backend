@@ -1,0 +1,35 @@
+{
+  "app": {
+    "cirklo": {
+      "act_local": "Act local! 🎉",
+      "cirklo_info_text": "Cirklo Light is an initiative from [Our City App](https://ourcityapps.com) & [The Studio](https://thestudio.digital) that focuses on cities and municipalities. This out-of-the-box solution allows citizens to purchase **gift cards** from their own city/municipality and spend them in the network of local entrepreneurs, which can be selected by the city or municipality. All of this with the aim to **boost the local economy**. \n\nTake no risk and charge the value of your gift card, after the purchase, via this feature into **your city app**. Scan the **QR code** from your **confirmation email** by pressing the **'Scan gift cards'** button in this app. Because of this you always have your gift card with you, on your mobile phone, handy and safe. Local shopping has never been easier & more ‘contactless’.\n\nWould you like to buy another gift card from your city? Go to: [cirklo-light.com](https://cirklo-light.com)",
+      "cirklo_info_title": "Your digital gift card solution",
+      "cirklo_merchants_info": "These are the merchants where you can use your vouchers.",
+      "close": "Close",
+      "confirm": "Confirm",
+      "confirm_delete_voucher": "Are you sure you want to delete this voucher?",
+      "confirmation": "Confirmation",
+      "error": "Error",
+      "expired_since_date": "Expired on {{ date }}",
+      "info": "Info",
+      "merchants": "Merchants",
+      "no": "No",
+      "ok": "Ok",
+      "retry": "Retry",
+      "scan_voucher": "Scan voucher",
+      "transactions": "Transactions",
+      "unknown_error": "An unknown error occurred, please retry again later.",
+      "update_app_to_use_feat": "You need to update the app to use this feature.",
+      "update_required": "Update required",
+      "valid_until_date": "Valid until {{ date }}",
+      "voucher_details": "Voucher details",
+      "voucher_expired_title": "Voucher expired",
+      "voucher_spent": "Voucher spent",
+      "voucher_used_up_description": "This voucher is completely used up. Would you like to give your local traders some extra support? Then surf to {{url}}",
+      "voucher_used_up_title": "Hey BIG spender! 🤙",
+      "vouchers": "Vouchers",
+      "vouchers_info": "Have you recently purchased or received a gift voucher from your city or municipality via Cirklo Light? Then you can upload its value here. So you always have it in your pocket! Scan the QR code of your receipt by pressing the button below and have fun shopping!",
+      "yes": "Yes"
+    }
+  }
+}

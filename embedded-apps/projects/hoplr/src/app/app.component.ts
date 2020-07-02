@@ -91,7 +91,7 @@ export class AppComponent {
       '/signin',
       '/feed',
     ];
-    return whitelist.includes(this.router.url);
+    return whitelist.includes(this.location.path());
   }
 
   private exit() {

@@ -23,7 +23,7 @@ function sortObject(object) {
   return sortedObj;
 }
 
-const projects = ['hoplr', 'oca'];
+const projects = ['hoplr', 'oca', 'cirklo'];
 for (const project of projects) {
   const dir = join(currentFolder, '..', 'projects', project, 'src', 'assets', 'i18n');
   const files = readdirSync(dir);

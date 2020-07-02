@@ -2,11 +2,9 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 import '../../../rogerthat/src/testing/fake-rogerthat';
-import { CirkloTestEffects } from '../app/cirklo/cirklo.test.effects';
 
 export const environment = {
   production: false,
-  cirkloExtraEffects: [CirkloTestEffects],
 };
 
 

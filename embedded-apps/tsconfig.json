@@ -20,6 +20,12 @@
       "path": "./projects/hoplr/tsconfig.spec.json"
     },
     {
+      "path": "./projects/cirklo/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/cirklo/tsconfig.spec.json"
+    },
+    {
       "path": "./projects/rogerthat/tsconfig.lib.json"
     },
     {

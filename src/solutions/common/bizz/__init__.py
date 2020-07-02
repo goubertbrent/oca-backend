@@ -94,6 +94,7 @@ class OCAEmbeddedApps(Enum):
     # Including but not limitted to: q-matic appointments
     OCA = 'oca'
     HOPLR = 'hoplr'
+    CIRKLO = 'cirklo'
 
 
 CITY_APP_BROADCAST_TYPES = [u'Trafic', u'Emergency']

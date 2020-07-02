@@ -15,7 +15,7 @@ const rogerthat = {
     },
   },
   api: {
-    call: () => Promise.reject({ error: 'Api calls are not supported by fake-rogerthat' }),
+    call: (method: string) => Promise.reject({ error: `Api calls are not supported by fake-rogerthat\n (method: ${method})` }),
     callbacks: {
       resultReceived: nothing,
     },
@@ -46,6 +46,7 @@ const rogerthat = {
   system: {
     appId: 'em-be-osa-demo2',
     appVersion: '2.1.5555',
+    debug: true,
   },
   service: {
     data: {},

@@ -7,6 +7,7 @@
     "ng": "ng",
     "start": "ng serve --project=oca",
     "start-hoplr": "ng serve --project=hoplr",
+    "start-cirklo": "ng serve --project=cirklo",
     "build": "tools/build.sh",
     "build-debug": "ng build --source-map=false && rm -f oca.zip && cd www && zip -qr ../oca.zip .",
     "test": "ng test",
