@@ -1,106 +1,106 @@
 {
   "Arts & Entertainment": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#fdf7c3",
+    "icon": "fa-paint-brush"
   },
   "Autos & Vehicles": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#d3e0f3",
+    "icon": "fa-car"
   },
   "Beauty & Fitness": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#f9cbd8",
+    "icon": "fa-shower"
   },
   "Books & Literature": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#dccaa6",
+    "icon": "fa-book"
   },
   "Business & Industrial": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#d5dee5",
+    "icon": "fa-industry"
   },
   "Computers & Electronics": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#c0dee9",
+    "icon": "fa-laptop"
   },
   "Finance": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#fcf6de",
+    "icon": "fa-money"
   },
   "Food & Drink": {
-    "color": "#FF9E67",
-    "icon": "fa-question"
+    "color": "#fdece5",
+    "icon": "fa-coffee"
   },
   "Games": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#8ba1d2",
+    "icon": "fa-gamepad"
   },
   "Health": {
-    "color": "#F88181",
-    "icon": "fa-question"
+    "color": "#f9c8cb",
+    "icon": "fa-stethoscope"
   },
   "Hobbies & Leisure": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#f7eda6",
+    "icon": "fa-star"
   },
   "Home & Garden": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#c6d8a6",
+    "icon": "fa-home"
   },
   "Internet & Telecom": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#c1e5db",
+    "icon": "fa-globe"
   },
   "Jobs & Education": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#fee3c8",
+    "icon": "fa-briefcase"
   },
   "Law & Government": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#e8dbd5",
+    "icon": "fa-gavel"
   },
   "News": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#bbe1f8",
+    "icon": "fa-newspaper-o"
   },
   "Online Communities": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#cfeadb",
+    "icon": "fa-comments"
   },
   "People & Society": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#fde9e8",
+    "icon": "fa-users"
   },
   "Pets & Animals": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#cde5c1",
+    "icon": "fa-paw"
   },
   "Real Estate": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#d2d2de",
+    "icon": "fa-building"
   },
   "Reference": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#fbd1c3",
+    "icon": "fa-flag"
   },
   "Science": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#c09fca",
+    "icon": "fa-flask"
   },
   "Shopping": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#e7d2e5",
+    "icon": "fa-shopping-bag"
   },
   "Sports": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#fccca6",
+    "icon": "fa-futbol-o"
   },
   "Travel": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#daeef5",
+    "icon": "fa-plane"
   },
   "World Localities": {
-    "color": "#000000",
-    "icon": "fa-question"
+    "color": "#f4eee2",
+    "icon": "fa-map-signs"
   }
 }
