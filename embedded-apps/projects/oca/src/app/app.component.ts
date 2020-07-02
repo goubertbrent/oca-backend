@@ -1,5 +1,5 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
@@ -30,6 +30,7 @@ export class AppComponent {
               private router: Router,
               private location: Location,
               private store: Store,
+              private ngZone: NgZone,
               private alertController: AlertController) {
     this.initializeApp().catch(err => console.error(err));
   }
@@ -44,21 +45,23 @@ export class AppComponent {
       }
     });
     rogerthat.callbacks.ready(() => {
-      this.translate.use(getLanguage(rogerthat.user.language));
-      if (rogerthat.system.colors) {
-        setColor('primary', rogerthat.system.colors.primary);
-        if (rogerthat.system.os === 'ios') {
-          this.statusBar.styleDefault();
+      this.ngZone.run(() => {
+        this.rogerthatService.initialize();
+        this.translate.use(getLanguage(rogerthat.user.language));
+        if (rogerthat.system.colors) {
+          setColor('primary', rogerthat.system.colors.primary);
+          if (rogerthat.system.os === 'ios') {
+            this.statusBar.styleDefault();
+          } else {
+            this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
+          }
         } else {
-          this.statusBar.backgroundColorByHexString(rogerthat.system.colors.primaryDark);
+          this.statusBar.styleDefault();
         }
-      } else {
-        this.statusBar.styleDefault();
-      }
-      this.rogerthatService.initialize();
-      if (this.isCompatible() && ['', '/'].includes(this.location.path())) {
-        this.router.navigate(this.getRootPage());
-      }
+        if (this.isCompatible() && ['', '/'].includes(this.location.path())) {
+          this.router.navigate(this.getRootPage());
+        }
+      });
     });
     // this.actions$.subscribe(action => {
     //   const { type, ...rest } = action;

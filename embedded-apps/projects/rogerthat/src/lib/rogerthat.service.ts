@@ -47,7 +47,9 @@ export class RogerthatService {
   }
 
   apiCall<T>(method: string, data?: any, tag?: string | null): Observable<T> {
-    NgZone.assertInAngularZone();
+    if (!NgZone.isInAngularZone()) {
+      console.error(`Expected to be in Angular Zone, but it is not! Api call: ${method}`);
+    }
     if (!tag) {
       tag = rogerthat.util.uuid();
     }
