@@ -16,8 +16,10 @@
       {{ remainingValue | currency : 'EUR' :  'symbol': '1.0-2' }}
     </ion-text>
     <ng-container *ngIf="value !== remainingValue">
-      <ion-text [color]="remainingValue > 0 ? 'primary' : ''" class="voucher-original-value">
-        {{ value | currency : 'EUR' : 'symbol' : '1.0-2' }}
+      <ion-text [color]="remainingValue > 0 ? 'primary' : ''">
+        <span class="voucher-original-value">
+          {{ value | currency : 'EUR' : 'symbol' : '1.0-2' }}
+        </span>
       </ion-text>
     </ng-container>
   </ng-template>

@@ -2,7 +2,7 @@ import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, NgZone, ViewEncapsulation } from '@angular/core';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
-import { AlertController, Platform } from '@ionic/angular';
+import { AlertController, Config, Platform } from '@ionic/angular';
 import { AlertOptions } from '@ionic/core';
 import { Actions } from '@ngrx/effects';
 import { select, Store } from '@ngrx/store';
@@ -28,6 +28,7 @@ export class CirkloAppComponent {
               private location: Location,
               private store: Store,
               private ngZone: NgZone,
+              private config: Config,
               private alertController: AlertController) {
     this.initializeApp().catch(err => console.error(err));
   }
@@ -64,6 +65,11 @@ export class CirkloAppComponent {
         });
       }
     });
+    if (this.platform.is('ios')) {
+      this.translate.stream('app.cirklo.back').subscribe(translation => {
+        this.config.set('backButtonText', translation);
+      });
+    }
   }
 
   private async shouldExitApp(): Promise<boolean> {

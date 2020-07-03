@@ -8,7 +8,7 @@ import { Platform } from '@ionic/angular';
   encapsulation: ViewEncapsulation.None,
 })
 export class BackButtonComponent implements OnInit {
-  backButtonIcon = 'arrow-left';
+  backButtonIcon = 'arrow-back';
 
   constructor(private platform: Platform) {
   }
@@ -16,8 +16,12 @@ export class BackButtonComponent implements OnInit {
   ngOnInit() {
     const isIOS = this.platform.is('ios');
     let icon: string;
-    if (isIOS && rogerthat.menuItem?.hashedTag) {
-      icon = 'menu';
+    if (isIOS) {
+      if (rogerthat.menuItem?.hashedTag) {
+        icon = 'menu';
+      } else {
+        icon = 'chevron-back';
+      }
     } else {
       icon = 'arrow-back';
     }

@@ -38,7 +38,7 @@ const rogerthat = {
     },
   },
   user: {
-    language: 'en',
+    language: 'nl',
     firstName: 'FirstName',
     lastName: 'LastName',
     data: {},
@@ -48,7 +48,7 @@ const rogerthat = {
     appVersion: '2.1.5555',
     debug: true,
     colors: {
-      primary: '#FFFF00'
+      primary: '#FF00FF',
     }
   },
   service: {
