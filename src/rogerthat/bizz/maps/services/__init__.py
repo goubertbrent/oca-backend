@@ -33,8 +33,7 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.elasticsearch import delete_index, create_index, es_request, delete_doc, index_doc, \
     execute_bulk_request
-from rogerthat.bizz.maps.services.places import get_place_details, PlaceDetails, \
-    get_icon_color, get_place_type_keys
+from rogerthat.bizz.maps.services.places import get_place_details, PlaceDetails, get_place_type_keys
 from rogerthat.bizz.maps.shared import get_map_response
 from rogerthat.bizz.opening_hours import get_opening_hours_info
 from rogerthat.dal.profile import get_user_profile, get_service_profile
@@ -136,8 +135,7 @@ def get_map(app_user):
                                 MapFunctionality.SEARCH,
                                 MapFunctionality.SAVE]
 
-    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'clothing_store', 'doctor', 'pharmacy',
-                          'establishment_poi']
+    action_place_types = ['restaurant', 'bar', 'supermarket', 'bakery', 'clothing_store', 'doctor', 'pharmacy', 'establishment_poi']
     response.action_chips = []
     for place_type in action_place_types:
         place_details = get_place_details(place_type, language)
@@ -563,8 +561,12 @@ def _convert_to_item_to(map_service, language, timezone, opening_hours):
             continue
         line_1.append(place_details.title)
     main_place_details = get_place_details(map_service.main_place_type, language)
-    icon_id = main_place_details.png_icon if main_place_details and main_place_details.png_icon else PlaceDetails.png_icon.default
-    icon_color = get_icon_color(icon_id)
+    if main_place_details:
+        icon_id = main_place_details.png_icon
+        icon_color = main_place_details.icon_color
+    else:
+        icon_id = PlaceDetails.png_icon.default
+        icon_color = PlaceDetails.icon_color.default
 
     if line_1:
         lines.append(MapItemLineTextTO(parts=[MapItemLineTextPartTO(color=None, text=txt) for txt in line_1]))

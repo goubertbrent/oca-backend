@@ -15,16 +15,64 @@
 #
 # @@license_version:1.7@@
 
+import json
+import os
+
 from mcfw.properties import unicode_property
 from rogerthat.bizz.maps.services.places.i18n_utils import get_dict_for_language, \
     translate
 from rogerthat.to import TO
 
 
+_classifications = {}
+_verticals = {}
+
+
+def _get_classifications():
+    global _classifications
+    if _classifications:
+        return _classifications
+    with open(os.path.join(os.path.dirname(__file__), 'classification.json')) as f:
+        _classifications = json.load(f)
+    return _classifications
+
+
+def _get_verticals():
+    global _verticals
+    if _verticals:
+        return _verticals
+    with open(os.path.join(os.path.dirname(__file__), 'verticals.json')) as f:
+        _verticals = json.load(f)
+    return _verticals
+
+
+def _get_vertical_for_place_type(place_type):
+    all_classifications = _get_classifications()
+    for vertical, place_types in all_classifications.iteritems():
+        if place_type in place_types:
+            return vertical
+    return None
+
+def _get_vertical_details(vertical):
+    all_verticals = _get_verticals()
+    for current_vertical, details in all_verticals.iteritems():
+        if current_vertical == vertical:
+            return details
+    return None
+
+
+def get_vertical_details_for_place_type(place_type):
+    vertical = _get_vertical_for_place_type(place_type)
+    if not vertical:
+        return None
+    return _get_vertical_details(vertical)
+
+
 class PlaceDetails(TO):
-    fa_icon = unicode_property('fa_icon', default=None)
-    png_icon = unicode_property('png_icon', default='fa5-map-marker')
     title = unicode_property('title', default=None)
+    fa_icon = unicode_property('fa_icon', default='fa-map-marker')
+    icon_color = unicode_property('icon_color', default='#fbd1c3')
+    png_icon = unicode_property('png_icon', default='fa-flag-fbd1c3')
 
 
 def get_place_types(language):
@@ -39,55 +87,10 @@ def get_place_details(place_type, language):
     title = translate(language, place_type)
     if not title:
         return None
-    if place_type == 'restaurant':
-        fa_icon = 'fa-cutlery'
-        png_icon = 'fa1-cutlery'
-    elif place_type == 'bar':
-        fa_icon = 'fa-glass'
-        png_icon = 'fa1-glass'
-    elif place_type == 'supermarket':
-        fa_icon = 'fa-shopping-basket'
-        png_icon = 'fa1-shopping-basket'
-    elif place_type == 'bakery':
-        fa_icon = 'fa-birthday-cake'
-        png_icon = 'fa1-birthday-cake'
-    elif place_type == 'clothing_store':
-        fa_icon = 'fa-shopping-bag'
-        png_icon = 'fa1-shopping-bag'
-    elif place_type == 'doctor':
-        fa_icon = 'fa-stethoscope'
-        png_icon = 'fa2-stethoscope'
-    elif place_type == 'pharmacy':
-        fa_icon = 'fa-medkit'
-        png_icon = 'fa2-medkit'
-    elif place_type == 'establishment_poi':
-        fa_icon = 'fa-map-marker'
-        png_icon = 'fa5-map-marker'
-    else:
-        fa_icon = PlaceDetails.fa_icon.default
-        png_icon = PlaceDetails.png_icon.default
+    details = get_vertical_details_for_place_type(place_type)
+    if not details:
+        return None
     return PlaceDetails(title=title,
-                        fa_icon=fa_icon,
-                        png_icon=png_icon)
-
-
-def get_icon_color(icon_id):
-    icon_color_1 = '#f07b0e'  # orange
-    icon_color_2 = '#c71906'  # red
-    icon_color_3 = '#1e1af0'  # blue
-    icon_color_4 = '#18990f'  # green
-    icon_color_5 = '#ccc610'  # yellow
-    if not icon_id:
-        return icon_color_5
-
-    if icon_id.startswith('fa1-') or icon_id.startswith('c1-'):
-        return icon_color_1
-    if icon_id.startswith('fa2-') or icon_id.startswith('c2-'):
-        return icon_color_2
-    if icon_id.startswith('fa3-') or icon_id.startswith('c3-'):
-        return icon_color_3
-    if icon_id.startswith('fa4-') or icon_id.startswith('c4-'):
-        return icon_color_4
-    if icon_id.startswith('fa5-') or icon_id.startswith('c5-'):
-        return icon_color_5
-    return icon_color_5
+                        fa_icon=details['icon'],
+                        icon_color=details['color'],
+                        png_icon='{}-{}'.format(details['icon'], details['color'].replace('#', '')))

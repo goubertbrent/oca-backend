@@ -25,7 +25,6 @@ I18N_DIR = os.path.join(os.path.dirname(__file__), 'i18n')
 
 _translations = {}
 
-
 def _get_translations():
     if _translations:
         return _translations

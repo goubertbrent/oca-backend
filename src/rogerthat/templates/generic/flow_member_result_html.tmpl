@@ -8,7 +8,7 @@
 <img src="{{ logo_url }}" style="height: 100px;" alt="logo">
 <h1 style="font-size: 20px;">{{ message_flow_name }}</h1>
 <p style="margin: 16px 0;"><b>{{ user_str }}:</b> {{ name }} (<a href="mailto:{{ member }}">{{ member }}</a>)</p>
-<p style="margin: 16px 0;"><b>{{ date_str }}:</b> {{ date }}</p>
+<p style="margin: 16px 0;"><b>{{ date_str }}:</b> {{ date }} (UTC)</p>
 {% for step in steps %}
   <p style="margin: 16px 0;">
     <b>{{ step.message|linebreaksbr }}</b> <br/>
