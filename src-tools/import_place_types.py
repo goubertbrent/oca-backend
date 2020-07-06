@@ -15,11 +15,14 @@
 #
 # @@license_version:1.5@@
 import json
+import logging
 from collections import defaultdict
 from os.path import join, dirname
 from sys import argv
 
 from pandas import read_excel, ExcelFile, Series
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def import_place_types(path):
@@ -30,12 +33,14 @@ def import_place_types(path):
 
     verticals = read_excel(excel_file, sheet_name='verticals')
     verticals_data = {}
+    logging.info('importing verticals')
     for index, values in verticals.iterrows():  # type: [int, Series]
         name = values.pop('name')
         verticals_data[name] = values.to_dict()
     _write_file(verticals_data, 'verticals.json')
 
     classification_data = {vertical: [] for vertical in verticals_data}
+    logging.info('importing classification')
     for index, values in classification.iterrows():  # type: [int, Series]
         key = values.get('key')
         vertical = values.get('vertical')
@@ -43,6 +48,7 @@ def import_place_types(path):
             classification_data[vertical].append(key)
     _write_file(classification_data, 'classification.json')
 
+    logging.info('importing translations')
     translations_data = defaultdict(dict)
     for index, values in translations.iterrows():
         key = values.pop('key')
@@ -53,7 +59,10 @@ def import_place_types(path):
 
 
 def _write_file(data, filename):
-    json.dump(data, open(join(dirname(__file__), filename), 'w'), indent=2, sort_keys=True, separators=(',', ': '))
+    current_dir = dirname(__file__)
+    complete_path = join(current_dir, '..', 'src', 'rogerthat', 'bizz', 'maps', 'services', 'places', filename)
+    logging.info('Writing to file: ' + complete_path)
+    json.dump(data, open(complete_path, 'w'), indent=2, sort_keys=True, separators=(',', ': '))
 
 
 if __name__ == '__main__':
