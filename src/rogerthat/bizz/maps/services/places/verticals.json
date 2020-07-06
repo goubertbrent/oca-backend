@@ -1,0 +1,106 @@
+{
+  "Arts & Entertainment": {
+    "color": "#fdf7c3",
+    "icon": "fa-paint-brush"
+  },
+  "Autos & Vehicles": {
+    "color": "#d3e0f3",
+    "icon": "fa-car"
+  },
+  "Beauty & Fitness": {
+    "color": "#f9cbd8",
+    "icon": "fa-shower"
+  },
+  "Books & Literature": {
+    "color": "#dccaa6",
+    "icon": "fa-book"
+  },
+  "Business & Industrial": {
+    "color": "#d5dee5",
+    "icon": "fa-industry"
+  },
+  "Computers & Electronics": {
+    "color": "#c0dee9",
+    "icon": "fa-laptop"
+  },
+  "Finance": {
+    "color": "#fcf6de",
+    "icon": "fa-money"
+  },
+  "Food & Drink": {
+    "color": "#fdece5",
+    "icon": "fa-coffee"
+  },
+  "Games": {
+    "color": "#8ba1d2",
+    "icon": "fa-gamepad"
+  },
+  "Health": {
+    "color": "#f9c8cb",
+    "icon": "fa-stethoscope"
+  },
+  "Hobbies & Leisure": {
+    "color": "#f7eda6",
+    "icon": "fa-star"
+  },
+  "Home & Garden": {
+    "color": "#c6d8a6",
+    "icon": "fa-home"
+  },
+  "Internet & Telecom": {
+    "color": "#c1e5db",
+    "icon": "fa-globe"
+  },
+  "Jobs & Education": {
+    "color": "#fee3c8",
+    "icon": "fa-briefcase"
+  },
+  "Law & Government": {
+    "color": "#e8dbd5",
+    "icon": "fa-gavel"
+  },
+  "News": {
+    "color": "#bbe1f8",
+    "icon": "fa-newspaper-o"
+  },
+  "Online Communities": {
+    "color": "#cfeadb",
+    "icon": "fa-comments"
+  },
+  "People & Society": {
+    "color": "#fde9e8",
+    "icon": "fa-users"
+  },
+  "Pets & Animals": {
+    "color": "#cde5c1",
+    "icon": "fa-paw"
+  },
+  "Real Estate": {
+    "color": "#d2d2de",
+    "icon": "fa-building"
+  },
+  "Reference": {
+    "color": "#fbd1c3",
+    "icon": "fa-flag"
+  },
+  "Science": {
+    "color": "#c09fca",
+    "icon": "fa-flask"
+  },
+  "Shopping": {
+    "color": "#e7d2e5",
+    "icon": "fa-shopping-bag"
+  },
+  "Sports": {
+    "color": "#fccca6",
+    "icon": "fa-futbol-o"
+  },
+  "Travel": {
+    "color": "#daeef5",
+    "icon": "fa-plane"
+  },
+  "World Localities": {
+    "color": "#f4eee2",
+    "icon": "fa-map-signs"
+  }
+}
