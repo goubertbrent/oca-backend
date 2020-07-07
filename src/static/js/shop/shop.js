@@ -181,12 +181,6 @@ var type_ahead_options = {
                     find_all: findAll
                 },
                 success: function (data) {
-                    data.sort(function (a, b) {
-                        return a.id - b.id;
-                    });
-                    data.sort(function(a, b) {
-                        return a.service_disabled_at - b.service_disabled_at;
-                    });
                     customerMap = {};
                     var customers = [];
                     $.each(data, function (i, o) {

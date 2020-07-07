@@ -32,7 +32,7 @@ import urlparse
 from babel.dates import format_datetime, get_timezone, format_date
 import cloudstorage
 from dateutil.relativedelta import relativedelta
-from google.appengine.api import search, images, users as gusers
+from google.appengine.api import search, images, users as gusers, urlfetch
 from google.appengine.ext import deferred, db, ndb
 import httplib2
 from oauth2client.appengine import OAuth2Decorator
@@ -44,6 +44,8 @@ from mcfw.properties import azzert
 from mcfw.rpc import returns, arguments, serialize_complex_value
 from mcfw.utils import normalize_search_string
 from rogerthat.bizz.app import get_app
+from rogerthat.bizz.elasticsearch import create_index, get_elasticsearch_config,\
+    delete_index, es_request, index_doc
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.bizz.job.app_broadcast import test_send_app_broadcast, send_app_broadcast
 from rogerthat.bizz.profile import update_password_hash, create_user_profile, get_service_profile
@@ -125,101 +127,184 @@ shopOauthDecorator = OAuth2Decorator(
 
 TROPO_URL = 'https://api.tropo.com/1.0'
 TROPO_SESSIONS_URL = '%s/sessions' % TROPO_URL
-CUSTOMER_INDEX = 'CUSTOMER_INDEX'
 
 
 class PaymentFailedException(Exception):
     pass
 
 
+def create_customer_index():
+    index = {
+        'mappings': {
+            'properties': {
+                'customer': {
+                    'type': 'keyword'
+                },
+                'service': {
+                    'type': 'keyword'
+                },
+                'contact': {
+                    'type': 'keyword'
+                },
+                'address': {
+                    'type': 'keyword'
+                },
+                'full_matches': {
+                    'type': 'keyword',
+                },
+                'tags': {
+                    'type': 'keyword'
+                },
+                'txt': {
+                    'type': 'text'
+                },
+            }
+        }
+    }
+    config = get_elasticsearch_config()
+    return create_index(config.shop_customers_index, index)
+
+
+def delete_customer_index():
+    config = get_elasticsearch_config()
+    return delete_index(config.shop_customers_index)
+
+
 @returns([Customer])
 @arguments(search_string=unicode, app_ids=[unicode], team_id=(int, long, NoneType), limit=(int, long))
 def search_customer(search_string, app_ids, team_id, limit=20):
-    customer_index = search.Index(name=CUSTOMER_INDEX)
-    q = normalize_search_string(search_string)
+    qry = {
+        'size': limit,
+        'from': 0,
+        '_source': {
+            'includes': ['tags'],
+            # 'excludes': []
+        },
+        'query': {
+            'bool': {
+                'must': [],
+                'filter': [],
+                'should': []
+            }
+        },
+        'sort': [
+            "_score",
+        ]
+    }
+    if search_string.strip():
+        qry['query']['bool']['must'].append({
+            'multi_match': {
+                'query': search_string,
+                'fields': ['full_matches^600', 'customer^400', 'service^200', 'contact^100', 'address^50', 'txt'],
+                'fuzziness': '1'
+            }
+        })
+    
     if team_id:
-        if not q.strip():
+        if not search_string.strip():
             return []
-
-        team_qry = 'customer_team_id:"%s"' % unicode(team_id)
-        if q:
-            q += u' AND %s' % team_qry
-        else:
-            q = team_qry
+        tag = 'team_id#%s' % unicode(team_id)
+        qry['query']['bool']['filter'].append({
+            'term': {
+                'tags': tag
+            }
+        })
+    
     if app_ids:
-        if not q.strip():
+        if not search_string.strip():
             return []
-
-        or_query = ''
+        app_tags_filter = {
+            'bool': {
+                'should': [],
+                "minimum_should_match": 1
+            }
+        }
         for app_id in app_ids:
-            if or_query:
-                or_query += ' OR "%s"' % app_id
-            else:
-                or_query = '"%s"' % app_id
-        if q:
-            q += ' AND app_ids:(%s)' % or_query
-        else:
-            q = 'app_ids:(%s)' % or_query
-
-    query = search.Query(query_string=q, options=search.QueryOptions(limit=limit))
-
-    search_result = customer_index.search(query)
-    customer_keys = [result.doc_id for result in search_result.results]
+            tag = 'app_id#%s' % app_id
+            app_tags_filter['bool']['should'].append({
+                'term': {
+                    'tags': tag
+                }
+            })
+    
+        qry['query']['bool']['must'].append(app_tags_filter)
+        
+    config = get_elasticsearch_config()
+    path = '/%s/_search' % config.shop_customers_index
+    result_data = es_request(path, urlfetch.POST, qry)
+    customer_keys = list()
+    for hit in result_data['hits']['hits']:
+        if hit['_score'] < 1.0:
+            continue
+        customer_id = long(hit['_id'])
+        customer_keys.append(Customer.create_key(customer_id))
+        
     tmp_customers = Customer.get(customer_keys)
     customers = []
+    missing_customer_keys = set()
     for i, c in enumerate(tmp_customers):
         if not c:
-            # cleanup any previous index entry
             try:
-                customer_index.delete(customer_keys[i])
-            except ValueError:
-                pass  # no index found for this customer yet
-        else:
-            customers.append(c)
+                missing_customer_keys.add(customer_keys[i].id())
+            except:
+                missing_customer_keys.add('unknown')
+            continue
+        customers.append(c)
+    if missing_customer_keys:
+        logging.error('Customer index not up to date... %s', missing_customer_keys)
     return customers
 
 
-@returns()
 @arguments(customer_key=db.Key)
 def re_index_customer(customer_key):
-    customer_index = search.Index(name=CUSTOMER_INDEX)
-
-    # cleanup any previous index entry
-    try:
-        customer_index.delete([str(customer_key)])
-    except ValueError:
-        pass  # no index found for this customer yet
-
-    # re-add index
     customer = Customer.get(customer_key)
     bizz_check(customer)
-
-    fields = [search.AtomField(name='customer_key', value=str(customer_key)),
-              search.TextField(name='customer_id', value=str(customer_key.id())),
-              search.TextField(name='customer_name', value=customer.name),
-              search.TextField(name='customer_address', value=" ".join(
-                  [customer.address1 or '', customer.address2 or ''])),
-              search.TextField(name='customer_zip_code', value=customer.zip_code),
-              search.TextField(name='customer_city', value=customer.city),
-              search.TextField(name='customer_team_id', value=unicode(customer.team_id))
-              ]
-
+    
+    uid = unicode(customer.id)
+    doc = {
+        'full_matches': [],
+        'customer': [],
+        'service': [],
+        'contact': [],
+        'address': [],
+        'tags': []
+    }
+    
+    doc['full_matches'].append(str(customer_key.id()))
+    doc['customer'].append(customer.name)
+ 
+    doc['address'].append(" ".join([customer.address1 or '', customer.address2 or '']))
+    doc['address'].append(customer.zip_code)
+    doc['address'].append(customer.city)
+     
     for contact in Contact.list(customer):
-        contact_id = contact.key().id()
-        fields.extend([search.TextField(name='contact_phone_%s' % contact_id, value=contact.phone_number),
-                       search.TextField(name='contact_email_%s' % contact_id, value=contact.email),
-                       search.TextField(name='contact_first_name_%s' % contact_id, value=contact.first_name),
-                       search.TextField(name='contact_last_name_%s' % contact_id, value=contact.last_name),
-                       ])
+        doc['full_matches'].append(contact.phone_number)
+        doc['full_matches'].append(contact.email)
+        doc['contact'].append("%s %s" % (contact.first_name, contact.last_name))
+     
+    doc['tags'].append('team_id#%s' % unicode(customer.team_id))
+     
     if customer.service_email:
         si = get_default_service_identity(users.User(customer.service_email))
-        fields.extend([search.TextField(name='service_name', value=si.name),
-                       search.TextField(name='user_email', value=customer.user_email),
-                       search.TextField(name='app_ids', value=" ".join(si.appIds)),
-                       search.AtomField(name='service_email', value=normalize_search_string(customer.service_email))
-                       ])
+        doc['service'].append(si.name)
+        doc['full_matches'].append(customer.user_email)
+        doc['full_matches'].append(customer.service_email)
+ 
+        for app_id in si.appIds:
+            tag = 'app_id#%s' % app_id
+            doc['tags'].append(tag)
+        
+    txt = set()  
+    for k, v in doc.iteritems():
+        if k in ('full_matches', 'tags'):
+            continue
+        for text in v:
+            txt.add(text)
+            
+    doc['txt'] = list(txt)
 
-    customer_index.put(search.Document(doc_id=str(customer_key), fields=fields))
+    config = get_elasticsearch_config()
+    return index_doc(config.shop_customers_index, uid, doc)
 
 
 @returns(Customer)

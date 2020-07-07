@@ -77,7 +77,7 @@ def search_services(search_string, organization_type=None):
             continue
         customers.append(CustomerTO.fromCustomerModel(c, False, False))
 
-    return sorted(customers, key=lambda c: c.name.lower())
+    return customers
 
 
 @rest("/common/services/get_all", "get", read_only_access=True)

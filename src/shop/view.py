@@ -1489,7 +1489,7 @@ def find_customer(search_string, find_all=False):
         can_edit = team_id is None or team_id == c.team_id
         admin = has_admin_permissions or (team_id == c.team_id and regio_manager.admin)
         customers.append(CustomerTO.fromCustomerModel(c, can_edit, admin))
-    return sorted(customers, key=lambda c: c.name.lower())
+    return customers
 
 
 @rest("/internal/shop/rest/customer", "get")
