@@ -37,7 +37,7 @@ from rogerthat.utils import send_mail_via_mime
 from solutions import translate
 from solutions.common.bizz.forms.integrations import BaseFormIntegration
 from solutions.common.dal import get_solution_settings
-from solutions.common.handlers import JINJA_ENVIRONMENT
+from solutions.common.handlers import JINJA_COMPRESSED_ENVIRONMENT
 from solutions.common.models.forms import FormSubmission, EmailIntegrationFormConfigTO
 from solutions.common.to.forms import FormSubmissionTO
 
@@ -147,7 +147,7 @@ def _get_form_submission_email_html(settings, service_name, app, language, form,
         'sections': sections,
         'footer': footer_html.replace('\n', '<br>'),
     }
-    return JINJA_ENVIRONMENT.get_template(join('emails', 'form-submission.tmpl')).render(html_params)
+    return JINJA_COMPRESSED_ENVIRONMENT.get_template(join('emails', 'form-submission.tmpl')).render(html_params)
 
 
 def _send_form_submission_email(emails, service_profile, form, submission, reply_to_email):

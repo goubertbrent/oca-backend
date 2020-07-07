@@ -52,6 +52,12 @@ except ImportError:
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
     undefined=DebugUndefined if DEBUG else Undefined,
+    extensions=[TranslateExtension])
+
+# Prefer to use this one, automatically removes unnecessary whitespace
+JINJA_COMPRESSED_ENVIRONMENT = jinja2.Environment(
+    loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
+    undefined=DebugUndefined if DEBUG else Undefined,
     extensions=[TranslateExtension, HTMLCompress])
 
 
