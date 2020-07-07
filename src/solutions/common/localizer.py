@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'hoplr_neighbourhood_not_supported': u'Your neighbourhood is not supported yet by the app',
          u'hoplr_user_already_exists_pls_login': u'You already have a Hoplr account with this email address, please use the login function instead.',
          u'hoplr_incorrect_email_or_password': u'Incorrect email or password',
          u'hoplr_not_verified_yet': u'You haven\'t been allowed into the neighbourhood yet. It might take up to 48 hours until an ambassador gives you access to the community.',
@@ -3986,6 +3987,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'hoplr_neighbourhood_not_supported': u'Uw buurt wordt nog niet ondersteund door de app.',
          u'hoplr_user_already_exists_pls_login': u'U heeft al een Hoplr account met dit email adres, gebruik de login functie om in te loggen.',
          u'hoplr_incorrect_email_or_password': u'Incorrecte email of wachtwoord',
          u'hoplr_not_verified_yet': u'U bent nog niet in de buurt toegelaten, het kan tot 48 uur duren voordat een ambassadeur u toegang geeft tot de community.',

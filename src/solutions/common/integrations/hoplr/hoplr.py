@@ -175,6 +175,11 @@ def login_hoplr_user(settings, service_user, app_user, params):
                     lang = get_solution_settings(service_user).main_language
                     msg = translate(lang, 'hoplr_incorrect_email_or_password')
                     raise TranslatedException(msg)
+                elif response_data.get('error_description') == 'client_cannot_access_user':
+                    logging.error('Unsupported neighbourhood for user: %s', params['username'])
+                    lang = get_solution_settings(service_user).main_language
+                    msg = translate(lang, 'hoplr_neighbourhood_not_supported')
+                    raise TranslatedException(msg)
             raise e
     info = get_user_information(settings, hoplr_user)
     return _return_user_information(info)
