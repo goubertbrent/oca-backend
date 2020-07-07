@@ -436,7 +436,8 @@ def handle_auto_connected_service(service_user, visible):
             auto_connected_service = AutoConnectedService.create(service_identity_email, False, None, None)
             add_auto_connected_services(customer.app_id, [auto_connected_service])
     else:
-        delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
+        logging.error('Auto connected service is invisible... %s', service_identity_email, _suppress=False)
+#         delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
 
 
 def create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id, opening_hours):
