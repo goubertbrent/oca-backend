@@ -100,9 +100,6 @@ def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
                     if component_value.id in component_mapping[section_value.id]:
                         column = component_mapping[section_value.id][component_value.id]
                         component = form_mapping.get(section_value.id, {}).get(component_value.id)
-                        if isinstance(component_value, DatetimeComponentValueTO):
-                            sheet.write(row, column, component_value.get_date(), date_format)
-                        else:
-                            sheet.write(row, column, component_value.get_string_value(component))
+                        sheet.write(row, column, component_value.get_string_value(component))
         row += 1
     book.save(file_handle)

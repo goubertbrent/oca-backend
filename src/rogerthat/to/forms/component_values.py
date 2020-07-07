@@ -15,16 +15,16 @@
 #
 # @@license_version:1.7@@
 import urllib
-from datetime import datetime
+from datetime import datetime, time
 
 from typing import Optional
 
 from mcfw.properties import unicode_property, float_property, long_property, unicode_list_property, typed_property
-from rogerthat.to import TO
-from .enums import FormComponentType
 from rogerthat.consts import GOOGLE_MAPS_CLIENT_API_KEY
 from rogerthat.settings import get_server_settings
+from rogerthat.to import TO
 from rogerthat.utils.google_maps_static import sign_url
+from .enums import FormComponentType, DateFormat
 
 
 class BaseComponentValue(object):
@@ -73,12 +73,18 @@ class DatetimeValueTO(TO):
 
 class DatetimeComponentValueTO(FieldComponentValueTO, DatetimeValueTO, BaseComponentValue):
 
-    def get_date(self):
-        return datetime(self.year, self.month, self.day, self.hour, self.minute)
-
-    def get_string_value(self, component, fmt='%d/%m/%Y %H:%M'):
-        # type: (DatetimeComponentTO, str) -> str
-        return self.get_date().strftime(fmt)
+    def get_string_value(self, component):
+        # type: (DatetimeComponentTO) -> str
+        if component.format == DateFormat.DATE:
+            fmt = '%d/%m/%Y'
+            date = datetime(self.year, self.month, self.day)
+        elif component.format == DateFormat.TIME:
+            fmt = '%H:%M'
+            date = time(self.hour, self.minute)
+        else:
+            fmt = '%d/%m/%Y %H:%M'
+            date = datetime(self.year, self.month, self.day, self.hour, self.minute)
+        return date.strftime(fmt)
 
 
 class FileComponentValueTO(FieldComponentValueTO, BaseComponentValue):
