@@ -1,3 +1,6 @@
+:host {
+}
+
 .mat-radio-group {
   display: flex;
   flex-direction: column;
@@ -21,8 +24,24 @@ agm-map {
   flex-direction: column;
 }
 
-.section-card {
-  margin: 16px 8px;
+.response-content {
+  margin: 0 auto;
+  max-width: 640px;
+  min-width: 320px;
+}
+
+.section-toolbar {
+  height: 48px;
+  border-radius: 8px;
+}
+
+.section-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.component-card {
+  margin: 16px 0;
 }
 
 .p-padding {

@@ -11,7 +11,9 @@ import {
 import { updateItem } from '../../../shared/util/redux';
 import { FormSection } from '../../interfaces/forms';
 import {
-  FormIntegration,
+  EmailIntegrationConfig,
+  FormIntegration, FormIntegrationConfiguration,
+  FormIntegrationEmail,
   FormIntegrationGreenValley,
   FormIntegrationProvider,
   GVIntegrationFormConfig,
@@ -19,9 +21,14 @@ import {
 
 interface ProviderMapping {
   [ FormIntegrationProvider.GREEN_VALLEY ]: {
-    enabled: boolean,
-    visible: boolean,
-    integration: FormIntegrationGreenValley | null
+    enabled: boolean;
+    visible: boolean;
+    integration: FormIntegrationGreenValley | null;
+  };
+  [ FormIntegrationProvider.EMAIL ]: {
+    enabled: boolean;
+    visible: boolean;
+    integration: FormIntegrationEmail | null;
   };
 }
 
@@ -33,7 +40,7 @@ interface ProviderMapping {
 })
 export class FormIntegrationsComponent implements OnChanges {
   @Input() sections: FormSection[];
-  @Input() activeIntegrations: FormIntegrationProvider[];
+  @Input() activeIntegrations: FormIntegrationConfiguration[];
 
   @Input() set integrations(value: FormIntegration[]) {
     if (this._integrations) {
@@ -48,11 +55,15 @@ export class FormIntegrationsComponent implements OnChanges {
 
   @Output() integrationsChanged = new EventEmitter<FormIntegration[]>();
 
-
   providerMapping: ProviderMapping = {
     [ FormIntegrationProvider.GREEN_VALLEY ]: {
       enabled: false,
       visible: false,
+      integration: null,
+    },
+    [ FormIntegrationProvider.EMAIL ]: {
+      enabled: false,
+      visible: true,
       integration: null,
     },
   };
@@ -82,20 +93,24 @@ export class FormIntegrationsComponent implements OnChanges {
     this.setProviderMapping();
   }
 
+  updateIntegration(integration: FormIntegration, event: GVIntegrationFormConfig | EmailIntegrationConfig) {
+    // @ts-ignore
+    this.integrations = updateItem(this.integrations, { ...integration, configuration: event }, 'provider');
+  }
+
   private getNewProvider(provider: FormIntegrationProvider): FormIntegration {
     switch (provider) {
       case FormIntegrationProvider.GREEN_VALLEY:
         return { provider, enabled: true, visible: true, configuration: { type_id: null, mapping: [] } };
+      case FormIntegrationProvider.EMAIL:
+        return { provider, enabled: true, visible: true, configuration: { email_groups: [], default_group: null, mapping: [] } };
     }
   }
 
   private setProviderMapping() {
     for (const integration of this.integrations) {
+      // @ts-ignore
       this.providerMapping[ integration.provider ] = { enabled: integration.enabled, visible: integration.visible, integration };
     }
-  }
-
-  updateIntegration(integration: FormIntegration, event: GVIntegrationFormConfig) {
-    this.integrations = updateItem(this.integrations, { ...integration, configuration: event }, 'provider');
   }
 }

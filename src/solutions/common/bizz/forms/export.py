@@ -25,7 +25,8 @@ from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.consts import DAY, SCHEDULED_QUEUE
 from rogerthat.rpc import users
 from rogerthat.service.api.forms import service_api
-from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, DatetimeComponentValueTO
+from rogerthat.to.forms import FormSectionValueTO, FieldComponentTO, DatetimeComponentValueTO, FormSectionTO, \
+    DynamicFormTO
 from rogerthat.utils.app import get_human_user_from_app_user
 from solutions import translate
 from solutions.common.consts import OCA_FILES_BUCKET
@@ -58,7 +59,7 @@ def export_submissions(service_user, form_id):
 
 
 def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
-    # type: (Form, OcaForm, str, list[FormSubmission], file) -> object
+    # type: (DynamicFormTO, OcaForm, str, list[FormSubmission], file) -> object
     book = xlwt.Workbook(encoding="utf-8")
     # Write headers
     component_mapping = defaultdict(dict)
@@ -69,6 +70,7 @@ def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
     column += 1
     sheet.write(row, column, translate(language, 'Date'))
     column += 1
+    form_mapping = form.to_mapping()
     if oca_form.has_integration:
         sheet.write(row, column, translate(language, 'oca.external_reference'))
         column += 1
@@ -81,6 +83,7 @@ def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
     row += 1
     date_format = XFStyle()
     date_format.num_format_str = 'dd/MM/yyyy HH:mm'
+
     for submission in submissions:
         column = 0
         sheet.write(row, column, get_human_user_from_app_user(users.User(submission.user)).email())
@@ -96,9 +99,10 @@ def _export_to_xlsx(form, oca_form, language, submissions, file_handle):
                 for component_value in section_value.components:
                     if component_value.id in component_mapping[section_value.id]:
                         column = component_mapping[section_value.id][component_value.id]
+                        component = form_mapping.get(section_value.id, {}).get(component_value.id)
                         if isinstance(component_value, DatetimeComponentValueTO):
                             sheet.write(row, column, component_value.get_date(), date_format)
                         else:
-                            sheet.write(row, column, component_value.get_string_value())
+                            sheet.write(row, column, component_value.get_string_value(component))
         row += 1
     book.save(file_handle)

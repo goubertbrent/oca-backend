@@ -8,3 +8,6 @@
 <oca-form-integration-gv-config [configuration]="configMapping[FormIntegrationProvider.GREEN_VALLEY].configuration"
                                 (configurationChanged)="updateConfiguration(configMapping[FormIntegrationProvider.GREEN_VALLEY], $event)"
                                 *ngIf="configMapping[FormIntegrationProvider.GREEN_VALLEY].enabled"></oca-form-integration-gv-config>
+
+<oca-form-integration-email-config (configurationChanged)="updateConfiguration(configMapping[FormIntegrationProvider.EMAIL], $event)"
+                                   [configuration]="configMapping[FormIntegrationProvider.EMAIL].configuration"></oca-form-integration-email-config>

@@ -14,11 +14,12 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+from typing import Dict
 
 from mcfw.properties import long_property, unicode_property, typed_property, object_factory, bool_property
 from rogerthat.to import TO
 from .component_values import FORM_COMPONENT_VALUES
-from .components import FormComponentTO, NextActionTO
+from .components import FormComponentTO, NextActionTO, FieldComponentTO
 from .enums import FormComponentType
 
 
@@ -37,6 +38,14 @@ class FormSectionTO(TO):
     next_button_caption = unicode_property('next_button_caption', default=None)
 
 
+class SectionMapping(object):
+
+    def __init__(self, section, components):
+        # type: (FormSectionTO, Dict[str, FormComponentTO]) -> None
+        self.section = section
+        self.components = components
+
+
 class DynamicFormTO(TO):
     id = long_property('id')
     title = unicode_property('title')
@@ -51,6 +60,12 @@ class DynamicFormTO(TO):
         return cls(id=model.id, title=model.title, sections=FormSectionTO.from_list(model.sections),
                    submission_section=sub_section, max_submissions=model.max_submissions, version=model.version)
 
+    def to_mapping(self):
+        # type: () -> Dict[str, SectionMapping]
+        return {section.id: SectionMapping(section, {component.id: component for component in section.components
+                                                     if isinstance(component, FieldComponentTO)})
+                for section in self.sections}
+
 
 class FormComponentValueTO(object_factory):
     type = unicode_property('type')
@@ -59,7 +74,7 @@ class FormComponentValueTO(object_factory):
     def __init__(self):
         super(FormComponentValueTO, self).__init__('type', FORM_COMPONENT_VALUES, FormComponentType)
 
-    def get_string_value(self):
+    def get_string_value(self, component):
         raise NotImplementedError()
 
 

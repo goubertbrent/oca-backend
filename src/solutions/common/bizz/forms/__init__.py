@@ -15,11 +15,11 @@
 #
 # @@license_version:1.7@@
 
-from datetime import datetime
 import json
 import logging
-from os import path
 import random
+from datetime import datetime
+from os import path
 
 import cloudstorage
 import dateutil
@@ -59,7 +59,7 @@ from solutions.common.consts import OCA_FILES_BUCKET
 from solutions.common.dal import get_solution_settings, get_solution_main_branding
 from solutions.common.models import SolutionBrandingSettings
 from solutions.common.models.forms import OcaForm, FormTombola, TombolaWinner, FormSubmission, FormStatisticsShard, \
-    CompletedFormStep, CompletedFormStepType, FormIntegrationConfiguration, FormIntegration
+    CompletedFormStep, CompletedFormStepType, FormIntegrationConfiguration, FormIntegration, FormIntegrationProvider
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO
 
 
@@ -138,8 +138,7 @@ def _update_form(model, created_form, settings, can_edit_integrations):
                    visible=settings.visible,
                    visible_until=settings.visible_until and _get_utc_datetime(settings.visible_until),
                    tombola=settings.tombola and FormTombola(**settings.tombola.to_dict()),
-                   steps=[CompletedFormStep(step_id=step.step_id) for step in settings.steps],
-                   readonly_ids=settings.readonly_ids)
+                   steps=[CompletedFormStep(step_id=step.step_id) for step in settings.steps])
     if can_edit_integrations:
         model.integrations = [FormIntegration(provider=i.provider, enabled=i.enabled, configuration=i.configuration)
                               for i in settings.integrations]
@@ -150,13 +149,13 @@ def _update_form(model, created_form, settings, can_edit_integrations):
         )
     model.put()
     service_profile = get_service_profile(model.service_user)
-    integration_models = ndb.get_multi((FormIntegrationConfiguration.create_key(model.service_user, i.provider)
-                                        for i in model.integrations))
+    integration_models = get_form_integrations(model.service_user)
     integration_configs = {i.provider: i for i in integration_models}
     for integration in model.integrations:
-        if integration.enabled:
+        if integration.enabled and integration.provider in integration_configs:
             conf = integration_configs[integration.provider]
-            get_form_integration(conf).update_configuration(model.id, integration.configuration, service_profile)
+            get_form_integration(integration.provider, conf).update_configuration(model.id, integration.configuration,
+                                                                                  service_profile)
 
 
 def _get_form_avatar_url(service_user):
@@ -428,9 +427,10 @@ def _submit_form_to_integration(service_user, integration_provider, submission_k
     oca_form_key = OcaForm.create_key(form_id, service_user)
     submission, config, oca_form = ndb.get_multi([submission_key, integration_key, oca_form_key])
     if not config or not config.enabled:
-        logging.info('Integration %s not enabled', integration_provider)
-        return
-    form_integration = get_form_integration(config)
+        if integration_provider != FormIntegrationProvider.EMAIL:
+            logging.info('Integration %s not enabled', integration_provider)
+            return
+    form_integration = get_form_integration(integration_provider, config)
     filtered_integrations = [i for i in oca_form.integrations if i.provider == integration_provider]
     if not filtered_integrations:
         logging.warning('Not submitting form integration, provider %s not found.', integration_provider)

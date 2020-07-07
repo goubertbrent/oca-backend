@@ -24,12 +24,14 @@ from zipfile import ZipFile
 import jinja2
 import webapp2
 from google.appengine.ext import webapp, db
+from jinja2 import Undefined, DebugUndefined
 from lxml import html, etree
 
-from rogerthat.consts import MAX_BRANDING_PDF_SIZE
+from rogerthat.consts import MAX_BRANDING_PDF_SIZE, DEBUG
 from rogerthat.dal import parent_key, put_and_invalidate_cache
 from rogerthat.rpc import users
 from rogerthat.service.api import system
+from rogerthat.templates.jinja_htmlcompress import HTMLCompress
 from rogerthat.utils.channel import broadcast_via_iframe_result, send_message
 from shop.exceptions import CustomerNotFoundException
 from shop.models import Order
@@ -47,8 +49,10 @@ except ImportError:
     from StringIO import StringIO
 
 
-JINJA_ENVIRONMENT = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
-                                       extensions=[TranslateExtension])
+JINJA_ENVIRONMENT = jinja2.Environment(
+    loader=jinja2.FileSystemLoader([os.path.join(os.path.dirname(__file__), '..', 'templates')]),
+    undefined=DebugUndefined if DEBUG else Undefined,
+    extensions=[TranslateExtension, HTMLCompress])
 
 
 class ImageViewerHandler(webapp2.RequestHandler):

@@ -36,7 +36,6 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
   @ViewChild('newInput', { static: true }) newInput: ElementRef<HTMLInputElement>;
 
   @Input() formId: number;
-  @Input() readonlyIds: boolean;
   @Input() name: string;
   @Input() nextActions: UINextAction[] = [];
   @Input()
@@ -107,15 +106,9 @@ export class SelectInputListComponent implements AfterViewInit, ControlValueAcce
     return index;
   }
 
-  valueUpdated(value: string, index: number) {
-    const original = this.values[ index ];
-    this.values[ index ] = { ...original, value: original.value };
-    this.onChange(this.values);
-  }
-
   labelUpdated(value: string, index: number) {
     const original = this.values[ index ];
-    this.values[ index ] = { ...original, label: value, value: this.readonlyIds ? original.value : value };
+    this.values[ index ] = { ...original, label: value };
     this.onChange(this.values);
   }
 

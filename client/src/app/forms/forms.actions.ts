@@ -2,6 +2,7 @@ import { Action } from '@ngrx/store';
 import { ApiError } from '../shared/errors/errors';
 import { UserDetailsTO } from '../shared/users/users';
 import {
+  CreateDynamicForm,
   DownloadResponses,
   FormResponse,
   FormResponses,
@@ -47,6 +48,7 @@ export const enum FormsActionTypes {
   DELETE_FORM = '[forms] Delete form',
   DELETE_FORM_COMPLETE = '[forms] Delete form complete',
   DELETE_FORM_FAILED = '[forms] Delete form failed',
+  IMPORT_FORM = '[forms] Import form',
   COPY_FORM = '[forms] Copy form',
   COPY_FORM_COMPLETE = '[forms] Copy form complete',
   COPY_FORM_FAILED = '[forms] Copy form failed',
@@ -256,6 +258,13 @@ export class DeleteAllResponsesFailedAction implements Action {
   }
 }
 
+export class ImportFormAction implements Action {
+  readonly type = FormsActionTypes.IMPORT_FORM;
+
+  constructor(public payload: {form: Partial<CreateDynamicForm>}) {
+  }
+}
+
 export class CopyFormAction implements Action {
   readonly type = FormsActionTypes.COPY_FORM;
 
@@ -439,6 +448,7 @@ export type FormsActions =
   | DeleteAllResponsesAction
   | DeleteAllResponsesCompleteAction
   | DeleteAllResponsesFailedAction
+  | ImportFormAction
   | CopyFormAction
   | CopyFormCompleteAction
   | CopyFormFailedAction

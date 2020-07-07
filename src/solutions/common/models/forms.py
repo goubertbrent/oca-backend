@@ -20,12 +20,15 @@ from __future__ import unicode_literals
 from random import randint
 
 from google.appengine.ext import ndb
+from typing import List
 
+from mcfw.properties import typed_property, long_property, unicode_property, unicode_list_property
 from mcfw.utils import Enum
 from rogerthat.bizz.gcs import get_serving_url
 from rogerthat.dal import parent_ndb_key
 from rogerthat.models import NdbModel
 from rogerthat.rpc import users
+from rogerthat.to import TO
 from solutions.common import SOLUTION_COMMON
 
 
@@ -49,6 +52,7 @@ class CompletedFormStep(NdbModel):
 
 class FormIntegrationProvider(Enum):
     GREEN_VALLEY = 'green_valley'
+    EMAIL = 'email'
 
 
 ALL_FORM_INTEGRATION_PROVIDERS = FormIntegrationProvider.all()
@@ -61,6 +65,25 @@ class FormIntegration(NdbModel):
     configuration = ndb.JsonProperty()
 
 
+class EmailGroupTO(TO):
+    id = long_property('id')
+    name = unicode_property('name')
+    emails = unicode_list_property('emails')
+
+
+class EmailComponentMappingTO(TO):
+    section_id = unicode_property('section_id')
+    component_id = unicode_property('component_id')
+    component_value = unicode_property('component_value')
+    group_id = long_property('group_id')
+
+
+class EmailIntegrationFormConfigTO(TO):
+    email_groups = typed_property('email_groups', EmailGroupTO, True)  # type: List[EmailGroupTO]
+    default_group = long_property('default_group', default=-1)
+    mapping = typed_property('mapping', EmailComponentMappingTO, True)  # type: List[EmailComponentMappingTO]
+
+
 class OcaForm(NdbModel):
     title = ndb.StringProperty(indexed=False)  # Copy from Form.title
     icon = ndb.StringProperty(indexed=False, default='fa-list')
@@ -70,8 +93,7 @@ class OcaForm(NdbModel):
     finished = ndb.BooleanProperty(default=False)
     tombola = ndb.StructuredProperty(FormTombola, default=None)  # type: FormTombola
     steps = ndb.LocalStructuredProperty(CompletedFormStep, repeated=True)
-    readonly_ids = ndb.BooleanProperty(default=False)
-    integrations = ndb.StructuredProperty(FormIntegration, repeated=True)  # type: list[FormIntegration]
+    integrations = ndb.StructuredProperty(FormIntegration, repeated=True)  # type: List[FormIntegration]
 
     @property
     def id(self):

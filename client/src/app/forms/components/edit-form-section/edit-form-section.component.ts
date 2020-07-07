@@ -42,7 +42,6 @@ export class EditFormSectionComponent implements ControlValueAccessor {
   }
 
   @Input() name: string;
-  @Input() readonlyIds = false;
   @Input() formId: number;
   @Input() headerTitle = '';
   @Input() canMove = false;
@@ -99,9 +98,9 @@ export class EditFormSectionComponent implements ControlValueAccessor {
       type: FormComponentType.SINGLE_SELECT,
       description: null,
       choices,
-      validators: [ { type: FormValidatorType.REQUIRED } ],
+      validators: [{ type: FormValidatorType.REQUIRED }],
       title,
-      id: title,
+      id: this.getNewComponentId(),
     } ]);
   }
 
@@ -161,5 +160,12 @@ export class EditFormSectionComponent implements ControlValueAccessor {
       this.section = { ...this.section, description: null };
     }
     this.showDescription = !this.showDescription;
+  }
+
+  private getNewComponentId() {
+    // "good enough" uuid generator
+    // tslint:disable-next-line:no-bitwise
+    const S4 = () => ((1 + Math.random()) * 0x10000 | 0).toString(16).substring(1);
+    return (`${S4() + S4()}-${S4()}-${S4()}-${S4()}-${S4()}${S4()}${S4()}`);
   }
 }

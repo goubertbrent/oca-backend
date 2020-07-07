@@ -6,7 +6,7 @@ import { SingleFormResponse } from '../../interfaces/forms';
 @Component({
   selector: 'oca-form-responses',
   templateUrl: './form-responses.component.html',
-  styleUrls: [ './form-responses.component.css' ],
+  styleUrls: [ './form-responses.component.scss' ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormResponsesComponent {

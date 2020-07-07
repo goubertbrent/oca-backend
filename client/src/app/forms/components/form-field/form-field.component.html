@@ -1,14 +1,8 @@
 <fieldset *ngIf="component">
-  <mat-form-field *ngIf="readonlyIds && component.type !== FormComponentType.PARAGRAPH">
-    <mat-label>{{ 'oca.identifier' | translate }}</mat-label>
-    <input [name]="name + '_id'" matInput [(ngModel)]="component.id" (ngModelChange)="idChanged($event)"
-           required #id="ngModel">
-    <mat-error *ngIf="id.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
-  </mat-form-field>
   <div class="title-field-container">
     <mat-form-field class="component-title">
       <mat-label>{{ (component.type === FormComponentType.PARAGRAPH ? 'oca.title' : 'oca.question') | translate }}</mat-label>
-      <input [name]="name + '_title'" matInput [(ngModel)]="component.title" (ngModelChange)="titleChanged($event)"
+      <input [name]="name + '_title'" matInput [ngModel]="component.title" (ngModelChange)="titleChanged($event)"
              required #title="ngModel">
       <mat-error *ngIf="title.errors?.required">{{ 'oca.this_field_is_required' | translate }}</mat-error>
     </mat-form-field>
@@ -62,14 +56,12 @@
       <oca-select-input-list [formId]="formId"
                              [name]="name + '_choices'"
                              [nextActions]="showNextActions ? nextActions : []"
-                             [readonlyIds]="readonlyIds"
                              [(ngModel)]="component.choices"
                              (ngModelChange)="changed()"></oca-select-input-list>
     </ng-container>
     <ng-container *ngSwitchCase="FormComponentType.MULTI_SELECT">
       <oca-select-input-list [formId]="formId"
                              [name]="name + '_choices'"
-                             [readonlyIds]="readonlyIds"
                              [(ngModel)]="component.choices"
                              (ngModelChange)="changed()"
                              multiple="true"></oca-select-input-list>

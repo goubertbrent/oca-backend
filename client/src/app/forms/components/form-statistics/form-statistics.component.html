@@ -2,17 +2,18 @@
   <div class="flex">
     <h2 class="flex-grow">{{ 'oca.total_responses_x' | translate : {count: statistics.submissions} }}</h2>
     <span class="icons-row" *ngIf="!formActive">
-        <button type="button" mat-icon-button [matMenuTriggerFor]="optionsMenu">
-          <mat-icon>more_vert</mat-icon>
-        </button>
+      <button [matMenuTriggerFor]="optionsMenu" mat-icon-button type="button">
+        <mat-icon>more_vert</mat-icon>
+      </button>
     </span>
   </div>
-  <ng-container *ngFor="let section of statistics.sections">
-    <mat-toolbar>
-      {{ section.title || ('oca.section_x' | translate : {number: section.number}) }}
-    </mat-toolbar>
-    <ng-container *ngFor="let component of section.components">
-      <mat-card class="component-card" *ngIf="component.id">
+  <div class="questions-container">
+    <ng-container *ngFor="let section of statistics.sections">
+      <mat-toolbar class="section-toolbar" color="primary">
+        <span
+          class="section-title">{{ section.title || ('oca.section_x' | translate : {number: section.number}) }}</span>
+      </mat-toolbar>
+      <mat-card *ngFor="let component of section.components" class="component-card">
         <mat-card-header>
           <mat-card-title>{{ component.title }} </mat-card-title>
           <mat-card-subtitle *ngIf="!component.hasResponses">
@@ -60,7 +61,7 @@
         </mat-card-content>
       </mat-card>
     </ng-container>
-  </ng-container>
+  </div>
 </div>
 
 <mat-menu #optionsMenu=matMenu>

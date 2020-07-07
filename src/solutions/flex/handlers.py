@@ -235,9 +235,7 @@ class FlexHomeHandler(webapp2.RequestHandler):
             'currency': currency,
         }
         templates = {}
-        templates_to_get = set()
-        for tmpl in DEFAULT_JS_TEMPLATES:
-            templates_to_get.add(tmpl)
+        templates_to_get = set(DEFAULT_JS_TEMPLATES)
         for module in modules:
             for tmpl in MODULES_JS_TEMPLATE_MAPPING.get(module, []):
                 templates_to_get.add(tmpl)

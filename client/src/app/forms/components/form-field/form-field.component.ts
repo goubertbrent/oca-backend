@@ -45,7 +45,6 @@ export class FormFieldComponent {
   @Input() nextActions: UINextAction[];
   @Input() name: string;
   @Input() formId: number;
-  @Input() readonlyIds = false;
   @Output() removeComponent = new EventEmitter<FormComponent>();
   @Output() componentChange = new EventEmitter<FormComponent>();
   EASYMDE_OPTIONS = EASYMDE_OPTIONS;
@@ -73,15 +72,7 @@ export class FormFieldComponent {
   }
 
   titleChanged(title: string) {
-    if (isInputComponent(this.component)) {
-      this.component = { ...this.component, id: this.readonlyIds ? this.component.id : title };
-    }
-  }
-
-  idChanged(id: string) {
-    if (isInputComponent(this.component)) {
-      this.component = { ...this.component, id: this.component.id};
-    }
+    this.component = { ...this.component, title };
   }
 
   componentTypeChanged(event: MatSelectChange) {

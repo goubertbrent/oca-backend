@@ -4,11 +4,6 @@
       <mat-radio-button checked="false" disabled="true" *ngSwitchCase="false"></mat-radio-button>
       <mat-checkbox checked="false" disabled="true" *ngSwitchCase="true"></mat-checkbox>
     </ng-container>
-    <mat-form-field appearance="legacy" *ngIf="readonlyIds" class="option-value">
-      <mat-label>{{ 'oca.value' | translate }}</mat-label>
-      <input required [name]="name + 'value_' + i" matInput [(ngModel)]="value.value"
-             (ngModelChange)="valueUpdated($event, i)" (keydown.enter)="selectNext(i)">
-    </mat-form-field>
     <mat-form-field appearance="legacy" class="option-label">
       <input required [name]="name + 'label_' + i" matInput [(ngModel)]="value.label"
              (ngModelChange)="labelUpdated($event, i)" #labelInput (keydown.enter)="selectNext(i)">

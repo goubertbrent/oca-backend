@@ -29,7 +29,7 @@ import {
   SubmissionSection,
   UINextAction,
 } from '../../interfaces/forms';
-import { FormIntegration, FormIntegrationProvider } from '../../interfaces/integrations';
+import { FormIntegration, FormIntegrationConfiguration, FormIntegrationProvider } from '../../interfaces/integrations';
 import { ArrangeSectionsDialogComponent } from '../arange-sections-dialog/arrange-sections-dialog.component';
 
 @Component({
@@ -42,7 +42,7 @@ export class EditFormComponent implements OnChanges {
   @ViewChild('formElement', { static: true }) formElement: NgForm;
   @ViewChildren(MatInput) inputs: QueryList<MatInput>;
 
-  @Input() activeIntegrations: FormIntegrationProvider[] = [];
+  @Input() activeIntegrations: FormIntegrationConfiguration[] = [];
 
   @Input() set value(value: OcaForm) {
     this._form = value;
@@ -339,7 +339,6 @@ export class EditFormComponent implements OnChanges {
   }
 
   setIntegrations(integrations: FormIntegration[]) {
-    const hasIntegrations = integrations.some(i => i.enabled);
-    this.form = { ...this.form, settings: { ...this.form.settings, integrations, readonly_ids: hasIntegrations } };
+    this.form = { ...this.form, settings: { ...this.form.settings, integrations} };
   }
 }

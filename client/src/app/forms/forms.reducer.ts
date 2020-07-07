@@ -14,8 +14,8 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
       return { ...state, forms: onLoadableError(action.error, state.forms.data) };
     case FormsActionTypes.GET_FORM:
       return {
-        ...state, form:
-          onLoadableLoad(initialFormsState.form.data),
+        ...state,
+        form: onLoadableLoad(initialFormsState.form.data),
         tombolaWinners: initialFormsState.tombolaWinners,
         formResponses: initialFormsState.formResponses,
         selectedFormResponseId: initialFormsState.selectedFormResponseId,
@@ -107,6 +107,14 @@ export function formsReducer(state: FormsState = initialFormsState, action: Form
       return { ...state, integrations: onLoadableSuccess(updateItem(state.integrations.data, action.payload, 'provider')) };
     case FormsActionTypes.UPDATE_INTEGRATION_FAILED:
       return { ...state, integrations: onLoadableError(action.error, state.integrations.data) };
+    case FormsActionTypes.IMPORT_FORM:
+      return {
+        ...state,
+        form: state.form.data ? {
+          ...state.form,
+            data: {...state.form.data, form: {...state.form.data.form, ...action.payload.form}}
+        } : state.form
+      };
   }
   return state;
 }

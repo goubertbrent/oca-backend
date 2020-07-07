@@ -29,6 +29,7 @@ import {
   SectionStatistics,
   SingleFormResponse,
   TimesComponentStatistics,
+  ValueAmount,
 } from './interfaces/forms';
 import { FormIntegrationConfiguration } from './interfaces/integrations';
 
@@ -83,9 +84,7 @@ export const getForm = createSelector(featureSelector, s => s.form);
 export const getRawFormStatistics = createSelector(featureSelector, s => s.formStatistics);
 export const getTombolaWinners = createSelector(featureSelector, s => s.tombolaWinners.data || []);
 export const getIntegrations = createSelector(featureSelector, s => s.integrations);
-export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data
-  .filter(i => i.enabled && i.visible)
-  .map(i => i.provider));
+export const getActiveIntegrations = createSelector(featureSelector, s => s.integrations.data.filter(i => i.enabled && i.visible));
 
 export const selectedFormResponseId = createSelector(featureSelector, s => s.selectedFormResponseId);
 
@@ -204,7 +203,7 @@ function getDateTimeComponentValues(component: DatetimeComponent, stats: { [ key
 }
 
 function getComponentStatsValues(component: FormComponent, componentStats: FormStatisticsValue) {
-  let values: ComponentStatisticsValues = null;
+  let values: ComponentStatisticsValues;
   let hasResponses = false;
   if (isFormStatisticsNumber(componentStats)) {
     for (const number of Object.values<number>(componentStats)) {
@@ -216,13 +215,20 @@ function getComponentStatsValues(component: FormComponent, componentStats: FormS
     if (component.type === FormComponentType.DATETIME) {
       values = getDateTimeComponentValues(component, componentStats);
     } else {
-      const value = Object.keys(componentStats)
-        .map(key => ({ value: key, amount: componentStats[ key ] }))
-        .sort((a, b) => a.value ? a.value.localeCompare(b.value) : 2);
-      if ([ FormComponentType.SINGLE_SELECT, FormComponentType.MULTI_SELECT ].includes(component.type)) {
-        values = { type: ComponentStatsType.CHOICES, value };
+      const value: ValueAmount[] = Object.keys(componentStats).map(key => ({ value: key, amount: componentStats[ key ] }));
+      const sortValues = (a: ValueAmount, b: ValueAmount) => (a.value ? a.value.localeCompare(b.value) : 2);
+      if (component.type === FormComponentType.SINGLE_SELECT || component.type === FormComponentType.MULTI_SELECT) {
+        // convert value to label
+        const componentMapping = new Map<string, string>();
+        for (const choice of component.choices) {
+          componentMapping.set(choice.value, choice.label);
+        }
+        values = {
+          type: ComponentStatsType.CHOICES,
+          value: value.map(v => ({ amount: v.amount, value: componentMapping.get(v.value) ?? v.value })).sort(sortValues),
+        };
       } else {
-        values = { type: ComponentStatsType.VALUES, value };
+        values = { type: ComponentStatsType.VALUES, value: value.sort(sortValues) };
       }
     }
   } else {

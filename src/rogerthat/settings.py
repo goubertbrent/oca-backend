@@ -88,6 +88,7 @@ class ServerSettings(CachedModelMixIn, db.Model):
     firebaseKey = add_meta(db.StringProperty(indexed=False), doc="Firebase Cloud Messaging API Key", order=60)
     gcmKey = add_meta(db.StringProperty(indexed=False), doc="Google Cloud Messaging Key", order=61)
     googleMapsKey = add_meta(db.StringProperty(indexed=False), doc="Google Maps Key", order=62)
+    googleMapsUrlSigningSecret = add_meta(db.StringProperty(indexed=False), doc='Google Maps Url signing secret. See https://console.cloud.google.com/google/maps-apis/credentials', order=63)
 
     registrationMainSignature = add_meta(db.StringProperty(indexed=False),
                                          doc="baee64 version of main registration signature", order=80)
@@ -172,7 +173,7 @@ class ServerSettings(CachedModelMixIn, db.Model):
     mobileFirebaseCredentials = add_meta(db.TextProperty(),
                                          doc='Credentials json file for firebase storage on android and ios',
                                          order=400)
-    
+
     worker_service_url = add_meta(db.StringProperty(indexed=False),
                                                     doc='Worker service url',
                                                     order=500)

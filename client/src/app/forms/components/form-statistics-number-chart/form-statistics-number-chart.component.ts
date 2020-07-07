@@ -23,13 +23,13 @@ export class FormStatisticsNumberChartComponent implements OnChanges {
       columns: [ 'Value', '' ],
       data: values.map(value => ([ value.value, value.amount ])),
       options: {
-        width: 700,
+        width: 600,
         height: Math.max(150, values.length * 30),
         legend: 'none' as 'none',  // not sure why but without the 'as' it errors
         backgroundColor: 'transparent',
         bars: 'horizontal', // Required for Material Bar Charts.
         vAxis: { textStyle: { fontSize: 12, paddingRight: '200', marginRight: '200' } },
-        chartArea: { left: '25%', top: 0, bottom: '20px' },  // bottom padding for x axis
+        chartArea: { left: '25%', top: 0, bottom: '0px' },  // bottom padding for x axis
       },
     };
   }

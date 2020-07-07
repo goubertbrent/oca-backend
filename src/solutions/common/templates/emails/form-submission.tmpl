@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv=Content-Type content="text/html; charset=UTF-8">
+    <style>.oca-email{font-family: Roboto, Arial, sans-serif;line-height: 100%;}</style>
+</head>
+{%- macro render_section_title_block(title) -%}
+    <div
+      style="border-bottom:1px solid #dadce0;border-left:1px solid #dadce0;border-right:1px solid #dadce0;border-top:8px solid rgb(58, 187, 158);padding:0;background-color:#fff;border-radius:8px;margin-bottom:12px;">
+        <div style="padding:0"><h2 dir="auto"
+                                   style="color:#fff;font-size:16px;line-height:24px;background-color:rgb(58, 187, 158);margin:0;padding:4px 24px 12px;border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
+            {{ title }}</h2></div>
+        {{ caller() }}
+    </div>
+{%- endmacro -%}
+{%- macro render_block(title) -%}
+    <div
+      style="border:1px solid #dadce0;padding:20px 12px;background-color:#fff;border-radius:8px;margin-bottom:12px;margin-bottom:12px">
+        <div style="padding:0 12px"><h2 dir="auto"
+                                        style="color:#202124;font-size:16px;line-height:24px;white-space:pre-wrap;margin:0">{{ title }}</h2>
+        </div>
+        <div style="padding:0 12px">{{ caller() }}</div>
+    </div>
+{%- endmacro -%}
+{%- macro render_input_field() -%}
+    <div style="width:100%">
+        <div dir="auto"
+             style="white-space:pre-wrap;border-bottom:1px dotted rgba(0,0,0,0.38);margin:12px 0 8px;min-height:20px;display:inline-block;max-width:100%;min-width:50%">{{ caller() }}</div>
+    </div>
+{%- endmacro -%}
+{%- macro render_multi_select_field(choices, component_value) -%}
+    {%- for choice in choices -%}
+        {%- set selected = choice.value in component_value.values -%}
+        <div style="margin-top:16px">
+            <table
+              style="color:#202124;font-size:14px;line-height:20px;margin-top:8px;table-layout:fixed">
+                <tbody>
+                <tr>
+                    <td>
+                        <div role="checkbox" aria-checked="{{ 'true' if selected else 'false' }}"
+                             aria-label="{{ choice.label }}"
+                             {%- if selected -%}style="border:solid 2px #5f6368;border-radius:3px;height:16px;width:16px;background-color:#5f6368;color:#fff;font-size:14px;line-height:16px;text-align:center"{%- else -%}
+                             style="border:solid 2px #9aa0a6;border-radius:3px;height:16px;width:16px"{%- endif -%}>
+                            <div role="checkbox" aria-checked="false" aria-label="Option 2"></div>
+                            {%- if selected -%}✓{%- endif -%}</div>
+                    </td>
+                    <td style="min-width:8px"></td>
+                    <td style="word-break:break-word">{{ choice.label }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    {%- endfor -%}
+    {{ caller() }}
+{%- endmacro -%}
+{%- macro render_single_select(choices, component_value) -%}
+    {%- for choice in choices -%}
+        <div style="margin-top:16px">
+            <table
+              style="color:#202124;font-family:Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;margin-top:8px;table-layout:fixed">
+                <tbody>
+                <tr>
+                    <td>
+                        <div role="radio"
+                             aria-checked="{{ 'true' if choice.value == component_value.value else 'false' }}"
+                             aria-label="{{ choice.label }}"
+                             style="border:solid 2px #5f6368;height:16px;width:16px;border-radius:50%">
+                            {%- if choice.value == component_value.value -%}
+                                <div
+                                  style="background-color:#5f6368;border:solid 5px #5f6368;border-radius:50%;margin:3px;height:0;width:0"></div>
+                            {%- endif -%}
+                        </div>
+                    </td>
+                    <td style="min-width:8px"></td>
+                    <td style="word-break:break-word">{{ choice.label }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    {%- endfor -%}
+    {{ caller() }}
+{%- endmacro -%}
+{%- macro render_file_value(value) -%}
+    <div dir="auto" style="border:1px solid #dadce0;border-radius:4px;margin-top:8px;padding:8px">
+        <a href="{{ value.value }}" target="_blank">
+            <div style="color:#202124;font-size:14px;line-height:20px;word-break:break-word">{{ value.name }}</div>
+        </a>
+    </div>
+    {{ caller() }}
+{%- endmacro -%}
+{%- macro render_location_value(value) -%}
+    {%- if value.address -%}
+        <p>
+            <a href="{{ value.get_maps_url() }}">{{ ', '.join(value.address.address_lines) }}</a>
+        </p>
+    {%- endif -%}
+    <div>
+        <a href="{{ value.get_maps_url() }}">
+            <img src="{{ value.get_signed_static_map_url() }}" style="width: 100%;"/>
+        </a>
+    </div>
+    {{ caller() }}
+{%- endmacro -%}
+<body style="padding: 0; margin:0;">
+<div class="oca-email" style="font-family: Roboto,Arial,sans-serif;line-height: 100%;">
+    <div style="padding: 8px 32px; background-color:rgb(58, 187, 158);">
+        <a href="https://ourcityapps.com">
+            <img style="height: 56px;" src="{{ logo_url }}" alt="{% translate language, 'our-city-app' %}"/>
+        </a>
+    </div>
+    <div style="padding:12px;background-color:#E3F4F0;">
+        <div style="margin:0 auto;max-width:640px;min-width:154px;">
+            <h1>{{ form_title }}</h1>
+            <p>{% translate language, 'forms_someone_filled_in_your_form' %}</p>
+            {%- for section_mapping in sections -%}
+                {%- call render_section_title_block(section_mapping.section.title) -%}{%- endcall -%}
+                <div>
+                    {%- for component in section_mapping.components -%}
+                        {%- set comp = component.component -%}
+                        {%- set value = component.value -%}
+                        {%- call render_block(comp.title) -%}
+                            {%- if comp.type in ('text_input', 'datetime') -%}
+                                {%- call render_input_field() -%}{{ value.get_string_value(comp) }}{%- endcall -%}
+                            {%- elif comp.type == 'single_select' -%}
+                                {%- call render_single_select(comp.choices, value) -%}{%- endcall -%}
+                            {%- elif comp.type == 'multi_select' -%}
+                                {%- call render_multi_select_field(comp.choices, value) -%}{%- endcall -%}
+                            {%- elif comp.type == 'file' -%}
+                                {%- call render_file_value(value) -%}{%- endcall -%}
+                            {%- elif comp.type == 'location' -%}
+                                {%- call render_location_value(value) -%}{%- endcall -%}
+                            {%- else -%}
+                                {{ component.value.get_string_value(comp) }}
+                            {%- endif -%}
+                        {%- endcall -%}
+                    {%- endfor -%}
+                </div>
+            {%- endfor -%}
+            <div style="line-height: 130%; font-size: 11px;">*{{ footer }}</div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

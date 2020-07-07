@@ -56,6 +56,9 @@ import { MatStepperIntlImpl } from './mat-stepper-intl-impl';
 import { FormDetailsPageComponent } from './pages/form-details-page/form-details-page.component';
 import { FormListPageComponent } from './pages/form-list-page/form-list-page.component';
 import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-settings-page.component';
+import { FormIntegrationEmailConfigComponent } from './components/form-integration-email-config/form-integration-email-config.component';
+import { FormIntegrationEmailComponent } from './components/form-integration-email/form-integration-email.component';
+import { ImportFormDialogComponent } from './components/import-form-dialog/import-form-dialog.component';
 
 @NgModule({
   declarations: [
@@ -81,6 +84,9 @@ import { FormsSettingsPageComponent } from './pages/forms-settings-page/forms-se
     FormIntegrationConfigurationComponent,
     FormIntegrationGVComponent,
     FormIntegrationGvConfigComponent,
+    FormIntegrationEmailConfigComponent,
+    FormIntegrationEmailComponent,
+    ImportFormDialogComponent,
   ],
   imports: [
     SharedModule,

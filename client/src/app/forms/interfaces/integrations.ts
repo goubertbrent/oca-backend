@@ -1,18 +1,30 @@
 export enum FormIntegrationProvider {
   GREEN_VALLEY = 'green_valley',
+  EMAIL = 'email',
 }
 
 export interface GVIntegrationConfig {
 }
 
-export interface IntegrationConfigurationGV {
-  provider: FormIntegrationProvider.GREEN_VALLEY;
+export interface EmailIntegrationConfig {
+}
+
+export interface BaseIntegrationConfiguration {
   enabled: boolean;
   visible: boolean;
+}
+
+export interface IntegrationConfigurationGV extends BaseIntegrationConfiguration {
+  provider: FormIntegrationProvider.GREEN_VALLEY;
   configuration: GVIntegrationConfig;
 }
 
-export type FormIntegrationConfiguration = IntegrationConfigurationGV;
+export interface IntegrationConfigurationEmail extends BaseIntegrationConfiguration {
+  provider: FormIntegrationProvider.EMAIL;
+  configuration: EmailIntegrationConfig;
+}
+
+export type FormIntegrationConfiguration = IntegrationConfigurationGV | IntegrationConfigurationEmail;
 
 export enum GvFieldType {
   FIELD = 'field',
@@ -98,9 +110,32 @@ export interface GVIntegrationFormConfig {
   mapping: GVSectionMapping[];
 }
 
+export interface EmailComponentMapping {
+  section_id: string;
+  component_id: string;
+  component_value: string;
+  group_id: number;
+}
+export interface EmailGroup {
+  id: number;
+  name: string;
+  emails: string[];
+}
+
+export interface EmailIntegrationFormConfig {
+  email_groups: EmailGroup[];
+  default_group: number | null;
+  mapping: EmailComponentMapping[];
+}
+
 export interface FormIntegrationGreenValley extends BaseIntegration {
   provider: FormIntegrationProvider.GREEN_VALLEY;
   configuration: GVIntegrationFormConfig;
 }
 
-export type FormIntegration = FormIntegrationGreenValley;
+export interface FormIntegrationEmail extends BaseIntegration {
+  provider: FormIntegrationProvider.EMAIL;
+  configuration: EmailIntegrationFormConfig;
+}
+
+export type FormIntegration = FormIntegrationGreenValley | FormIntegrationEmail;

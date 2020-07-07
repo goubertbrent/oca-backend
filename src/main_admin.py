@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+import webapp2
 
 import admin.explorer.api
 from admin.explorer.handlers import ExplorerHandler
@@ -22,6 +23,7 @@ from rogerthat.wsgi import RogerthatWSGIApplication
 from shop.cron import RecurrentBilling, ExportResellerInvoicesHandler, \
     CleanupUnverifiedSignupRequests
 from solution_server_settings.handlers import SolutionServerSettingsHandler
+from solutions.common.bizz.forms.integrations.email_integration import TestFormSubmissionEmailHandler
 from solutions.common.cron.associations import CreateNonProfitStatistics
 from solutions.common.cron.budget import BudgetCheckHandler
 from solutions.common.cron.city_vouchers import SolutionCityVouchersExportHandler, \
@@ -40,7 +42,6 @@ from solutions.common.handlers.admin.gmb import gmbOauthDecorator, \
     GoogleMyBusinessHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
 from solutions.common.handlers.admin.services import ServiceTools
-
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
@@ -69,6 +70,8 @@ handlers = [
     ('/admin/settings', SolutionServerSettingsHandler),
     ('/admin/explorer', ExplorerHandler),
     ('/admin/gmb', GoogleMyBusinessHandler),
+    webapp2.Route('/admin/form-submission-email/<form_id:\d+>/submission/<submission_id:\d+>',
+                  TestFormSubmissionEmailHandler),
     (gmbOauthDecorator.callback_path, gmbOauthDecorator.callback_handler())  # /admin/gmb/oauth2callback
 ]
 

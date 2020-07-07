@@ -14,16 +14,22 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
-
+import urllib
 from datetime import datetime
+
+from typing import Optional
 
 from mcfw.properties import unicode_property, float_property, long_property, unicode_list_property, typed_property
 from rogerthat.to import TO
 from .enums import FormComponentType
+from rogerthat.consts import GOOGLE_MAPS_CLIENT_API_KEY
+from rogerthat.settings import get_server_settings
+from rogerthat.utils.google_maps_static import sign_url
 
 
 class BaseComponentValue(object):
-    def get_string_value(self):
+    def get_string_value(self, component):
+        # type: (Optional[FieldComponentTO]) -> str
         raise NotImplementedError()
 
 
@@ -35,19 +41,26 @@ class FieldComponentValueTO(TO):
 class TextInputComponentValueTO(FieldComponentValueTO, BaseComponentValue):
     value = unicode_property('value')
 
-    def get_string_value(self):
+    def get_string_value(self, component):
+        # type: (TextInputComponentTO) -> str
         return self.value
 
 
 class SingleSelectComponentValueTO(TextInputComponentValueTO, BaseComponentValue):
-    pass
+    def get_string_value(self, component):
+        # type: (TextInputComponentTO) -> str
+        choices_map = {choice.value: choice.label for choice in component.choices}
+        return choices_map.get(self.value, self.value)
+
 
 
 class MultiSelectComponentValueTO(FieldComponentValueTO, BaseComponentValue):
     values = unicode_list_property('values')
 
-    def get_string_value(self):
-        return ', '.join(self.values)
+    def get_string_value(self, component):
+        # type: (MultiSelectComponentTO) -> str
+        choices_map = {choice.value: choice.label for choice in component.choices}
+        return ', '.join([choices_map.get(val, val) for val in self.values])
 
 
 class DatetimeValueTO(TO):
@@ -63,7 +76,8 @@ class DatetimeComponentValueTO(FieldComponentValueTO, DatetimeValueTO, BaseCompo
     def get_date(self):
         return datetime(self.year, self.month, self.day, self.hour, self.minute)
 
-    def get_string_value(self, fmt='%d/%m/%Y %H:%M'):
+    def get_string_value(self, component, fmt='%d/%m/%Y %H:%M'):
+        # type: (DatetimeComponentTO, str) -> str
         return self.get_date().strftime(fmt)
 
 
@@ -75,7 +89,8 @@ class FileComponentValueTO(FieldComponentValueTO, BaseComponentValue):
     def to_statistics(self):
         return [self.value, self.name, self.file_type]
 
-    def get_string_value(self):
+    def get_string_value(self, component):
+        # type: (FileComponentTO) -> str
         return self.value
 
     @classmethod
@@ -99,7 +114,8 @@ class LocationComponentValueTO(FieldComponentValueTO, BaseComponentValue):
     longitude = float_property('longitude')
     address = typed_property('address', PostalAddressTO, default=None)  # type: PostalAddressTO
 
-    def get_string_value(self):
+    def get_string_value(self, component):
+        # type: (LocationComponentTO) -> str
         latlon = '%s,%s' % (self.latitude, self.longitude)
         if self.address:
             return ', '.join(self.address.address_lines) + ' | %s' % latlon
@@ -107,6 +123,27 @@ class LocationComponentValueTO(FieldComponentValueTO, BaseComponentValue):
 
     def to_statistics(self):
         return [self.latitude, self.longitude]
+
+    def get_maps_url(self):
+        query = '%s,%s' % (self.latitude, self.longitude)
+        params = {
+            'api': 1,
+            'query': query,
+        }
+        return 'https://www.google.com/maps/search/?' + urllib.urlencode(params, doseq=True)
+
+    def get_signed_static_map_url(self):
+        query = [
+            ('zoom', 15),
+            ('size', '592x296'),
+            ('markers', 'color:red|%s,%s' % (self.latitude, self.longitude)),
+            ('key', GOOGLE_MAPS_CLIENT_API_KEY),
+        ]
+        url = 'https://maps.googleapis.com/maps/api/staticmap?' + urllib.urlencode(query)
+        signing_secret = get_server_settings().googleMapsUrlSigningSecret
+        if not signing_secret:
+            raise Exception('googleMapsUrlSigningSecret is not set in the ServerSettings')
+        return sign_url(url, signing_secret.encode('utf-8'))
 
     @classmethod
     def from_statistics(cls, stats):

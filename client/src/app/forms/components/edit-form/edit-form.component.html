@@ -1,5 +1,5 @@
 <form #formElement="ngForm">
-  <mat-vertical-stepper [selectedIndex]="stepperIndex" (selectionChange)="onStepChange($event)">
+  <mat-vertical-stepper #stepper (selectionChange)="onStepChange($event)" [selectedIndex]="stepperIndex">
     <mat-step [completed]="completedSteps[0]">
       <ng-template matStepLabel>{{ 'oca.questions' | translate }}</ng-template>
       <mat-form-field class="form-title-field">
@@ -17,7 +17,6 @@
                              [canMove]="form.form.sections.length > 1"
                              [canDelete]="form.form.sections.length > 1"
                              [headerTitle]="'oca.section_x_of_y' | translate : {current: i + 1, total: form.form.sections.length}"
-                             [readonlyIds]="form.settings.readonly_ids"
                              [(ngModel)]="form.form.sections[i]"
                              (moveSection)="moveSection()"
                              (deleteSection)="deleteSection(i, section)"
@@ -145,12 +144,13 @@
         </button>
       </span>
     </mat-step>
-    <mat-step [completed]="completedSteps[5]" [optional]="true" [label]="'oca.integrations' | translate" *ngIf="activeIntegrations.length > 0 ">
-      <!-- todo: conditionally hide https://github.com/angular/components/pull/15817 -->
+    <mat-step #integrationStep *ngIf="activeIntegrations.length > 0 " [completed]="completedSteps[5]"
+              [label]="'oca.integrations' | translate" [optional]="true">
       <oca-form-integrations [integrations]="form.settings.integrations"
                              [activeIntegrations]="activeIntegrations"
                              [sections]="form.form.sections"
-                             (integrationsChanged)="setIntegrations($event)"></oca-form-integrations>
+                             (integrationsChanged)="setIntegrations($event)"
+                             *ngIf="stepper.selected === integrationStep"></oca-form-integrations>
     </mat-step>
   </mat-vertical-stepper>
   <div class="fab-bottom-right" *ngIf="!form.settings.finished">

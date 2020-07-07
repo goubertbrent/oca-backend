@@ -19,6 +19,8 @@ from google.appengine.api import users
 
 from add_1_monkey_patches import APPSCALE, DEBUG
 
+GOOGLE_MAPS_CLIENT_API_KEY = 'AIzaSyAPesOjDo8VzgaUeAsc4Od-GoBBO11vQZE'
+
 MC_DASHBOARD = users.User(u'dashboard@rogerth.at')
 MC_RESERVED_TAG_PREFIX = u"__rt__"
 

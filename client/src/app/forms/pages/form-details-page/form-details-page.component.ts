@@ -18,6 +18,7 @@ import { UserDetailsTO } from '../../../shared/users/users';
 import { deepCopy } from '../../../shared/util/misc';
 import { createAppUser } from '../../../shared/util/rogerthat';
 import { FormDetailTab } from '../../components/form-detail/form-detail.component';
+import { ImportFormDialogComponent } from '../../components/import-form-dialog/import-form-dialog.component';
 import {
   CopyFormAction,
   DeleteAllResponsesAction,
@@ -30,6 +31,7 @@ import {
   GetNextResponseAction,
   GetResponsesAction,
   GetTombolaWinnersAction,
+  ImportFormAction,
   SaveFormAction,
   ShowDeleteAllResponsesAction,
   TestFormAction,
@@ -44,8 +46,8 @@ import {
 } from '../../forms.state';
 import { OptionsMenuOption } from '../../interfaces/consts';
 import { OptionType } from '../../interfaces/enums';
-import { FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
-import { FormIntegrationProvider } from '../../interfaces/integrations';
+import { CreateDynamicForm, FormStatisticsView, OcaForm, SaveForm, SingleFormResponse } from '../../interfaces/forms';
+import { FormIntegrationConfiguration } from '../../interfaces/integrations';
 
 @Component({
   selector: 'oca-form-details-page',
@@ -58,7 +60,7 @@ export class FormDetailsPageComponent implements OnInit, OnDestroy {
   formStatistics$: Observable<Loadable<FormStatisticsView | null>>;
   tombolaWinners$: Observable<UserDetailsTO[]>;
   formResponse$: Observable<Loadable<SingleFormResponse>>;
-  activeIntegrations$: Observable<FormIntegrationProvider[]>;
+  activeIntegrations$: Observable<FormIntegrationConfiguration[]>;
   formId: number;
   wasVisible: null | boolean = null;
 
@@ -236,6 +238,34 @@ ${this.translate.instant('oca.version')} <pre>${result.data.form.version}</pre>`
           } as SimpleDialogData,
         });
       }
+    });
+  }
+
+  exportForm() {
+    this.form$.pipe(
+      take(1),
+      takeUntil(this._destroyed),
+    ).subscribe(result => {
+      // tslint:disable-next-line:no-non-null-assertion
+      const form = result.data!.form;
+      const exportedForm: Partial<CreateDynamicForm> = {
+        sections: form.sections,
+        max_submissions: form.max_submissions,
+        submission_section: form.submission_section,
+      };
+      const blob = new Blob([JSON.stringify({ version: 1, form: exportedForm })], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${form.title}.json`;
+      a.rel = 'noopener';
+      a.dispatchEvent(new MouseEvent('click'));
+      setTimeout(() => URL.revokeObjectURL(a.href), 1e4); // revoke url after 10 seconds
+    });
+  }
+
+  importForm() {
+    this.matDialog.open(ImportFormDialogComponent).afterClosed().subscribe((result: Partial<CreateDynamicForm>) => {
+      this.store.dispatch(new ImportFormAction({form: result}));
     });
   }
 }

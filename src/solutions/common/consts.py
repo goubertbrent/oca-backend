@@ -205,6 +205,7 @@ TRANSLATION_MAPPING = {
     'map',
     'opening-hours',
     'our-city-app',
+    'page',
     'password',
     'phone_number',
     'please_select_attachment',

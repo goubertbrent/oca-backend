@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # @@license_version:1.7@@
+from typing import List
 
 from mcfw.properties import bool_property, unicode_property, typed_property, long_property
 from rogerthat.to import TO, PaginatedResultTO
@@ -46,8 +47,7 @@ class FormSettingsTO(TO):
     tombola = typed_property('tombola', FormTombolaTO)
     finished = bool_property('finished')
     steps = typed_property('steps', CompletedFormStepTO, True)
-    readonly_ids = bool_property('readonly_ids', default=OcaForm.readonly_ids._default)
-    integrations = typed_property('integrations', FormIntegrationTO, True, default=[])  # type: list[FormIntegrationTO]
+    integrations = typed_property('integrations', FormIntegrationTO, True, default=[])  # type: List[FormIntegrationTO]
 
     @classmethod
     def from_model(cls, oca_form, can_edit_integrations):
@@ -66,7 +66,7 @@ class OcaFormTO(TO):
 
 class FormSubmissionTO(TO):
     id = long_property('id')
-    sections = typed_property('sections', FormSectionValueTO, True)
+    sections = typed_property('sections', FormSectionValueTO, True)  # type: List[FormSectionValueTO]
     submitted_date = unicode_property('submitted_date')
     version = long_property('version')
     external_reference = unicode_property('external_reference')

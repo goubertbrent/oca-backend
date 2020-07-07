@@ -27,6 +27,14 @@
       <mat-icon>code</mat-icon>
       <span>{{ 'oca.developer_information' | translate }}</span>
     </button>
+    <button mat-menu-item (click)="exportForm()">
+      <mat-icon>cloud_download</mat-icon>
+      <span>{{ 'oca.export_form' | translate }}</span>
+    </button>
+    <button mat-menu-item (click)="importForm()">
+      <mat-icon>cloud_upload</mat-icon>
+      <span>{{ 'oca.import_form' | translate }}</span>
+    </button>
   </ng-template>
 </mat-menu>
 <ng-container *ngIf="form$ | async as form">

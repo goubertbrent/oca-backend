@@ -17,14 +17,16 @@
 
 from green_valley import GreenValleyFormIntegration
 from solutions.common.bizz.forms.integrations.base import BaseFormIntegration
-from solutions.common.models.forms import FormIntegrationConfiguration
+from solutions.common.bizz.forms.integrations.email_integration import EmailFormIntegration
+from solutions.common.models.forms import FormIntegrationConfiguration, FormIntegrationProvider
 
 mapping = {
-    'green_valley': GreenValleyFormIntegration
+    FormIntegrationProvider.GREEN_VALLEY: GreenValleyFormIntegration,
+    FormIntegrationProvider.EMAIL: EmailFormIntegration,
 }
 
 
-def get_form_integration(configuration):
-    # type: (FormIntegrationConfiguration) -> BaseFormIntegration
-    if configuration.provider in mapping:
-        return mapping.get(configuration.provider)(configuration.configuration)
+def get_form_integration(provider, configuration):
+    # type: (str, FormIntegrationConfiguration) -> BaseFormIntegration
+    if provider in mapping:
+        return mapping[provider](configuration and configuration.configuration)

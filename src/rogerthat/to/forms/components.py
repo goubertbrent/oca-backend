@@ -17,6 +17,8 @@
 
 from __future__ import unicode_literals
 
+from typing import List
+
 from mcfw.properties import typed_property, unicode_property, unicode_list_property, object_factory, \
     bool_property
 from rogerthat.models.properties.forms import KeyboardType
@@ -98,7 +100,7 @@ class ValueTO(TO):
 
 
 class SelectComponentTO(FieldComponentTO, ValidatedComponentTO):
-    choices = typed_property('choices', ValueTO, True)  # type: list[ValueTO]
+    choices = typed_property('choices', ValueTO, True)  # type: List[ValueTO]
 
 
 class SingleSelectComponentTO(SelectComponentTO):

@@ -1,5 +1,10 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { FormIntegrationConfiguration, FormIntegrationProvider } from '../../interfaces/integrations';
+import {
+  FormIntegrationConfiguration,
+  FormIntegrationProvider,
+  IntegrationConfigurationEmail,
+  IntegrationConfigurationGV,
+} from '../../interfaces/integrations';
 
 @Component({
   selector: 'oca-form-integration-configuration',
@@ -18,11 +23,13 @@ export class FormIntegrationConfigurationComponent implements OnChanges {
       provider: FormIntegrationProvider.GREEN_VALLEY,
       enabled: false,
       visible: true,
-      configuration: {
-        base_url: '',
-        password: '',
-        username: '',
-      },
+      configuration: {} as IntegrationConfigurationGV,
+    },
+    [ FormIntegrationProvider.EMAIL ]: {
+      provider: FormIntegrationProvider.EMAIL,
+      enabled: false,
+      visible: true,
+      configuration: {} as IntegrationConfigurationEmail,
     },
   };
 

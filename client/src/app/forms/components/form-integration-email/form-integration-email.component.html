@@ -1,0 +1,124 @@
+<mat-list>
+  <h3 mat-subheader>{{ 'oca.recipient_groups' | translate }}</h3>
+  <ng-container *ngFor="let group of configuration.email_groups; index as index">
+    <mat-list-item *ngIf="index !== editingGroupIndex; else groupTemplate">
+      <h4 mat-line>{{ group.name }}</h4>
+      <p mat-line>{{ group.emails.join(', ') }}</p>
+      <button (click)="editGroup(group)" mat-icon-button type="button">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button (click)="deleteGroup(group)" mat-icon-button type="button">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-list-item>
+  </ng-container>
+</mat-list>
+<ng-template *ngIf="editingGroupIndex === NEW_ITEM_INDEX" [ngTemplateOutlet]="groupTemplate"></ng-template>
+<div *ngIf="editingGroupIndex === null">
+  <button (click)="addGroup()" mat-stroked-button type="button">{{ 'oca.Add new' | translate }}</button>
+</div>
+
+<mat-form-field>
+  <mat-label>{{ 'oca.default_recipients' | translate }}</mat-label>
+  <mat-select [value]="configuration.default_group" (valueChange)="setDefaultGroup($event)" required>
+    <mat-option *ngFor="let group of configuration.email_groups" [value]="group.id">
+      {{ group.name }} {{ group.emails.join(', ') }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+<h3>{{ 'oca.email_configuration_per_answer' | translate }}</h3>
+<p>{{ 'oca.email_configuration_per_answer_info' | translate }}</p>
+<mat-list>
+  <mat-list-item *ngFor="let mapping of displayMapping">
+    <h4 mat-line>{{ 'oca.page' | translate }}: {{ mapping.page }}</h4>
+    <p mat-line>{{ 'oca.component' | translate }}: {{ mapping.component }}</p>
+    <p mat-line>{{ 'oca.value' | translate }}: {{ mapping.value }}</p>
+    <p mat-line>{{ 'oca.emails' | translate }}: {{ mapping.recipients }}</p>
+    <button (click)="removeMapping(mapping.mapping)" mat-icon-button type="button">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </mat-list-item>
+</mat-list>
+<ng-template *ngIf="editingMappingIndex === NEW_ITEM_INDEX" [ngTemplateOutlet]="mappingFormTemplate"></ng-template>
+<div *ngIf="editingMappingIndex === null">
+  <button (click)="addMapping()" mat-stroked-button type="button">{{ 'oca.add_mapping' | translate }}</button>
+</div>
+
+<ng-template #groupTemplate>
+  <form [formGroup]="groupForm">
+    <mat-form-field class="wide-form-field">
+      <mat-label>{{ 'oca.emails' | translate }}</mat-label>
+      <mat-chip-list #chipList>
+        <mat-chip (removed)="removeEmail(email)"
+                  *ngFor="let email of groupForm.value.emails"
+                  [removable]="true">
+          {{ email }}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+        <input (matChipInputTokenEnd)="addEmail()"
+               type="email"
+               email="true"
+               required
+               formControlName="newEmail"
+               [matChipInputAddOnBlur]="true"
+               [matChipInputFor]="chipList">
+      </mat-chip-list>
+      <button type="button" mat-icon-button matSuffix (click)="addEmail()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </mat-form-field>
+    <mat-error *ngIf="groupForm.controls.newEmail.touched">
+      <ng-container *ngIf="groupForm.controls.newEmail.hasError('required')">
+        {{ 'oca.this_field_is_required' | translate }}
+      </ng-container>
+      <ng-container *ngIf="groupForm.controls.newEmail.hasError('email')">
+      {{ 'oca.enter_valid_email' | translate }}
+      </ng-container>
+    </mat-error>
+    <mat-form-field>
+      <mat-label>{{ 'oca.email_group_name' | translate }}</mat-label>
+      <input formControlName="name" matInput type="text">
+    </mat-form-field>
+    <div>
+      <button (click)="saveGroup()" mat-stroked-button type="button">{{ 'oca.Save' | translate }}</button>
+    </div>
+  </form>
+</ng-template>
+
+<ng-template #mappingFormTemplate>
+  <form [formGroup]="mappingForm">
+    <mat-form-field>
+      <mat-label>{{ 'oca.page' | translate }}</mat-label>
+      <mat-select formControlName="section" required>
+        <mat-option *ngFor="let section of sections" [value]="section">{{ section.title }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field *ngIf="mappingForm.value.section as selectedSection">
+      <mat-label>{{ 'oca.component' | translate }}</mat-label>
+      <mat-select formControlName="component" required>
+        <mat-option *ngFor="let component of selectedSection.components"
+                    [value]="component">{{ component.title }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field *ngIf="mappingForm.value.component as selectedComponent">
+      <mat-label>{{ 'oca.value' | translate }}</mat-label>
+      <mat-select formControlName="value" required>
+        <mat-option *ngFor="let choice of selectedComponent.choices" [value]="choice">{{ choice.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>{{ 'oca.emails' | translate }}</mat-label>
+      <mat-select formControlName="group" required>
+        <mat-option *ngFor="let group of configuration.email_groups" [value]="group">
+          {{ group.name }} <ng-container *ngIf="group.name">- </ng-container>{{ group.emails.join(', ') }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <div>
+      <button (click)="saveMapping()" mat-stroked-button type="button">
+        {{ 'oca.Save' | translate }}
+      </button>
+    </div>
+  </form>
+</ng-template>

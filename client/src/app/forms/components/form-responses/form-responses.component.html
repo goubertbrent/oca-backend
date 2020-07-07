@@ -25,13 +25,15 @@
       {{ response.data.result.external_reference }}
     </a>
   </div>
-  <mat-card class="section-card" *ngFor="let section of response.data.result.sections">
-    <mat-card-header>
-      <mat-card-title>{{ section.title || ('oca.section_x' | translate : {number: section.number}) }}</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <div [ngSwitch]="component.response.type" *ngFor="let component of section.components" class="component-value">
-        <h3>{{ component.title }}</h3>
+  <div class="response-content" *ngFor="let section of response.data.result.sections">
+    <mat-toolbar color="primary" class="section-toolbar">
+      <span class="section-title">{{ section.title || ('oca.section_x' | translate : {number: section.number}) }}</span>
+    </mat-toolbar>
+    <mat-card class="component-card" *ngFor="let component of section.components">
+      <mat-card-header>
+        <mat-card-title>{{ component.title }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content  class="component-value" [ngSwitch]="component.response.type">
         <mat-form-field class="flex-grow" *ngSwitchCase="FormComponentType.TEXT_INPUT">
           <textarea matInput [value]="component.response.value" disabled cdkTextareaAutosize></textarea>
         </mat-form-field>
@@ -74,9 +76,9 @@
             </agm-marker>
           </agm-map>
         </ng-container>
-      </div>
-    </mat-card-content>
-  </mat-card>
+      </mat-card-content>
+    </mat-card>
+  </div>
 </ng-container>
 <ng-template #noResponses>
   <p class="p-padding" *ngIf="response.success">{{ 'oca.response_count.none' | translate }}</p>

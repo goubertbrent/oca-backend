@@ -276,7 +276,6 @@ export interface FormSettings {
   finished: boolean;
   tombola: FormTombola | null;
   steps: CompletedFormStep[];
-  readonly_ids: boolean;
   integrations: FormIntegration[];
 }
 

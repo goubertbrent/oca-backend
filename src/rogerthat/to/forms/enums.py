@@ -15,6 +15,7 @@
 #
 # @@license_version:1.7@@
 
+
 class FormComponentType(object):
     PARAGRAPH = 'paragraph'
     TEXT_INPUT = 'text_input'

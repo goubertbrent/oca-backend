@@ -142,7 +142,6 @@ export class FormsService {
           tombola: null,
           id: 0,
           steps: [ { step_id: CompletedFormStepType.CONTENT } ],
-          readonly_ids: false,
           integrations: [],
         },
       })));
