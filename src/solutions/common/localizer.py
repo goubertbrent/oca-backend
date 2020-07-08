@@ -4524,7 +4524,7 @@ translations = \
          u'coaching_sessions': u'Coaching sessies',
          u'column': u'Kolom',
          u'community_services': u'Gemeentediensten',
-         u'configure_your_address': u'Stel het address in van uw dienst onder Instellingen -> Algemeen',
+         u'configure_your_address': u'Stel het adres in van uw dienst onder Instellingen -> Algemeen',
          u'confirm-delete-static-content': u'Bent u zeker dat u deze statische inhoud wilt verwijderen?',
          u'confirm_delete_discussion_group': u'Weet u zeker dat u de discussiegroep met onderwerp "%(topic)s" wil verwijderen?',
          u'confirm_delete_news': u"Weet u zeker dat u het nieuwsbericht '{{news_title}}' wilt verwijderen?",
