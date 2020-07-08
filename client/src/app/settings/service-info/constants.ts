@@ -594,5 +594,5 @@ export const TIMEZONES = [
   'Zulu',
 ];
 
-export const CURRENCIES = ['EUR', 'USD', 'GBP', 'RON'];
+export const CURRENCIES = ['EUR', 'USD', 'GBP', 'RON', 'ZAR'];
 export const OPEN_24_HOURS_TIME = '0000';
