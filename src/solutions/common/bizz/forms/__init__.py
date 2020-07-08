@@ -27,6 +27,7 @@ from google.appengine.api.taskqueue import taskqueue
 from google.appengine.datastore import datastore_rpc
 from google.appengine.ext import ndb
 from google.appengine.ext.deferred import deferred
+from typing import List
 
 from mcfw.consts import MISSING
 from mcfw.imaging import recolor_png
@@ -464,8 +465,16 @@ def _set_reference_and_remove_sensitive_info(form, submission_key, reference, in
 
 
 def get_form_integrations(user):
-    # type: (users.User) -> list[FormIntegration]
-    return FormIntegrationConfiguration.list_by_user(user)
+    # type: (users.User) -> List[FormIntegrationConfiguration]
+    integration_configs = FormIntegrationConfiguration.list_by_user(user).fetch(
+        None)  # type: List[FormIntegrationConfiguration]
+    if not any(i.provider == FormIntegrationProvider.EMAIL for i in integration_configs):
+        integration_configs.append(FormIntegrationConfiguration(
+            key=FormIntegrationConfiguration.create_key(user, FormIntegrationProvider.EMAIL),
+            enabled=True,
+            configuration={}
+        ))
+    return integration_configs
 
 
 def update_form_integration(user, provider, data):

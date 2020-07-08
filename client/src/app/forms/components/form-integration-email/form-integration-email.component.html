@@ -91,13 +91,17 @@
     <mat-form-field>
       <mat-label>{{ 'oca.page' | translate }}</mat-label>
       <mat-select formControlName="section" required>
-        <mat-option *ngFor="let section of sections" [value]="section">{{ section.title }}</mat-option>
+        <ng-container *ngFor="let section of sections">
+          <mat-option [value]="section" *ngIf="sectionsMapping[section.id].selectableComponents.length">
+            {{ section.title }}
+          </mat-option>
+        </ng-container>
       </mat-select>
     </mat-form-field>
     <mat-form-field *ngIf="mappingForm.value.section as selectedSection">
       <mat-label>{{ 'oca.component' | translate }}</mat-label>
       <mat-select formControlName="component" required>
-        <mat-option *ngFor="let component of selectedSection.components"
+        <mat-option *ngFor="let component of sectionsMapping[selectedSection.id].selectableComponents"
                     [value]="component">{{ component.title }}</mat-option>
       </mat-select>
     </mat-form-field>

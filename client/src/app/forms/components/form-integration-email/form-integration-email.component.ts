@@ -10,7 +10,9 @@ import { EmailComponentMapping, EmailGroup, EmailIntegrationFormConfig } from '.
 
 interface SectionsMapping {
   [ key: string ]: {
-    section: FormSection; components: {
+    section: FormSection;
+    selectableComponents: SingleSelectComponent[];
+    components: {
       [ key: string ]: {
         component: SingleSelectComponent;
         choices: {
@@ -68,7 +70,12 @@ export class FormIntegrationEmailComponent implements OnChanges {
     this.sectionsMapping = {};
     for (const section of this.sections) {
       const components: any = {};
-      this.sectionsMapping[ section.id ] = { section, components };
+      const selectableComponents: SingleSelectComponent[] = [];
+      this.sectionsMapping[ section.id ] = {
+        section,
+        components,
+        selectableComponents,
+      };
       for (const component of section.components) {
         if (component.type === FormComponentType.SINGLE_SELECT) {
           const choices: { [ key: string ]: Value } = {};
@@ -76,6 +83,7 @@ export class FormIntegrationEmailComponent implements OnChanges {
             choices[ choice.value ] = choice;
           }
           components[ component.id ] = { component, choices };
+          selectableComponents.push(component);
         }
       }
     }

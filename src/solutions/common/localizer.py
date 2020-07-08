@@ -20,6 +20,7 @@
 
 translations = \
 {u'en': {u'%(app_name)s has 1 new message for you': u'%(app_name)s has 1 new message for you',
+         u'oca.form_integration_email_explanation': u'With the email integration enabled, an email can be sent to one or multiple email addresses for each response of a survey. You can turn this functionality on or off here (default on). You have to configure to which e-mail addresses the responses should be sent to for every form under the step "integrations"',
          u'hoplr_neighbourhood_not_supported': u'Your neighbourhood is not supported yet by the app',
          u'oca.import': u'Import',
          u'oca.import_form': u'Import survey',
@@ -4000,6 +4001,7 @@ translations = \
          u'your-menu': u'Votre menu',
          u'zip_code': u'Code postal'},
  u'nl': {u'%(app_name)s has 1 new message for you': u'%(app_name)s heeft 1 nieuw bericht voor u',
+         u'oca.form_integration_email_explanation': u'Met de e-mail integratie kan er een e-mail verstuurd worden voor iedere inzending van een bevraging. U kunt deze functionaliteit hier globaal aan of uit zetten (standaard aan). U dient per bevraging wel in te stellen naar welke e-mail addressen deze moeten verstuurd worden onder de stap "integraties"',
          u'hoplr_neighbourhood_not_supported': u'Uw buurt wordt nog niet ondersteund door de app.',
          u'oca.import': u'Importeren',
          u'oca.import_form': u'Bevraging importeren',

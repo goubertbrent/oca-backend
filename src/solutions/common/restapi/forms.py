@@ -27,6 +27,7 @@ from solutions.common.bizz.forms import create_form, get_form, update_form, get_
     get_statistics, list_responses, delete_submissions, delete_form, delete_submission, \
     get_form_integrations, update_form_integration, can_edit_integration_config
 from solutions.common.bizz.forms.export import export_submissions
+from solutions.common.models.forms import FormIntegrationProvider
 from solutions.common.to.forms import OcaFormTO, FormSettingsTO, FormStatisticsTO, FormSubmissionListTO, \
     FormSubmissionTO
 
@@ -47,7 +48,10 @@ def rest_get_integrations():
     can_edit = can_edit_integration_config()
     for integration in get_form_integrations(users.get_current_user()):
         d = integration.to_dict()
-        d['visible'] = can_edit
+        if integration.provider == FormIntegrationProvider.EMAIL:
+            d['visible'] = True
+        else:
+            d['visible'] = can_edit
         if not can_edit:
             del d['configuration']
         results.append(d)

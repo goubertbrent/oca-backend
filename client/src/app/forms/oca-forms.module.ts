@@ -38,7 +38,6 @@ import { EditNextActionDialogComponent } from './components/edit-next-action-dia
 import { FormDetailComponent } from './components/form-detail/form-detail.component';
 import { FormFieldComponent } from './components/form-field/form-field.component';
 import { FormIntegrationConfigurationComponent } from './components/form-integration-configration/form-integration-configuration.component';
-import { FormIntegrationGvConfigComponent } from './components/form-integration-gv-config/form-integration-gv-config.component';
 import { FormIntegrationGVComponent } from './components/form-integration-gv/form-integration-gv.component';
 import { FormIntegrationsComponent } from './components/form-integrations/form-integrations.component';
 import { FormListComponent } from './components/form-list/form-list.component';
@@ -83,7 +82,6 @@ import { ImportFormDialogComponent } from './components/import-form-dialog/impor
     FormIntegrationsComponent,
     FormIntegrationConfigurationComponent,
     FormIntegrationGVComponent,
-    FormIntegrationGvConfigComponent,
     FormIntegrationEmailConfigComponent,
     FormIntegrationEmailComponent,
     ImportFormDialogComponent,
