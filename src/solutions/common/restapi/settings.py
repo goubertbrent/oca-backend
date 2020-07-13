@@ -20,7 +20,10 @@ from mcfw.consts import REST_TYPE_TO
 from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import returns, arguments
 from rogerthat.bizz.registration import get_headers_for_consent
+from rogerthat.bizz.service import re_index_map_only
 from rogerthat.rpc import users
+from rogerthat.utils import try_or_defer
+from rogerthat.utils.service import create_service_identity_user
 from shop.bizz import get_customer_consents, update_customer_consents
 from shop.dal import get_customer
 from solutions.common.bizz.settings import get_service_info, update_service_info, get_consents_for_app
@@ -67,8 +70,9 @@ def save_consent(data):
     update_customer_consents(customer.user_email, {data.type: data.enabled}, headers, context)
     if data.type == SolutionServiceConsent.TYPE_CIRKLO_SHARE and not data.enabled:
         voucher_settings = VoucherSettings.create_key(users.get_current_user()).get()  # type: VoucherSettings
-        logging.warning(voucher_settings)
         if voucher_settings and VoucherProviderId.CIRKLO in voucher_settings.providers:
             voucher_settings.providers.remove(VoucherProviderId.CIRKLO)
             voucher_settings.put()
-        logging.warning(voucher_settings)
+
+        service_identity_user = create_service_identity_user(customer.service_user)
+        try_or_defer(re_index_map_only, service_identity_user)

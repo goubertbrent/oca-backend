@@ -37,7 +37,7 @@ from mcfw.restapi import rest, GenericRESTRequestHandler
 from mcfw.rpc import serialize_complex_value, arguments, returns
 from rogerthat.bizz.friends import user_code_by_hash, makeFriends, ORIGIN_USER_INVITE
 from rogerthat.bizz.registration import get_headers_for_consent
-from rogerthat.bizz.service import SERVICE_LOCATION_INDEX
+from rogerthat.bizz.service import SERVICE_LOCATION_INDEX, re_index_map_only
 from rogerthat.bizz.session import create_session
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.exceptions import ServiceExpiredException
@@ -54,6 +54,7 @@ from rogerthat.to import ReturnStatusTO, RETURNSTATUS_TO_SUCCESS, WarningReturnS
 from rogerthat.utils import get_epoch_from_datetime, bizz_check, try_or_defer
 from rogerthat.utils.app import get_app_id_from_app_user
 from rogerthat.utils.cookie import set_cookie
+from rogerthat.utils.service import create_service_identity_user
 from shop import SHOP_JINJA_ENVIRONMENT
 from shop.bizz import create_customer_signup, complete_customer_signup, get_organization_types, \
     update_customer_consents, get_customer_signup, validate_customer_url_data,\
@@ -735,5 +736,8 @@ class CustomerCirkloAcceptHandler(PublicPageHandler):
             settings.app_id = customer.default_app_id
             settings.providers = [VoucherProviderId.CIRKLO]
             settings.put()
+
+            service_identity_user = create_service_identity_user(customer.service_user)
+            try_or_defer(re_index_map_only, service_identity_user)
             
         self.redirect(self.get_url(customer))
