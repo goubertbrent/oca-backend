@@ -405,7 +405,7 @@ def populate_identity(sln_settings, main_branding_key):
 
         default_app_id = identity.app_ids[0]
         app_data = create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id,
-                                   opening_hours)
+                                   opening_hours, branding_settings)
         system.put_service_data(json.dumps(app_data).decode('utf8'), service_identity)
 
         handle_auto_connected_service(service_user, sln_settings.search_enabled)
@@ -440,8 +440,9 @@ def handle_auto_connected_service(service_user, visible):
 #         delete_auto_connected_service(service_user, customer.app_id, service_identity_email)
 
 
-def create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id, opening_hours):
-    # type: (SolutionSettings, str, ServiceInfo, str, str, OpeningHours) -> dict
+def create_app_data(sln_settings, service_identity, service_info, default_app_name, default_app_id,
+                    opening_hours, branding_settings):
+    # type: (SolutionSettings, str, ServiceInfo, str, str, OpeningHours, SolutionBrandingSettings) -> dict
     start = datetime.now()
     timezone_offsets = []
     for _ in xrange(20):
@@ -458,7 +459,7 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
         start = t.activates
 
     locale = sln_settings.locale
-
+    
     address_url = None
     address_str = None
     if service_info.addresses:
@@ -481,6 +482,8 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
             'timezoneOffset': timezone_offset(sln_settings.timezone),
             'timezoneOffsets': timezone_offsets,
             'modules': sln_settings.modules,
+            'logo_url': branding_settings.logo_url,
+            'avatar_url': branding_settings.avatar_url,
             # TODO: cleanup
             'payment': {
                 'enabled': False,
