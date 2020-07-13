@@ -482,8 +482,8 @@ def create_app_data(sln_settings, service_identity, service_info, default_app_na
             'timezoneOffset': timezone_offset(sln_settings.timezone),
             'timezoneOffsets': timezone_offsets,
             'modules': sln_settings.modules,
-            'logo_url': branding_settings.logo_url,
-            'avatar_url': branding_settings.avatar_url,
+            'logo_url': branding_settings.logo_url if branding_settings else None,
+            'avatar_url': branding_settings.avatar_url if branding_settings else None,
             # TODO: cleanup
             'payment': {
                 'enabled': False,
