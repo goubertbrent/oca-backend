@@ -211,7 +211,6 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
         ...partialConfig,
       },
     };
-    console.log(config);
     return this.matDialog.open(UploadFileDialogComponent, config);
   }
 
@@ -233,9 +232,5 @@ export class ServiceInfoPageComponent implements OnInit, OnDestroy {
       const mainType = this.formGroup.value.main_place_type;
       this.otherPlaceTypes$.next(types.map(p => ({ ...p, disabled: mainType === p.value })));
     });
-  }
-
-  getError() {
-    console.log(this.formGroup.controls.place_types);
   }
 }

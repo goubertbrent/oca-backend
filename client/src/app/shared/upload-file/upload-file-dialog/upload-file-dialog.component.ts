@@ -84,16 +84,30 @@ export class UploadFileDialogComponent implements OnDestroy {
     if (target.files && target.files.length) {
       const file = target.files[ 0 ];
       this.selectedFile = file;
-      if (file.type.startsWith('image')) {
+      if (this.data.croppedImageType || file.type.startsWith('image')) {
         this.showProgress = true;
         reader.readAsDataURL(file);
         reader.onload = () => {
-          this.selectedImageUrl = reader.result as string;
+          const dataUrl = reader.result as string;
+          const contentType = dataUrl.substring(dataUrl.indexOf(':') + 1, dataUrl.indexOf(';'));
+          if (!contentType.startsWith('image')) {
+            this.showNotAnImageError();
+            return;
+          }
+          this.selectedImageUrl = dataUrl;
           this.showProgress = false;
           this.changeDetectorRef.markForCheck();
         };
+        reader.onerror = () => this.showNotAnImageError();
       }
     }
+  }
+
+  private showNotAnImageError() {
+    this.selectedImageUrl = null;
+    this.uploadError = this.translate.instant('oca.upload_file_image_error');
+    this.showProgress = false;
+    this.changeDetectorRef.markForCheck();
   }
 
   ngOnDestroy(): void {
@@ -142,7 +156,10 @@ export class UploadFileDialogComponent implements OnDestroy {
   }
 
   private getFile(): Promise<Blob | null> {
-    if (this.selectedFile && this.selectedFile.type.startsWith('image')) {
+    if (!this.selectedFile) {
+      return Promise.resolve(null);
+    }
+    if (this.data.croppedImageType || this.selectedFile.type.startsWith('image')) {
       // Always crop to jpeg unless it's a png (for transparent images so they don't lose the transparency)
       const croppedImageType = this.data.croppedImageType ?? (this.selectedFile.type === 'image/png' ? 'image/png' : 'image/jpeg');
       const options = this.data.croppedCanvasOptions;
