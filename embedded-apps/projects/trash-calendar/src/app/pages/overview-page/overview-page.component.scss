@@ -1,0 +1,27 @@
+.collection-header {
+  text-transform: capitalize;
+  font-weight: bold;
+}
+
+.activity-icon {
+  width: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  img {
+    height: 21px;
+  }
+}
+
+.full-width-logo {
+  width: 100%;
+  height: auto;
+}
+
+
+.settings-buttons {
+  ion-button {
+    margin: 16px;
+  }
+}

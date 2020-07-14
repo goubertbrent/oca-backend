@@ -1,0 +1,53 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.trash.configure_address' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <ion-progress-bar *ngIf="(loading$ | async) || (isSavingAddress$ | async)" type="indeterminate"></ion-progress-bar>
+  <form (ngSubmit)="saveAddress()" [formGroup]="addressGroup">
+    <ion-list *ngIf="streetsResult$ | async as s">
+      <ion-item>
+        <ion-label position="floating">{{ 'app.trash.street' | translate }}</ion-label>
+        <ionic-selectable
+          [canSearch]="true"
+          [hasVirtualScroll]="true"
+          virtualScrollApproxItemHeight="48px"
+          [clearButtonText]="'app.trash.cancel' | translate"
+          [closeButtonText]="'app.trash.close' | translate"
+          [items]="s.items"
+          [searchFailText]="'app.trash.nothing_found' | translate"
+          [searchPlaceholder]="'app.trash.search' | translate"
+          formControlName="street"
+          itemTextField="name" itemValueField="number"></ionic-selectable>
+      </ion-item>
+      <ion-item *ngIf="s.street_number_via_input; else houseNumberSelect">
+        <ion-label position="floating">{{ 'app.trash.house_number' | translate }}</ion-label>
+        <ion-input formControlName="houseNumberInput" type="text"></ion-input>
+      </ion-item>
+      <ng-template #houseNumberSelect>
+        <ion-item *ngIf="addressGroup.value.street">
+          <ion-label position="floating">{{ 'app.trash.house_number' | translate }}</ion-label>
+          <ionic-selectable
+            [canSearch]="true"
+            [hasVirtualScroll]="true"
+            virtualScrollApproxItemHeight="48px"
+            [clearButtonText]="'app.trash.cancel' | translate"
+            [closeButtonText]="'app.trash.close' | translate"
+            [items]="houseNumbers$ | async"
+            [searchFailText]="'app.trash.nothing_found' | translate"
+            [searchPlaceholder]="'app.trash.search' | translate"
+            formControlName="houseNumber"
+            itemTextField="label"
+            itemValueField="label"></ionic-selectable>
+        </ion-item>
+      </ng-template>
+    </ion-list>
+    <div class="submit-button">
+      <ion-button type="submit" [disabled]="isSavingAddress$ | async">{{ 'app.trash.save' | translate }}</ion-button>
+    </div>
+  </form>
+</ion-content>

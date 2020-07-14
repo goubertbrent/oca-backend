@@ -1,0 +1,22 @@
+{
+  "app.trash": {
+    "cancel": "Annuleren",
+    "close": "Sluiten",
+    "configure_address": "Adres instellen",
+    "error": "Fout",
+    "house_number": "Huisnummer",
+    "no_location_set": "Geen locatie ingesteld",
+    "nothing_found": "Niets gevonden",
+    "ok": "Ok",
+    "please_enter_a_house_number": "Gelieve een huisnummer in te vulen",
+    "please_select_a_house_number": "Gelieve een huisnummer te selecteren",
+    "please_select_street": "Gelieve een straat te selecteren",
+    "remind_me": "Herinner mij",
+    "retry": "Opnieuw proberen",
+    "save": "Opslaan",
+    "search": "Zoeken",
+    "street": "Straat",
+    "trash_calendar": "Afvalkalender",
+    "unknown_error": "Er is een onbekende fout opgetreden. Probeer het later opnieuw en controleer of uw internetverbinding correct werkt."
+  }
+}

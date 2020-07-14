@@ -1,0 +1,22 @@
+{
+  "app.trash": {
+    "cancel": "Cancel",
+    "close": "close",
+    "configure_address": "Configure address",
+    "error": "Error",
+    "house_number": "House number",
+    "no_location_set": "No location set",
+    "nothing_found": "Nothing found",
+    "ok": "Ok",
+    "please_enter_a_house_number": "Please enter a house number",
+    "please_select_a_house_number": "Please select a house number",
+    "please_select_street": "Please select a street",
+    "remind_me": "Remind me",
+    "retry": "Retry",
+    "save": "Save",
+    "search": "Search",
+    "street": "Street",
+    "trash_calendar": "Trash calendar",
+    "unknown_error": "An unknown error has occurred. Please retry later and verify if your internet connection is working properly."
+  }
+}

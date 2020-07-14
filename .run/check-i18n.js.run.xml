@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="check-i18n.js" type="NodeJSConfigurationType" nameIsGenerated="true" path-to-js-file="check-i18n.js" working-dir="$PROJECT_DIR$/embedded-apps/tools">
+    <method v="2" />
+  </configuration>
+</component>

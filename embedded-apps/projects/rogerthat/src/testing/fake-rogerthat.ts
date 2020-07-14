@@ -38,7 +38,7 @@ const rogerthat = {
     },
   },
   user: {
-    language: 'nl',
+    language: 'en',
     firstName: 'FirstName',
     lastName: 'LastName',
     data: {},
@@ -52,7 +52,12 @@ const rogerthat = {
     }
   },
   service: {
-    data: {},
+    data: {
+      settings: {
+        logo_url: 'https://storage.googleapis.com/oca-files/image-library/logo/community-service.jpg',
+        avatar_url: 'https://storage.googleapis.com/oca-files/image-library/avatar/community-service.jpg',
+      }
+    },
   },
   menuItem: {
     hashedTag: '__sln__.cirklo',

@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.trash.trash_calendar' | translate }}</ion-title>
+    <ion-buttons slot="start">
+      <app-back-button></app-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <img *ngIf="logoUrl$ | async as logo" [src]="logo" alt="Logo" class="full-width-logo">
+  <div class="settings-buttons">
+    <ion-button color="light" expand="block" routerLink="/address">
+      <ion-icon name="settings-outline" slot="start"></ion-icon>
+      <ion-label>{{ (currentAddress$ | async) || ('app.trash.no_location_set' | translate) }}</ion-label>
+    </ion-button>
+    <ion-button *ngIf="canSetNotifications$ | async" color="light" expand="block" routerLink="/notifications">
+      <ion-icon name="notifications-outline" slot="start"></ion-icon>
+      <ion-label>{{ 'app.trash.remind_me'| translate }}</ion-label>
+    </ion-button>
+  </div>
+  <ion-list>
+    <ng-container *ngFor="let collection of collections$ | async">
+      <ion-list-header class="collection-header" color="light"
+                       mode="md">{{ collection.date | date : 'fullDate' }}</ion-list-header>
+      <ion-item *ngFor="let activity of collection.activities" lines="none">
+        <div class="activity-icon">
+          <img [alt]="activity.name" [src]="activity.iconUrl">
+        </div>
+        <ion-label>{{ activity.name }}</ion-label>
+      </ion-item>
+    </ng-container>
+  </ion-list>
+</ion-content>

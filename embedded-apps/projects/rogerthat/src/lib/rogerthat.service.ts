@@ -61,7 +61,7 @@ export class RogerthatService {
     const callResult = rogerthat.api.call(method, data, tag, true);
     if (callResult instanceof Promise) {
       return from(this.wrapPromise(callResult)).pipe(
-        map(result => (result && result.result ? JSON.parse(result.result) : null) as T),
+        map(result => this.getParsedResult((result as {result: string | null}).result) as T),
         catchError(err => {
           let resultError = err;
           if (err.hasOwnProperty('error')) {
@@ -102,17 +102,27 @@ export class RogerthatService {
     rogerthat.api.callbacks.resultReceived((method, result, error, tag) => {
       this.ngZone.run(() => this.apiCallResult$.next({
         method,
-        result: result ? JSON.parse(result) : null,
+        result: this.getParsedResult(result),
         error,
         tag,
       }));
     });
   }
 
+  private getParsedResult(result: string | null | undefined) {
+    if (result) {
+      try {
+        return JSON.parse(result);
+      } catch (ignored) {
+      }
+    }
+    return result ?? null;
+  }
+
   private wrapPromise<T>(promise: Promise<T>) {
-      return new Promise<T>((resolve, reject) => {
-        promise.then(result => this.ngZone.run(() => resolve(result)));
-        promise.catch(err => this.ngZone.run(() => reject(err)));
-      });
+    return new Promise<T>((resolve, reject) => {
+      promise.then(result => this.ngZone.run(() => resolve(result)));
+      promise.catch(err => this.ngZone.run(() => reject(err)));
+    });
   }
 }

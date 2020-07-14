@@ -3,7 +3,7 @@ import {readdir} from 'fs/promises'
 import {dirname, join} from 'path'
 
 
-const projects = ['hoplr', 'oca', 'cirklo'];
+const projects = ['hoplr', 'oca', 'cirklo', 'trash-calendar'];
 const currentFolder = realpathSync(dirname(''));
 
 checkProjects(projects, join(currentFolder, '..', 'projects')).catch(err => {
