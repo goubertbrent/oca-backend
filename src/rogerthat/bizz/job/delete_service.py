@@ -39,7 +39,7 @@ from rogerthat.dal.roles import get_service_grants
 from rogerthat.dal.service import get_all_service_friend_keys_query, \
     get_service_identities, get_service_identity
 from rogerthat.models import ServiceIdentity, Avatar, App, \
-    TrialServiceAccount, ProfilePointer, MessageFlowRunRecord, \
+    ProfilePointer, MessageFlowRunRecord, \
     ServiceInteractionDef, Branding, SIKKey, APIKey, ShortURL, UserProfile
 from rogerthat.rpc import users
 from rogerthat.rpc.models import Session, ServiceLog
@@ -158,7 +158,6 @@ def _delete_non_ancestor_models(parent_service_user, service_user):
             return keys, si_users
 
         keys = [db.Key.from_path(Avatar.kind(), sp.avatarId)]
-        keys.extend(TrialServiceAccount.all(keys_only=True).filter("service", service_user))
         more_keys, service_identity_users = db.run_in_transaction(get_service_identity_based_keys)
         keys.extend(more_keys)
         keys.extend(MessageFlowRunRecord.all(keys_only=True).filter(

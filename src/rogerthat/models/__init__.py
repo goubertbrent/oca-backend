@@ -588,29 +588,6 @@ class Code(db.Model):
     version = db.IntegerProperty()
 
 
-class TrialServiceAccount(db.Model):
-    owner = db.UserProperty()
-    service = db.UserProperty()
-    password = db.StringProperty(indexed=False)
-    creationDate = db.IntegerProperty()
-
-
-class NdbTrialServiceAccount(NdbModel):
-
-    @classmethod
-    def _get_kind(cls):
-        return TrialServiceAccount.kind()
-
-    owner = ndb.UserProperty()
-    service = ndb.UserProperty()
-    password = ndb.StringProperty(indexed=False)
-    creationDate = ndb.IntegerProperty()
-
-    @classmethod
-    def list_by_service(cls, service_user):
-        return cls.query().filter(cls.service == service_user)
-
-
 class BaseProfile(CachedModelMixIn):
 
     def invalidateCache(self):
@@ -1299,6 +1276,7 @@ class ServiceRole(db.Model):
         return db.Key.from_path(cls.kind(), role_id, parent=parent_key(service_user))
 
 
+# TODO: remove FriendCategory, it's basically unused
 class FriendCategory(db.Model):
     name = db.StringProperty(indexed=False)
     avatar = db.BlobProperty()
@@ -2536,20 +2514,6 @@ class SmartphoneChoice(db.Model):
     OTHER = 7
 
     choice = db.IntegerProperty(indexed=False)
-
-
-class ServiceEmail(db.Model):
-    TYPE_SERVICE_ENABLED = 1
-    TYPE_SERVICE_DISABLED = 2
-
-    timestamp = db.IntegerProperty()
-    subject = db.StringProperty(indexed=False)
-    messageText = db.TextProperty()
-    messageHtml = db.TextProperty()
-
-    @property
-    def user(self):
-        return users.User(self.parent_key().name())
 
 
 class ServiceMenuDef(db.Model):

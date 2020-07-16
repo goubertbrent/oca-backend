@@ -51,13 +51,13 @@ from rogerthat.capi.news import disableNews, createNotification
 from rogerthat.consts import SCHEDULED_QUEUE, DEBUG, NEWS_STATS_QUEUE, NEWS_MATCHING_QUEUE
 from rogerthat.dal import put_in_chunks
 from rogerthat.dal.mobile import get_mobile_key_by_account
-from rogerthat.dal.profile import get_user_profile, ndb_is_trial_service, get_service_profile, get_service_profiles
+from rogerthat.dal.profile import get_user_profile, get_service_profile, get_service_profiles
 from rogerthat.dal.service import get_service_identity, \
     ndb_get_service_menu_items, get_service_identities_not_cached, get_default_service_identity
 from rogerthat.exceptions.news import NewsNotFoundException, CannotUnstickNewsException, TooManyNewsButtonsException, \
     CannotChangePropertyException, MissingNewsArgumentException, InvalidNewsTypeException, NoPermissionToNewsException, \
     ValueTooLongException, DemoServiceException, InvalidScheduledTimestamp, \
-    EmptyActionButtonCaption, InvalidActionButtonRoles, InvalidActionButtonFlowParamsException, TrialServiceException
+    EmptyActionButtonCaption, InvalidActionButtonRoles, InvalidActionButtonFlowParamsException
 from rogerthat.models import ServiceProfile, PokeTagMap, ServiceMenuDef, NdbApp, \
     UserProfileInfoAddress, NdbProfile, UserProfileInfo, NdbUserProfile, ServiceIdentity, NdbServiceProfile
 from rogerthat.models.maps import MapService
@@ -938,9 +938,6 @@ def put_news(sender, sticky, sticky_until, title, message, image, news_type, new
         if scheduled_at < now() and scheduled_at is not 0:
             raise InvalidScheduledTimestamp()
     scheduled_at = scheduled_at if not is_empty(scheduled_at) else 0
-
-    if ndb_is_trial_service(service_user):
-        raise TrialServiceException()
 
     buttons = NewsButtons()
 

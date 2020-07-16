@@ -33,12 +33,12 @@ from rogerthat.bizz.profile import create_user_profile, update_password_hash
 from rogerthat.bizz.service import remove_service_identity_from_index, re_index, get_shorturl_for_qr
 from rogerthat.consts import HIGH_LOAD_CONTROLLER_QUEUE, MIGRATION_QUEUE
 from rogerthat.dal import parent_key, put_and_invalidate_cache, parent_key_unsafe
-from rogerthat.dal.profile import _get_db_profile_not_cached, get_service_profile, is_trial_service, get_user_profile, \
+from rogerthat.dal.profile import _get_db_profile_not_cached, get_service_profile, get_user_profile, \
     get_profile_info
 from rogerthat.dal.service import get_all_service_friend_keys_query, get_service_identities_query, \
     get_default_service_identity_not_cached
-from rogerthat.models import ServiceProfile, App, ServiceIdentity, UserData, TrialServiceAccount, \
-    MessageFlowRunRecord, SIKKey, APIKey, Branding, ServiceInteractionDef, ShortURL, ProfilePointer, Avatar, \
+from rogerthat.models import ServiceProfile, App, ServiceIdentity, UserData, MessageFlowRunRecord, SIKKey, APIKey, \
+    Branding, ServiceInteractionDef, ShortURL, ProfilePointer, Avatar, \
     UserProfile
 from rogerthat.models.properties.keyvalue import KeyValueProperty, KVStore, KVBucket, KVBlobBucket
 from rogerthat.models.utils import copy_model_properties, replace_name_in_key
@@ -566,20 +566,15 @@ def _5000_migrate_non_ancestor_models(job_key):
     # Do the work
     _log_progress(job)
 
-    models = list()
-    logging.debug("1/ Collecting TrialServiceAccounts")
-    for model in TrialServiceAccount.all().filter("service", job.from_service_user):
-        model.service = job.to_service_user
-        models.append(model)
-
-    logging.info("2/ Collecting MessageFlowRunRecords")
+    models = []
+    logging.info("1/ Collecting MessageFlowRunRecords")
     for model in MessageFlowRunRecord.all().filter("service_identity >=", job.from_service_user.email() + '/').filter(
         "service_identity <", job.from_service_user.email() + u"/\ufffd"):
         identity = get_identity_from_service_identity_user(users.User(model.service_identity))
         model.service_identity = create_service_identity_user(job.to_service_user, identity).email()
         models.append(model)
 
-    logging.info("3/ Collecting Avatar, Branding, SIKKey, APIKey")
+    logging.info("2/ Collecting Avatar, Branding, SIKKey, APIKey")
     for model_class in (Avatar, Branding, SIKKey, APIKey):
         for model in model_class.all().filter("user", job.from_service_user):
             model.user = job.to_service_user
@@ -771,9 +766,7 @@ def _8000_finish_models(job_key):
 
     try:
         logging.info("1/ re_index all service identities asynchronously")
-        if not is_trial_service(job.to_service_user):
-            run_job(get_service_identities_query, [job.to_service_user, True],
-                    _re_index_service_identity, [])
+        run_job(get_service_identities_query, [job.to_service_user, True], _re_index_service_identity, [])
 
         logging.info("2/ set solution and enabled on the new ServiceProfile")
 

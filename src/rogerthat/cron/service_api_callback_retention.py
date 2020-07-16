@@ -21,7 +21,6 @@ import logging
 from google.appengine.ext import webapp, db
 
 from rogerthat.bizz import monitoring
-from rogerthat.bizz.service import send_callback_delivery_warning
 from rogerthat.consts import SERVICE_API_CALLBACK_RETRY_UNIT
 from rogerthat.dal.profile import get_service_profile
 from rogerthat.dal.service import log_service_activity
@@ -47,8 +46,6 @@ class ProcessServiceAPICallbackHandler(webapp.RequestHandler):
                 if service_api_callback.retryCount > 2:
                     logging.warn('Service api failure for %s with retrycount %s', service_api_callback.key(), service_api_callback.retryCount)
                     monitoring.log_service_api_failure(service_api_callback, monitoring.SERVICE_API_CALLBACK)
-                if service_api_callback.retryCount > 7:
-                    send_callback_delivery_warning(svc_profile, "callback timeout delivery")
                 service_api_callback.put()
                 if not retry_call_back:
                     return

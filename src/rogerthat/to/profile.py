@@ -88,15 +88,3 @@ class CompleteProfileTO(UserProfileTO):
             p.userLanguage = profile_info.language
             p.organizationType = 0
         return p
-
-
-class TrialServiceTO(TO):
-    account = unicode_property('1')
-    password = unicode_property('2')
-
-    @staticmethod
-    def fromDBTrialServiceAccount(account):
-        ts = TrialServiceTO()
-        ts.account = account.service.email()
-        ts.password = account.password
-        return ts

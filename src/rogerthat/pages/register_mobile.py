@@ -230,23 +230,10 @@ class InitiateRegistrationViaEmailVerificationHandler(webapp.RequestHandler):
             server_settings = get_server_settings()
             if rogerthat_profile and isinstance(rogerthat_profile, ServiceProfile):
                 # some guy tries to register a mobile on a service account ?!?
-                variables = dict(email=email)
-                body = render(
-                    "somebody_tries_to_register_his_mobile_on_your_service_account_warning", [language], variables)
-                html = render(
-                    "somebody_tries_to_register_his_mobile_on_your_service_account_warning_html", [language], variables)
-                logging.info("Sending message to %s\n%s" % (email, body))
-                recipients = [email]
-
-                for admin in get_service_admins_non_transactional(app_user):
-                    recipients.append(admin.user_email)
-
-                subject = "Warning, possibly somebody tries to hack your service account."
-                send_mail(server_settings.senderEmail, recipients, subject, body, html=html)
-
                 warning = InstallationLog(parent=installation, timestamp=now(),
                                           description="Warning somebody tries to register a mobile with the email address of service account %s" % email)
                 db_puts.append(warning)
+                raise Exception('Trying to register using a service email: %s', email)
             else:
                 profile = get_user_profile(app_user)
                 if profile:
@@ -447,10 +434,10 @@ class CommonRegistrationHandler(webapp.RequestHandler):
 
     def _get_app_user(self, language, app_id):
         raise NotImplementedError()
-    
+
     def _get_first_name(self):
         return None
-    
+
     def _get_last_name(self):
         return None
 
@@ -637,12 +624,12 @@ class RegisterMobileViaFacebookHandler(CommonRegistrationHandler):
     def post(self):
         self.access_token = self.request.get("access_token", None)
         super(RegisterMobileViaFacebookHandler, self).post()
-        
+
 
 class RegisterMobileViaAppleHandler(CommonRegistrationHandler):
     TYPE = 'APPLE'
     ANONYMOUS = False
-    
+
     def _get_app_user(self, language, app_id):
         try:
             if self.apple_email:
@@ -655,16 +642,16 @@ class RegisterMobileViaAppleHandler(CommonRegistrationHandler):
             self._put_and_callback()
             self.response.set_status(500)
             raise BusinessException()
-    
+
     def _validate_signature(self, signature, version, install_id, registration_time, device_id, registration_id):
         calculated_signature = sha256_hex(version + " " + install_id + " " + registration_time + " " + device_id + " " +
                                           registration_id + " " + self.apple_user_id + base64.b64decode(
                                               self.server_settings.registrationMainSignature.encode("utf8")))
         return signature.upper() == calculated_signature.upper()
-    
+
     def _get_first_name(self):
         return self.apple_given_name
-    
+
     def _get_last_name(self):
         return self.apple_family_name
 
@@ -971,7 +958,7 @@ class RegisterDeviceHandler(webapp.RequestHandler):
         if tos_age:
             tos_version = get_current_document_version(DOC_TERMS)
         consent_push_notifications_shown = push_notifications_enabled is not None
-        account, registration.mobile, age_and_gender_set = register_mobile(human_user, 
+        account, registration.mobile, age_and_gender_set = register_mobile(human_user,
                                                                            app_id=app_id,
                                                                            use_xmpp_kick_channel=use_xmpp_kick_channel,
                                                                            gcm_registration_id=gcm_registration_id,
@@ -1108,7 +1095,7 @@ class InitServiceAppHandler(webapp2.RequestHandler):
 
         user_id = str(uuid.uuid4()).replace("-", "")
         user = users.User("%s@ysaaa.rogerth.at" % user_id)
-        account, _, age_and_gender_set = register_mobile(user, 
+        account, _, age_and_gender_set = register_mobile(user,
                                                          name=user_id,
                                                          app_id=app_id,
                                                          use_xmpp_kick_channel=use_xmpp_kick_channel,
@@ -1173,7 +1160,7 @@ def validate_user_registration(installation, app_user, language, service_identit
     from rogerthat.service.api import friends as service_api_friends
     from rogerthat.bizz.profile import _create_new_avatar
 
-    avatar, _ = _create_new_avatar(app_user, add_trial_overlay=False)
+    avatar, _ = _create_new_avatar(app_user)
     user_profile = UserProfile(parent=parent_key(app_user), key_name=app_user.email())
     user_profile.name = None
     user_profile.language = language

@@ -32,13 +32,12 @@ from rogerthat.bizz.profile import update_password_hash, create_user_profile
 from rogerthat.bizz.registration import get_headers_for_consent, save_tos_consent
 from rogerthat.bizz.session import create_session
 from rogerthat.bizz.user import calculate_secure_url_digest, update_user_profile_language_from_headers
-from rogerthat.consts import DEBUG
 from rogerthat.dal.profile import get_service_or_user_profile
 from rogerthat.exceptions import ServiceExpiredException
 from rogerthat.exceptions.login import AlreadyUsedUrlException, ExpiredUrlException, InvalidUrlException
 from rogerthat.models import UserProfile, ServiceProfile
-from rogerthat.pages.legal import get_legal_language, get_version_content, DOC_TERMS_SERVICE, get_current_document_version, \
-    DOC_TERMS
+from rogerthat.pages.legal import get_legal_language, get_version_content, DOC_TERMS_SERVICE, \
+    get_current_document_version, DOC_TERMS
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
 from rogerthat.templates import get_languages_from_header, JINJA_ENVIRONMENT
@@ -79,14 +78,7 @@ class SessionHandler(webapp.RequestHandler):
 class LoginHandler(webapp.RequestHandler):
 
     def get(self):
-        user = users.get_current_user()
-        if user:
-            self.redirect("/")
-        else:
-            # Show login.html
-            path = os.path.join(_BASE_DIR, 'login.html')
-            cont = self.request.GET.get("continue", "/")
-            self.response.out.write(template.render(path, {"continue": cont, 'debug': DEBUG}))
+        self.redirect('/customers/signin')
 
 
 class SetPasswordHandler(SessionHandler):
@@ -265,13 +257,6 @@ class LogoutHandler(SessionHandler):
         cont = self.request.get('continue')
         if cont:
             self.redirect('/%s' % cont)
-
-
-class OfflineDebugLoginHandler(SessionHandler):
-
-    def get(self):
-        from google.appengine.api import users as ae_users
-        self.start_session(ae_users.get_current_user())
 
 
 class AutoLogin(webapp.RequestHandler):

@@ -41,7 +41,6 @@ from solutions.common.cron.statistics import DailyStatisticsHandler
 from solutions.common.handlers.admin.gmb import gmbOauthDecorator, \
     GoogleMyBusinessHandler
 from solutions.common.handlers.admin.launcher import OSAAppsPage, PostOSAAppHandler
-from solutions.common.handlers.admin.services import ServiceTools
 
 handlers = [
     ('/admin/cron/rpc/cleanup_solution_events', CleanupSolutionEvents),
@@ -64,7 +63,6 @@ handlers = [
     ('/admin/cron/finish_forms', FinishFormsCron),
     ('/admin/cron/jobs-notifications', JobsNotificationsHandler),
     ('/admin/cron/paddle', SyncPaddleInfoHandler),
-    ('/admin/services', ServiceTools),
     ('/admin/osa/launcher/apps', OSAAppsPage),
     ('/admin/osa/launcher/app/post', PostOSAAppHandler),
     ('/admin/settings', SolutionServerSettingsHandler),

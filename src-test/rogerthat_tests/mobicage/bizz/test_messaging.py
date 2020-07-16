@@ -624,7 +624,7 @@ Dslgfkjdf;lgkjd;lfghdlfkgskdjfglfkdj lkfjdlkjfdlk jdflkgj ldkjfdlgkj dlfkjgldfk 
     def testGeneratePushJSON2(self):
         self.set_datastore_hr_probability(1)
         svc_user = users.User(u'cars@example.com')
-        create_service_profile(svc_user, 'Garage MK Motors', is_trial=False)
+        create_service_profile(svc_user, 'Garage MK Motors')
 
         to = ServiceIdentityDetailsTO()
         to.app_data = None

@@ -242,7 +242,7 @@ var serviceScript = function () {
 
                 lj("#addCallbackConfigDialog_httpCallBackURI", "dc").val("");
                 lj("#addCallbackConfigDialog_httpCallBackURIRequired", "dc").hide();
-                
+
                 lj("#addCallbackConfigDialog_customHeaders", "dc").val("");
                 lj("#addCallbackConfigDialog_name", "dc").focus();
             },
@@ -265,7 +265,7 @@ var serviceScript = function () {
                         lj("#addCallbackConfigDialog_httpCallBackURI", "dc").focus();
                         return;
                     }
-                    
+
                     var regexes = [];
                     var callbacks = -1;
                     if (lj("#addCallbackConfigDialog_sectionRegex", "dc").is(":visible")) {
@@ -521,14 +521,14 @@ var serviceScript = function () {
 
             if (cc.regexes.length > 0) {
                 lj("#addCallbackConfigDialog_regex", "dc").val(cc.regexes[0]);
-                
+
                 lj("#addCallbackConfigDialog_sectionRegex", "dc").show();
                 lj("#addCallbackConfigDialog_sectionCallback", "dc").hide();
             } else {
-            
+
             	lj("#addCallbackConfigDialog_sectionRegex", "dc").hide();
                 lj("#addCallbackConfigDialog_sectionCallback", "dc").show();
-                
+
                 lj("#addCallbackConfigDialog_sectionCallback input[type=checkbox]", "dc").each(function () {
                 	if (cc.callbacks == -1) {
                 		$(this).attr('checked', false);
@@ -542,7 +542,7 @@ var serviceScript = function () {
                 });
             }
             lj("#addCallbackConfigDialog_customHeaders", "dc").val(cc.custom_headers);
-            
+
         });
         $("a.cc-delete", gatml).click(function () {
             lj("#callbackConfigNameLabel", "dc").text(cc.name);
@@ -643,10 +643,8 @@ var serviceScript = function () {
         }
         if (configuration.updatesPending) {
             $("#svcUpdatesPending").fadeIn('slow');
-            $("#svcIsTrial").fadeOut('fast');
         } else {
             $("#svcUpdatesPending").fadeOut('fast');
-            $("#svcIsTrial").fadeIn('slow');
         }
     };
 
@@ -730,7 +728,6 @@ var serviceScript = function () {
                 },
                 success : function(data, textStatus, XMLHttpRequest) {
                     $("#svcUpdatesPending").fadeOut('fast');
-                    $("#svcIsTrial").fadeIn('slow');
                 },
                 error : mctracker.showAjaxError
             });
@@ -752,10 +749,8 @@ var serviceScript = function () {
         } else if (data.type == 'rogerthat.service.updatesPendingChanged') {
             if (data.updatesPending) {
                 $("#svcUpdatesPending").fadeIn('slow');
-                $("#svcIsTrial").fadeOut('fast');
             } else {
                 $("#svcUpdatesPending").fadeOut('fast');
-                $("#svcIsTrial").fadeIn('slow');
             }
         }
     };

@@ -125,7 +125,7 @@ class Test(mc_unittest.TestCase):
         xg_on = db.create_transaction_options(xg=True)
         id_child = db.run_in_transaction_options(xg_on, trans_child)
 
-        _update_inheriting_service_identities(default_service_identity_key=id_default.key(), is_trial=False)
+        _update_inheriting_service_identities(default_service_identity_key=id_default.key())
         id_child = db.get(id_child.key())
 
         assert len(get_service_interaction_defs(svc_user, u'childid', None, True)['defs']) == 1

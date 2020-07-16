@@ -28,9 +28,9 @@ from rogerthat.consts import MC_DASHBOARD
 from rogerthat.dal import parent_key
 from rogerthat.dal.service import get_service_identity, get_default_service_identity, get_service_identity_not_cached, \
     get_default_service_identity_not_cached
-from rogerthat.models import ProfileInfo, Profile, Avatar, TrialServiceAccount, FacebookProfilePointer, SearchConfig, \
+from rogerthat.models import ProfileInfo, Profile, Avatar, FacebookProfilePointer, SearchConfig, \
     SearchConfigLocation, UserProfile, ServiceProfile, ServiceIdentity, UserProfileArchive, \
-    FacebookUserProfileArchive, App, NdbTrialServiceAccount, NdbProfile, NdbServiceProfile, NdbUserProfile
+    FacebookUserProfileArchive, App, NdbProfile, NdbServiceProfile, NdbUserProfile
 from rogerthat.rpc import users
 from rogerthat.utils import get_python_stack_trace, first
 from rogerthat.utils.app import get_app_id_from_app_user
@@ -325,39 +325,6 @@ def get_existing_user_profiles(users_):
 @arguments(id_=int)
 def get_avatar_by_id(id_):
     return Avatar.get_by_id(id_)
-
-
-@returns(TrialServiceAccount)
-@arguments(user=users.User)
-def get_trial_service_by_owner(user):
-    return TrialServiceAccount.all().filter("owner =", user).get()
-
-
-@returns(TrialServiceAccount)
-@arguments(service_user=users.User)
-def get_trial_service_by_account(service_user):
-    return TrialServiceAccount.all().filter("service =", service_user).get()
-
-
-@returns(bool)
-@arguments(service_user=users.User)
-def is_trial_service(service_user):
-    def _is_trial_service():
-        return TrialServiceAccount.all().filter("service =", service_user).get() is not None
-
-    if db.is_in_transaction():
-        @db.non_transactional
-        def non_transactional():
-            return _is_trial_service()
-        return non_transactional()
-
-    return _is_trial_service()
-
-
-@ndb.non_transactional()
-@arguments(service_user=users.User)
-def ndb_is_trial_service(service_user):
-    return NdbTrialServiceAccount.list_by_service(service_user).count() > 0
 
 
 @returns(tuple)  # return config & locations

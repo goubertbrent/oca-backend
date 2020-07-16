@@ -99,16 +99,7 @@ handlers:
     script: rogerthat_unauthenticated.app
     secure: always
 
-  - url: /login/.dev
-    script: rogerthat_unauthenticated.app
-    secure: always
-    login: admin
-
   - url: /(invite|setpassword|resetpassword)
-    script: rogerthat_unauthenticated.app
-    secure: always
-
-  - url: /about
     script: rogerthat_unauthenticated.app
     secure: always
 
@@ -116,7 +107,7 @@ handlers:
     script: rogerthat_unauthenticated.app
     secure: always
 
-  - url: /(login|message)
+  - url: /login
     script: rogerthat_unauthenticated.app
     secure: always
 
@@ -149,10 +140,6 @@ handlers:
     secure: always
 
   - url: /(login_facebook|login_google|login_linkedin)
-    script: rogerthat_unauthenticated.app
-    secure: always
-
-  - url: /subscribe
     script: rogerthat_unauthenticated.app
     secure: always
 

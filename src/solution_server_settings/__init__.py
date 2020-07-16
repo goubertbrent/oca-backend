@@ -70,9 +70,6 @@ class SolutionServerSettings(CachedModelMixIn, db.Model):
     solution_service_auto_connect_emails = add_meta(db.StringListProperty(indexed=False),
                                              doc="The email addresses that will be auto connected to new services",
                                              order=604)
-    solution_trial_service_email = add_meta(db.StringProperty(indexed=False),
-                                            doc="The e-mail address of the yourservcicehere service",
-                                            order=605)
     solution_sync_calendar_events_client_id = add_meta(db.StringProperty(indexed=False),
                                             doc="Client id to sync calendar events",
                                             order=607)

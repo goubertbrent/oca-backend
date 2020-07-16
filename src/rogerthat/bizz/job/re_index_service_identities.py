@@ -22,10 +22,8 @@ from rogerthat.bizz.job import run_job
 from rogerthat.bizz.maps.services import _delete_index, _create_index
 from rogerthat.bizz.service import SERVICE_INDEX, SERVICE_LOCATION_INDEX, re_index, re_index_map_only
 from rogerthat.consts import HIGH_LOAD_WORKER_QUEUE
-from rogerthat.dal.profile import is_trial_service
 from rogerthat.models import ServiceIdentity
 from rogerthat.utils import drop_index
-from rogerthat.utils.service import get_service_user_from_service_identity_user
 
 
 def job(queue=HIGH_LOAD_WORKER_QUEUE):
@@ -34,12 +32,12 @@ def job(queue=HIGH_LOAD_WORKER_QUEUE):
 
     drop_index(svc_index)
     drop_index(loc_index)
-    
+
     _delete_index()
     _create_index()
 
     run_job(query, [], worker, [], worker_queue=queue)
-    
+
 
 def job_map(queue=HIGH_LOAD_WORKER_QUEUE):
     _delete_index()
@@ -54,15 +52,9 @@ def query():
 
 def worker(si_key):
     si = db.get(si_key)
-    service_user = get_service_user_from_service_identity_user(si.service_identity_user)
-    if is_trial_service(service_user):
-        return
     re_index(si.service_identity_user)
 
 
 def worker_map(si_key):
     si = db.get(si_key)
-    service_user = get_service_user_from_service_identity_user(si.service_identity_user)
-    if is_trial_service(service_user):
-        return
     re_index_map_only(si.service_identity_user)

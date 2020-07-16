@@ -16,22 +16,22 @@
 # @@license_version:1.7@@
 
 import base64
-from contextlib import closing
-from datetime import datetime
 import json
 import logging
 import os
-from types import NoneType
 import urllib
 import urlparse
 import uuid
+from contextlib import closing
+from datetime import datetime
+from types import NoneType
 from zipfile import ZipFile
 
 from google.appengine.api import images, search
 from google.appengine.ext import db, deferred, ndb
 from typing import Optional, Tuple, List
 
-from mcfw.cache import cached, invalidate_cache
+from mcfw.cache import cached
 from mcfw.consts import MISSING
 from mcfw.imaging import recolor_png
 from mcfw.properties import azzert
@@ -66,20 +66,20 @@ from rogerthat.dal.friend import get_friends_map, get_friends_map_key_by_user, g
 from rogerthat.dal.messaging import get_message, get_branding
 from rogerthat.dal.mfd import get_service_message_flow_design_key_by_name
 from rogerthat.dal.mobile import get_user_active_mobiles, get_mobile_key_by_account
-from rogerthat.dal.profile import get_search_config, is_trial_service, get_service_profile, get_user_profile, \
-    get_profile_infos, get_profile_info, is_service_identity_user, get_trial_service_by_account, get_search_locations, \
+from rogerthat.dal.profile import get_search_config, get_service_profile, get_user_profile, \
+    get_profile_infos, get_profile_info, is_service_identity_user, get_search_locations, \
     get_service_or_user_profile, get_profile_key
-from rogerthat.dal.roles import get_service_admins, get_service_identities_via_user_roles, get_service_roles_by_ids
+from rogerthat.dal.roles import get_service_identities_via_user_roles, get_service_roles_by_ids
 from rogerthat.dal.service import get_api_keys, get_api_key, get_api_key_count, get_sik, get_service_interaction_def, \
     get_service_menu_item_by_coordinates, get_service_identity, get_friend_serviceidentity_connection, \
     get_default_service_identity, get_service_identity_not_cached, get_service_identities, get_child_identities, \
     get_service_interaction_defs, get_users_connected_to_service_identity, log_service_activity, \
     get_service_identities_by_service_identity_users
-from rogerthat.models import Profile, APIKey, SIKKey, ServiceEmail, ServiceInteractionDef, ShortURL, \
+from rogerthat.models import Profile, APIKey, SIKKey, ServiceInteractionDef, ShortURL, \
     QRTemplate, Message, MFRSIKey, ServiceMenuDef, Branding, PokeTagMap, ServiceProfile, UserProfile, ServiceIdentity, \
     SearchConfigLocation, ProfilePointer, FacebookProfilePointer, MessageFlowDesign, ServiceTranslation, \
     ServiceMenuDefTagMap, UserData, FacebookUserProfile, App, MessageFlowRunRecord, \
-    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink,\
+    FriendServiceIdentityConnection, FriendMap, UserContext, UserContextLink, \
     ServiceCallBackSettings, ServiceCallBackConfig
 from rogerthat.models.properties.friend import FriendDetail, FriendDetails
 from rogerthat.models.properties.keyvalue import KVStore, InvalidKeyError
@@ -93,7 +93,6 @@ from rogerthat.rpc.service import logServiceError, ServiceApiException, ERROR_CO
 from rogerthat.service.api.friends import invited
 from rogerthat.service.api.test import test
 from rogerthat.settings import get_server_settings
-from rogerthat.templates import render
 from rogerthat.to.activity import GeoPointWithTimestampTO, GEO_POINT_FACTOR
 from rogerthat.to.friends import UpdateFriendRequestTO, FriendTO, ServiceMenuDetailTO, ServiceMenuItemLinkTO, \
     FRIEND_TYPE_SERVICE
@@ -110,7 +109,7 @@ from rogerthat.to.service import ServiceConfigurationTO, APIKeyTO, LibraryMenuIc
 from rogerthat.translations import localize, DEFAULT_LANGUAGE
 from rogerthat.utils import now, channel, generate_random_key, parse_color, slog, \
     is_flag_set, get_full_language_string, get_officially_supported_languages, try_or_defer, \
-    bizz_check, base38, send_mail
+    bizz_check, base38
 from rogerthat.utils.app import get_human_user_from_app_user, get_app_id_from_app_user, create_app_user_by_email
 from rogerthat.utils.crypto import md5_hex, sha256_hex
 from rogerthat.utils.languages import convert_web_lang_to_iso_lang
@@ -120,7 +119,6 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user,
 from rogerthat.utils.transactions import run_in_transaction, run_in_xg_transaction, on_trans_committed, \
     on_trans_rollbacked
 from solutions.common.integrations.cirklo.models import VoucherSettings
-
 
 try:
     from cStringIO import StringIO
@@ -404,8 +402,8 @@ class InvalidGroupTypeException(ServiceApiException):
     def __init__(self, group_type):
         ServiceApiException.__init__(self, ServiceApiException.BASE_CODE_SERVICE + 40,
                                      u"Invalid group type", group_type=group_type)
-        
-        
+
+
 class ModulesNotSupportedException(ServiceApiException):
 
     def __init__(self, modules):
@@ -427,21 +425,6 @@ def get_and_validate_service_identity_user(service_user, service_identity):
         raise ServiceIdentityDoesNotExistException(service_identity=service_identity)
 
     return service_identity_user
-
-
-@returns(NoneType)
-@arguments(service_user=users.User, qualified_identifier=unicode)
-def promote_trial_service(service_user, qualified_identifier):
-    ts = get_trial_service_by_account(service_user)
-
-    def trans():
-        service_identity = get_default_service_identity(service_user)
-        service_identity.qualifiedIdentifier = qualified_identifier
-        service_identity.put()
-        db.delete(ts)
-
-    xg_on = db.create_transaction_options(xg=True)
-    db.run_in_transaction_options(xg_on, trans)
 
 
 @returns(ServiceConfigurationTO)
@@ -480,7 +463,7 @@ def get_configuration(service_user):
     else:
         conf.mobidickUrl = None
     conf.actions = [] if conf.mobidickUrl else list(get_configuration_actions(service_user))
-    
+
     conf.regexCallbackConfigurations = []
     callback_settings = ServiceCallBackSettings.create_key(service_user).get()
     if callback_settings:
@@ -815,7 +798,7 @@ def _populate_service_identity(to, si):
         si.inheritanceFlags |= ServiceIdentity.FLAG_INHERIT_HOME_BRANDING
 
 
-def _validate_service_identity(to, is_trial):
+def _validate_service_identity(to):
     if to.identifier is MISSING or not to.identifier or not is_valid_service_identifier(to.identifier):
         raise InvalidValueException(u"identifier", u"Identifier should contain lowercase characters a-z or 0-9 or .-_")
     if to.name is not MISSING:
@@ -828,8 +811,6 @@ def _validate_service_identity(to, is_trial):
             raise InvalidNameException(e.message)
         if EMAIL_REGEX.match(to.name):
             raise InvalidValueException(u"name", u'Name cannot be an e-mail address')
-    if is_trial and to.search_config is not MISSING and to.search_config and to.search_config.enabled:
-        raise InvalidValueException(u"search_config", u'Service search & discovery is not supported for trial accounts')
 
 
 @returns(ServiceIdentity)
@@ -839,8 +820,7 @@ def create_service_identity(service_user, to):
         raise InvalidValueException(u"identifier", u"Cannot create default Service Identity")
     if to.name is MISSING:
         raise InvalidValueException(u"name", u"Name is a required field")
-    is_trial = is_trial_service(service_user)
-    _validate_service_identity(to, is_trial)
+    _validate_service_identity(to)
 
     azzert(get_service_profile(service_user))
     service_identity_user = create_service_identity_user(service_user, to.identifier)
@@ -865,13 +845,12 @@ def create_service_identity(service_user, to):
         si.version = 1
         si.put()
         ProfilePointer.create(si.user).put()
-        if not is_trial:
-            if to.search_use_default is True:
-                default_search_config, default_locations = get_search_config(default_svc_identity_user)
-                update_search_config(service_identity_user,
-                                     SearchConfigTO.fromDBSearchConfig(default_search_config, default_locations))
-            else:
-                update_search_config(service_identity_user, to.search_config, accept_missing=True)
+        if to.search_use_default is True:
+            default_search_config, default_locations = get_search_config(default_svc_identity_user)
+            update_search_config(service_identity_user,
+                                 SearchConfigTO.fromDBSearchConfig(default_search_config, default_locations))
+        else:
+            update_search_config(service_identity_user, to.search_config, accept_missing=True)
 
         return si
 
@@ -883,8 +862,7 @@ def create_service_identity(service_user, to):
 @returns(ServiceIdentity)
 @arguments(service_user=users.User, to=ServiceIdentityDetailsTO)
 def update_service_identity(service_user, to):
-    is_trial = is_trial_service(service_user)
-    _validate_service_identity(to, is_trial)
+    _validate_service_identity(to)
 
     service_identity_user = create_service_identity_user(service_user, to.identifier)
     if get_service_identity(service_identity_user) is None:
@@ -915,19 +893,17 @@ def update_service_identity(service_user, to):
         _populate_service_identity(to, si)
         si.version += 1
         si.put()
-
-        if not is_trial:
-            if to.search_use_default is True:
-                default_svc_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)
-                default_search_config, default_locations = get_search_config(default_svc_identity_user)
-                update_search_config(service_identity_user,
-                                     SearchConfigTO.fromDBSearchConfig(default_search_config, default_locations))
-            elif to.search_config is not MISSING:
-                update_search_config(service_identity_user, to.search_config)
+        if to.search_use_default is True:
+            default_svc_identity_user = create_service_identity_user(service_user, ServiceIdentity.DEFAULT)
+            default_search_config, default_locations = get_search_config(default_svc_identity_user)
+            update_search_config(service_identity_user,
+                                 SearchConfigTO.fromDBSearchConfig(default_search_config, default_locations))
+        elif to.search_config is not MISSING:
+            update_search_config(service_identity_user, to.search_config)
 
         update_friends(si)
         if to.identifier == ServiceIdentity.DEFAULT:
-            deferred.defer(_update_inheriting_service_identities, si_key, is_trial, _transactional=True)
+            deferred.defer(_update_inheriting_service_identities, si_key, _transactional=True)
         return si
 
     xg_on = db.create_transaction_options(xg=True)
@@ -948,8 +924,8 @@ def create_or_update_service_identity(service_user, to):
 
 
 @returns(NoneType)
-@arguments(default_service_identity_key=db.Key, is_trial=bool)
-def _update_inheriting_service_identities(default_service_identity_key, is_trial):
+@arguments(default_service_identity_key=db.Key)
+def _update_inheriting_service_identities(default_service_identity_key):
     azzert(default_service_identity_key.name() == ServiceIdentity.DEFAULT)
 
     def trans(default_service_identity_key):
@@ -976,8 +952,7 @@ def _update_inheriting_service_identities(default_service_identity_key, is_trial
                     child_identity.homeBrandingHash = default_service_identity.homeBrandingHash
                 child_identity.version += 1
                 service_identities_modified.append(child_identity)
-            if not is_trial and is_flag_set(ServiceIdentity.FLAG_INHERIT_SEARCH_CONFIG,
-                                            child_identity.inheritanceFlags):
+            if is_flag_set(ServiceIdentity.FLAG_INHERIT_SEARCH_CONFIG, child_identity.inheritanceFlags):
                 if not default_search_initialized:
                     default_search_config, default_locations = get_search_config(default_service_identity.user)
                     default_search_initialized = True
@@ -994,9 +969,8 @@ def _update_inheriting_service_identities(default_service_identity_key, is_trial
         map(update_friends, service_identities_modified)
 
     # Make sure to update search config only AFTER the service identities have been stored
-    if not is_trial:
-        for search_config_update_entry in search_config_update_list:
-            update_search_config(*search_config_update_entry)
+    for search_config_update_entry in search_config_update_list:
+        update_search_config(*search_config_update_entry)
 
 
 @returns(NoneType)
@@ -1166,45 +1140,10 @@ def enable_service(service_user):
         from rogerthat.bizz.job.reschedule_service_api_callback_records import run
         timestamp = now()
         deferred.defer(run, timestamp, service_user, _transactional=True)
-        # send mail
-        text = render("service_enabled", None, {})
-        html = render("service_enabled_html", None, {})
-        se = ServiceEmail(parent=parent_key(service_user), timestamp=timestamp, messageText=text, messageHtml=html,
-                          subject="Your Rogerthat service has been enabled.")
-        profile.put()  # XXX:
-        se.put()  # These two puts should be done in one call
-        return se  # But profile needs cache update support for this --> use put_and_invalidate cache
-
-    se = db.run_in_transaction(trans)
-    settings = get_server_settings()
-    send_mail(settings.senderEmail, service_user.email(), se.subject, se.messageText, html=se.messageHtml)
-    return get_configuration(service_user)
-
-
-@returns(NoneType)
-@arguments(service_profile=ServiceProfile, reason=unicode)
-def send_callback_delivery_warning(service_profile, reason):
-    if service_profile.lastWarningSent and (service_profile.lastWarningSent + 3600) > now():
-        return
-
-    def trans():
-        profile = get_service_profile(service_profile.user, cached=False)
-        profile.lastWarningSent = now()
         profile.put()
-        return profile
 
     db.run_in_transaction(trans)
-    admins = [UserMemberTO(users.User(a.user_email), Message.ALERT_FLAG_VIBRATE | Message.ALERT_FLAG_RING_15) for a in
-              get_service_admins(service_profile.user)]
-
-    subject = "Rogerthat service %s will soon be disabled" % service_profile.user.email()
-    text = render("service_soon_disabled", None, {"reason": reason})
-    html = render("service_soon_disabled_html", None, {"reason": reason})
-
-    settings = get_server_settings()
-    emails = [a.member.email() for a in admins] + [service_profile.user.email()]
-    bcc_emails = ['services@onzestadapp.be']
-    send_mail(settings.senderEmail, emails, subject, text, html=html, bcc_emails=bcc_emails)
+    return get_configuration(service_user)
 
 
 @returns(ServiceConfigurationTO)
@@ -1218,23 +1157,9 @@ def disable_service(service_user, reason):
         # disable records for processing
         from rogerthat.bizz.job.unschedule_service_api_callback_records import run
         deferred.defer(run, service_user, _transactional=True)
-        # send mail
-        text = render("service_disabled", None, {"reason": reason})
-        html = render("service_disabled_html", None, {"reason": reason})
-        se = ServiceEmail(parent=parent_key(service_user), timestamp=now(), messageText=text, messageHtml=html,
-                          subject="Rogerthat service %s has been disabled!" % profile.user.email())
-        profile.put()  # XXX:
-        se.put()  # These two puts should be done in one call
-        return se  # But profile needs cache update support for this --> use put_and_invalidate cache
+        profile.put()
 
-    se = db.run_in_transaction(trans)
-    admins = [UserMemberTO(users.User(a.user_email),
-                           Message.ALERT_FLAG_VIBRATE | Message.ALERT_FLAG_RING_5 | Message.ALERT_FLAG_INTERVAL_5) for a
-              in get_service_admins(service_user)]
-    settings = get_server_settings()
-    emails = [a.member.email() for a in admins] + [service_user.email()]
-    bcc_emails = ['services@onzestadapp.be']
-    send_mail(settings.senderEmail, emails, se.subject, se.messageText, html=se.messageHtml, bcc_emails=bcc_emails)
+    db.run_in_transaction(trans)
     return get_configuration(service_user)
 
 
@@ -1260,19 +1185,19 @@ def update_callback_configuration(service_user, httpURI):
 @returns(ServiceConfigurationTO)
 @arguments(service_user=users.User, name=unicode, httpURI=unicode, regexes=[unicode], callbacks=(int, long), custom_headers=unicode)
 def create_callback_configuration(service_user, name, httpURI, regexes, callbacks, custom_headers):
-    
+
     callback_settings_key = ServiceCallBackSettings.create_key(service_user)
     callback_settings = callback_settings_key.get()
     if not callback_settings:
         callback_settings = ServiceCallBackSettings(key=callback_settings_key,
                                                     configs=[])
-    
+
     data_correct = False
     if len(regexes) >= 1:
         data_correct = True
     elif callbacks > 0:
         data_correct = True
-        
+
     try:
         if custom_headers:
             custom_headers_dict = json.loads(custom_headers)
@@ -1288,7 +1213,7 @@ def create_callback_configuration(service_user, name, httpURI, regexes, callback
     except:
         logging.debug('failed to save custom headers', exc_info=True)
         custom_headers_dict = None
-    
+
     current_config = callback_settings.get_config(name)
     corrent_d = datetime.utcnow()
     if current_config:
@@ -1309,15 +1234,15 @@ def create_callback_configuration(service_user, name, httpURI, regexes, callback
                                            custom_headers=custom_headers_dict)
         if data_correct:
             callback_settings.configs.append(new_config)
-    
-    if callback_settings.configs:   
+
+    if callback_settings.configs:
         callback_settings.put()
     else:
         callback_settings_key.delete()
- 
+
     return get_configuration(service_user)
- 
- 
+
+
 @returns()
 @arguments(service_user=users.User, name=unicode)
 def test_callback_configuration(service_user, name):
@@ -1330,8 +1255,8 @@ def test_callback_configuration(service_user, name):
         return
     set(service_user.email() + "_interactive_logs", True, 300)
     perform_test_callback(service_user, callback_name=name)
- 
- 
+
+
 @returns(ServiceConfigurationTO)
 @arguments(service_user=users.User, name=unicode)
 def delete_callback_configuration(service_user, name):
@@ -1341,12 +1266,12 @@ def delete_callback_configuration(service_user, name):
         config = callback_settings.get_config(name)
         if config:
             callback_settings.configs.remove(config)
-    
+
         if callback_settings.configs:
             callback_settings.put()
         else:
             callback_settings_key.delete()
- 
+
     return get_configuration(service_user)
 
 
@@ -2344,7 +2269,6 @@ def get_map_txt_from_fields(fields):
 @arguments(service_identity_user=users.User)
 def re_index(service_identity_user):
     service_user = get_service_user_from_service_identity_user(service_identity_user)
-    azzert(not is_trial_service(service_user))
 
     svc_index = search.Index(name=SERVICE_INDEX)
     loc_index = search.Index(name=SERVICE_LOCATION_INDEX)
@@ -2388,7 +2312,6 @@ def re_index(service_identity_user):
 @arguments(service_identity_user=users.User)
 def re_index_map_only(service_identity_user):
     service_user = get_service_user_from_service_identity_user(service_identity_user)
-    azzert(not is_trial_service(service_user))
 
     # re-add if necessary
     sc, locs = get_search_config(service_identity_user)
@@ -3192,7 +3115,7 @@ def create_service(email, name, password, languages, solution, category_id, orga
 
         validate_supported_apps()
 
-    sik, api_key = create_service_profile(new_service_user, name, False, update, supported_app_ids=supported_app_ids)[2]
+    sik, api_key = create_service_profile(new_service_user, name, update, supported_app_ids=supported_app_ids)[2]
 
     return sik, api_key
 

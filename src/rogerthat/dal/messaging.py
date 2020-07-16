@@ -77,12 +77,6 @@ def get_service_inbox(app_user, cursor):
     qry = get_service_inbox_query(app_user, cursor)
     return qry.fetch(50), qry.cursor()
 
-@returns(int)
-@arguments(app_user=users.User)
-def get_messages_count(app_user):
-    qry = Message.gql("WHERE member_status_index = :member ORDER BY timestamp DESC")
-    qry.bind(member=app_user.email())
-    return qry.count()
 
 @returns([Message])
 @arguments(app_user=users.User, message_key=unicode)

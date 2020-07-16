@@ -81,15 +81,6 @@ def configure_mobidick(user):
     return configure_mobidick_bizz(service_user)
 
 
-@rest("/mobi/rest/service/convert_to_service", "post")
-@returns(NoneType)
-@arguments()
-def convert_to_service():
-    from rogerthat.bizz.service import convert_user_to_service as convert_user_to_service_bizz
-    user = users.get_current_user()
-    return convert_user_to_service_bizz(user)
-
-
 @rest("/mobi/rest/service/generate_api_key", "post")
 @returns(ServiceConfigurationTO)
 @arguments(name=unicode)

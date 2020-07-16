@@ -82,11 +82,6 @@ def get_do_send_email_invitations(user):
     return DoNotSendMeMoreInvites.get_by_key_name(user.email())
 
 
-@returns([FriendCategory])
-@arguments()
-def get_friend_categories():
-    return sorted(FriendCategory.all(), key=lambda x: x.name.lower())
-
 @returns(FriendCategory)
 @arguments(category_id=unicode)
 def get_friend_category_by_id(category_id):

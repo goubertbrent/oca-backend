@@ -43,8 +43,6 @@ from rogerthat.pages.admin.explorer import ExplorerPage
 from rogerthat.pages.admin.installation_logs import InstallationLogsHandler
 from rogerthat.pages.admin.js_embedding import JSEmbeddingTools, DeployJSEmbeddingHandler, SaveJSEmbeddingHandler
 from rogerthat.pages.admin.mobile_errors import MobileErrorHandler
-from rogerthat.pages.admin.services import ConvertToService, ServiceTools, CreateTrialService, ReleaseTrialService, \
-    SetServiceMonitoring, SetServiceCategory
 from rogerthat.pages.admin.settings import ServerSettingsHandler
 from rogerthat.restapi import explorer, admin
 from rogerthat.wsgi import RogerthatWSGIApplication
@@ -83,12 +81,6 @@ handlers = [
     ('/cron/maps/notifications', MapNotificationsHandler),
     ('/cron/user/cleanup/context', CleanupUserContextHandler),
     ('/mobiadmin/explorer', ExplorerPage),
-    ('/mobiadmin/services', ServiceTools),
-    ('/mobiadmin/release_trial_service', ReleaseTrialService),
-    ('/mobiadmin/create_trial_service', CreateTrialService),
-    ('/mobiadmin/convert_to_service', ConvertToService),
-    ('/mobiadmin/set_service_category', SetServiceCategory),
-    ('/mobiadmin/set_service_monitoring', SetServiceMonitoring),
     ('/mobiadmin/installation_logs', InstallationLogsHandler),
     ('/mobiadmin/activation_logs', ActivationLogsHandler),
     ('/mobiadmin/client_errors', MobileErrorHandler),

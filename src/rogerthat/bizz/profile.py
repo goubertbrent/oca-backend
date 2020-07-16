@@ -28,7 +28,6 @@ from types import NoneType
 
 import facebook
 from google.appengine.api import images, urlfetch, search
-from google.appengine.api.images import composite, TOP_LEFT, BOTTOM_LEFT
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 from google.appengine.ext import db, deferred
 
@@ -51,7 +50,6 @@ from rogerthat.dal.broadcast import get_broadcast_settings_flow_cache_keys_of_us
 from rogerthat.dal.friend import get_friends_map
 from rogerthat.dal.profile import get_avatar_by_id, get_existing_profiles_via_facebook_ids, \
     get_existing_user_profiles, get_user_profile, get_profile_infos, get_profile_info, get_service_profile, \
-    is_trial_service, \
     get_user_profiles, get_service_or_user_profile, get_deactivated_user_profile
 from rogerthat.dal.service import get_default_service_identity_not_cached, get_all_service_friend_keys_query, \
     get_service_identities_query, get_all_archived_service_friend_keys_query, get_friend_serviceidentity_connection, \
@@ -536,11 +534,9 @@ def _validate_name(name):
     return name
 
 
-def _create_new_avatar(user, add_trial_overlay, image=None):
+def _create_new_avatar(user, image=None):
     avatar = Avatar(user=user)
     image = UNKNOWN_AVATAR if not image else base64.b64decode(image)
-    if add_trial_overlay:
-        image = add_trial_service_overlay(image)
     avatar.picture = db.Blob(image)
     avatar.put()
     return avatar, image
@@ -556,7 +552,7 @@ def create_user_profile(app_user, name, language=None, ysaaa=False, owncloud_pas
     def trans_create(avatar_image):
         azzert(not get_user_profile(app_user, cached=False))
 
-        avatar, image = _create_new_avatar(app_user, False, avatar_image)
+        avatar, image = _create_new_avatar(app_user, avatar_image)
 
         user_profile = UserProfile(parent=parent_key(app_user), key_name=app_user.email())
         if name:
@@ -643,7 +639,7 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language):
                               description="Reactivate user account by registering a paper loyalty card").put()
             else:
                 is_new_profile = True
-                avatar, image = _create_new_avatar(app_user, add_trial_overlay=False)
+                avatar, image = _create_new_avatar(app_user)
 
                 user_profile = UserProfile(parent=parent_key(app_user), key_name=app_user.email())
                 user_profile.name = name
@@ -670,9 +666,8 @@ def put_loyalty_user_profile(email, app_id, user_code, short_url_id, language):
 
 
 @returns(tuple)
-@arguments(service_user=users.User, name=unicode, is_trial=bool, update_func=types.FunctionType,
-           supported_app_ids=[unicode])
-def create_service_profile(service_user, name, is_trial=False, update_func=None, supported_app_ids=None):
+@arguments(service_user=users.User, name=unicode, update_func=types.FunctionType, supported_app_ids=[unicode])
+def create_service_profile(service_user, name, update_func=None, supported_app_ids=None):
     from rogerthat.bizz.service import create_default_qr_templates
     from rogerthat.bizz.news import create_default_news_settings
 
@@ -686,7 +681,7 @@ def create_service_profile(service_user, name, is_trial=False, update_func=None,
         default_app_id = supported_app_ids[0]
 
     def trans_prepare_create():
-        avatar, image = _create_new_avatar(service_user, is_trial)
+        avatar, image = _create_new_avatar(service_user)
 
         from rogerthat.bizz.service import _create_recommendation_qr_code
         share_sid_key = _create_recommendation_qr_code(service_user, ServiceIdentity.DEFAULT, default_app_id)
@@ -752,7 +747,7 @@ def update_user_profile(app_user, name, image, language):
             user_profile.first_name = None
             user_profile.last_name = None
         if image:
-            _update_avatar(user_profile, image, False)
+            _update_avatar(user_profile, image)
             changed_properties.append(u"avatar")
         user_profile.version += 1
         user_profile.put()
@@ -767,13 +762,13 @@ def update_user_profile(app_user, name, image, language):
     return user_profile
 
 
-def update_service_profile(service_user, image, add_trial_overlay):
+def update_service_profile(service_user, image):
     from rogerthat.bizz.job.update_friends import schedule_update_all_friends_of_service_user
 
     def trans():
         service_profile = get_service_profile(service_user)
         if image:
-            _update_avatar(service_profile, image, add_trial_overlay)
+            _update_avatar(service_profile, image)
         service_profile.version += 1
         service_profile.put()
 
@@ -781,7 +776,7 @@ def update_service_profile(service_user, image, add_trial_overlay):
     return run_in_transaction(trans, True)
 
 
-def _update_avatar(profile, image, add_trial_overlay):
+def _update_avatar(profile, image):
     _meta, img_b64 = image.split(',')
     image_bytes = base64.b64decode(img_b64)
 
@@ -792,8 +787,6 @@ def _update_avatar(profile, image, add_trial_overlay):
     if not avatar:
         avatar = Avatar(user=profile.user)
     image = img.execute_transforms(images.PNG, 100)
-    if add_trial_overlay:
-        image = add_trial_service_overlay(image)
     update_avatar_profile(profile, avatar, image)
 
 
@@ -812,8 +805,6 @@ def update_service_avatar(service_user, image):
     img = images.Image(image)
     img.resize(150, 150)
     image = img.execute_transforms(images.PNG, 100)
-    if is_trial_service(service_user):
-        image = add_trial_service_overlay(image)
 
     def trans():
         service_profile = get_service_profile(service_user)
@@ -835,20 +826,6 @@ def update_avatar_profile(profile, avatar, image):
     avatar.put()
     profile.avatarId = avatar.key().id()
     _calculateAndSetAvatarHash(profile, image)
-
-
-def add_trial_service_overlay(image):
-    image_width = images.Image(image).width
-    scale = image_width / 50.0
-    overlay = _get_trial_service_overlay()
-    if scale != 1:
-        overlay_img = images.Image(overlay)
-        new_size = int(scale * overlay_img.width)
-        overlay_img.resize(new_size, new_size)
-        overlay = overlay_img.execute_transforms(overlay_img.format, 100)
-
-    return composite([(image, 0, 0, 1.0, TOP_LEFT),
-                      (overlay, int(5 * scale), int(-5 * scale), 1.0, BOTTOM_LEFT)], image_width, image_width)
 
 
 @returns(unicode)
@@ -947,16 +924,6 @@ def _update_mobiles_deferred(user, request, skipped_mobile):
     if skipped_mobile is not None:
         extra_kwargs[SKIP_ACCOUNTS] = [skipped_mobile.account]
     identityUpdate(identity_update_response_handler, logError, user, request=request, **extra_kwargs)
-
-_TRIAL_SERVICE_OVERLAY_PATH = os.path.join(CURRENT_DIR, 'trial_service_overlay.png')
-
-
-def _get_trial_service_overlay():
-    f = open(_TRIAL_SERVICE_OVERLAY_PATH, "rb")
-    try:
-        return f.read()
-    finally:
-        f.close()
 
 
 @returns(NoneType)

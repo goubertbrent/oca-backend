@@ -42,12 +42,9 @@ from rogerthat.consts import FAST_QUEUE, HIGH_LOAD_WORKER_QUEUE
 from rogerthat.dal import put_and_invalidate_cache, generator
 from rogerthat.dal.app import get_app_by_id
 from rogerthat.dal.broadcast import get_broadcast_settings_flow_cache_keys_of_user
-from rogerthat.dal.friend import get_friends_map
-from rogerthat.dal.messaging import get_messages_count
 from rogerthat.dal.mobile import get_mobile_by_id, get_mobile_by_key, get_user_active_mobiles_count, \
-    get_mobiles_by_ios_push_id, get_user_active_mobiles, \
-    get_mobile_settings_cached
-from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, get_profile_info, \
+    get_mobiles_by_ios_push_id, get_mobile_settings_cached
+from rogerthat.dal.profile import get_avatar_by_id, get_user_profile_key, get_user_profile, \
     get_deactivated_user_profile, get_service_profile
 from rogerthat.models import UserProfile, Avatar, CurrentlyForwardingLogs, Installation, InstallationLog, \
     UserProfileInfo, UserProfileInfoAddress, \
@@ -60,7 +57,6 @@ from rogerthat.rpc.models import Mobile, RpcCAPICall, ServiceAPICallback, Sessio
 from rogerthat.rpc.rpc import mapping, logError
 from rogerthat.rpc.service import logServiceError
 from rogerthat.settings import get_server_settings
-from rogerthat.templates import render
 from rogerthat.to.app import UpdateAppAssetResponseTO, UpdateLookAndFeelResponseTO, UpdateEmbeddedAppsResponseTO, \
     UpdateEmbeddedAppResponseTO
 from rogerthat.to.profile import UserProfileTO
@@ -69,8 +65,7 @@ from rogerthat.to.system import UserStatusTO, IdentityTO, UpdateSettingsResponse
     UnregisterMobileRequestTO, IdentityUpdateResponseTO, LogErrorResponseTO, LogErrorRequestTO, ForwardLogsResponseTO, \
     ForwardLogsRequestTO, AddProfileAddressRequestTO, ProfileAddressTO, UpdateProfileAddressRequestTO, \
     AddProfilePhoneNumberRequestTO, UpdateProfilePhoneNumberRequestTO
-from rogerthat.translations import DEFAULT_LANGUAGE
-from rogerthat.utils import now, try_or_defer, send_mail, file_get_contents
+from rogerthat.utils import now, try_or_defer, file_get_contents
 from rogerthat.utils.app import get_app_id_from_app_user, get_app_user_tuple
 from rogerthat.utils.crypto import encrypt_for_jabber_cloud, decrypt_from_jabber_cloud
 from rogerthat.utils.languages import get_iso_lang
@@ -350,27 +345,6 @@ def get_identity(app_user, user_profile=None):
         idTO.owncloudUsername = None
         idTO.owncloudPassword = None
     return idTO
-
-
-@returns(NoneType)
-@arguments(user=users.User, type_=unicode, subject=unicode, message=unicode)
-def feedback(user, type_, subject, message):
-    email_subject = "Feedback - %s - %s" % (type_, subject)
-    friend_count = len(get_friends_map(user).friends)
-    message_count = get_messages_count(user)
-    mobiles = get_user_active_mobiles(user)
-    email = user.email()
-    timestamp = now()
-    profile_info = get_profile_info(user)
-
-    d = dict(type_=type_, subject=subject, message=message, email=email,
-             profile_info=profile_info, friend_count=friend_count, message_count=message_count,
-             mobiles=mobiles, timestamp=timestamp)
-
-    body = render("feedback", [DEFAULT_LANGUAGE], d)
-    server_settings = get_server_settings()
-
-    send_mail(server_settings.senderEmail, server_settings.supportEmail, email_subject, body)
 
 
 @mapping('com.mobicage.capi.system.updateSettingsResponseHandler')

@@ -558,14 +558,6 @@ var addFriendToMenu = function (friendsContainer, friend) {
 	</div>
 </div>
 {% else %}
-    {% if is_trial_service %}
-<div id="svcIsTrial" class="buble">
-    <div>
-        <span>This is a trial service. Contact Mobicage staff on <a href="mailto:info@mobicage.com">info@mobicage.com</a> for production Rogerthat services.</span>
-    </div>&nbsp;
-    <div id="pending" class="pending" style="display: none;">pending updates</div>
-</div>
-    {% endif %}
 <div id="svcUpdatesPending" style="display: none;" class="buble">
     <div>
         <span>There are pending changes. Click here to publish them.</span>
@@ -591,7 +583,6 @@ var addFriendToMenu = function (friendsContainer, friend) {
 {% else %}
 <a class="link mobreg" container="registerDeviceContainer" container-url="/static/parts/register_device.html">Register mobile device</a>
 {% endif %}
-<br><a class="link feedback" container="feedbackContainer" container-url="/static/parts/feedback.html">Feedback</a>
 {% else %}
 <hr/>
 <a class="selected-link servcon" container="servicePanelContainer" container-url="/static/parts/service.html">Configuration</a>
@@ -606,10 +597,6 @@ var addFriendToMenu = function (friendsContainer, friend) {
 <a class="selected-link qrcodes" container="serviceQRCodesContainer" container-url="/static/parts/service_qr_codes.html">My QR codes</a>
 <a class="selected-link mfd" container="messageFlowDesignContainer" container-url="/static/parts/message_flow_designer.html">Message flows</a>
 <a class="selected-link broadcast" container="serviceBroadcastContainer" container-url="/static/parts/service_broadcast.html">Broadcast center</a>
-<hr/>
-<a class="link documentation" href="http://www.rogerthat.net/developers/getting-started/" target="blanc">Developer documentation</a>
-<hr/>
-<a class="link feedback" container="feedbackContainer" container-url="/static/parts/feedback.html">Send feedback</a>
 {% endif %}
 
 {% endblock %}
@@ -974,7 +961,7 @@ var addFriendToMenu = function (friendsContainer, friend) {
             <input id="identity_qualified_identifier" type="text" />
 
             <hr />
-            
+
             <label>Home branding:</label>
             <select id="identity_home_branding">no branding</select>
             <input id="identity_home_branding_checkbox" type="checkbox" class="hidefordefault"/>

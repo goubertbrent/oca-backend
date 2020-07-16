@@ -44,7 +44,7 @@ class Test(mc_unittest.TestCase):
     def testServiceProfile(self):
         self.set_datastore_hr_probability(1)
 
-        service_profile, service_identity = create_service_profile(users.User(u's1@foo.com'), 's1', is_trial=True)
+        service_profile, service_identity = create_service_profile(users.User(u's1@foo.com'), 's1')
         service_profile = db.get(service_profile.key())
         assert service_profile.avatarId > 1
         assert service_profile.passwordHash is None

@@ -17,17 +17,8 @@
 # @@license_version:1.7@@
 
 SKIP_TEMPLATES = [
-    'feedback.tmpl',
-    'service_disabled.tmpl',
-    'service_disabled_html.tmpl',
-    'service_enabled.tmpl',
-    'service_enabled_html.tmpl',
     'signup.tmpl',
     'signup_html.tmpl',
-    'trial_service_signup.tmpl',
-    'trial_service_signup_html.tmpl',
-    'somebody_tries_to_register_his_mobile_on_your_service_account_warning.tmpl',
-    'somebody_tries_to_register_his_mobile_on_your_service_account_warning_html.tmpl'
     ]
 
 SKIP_WEB_TEMPLATES = [

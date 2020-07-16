@@ -27,13 +27,13 @@ from rogerthat.bizz import channel
 from rogerthat.bizz.profile import create_user_profile
 from rogerthat.consts import DEBUG, APPSCALE
 from rogerthat.dal.mobile import get_user_active_mobiles_count
-from rogerthat.dal.profile import is_trial_service, get_profile_info, get_service_or_user_profile
+from rogerthat.dal.profile import get_profile_info, get_service_or_user_profile
 from rogerthat.dal.service import get_service_identities_by_service_identity_users
 from rogerthat.pages.legal import get_current_document_version, DOC_TERMS_SERVICE, DOC_TERMS
 from rogerthat.restapi.roles import login_as
 from rogerthat.rpc import users
 from rogerthat.settings import get_server_settings
-from rogerthat.utils.service import get_service_user_from_service_identity_user, create_service_identity_user
+from rogerthat.utils.service import create_service_identity_user
 
 
 class CrossDomainDotXml(webapp.RequestHandler):
@@ -81,8 +81,6 @@ class MainPage(webapp.RequestHandler):
             if signin_path and self.request.path != signin_path:
                 return self.redirect(str(signin_path))
 
-        session_ = None
-        user_services = None
         owning_user_services = None
         should_show_service_picker = False
         session_user = None
@@ -129,18 +127,15 @@ class MainPage(webapp.RequestHandler):
 
             myname = myname.replace("\\", "\\\\").replace("'", "\\'")
             is_service = my_profile_info.isServiceIdentity
-            is_trial_service_ = is_trial_service(get_service_user_from_service_identity_user(user)) if is_service else False
             loading_enabled = not is_service
             user_services = session_.service_users
             session_user = session_.user
             session_service_identity_user = session_.service_identity_user
         else:
             mobile_count = 0
-            my_profile_info = None
             myavatarid = None
             myname = None
             is_service = False
-            is_trial_service_ = False
             user_services = None
             owning_user_services = None
 
@@ -153,7 +148,6 @@ class MainPage(webapp.RequestHandler):
             'myname': myname,
             'mobile_count': mobile_count,
             'is_service': is_service,
-            'is_trial_service': is_trial_service_,
             'session': users.create_logout_url("/") if user else users.create_login_url("/"),
             "loading_enabled": loading_enabled,
             'user_services': user_services,
@@ -230,14 +224,3 @@ def _get_front_page_image_by_ip(ip_addresses):
                           ip_addresses)
 
     return "/static/images/bg-image.jpg"
-
-
-class AboutPageHandler(webapp.RequestHandler):
-
-    def get(self):
-        user = users.get_current_user()
-        path = os.path.join(os.path.dirname(__file__), "about.html")
-
-        self.response.out.write(template.render(path, {
-            'user':user,
-            'session':users.create_logout_url("/") if user else users.create_login_url("/")}))

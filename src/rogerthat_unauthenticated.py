@@ -15,10 +15,11 @@
 #
 # @@license_version:1.7@@
 
-from google.appengine.api import app_identity
 import webapp2
+from google.appengine.api import app_identity
 
 from mcfw.restapi import rest_functions, GenericRESTRequestHandler
+from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
 from rogerthat.consts import DEBUG
 from rogerthat.handlers.image_handlers import AppQRTemplateHandler
 from rogerthat.handlers.itsme import ItsmeAuthorizeHandler, ItsmeLoginHandler, ItsmeAuthorizedHandler, ItsmeJWKsHandler
@@ -37,11 +38,10 @@ from rogerthat.pages.invite import InviteQRCodeRequestHandler, InviteUserRequest
 from rogerthat.pages.js_embedding import JSEmbeddingDownloadHandler
 from rogerthat.pages.legal import LegalHandler
 from rogerthat.pages.logging_page import LogExceptionHandler
-from rogerthat.pages.login import LoginHandler, AuthenticationRequiredHandler, OfflineDebugLoginHandler, \
+from rogerthat.pages.login import LoginHandler, AuthenticationRequiredHandler, \
     SetPasswordHandler, ResetPasswordHandler, AutoLogin
-from rogerthat.pages.main import MainPage, RobotsTxt, AboutPageHandler, CrossDomainDotXml
+from rogerthat.pages.main import MainPage, RobotsTxt, CrossDomainDotXml
 from rogerthat.pages.mdp import InitMyDigiPassSessionHandler, AuthorizedMyDigiPassHandler
-from rogerthat.pages.message import MessageHandler
 from rogerthat.pages.news import ViewNewsImageHandler, NewsSaveReadItems
 from rogerthat.pages.payment import PaymentCallbackHandler, PaymentLoginAppHandler, PaymentLoginRedirectHandler
 from rogerthat.pages.photo import ServiceDownloadPhotoHandler
@@ -58,7 +58,6 @@ from rogerthat.pages.service_map import ServiceMapHandler
 from rogerthat.pages.service_page import GetServiceAppHandler
 from rogerthat.pages.settings import ForwardLog, DebugLog
 from rogerthat.pages.shortner import ShortUrlHandler
-from rogerthat.pages.subscribe_service import SubscribeHandler
 from rogerthat.pages.unsubscribe_reminder_service import UnsubscribeReminderHandler, UnsubscribeBroadcastHandler, \
     UnsubscribeDeactivateHandler
 from rogerthat.restapi import user, srv, service_map, news, apps, payment, logger, embedded_apps, firebase
@@ -69,9 +68,10 @@ from rogerthat.rpc.service import ServiceApiHandler, CallbackResponseReceiver
 from rogerthat.service.api import XMLSchemaHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from rogerthat_service_api_calls import register_all_service_api_calls
-from rogerthat.bizz.jobs import worker_callbacks as jobs_worker_callbacks
+
 
 def authorize_internal_request():
+    # Authorizes requests made by the application on a different 'service' (<service>-dot-<application_id>.appspot.com)
     if DEBUG:
         return True
     allowed_app_ids = [app_identity.get_application_id()]
@@ -113,22 +113,18 @@ handlers = [
     ('/unauthenticated/debug_log', DebugLog),
     ('/unauthenticated/service-map', ServiceMapHandler),
     ('/unauthenticated/service-app', GetServiceAppHandler),
-    ('/message', MessageHandler),
     ('/json-rpc', JSONRPCRequestHandler),
     ('/json-rpc/instant', InstantJSONRPCRequestHandler),
     ('/auth', UserAuthenticationHandler),
     ('/api/1', ServiceApiHandler),
     ('/api/1/MessageFlow.xsd', XMLSchemaHandler),
     ('/branding/([^/]+)/(.*)', BrandingHandler),
-    ('/login/.dev', OfflineDebugLoginHandler),
-    ('/subscribe', SubscribeHandler),
     ('/invite', InviteQRCodeRequestHandler),
     ('/q/i(.*)', InviteUserRequestHandler),
     ('/si/(.*)/(.*)', ServiceInteractQRCodeRequestHandler),
     ('/q/s/(.*)/(.*)', ServiceInteractRequestHandler),
     ('/(M|S)/(.*)', ShortUrlHandler),
     ('/A/(.*)', AppUrlHandler),
-    ('/about', AboutPageHandler),
     ('/setpassword', SetPasswordHandler),
     ('/resetpassword', ResetPasswordHandler),
     ('/install/?', InstallationRequestHandler),

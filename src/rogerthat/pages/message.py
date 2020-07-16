@@ -18,10 +18,9 @@
 import datetime
 import os
 
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import template
-
 import cloudstorage
+from google.appengine.ext import webapp
+
 from mcfw.properties import azzert
 from rogerthat.bizz import gcs
 from rogerthat.consts import ROGERTHAT_ATTACHMENTS_BUCKET
@@ -34,15 +33,6 @@ from rogerthat.utils.channel import broadcast_via_iframe_result
 from rogerthat.utils.crypto import md5_hex
 
 _BASE_DIR = os.path.dirname(__file__)
-
-
-class MessageHandler(webapp.RequestHandler):
-    def get(self):
-        user_agent = self.request.environ['HTTP_USER_AGENT']
-        mobile = "Android" in user_agent or "iPhone" in user_agent or 'iPad' in user_agent or 'iPod' in user_agent
-        message = self.request.get("message", "Thank you for using Rogerthat!")
-        path = os.path.join(_BASE_DIR, 'message.html')
-        self.response.out.write(template.render(path, {'message': message, "mobile": mobile}))
 
 
 class MessageHistoryHandler(webapp.RequestHandler):

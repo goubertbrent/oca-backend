@@ -73,12 +73,6 @@ class DemoServiceException(ServiceApiException):
         super(DemoServiceException, self).__init__(self.BASE_CODE_NEWS + 9, message)
 
 
-class TrialServiceException(ServiceApiException):
-    def __init__(self):
-        message = 'A demo service may not publish news.'
-        super(TrialServiceException, self).__init__(self.BASE_CODE_NEWS + 10, message)
-
-
 class InvalidScheduledTimestamp(ServiceApiException):
     def __init__(self):
         message = u'Scheduled timestamp must be in the future'

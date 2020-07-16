@@ -68,7 +68,7 @@ def validate_sln_settings(sln_settings):
     # type: (SolutionSettings) -> None
     for identity in sln_settings.identities:
         to = ServiceIdentityDetailsTO(identifier=identity, name=sln_settings.name)
-        _validate_service_identity(to, False)
+        _validate_service_identity(to)
 
 
 @returns(tuple)

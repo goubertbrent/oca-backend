@@ -19,7 +19,7 @@ import logging
 
 from mcfw.restapi import rest
 from mcfw.rpc import returns, arguments
-from rogerthat.dal.profile import is_service_identity_user, is_trial_service
+from rogerthat.dal.profile import is_service_identity_user
 from rogerthat.rpc import users
 from rogerthat.to.profile import CompleteProfileTO
 
@@ -43,7 +43,7 @@ def rest_update_profile(name, image, language):
     user = users.get_current_user()
     try:
         if is_service_identity_user(user):
-            update_service_profile(user, image, is_trial_service(user))
+            update_service_profile(user, image)
         else:
             update_user_profile(user, name, image, language)
 
