@@ -90,6 +90,13 @@ class TestOpeningHours(mc_unittest.TestCase):
         ]
         opening_hours.put()
         return opening_hours
+    
+    def test_hours_lang(self):
+        opening_hours = self._create_hours(self.exception_color)
+        now = datetime.datetime(2019, 11, 27, 12, 41, 2)  # Wednesday
+        get_opening_hours_info(opening_hours, self.timezone, 'nl_AX', now)
+        get_opening_hours_info(opening_hours, self.timezone, 'fr_IT', now)
+        get_opening_hours_info(opening_hours, self.timezone, 'it_BE', now)
 
     def test_hours_1(self):
         opening_hours = self._create_hours(self.exception_color)

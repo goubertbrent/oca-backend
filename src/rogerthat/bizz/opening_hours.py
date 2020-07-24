@@ -19,6 +19,7 @@ import datetime
 from collections import defaultdict
 
 import pytz
+from babel import localedata
 from babel.dates import format_date, format_time
 from dateutil.relativedelta import relativedelta
 from typing import List, Tuple
@@ -39,12 +40,22 @@ def is_always_closed(periods):
     return len(periods) == 0
 
 
+def get_supported_babel_lang(lang):
+    lang = lang.replace('-', '_')
+    if localedata.exists(lang):
+        return lang
+    if '_' in lang:
+        return get_supported_babel_lang(lang.split('_')[0])
+    return 'en'
+
+
 def get_opening_hours_info(opening_hours, timezone, lang, now=None):
     # type: (OpeningHours, str, str, datetime) -> Tuple[bool, str, str, List[WeekDayTextTO]]
     if not now:
         now = datetime.datetime.utcnow()
     now_ = now + pytz.timezone(timezone).utcoffset(now)
     exceptions = opening_hours.exceptional_opening_hours
+    lang = get_supported_babel_lang(lang)
     now_open, open_until, extra_description = get_open_until_with_exceptions(opening_hours.periods, exceptions, now_,
                                                                              lang)
     weekday_text = get_weekday_text(opening_hours.periods, exceptions, lang, now_.date())
