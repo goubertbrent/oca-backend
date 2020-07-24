@@ -67,7 +67,8 @@ from rogerthat.rpc.http import JSONRPCRequestHandler, UserAuthenticationHandler,
     InstantJSONRPCRequestHandler
 from rogerthat.rpc.service import ServiceApiHandler, CallbackResponseReceiver
 from rogerthat.service.api import XMLSchemaHandler
-import rogerthat.web_client.api
+import rogerthat.web_client.api.app
+import rogerthat.web_client.api.news
 from rogerthat.web_client.pages.news import NewsPageHandler
 from rogerthat.wsgi import RogerthatWSGIApplication
 from rogerthat_service_api_calls import register_all_service_api_calls
@@ -182,7 +183,8 @@ handlers.extend(rest_functions(embedded_apps))
 handlers.extend(rest_functions(payment))
 handlers.extend(rest_functions(logger))
 handlers.extend(rest_functions(firebase))
-handlers.extend(rest_functions(rogerthat.web_client.api))
+handlers.extend(rest_functions(rogerthat.web_client.api.app))
+handlers.extend(rest_functions(rogerthat.web_client.api.news))
 handlers.extend(rest_functions(build_api))
 handlers.extend(rest_functions(jobs_worker_callbacks, authorized_function=authorize_internal_request))
 
