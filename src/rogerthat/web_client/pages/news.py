@@ -30,7 +30,7 @@ from rogerthat.to.news import NewsItemTO
 from rogerthat.translations import localize, DEFAULT_LANGUAGE
 from rogerthat.utils.service import remove_slash_default
 from rogerthat.web_client.api.app import rest_get_app_info
-from rogerthat.web_client.api.news import rest_get_news_item
+from rogerthat.web_client.api.news import get_news_item_details
 from rogerthat.web_client.pages.web_client import WebRequestHandler
 from solutions.common.dal import get_solution_settings
 
@@ -139,13 +139,15 @@ class NewsPageHandler(WebRequestHandler):
         news_id = long(news_id)
         language = self.get_language()
         try:
-            news_item_to = rest_get_news_item(application_identifier, news_id, language=language)
+            news_item, app_name_mapping, news_item_to = get_news_item_details(application_identifier, news_id, language=language)
         except HttpNotFoundException:
             # TODO fancy 404 page
             self.abort(404)
-        models = ndb.get_multi([NewsItem.create_key(news_id), AppNameMapping.create_key(application_identifier)])
-        news_item, app_mapping = models  # type: NewsItem, Optional[AppNameMapping]
-        app = get_app_by_id(app_mapping.app_id)
+            return
+        if not app_name_mapping:
+            self.abort(404)
+            return
+        app = get_app_by_id(app_name_mapping.app_id)
 
         sln_settings = get_solution_settings(remove_slash_default(users.User(news_item_to.sender.email)))
         news_item_language = sln_settings.main_language

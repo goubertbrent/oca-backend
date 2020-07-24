@@ -37,11 +37,9 @@ from rogerthat.utils.service import get_service_user_from_service_identity_user
 from rogerthat.web_client.pages.web_client import handle_web_request
 from solutions import translate
 
-
-@rest('/api/web/<app_name:[^/]+>/news/id/<news_id:\d+>', 'get')
-@returns(NewsItemTO)
+@returns(tuple)
 @arguments(app_name=unicode, news_id=(int, long), language=unicode)
-def rest_get_news_item(app_name, news_id, language=None):
+def get_news_item_details(app_name, news_id, language=None):
     news_item, app_name_mapping = ndb.get_multi([
         NewsItem.create_key(news_id),
         AppNameMapping.create_key(app_name)
@@ -58,8 +56,14 @@ def rest_get_news_item(app_name, news_id, language=None):
     app_id = app_name_mapping.app_id if app_name_mapping else service_identity.defaultAppId
     share_base_url = get_news_share_base_url(server_settings.webClientUrl, app_id, news_item.app_ids)
     share_url = get_news_share_url(share_base_url, news_item.id)
-    return NewsItemTO.from_model(news_item, server_settings.baseUrl, service_profile, service_identity,
-                                 share_url=share_url)
+    return news_item, app_name_mapping, NewsItemTO.from_model(news_item, server_settings.baseUrl, service_profile, service_identity, share_url=share_url)
+
+
+@rest('/api/web/<app_name:[^/]+>/news/id/<news_id:\d+>', 'get')
+@returns(NewsItemTO)
+@arguments(app_name=unicode, news_id=(int, long), language=unicode)
+def rest_get_news_item(app_name, news_id, language=None):
+    return get_news_item_details(app_name, news_id, language=language)[2]
 
 
 @rest('/api/web/<app_name:[^/]+>/news/id/<news_id:\d+>/action/<action:[^/]+>', 'post')
