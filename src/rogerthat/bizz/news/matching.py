@@ -578,8 +578,10 @@ def update_badge_count_user(app_user, group_or_id, badge_count, mobiles=None, sa
 def _get_group_types_for_user(app_user):
     # type: (NewsSettingsUser) -> Dict[str, List[str]]
     # NewsSettingsUser should always exist
-    s = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
     group_types = {}
+    s = NewsSettingsUser.create_key(app_user).get()  # type: NewsSettingsUser
+    if not s:
+        return group_types
     for g in s.get_groups_sorted():
         for d in g.get_details_sorted():
             if d.notifications == NewsNotificationFilter.SPECIFIED:
@@ -591,7 +593,8 @@ def _get_group_types_for_user(app_user):
 
 def setup_notification_settings_for_user(app_user, service_identity_user):
     group_types = _get_group_types_for_user(app_user)
-
+    if not group_types:
+        return
     to_put = _setup_notification_settings_for_user(app_user, service_identity_user, group_types)
     logging.debug('setup_notification_settings_for_user len(to_put): %s', len(to_put))
     if to_put:
